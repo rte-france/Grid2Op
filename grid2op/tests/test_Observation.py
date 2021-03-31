@@ -13,29 +13,31 @@ import pdb
 
 from grid2op.tests.helper_path_test import *
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Observation import ObservationSpace, CompleteObservation
-from grid2op.Chronics import ChronicsHandler, GridStateFromFile
-from grid2op.Rules import RulesChecker
-from grid2op.Reward import L2RPNReward
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts
+from grid2op.Rules import RulesChecker, DefaultRules
+from grid2op.Reward import L2RPNReward, CloseToOverflowReward, RedispReward
 from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import Environment
 from grid2op.MakeEnv import make
+from grid2op.Action import CompleteAction, PlayableAction
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
 # copied]
 
 # temporary deactivation of all the failing test until simulate is fixed
-DEACTIVATE_FAILING_TEST = True
+DEACTIVATE_FAILING_TEST = False
 
 import warnings
 warnings.simplefilter("error")
 
 
-class TestLoadingBackendFunc(unittest.TestCase):
+class TestBasisObsBehaviour(unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
@@ -55,26 +57,32 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                     '3_8_16', '4_5_17', '6_7_18', '6_8_19'],
                       'name_sub': ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3',
                                    'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9'],
+                      'name_storage': [],
+                      'glop_version': grid2op.__version__,
                       'env_name': 'rte_case14_test',
                       'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
                       'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
                       'gen_to_subid': [1, 2, 5, 7, 0],
                       'line_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
                       'line_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
+                      "storage_to_subid": [],
                       'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3],
                       'gen_to_sub_pos': [4, 2, 4, 1, 2],
                       'line_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
                       'line_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
+                      "storage_to_sub_pos": [],
                       'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
                       'gen_pos_topo_vect': [7, 11, 28, 34, 2],
                       'line_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22,
                                                 31, 32],
                       'line_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27,
                                                 33, 38],
+                      "storage_pos_topo_vect": [],
                       'gen_type': ['nuclear', 'thermal', 'solar', 'wind', 'thermal'],
                       'gen_pmin': [0.0, 0.0, 0.0, 0.0, 0.0],
                       'gen_pmax': [200.0, 200.0, 40.0, 70.0, 400.0],
                       'gen_redispatchable': [True, True, False, False, True],
+                      'gen_renewable': [False, False, True, True, False],
                       'gen_max_ramp_up': [5.0, 10.0, 0.0, 0.0, 10.0],
                       'gen_max_ramp_down': [5.0, 10.0, 0.0, 0.0, 10.0],
                       'gen_min_uptime': [96, 4, 0, 0, 4],
@@ -88,13 +96,23 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                        "sub_5": [222.0,108.0], "sub_6": [79.0,162.0],"sub_7": [-170.0,270.0],
                                        "sub_8": [-64.0,270.0], "sub_9": [222.0,216.0]},
                       'name_shunt': ['shunt_8_0'], 'shunt_to_subid': [8],
+                      "storage_type": [],
+                      "storage_Emax": [],
+                      "storage_Emin": [],
+                      "storage_max_p_prod": [],
+                      "storage_max_p_absorb": [],
+                      "storage_marginal_cost": [],
+                      "storage_loss": [],
+                      'storage_charging_efficiency': [],
+                      'storage_discharging_efficiency': [],
                       '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation'}
 
         self.json_ref = {'year': [2019], 'month': [1], 'day': [6], 'hour_of_day': [0], 'minute_of_hour': [0],
-                         'day_of_week': [6], 'prod_p': [93.5999984741211, 75.0, 0.0, 7.599999904632568, 77.9990234375],
-                         'prod_q': [65.4969711303711, 98.51886749267578, -12.746061325073242, 6.789371013641357,
+                         'day_of_week': [6],
+                         'gen_p': [93.5999984741211, 75.0, 0.0, 7.599999904632568, 77.9990234375],
+                         'gen_q': [65.4969711303711, 98.51886749267578, -12.746061325073242, 6.789371013641357,
                                     3.801255941390991],
-                         'prod_v': [142.10000610351562, 142.10000610351562, 0.20000000298023224, 12.0,
+                         'gen_v': [142.10000610351562, 142.10000610351562, 0.20000000298023224, 12.0,
                                     142.10000610351562],
                          'load_p': [21.200000762939453, 86.9000015258789, 15.199999809265137, 45.5, 7.300000190734863,
                                     11.699999809265137, 29.399999618530273, 8.600000381469727, 3.5, 5.599999904632568,
@@ -167,7 +185,14 @@ class TestLoadingBackendFunc(unittest.TestCase):
                          '_shunt_p': [0.0],
                          '_shunt_q': [-17.923625946044922],
                          '_shunt_v': [0.20202238857746124],
-                         '_shunt_bus': [1]}
+                         '_shunt_bus': [1],
+                         'storage_charge': [],
+                         'storage_power_target': [],
+                         'storage_power': [],
+                         "gen_p_before_curtail": [0.0, 0.0, 0.0, 7.599999904632568, 0.0],
+                         "curtailment": [0.0, 0.0, 0.0, 0.0, 0.0],
+                         "curtailment_limit": [1.0, 1.0, 1.0, 1.0, 1.0]
+                         }
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
                                 dt_float, dt_float, dt_float,
@@ -176,15 +201,19 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                 dt_float, dt_float, dt_float,
                                 dt_float, dt_bool, dt_int, dt_int,
                                 dt_int, dt_int,
-                                dt_int, dt_int, dt_float, dt_float],
+                                dt_int, dt_int, dt_float, dt_float,
+                                dt_float, dt_float, dt_float,
+                                # curtailment
+                                dt_float, dt_float, dt_float
+                                ],
                                dtype=object)
 
         self.dtypes = np.array([np.dtype(el) for el in self.dtypes])
 
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
-                                            20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
-                                 5, 5])
-        self.size_obs = 414
+                                 20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
+                                 5, 5, 0, 0, 0, 5, 5, 5])
+        self.size_obs = 429
 
     def tearDown(self):
         self.env.close()
@@ -192,6 +221,19 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_sum_shape_equal_size(self):
         obs = self.env.observation_space(self.env)
         assert obs.size() == np.sum(obs.shape())
+
+    def test_sub_topology(self):
+        """test the sub_topology function"""
+        obs = self.env.observation_space(self.env)
+        # test in normal conditions
+        topo = obs.sub_topology(sub_id=1)
+        assert np.all(topo == 1)
+        # test if i fake a change in the topology
+        obs.topo_vect[2] = 2
+        topo = obs.sub_topology(sub_id=0)
+        assert np.array_equal(topo, [1, 1, 2])
+        topo = obs.sub_topology(sub_id=1)
+        assert np.all(topo == 1)
 
     def test_size(self):
         obs = self.env.observation_space(self.env)
@@ -208,9 +250,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_size_action_space(self):
         assert self.env.observation_space.size() == self.size_obs
 
-    def test_bus_conn_mat(self):
+    def aux_test_bus_conn_mat(self, as_csr=False):
         obs = self.env.observation_space(self.env)
-        mat1 = obs.bus_connectivity_matrix()
+        mat1 = obs.bus_connectivity_matrix(as_csr_matrix=as_csr)
         ref_mat = np.array([[1., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
                            [1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
                            [0., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -227,63 +269,343 @@ class TestLoadingBackendFunc(unittest.TestCase):
                            [0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1.]])
         assert np.all(mat1 == ref_mat)
 
+    def test_bus_conn_mat(self):
+        self.aux_test_bus_conn_mat()
+
+    def test_bus_conn_mat_twice(self):
+        """test i can call twice the bus_connectivity_matrix"""
+        obs = self.env.observation_space(self.env)
+        mat1 = obs.bus_connectivity_matrix(as_csr_matrix=False)
+        mat2 = obs.bus_connectivity_matrix(as_csr_matrix=True)
+        mat3 = obs.bus_connectivity_matrix(as_csr_matrix=False)
+        mat4 = obs.bus_connectivity_matrix(as_csr_matrix=True)
+        assert np.all(mat1 == mat3)
+        assert np.all(mat2.todense() == mat4.todense())
+        assert np.all(mat1 == mat2.todense())
+
+    def test_conn_mat_twice(self):
+        """test i can call twice the connectivity_matrix"""
+        obs = self.env.observation_space(self.env)
+        mat1 = obs.connectivity_matrix(as_csr_matrix=False)
+        mat2 = obs.connectivity_matrix(as_csr_matrix=True)
+        mat3 = obs.connectivity_matrix(as_csr_matrix=False)
+        mat4 = obs.connectivity_matrix(as_csr_matrix=True)
+        assert np.all(mat1 == mat3)
+        assert np.all(mat2.todense() == mat4.todense())
+        assert np.all(mat1 == mat2.todense())
+
+    def test_flow_bus_mat_twice(self):
+        """test i can call twice the flow_bus_matrix (it crashed before due to a bug of a copy of an array)"""
+        obs = self.env.observation_space(self.env)
+        mat1, *_ = obs.flow_bus_matrix(as_csr_matrix=False)
+        mat2, *_ = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat3, *_ = obs.flow_bus_matrix(as_csr_matrix=False)
+        mat4, *_ = obs.flow_bus_matrix(as_csr_matrix=True)
+        assert np.all(mat1 == mat3)
+        assert np.all(mat2.todense() == mat4.todense())
+        assert np.all(mat1 == mat2.todense())
+
+    def test_networkx_graph(self):
+        obs = self.env.observation_space(self.env)
+        graph = obs.as_networkx()
+        for node_id in graph.nodes:
+            # retrieve power (active and reactive) produced at this node
+            p_ = graph.nodes[node_id]["p"]
+            q_ = graph.nodes[node_id]["q"]
+
+            # get the edges
+            edges = graph.edges(node_id)
+            p_line = 0
+            q_line = 0
+            for (k1, k2) in edges:
+                if k1 < k2:
+                    p_line += graph.edges[(k1, k2)]["p_or"]
+                    q_line += graph.edges[(k1, k2)]["q_or"]
+                else:
+                    p_line += graph.edges[(k1, k2)]["p_ex"]
+                    q_line += graph.edges[(k1, k2)]["q_ex"]
+            assert abs(p_line - p_) <= 1e-5, "error for kirchoff's law for graph for P"
+            assert abs(q_line - q_) <= 1e-5, "error for kirchoff's law for graph for Q"
+
+    def test_bus_conn_mat_csr(self):
+        self.aux_test_bus_conn_mat(as_csr=True)
+
     def test_conn_mat(self):
         obs = self.env.observation_space(self.env)
         mat = obs.connectivity_matrix()
-        ref_mat = np.array([[0., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+        ref_mat = np.array([[1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                             0., 0., 0., 0., 0., 0., 0., 0.],
-                            [1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [1., 0., 0., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [1., 0., 0., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 1., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0.,
+                            [0., 0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 1., 1., 0., 1., 1., 1., 0., 0., 0., 0., 1., 0., 0., 0.,
+                            [0., 0., 0., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 1., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 1., 1., 1., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [0., 0., 0., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 1., 1., 1., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [0., 0., 0., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [0., 0., 0., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0., 0.,
+                            [0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 1., 1., 1., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.]
                             ])
-        assert np.all(mat[:10,:] == ref_mat)
+
+        assert np.all(mat[:10, :] == ref_mat)
+        ind_conn = obs.topo_vect > 0
+        assert np.all(mat[ind_conn, ind_conn] == 1)
+        mat2 = obs.connectivity_matrix(as_csr_matrix=True)
+        assert np.all(mat2[:10, :] == ref_mat)
+        assert np.all(mat2[ind_conn, ind_conn] == 1)
+
+        # test disconnected element (1 disconnect)
+        disco_powerline = self.env.action_space()
+        line_id = 0
+        disco_powerline.line_set_status = [(line_id, -1)]
+        obs, reward, done, info = self.env.step(disco_powerline)
+        assert not done
+        mat3 = obs.connectivity_matrix()
+        lor_id = self.env.line_or_pos_topo_vect[line_id]
+        lex_id = self.env.line_ex_pos_topo_vect[line_id]
+        assert np.all(mat3[lor_id, :] == 0)
+        assert np.all(mat3[:, lor_id] == 0)
+        assert np.all(mat3[lex_id, :] == 0)
+        assert np.all(mat3[:, lex_id] == 0)
+        ind_conn = obs.topo_vect > 0
+        assert np.all(mat3[ind_conn, ind_conn] == 1)
+
+        mat4 = obs.connectivity_matrix(as_csr_matrix=True)
+        assert mat4[lor_id, :].nnz == 0
+        assert mat4[:, lor_id].nnz == 0
+        assert mat4[lex_id, :].nnz == 0
+        assert mat4[:, lor_id].nnz == 0
+
+        # test 2 disconnected element (check they are not connected together)
+        disco_powerline2 = self.env.action_space()
+        line_id2 = 7
+        disco_powerline2.line_set_status = [(line_id2, -1)]
+        lor_id2 = self.env.line_or_pos_topo_vect[line_id2]
+        lex_id2 = self.env.line_ex_pos_topo_vect[line_id2]
+        obs, reward, done, info = self.env.step(disco_powerline2)
+        assert not done
+        assert np.array_equal(obs.line_status[[0, 7]], [False, False])
+        mat5 = obs.connectivity_matrix()
+        assert np.all(mat5[lor_id, :] == 0)
+        assert np.all(mat5[:, lor_id] == 0)
+        assert np.all(mat5[lex_id, :] == 0)
+        assert np.all(mat5[:, lex_id] == 0)
+        assert np.all(mat5[lor_id2, :] == 0)
+        assert np.all(mat5[:, lor_id2] == 0)
+        assert np.all(mat5[lex_id2, :] == 0)
+        assert np.all(mat5[:, lex_id2] == 0)
+
+        mat6 = obs.connectivity_matrix(as_csr_matrix=True)
+        assert mat6[lor_id, :].nnz == 0
+        assert mat6[:, lor_id].nnz == 0
+        assert mat6[lex_id, :].nnz == 0
+        assert mat6[:, lor_id].nnz == 0
+        assert mat6[lor_id2, :].nnz == 0
+        assert mat6[:, lor_id2].nnz == 0
+        assert mat6[lex_id2, :].nnz == 0
+        assert mat6[:, lor_id2].nnz == 0
+
+    def aux_test_conn_mat2(self, as_csr=False):
+        l_id = 0
+        # check line is connected, and matrix is the right size
+        ob0 = self.env.get_obs()
+        mat0 = ob0.bus_connectivity_matrix(as_csr)
+        assert mat0.shape == (14, 14)
+        assert mat0[ob0.line_or_to_subid[l_id], ob0.line_ex_to_subid[l_id]] == 1.
+        assert mat0[ob0.line_ex_to_subid[l_id], ob0.line_or_to_subid[l_id]] == 1.
+
+        # when a powerline is disconnected, check it is disconnected
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_line_status": [(l_id, -1)]}))
+        assert not done
+        mat = obs.bus_connectivity_matrix(as_csr)
+        assert mat.shape == (14, 14)
+        assert mat[obs.line_or_to_subid[l_id], obs.line_ex_to_subid[l_id]] == 0.
+        assert mat[obs.line_ex_to_subid[l_id], obs.line_or_to_subid[l_id]] == 0.
+
+        # when there is a substation counts 2 buses
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}}))
+        assert not done
+        assert obs.bus_connectivity_matrix(as_csr).shape == (15, 15)
+        assert obs.bus_connectivity_matrix(as_csr)[14, 11] == 1.  # first powerline I modified
+        assert obs.bus_connectivity_matrix(as_csr)[14, 12] == 1.  # second powerline I modified
+        assert obs.bus_connectivity_matrix(as_csr)[5, 11] == 0.  # first powerline modified
+        assert obs.bus_connectivity_matrix(as_csr)[5, 12] == 0.  # second powerline modified
 
     def test_conn_mat2(self):
-        # when a powerline is disconnected
-        obs, *_ = self.env.step(self.env.action_space({"set_line_status": [(0, -1)]}))
-        assert obs.bus_connectivity_matrix().shape == (14, 14)
-        # when there is a substation counts 2 buses
-        obs, *_ = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}}))
-        assert obs.bus_connectivity_matrix().shape == (15, 15)
-        assert obs.bus_connectivity_matrix()[14, 11] == 1.  # first powerline modified
-        assert obs.bus_connectivity_matrix()[14, 12] == 1.  # second powerline modified
-        assert obs.bus_connectivity_matrix()[5, 11] == 0.  # first powerline modified
-        assert obs.bus_connectivity_matrix()[5, 12] == 0.  # second powerline modified
+        self.aux_test_conn_mat2(as_csr=False)
+
+    def test_conn_mat2_csr(self):
+        self.aux_test_conn_mat2(as_csr=True)
+
+    def aux_test_conn_mat3(self, as_csr=False):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case14_realistic", test=True)
+        obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
+        mat, (ind_lor, ind_lex) = obs.bus_connectivity_matrix(as_csr, return_lines_index=True)
+        assert mat.shape == (15, 15)
+        assert ind_lor[7] == 14
+        assert ind_lor[8] == 14
+        obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(2, 2)],
+                                                                         "lines_ex_id": [(0, 2)]}}))
+        mat, (ind_lor, ind_lex) = obs.bus_connectivity_matrix(as_csr, return_lines_index=True)
+        assert mat.shape == (16, 16)
+        assert ind_lor[7] == 15
+        assert ind_lor[8] == 15
+        assert ind_lor[2] == 14
+        assert ind_lex[0] == 14
+
+    def test_conn_mat3(self):
+        self.aux_test_conn_mat3(False)
+
+    def test_conn_mat3_csr(self):
+        self.aux_test_conn_mat3(True)
+
+    def test_active_flow_bus_matrix(self):
+        self.aux_flow_bus_matrix(active_flow=True)
+
+    def test_reactive_flow_bus_matrix(self):
+        self.aux_flow_bus_matrix(active_flow=False)
+
+    def aux_flow_bus_matrix(self, active_flow):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case14_realistic", test=True)
+        obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(active_flow=active_flow,
+                                                                        as_csr_matrix=True)
+        assert mat.shape == (15, 15)
+        assert ind_lor[7] == 14
+        assert ind_lor[8] == 14
+        # check that kirchoff law is met
+        if active_flow:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        else:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_q[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.q_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one
+
+        obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(2, 2)],
+                                                                         "lines_ex_id": [(0, 2)]}}))
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(active_flow=active_flow,
+                                                                        as_csr_matrix=True)
+        assert mat.shape == (16, 16)
+        assert ind_lor[7] == 15
+        assert ind_lor[8] == 15
+        assert ind_lor[2] == 14
+        assert ind_lex[0] == 14
+        # check that kirchoff law is met
+        if active_flow:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+            assert np.abs(mat[0, 14] + obs.p_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one  # powerline 1 has not moved
+        else:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_q[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+            assert np.abs(mat[0, 14] + obs.q_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one  # powerline 1 has not moved
+        env.close()
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("educ_case14_storage", test=True, action_class=CompleteAction)
+        obs = env.reset()
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(active_flow=active_flow,
+                                                                        as_csr_matrix=True)
+        assert mat.shape == (14, 14)
+        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+
+        if active_flow:
+            assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        else:
+            assert np.abs(mat[0, 0] - obs.prod_q[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.q_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one
+
+        array_modif = np.array([1.5, 5.], dtype=dt_float) * 0.
+        obs, reward, done, info = env.step(env.action_space({"set_storage": array_modif,
+                                                             "set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
+        assert not info["exception"]
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(active_flow=active_flow,
+                                                                        as_csr_matrix=True)
+        assert mat.shape == (15, 15)
+        assert ind_lor[7] == 14
+        assert ind_lor[8] == 14
+        # check that kirchoff law is met
+        if active_flow:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        else:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_q[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.q_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one
+
+        obs, reward, done, info = env.step(env.action_space({"set_storage": array_modif,
+                                                             "set_bus": {"lines_or_id": [(2, 2)],
+                                                                         "lines_ex_id": [(0, 2)]}}))
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(active_flow=active_flow,
+                                                                        as_csr_matrix=True)
+        assert mat.shape == (16, 16)
+        assert ind_lor[7] == 15
+        assert ind_lor[8] == 15
+        assert ind_lor[2] == 14
+        assert ind_lex[0] == 14
+        # check that kirchoff law is met
+        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+        if active_flow:
+            assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+            assert np.abs(mat[0, 14] + obs.p_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one  # powerline 1 has not moved
+        else:
+            assert np.abs(mat[0, 0] - obs.prod_q[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+            assert np.abs(mat[0, 14] + obs.q_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one  # powerline 1 has not moved
 
     def test_observation_space(self):
         obs = self.env.observation_space(self.env)
@@ -374,7 +696,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         for i in range(self.env.backend.n_line):
             # simulate lots of action
-            tmp = np.full(self.env.backend.n_line, fill_value=False, dtype=np.bool)
+            tmp = np.full(self.env.backend.n_line, fill_value=False, dtype=dt_bool)
             tmp[i] = True
             action = self.env.action_space({"change_line_status": tmp})
             simul_obs, simul_reward, simul_has_error, simul_info = obs_orig.simulate(action)
@@ -460,8 +782,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert 'nb_elements' in dict_
         assert dict_['nb_elements'] == 6
 
-    def test_to_dict(self):
-        dict_ = self.env.observation_space.to_dict()
+    def test_space_to_dict(self):
+        dict_ = self.env.observation_space.cls_to_dict()
         self.maxDiff = None
         self.assertDictEqual(dict_, self.dict_)
 
@@ -486,11 +808,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert issubclass(res.observationClass, self.env.observation_space._init_subtype)
 
     def test_json_serializable(self):
-        dict_ = self.env.observation_space.to_dict()
+        dict_ = self.env.observation_space.cls_to_dict()
         res = json.dumps(obj=dict_, indent=4, sort_keys=True)
 
     def test_json_loadable(self):
-        dict_ = self.env.observation_space.to_dict()
+        dict_ = self.env.observation_space.cls_to_dict()
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
         res = ObservationSpace.from_dict(json.loads(tmp))
 
@@ -518,7 +840,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         obs2 = self.env.observation_space(self.env)
         dict_ = obs.to_json()
         # test that the right dictionary is returned
-        assert dict_ == self.json_ref
+        for k in dict_:
+            assert dict_[k] == self.json_ref[k], f"error for key {k} (in dict_): {dict_[k]} vs {self.json_ref[k]} "
+        for k in self.json_ref:
+            assert dict_[k] == self.json_ref[k], f"error for key {k} (in self.json_ref)"
+        self.assertDictEqual(dict_, self.json_ref)
+
         with tempfile.TemporaryDirectory() as tmpdirname:
             # test i can save it (json serializable)
             with open(os.path.join(tmpdirname, "test.json"), "w") as fp:
@@ -531,181 +858,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
         obs2.reset()
         obs2.from_json(dict_realoaded)
         assert obs == obs2
-
-
-class TestObservationHazard(unittest.TestCase):
-    def setUp(self):
-        """
-        The case file is a representation of the case14 as found in the ieee14 powergrid.
-        :return:
-        """
-        # from ADNBackend import ADNBackend
-        # self.backend = ADNBackend()
-        # self.path_matpower = "/home/donnotben/Documents/RL4Grid/RL4Grid/data"
-        # self.case_file = "ieee14_ADN.xml"
-        # self.backend.load_grid(self.path_matpower, self.case_file)
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
-        self.game_rules = RulesChecker()
-        # pdb.set_trace()
-        self.rewardClass = L2RPNReward
-        self.reward_helper = self.rewardClass()
-        self.obsClass = CompleteObservation
-        self.parameters = Parameters()
-
-        # powergrid
-        self.backend = PandaPowerBackend()
-        self.path_matpower = PATH_DATA_TEST_PP
-        self.case_file = "test_case14.json"
-
-        # chronics
-        self.path_chron = os.path.join(PATH_CHRONICS, "chronics_with_hazards")
-        self.chronics_handler = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_chron)
-
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
-        self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
-
-        # force the verbose backend
-        self.backend.detailed_infos_for_cascading_failures = True
-
-        self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
-                                                    "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
-                                                    "5_C201.84": 'load_4_4',
-                                                    "6_C-6.27": 'load_5_5', "9_C130.49": 'load_8_6',
-                                                    "10_C228.66": 'load_9_7',
-                                                    "11_C-138.89": 'load_10_8', "12_C-27.88": 'load_11_9',
-                                                    "13_C-13.33": 'load_12_10'},
-                                          "lines": {'1_2_1': '0_1_0', '1_5_2': '0_4_1', '9_10_16': '8_9_2',
-                                                    '9_14_17': '8_13_3',
-                                                    '10_11_18': '9_10_4', '12_13_19': '11_12_5', '13_14_20': '12_13_6',
-                                                    '2_3_3': '1_2_7', '2_4_4': '1_3_8', '2_5_5': '1_4_9',
-                                                    '3_4_6': '2_3_10',
-                                                    '4_5_7': '3_4_11', '6_11_11': '5_10_12', '6_12_12': '5_11_13',
-                                                    '6_13_13': '5_12_14', '4_7_8': '3_6_15', '4_9_9': '3_8_16',
-                                                    '5_6_10': '4_5_17',
-                                                    '7_8_14': '6_7_18', '7_9_15': '6_8_19'},
-                                          "prods": {"1_G137.1": 'gen_0_4', "3_G36.31": "gen_2_1", "6_G63.29": "gen_5_2",
-                                                    "2_G-56.47": "gen_1_0", "8_G40.43": "gen_7_3"},
-                                          }
-
-        # _parameters for the environment
-        self.env_params = Parameters()
-
-        self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                               backend=self.backend,
-                               chronics_handler=self.chronics_handler,
-                               parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend,
-                               rewardClass=self.rewardClass,
-                               name="test_obs_env1")
-
-    def tearDown(self) -> None:
-        self.env.close()
-
-    def test_1_generating_obs_withhazard(self):
-        # test that helper_obs is abl to generate a valid observation
-        obs = self.env.get_obs()
-        assert np.all(obs.time_before_cooldown_line == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        action = self.env.action_space({})
-        _ = self.env.step(action)
-        obs = self.env.get_obs()
-        assert np.all(obs.time_before_cooldown_line == [0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        _ = self.env.step(action)
-        obs = self.env.get_obs()
-        assert np.all(obs.time_before_cooldown_line == [0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-
-
-class TestObservationMaintenance(unittest.TestCase):
-    def setUp(self):
-        """
-        The case file is a representation of the case14 as found in the ieee14 powergrid.
-        :return:
-        """
-        # from ADNBackend import ADNBackend
-        # self.backend = ADNBackend()
-        # self.path_matpower = "/home/donnotben/Documents/RL4Grid/RL4Grid/data"
-        # self.case_file = "ieee14_ADN.xml"
-        # self.backend.load_grid(self.path_matpower, self.case_file)
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
-        self.game_rules = RulesChecker()
-        # pdb.set_trace()
-        self.rewardClass = L2RPNReward
-        self.reward_helper = self.rewardClass()
-        self.obsClass = CompleteObservation
-        self.parameters = Parameters()
-
-        # powergrid
-        self.backend = PandaPowerBackend()
-        self.path_matpower = PATH_DATA_TEST_PP
-        self.case_file = "test_case14.json"
-
-        # chronics
-        self.path_chron = os.path.join(PATH_CHRONICS, "chronics_with_maintenance")
-        self.chronics_handler = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_chron)
-
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
-        self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
-
-        # force the verbose backend
-        self.backend.detailed_infos_for_cascading_failures = True
-
-        self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
-                                                    "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
-                                                    "5_C201.84": 'load_4_4',
-                                                    "6_C-6.27": 'load_5_5', "9_C130.49": 'load_8_6',
-                                                    "10_C228.66": 'load_9_7',
-                                                    "11_C-138.89": 'load_10_8', "12_C-27.88": 'load_11_9',
-                                                    "13_C-13.33": 'load_12_10'},
-                                          "lines": {'1_2_1': '0_1_0', '1_5_2': '0_4_1', '9_10_16': '8_9_2',
-                                                    '9_14_17': '8_13_3',
-                                                    '10_11_18': '9_10_4', '12_13_19': '11_12_5', '13_14_20': '12_13_6',
-                                                    '2_3_3': '1_2_7', '2_4_4': '1_3_8', '2_5_5': '1_4_9',
-                                                    '3_4_6': '2_3_10',
-                                                    '4_5_7': '3_4_11', '6_11_11': '5_10_12', '6_12_12': '5_11_13',
-                                                    '6_13_13': '5_12_14', '4_7_8': '3_6_15', '4_9_9': '3_8_16',
-                                                    '5_6_10': '4_5_17',
-                                                    '7_8_14': '6_7_18', '7_9_15': '6_8_19'},
-                                          "prods": {"1_G137.1": 'gen_0_4', "3_G36.31": "gen_2_1", "6_G63.29": "gen_5_2",
-                                                    "2_G-56.47": "gen_1_0", "8_G40.43": "gen_7_3"},
-                                          }
-
-        # _parameters for the environment
-        self.env_params = Parameters()
-
-        self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                               backend=self.backend,
-                               chronics_handler=self.chronics_handler,
-                               parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend,
-                               rewardClass=self.rewardClass,
-                               name="test_obs_env2")
-
-    def tearDown(self) -> None:
-        self.env.close()
-
-    def test_1_generating_obs_withmaintenance(self):
-        # test that helper_obs is abl to generate a valid observation
-        obs = self.env.get_obs()
-        assert np.all(obs.time_next_maintenance == np.array([ -1,  -1,  -1,  -1,   1,  -1, 276,  -1,  -1,  -1,  -1,
-                                                              -1,  -1, -1,  -1,  -1,  -1,  -1,  -1,  -1]))
-        assert np.all(obs.duration_next_maintenance == np.array([ 0,  0,  0,  0, 12,  0, 12,  0,  0,  0,  0,  0,  0,
-                                                                  0,  0,  0,  0, 0,  0,  0]))
-        action = self.env.action_space({})
-        _ = self.env.step(action)
-        obs = self.env.get_obs()
-        assert np.all(obs.time_next_maintenance == np.array([ -1,  -1,  -1,  -1,   0,  -1, 275,  -1,  -1,  -1,  -1,
-                                                              -1,  -1, -1,  -1,  -1,  -1,  -1,  -1,  -1]))
-        assert np.all(obs.duration_next_maintenance == np.array([ 0,  0,  0,  0, 12,  0, 12,  0,  0,  0,  0,  0,  0,
-                                                                  0,  0,  0,  0, 0,  0,  0]))
-        _ = self.env.step(action)
-        obs = self.env.get_obs()
-        assert np.all(obs.time_next_maintenance == np.array([ -1,  -1,  -1,  -1,   0,  -1, 274,  -1,  -1,  -1,  -1,
-                                                              -1,  -1, -1,  -1,  -1,  -1,  -1,  -1,  -1]))
-        assert np.all(obs.duration_next_maintenance == np.array([ 0,  0,  0,  0, 11,  0, 12,  0,  0,  0,  0,  0,  0,
-                                                                  0,  0,  0,  0, 0,  0,  0]))
 
 
 class TestUpdateEnvironement(unittest.TestCase):
@@ -811,12 +963,7 @@ class TestUpdateEnvironement(unittest.TestCase):
 
 
 class TestSimulateEqualsStep(unittest.TestCase):
-    def setUp(self):
-        # Create env
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_realistic", test=True)
-
+    def _make_forecast_perfect(self):
         # Set forecasts to actual values so that simulate runs on the same numbers as step
         self.env.chronics_handler.real_data.data.prod_p_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)
         self.env.chronics_handler.real_data.data.prod_v_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_v, -1, axis=0)
@@ -824,6 +971,13 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.env.chronics_handler.real_data.data.load_q_forecast = np.roll(self.env.chronics_handler.real_data.data.load_q, -1, axis=0)
         self.obs, _, _, _ = self.env.step(self.env.action_space({}))
 
+    def setUp(self):
+        # Create env
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("rte_case14_realistic", test=True)
+
+        self._make_forecast_perfect()
         self.sim_obs = None
         self.step_obs = None
             
@@ -837,7 +991,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(donothing_act)
         self.step_obs, _, _, _ = self.env.step(donothing_act)
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_change_line_status(self):
         # Get change status vector
@@ -853,7 +1009,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         assert not done_real
         assert abs(reward_sim - reward_real) <= 1e-7
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_set_line_status(self):
         # Get set status vector
@@ -866,7 +1024,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(set_act)
         self.step_obs, _, _, _ = self.env.step(set_act)        
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_change_bus(self):
         # Create a change bus action for all types
@@ -883,7 +1043,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(change_act)
         self.step_obs, _, _, _ = self.env.step(change_act)
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_set_bus(self):
         # Increment buses from current topology
@@ -906,7 +1068,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(set_act)
         self.step_obs, _, _, _ = self.env.step(set_act)
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_redispatch(self):
         if DEACTIVATE_FAILING_TEST:
@@ -921,7 +1085,53 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(redisp_act)
         self.step_obs, _, _, _ = self.env.step(redisp_act)
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
+
+    def test_change_simulate_reward(self):
+        """test the env.observation_space.change_other_reward function"""
+        # Create env
+        other_rewards = {"close_overflow": CloseToOverflowReward,
+                         "l2rpn": L2RPNReward,
+                         "redisp": RedispReward}
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case14_realistic", test=True, other_rewards=other_rewards)
+
+        # Set forecasts to actual values so that simulate runs on the same numbers as step
+        env.chronics_handler.real_data.data.prod_p_forecast = np.roll(env.chronics_handler.real_data.data.prod_p, -1, axis=0)
+        env.chronics_handler.real_data.data.prod_v_forecast = np.roll(env.chronics_handler.real_data.data.prod_v, -1, axis=0)
+        env.chronics_handler.real_data.data.load_p_forecast = np.roll(env.chronics_handler.real_data.data.load_p, -1, axis=0)
+        env.chronics_handler.real_data.data.load_q_forecast = np.roll(env.chronics_handler.real_data.data.load_q, -1, axis=0)
+
+        # first_obs = env.reset()  # don't do that otherwise the hack above to have simulate = step will not work!!!
+        first_obs = env.get_obs()
+        sim_o, sim_r, sim_d, sim_i = first_obs.simulate(env.action_space())
+        for k in other_rewards.keys():
+            assert k in sim_i["rewards"]
+        obs, reward, done, info = env.step(env.action_space())
+        # check rewards are same, this is the case because simulate is in "perfect information"
+        assert info["rewards"] == sim_i["rewards"]
+
+        env.observation_space.change_other_rewards({})
+        sim_o, sim_r, sim_d, sim_i = obs.simulate(env.action_space())
+        # check the rewards have disappeared
+        for k in other_rewards.keys():
+            assert k not in sim_i["rewards"]
+
+        # check they are still present on real environment
+        obs, reward, done, info = env.step(env.action_space())
+        for k in other_rewards.keys():
+            assert k in info["rewards"]
+
+        env.observation_space.change_other_rewards(other_rewards)
+        sim_o, sim_r, sim_d, sim_i = obs.simulate(env.action_space())
+        for k in other_rewards.keys():
+            assert k in sim_i["rewards"]
+        obs, reward, done, info = env.step(env.action_space())
+        # check rewards are same, this is the case because simulate is in "perfect information"
+        assert info["rewards"] == sim_i["rewards"]
 
     def _multi_actions_sample(self):
         actions = []
@@ -1003,7 +1213,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_multi_simulate_last_change_line_status(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1025,7 +1237,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
         
     def test_multi_simulate_last_set_line_status(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1046,7 +1260,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_multi_simulate_last_change_bus(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1072,7 +1288,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_multi_simulate_last_set_bus(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1102,7 +1320,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_multi_simulate_last_redispatch(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1124,7 +1344,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Create valid ramp up
         redisp_val = self.obs.gen_max_ramp_up[gen_id] / 2.0
         # Create redispatch action
-        redisp_act = self.env.action_space({"redispatch": [(gen_id,redisp_val)]})
+        redisp_act = self.env.action_space({"redispatch": [(gen_id, redisp_val)]})
         actions.append(redisp_act)
 
         # Simulate all actions
@@ -1133,7 +1353,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_forecasted_inj(self):
         sim_obs, _, _, _ = self.obs.simulate(self.env.action_space())
@@ -1153,7 +1375,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         assert np.all(np.abs(obs1.load_q - obs2.load_q) <= tol), "issue with load_q"
         assert np.all(np.abs(obs1.load_v - obs2.load_v) <= tol), "issue with load_v"
         assert np.all(np.abs(obs1.rho - obs2.rho) <= tol), "issue with rho"
-        assert np.all(np.abs(obs1.p_or - obs2.p_or) <= tol), "issue with p_or)"
+        assert np.all(np.abs(obs1.p_or - obs2.p_or) <= tol), "issue with p_or"
         assert np.all(np.abs(obs1.q_or - obs2.q_or) <= tol), "issue with q_or"
         assert np.all(np.abs(obs1.v_or - obs2.v_or) <= tol), "issue with v_or"
         assert np.all(np.abs(obs1.a_or - obs2.a_or) <= tol), "issue with a_or"
@@ -1161,6 +1383,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         assert np.all(np.abs(obs1.q_ex - obs2.q_ex) <= tol), "issue with q_ex"
         assert np.all(np.abs(obs1.v_ex - obs2.v_ex) <= tol), "issue with v_ex"
         assert np.all(np.abs(obs1.a_ex - obs2.a_ex) <= tol), "issue with a_ex"
+        assert np.all(np.abs(obs1.storage_power - obs2.storage_power) <= tol), "issue with storage_power"
 
     def test_simulate_current_ts(self):
         sim_obs, _, _, _ = self.obs.simulate(self.env.action_space(), time_step=0)
@@ -1179,7 +1402,63 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self._check_equal(sim_obs1, sim_obs3)
 
 
-## TODO test -- Add test to cover simulation vs step when there is a planned maintenance operation
+class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
+    def setUp(self):
+        # Create env
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("educ_case14_storage", test=True, action_class=PlayableAction)
+        self._make_forecast_perfect()
+        self.sim_obs = None
+        self.step_obs = None
+
+    def test_storage_act(self):
+        """test i can do storage actions in simulate"""
+        act = self.env.action_space()
+        act.storage_power = [(0, 3)]
+        obs = self.env.get_obs()
+        sim_obs1, rew1, done1, _ = obs.simulate(act)
+        assert not done1
+        sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
+        assert not done2
+        sim_obs3, rew3, done3, _ = obs.simulate(act)
+        assert not done3
+        real_obs, real_rew, real_done, _ = self.env.step(act)
+        assert not real_done
+
+        self._check_equal(sim_obs1, sim_obs3)
+        self._check_equal(sim_obs2, obs)
+        assert abs(rew1 - rew3) <= 1e-8, "issue with reward"
+        self._check_equal(sim_obs1, sim_obs3)
+        assert abs(rew1 - real_rew) <= 1e-8, "issue with reward"
+        if real_obs != sim_obs3:
+            diff_, attr_diff = real_obs.where_different(sim_obs3)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
+
+    def test_curtail_act(self):
+        """test i can do a curtailment actions in simulate"""
+        act = self.env.action_space()
+        act.curtail = [(2, 0.1)]
+        obs = self.env.get_obs()
+        sim_obs1, rew1, done1, _ = obs.simulate(act)
+        assert not done1
+        sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
+        assert not done2
+        sim_obs3, rew3, done3, _ = obs.simulate(act)
+        assert not done3
+        real_obs, real_rew, real_done, _ = self.env.step(act)
+        assert not real_done
+
+        self._check_equal(sim_obs1, sim_obs3)
+        self._check_equal(sim_obs2, obs)
+        assert abs(rew1 - rew3) <= 1e-8, "issue with reward between the two simulated actions"
+        self._check_equal(sim_obs1, sim_obs3)
+        assert abs(rew1 - real_rew) <= 1e-8, "issue with reward between simulate (first curtail) " \
+                                             "and step (with curtail)"
+
+        if real_obs != sim_obs3:
+            diff_, attr_diff = real_obs.where_different(sim_obs3)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
         
 if __name__ == "__main__":

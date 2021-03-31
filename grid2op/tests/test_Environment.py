@@ -34,9 +34,12 @@ warnings.simplefilter("error")
 
 
 class TestLoadingBackendPandaPower(unittest.TestCase):
+    def get_backend(self):
+        return PandaPowerBackend()
+
     def setUp(self):
         # powergrid
-        self.backend = PandaPowerBackend()
+        self.backend = self.get_backend()
         self.path_matpower = PATH_DATA_TEST_PP
         self.case_file = "test_case14.json"
 
@@ -73,25 +76,31 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
 
         # _parameters for the environment
         self.env_params = Parameters()
-
-        self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                               backend=self.backend,
-                               chronics_handler=self.chronics_handler,
-                               parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend,
-                               name="test_env_env1")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                                   backend=self.backend,
+                                   chronics_handler=self.chronics_handler,
+                                   parameters=self.env_params,
+                                   names_chronics_to_backend=self.names_chronics_to_backend,
+                                   name="test_env_env1")
 
     def tearDown(self):
-        pass
+        self.env.close()
 
     def compare_vect(self, pred, true):
         return dt_float(np.max(np.abs(pred - true))) <= self.tolvect
 
     def test_copy_env(self):
-        cpy = Environment(**self.env.get_kwargs())
+        # first copying method
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            cpy = Environment(**self.env.get_kwargs())
         obs1 = cpy.reset()
         obs2 = self.env.reset()
         assert obs1 == obs2
+        # test both coppy and not copy behave the same if we do the same
         obs1, reward1, done1, info1 = cpy.step(self.env.action_space())
         obs2, reward2, done2, info2 = self.env.step(self.env.action_space())
         assert abs(reward1 - reward2) <= self.tol_one
@@ -99,6 +108,37 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         assert info1.keys() == info2.keys()
         for kk in info1.keys():
             assert np.all(info1[kk] == info2[kk])
+        assert obs1 == obs2
+        # test they are different if we do different stuff
+        obs2, reward2, done2, info2 = self.env.step(self.env.action_space({"set_line_status": [(0, -1)]}))
+        obs1, reward1, done1, info1 = cpy.step(self.env.action_space())
+        assert obs1.line_status[0]
+        assert not obs2.line_status[0]
+        assert obs1 != obs2
+
+        # second copying method
+        self.env.reset()
+        env2 = self.env.copy()
+        # test both coppy and not copy behave the same if we do the same
+        obs1, reward1, done1, info1 = env2.step(self.env.action_space())
+        obs2, reward2, done2, info2 = self.env.step(self.env.action_space())
+        assert abs(reward1 - reward2) <= self.tol_one
+        assert done1 == done2
+        assert info1.keys() == info2.keys()
+        for kk in info1.keys():
+            assert np.all(info1[kk] == info2[kk])
+        assert obs1 == obs2
+
+        # test they are different if we do different stuff
+        obs2, reward2, done2, info2 = self.env.step(self.env.action_space({"set_line_status": [(0, -1)]}))
+        obs1, reward1, done1, info1 = env2.step(self.env.action_space())
+        assert obs1.line_status[0]
+        assert not obs2.line_status[0]
+        assert obs1 != obs2
+
+        # new "same obs" again after reset
+        obs1 = self.env.reset()
+        obs2 = env2.reset()
         assert obs1 == obs2
 
     def test_step_doesnt_change_action(self):
@@ -168,13 +208,16 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         done = False
         i = 0
         self.chronics_handler.next_chronics()
-        self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                               backend=self.backend,
-                               chronics_handler=self.chronics_handler,
-                               parameters=self.env_params,
-                               rewardClass=L2RPNReward,
-                               names_chronics_to_backend=self.names_chronics_to_backend,
-                               name="test_env_env2")
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                                   backend=self.backend,
+                                   chronics_handler=self.chronics_handler,
+                                   parameters=self.env_params,
+                                   rewardClass=L2RPNReward,
+                                   names_chronics_to_backend=self.names_chronics_to_backend,
+                                   name="test_env_env2")
         if PROFILE_CODE:
             cp = cProfile.Profile()
             cp.enable()
@@ -196,7 +239,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.disable()
             cp.print_stats(sort="tottime")
         assert i == 287, "Wrong number of timesteps"
-        expected_reward = dt_float(5739.9336)
+        expected_reward = dt_float(5719.9336)
         assert dt_float(np.abs(cum_reward - expected_reward)) <= self.tol_one, "Wrong reward"
 
 
@@ -309,6 +352,8 @@ class TestResetOk(unittest.TestCase):
     or illegal
 
     """
+    def make_backend(self, detailed_infos_for_cascading_failures=False):
+        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
 
     def setUp(self):
         # powergrid
@@ -316,7 +361,10 @@ class TestResetOk(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
+            self.env = make("rte_case5_example",
+                            test=True,
+                            reward_class=L2RPNReward,
+                            backend=self.make_backend(),
                             other_rewards={"test": L2RPNReward})
 
     def tearDown(self):
@@ -346,7 +394,7 @@ class TestResetOk(unittest.TestCase):
         assert np.all(simobs.topo_vect == 1)
 
     def test_reset_after_blackout_withdetailed_info(self):
-        backend = PandaPowerBackend(detailed_infos_for_cascading_failures=True)
+        backend = self.make_backend(detailed_infos_for_cascading_failures=True)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
@@ -388,19 +436,19 @@ class TestAttachLayout(unittest.TestCase):
                     as env:
                 env.attach_layout(my_layout)
                 act = env.action_space()
-                dict_act = act.to_dict()
+                dict_act = act.cls_to_dict()
                 assert "grid_layout" in dict_act
                 assert dict_act["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env.action_space.to_dict()
+                dict_ = env.action_space.cls_to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env._helper_action_env.to_dict()
+                dict_ = env._helper_action_env.cls_to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env.observation_space.to_dict()
+                dict_ = env.observation_space.cls_to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env._opponent_action_space.to_dict()
+                dict_ = env._opponent_action_space.cls_to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
 
@@ -492,12 +540,16 @@ class TestResetAfterCascadingFailure(unittest.TestCase):
     Fake a cascading failure, do a reset of an env, check that it can be loaded
 
     """
+    def make_backend(self, detailed_infos_for_cascading_failures=False):
+        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             params = Parameters()
             params.MAX_SUB_CHANGED = 2
-            self.env = make("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params)
+            self.env = make("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params,
+                            backend=self.make_backend())
 
     def tearDown(self):
         self.env.close()
@@ -529,6 +581,9 @@ class TestCascadingFailure(unittest.TestCase):
     There has been a bug preventing to reload an environment if the previous one ended with a cascading failure.
     It check that here.
     """
+    def make_backend(self, detailed_infos_for_cascading_failures=False):
+        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+
     def setUp(self):
 
         with warnings.catch_warnings():
@@ -538,7 +593,7 @@ class TestCascadingFailure(unittest.TestCase):
             params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
             rules = DefaultRules
             self.env = make("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params,
-                                gamerules_class=rules)
+                            gamerules_class=rules, backend=self.make_backend())
 
     def tearDown(self):
         self.env.close()

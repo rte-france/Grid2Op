@@ -8,10 +8,13 @@
 
 import json
 import os
+import warnings
 
 import numpy as np
 
-from grid2op.Exceptions import Grid2OpException, EnvError
+import grid2op
+from grid2op.Space import GridObjects
+from grid2op.Exceptions import Grid2OpException, EnvError, IncorrectNumberOfElements, NonFiniteElement
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
 
@@ -106,10 +109,12 @@ class EpisodeData:
 
         import grid2op
         from grid2op.Episode import EpisodeData
+
+        path_agent = ... # path to a directory where a runner has been saved
         # I study only the first episode saved, because... why not
-        li_episode = EpisodeData.list_episode(path_save)
+        li_episode = EpisodeData.list_episode(path_agent)
         full_path, episode_studied = li_episode[0]
-        this_episode = EpisodeData.from_disk(path_agent, episode_studied)
+        this_episode = EpisodeData.from_disk(full_path, episode_studied)
 
         # now the episode is loaded, and you can easily iterate through the observation, the actions etc.
         for act in this_episode.actions:
@@ -135,6 +140,7 @@ class EpisodeData:
     LINES_FAILURES = "disc_lines_cascading_failure.npz"
     ATTACK = "opponent_attack.npz"
     REWARDS = "rewards.npz"
+    GRID2OPINFO_FILE = "grid2op.info"
 
     ATTR_EPISODE = [PARAMS, META, TIMES, OTHER_REWARDS, AG_EXEC_TIMES, ACTIONS,
                     ENV_ACTIONS, OBSERVATIONS, LINES_FAILURES, ATTACK, REWARDS]
@@ -160,24 +166,28 @@ class EpisodeData:
                  logger=None,
                  name="EpisodeData",
                  get_dataframes=None,
-                 other_rewards=[]):
+                 force_detail=False,
+                 other_rewards=[],
+                 _init_collections=False):
         self.parameters = None
-
         self.actions = CollectionWrapper(actions,
                                          action_space,
                                          "actions",
-                                         check_legit=False)
+                                         check_legit=False,
+                                         init_me=_init_collections)
         self.observations = CollectionWrapper(observations,
                                               observation_space,
-                                              "observations")
+                                              "observations",
+                                              init_me=_init_collections)
         self.env_actions = CollectionWrapper(env_actions,
                                              helper_action_env,
                                              "env_actions",
-                                             check_legit=False)
-
+                                             check_legit=False,
+                                             init_me=_init_collections)
         self.attacks = CollectionWrapper(attack,
                                          attack_space,
-                                         "attacks")
+                                         "attacks",
+                                         init_me=_init_collections)
 
         self.meta = meta
         # gives a unique game over for everyone
@@ -185,6 +195,7 @@ class EpisodeData:
         action_go = self.actions._game_over
         obs_go = self.observations._game_over
         env_go = self.env_actions._game_over
+        # raise RuntimeError("Add the attaks game over too !")
         real_go = action_go
         if self.meta is not None:
             # when initialized by the runner, meta is None
@@ -213,6 +224,7 @@ class EpisodeData:
 
         self.other_rewards = other_rewards
         self.observation_space = observation_space
+        self.attack_space = attack_space
         self.rewards = rewards
         self.disc_lines = disc_lines
         self.times = times
@@ -232,6 +244,7 @@ class EpisodeData:
         self.line_names = action_space.name_line
         self.n_lines = len(self.line_names)
         self.name_sub = action_space.name_sub
+        self.force_detail = force_detail
 
         if path_save is not None:
             self.agent_path = os.path.abspath(path_save)
@@ -255,22 +268,22 @@ class EpisodeData:
                 self.agent_path, EpisodeData.ATTACK_SPACE)
 
             if not os.path.exists(act_space_path):
-                dict_action_space = action_space.to_dict()
+                dict_action_space = action_space.cls_to_dict()
                 with open(act_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_action_space, fp=f,
                               indent=4, sort_keys=True)
             if not os.path.exists(obs_space_path):
-                dict_observation_space = observation_space.to_dict()
+                dict_observation_space = observation_space.cls_to_dict()
                 with open(obs_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_observation_space,
                               fp=f, indent=4, sort_keys=True)
             if not os.path.exists(env_modif_space_path):
-                dict_helper_action_env = helper_action_env.to_dict()
+                dict_helper_action_env = helper_action_env.cls_to_dict()
                 with open(env_modif_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_helper_action_env, fp=f,
                               indent=4, sort_keys=True)
             if not os.path.exists(attack_space_path):
-                dict_attack_space = attack_space.to_dict()
+                dict_attack_space = attack_space.cls_to_dict()
                 with open(attack_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_attack_space, fp=f,
                               indent=4, sort_keys=True)
@@ -422,14 +435,16 @@ class EpisodeData:
         except FileNotFoundError as ex:
             raise Grid2OpException(f"EpisodeData file not found \n {str(ex)}")
 
-        observation_space = ObservationSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.OBS_SPACE))
-        action_space = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.ACTION_SPACE))
-        helper_action_env = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
-        attack_space = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
+        observation_space = ObservationSpace.from_dict(os.path.join(agent_path, EpisodeData.OBS_SPACE))
+        action_space = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ACTION_SPACE))
+        helper_action_env = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
+        attack_space = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
+        if observation_space.glop_version != grid2op.__version__:
+            warnings.warn("You are using a \"grid2op compatibility\" feature (the data you saved "
+                          "have been saved with a previous grid2op version). When we loaded your data, we attempted "
+                          "to not include most recent grid2op features. This is feature is not well tested. It would "
+                          "be wise to regenerate the data with the latest grid2Op version.")
+
         return cls(actions=actions,
                    env_actions=env_actions,
                    observations=observations,
@@ -447,10 +462,13 @@ class EpisodeData:
                    attack_space=attack_space,
                    name=name,
                    get_dataframes=True,
-                   other_rewards=other_rewards)
+                   other_rewards=other_rewards,
+                   _init_collections=True)
 
     def set_parameters(self, env):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by the Runner to serialize properly an episode
 
@@ -464,11 +482,13 @@ class EpisodeData:
         -------
 
         """
-        if self.serialize:
+        if self.force_detail or self.serialize:
             self.parameters = env.parameters.to_dict()
 
     def set_meta(self, env, time_step, cum_reward, env_seed, agent_seed):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -486,7 +506,7 @@ class EpisodeData:
         -------
 
         """
-        if self.serialize:
+        if self.force_detail or self.serialize:
             self.meta = {}
             self.meta["chronics_path"] = "{}".format(
                 env.chronics_handler.get_id())
@@ -510,6 +530,8 @@ class EpisodeData:
     def incr_store(self, efficient_storing, time_step, time_step_duration,
                    reward, env_act, act, obs, opp_attack, info):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -532,15 +554,13 @@ class EpisodeData:
 
         """
 
-        if self.serialize:
-            self.actions.update(time_step, act.to_vect(), efficient_storing)
-            self.env_actions.update(
-                time_step, env_act.to_vect(), efficient_storing)
-            self.observations.update(
-                time_step + 1, obs.to_vect(), efficient_storing)
+        if self.force_detail or self.serialize:
+            self.actions.update(time_step, act, efficient_storing)
+            self.env_actions.update(time_step, env_act, efficient_storing)
+            self.observations.update(time_step + 1, obs, efficient_storing)
             if opp_attack is not None:
                 self.attacks.update(
-                    time_step, opp_attack.to_vect(), efficient_storing)
+                    time_step, opp_attack, efficient_storing)
             else:
                 if efficient_storing:
                     self.attacks.collection[time_step - 1, :] = 0.
@@ -585,6 +605,8 @@ class EpisodeData:
 
     def set_episode_times(self, env, time_act, beg_, end_):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -601,7 +623,7 @@ class EpisodeData:
         -------
 
         """
-        if self.serialize:
+        if self.force_detail or self.serialize:
             self.episode_times = {}
             self.episode_times["Env"] = {}
             self.episode_times["Env"]["total"] = float(
@@ -617,6 +639,8 @@ class EpisodeData:
 
     def to_disk(self):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -629,22 +653,22 @@ class EpisodeData:
         if self.serialize:
             parameters_path = os.path.join(
                 self.episode_path, EpisodeData.PARAMS)
-            with open(parameters_path, "w") as f:
+            with open(parameters_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.parameters, fp=f, indent=4, sort_keys=True)
 
             meta_path = os.path.join(self.episode_path, EpisodeData.META)
-            with open(meta_path, "w") as f:
+            with open(meta_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.meta, fp=f, indent=4, sort_keys=True)
 
             episode_times_path = os.path.join(
                 self.episode_path, EpisodeData.TIMES)
-            with open(episode_times_path, "w") as f:
+            with open(episode_times_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.episode_times, fp=f,
                           indent=4, sort_keys=True)
 
             episode_other_rewards_path = os.path.join(
                 self.episode_path, EpisodeData.OTHER_REWARDS)
-            with open(episode_other_rewards_path, "w") as f:
+            with open(episode_other_rewards_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.other_rewards, fp=f,
                           indent=4, sort_keys=True)
 
@@ -663,9 +687,33 @@ class EpisodeData:
             np.savez_compressed(os.path.join(self.episode_path,
                                  EpisodeData.REWARDS), data=self.rewards)
 
+            with open(os.path.join(self.episode_path, self.GRID2OPINFO_FILE),
+                      "w",
+                      encoding="utf-8") as f:
+                dict_ = {"version": f"{grid2op.__version__}"}
+                json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
+
+    @staticmethod
+    def get_grid2op_version(path_episode):
+        """
+        Utility function to retrieve the grid2op version used to generate this episode serialized on disk.
+
+        This is introduced in grid2op 1.5.0, with older runner version stored, this function will return "<=1.4.0"
+        otherwise it returns the grid2op version, as a string.
+        """
+        version = "<=1.4.0"
+        if os.path.exists(os.path.join(path_episode, EpisodeData.GRID2OPINFO_FILE)):
+            with open(os.path.join(path_episode, EpisodeData.GRID2OPINFO_FILE), "r", encoding="utf-8") as f:
+                dict_ = json.load(fp=f)
+                if "version" in dict_:
+                    version = dict_["version"]
+        return version
+
 
 class CollectionWrapper:
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         Utility to make the interaction with stored actions and stored observations more pythonic
 
@@ -713,21 +761,35 @@ class CollectionWrapper:
 
     """
 
-    def __init__(self, collection, helper, collection_name, check_legit=True):
+    def __init__(self, collection, helper, collection_name, check_legit=True, init_me=True):
         self.collection = collection
         if not hasattr(helper, "from_vect"):
             raise Grid2OpException(f"Object {helper} must implement a "
-                                   f"from_vect methode.")
+                                   f"from_vect method.")
         self.helper = helper
         self.collection_name = collection_name
         self.elem_name = self.collection_name[:-1]
         self.i = 0
         self._game_over = None
         self.objects = []
+
+        if not init_me:
+            # the runner just has been created, so i don't need to update this collection
+            # from previous data, but we need to initialize the list holder
+            self.objects = [None]*len(self.collection)
+            return
+
         for i, elem in enumerate(self.collection):
             try:
                 collection_obj = self.helper.from_vect(self.collection[i, :], check_legit=check_legit)
                 self.objects.append(collection_obj)
+            except IncorrectNumberOfElements as exc_:
+                # grid2op does not allow to load the object: there is a mismatch between what has been stored
+                # and what is currently used.
+                raise
+            except NonFiniteElement:
+                self._game_over = i
+                break
             except EnvError as exc_:
                 self._game_over = i
                 break
@@ -757,11 +819,12 @@ class CollectionWrapper:
         else:
             raise StopIteration
 
-    def update(self, time_step, values, efficient_storage):
+    def update(self, time_step, value, efficient_storage):
         if efficient_storage:
-            self.collection[time_step - 1, :] = values
+            self.collection[time_step - 1, :] = value.to_vect()
         else:
-            self.collection = np.concatenate((self.collection, values.reshape(1, -1)))
+            self.collection = np.concatenate((self.collection, value.to_vect().reshape(1, -1)))
+        self.objects[time_step - 1] = value
 
     def save(self, path):
         np.savez_compressed(path, data=self.collection)  # do not change keyword arguments

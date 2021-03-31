@@ -11,8 +11,8 @@ import warnings
 import pdb
 
 import grid2op
+from grid2op.Agent import OneChangeThenNothing, RandomAgent
 from grid2op.tests.helper_path_test import *
-from grid2op.Exceptions import *
 from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
@@ -43,7 +43,8 @@ class TestEpisodeData(unittest.TestCase):
         self.tolvect = dt_float(1e-2)
         self.tol_one = dt_float(1e-5)
         self.max_iter = 10
-        self.real_reward = dt_float(199.99800)
+        # self.real_reward = dt_float(199.99800)
+        self.real_reward = dt_float(179.99818)
 
         self.init_grid_path = os.path.join(
             PATH_DATA_TEST_PP, "test_case14.json")
@@ -110,10 +111,12 @@ class TestEpisodeData(unittest.TestCase):
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
         assert len(episode_data.actions) == self.max_iter
         assert len(episode_data.observations) == self.max_iter + 1
+        assert len(episode_data.env_actions) == self.max_iter
+        assert len(episode_data.attacks) == self.max_iter
 
     def test_one_episode_with_saving(self):
         f = tempfile.mkdtemp()
-        episode_name, cum_reward, timestep = self.runner.run_one_episode(path_save=f)
+        episode_name, cum_reward, timestep, episode_data_cached = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
         assert len(episode_data.other_rewards) == self.max_iter
@@ -121,9 +124,27 @@ class TestEpisodeData(unittest.TestCase):
             assert dt_float(np.abs(other["test"] - real)) <= self.tol_one
         assert np.abs(dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
 
+    def test_collection_wrapper_after_run(self):
+        OneChange = OneChangeThenNothing.gen_next({"set_bus": {"lines_or_id": [(1,-1)]}})
+        runner = Runner(init_grid_path=self.init_grid_path,
+                        path_chron=self.path_chron,
+                        parameters_path=self.parameters_path,
+                        names_chronics_to_backend=self.names_chronics_to_backend,
+                        gridStateclass=self.gridStateclass,
+                        backendClass=self.backendClass,
+                        rewardClass=L2RPNReward,
+                        other_rewards={"test": L2RPNReward},
+                        max_iter=self.max_iter,
+                        name_env="test_episodedata_env",
+                        agentClass=OneChange)
+        _, cum_reward, timestep, episode_data = runner.run_one_episode(max_iter=self.max_iter, detailed_output=True)
+        # Check that the type of first action is set bus
+        assert episode_data.actions[0].get_types()[2]
+
     def test_len(self):
+        """test i can use the function "len" of the episode data"""
         f = tempfile.mkdtemp()
-        episode_name, cum_reward, timestep = self.runner.run_one_episode(path_save=f)
+        episode_name, cum_reward, timestep, episode_data_cached = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
         len(episode_data)
 
@@ -138,8 +159,9 @@ class TestEpisodeData(unittest.TestCase):
 
     def test_3_episode_3process_with_saving(self):
         f = tempfile.mkdtemp()
-        res = self.runner._run_parrallel(nb_episode=3, nb_process=2, path_save=f)
-        assert len(res) == 3
+        nb_episode = 2
+        res = self.runner._run_parrallel(nb_episode=nb_episode, nb_process=2, path_save=f)
+        assert len(res) == nb_episode
         for i, episode_name, cum_reward, timestep, total_ts in res:
             episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
             assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter

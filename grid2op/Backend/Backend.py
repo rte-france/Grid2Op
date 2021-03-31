@@ -19,12 +19,16 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import EnvError, DivergingPowerFlow, IncorrectNumberOfElements, IncorrectNumberOfLoads
 from grid2op.Exceptions import IncorrectNumberOfGenerators, BackendError, IncorrectNumberOfLines
 from grid2op.Space import GridObjects
+from grid2op.Exceptions import Grid2OpException
 
-# TODO compute a method to update a backend state from an observation.
+
+# TODO method to get V and theta at each bus, could be in the same shape as check_kirchoff
 
 
 class Backend(GridObjects, ABC):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Unless if you want to code yourself a backend this is not recommend to alter it
@@ -45,24 +49,41 @@ class Backend(GridObjects, ABC):
 
     An example of a valid backend is provided in the :class:`PandapowerBackend`.
 
-    All the abstract methods (that need to be implemented for a backend to work properly) are:
+    All the abstract methods (that need to be implemented for a backend to work properly) are (more information given
+    in the :ref:`create-backend-module` page):
 
     - :func:`Backend.load_grid`
-    - :func:`Backend.close`
     - :func:`Backend.apply_action`
     - :func:`Backend.runpf`
-    - :func:`Backend.copy`
-    - :func:`Backend.get_line_status`
-    - :func:`Backend.get_line_flow`
     - :func:`Backend.get_topo_vect`
-    - :func:`Backend._disconnect_line`
     - :func:`Backend.generators_info`
     - :func:`Backend.loads_info`
     - :func:`Backend.lines_or_info`
     - :func:`Backend.lines_ex_info`
 
+    And optionally:
+
+    - :func:`Backend.close` (this is mandatory if your backend implementation (`self._grid`) is relying on some
+      c / c++ code that do not free memory automatically.
+    - :func:`Backend.copy` (not that this is mandatory if your backend implementation (in `self._grid`) cannot be
+      deep copied using the python copy.deepcopy function)
+    - :func:`Backend.get_line_status`: the default implementation uses the "get_topo_vect()" and then check
+      if buses at both ends of powerline are positive. This is rather slow and can most likely be optimized.
+    - :func:`Backend.get_line_flow`: the default implementation will retrieve all powerline information
+      at the "origin" side and just return the "a_or" vector. You want to do something smarter here.
+    - :func:`Backend._disconnect_line`: has a default slow implementation using "apply_action" that might
+      can most likely be optimized in your backend.
+    - :func:`Backend.reset`  will reload the powergrid from the hard drive by default. This is rather slow and we
+      recommend to overload it.
+
     And, if the flag :attr:Backend.shunts_data_available` is set to ``True`` the method :func:`Backend.shunt_info`
     should also be implemented.
+
+    .. note:: Backend also support "shunts" information if the `self.shunts_data_available` flag is set to
+        ``True`` in that case, you also need to implement all the relevant shunt information (attributes `n_shunt`,
+        `shunt_to_subid`, `name_shunt` and function `shunt_info` and handle the modification of shunts
+        bus, active value and reactive value in the "apply_action" function).
+
 
     In order to be valid and carry out some computations, you should call :func:`Backend.load_grid` and later
     :func:`grid2op.Spaces.GridObjects.assert_grid_correct`. It is also more than recommended to call
@@ -78,8 +99,15 @@ class Backend(GridObjects, ABC):
         Thermal limit of the powerline in amps for each powerline. Thie thermal limit is relevant on only one
         side of the powerline: the same side returned by :func:`Backend.get_line_overflow`
 
+    comp_time: ``float``
+        Time to compute the powerflow (might be unset, ie stay at 0.0)
+
     """
     env_name = "unknown"
+
+    # action to set me
+    my_bk_act_class = None
+    _complete_action_class = None
 
     def __init__(self, detailed_infos_for_cascading_failures=False):
         """
@@ -90,10 +118,6 @@ class Backend(GridObjects, ABC):
         :type detailed_infos_for_cascading_failures: :class:`bool`
 
         """
-        # lazy loading
-        from grid2op.Action import CompleteAction
-        from grid2op.Action._BackendAction import _BackendAction
-
         GridObjects.__init__(self)
 
         # the following parameter is used to control the amount of verbosity when computing a cascading failure
@@ -106,99 +130,17 @@ class Backend(GridObjects, ABC):
         # thermal limit setting, in ampere, at the same "side" of the powerline than self.get_line_overflow
         self.thermal_limit_a = None
 
-        # action to set me
-        self.my_bk_act_class = _BackendAction
-        self._complete_action_class = CompleteAction
-
         # for the shunt (only if supported)
         self._sh_vnkv = None  # for each shunt gives the nominal value at the bus at which it is connected
         # if this information is not present, then "get_action_to_set" might not behave correctly
 
-    def assert_grid_correct_after_powerflow(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is done as it should be by the Environment
-
-        This method is called by the environment. It ensure that the backend remains consistent even after a powerflow
-        has be run with :func:`Backend.runpf` method.
-
-        :return: ``None``
-        :raise: :class:`grid2op.Exceptions.EnvError` and possibly all of its derived class.
-        """
-        # test the results gives the proper size
-        self.__class__ = self.init_grid(self)
-        self.my_bk_act_class = self.my_bk_act_class.init_grid(self)
-        self._complete_action_class = self._complete_action_class.init_grid(self)
-
-        tmp = self.get_line_status()
-        if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")
-        if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
-        tmp = self.get_line_flow()
-        if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_line_flow()\"")
-        if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
-        tmp = self.get_thermal_limit()
-        if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_thermal_limit()\"")
-        if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
-        tmp = self.get_line_overflow()
-        if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_line_overflow()\"")
-        if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
-
-        tmp = self.generators_info()
-        if len(tmp) != 3:
-            raise EnvError("\"generators_info()\" should return a tuple with 3 elements: p, q and v")
-        for el in tmp:
-            if el.shape[0] != self.n_gen:
-                raise IncorrectNumberOfGenerators("returned by \"backend.generators_info()\"")
-        tmp = self.loads_info()
-        if len(tmp) != 3:
-            raise EnvError("\"loads_info()\" should return a tuple with 3 elements: p, q and v")
-        for el in tmp:
-            if el.shape[0] != self.n_load:
-                raise IncorrectNumberOfLoads("returned by \"backend.loads_info()\"")
-        tmp = self.lines_or_info()
-        if len(tmp) != 4:
-            raise EnvError("\"lines_or_info()\" should return a tuple with 4 elements: p, q, v and a")
-        for el in tmp:
-            if el.shape[0] != self.n_line:
-                raise IncorrectNumberOfLines("returned by \"backend.lines_or_info()\"")
-        tmp = self.lines_ex_info()
-        if len(tmp) != 4:
-            raise EnvError("\"lines_ex_info()\" should return a tuple with 4 elements: p, q, v and a")
-        for el in tmp:
-            if el.shape[0] != self.n_line:
-                raise IncorrectNumberOfLines("returned by \"backend.lines_ex_info()\"")
-
-        tmp = self.get_topo_vect()
-        if tmp.shape[0] != np.sum(self.sub_info):
-            raise IncorrectNumberOfElements("returned by \"backend.get_topo_vect()\"")
-
-        if np.any(~np.isfinite(tmp)):
-            raise EnvError("Some components of \"backend.get_topo_vect()\" are not finite. This should be integer.")
-
-    def reset(self, grid_path, grid_filename=None):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is done in the `env.reset()` method and should be performed otherwise.
-
-        Reload the power grid.
-        For backwards compatibility this method calls `Backend.load_grid`.
-        But it is encouraged to overload it in the subclasses.
-        """
-        self.load_grid(grid_path, filename=grid_filename)
+        self.comp_time = 0.
 
     @abstractmethod
     def load_grid(self, path, filename=None):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is called once at the loading of the powergrid.
@@ -222,21 +164,11 @@ class Backend(GridObjects, ABC):
         """
         pass
 
-    def close(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is called by `env.close()` do not attempt to use it otherwise.
-
-        This function is called when the environment is over.
-        After calling this function, the backend might not behave properly, and in any case should not be used before
-        another call to :func:`Backend.load_grid` is performed
-        """
-        pass
-
     @abstractmethod
     def apply_action(self, action):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Don't attempt to apply an action directly to a backend. This function will modify
@@ -261,6 +193,8 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def runpf(self, is_dc=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is called by :func:`Backend.next_grid_state` (that computes some kind of
@@ -279,23 +213,219 @@ class Backend(GridObjects, ABC):
         :return: ``True`` if it has converged, or false otherwise. In case of non convergence, no flows can be inspected on
           the _grid.
         :rtype: :class:`bool`
+
+        :return: an exception in case of divergence (or none if no particular info are available)
+        :rtype: `Exception`
         """
         pass
 
     @abstractmethod
+    def get_topo_vect(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.topo_vect`
+
+        Get the topology vector from the :attr:`Backend._grid`.
+        The topology vector defines, for each object, on which bus it is connected.
+        It returns -1 if the object is not connected.
+
+        It is a vector with as much elements (productions, loads and lines extremity) as there are in the powergrid.
+
+        For each elements, it gives on which bus it is connected in its substation.
+
+        For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the
+        load of id 1 is connected to the second bus of its substation.
+
+        You can check which object of the powerlines is represented by each component of this vector by looking at the
+        `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
+        For each elements it gives its position in this vector.
+
+        As any function of the backend, it is not advised to use it directly. You can get this information in the
+        :attr:`grid2op.Observation.Observation.topo_vect` instead.
+
+        Returns
+        --------
+
+        res: ``numpy.ndarray`` dtype: ``int``
+            An array saying to which bus the object is connected.
+
+        """
+        pass
+
+    @abstractmethod
+    def generators_info(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.prod_p`,
+            :attr:`grid2op.Observation.BaseObservation.prod_q` and
+            :attr:`grid2op.Observation.BaseObservation.prod_v` instead.
+
+        This method is used to retrieve information about the generators (active, reactive production
+        and voltage magnitude of the bus to which it is connected).
+
+        Returns
+        -------
+        prod_p ``numpy.ndarray``
+            The active power production for each generator (in MW)
+        prod_q ``numpy.ndarray``
+            The reactive power production for each generator (in MVAr)
+        prod_v ``numpy.ndarray``
+            The voltage magnitude of the bus to which each generators is connected (in kV)
+        """
+        pass
+
+    @abstractmethod
+    def loads_info(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.load_p`,
+            :attr:`grid2op.Observation.BaseObservation.load_q` and
+            :attr:`grid2op.Observation.BaseObservation.load_v` instead.
+
+        This method is used to retrieve information about the loads (active, reactive consumption
+        and voltage magnitude of the bus to which it is connected).
+
+        Returns
+        -------
+        load_p ``numpy.ndarray``
+            The active power consumption for each load (in MW)
+        load_q ``numpy.ndarray``
+            The reactive power consumption for each load (in MVAr)
+        load_v ``numpy.ndarray``
+            The voltage magnitude of the bus to which each load is connected (in kV)
+        """
+        pass
+
+    @abstractmethod
+    def lines_or_info(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.p_or`,
+            :attr:`grid2op.Observation.BaseObservation.q_or`,
+            :attr:`grid2op.Observation.BaseObservation.a_or` and,
+            :attr:`grid2op.Observation.BaseObservation.v_or` instead
+
+        It returns the information extracted from the _grid at the origin end of each powerline.
+
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
+
+        Returns
+        -------
+        p_or ``numpy.ndarray``
+            the origin active power flowing on the lines (in MW)
+        q_or ``numpy.ndarray``
+            the origin reactive power flowing on the lines (in MVAr)
+        v_or ``numpy.ndarray``
+            the voltage magnitude at the origin of each powerlines (in kV)
+        a_or ``numpy.ndarray``
+            the current flow at the origin of each powerlines (in A)
+        """
+        pass
+
+    @abstractmethod
+    def lines_ex_info(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.p_ex`,
+            :attr:`grid2op.Observation.BaseObservation.q_ex`,
+            :attr:`grid2op.Observation.BaseObservation.a_ex` and,
+            :attr:`grid2op.Observation.BaseObservation.v_ex` instead
+
+        It returns the information extracted from the _grid at the extremity end of each powerline.
+
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
+
+        Returns
+        -------
+        p_ex ``numpy.ndarray``
+            the extremity active power flowing on the lines (in MW)
+        q_ex ``numpy.ndarray``
+            the extremity reactive power flowing on the lines (in MVAr)
+        v_ex ``numpy.ndarray``
+            the voltage magnitude at the extremity of each powerlines (in kV)
+        a_ex ``numpy.ndarray``
+            the current flow at the extremity of each powerlines (in A)
+        """
+        pass
+
+    def close(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is called by `env.close()` do not attempt to use it otherwise.
+
+        This function is called when the environment is over.
+        After calling this function, the backend might not behave properly, and in any case should not be used before
+        another call to :func:`Backend.load_grid` is performed
+
+        """
+        pass
+
+    def reset(self, grid_path, grid_filename=None):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is done in the `env.reset()` method and should be performed otherwise.
+
+        Reload the power grid.
+        For backwards compatibility this method calls `Backend.load_grid`.
+        But it is encouraged to overload it in the subclasses.
+        """
+        self.comp_time = 0.
+        self.load_grid(grid_path, filename=grid_filename)
+
     def copy(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Performs a deep copy of the backend.
 
+        In the default implementation we explicitly called the deepcopy operator on `self._grid` to make the
+        error message more explicit in case there is a problem with this part.
+
+        The implementation is equivalent to:
+
+        .. code-block:: python
+
+            return copy.deepcopy(self)
+
         :return: An instance of Backend equal to :attr:`.self`, but deep copied.
         :rtype: :class:`Backend`
         """
-        pass
+        start_grid = self._grid
+        self._grid = None
+        res = copy.deepcopy(self)
+        res._grid = copy.deepcopy(start_grid)
+        self._grid = start_grid
+        return res
 
     def save_file(self, full_path):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Save the current power _grid in a human readable format supported by the backend.
@@ -310,9 +440,10 @@ class Backend(GridObjects, ABC):
         """
         raise RuntimeError("Class {} does not allow for saving file.".format(self))
 
-    @abstractmethod
     def get_line_status(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.line_status` instead
@@ -330,11 +461,13 @@ class Backend(GridObjects, ABC):
         :return: an array with the line status of each powerline
         :rtype: np.array, dtype:bool
         """
-        pass
+        topo_vect = self.get_topo_vect()
+        return (topo_vect[self.line_or_pos_topo_vect] >= 0) & (topo_vect[self.line_ex_pos_topo_vect] >= 0)
 
-    @abstractmethod
     def get_line_flow(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.a_or` or
@@ -357,10 +490,13 @@ class Backend(GridObjects, ABC):
         :return: an array with the line flows of each powerline
         :rtype: np.array, dtype:float
         """
-        pass
+        p_or, q_or, v_or, a_or = self.lines_or_info()
+        return a_or
 
     def set_thermal_limit(self, limits):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             You can set the thermal limit directly in the environment.
@@ -409,6 +545,8 @@ class Backend(GridObjects, ABC):
 
     def update_thermal_limit(self, env):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is done in a call to `env.step` in case of DLR for example.
@@ -437,6 +575,8 @@ class Backend(GridObjects, ABC):
 
     def get_thermal_limit(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Retrieve the thermal limit directly from the environment instead (with a call
@@ -459,6 +599,8 @@ class Backend(GridObjects, ABC):
 
     def get_relative_flow(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.rho`
@@ -479,6 +621,8 @@ class Backend(GridObjects, ABC):
 
     def get_line_overflow(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.rho` and
@@ -500,144 +644,10 @@ class Backend(GridObjects, ABC):
         flow = self.get_line_flow()
         return flow > th_lim
 
-    @abstractmethod
-    def get_topo_vect(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            Prefer using :attr:`grid2op.Observation.BaseObservation.topo_vect`
-
-        Get the topology vector from the :attr:`Backend._grid`.
-        The topology vector defines, for each object, on which bus it is connected.
-        It returns -1 if the object is not connected.
-
-        It is a vector with as much elements (productions, loads and lines extremity) as there are in the powergrid.
-
-        For each elements, it gives on which bus it is connected in its substation.
-
-        For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the
-        load of id 1 is connected to the second bus of its substation.
-
-        You can check which object of the powerlines is represented by each component of this vector by looking at the
-        `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
-        For each elements it gives its position in this vector.
-
-        As any function of the backend, it is not advised to use it directly. You can get this information in the
-        :attr:`grid2op.Observation.Observation.topo_vect` instead.
-
-        Returns
-        --------
-
-        res: ``numpy.ndarray`` dtype: ``int``
-            An array saying to which bus the object is connected.
-
-        """
-        pass
-
-    @abstractmethod
-    def generators_info(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            Prefer using :attr:`grid2op.Observation.BaseObservation.prod_p`,
-            :attr:`grid2op.Observation.BaseObservation.prod_q` and
-            :attr:`grid2op.Observation.BaseObservation.prod_v` instead.
-
-        This method is used to retrieve information about the generators (active, reactive production
-        and voltage magnitude of the bus to which it is connected).
-
-        Returns
-        -------
-        prod_p ``numpy.ndarray``
-            The active power production for each generator (in MW)
-        prod_q ``numpy.ndarray``
-            The reactive power production for each generator (in MVAr)
-        prod_v ``numpy.ndarray``
-            The voltage magnitude of the bus to which each generators is connected (in kV)
-        """
-        pass
-
-    @abstractmethod
-    def loads_info(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            Prefer using :attr:`grid2op.Observation.BaseObservation.load_p`,
-            :attr:`grid2op.Observation.BaseObservation.load_q` and
-            :attr:`grid2op.Observation.BaseObservation.load_v` instead.
-
-        This method is used to retrieve information about the loads (active, reactive consumption
-        and voltage magnitude of the bus to which it is connected).
-
-        Returns
-        -------
-        load_p ``numpy.ndarray``
-            The active power consumption for each load (in MW)
-        load_q ``numpy.ndarray``
-            The reactive power consumption for each load (in MVAr)
-        load_v ``numpy.ndarray``
-            The voltage magnitude of the bus to which each load is connected (in kV)
-        """
-        pass
-
-    @abstractmethod
-    def lines_or_info(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            Prefer using :attr:`grid2op.Observation.BaseObservation.p_or`,
-            :attr:`grid2op.Observation.BaseObservation.q_or`,
-            :attr:`grid2op.Observation.BaseObservation.a_or` and,
-            :attr:`grid2op.Observation.BaseObservation.v_or` instead
-
-        It returns the information extracted from the _grid at the origin end of each powerline.
-
-        For assumption about the order of the powerline flows return in this vector, see the help of the
-        :func:`Backend.get_line_status` method.
-
-        Returns
-        -------
-        p_or ``numpy.ndarray``
-            the origin active power flowing on the lines (in MW)
-        q_or ``numpy.ndarray``
-            the origin reactive power flowing on the lines (in MVAr)
-        v_or ``numpy.ndarray``
-            the voltage magnitude at the origin of each powerlines (in kV)
-        a_or ``numpy.ndarray``
-            the current flow at the origin of each powerlines (in A)
-        """
-        pass
-
-    @abstractmethod
-    def lines_ex_info(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            Prefer using :attr:`grid2op.Observation.BaseObservation.p_ex`,
-            :attr:`grid2op.Observation.BaseObservation.q_ex`,
-            :attr:`grid2op.Observation.BaseObservation.a_ex` and,
-            :attr:`grid2op.Observation.BaseObservation.v_ex` instead
-
-        It returns the information extracted from the _grid at the extremity end of each powerline.
-
-        For assumption about the order of the powerline flows return in this vector, see the help of the
-        :func:`Backend.get_line_status` method.
-
-        Returns
-        -------
-        p_ex ``numpy.ndarray``
-            the extremity active power flowing on the lines (in MW)
-        q_ex ``numpy.ndarray``
-            the extremity reactive power flowing on the lines (in MVAr)
-        v_ex ``numpy.ndarray``
-            the voltage magnitude at the extremity of each powerlines (in kV)
-        a_ex ``numpy.ndarray``
-            the current flow at the extremity of each powerlines (in A)
-        """
-        pass
-
     def shunt_info(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method is optional. If implemented, it should return the proper information about the shunt in the
@@ -666,18 +676,29 @@ class Backend(GridObjects, ABC):
 
     def sub_from_bus_id(self, bus_id):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Optionnal method that allows to get the substation if the bus id is provided.
 
-        :param bus_id:
-        :return: the substation to which an object connected to bus with id `bus_id` is connected to.
+        Optional method that allows to get the substation if the bus id is provided.
+
+        Parameters
+        ----------
+        bus_id: ``int``
+            The id of the bus where you want to know to which substation it belongs
+
+        Returns
+        -------
+            The substation to which an object connected to bus with id `bus_id` is connected to.
+
         """
         raise BackendError("This backend doesn't allow to get the substation from the bus id.")
 
-    @abstractmethod
     def _disconnect_line(self, id_):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using the action space to disconnect a powerline.
@@ -697,10 +718,16 @@ class Backend(GridObjects, ABC):
         :type id_: int
 
         """
-        pass
+        action = self._complete_action_class()
+        action.update({"set_line_status": [(id_, -1)]})
+        bk_act = self.my_bk_act_class()
+        bk_act += action
+        self.apply_action(bk_act)
 
     def _runpf_with_diverging_exception(self, is_dc):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
 
@@ -718,19 +745,24 @@ class Backend(GridObjects, ABC):
 
         """
         conv = False
+        exc_me = None
         try:
-            conv = self.runpf(is_dc=is_dc)  # run powerflow
-        except:
-            pass
+            conv, exc_me = self.runpf(is_dc=is_dc)  # run powerflow
+        except Grid2OpException as exc_:
+            exc_me = exc_
+        except Exception as exc_:
+            exc_me = DivergingPowerFlow(f" An unexpected error occurred during the computation of the powerflow."
+                                        f"The error is: \n {exc_} \n. This is game over")
 
-        res = None
-        if not conv:
-            res = DivergingPowerFlow("GAME OVER: Powerflow has diverged during computation "
-                                     "or a load has been disconnected or a generator has been disconnected.")
-        return res
+        if not conv and exc_me is None:
+            exc_me = DivergingPowerFlow("GAME OVER: Powerflow has diverged during computation "
+                                        "or a load has been disconnected or a generator has been disconnected.")
+        return exc_me
 
     def next_grid_state(self, env, is_dc=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is called by `env.step`
@@ -764,8 +796,7 @@ class Backend(GridObjects, ABC):
         if env._no_overflow_disconnection or conv_ is not None:
             return disconnected_during_cf, infos, conv_
 
-        # the environment disconnect some
-
+        # the environment disconnect some powerlines
         init_time_step_overflow = copy.deepcopy(env._timestep_overflow)
         while True:
             # simulate the cascading failure
@@ -777,7 +808,7 @@ class Backend(GridObjects, ABC):
             to_disc = lines_flows > env._hard_overflow_threshold * thermal_limits
 
             # b) deals with soft overflow
-            init_time_step_overflow[ (lines_flows >= thermal_limits) & (lines_status)] += 1
+            init_time_step_overflow[(lines_flows >= thermal_limits) & (lines_status)] += 1
             to_disc[init_time_step_overflow > env._nb_timestep_overflow_allowed] = True
 
             # disconnect the current power lines
@@ -788,6 +819,7 @@ class Backend(GridObjects, ABC):
 
             # perform the disconnection action
             [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
+
             # start a powerflow on this new state
             conv_ = self._runpf_with_diverging_exception(is_dc)
             if self.detailed_infos_for_cascading_failures:
@@ -797,12 +829,55 @@ class Backend(GridObjects, ABC):
                 break
         return disconnected_during_cf, infos, conv_
 
+    def storages_info(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.storage_power` instead.
+
+        This method is used to retrieve information about the storage units (active, reactive consumption
+        and voltage magnitude of the bus to which it is connected).
+
+        Returns
+        -------
+        storage_p ``numpy.ndarray``
+            The active power consumption for each load (in MW)
+        storage_q ``numpy.ndarray``
+            The reactive power consumption for each load (in MVAr)
+        storage_v ``numpy.ndarray``
+            The voltage magnitude of the bus to which each load is connected (in kV)
+        """
+        if self.n_storage > 0:
+            raise BackendError("storages_info method is not implemented yet there is batteries on the grid.")
+
+    def storage_deact_for_backward_comaptibility(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        This function is called under a very specific condition: an old environment has been loaded that
+        do not take into account the storage units, even though they were possibly some modeled by the backend.
+
+        This function is supposed to "remove" from the backend any reference to the storage units.
+
+        Overloading this function is not necessary (when developing a new backend). If it is not overloaded however,
+        some "backward compatibility" (for grid2op <= 1.4.0) might not be working properly depending on
+        your backend.
+        """
+        pass
+
     def check_kirchoff(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Check that the powergrid respects kirchhoff's law.
-        This function can be called at any moment to make sure a powergrid is in a consistent state, or to perform
+        This function can be called at any moment (after a powerflow has been run)
+        to make sure a powergrid is in a consistent state, or to perform
         some tests for example.
 
         In order to function properly, this method requires that :func:`Backend.shunt_info` and
@@ -821,22 +896,36 @@ class Backend(GridObjects, ABC):
         q_bus ``numpy.ndarray``
             sum of injected reactive power at each buses. It is given in form of a matrix, with number of substations as
             row, and number of columns equal to the maximum number of buses for a substation (MVAr)
+        diff_v_bus: ``numpy.ndarray`` (2d array)
+            difference between maximum voltage and minimum voltage (computed for each elements)
+            at each bus. It is an array of two dimension:
+
+            - first dimension represents the the substation (between 1 and self.n_sub)
+            - second element represents the busbar in the substation (0 or 1 usually)
+
         """
 
         p_or, q_or, v_or, *_ = self.lines_or_info()
         p_ex, q_ex, v_ex, *_ = self.lines_ex_info()
         p_gen, q_gen, v_gen = self.generators_info()
         p_load, q_load, v_load = self.loads_info()
+        if self.n_storage > 0:
+            p_storage, q_storage, v_storage = self.storages_info()
 
         # fist check the "substation law" : nothing is created at any substation
-        p_subs = np.zeros(self.n_sub)
-        q_subs = np.zeros(self.n_sub)
+        p_subs = np.zeros(self.n_sub, dtype=dt_float)
+        q_subs = np.zeros(self.n_sub, dtype=dt_float)
 
         # check for each bus
-        p_bus = np.zeros((self.n_sub, 2))
-        q_bus = np.zeros((self.n_sub, 2))
+        p_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
+        q_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
+        v_bus = np.zeros((self.n_sub, 2, 2), dtype=dt_float) - 1.  # sub, busbar, [min,max]
         topo_vect = self.get_topo_vect()
 
+        # bellow i'm "forced" to do a loop otherwise, numpy do not compute the "+=" the way I want it to.
+        # for example, if two powerlines are such that line_or_to_subid is equal (eg both connected to substation 0)
+        # then numpy do not guarantee that `p_subs[self.line_or_to_subid] += p_or` will add the two "corresponding p_or"
+        # TODO this can be vectorized with matrix product, see example in obs.flow_bus_matrix (BaseObervation.py)
         for i in range(self.n_line):
             # for substations
             p_subs[self.line_or_to_subid[i]] += p_or[i]
@@ -852,6 +941,38 @@ class Backend(GridObjects, ABC):
             p_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1] += p_ex[i]
             q_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1] += q_ex[i]
 
+            # fill the min / max voltage per bus (initialization)
+            if v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0] == -1:
+                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0] = v_or[i]
+            if v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0] == -1:
+                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0] = v_ex[i]
+            if v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1] == -1:
+                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1] = v_or[i]
+            if v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1] == -1:
+                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1] = v_ex[i]
+
+            # now compute the correct stuff
+            if v_or[i] > 0.:
+                # line is connected
+                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0] = min(
+                    v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0],
+                    v_or[i]
+                )
+                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1] = max(
+                    v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1],
+                    v_or[i]
+                )
+            if v_ex[i] > 0:
+                # line is connected
+                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0] = min(
+                    v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0],
+                    v_ex[i]
+                )
+                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1] = max(
+                    v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1],
+                    v_ex[i]
+                )
+
         for i in range(self.n_gen):
             # for substations
             p_subs[self.gen_to_subid[i]] -= p_gen[i]
@@ -861,6 +982,18 @@ class Backend(GridObjects, ABC):
             p_bus[self.gen_to_subid[i],  topo_vect[self.gen_pos_topo_vect[i]]-1] -= p_gen[i]
             q_bus[self.gen_to_subid[i],  topo_vect[self.gen_pos_topo_vect[i]]-1] -= q_gen[i]
 
+            # compute max and min values
+            if v_gen[i]:
+                # but only if gen is connected
+                v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][0] = min(
+                    v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][0],
+                    v_gen[i]
+                )
+                v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][1] = max(
+                    v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][1],
+                    v_gen[i]
+                )
+
         for i in range(self.n_load):
             # for substations
             p_subs[self.load_to_subid[i]] += p_load[i]
@@ -869,6 +1002,36 @@ class Backend(GridObjects, ABC):
             # for buses
             p_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += p_load[i]
             q_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += q_load[i]
+
+            # compute max and min values
+            if v_load[i]:
+                # but only if load is connected
+                v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][0] = min(
+                    v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][0],
+                    v_load[i]
+                )
+                v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][1] = max(
+                    v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][1],
+                    v_load[i]
+                )
+
+        for i in range(self.n_storage):
+            p_subs[self.storage_to_subid[i]] += p_storage[i]
+            q_subs[self.storage_to_subid[i]] += q_storage[i]
+            p_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]]-1] += p_storage[i]
+            q_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]]-1] += q_storage[i]
+
+            # compute max and min values
+            if v_storage[i] > 0:
+                # the storage unit is connected
+                v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][0] = min(
+                    v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][0],
+                    v_storage[i]
+                )
+                v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][1] = max(
+                    v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][1],
+                    v_storage[i]
+                )
 
         if self.shunts_data_available:
             p_s, q_s, v_s, bus_s = self.shunt_info()
@@ -880,25 +1043,59 @@ class Backend(GridObjects, ABC):
                 # for buses
                 p_bus[self.shunt_to_subid[i], bus_s[i] - 1] += p_s[i]
                 q_bus[self.shunt_to_subid[i], bus_s[i] - 1] += q_s[i]
+
+                # compute max and min values
+                v_bus[self.shunt_to_subid[i], bus_s[i] - 1][0] = min(
+                    v_bus[self.shunt_to_subid[i], bus_s[i] - 1][0],
+                    v_s[i]
+                )
+                v_bus[self.shunt_to_subid[i], bus_s[i] - 1][1] = max(
+                    v_bus[self.shunt_to_subid[i], bus_s[i] - 1][1],
+                    v_s[i]
+                )
         else:
             warnings.warn("Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
                           "incorrect.")
-
-        return p_subs, q_subs, p_bus, q_bus
+        diff_v_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
+        diff_v_bus[:, :] = v_bus[:, :, 1] - v_bus[:, :, 0]
+        return p_subs, q_subs, p_bus, q_bus, diff_v_bus
 
     def load_redispacthing_data(self, path, name='prods_charac.csv'):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method will load everything needed for the redispatching and unit commitment problem.
 
+        We don't recommend at all to modify this function.
+
         Parameters
         ----------
         path: ``str``
-            Location of the datafram containing the redispatching data.
+            Location of the dataframe containing the redispatching data. This dataframe (csv, coma separated)
+            should have at least the columns (other columns are ignored, order of the colums do not matter):
+
+            - "name": identifying the name of the generator (should match the names in self.name_gen)
+            - "type": one of "thermal", "nuclear", "wind", "solar" or "hydro" representing the type of the generator
+            - "pmax": the maximum value the generator can produce (in MW)
+            - "pmin": the minimum value the generator can produce (in MW)
+            - "max_ramp_up": maximum value the generator can increase its production between two consecutive
+              steps TODO make it independant from the duration of the step
+            - "max_ramp_down": maximum value the generator can decrease its production between two consecutive
+              steps (is positive) TODO make it independant from the duration of the step
+            - "start_cost": starting cost of the generator in $ (or any currency you want)
+            - "shut_down_cost": cost associated to the shut down of the generator in $ (or any currency you want)
+            - "marginal_cost": "average" marginal cost of the generator. For now we don't allow it to vary across
+              different steps or episode in $/(MW.time step duration) and NOT $/MWh  (TODO change that)
+            - "min_up_time": minimum time a generator need to stay "connected" before we can disconnect it (
+              measured in time step)  (TODO change that)
+            - "min_down_time": minimum time a generator need to stay "disconnected" before we can connect it again.(
+              measured in time step)  (TODO change that)
 
         name: ``str``
-            Name of the dataframe containing the redispatching data
+            Name of the dataframe containing the redispatching data. Defaults to 'prods_charac.csv', we don't advise
+            to change it.
 
         """
         self._fill_names()
@@ -909,13 +1106,20 @@ class Backend(GridObjects, ABC):
             self.redispatching_unit_commitment_availble = False
             return
         try:
-            df = pd.read_csv(fullpath)
-        except Exception as e:
+            df = pd.read_csv(fullpath, sep=",")
+        except Exception as exc_:
+            warnings.warn(f"Impossible to load the redispatching data for this environment with error:\n\"{exc_}\"\n"
+                          f"Redispatching will be unavailable.\n"
+                          f"Please make sure \"{name}\" file is a csv (coma ',') separated file.")
             return
 
-        for el in ["type", "Pmax", "Pmin", "max_ramp_up", "max_ramp_down", "start_cost",
-                   "shut_down_cost", "marginal_cost", "min_up_time", "min_down_time"]:
+        mandatory_columns = ["type", "Pmax", "Pmin", "max_ramp_up", "max_ramp_down", "start_cost",
+                             "shut_down_cost", "marginal_cost", "min_up_time", "min_down_time"]
+        for el in mandatory_columns:
             if el not in df.columns:
+                warnings.warn(f"Impossible to load the redispatching data for this environment because"
+                              f"one of the mandatory column is not present ({el}). Please check the file "
+                              f"\"{name}\" contains all the mandatory columns: {mandatory_columns}")
                 return
 
         gen_info = {}
@@ -944,12 +1148,19 @@ class Backend(GridObjects, ABC):
         self.gen_cost_per_MW = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # marginal cost
         self.gen_startup_cost = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # start cost
         self.gen_shutdown_cost = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # shutdown cost
+        self.gen_renewable = np.full(self.n_gen, fill_value=False, dtype=dt_bool)
 
         for i, gen_nm in enumerate(self.name_gen):
-            tmp_gen = gen_info[gen_nm]
+            try:
+                tmp_gen = gen_info[gen_nm]
+            except KeyError as exc_:
+                raise BackendError(f"Impossible to load the redispatching data. The generator {i} with name {gen_nm} "
+                                   f"could not be located on the description file \"{name}\".")
             self.gen_type[i] = str(tmp_gen["type"])
-            self.gen_pmin[i] = dt_float(tmp_gen["pmin"])
-            self.gen_pmax[i] = dt_float(tmp_gen["pmax"])
+            self.gen_pmin[i] = self._aux_check_finite_float(tmp_gen["pmin"],
+                                                            f" for gen. \"{gen_nm}\" and column \"pmin\"")
+            self.gen_pmax[i] = self._aux_check_finite_float(tmp_gen["pmax"],
+                                                            f" for gen. \"{gen_nm}\" and column \"pmax\"")
             self.gen_redispatchable[i] = dt_bool(tmp_gen["type"] not in ["wind", "solar"])
             tmp = dt_float(tmp_gen["max_ramp_up"])
             if np.isfinite(tmp):
@@ -962,8 +1173,174 @@ class Backend(GridObjects, ABC):
             self.gen_cost_per_MW[i] = dt_float(tmp_gen["marginal_cost"])
             self.gen_startup_cost[i] = dt_float(tmp_gen["start_cost"])
             self.gen_shutdown_cost[i] = dt_float(tmp_gen["shut_down_cost"])
+            self.gen_renewable[i] = dt_bool(tmp_gen["type"] in ["wind", "solar"])
+
+    def load_storage_data(self, path, name='storage_units_charac.csv'):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        This method will load everything needed in presence of storage unit on the grid.
+
+        We don't recommend at all to modify this function.
+
+        Parameters
+        ----------
+        path: ``str``
+            Location of the dataframe containing the storage unit data. This dataframe (csv, coma separated)
+            should have at least the columns. It is mandatory to have it if there are storage units on the grid,
+            but it is ignored if not:
+
+            - "name": identifying the name of the unit storage (should match the names in self.name_storage)
+            - "type": one of "battery", "pumped_storage" representing the type of the unit storage
+            - "Emax": the maximum energy capacity the unit can store (in MWh)
+            - "Emin": the minimum energy capacity the unit can store (in MWh) [it can be >0 if a battery cannot be
+              completely empty for example]
+            - "max_p_prod": maximum flow the battery can absorb in MW
+            - "max_p_absorb": maximum flow the battery can produce in MW
+            - "marginal_cost": cost in $ (or any currency, really) of usage of the battery.
+            - "power_discharge_loss" (optional): power loss in the battery in MW (the capacity will decrease constantly
+              of this amount). Set it to 0.0 to deactivate it. If not present, it is set to 0.
+            - "charging_efficiency" (optional):
+               Float between 0. and 1. 1. means that if the grid provides 1MW (for ex. 1MW for 1h) to the storage
+               capacity, then the
+               state of charge of the battery will increase of 1MWh. If this efficiency is 0.5 then if 1MWh
+               if provided by the grid, then only 0.5MWh will be stored.
+            - "discharging_efficiency" (optional): battery efficiency when it is discharged. 1.0 means if you want to
+              get 1MWh on the grid, the battery state of charge will decrease by 1MWh. If this is 33% then it
+              means if you want to get (grid point of view) 1MWh on the grid, you need to decrease the
+              state of charge of 3MWh.
+
+        name: ``str``
+            Name of the dataframe containing the redispatching data. Defaults to 'prods_charac.csv', we don't advise
+            to change it.
+
+        Notes
+        -----
+        The battery efficiency defined as the "AC-AC" round trip efficiency is, with the convention above, defined
+        as `charging_efficiency * discharging_efficency` (see
+        https://www.greeningthegrid.org/news/new-resource-grid-scale-battery-storage-frequently-asked-questions-1
+        for further references)
+        """
+
+        if self.n_storage == 0:
+            # set the "no battery state" if there are none
+            type(self).set_no_storage()
+            return
+
+        # for storage unit information
+        fullpath = os.path.join(path, name)
+        if not os.path.exists(fullpath):
+            raise BackendError(f"There are storage unit on the grid, yet we could not locate their description."
+                               f"Please make sure to have a file \"{name}\" where the environment data are located."
+                               f"For this environment the location is \"{path}\"")
+
+        try:
+            df = pd.read_csv(fullpath)
+        except Exception as exc_:
+            raise BackendError(f"There are storage unit on the grid, yet we could not locate their description."
+                               f"Please make sure to have a file \"{name}\" where the environment data are located."
+                               f"For this environment the location is \"{path}\"")
+        mandatory_colnames = ["name", "type", "Emax", "Emin", "max_p_prod", "max_p_absorb",
+                              "marginal_cost"]
+        for el in mandatory_colnames:
+            if el not in df.columns:
+                raise BackendError(f"There are storage unit on the grid, yet we could not properly load their "
+                                   f"description. Please make sure the csv {name} contains all the columns "
+                                   f"{mandatory_colnames}")
+
+        stor_info = {}
+        for _, row in df.iterrows():
+            stor_info[row["name"]] = {"name": row["name"],
+                                      "type": row["type"],
+                                      "Emax": row["Emax"],
+                                      "Emin": row["Emin"],
+                                      "max_p_prod": row["max_p_prod"],
+                                      "max_p_absorb": row["max_p_absorb"],
+                                      "marginal_cost": row["marginal_cost"]
+                                      }
+            if "power_loss" in row:
+                stor_info[row["name"]]["power_loss"] = row["power_loss"]
+            else:
+                stor_info[row["name"]]["power_loss"] = 0.
+            if "charging_efficiency" in row:
+                stor_info[row["name"]]["charging_efficiency"] = row["charging_efficiency"]
+            else:
+                stor_info[row["name"]]["charging_efficiency"] = 1.
+            if "discharging_efficiency" in row:
+                stor_info[row["name"]]["discharging_efficiency"] = row["discharging_efficiency"]
+            else:
+                stor_info[row["name"]]["discharging_efficiency"] = 1.
+
+        self.storage_type = np.full(self.n_storage, fill_value="aaaaaaaaaa")
+        self.storage_Emax = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_Emin = np.full(self.n_storage, fill_value=0., dtype=dt_float)
+        self.storage_max_p_prod = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_max_p_absorb = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_marginal_cost = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_loss = np.full(self.n_storage, fill_value=0., dtype=dt_float)
+        self.storage_charging_efficiency = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_discharging_efficiency = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+
+        for i, sto_nm in enumerate(self.name_storage):
+            try:
+                tmp_sto = stor_info[sto_nm]
+            except KeyError as exc_:
+                raise BackendError(f"Impossible to load the storage data. The storage unit {i} with name {sto_nm} "
+                                   f"could not be located on the description file \"{name}\" with error : \n"
+                                   f"{exc_}.")
+
+            self.storage_type[i] = str(tmp_sto["type"])
+            self.storage_Emax[i] = self._aux_check_finite_float(tmp_sto["Emax"], f" for {sto_nm} and column \"Emax\"")
+            self.storage_Emin[i] = self._aux_check_finite_float(tmp_sto["Emin"], f" for {sto_nm} and column \"Emin\"")
+            self.storage_max_p_prod[i] = self._aux_check_finite_float(tmp_sto["max_p_prod"],
+                                                                      f" for {sto_nm} and column \"max_p_prod\"")
+            self.storage_max_p_absorb[i] = self._aux_check_finite_float(tmp_sto["max_p_absorb"],
+                                                                        f" for {sto_nm} and column \"max_p_absorb\"")
+            self.storage_marginal_cost[i] = self._aux_check_finite_float(tmp_sto["marginal_cost"],
+                                                                         f" for {sto_nm} and column \"marginal_cost\"")
+            self.storage_loss[i] = self._aux_check_finite_float(tmp_sto["power_loss"],
+                                                                f" for {sto_nm} and column \"power_loss\"")
+            self.storage_charging_efficiency[i] = self._aux_check_finite_float(
+                tmp_sto["charging_efficiency"],
+                f" for {sto_nm} and column \"charging_efficiency\"")
+            self.storage_discharging_efficiency[i] = self._aux_check_finite_float(
+                tmp_sto["discharging_efficiency"],
+                f" for {sto_nm} and column \"discharging_efficiency\"")
+
+    def _aux_check_finite_float(self, nb_, str_=""):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        check and returns if correct that a number is convertible to `dt_float` and that it's finite
+
+        """
+        tmp = dt_float(nb_)
+        if not np.isfinite(tmp):
+            raise BackendError(f"Infinite number met for a number that should be finite. Please check your data {str_}")
+        return tmp
 
     def load_grid_layout(self, path, name='grid_layout.json'):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        We don't recommend at all to modify this function.
+
+        This function loads the layout (eg the coordinates of each substation) for the powergrid.
+
+        Parameters
+        ----------
+        path: ``str``
+            TODO
+        name: ``str``
+            TODO
+
+        """
         full_fn = os.path.join(path, name)
         if not os.path.exists(full_fn):
             return Exception("File {} does not exist".format(full_fn))
@@ -975,7 +1352,7 @@ class Backend(GridObjects, ABC):
 
         new_grid_layout = {}
         for el in self.name_sub:
-            if not el in dict_:
+            if el not in dict_:
                 return Exception("substation named {} not in layout".format(el))
             tmp = dict_[el]
             try:
@@ -1035,8 +1412,6 @@ class Backend(GridObjects, ABC):
         Only the "line_status", "topo_vect", "prod_p", "prod_v", "load_p" and "load_q" attributes of the
         observations are used.
 
-        TODO we plan to set also the shunt information in the future.
-
         Notes
         -----
         If the observation is not perfect (for example with noise, or partial) this method will not work. You need
@@ -1055,7 +1430,7 @@ class Backend(GridObjects, ABC):
 
         if not isinstance(obs, CompleteObservation):
             raise BackendError("Impossible to set a backend to a state not represented by a "
-                               "\"grid2op.CompleteObservation\".")
+                               "\"grid2op.Observation.CompleteObservation\".")
 
         backend_action = self.my_bk_act_class()
         act = self._complete_action_class()
@@ -1080,3 +1455,97 @@ class Backend(GridObjects, ABC):
         act.update(dict_)
         backend_action += act
         self.apply_action(backend_action)
+
+    def assert_grid_correct(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is done as it should be by the Environment
+        """
+        # and set up the proper class and everything
+
+        # lazy loading
+        from grid2op.Action import CompleteAction
+        from grid2op.Action._BackendAction import _BackendAction
+        self.__class__ = self.init_grid(self)
+        self.my_bk_act_class = _BackendAction.init_grid(self)
+        self._complete_action_class = CompleteAction.init_grid(self)
+        super().assert_grid_correct()
+
+    def assert_grid_correct_after_powerflow(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is done as it should be by the Environment
+
+        This method is called by the environment. It ensure that the backend remains consistent even after a powerflow
+        has be run with :func:`Backend.runpf` method.
+
+        :raise: :class:`grid2op.Exceptions.EnvError` and possibly all of its derived class.
+        """
+
+        # test the results gives the proper size
+        tmp = self.get_line_status()
+        if tmp.shape[0] != self.n_line:
+            raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")
+        if np.any(~np.isfinite(tmp)):
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+        tmp = self.get_line_flow()
+        if tmp.shape[0] != self.n_line:
+            raise IncorrectNumberOfLines("returned by \"backend.get_line_flow()\"")
+        if np.any(~np.isfinite(tmp)):
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+        tmp = self.get_thermal_limit()
+        if tmp.shape[0] != self.n_line:
+            raise IncorrectNumberOfLines("returned by \"backend.get_thermal_limit()\"")
+        if np.any(~np.isfinite(tmp)):
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+        tmp = self.get_line_overflow()
+        if tmp.shape[0] != self.n_line:
+            raise IncorrectNumberOfLines("returned by \"backend.get_line_overflow()\"")
+        if np.any(~np.isfinite(tmp)):
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+
+        tmp = self.generators_info()
+        if len(tmp) != 3:
+            raise EnvError("\"generators_info()\" should return a tuple with 3 elements: p, q and v")
+        for el in tmp:
+            if el.shape[0] != self.n_gen:
+                raise IncorrectNumberOfGenerators("returned by \"backend.generators_info()\"")
+        tmp = self.loads_info()
+        if len(tmp) != 3:
+            raise EnvError("\"loads_info()\" should return a tuple with 3 elements: p, q and v")
+        for el in tmp:
+            if el.shape[0] != self.n_load:
+                raise IncorrectNumberOfLoads("returned by \"backend.loads_info()\"")
+        tmp = self.lines_or_info()
+        if len(tmp) != 4:
+            raise EnvError("\"lines_or_info()\" should return a tuple with 4 elements: p, q, v and a")
+        for el in tmp:
+            if el.shape[0] != self.n_line:
+                raise IncorrectNumberOfLines("returned by \"backend.lines_or_info()\"")
+        tmp = self.lines_ex_info()
+        if len(tmp) != 4:
+            raise EnvError("\"lines_ex_info()\" should return a tuple with 4 elements: p, q, v and a")
+        for el in tmp:
+            if el.shape[0] != self.n_line:
+                raise IncorrectNumberOfLines("returned by \"backend.lines_ex_info()\"")
+
+        if self.n_storage > 0:
+            tmp = self.storages_info()
+            if len(tmp) != 3:
+                raise EnvError("\"storages_info()\" should return a tuple with 3 elements: p, q and v")
+            for el in tmp:
+                if el.shape[0] != self.n_storage:
+                    raise IncorrectNumberOfLines("returned by \"backend.storages_info()\"")
+
+        tmp = self.get_topo_vect()
+        if tmp.shape[0] != np.sum(self.sub_info):
+            raise IncorrectNumberOfElements("returned by \"backend.get_topo_vect()\"")
+
+        if np.any(~np.isfinite(tmp)):
+            raise EnvError("Some components of \"backend.get_topo_vect()\" are not finite. This should be integer.")

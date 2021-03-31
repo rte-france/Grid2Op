@@ -26,6 +26,8 @@ from grid2op.Exceptions import PlotError
 
 class BasePlot(GridObjects):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ This module is deprecated /!\\\\
 
         Prefer using the module `grid2op.PlotGrid

@@ -161,10 +161,12 @@ getting_started/saved_experiment_donothing/
 Doxyfile
 documentation
 **(copie).zip
+**(copy).json
 grid2op/data/*/*.csv
 !grid2op/data/test_PandaPower/prods_charac.csv
 !grid2op/data/case14_redisp/prods_charac.csv
 !grid2op/data/*/prods_charac.csv
+!grid2op/data/*/storage_units_charac.csv
 **token.json
 getting_started/study_agent_getting_started/
 **Untitled.ipynb
@@ -261,6 +263,41 @@ test_weights_focus.jpg
 test_weights_full.jpg
 times_api.txt
 new 1.txt
+test_*_weigths.h5
+test_saving_spektral.h5
+tf_logs_gnn/
+test_weigths.h5
+test_threading_lightsim.py
+test_multiprocessing.py
+test_plot_storage.ipynb
+issue_pp_storage.py
+test_speed_obs_plus_act.py
+test_filter_act.py
+speed_up_multiproc.ods
+test_issue_169.py
+cut_data.py
+getting_started/Dev_Curtailment.ipynb
+grid2op/tests/dict_action_space.json
+grid2op/tests/dict_attack_space.json
+grid2op/tests/dict_env_modification_space.json
+grid2op/tests/dict_observation_space.json
+grid2op/tests/test_before_push
+getting_started/saved_agent2_DDDQN_75/
+getting_started/saved_agent2_DDDQN_75_results/
+getting_started/saved_agent_DDDQN_50/
+getting_started/saved_agent_DDDQN_50_results/
+getting_started/saved_agent_DDDQN_BDA_60/
+getting_started/saved_agent_DDDQN_BDA_60_results/
+getting_started/path_agents/awesome_agent_logs/000/episode.gif
+grid2op/data/update_envs_ls.py
+grid2op/data_save
+test_rllib2.py
+grid2op/tests/res_test
+test_bug_macos.py
+pp_error_non_connected_grid.py
+test_issue174.py
+actions2.npy
+bug_discord_0.py
 
 # profiling files
 **.prof

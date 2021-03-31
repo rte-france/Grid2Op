@@ -59,13 +59,15 @@ class BaseTestRedispatch(MakeBackend):
         # _parameters for the environment
         self.env_params = Parameters()
         self.env_params.ALLOW_DISPATCH_GEN_SWITCH_OFF = False
-        self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                               backend=self.backend,
-                               chronics_handler=self.chronics_handler,
-                               parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend,
-                               actionClass=BaseAction,
-                               name="test_redisp_env1")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                                   backend=self.backend,
+                                   chronics_handler=self.chronics_handler,
+                                   parameters=self.env_params,
+                                   names_chronics_to_backend=self.names_chronics_to_backend,
+                                   actionClass=BaseAction,
+                                   name="test_redisp_env1")
         self.array_double_dispatch = np.array([0.,  10.,  20.,   0., -30.])
         # self.array_double_dispatch = np.array([0.,  11.208119,  12.846733, 0., -24.054852])
         self.tol_one = self.env._tol_poly
@@ -104,7 +106,7 @@ class BaseTestRedispatch(MakeBackend):
     def test_basic_redispatch_act(self):
         # test of the implementation of a simple case redispatching on one generator, bellow ramp min and ramp max
         self.skip_if_needed()
-        act = self.env.action_space({"redispatch": [2, 5]})
+        act = self.env.action_space({"redispatch": (2, 5)})
         obs, reward, done, info = self.env.step(act)
         assert np.abs(np.sum(self.env._actual_dispatch)) <= self.tol_one
         th_dispatch = np.array([ 0. , -2.5,  5. ,  0. , -2.5])
@@ -123,7 +125,7 @@ class BaseTestRedispatch(MakeBackend):
         # in this test, the asked redispatching for generator 2 would make it above pmax, so the environment
         # need to "cut" it automatically, without invalidating the action
         self.skip_if_needed()
-        act = self.env.action_space({"redispatch": [2, 60]})
+        act = self.env.action_space({"redispatch": (2, 60)})
         obs, reward, done, info = self.env.step(act)
         assert np.abs(np.sum(self.env._actual_dispatch)) <= self.tol_one
         th_dispatch = np.array([  0.      , -23.2999  ,  50.899902,   0.      , -27.600002])
@@ -137,9 +139,9 @@ class BaseTestRedispatch(MakeBackend):
 
     def test_two_redispatch_act(self):
         self.skip_if_needed()
-        act = self.env.action_space({"redispatch": [2, 20]})
+        act = self.env.action_space({"redispatch": (2, 20)})
         obs_first, reward, done, info = self.env.step(act)
-        act = self.env.action_space({"redispatch": [1, 10]})
+        act = self.env.action_space({"redispatch": (1, 10)})
         obs, reward, done, info = self.env.step(act)
         th_dispatch = np.array([0., 10, 20., 0., 0.])
         th_dispatch[1] += obs_first.actual_dispatch[1]
@@ -322,13 +324,15 @@ class BaseTestRedispatchChangeNothingEnvironment(MakeBackend):
         # _parameters for the environment
         self.env_params = Parameters()
         self.env_params.ALLOW_DISPATCH_GEN_SWITCH_OFF = False
-        self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                               backend=self.backend,
-                               chronics_handler=self.chronics_handler,
-                               parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend,
-                               actionClass=BaseAction,
-                               name="test_redisp_env2")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                                   backend=self.backend,
+                                   chronics_handler=self.chronics_handler,
+                                   parameters=self.env_params,
+                                   names_chronics_to_backend=self.names_chronics_to_backend,
+                                   actionClass=BaseAction,
+                                   name="test_redisp_env2")
         self.tol_one = self.env._tol_poly
 
     def tearDown(self):
@@ -382,26 +386,26 @@ class BaseTestRedispTooLowHigh(MakeBackend):
         """
         self.skip_if_needed()
         # this dispatch (though legal) broke everything
-        act = self.env.action_space({"redispatch": [0, -1]})
+        act = self.env.action_space({"redispatch": (0, -1)})
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert info["is_dispatching_illegal"] is False
         assert np.all(self.env._target_dispatch == [-1., 0., 0., 0., 0.])
-        act = self.env.action_space({"redispatch": [0, 0]})
+        act = self.env.action_space({"redispatch": (0, 0)})
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert info["is_dispatching_illegal"] is False
         assert np.all(self.env._target_dispatch == [-1., 0., 0., 0., 0.])
 
         # this one is not correct: too high decrease
-        act = self.env.action_space({"redispatch": [0, self.env.gen_pmin[0] - self.env.gen_pmax[0]]})
+        act = self.env.action_space({"redispatch": (0, self.env.gen_pmin[0] - self.env.gen_pmax[0])})
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert info["is_dispatching_illegal"]
         assert np.all(self.env._target_dispatch == [-1., 0., 0., 0., 0.])
 
         # this one is not correct: too high increase
-        act = self.env.action_space({"redispatch": [0, self.env.gen_pmax[0] - self.env.gen_pmin[0] +2 ]})
+        act = self.env.action_space({"redispatch": (0, self.env.gen_pmax[0] - self.env.gen_pmin[0] +2 )})
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert info["is_dispatching_illegal"]

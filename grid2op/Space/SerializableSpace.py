@@ -20,6 +20,8 @@ from grid2op.Space.RandomObject import RandomObject
 
 class SerializableSpace(GridObjects, RandomObject):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         This is a higher level wrapper that allows to avoid code duplicates for
         the action_space and observation_space. None of the methods here should be
@@ -81,15 +83,12 @@ class SerializableSpace(GridObjects, RandomObject):
 
         GridObjects.__init__(self)
         RandomObject.__init__(self)
-        self.init_grid(gridobj)
 
         self._init_subtype = subtype  # do not use, use to save restore only !!!
-        # print(f"gridobj : {gridobj}")
         if _init_grid:
             self.subtype = subtype.init_grid(gridobj)
         else:
             self.subtype = subtype
-        # print(f"subtype : {self.subtype}")
         self._template_obj = self.subtype()
         self.n = self._template_obj.size()
 
@@ -97,12 +96,12 @@ class SerializableSpace(GridObjects, RandomObject):
 
         self.shape = self._template_obj.shape()
         self.dtype = self._template_obj.dtype()
-        self.attr_list_vect = self._template_obj.attr_list_vect
+        self.attr_list_vect = copy.deepcopy(self._template_obj.attr_list_vect)
 
         self._to_extract_vect = {}  # key: attr name, value: tuple: (beg_, end_, dtype)
         beg_ = 0
         end_ = 0
-        for attr, size, dtype_ in zip(self._template_obj.attr_list_vect, self.shape, self.dtype):
+        for attr, size, dtype_ in zip(self.attr_list_vect, self.shape, self.dtype):
             end_ += size
             self._to_extract_vect[attr] = (beg_, end_, dtype_)
             beg_ += size
@@ -110,6 +109,8 @@ class SerializableSpace(GridObjects, RandomObject):
     @staticmethod
     def from_dict(dict_):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is used internally only to restore action_space or observation_space if they
             have been saved by `to_dict`. Do not
@@ -122,7 +123,7 @@ class SerializableSpace(GridObjects, RandomObject):
         dict_: ``dict``
             Representation of an BaseObservation Space (aka :class:`grid2op.BaseObservation.ObservartionHelper`)
             or the BaseAction Space (aka :class:`grid2op.BaseAction.ActionSpace`)
-            as a dictionnary.
+            as a dictionary.
 
         Returns
         -------
@@ -138,10 +139,7 @@ class SerializableSpace(GridObjects, RandomObject):
             with open(path, "r", encoding="utf-8") as f:
                 dict_ = json.load(fp=f)
 
-        # print("beginning from dict")
-
         gridobj = GridObjects.from_dict(dict_)
-
         actionClass_str = extract_from_dict(dict_, "_init_subtype", str)
         actionClass_li = actionClass_str.split('.')
 
@@ -182,14 +180,17 @@ class SerializableSpace(GridObjects, RandomObject):
                                    "(the module is found but not the class in it)"
                         msg_err_ = msg_err_.format(actionClass_str)
                     raise Grid2OpException(msg_err_)
-
-        res = SerializableSpace(gridobj=gridobj,
-                                subtype=subtype,
-                                _init_grid=False)
+        # create the proper SerializableSpace class for this environment
+        CLS = SerializableSpace.init_grid(gridobj)
+        res = CLS(gridobj=gridobj,
+                  subtype=subtype,
+                  _init_grid=True)
         return res
 
-    def to_dict(self):
+    def cls_to_dict(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is used internally only to save action_space or observation_space for example. Do not
             attempt to use it in a different context.
@@ -199,10 +200,12 @@ class SerializableSpace(GridObjects, RandomObject):
         Returns
         -------
         res: ``dict``
-            A dictionnary representing this object content. It can be loaded back with
-             :func:`SerializableObservationSpace.from_dict`
+            A dictionary representing this object content. It can be loaded back with
+            :func:`SerializableObservationSpace.cls_from_dict`
+
         """
-        res = super().to_dict()
+        # TODO this is super weird that this is a regular method, but inherit from a class method !
+        res = super().cls_to_dict()
 
         save_to_dict(res, self, "_init_subtype",
                      lambda x: re.sub("(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)))
@@ -226,7 +229,8 @@ class SerializableSpace(GridObjects, RandomObject):
 
     def from_vect(self, obj_as_vect, check_legit=True):
         """
-        Convert an action, represented as a vector to a valid :class:`BaseAction` instance. It works the
+        Convert an space (action space or observation space),
+        represented as a vector to a valid :class:`BaseAction` instance. It works the
         same way for observations.
 
         Parameters

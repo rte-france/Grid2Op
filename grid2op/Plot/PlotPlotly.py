@@ -64,6 +64,7 @@ except Exception as e:
 # Some utilities to plot substation, lines or get the color id for the colormap.
 def draw_sub(pos, radius=50, line_color="LightSeaGreen"):
     """
+    INTERNAL
 
     .. warning:: /!\\\\ This class is deprecated /!\\\\
 
@@ -100,6 +101,8 @@ def draw_sub(pos, radius=50, line_color="LightSeaGreen"):
 
 def get_col(rho):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ This class is deprecated /!\\\\
 
     Get the index (in the color palette) of the current  capacity usage.
@@ -130,6 +133,7 @@ def get_col(rho):
 
 def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status, line_color="gray"):
     """
+    INTERNAL
 
     .. warning:: /!\\\\ This class is deprecated /!\\\\
 
@@ -180,6 +184,7 @@ def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status, line_color="gr
 
 class PlotPlotly(BasePlot):
     """
+    INTERNAL
 
     .. warning:: /!\\\\ This class is deprecated /!\\\\
 
@@ -341,6 +346,8 @@ class PlotPlotly(BasePlot):
 
     def _draw_powerlines_one_powerline(self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ This class is deprecated /!\\\\
 
             Prefer using the class `grid2op.PlotGrid.PlotPlotly`

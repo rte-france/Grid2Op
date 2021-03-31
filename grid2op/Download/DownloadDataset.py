@@ -6,13 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""
-This utility file helps downloading the data for some environments.
-
-Data are stored as a github "release".
-
-This script works on MacOs, Linux and windows.
-"""
 import os
 import sys
 from tqdm import tqdm
@@ -39,6 +32,8 @@ LI_VALID_ENV = sorted(["\"{}\"".format(el) for el in DICT_URL_GRID2OP_DL.keys()]
 
 class DownloadProgressBar(tqdm):
     """
+    INTERNAL
+
      .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This class is here to show the progress bar when downloading this dataset
@@ -51,6 +46,8 @@ class DownloadProgressBar(tqdm):
 
 def download_url(url, output_path):
     """
+    INTERNAL
+
      .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This function download the file located at 'url' and save it to 'output_path'
@@ -69,6 +66,8 @@ def download_url(url, output_path):
 
 def _aux_download(url, dataset_name, path_data, ds_name_dl=None):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
     """
     if ds_name_dl is None:
@@ -92,11 +91,10 @@ def _aux_download(url, dataset_name, path_data, ds_name_dl=None):
               "".format(path_data, ds_name_dl))
         try:
             os.mkdir(path_data)
-        except Exception as e:
-            str_ ="Impossible to create path \"{}\" to store the data. Please save the data in a different repository " \
-                  "with setting the argument \"--path_save\"" \
-                  "".format(path_data)
-            print(str_)
+        except Exception as exc_:
+            str_ = "Impossible to create path \"{}\" to store the data. Please save the data in a different repository " \
+                   "with setting the argument \"--path_save\"" \
+                   "Error was:\n{}".format(path_data, exc_)
             raise Grid2OpException(str_)
 
     output_path = os.path.abspath(os.path.join(path_data, "{}.tar.bz2".format(ds_name_dl)))
@@ -125,7 +123,10 @@ def _aux_download(url, dataset_name, path_data, ds_name_dl=None):
 
 def main_download(dataset_name, path_data):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
     """
     dataset_name = dataset_name.lower().rstrip().lstrip()
     dataset_name = re.sub('"', "", dataset_name)

@@ -15,6 +15,8 @@ from grid2op.Chronics.GridValue import GridValue
 
 class ChangeNothing(GridValue):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Do not attempt to create an object of this class. This is initialized by the environment
@@ -27,6 +29,32 @@ class ChangeNothing(GridValue):
 
     This class is the most basic class to modify a powergrid values.
     It does nothing aside from increasing :attr:`GridValue.max_iter` and the :attr:`GridValue.current_datetime`.
+
+    Examples
+    --------
+
+    Usage example, for what you don't really have to do:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Chronics import ChangeNothing
+
+        env_name = ...
+        env = grid2op.make(env_name, data_feeding_kwargs={"gridvalueClass": ChangeNothing})
+
+    It can also be used with the "blank" environment:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Chronics import ChangeNothing
+        env = grid2op.make("blank",
+                           test=True,
+                           grid_path=EXAMPLE_CASEFILE,
+                           chronics_class=ChangeNothing,
+                           action_class=TopologyAndDispatchAction)
+        
     """
     def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
                  start_datetime=datetime(year=2019, month=1, day=1),

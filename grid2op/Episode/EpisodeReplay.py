@@ -77,7 +77,7 @@ class EpisodeReplay(object):
 
         gif_name: ``str``
             If provided, a .gif file is saved in the episode folder with the name :gif_name:. 
-            The .gif extension is appened by this function
+            The .gif extension is happened by this function
 
         start_step: ``int``
             Default to 0. The step at which to start generating the gif

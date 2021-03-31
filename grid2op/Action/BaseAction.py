@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-
+import copy
 import numpy as np
 import warnings
 
@@ -14,12 +14,13 @@ from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
-
-# TODO code "convert_for" and "convert_from" to be able to change the backend (should be handled by the backend directly)
-# TODO have something that output a dict like "i want to change this element" (with a simpler API than the update stuff)
 # TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
+# TODO ie:  action + (rev_action) = do_nothing_action
+
+# TODO consistency in names gen_p / prod_p and in general gen_* prod_*
+
 
 class BaseAction(GridObjects):
     """
@@ -43,6 +44,7 @@ class BaseAction(GridObjects):
     To be valid, an action should be convertible to a tuple of 5 elements:
 
     - the first element is the "injections" vector: representing the way generator units and loads are modified
+
         - It is, in turn, a dictionary with the following keys (optional)
 
             - "load_p" a vector of the same size of the load, giving the modification of the loads active consumption
@@ -59,7 +61,7 @@ class BaseAction(GridObjects):
             - +1 force line reconnection
             - 0 do nothing to this line
 
-    - the third element is the switch line status vector. It is made of a vector of size :attr:`BaseAction._n_lines`
+    - the third element is the switch line status vector. It is made of a vector of size :attr:`BaseAction.n_line`
       and is
       interpreted as:
 
@@ -75,6 +77,7 @@ class BaseAction(GridObjects):
         - -1 -> disconnect the object.
 
     - the fifth element changes the buses to which the object is connected. It's a boolean vector interpreted as:
+
         - ``False``: nothing is done
         - ``True``: change the bus eg connect it to bus 1 if it was connected to bus 2 or connect it to bus 2 if it was
           connected to bus 1. NB this is only active if the system has only 2 buses per substation (that's the case for
@@ -183,20 +186,177 @@ class BaseAction(GridObjects):
         on a generator, and on another you ask +10 MW then the total setpoint for this generator that the environment
         will try to implement is +20MW.
 
+    _storage_power: :class:`numpy.ndarray`, dtype:float
+        Amount of power you want each storage units to produce / absorbs. Storage units are in "loads"
+        convention. This means that if you ask for a positive number, the storage unit will absorb
+        power from the grid (=it will charge) and if you ask for a negative number, the storage unit
+        will inject power on the grid (storage unit will discharge).
+
+    _curtail: :class:`numpy.ndarray`, dtype:float
+        For each renewable generator, allows you to give a maximum value (as ratio of Pmax, *eg* 0.5 =>
+        you limit the production of this generator to 50% of its Pmax) to renewable generators.
+
+    Examples
+    --------
+    Here are example on how to use the action, for more information on what will be the effect of each,
+    please refer to the explanatory notebooks.
+
+    You have two main methods to build actions, as showed here:
+
+    .. code-block:: python
+
+        import grid2op
+        env_name = ...
+        env = grid2op.make(env_name)
+
+        # first method:
+        action_description = {...}  # see below
+        act = env.action_space(action_description)
+
+        # second method
+        act = env.action_space()
+        act.PROPERTY = MODIF
+
+    The description of action as a dictionary is the "historical" method. The method using the properties
+    has been added to simplify the API.
+
+    To connect / disconnect powerline, using the "set" action, you can:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"set_line_status": [(line_id, new_status), (line_id, new_status), ...]})
+
+        # method 2
+        act = env.action_space()
+        act.line_set_status = [(line_id, new_status), (line_id, new_status), ...]
+
+    typically: 0 <= line_id <= env.n_line and new_status = 1 or -1
+
+    To connect / disconnect powerline using the "change" action type, you can:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"change_line_status": [line_id, line_id, ...]})
+
+        # method 2
+        act = env.action_space()
+        act.line_change_status = [line_id, line_id, ...]
+
+    typically: 0 <= line_id <= env.n_line
+
+    To modify the busbar at which an element is connected you can (if using set, to use "change" instead
+    replace "set_bus" in the text below by "change_bus" **eg** `nv.action_space({"change_bus": ...})`
+    or `act.load_change_bus = ...` ):
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"set_bus":
+                                    {"lines_or_id": [(line_id, new_bus), (line_id, new_bus), ...],
+                                     "lines_ex_id": [(line_id, new_bus), (line_id, new_bus), ...],
+                                     "loads_id": [(load_id, new_bus), (load_id, new_bus), ...],
+                                     "generators_id": [(gen_id, new_bus), (gen_id, new_bus), ...],
+                                     "storages_id": [(storage_id, new_bus), (storage_id, new_bus), ...]
+                                     }
+                                })
+
+        # method 2
+        act = env.action_space()
+        act.line_or_set_bus = [(line_id, new_bus), (line_id, new_bus), ...]
+        act.line_ex_set_bus = [(line_id, new_bus), (line_id, new_bus), ...]
+        act.load_set_bus =  [(load_id, new_bus), (load_id, new_bus), ...]
+        act.gen_set_bus = [(gen_id, new_bus), (gen_id, new_bus), ...]
+        act.storage_set_bus = [(storage_id, new_bus), (storage_id, new_bus), ...]
+
+    Of course you can modify one type of object at a time (you don't have to specify all "lines_or_id",
+    "lines_ex_id", "loads_id", "generators_id", "storages_id"
+
+    You can also give the topologies you want at each substations with:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"set_bus":{
+                                "substations_id": [(sub_id, topo_sub), (sub_id, topo_sub), ...]
+                                }})
+        # method 2
+        act = env.action_space()
+        act.sub_set_bus = [(sub_id, topo_sub), (sub_id, topo_sub), ...]
+
+    In the above typically 0 <= sub_id < env.n_sub and topo_sub is a vector having the right dimension (
+    so if a substation has 4 elements, then topo_sub should have 4 elements)
+
+    It has to be noted that `act.sub_set_bus` will return a 1d vector representing the topology
+    of the grid as "set" by the action, with the convention, -1 => disconnect, 0 => don't change,
+    1=> set to bus 1 and 2 => set object to bus 2.
+
+
+    In order to perform redispatching you can do as follow:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"redispatch": [(gen_id, amount), (gen_id, amount), ...]})
+        # method 2
+        act = env.action_space()
+        act.redispatch = [(gen_id, amount), (gen_id, amount), ...]
+
+    Typically 0<= gen_id < env.n_gen and `amount` is a floating point between gen_max_ramp_down and
+    gen_min_ramp_down for the generator modified.
+
+    In order to perform action on storage units, you can:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"set_storage": [(storage_id, amount), (storage_id, amount), ...]})
+
+        # method 2
+        act = env.action_space()
+        act.set_storage = [(storage_id, amount), (storage_id, amount), ...]
+
+    Typically `0 <= storage_id < env.n_storage` and `amount` is a floating point between the maximum
+    power and minimum power the storage unit can absorb / produce.
+
+    Finally, in order to perform curtailment action on renewable generators, you can:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"curtail": [(gen_id, amount), (gen_id, amount), ...]})
+
+        # method 2
+        act = env.action_space()
+        act.curtail = [(gen_id, amount), (gen_id, amount), ...]
+
+    Typically `0 <= gen_id < env.n_gen` and `amount` is a floating point between the 0. and 1.
+    giving the limit of power you allow each renewable generator to produce (expressed in ratio of 
+    Pmax). For example if `gen_id=1` and `amount=0.7` it means you limit the production of
+    generator 1 to 70% of its Pmax.
+
     """
     authorized_keys = {"injection",
                        "hazards", "maintenance", "set_line_status", "change_line_status",
-                       "set_bus", "change_bus", "redispatch"}
+                       "set_bus", "change_bus", "redispatch", "set_storage", "curtail"}
 
     attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
                       "_set_line_status", "_switch_line_status",
                       "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance",
+                      "_storage_power", "_curtail"
                       ]
+    attr_nan_list_set = set()
+
     attr_list_set = set(attr_list_vect)
     shunt_added = False
 
+    _line_or_str = "line (origin)"
+    _line_ex_str = "line (extremity)"
+
     def __init__(self):
         """
+        INTERNAL USE ONLY
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -229,6 +389,12 @@ class BaseAction(GridObjects):
         # redispatching vector
         self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=dt_float)
 
+        # storage unit vector
+        self._storage_power = np.full(shape=self.n_storage, fill_value=0., dtype=dt_float)
+
+        # curtailment of renewable energy
+        self._curtail = np.full(shape=self.n_gen, fill_value=-1., dtype=dt_float)
+
         self._vectorized = None
         self._lines_impacted = None
         self._subs_impacted = None
@@ -243,11 +409,14 @@ class BaseAction(GridObjects):
             self.shunt_q = None
             self.shunt_bus = None
 
-        if BaseAction.shunt_added is False and self.shunts_data_available:
-            BaseAction.shunt_added = True
-            BaseAction.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
-            BaseAction.authorized_keys.add("shunt")
-            BaseAction._update_value_set()
+        mycls = type(self)
+        if mycls.shunt_added is False and mycls.shunts_data_available:
+            mycls.shunt_added = True
+            mycls.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+            mycls.authorized_keys.add("shunt")
+            mycls.attr_nan_list_set.add("shunt_p")
+            mycls.attr_nan_list_set.add("shunt_q")
+            mycls._update_value_set()
 
         self._single_act = True
 
@@ -258,6 +427,33 @@ class BaseAction(GridObjects):
         self._modif_set_status = False
         self._modif_change_status = False
         self._modif_redispatch = False
+        self._modif_storage = False
+        self._modif_curtailment = False
+
+    @classmethod
+    def process_grid2op_compat(cls):
+        if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # oldest version: no storage and no curtailment available
+
+            # this is really important, otherwise things from grid2op base types will be affected
+            cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
+            # deactivate storage
+            cls.set_no_storage()
+            if "set_storage" in cls.authorized_keys:
+                cls.authorized_keys.remove("set_storage")
+            if "_storage_power" in cls.attr_list_vect:
+                cls.attr_list_vect.remove("_storage_power")
+                cls.attr_list_set = set(cls.attr_list_vect)
+
+            # remove the curtailment
+            if "curtail" in cls.authorized_keys:
+                cls.authorized_keys.remove("curtail")
+            if "_curtail" in cls.attr_list_vect:
+                cls.attr_list_vect.remove("_curtail")
+                cls.attr_list_set = set(cls.attr_list_vect)
 
     def _reset_modified_flags(self):
         self._modif_inj = False
@@ -266,6 +462,8 @@ class BaseAction(GridObjects):
         self._modif_set_status = False
         self._modif_change_status = False
         self._modif_redispatch = False
+        self._modif_storage = False
+        self._modif_curtailment = False
 
     def _get_array_from_attr_name(self, attr_name):
         if hasattr(self, attr_name):
@@ -290,10 +488,15 @@ class BaseAction(GridObjects):
         self._modif_set_status = np.any(self._set_line_status != 0)
         self._modif_change_status = np.any(self._switch_line_status)
         self._modif_redispatch = np.any(np.isfinite(self._redispatch) & (self._redispatch != 0.))
+        self._modif_storage = np.any(self._storage_power != 0.)
+        self._modif_curtailment = np.any(self._curtail != -1.)
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
+            if attr_nm not in type(self).attr_list_set:
+                raise AmbiguousAction(f"Impossible to modify attribute {attr_nm} with this action type.")
             super()._assign_attr_from_name(attr_nm, vect)
+            self._post_process_from_vect()
         else:
             if np.any(np.isfinite(vect)):
                 if np.any(vect != 0.):
@@ -395,28 +598,8 @@ class BaseAction(GridObjects):
         if other is None:
             return False
 
-        # check that the _grid is the same in both instances
-        same_grid = True
-        same_grid = same_grid and self.n_gen == other.n_gen
-        same_grid = same_grid and self.n_load == other.n_load
-        same_grid = same_grid and self.n_line == other.n_line
-        same_grid = same_grid and np.all(self.sub_info == other.sub_info)
-        same_grid = same_grid and self.dim_topo == other.dim_topo
-        # to which substation is connected each element
-        same_grid = same_grid and np.all(self.load_to_subid == other.load_to_subid)
-        same_grid = same_grid and np.all(self.gen_to_subid == other.gen_to_subid)
-        same_grid = same_grid and np.all(self.line_or_to_subid == other.line_or_to_subid)
-        same_grid = same_grid and np.all(self.line_ex_to_subid == other.line_ex_to_subid)
-        # which index has this element in the substation vector
-        same_grid = same_grid and np.all(self.load_to_sub_pos == other.load_to_sub_pos)
-        same_grid = same_grid and np.all(self.gen_to_sub_pos == other.gen_to_sub_pos)
-        same_grid = same_grid and np.all(self.line_or_to_sub_pos == other.line_or_to_sub_pos)
-        same_grid = same_grid and np.all(self.line_ex_to_sub_pos == other.line_ex_to_sub_pos)
-        # which index has this element in the topology vector
-        same_grid = same_grid and np.all(self.load_pos_topo_vect == other.load_pos_topo_vect)
-        same_grid = same_grid and np.all(self.gen_pos_topo_vect == other.gen_pos_topo_vect)
-        same_grid = same_grid and np.all(self.line_or_pos_topo_vect == other.line_or_pos_topo_vect)
-        same_grid = same_grid and np.all(self.line_ex_pos_topo_vect == other.line_ex_pos_topo_vect)
+        # check that the underlying grid is the same in both instances
+        same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
             return False
 
@@ -428,7 +611,12 @@ class BaseAction(GridObjects):
 
         # all injections are the same
         for el in self._dict_inj.keys():
-            if not np.all(self._dict_inj[el] == other._dict_inj[el]):
+            me_inj = self._dict_inj[el]
+            other_inj = other._dict_inj[el]
+            tmp_me = np.isfinite(me_inj)
+            tmp_other = np.isfinite(other_inj)
+            if not np.all(tmp_me == tmp_other) or \
+                    not np.all(me_inj[tmp_me] == other_inj[tmp_other]):
                 return False
 
         # same line status
@@ -443,6 +631,20 @@ class BaseAction(GridObjects):
         # redispatching is same
         if (self._modif_redispatch != other._modif_redispatch) or \
                 not np.all(self._redispatch == other._redispatch):
+            return False
+
+        # storage is same
+        me_inj = self._storage_power
+        other_inj = other._storage_power
+        tmp_me = np.isfinite(me_inj)
+        tmp_other = np.isfinite(other_inj)
+        if not np.all(tmp_me == tmp_other) or \
+                not np.all(me_inj[tmp_me] == other_inj[tmp_other]):
+            return False
+
+        # curtailment
+        if (self._modif_curtailment != other._modif_curtailment) or \
+                not np.array_equal(self._curtail, other._curtail):
             return False
 
         # same topology changes
@@ -519,9 +721,6 @@ class BaseAction(GridObjects):
         self._lines_impacted = self._switch_line_status | (self._set_line_status != 0)
         self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
 
-        # todo could be set as a class attribute
-        _topo_vect_to_sub = np.repeat(np.arange(self.n_sub), repeats=self.sub_info)
-
         # compute the changes of the topo vector
         effective_change = self._change_bus_vect | (self._set_topo_vect != 0)
 
@@ -554,11 +753,12 @@ class BaseAction(GridObjects):
             effective_change[self.line_or_pos_topo_vect[disco_set_ex]] = False
             effective_change[self.line_ex_pos_topo_vect[disco_set_ex]] = False
 
-        self._subs_impacted[_topo_vect_to_sub[effective_change]] = True
+        self._subs_impacted[self._topo_vect_to_sub[effective_change]] = True
         return self._lines_impacted, self._subs_impacted
 
     def reset(self):
         """
+        INTERNAL USE ONLY
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -582,6 +782,12 @@ class BaseAction(GridObjects):
 
         # redispatching vector
         self._redispatch[:] = 0.
+
+        # storage
+        self._storage_power[:] = 0.
+
+        # storage
+        self._curtail[:] = -1.
 
         self._vectorized = None
         self._lines_impacted = None
@@ -610,16 +816,36 @@ class BaseAction(GridObjects):
 
     def __iadd__(self, other):
         """
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
         Add an action to this one.
+
         Adding an action to myself is equivalent to perform myself, and then perform other (but at the
         same step)
 
         Parameters
         ----------
         other: :class:`BaseAction`
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+
+            act1 = env.action_space()
+            act1.set_bus = ...  # for example
+            print("before += :")
+            print(act1)
+
+            act2 = env.action_space()
+            act2.redispatch = ... # for example
+            print(act2)
+
+            act1 += act 2
+            print("after += ")
+            print(act1)
 
         """
 
@@ -647,11 +873,31 @@ class BaseAction(GridObjects):
                 ok_ind = np.isfinite(redispatching)
                 self._redispatch[ok_ind] += redispatching[ok_ind]
 
+        # storage
+        set_storage = other._storage_power
+        ok_ind = np.isfinite(set_storage) & np.any(set_storage != 0.)
+        if np.any(ok_ind):
+            if "_storage_power" not in self.attr_list_set:
+                warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
+                              "".format("_storage_power"))
+            else:
+                self._storage_power[ok_ind] += set_storage[ok_ind]
+
+        # storage
+        curtailment = other._curtail
+        ok_ind = np.isfinite(curtailment) & np.any(curtailment != -1.)
+        if np.any(ok_ind):
+            if "_curtail" not in self.attr_list_set:
+                warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
+                              "".format("_curtail"))
+            else:
+                self._curtail[ok_ind] = curtailment[ok_ind]
+
         # set and change status
         other_set = other._set_line_status
         other_change = other._switch_line_status
-        me_set = self._set_line_status
-        me_change = self._switch_line_status
+        me_set = 1 * self._set_line_status
+        me_change = copy.deepcopy(self._switch_line_status)
 
         # i change, but so does the other, i do nothing
         canceled_change = other_change & me_change
@@ -680,8 +926,8 @@ class BaseAction(GridObjects):
         # set and change bus
         other_set = other._set_topo_vect
         other_change = other._change_bus_vect
-        me_set = self._set_topo_vect
-        me_change = self._change_bus_vect
+        me_set = 1 * self._set_topo_vect
+        me_change = copy.deepcopy(self._change_bus_vect)
 
         # i change, but so does the other, i do nothing
         canceled_change = other_change & me_change
@@ -735,6 +981,8 @@ class BaseAction(GridObjects):
         self._modif_set_status = self._modif_set_status or other._modif_set_status
         self._modif_inj = self._modif_inj or other._modif_inj
         self._modif_redispatch = self._modif_redispatch or other._modif_redispatch
+        self._modif_storage = self._modif_storage or other._modif_storage
+        self._modif_curtailment = self._modif_curtailment or other._modif_curtailment
 
         return self
 
@@ -763,6 +1011,7 @@ class BaseAction(GridObjects):
 
     def __call__(self):
         """
+        INTERNAL USE ONLY
 
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -798,8 +1047,14 @@ class BaseAction(GridObjects):
             This array, that has the same size as the number of generators indicates for each generator the amount of
             redispatching performed by the action.
 
+        storage_power: :class:`numpy.ndarray`, dtype:float
+            Indicates, for all storage units, what is the production / absorbtion setpoint
+
+        curtailment: :class:`numpy.ndarray`, dtype:float
+            Indicates, for all generators, which curtailment is applied (if any)
+
         shunts: ``dict``
-            A dictionnary containing the shunts data, with keys: "shunt_p", "shunt_q" and "shunt_bus" and the
+            A dictionary containing the shunts data, with keys: "shunt_p", "shunt_q" and "shunt_bus" and the
             convention, for "shun_p" and "shunt_q" that Nan means "don't change" and for shunt_bus: -1 => disconnect
             0 don't change, and 1 / 2 connect to bus 1 / 2
 
@@ -818,16 +1073,23 @@ class BaseAction(GridObjects):
         set_topo_vect = self._set_topo_vect
         change_bus_vect = self._change_bus_vect
         redispatch = self._redispatch
+        storage_power = self._storage_power
+        # remark: curtailment is handled by an algorithm in the environment, so don't need to be returned here
         shunts = {}
         if self.shunts_data_available:
             shunts["shunt_p"] = self.shunt_p
             shunts["shunt_q"] = self.shunt_q
             shunts["shunt_bus"] = self.shunt_bus
-        return dict_inj, set_line_status, switch_line_status, set_topo_vect, change_bus_vect, redispatch, shunts
+        return dict_inj, \
+               set_line_status, switch_line_status, \
+               set_topo_vect, change_bus_vect, \
+               redispatch, storage_power, \
+               shunts
 
     def _digest_shunt(self, dict_):
         if not self.shunts_data_available:
             return
+
         if "shunt" in dict_:
             ddict_ = dict_["shunt"]
 
@@ -859,7 +1121,7 @@ class BaseAction(GridObjects):
                         pass
                     else:
                         raise AmbiguousAction("Invalid way to modify {} for shunts. It should be a numpy array or a "
-                                               "dictionnary.".format(key_n))
+                                              "dictionary.".format(key_n))
 
     def _digest_injection(self, dict_):
         # I update the action
@@ -878,53 +1140,31 @@ class BaseAction(GridObjects):
     def _digest_setbus(self, dict_):
         if "set_bus" in dict_:
             self._modif_set_bus = True
-            if isinstance(dict_["set_bus"], np.ndarray):
-                # complete nodal topology vector is already provided
-                self._set_topo_vect = dict_["set_bus"]
-            elif isinstance(dict_["set_bus"], dict):
+            if dict_["set_bus"] is None:
+                # no real action has been made
+                return
+
+            if isinstance(dict_["set_bus"], dict):
                 ddict_ = dict_["set_bus"]
                 handled = False
-                # authorized_keys = {"loads_id", "generators_id", "lines_or_id", "lines_ex_id", "substations_id"}
                 if "loads_id" in ddict_:
-                    tmp = ddict_["loads_id"]
+                    self.load_set_bus = ddict_["loads_id"]
                     handled = True
-                    for (c_id, bus) in tmp:
-                        if c_id >= self.n_load:
-                            raise AmbiguousAction("Load {} doesn't exist".format(c_id))
-                        self._set_topo_vect[self.load_pos_topo_vect[c_id]] = bus
-                        # print("self.load_pos_topo_vect[l_id] {}".format(self.load_pos_topo_vect[l_id]))
                 if "generators_id" in ddict_:
-                    tmp = ddict_["generators_id"]
+                    self.gen_set_bus = ddict_["generators_id"]
                     handled = True
-                    for (g_id, bus) in tmp:
-                        if g_id >= self.n_gen:
-                            raise AmbiguousAction("Generator {} doesn't exist".format(g_id))
-                        self._set_topo_vect[self.gen_pos_topo_vect[g_id]] = bus
                 if "lines_or_id" in ddict_:
-                    tmp = ddict_["lines_or_id"]
+                    self.line_or_set_bus = ddict_["lines_or_id"]
                     handled = True
-                    for (l_id, bus) in tmp:
-                        if l_id >= self.n_line:
-                            raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
-                        self._set_topo_vect[self.line_or_pos_topo_vect[l_id]] = bus
                 if "lines_ex_id" in ddict_:
-                    tmp = ddict_["lines_ex_id"]
+                    self.line_ex_set_bus = ddict_["lines_ex_id"]
                     handled = True
-                    for (l_id, bus) in tmp:
-                        if l_id >= self.n_line:
-                            raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
-                        self._set_topo_vect[self.line_ex_pos_topo_vect[l_id]] = bus
+                if "storages_id" in ddict_:
+                    self.storage_set_bus = ddict_["storages_id"]
+                    handled = True
                 if "substations_id" in ddict_:
+                    self.sub_set_bus = ddict_["substations_id"]
                     handled = True
-                    tmp = ddict_["substations_id"]
-                    for (s_id, arr) in tmp:
-                        if s_id >= self.sub_info.shape[0]:
-                            raise AmbiguousAction("Substation {} doesn't exist".format(s_id))
-
-                        s_id = int(s_id)
-                        beg_ = int(np.sum(self.sub_info[:s_id]))
-                        end_ = int(beg_ + self.sub_info[s_id])
-                        self._set_topo_vect[beg_:end_] = arr
                 if not handled:
                     msg = "Invalid way to set the topology. When dict_[\"set_bus\"] is a dictionary it should have"
                     msg += " at least one of \"loads_id\", \"generators_id\", \"lines_or_id\", "
@@ -932,74 +1172,51 @@ class BaseAction(GridObjects):
                     msg += " as keys. None where found. Current used keys are: "
                     msg += "{}".format(sorted(ddict_.keys()))
                     raise AmbiguousAction(msg)
-                else:
-                    pass
             else:
-                self._modif_set_bus = False
-                raise AmbiguousAction(
-                    "Invalid way to set the topology. dict_[\"set_bus\"] should be a numpy array or a dictionnary.")
+                self.set_bus = dict_["set_bus"]
 
     def _digest_change_bus(self, dict_):
         if "change_bus" in dict_:
             self._modif_change_bus = True
-            if isinstance(dict_["change_bus"], np.ndarray):
-                # topology vector is already provided
-                self._change_bus_vect = dict_["change_bus"]
-            elif isinstance(dict_["change_bus"], dict):
+            if dict_["change_bus"] is None:
+                # no real action has been made
+                return
+
+            if isinstance(dict_["change_bus"], dict):
                 ddict_ = dict_["change_bus"]
+                handled = False
                 if "loads_id" in ddict_:
-                    tmp = ddict_["loads_id"]
-                    for l_id in tmp:
-                        self._change_bus_vect[self.load_pos_topo_vect[l_id]] = not self._change_bus_vect[
-                            self.load_pos_topo_vect[l_id]]
+                    self.load_change_bus = ddict_["loads_id"]
+                    handled = True
                 if "generators_id" in ddict_:
-                    tmp = ddict_["generators_id"]
-                    for g_id in tmp:
-                        self._change_bus_vect[self.gen_pos_topo_vect[g_id]] = not self._change_bus_vect[
-                            self.gen_pos_topo_vect[g_id]]
+                    self.gen_change_bus = ddict_["generators_id"]
+                    handled = True
                 if "lines_or_id" in ddict_:
-                    tmp = ddict_["lines_or_id"]
-                    for l_id in tmp:
-                        self._change_bus_vect[self.line_or_pos_topo_vect[l_id]] = not self._change_bus_vect[
-                            self.line_or_pos_topo_vect[l_id]]
+                    self.line_or_change_bus = ddict_["lines_or_id"]
+                    handled = True
                 if "lines_ex_id" in ddict_:
-                    tmp = ddict_["lines_ex_id"]
-                    for l_id in tmp:
-                        self._change_bus_vect[self.line_ex_pos_topo_vect[l_id]] = not self._change_bus_vect[
-                            self.line_ex_pos_topo_vect[l_id]]
+                    self.line_ex_change_bus = ddict_["lines_ex_id"]
+                    handled = True
+                if "storages_id" in ddict_:
+                    self.storage_change_bus = ddict_["storages_id"]
+                    handled = True
                 if "substations_id" in ddict_:
-                    tmp = ddict_["substations_id"]
-                    for (s_id, arr) in tmp:
-                        s_id = int(s_id)
-                        beg_ = int(np.sum(self.sub_info[:s_id]))
-                        end_ = int(beg_ + self.sub_info[s_id])
-                        self._change_bus_vect[beg_:end_][arr] = True
-            elif dict_["change_bus"] is None:
-                self._modif_change_bus = False
+                    self.sub_change_bus = ddict_["substations_id"]
+                    handled = True
+                if not handled:
+                    msg = "Invalid way to change the topology. When dict_[\"set_bus\"] is a dictionary it should have"
+                    msg += " at least one of \"loads_id\", \"generators_id\", \"lines_or_id\", "
+                    msg += "\"lines_ex_id\" or \"substations_id\""
+                    msg += " as keys. None where found. Current used keys are: "
+                    msg += "{}".format(sorted(ddict_.keys()))
+                    raise AmbiguousAction(msg)
             else:
-                self._modif_change_bus = False
-                raise AmbiguousAction(
-                    "Invalid way to set the topology. dict_[\"change_bus\"] should be a numpy array or a dictionnary.")
+                self.change_bus = dict_["change_bus"]
 
     def _digest_set_status(self, dict_):
         if "set_line_status" in dict_:
-            self._modif_set_status = True
-            # the action will disconnect a powerline
-            # note that if a powerline is already disconnected, it does nothing
             # this action can both disconnect or reconnect a powerlines
-            if isinstance(dict_["set_line_status"], np.ndarray):
-                if dict_["set_line_status"] is not None:
-                    if len(dict_["set_line_status"]) != self.n_line:
-                        raise InvalidNumberOfLines(
-                            "This \"set_line_status\" action acts on {} lines while there are {} in the grid".format(
-                                len(dict_["set_line_status"]), self.n_line))
-                    sel_ = dict_["set_line_status"] != 0
-
-                    # update the line status vector
-                    self._set_line_status[sel_] = dict_["set_line_status"][sel_].astype(dt_int)
-            else:
-                for l_id, status_ in dict_["set_line_status"]:
-                    self._set_line_status[l_id] = status_
+            self.line_set_status = dict_["set_line_status"]
 
     def _digest_hazards(self, dict_):
         if "hazards" in dict_:
@@ -1011,10 +1228,10 @@ class BaseAction(GridObjects):
                 tmp = dict_["hazards"]
                 try:
                     tmp = np.array(tmp)
-                except:
+                except Exception as exc_:
                     raise AmbiguousAction(
-                        "You ask to perform hazard on powerlines, this can only be done if \"hazards\" can be casted "
-                        "into a numpy ndarray")
+                        f"You ask to perform hazard on powerlines, this can only be done if \"hazards\" can be casted "
+                        f"into a numpy ndarray with error {exc_}")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self.n_line:
                         raise InvalidNumberOfLines(
@@ -1038,10 +1255,10 @@ class BaseAction(GridObjects):
                 tmp = dict_["maintenance"]
                 try:
                     tmp = np.array(tmp)
-                except:
+                except Exception as exc_:
                     raise AmbiguousAction(
-                        "You ask to perform maintenance on powerlines, this can only be done if \"maintenance\" can "
-                        "be casted into a numpy ndarray")
+                        f"You ask to perform maintenance on powerlines, this can only be done if \"maintenance\" can "
+                        f"be casted into a numpy ndarray with error {exc_}")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self.n_line:
                         raise InvalidNumberOfLines(
@@ -1062,96 +1279,24 @@ class BaseAction(GridObjects):
             # and if the status is "connected" it will be switched to "disconnected"
             # Lines with "0" in this vector are not impacted.
             if dict_["change_line_status"] is not None:
-                tmp = dict_["change_line_status"]
-                try:
-                    tmp = np.array(tmp)
-                except Exception as exc_:
-                    self._modif_change_status = False
-                    raise AmbiguousAction(
-                        "You ask to change the bus status, this can only be done if \"change_status\" can be casted "
-                        "into a numpy ndarray")
-                if np.issubdtype(tmp.dtype, np.dtype(bool).type):
-                    if len(tmp) != self.n_line:
-                        self._modif_change_status = False
-                        raise InvalidNumberOfLines(
-                            "This \"change_line_status\" action acts on {} lines while there are {} in the _grid"
-                            "".format(len(tmp), self.n_line))
-                elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
-                    self._modif_change_status = False
-                    raise AmbiguousAction("You can only change line status with int or boolean numpy array vector.")
-
-                self._modif_change_status = True
-                self._switch_line_status[dict_["change_line_status"]] = True
-
-    def __convert_and_redispatch(self, kk, val):
-        try:
-            kk = dt_int(kk)
-            val = dt_float(val)
-        except Exception as e:
-            raise AmbiguousAction("In redispatching, it's not possible to understand the key/value pair "
-                                  "{}/{} provided in the dictionnary. Key must be an integer, value "
-                                  "a float".format(kk, val))
-        self._redispatch[kk] = val
+                self.line_change_status = dict_["change_line_status"]
 
     def _digest_redispatching(self, dict_):
         if "redispatch" in dict_:
-            if dict_["redispatch"] is None:
-                return
-            self._modif_redispatch = True
-            tmp = dict_["redispatch"]
-            if isinstance(tmp, np.ndarray):
-                # complete redispatching is provided
-                self._redispatch = tmp
-            elif isinstance(tmp, dict):
-                # dict must have key: generator to modify, value: the delta value applied to this generator
-                ddict_ = tmp
-                for kk, val in ddict_.items():
-                    self.__convert_and_redispatch(kk, val)
-            elif isinstance(tmp, list):
-                # list of tuples: each tupe (k,v) being the same as the key/value describe above
-                treated = False
-                if len(tmp) == 2:
-                    if isinstance(tmp[0], tuple):
-                        # there are 2 tuples in the list, i dont treat it as a tuple
-                        treated = False
-                    else:
-                        # i treat it as a tuple
-                        if len(tmp) != 2:
-                            self._modif_redispatch = False
-                            raise AmbiguousAction("When asking for redispatching with a tuple, you should make a "
-                                                  "of tuple of 2 elements, the first one being the id of the"
-                                                  "generator to redispatch, the second one the value of the "
-                                                  "redispatching.")
-                        kk, val = tmp
-                        self.__convert_and_redispatch(kk, val)
-                        treated = True
+            self.redispatch = dict_["redispatch"]
 
-                if not treated:
-                    for el in tmp:
-                        if len(el) != 2:
-                            self._modif_redispatch = False
-                            raise AmbiguousAction("When asking for redispatching with a list, you should make a list"
-                                                  "of tuple of 2 elements, the first one being the id of the"
-                                                  "generator to redispatch, the second one the value of the "
-                                                  "redispatching.")
-                        kk, val = el
-                        self.__convert_and_redispatch(kk, val)
+    def _digest_storage(self, dict_):
+        if "set_storage" in dict_:
+            self.storage_p = dict_["set_storage"]
 
-            elif isinstance(tmp, tuple):
-                if len(tmp) != 2:
-                    self._modif_redispatch = False
-                    raise AmbiguousAction("When asking for redispatching with a tuple, you should make a "
-                                          "of tuple of 2 elements, the first one being the id of the"
-                                          "generator to redispatch, the second one the value of the "
-                                          "redispatching.")
-                kk, val = tmp
-                self.__convert_and_redispatch(kk, val)
-            else:
-                self._modif_redispatch = False
-                raise AmbiguousAction("Impossible to understand the redispatching action implemented.")
+    def _digest_curtailment(self, dict_):
+        if "curtail" in dict_:
+            self.curtail = dict_["curtail"]
 
     def _reset_vect(self):
         """
+        INTERNAL USE ONLY
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Need to be called when update is called !
@@ -1227,6 +1372,12 @@ class BaseAction(GridObjects):
               to apply (that should have the size of the number of generators on the grid) or to specify a list of
               tuple, each tuple being 2 elements: first the generator ID, second the amount of redispatching,
               for example `[(1, -23), (12, +17)]`
+
+            - "set_storage": the best use of this is to specify either the numpy array of the storage units vector
+              you want
+              to apply (that should have the size of the number of storage units on the grid) or to specify a list of
+              tuple, each tuple being 2 elements: first the storage ID, second the amount of power you want to
+              produce / absorb, for example `[(1, -23), (12, +17)]`
 
             **NB** the difference between "set_bus" and "change_bus" is the following:
 
@@ -1322,6 +1473,23 @@ class BaseAction(GridObjects):
             redisp_act = env.action_space({"redispatch": [(23, +17.42), (23, -27.8)]})
             print(redisp_act)
 
+        *Example 7*: apply an action on a storage unit: have the storage unit of id 0 produce 1.5MW
+
+        .. code-block:: python
+
+            storage_act = env.action_space({"set_storage": [(0, -1.5)]})
+            print(storage_act)
+
+        *Example 8*: apply a action of type curtailment: limit the production to a renewable energy unit
+        (in the example the generator with id 2)
+        at 80% of its maximum capacity
+
+        .. code-block:: python
+
+            renewable_energy_source = 2
+            storage_act = env.action_space({"curtail": [(renewable_energy_source, 0.8)]})
+            print(storage_act)
+
         Returns
         -------
         self: :class:`BaseAction`
@@ -1340,6 +1508,8 @@ class BaseAction(GridObjects):
             self._digest_shunt(dict_)
             self._digest_injection(dict_)
             self._digest_redispatching(dict_)
+            self._digest_storage(dict_)  # ADDED for battery
+            self._digest_curtailment(dict_)  # ADDED for curtailment
             self._digest_setbus(dict_)
             self._digest_change_bus(dict_)
             self._digest_set_status(dict_)
@@ -1366,8 +1536,8 @@ class BaseAction(GridObjects):
             self._check_for_ambiguity()
             res = False
             info = None
-        except AmbiguousAction as e:
-            info = e
+        except AmbiguousAction as exc_:
+            info = exc_
             res = True
         return res, info
 
@@ -1449,15 +1619,15 @@ class BaseAction(GridObjects):
                                                     "the _grid".format(len(self._dict_inj["prod_v"]), self.n_gen))
 
         if len(self._switch_line_status) != self.n_line:
-                raise InvalidNumberOfLines("This action acts on {} lines while there are {} in "
-                                           "the _grid".format(len(self._switch_line_status), self.n_line))
+            raise InvalidNumberOfLines("This action acts on {} lines while there are {} in "
+                                       "the _grid".format(len(self._switch_line_status), self.n_line))
 
         if len(self._set_topo_vect) != self.dim_topo:
-                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} "
-                                                "in the _grid".format(len(self._set_topo_vect), self.dim_topo))
+            raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} "
+                                            "in the _grid".format(len(self._set_topo_vect), self.dim_topo))
         if len(self._change_bus_vect) != self.dim_topo:
-                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} "
-                                                "in the _grid".format(len(self._change_bus_vect), self.dim_topo))
+            raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} "
+                                            "in the _grid".format(len(self._change_bus_vect), self.dim_topo))
 
         if len(self._redispatch) != self.n_gen:
             raise InvalidNumberOfGenerators("This action acts on {} generators (redispatching= while "
@@ -1465,6 +1635,8 @@ class BaseAction(GridObjects):
 
         # redispatching specific check
         if self._modif_redispatch:
+            if "redispatch" not in self.authorized_keys:
+                raise AmbiguousAction("Action of type \"redispatch\" are not supported by this action type")
             if not self.redispatching_unit_commitment_availble:
                 raise UnitCommitorRedispachingNotAvailable("Impossible to use a redispatching action in this "
                                                            "environment. Please set up the proper costs for generator")
@@ -1473,7 +1645,6 @@ class BaseAction(GridObjects):
                 raise InvalidRedispatching("Trying to apply a redispatching action on a non redispatchable generator")
 
             if self._single_act:
-                # TODO check that when action is made (and check also the buses id, don't put 3 for example...)
                 if np.any(self._redispatch > self.gen_max_ramp_up):
                    raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
                 if np.any(-self._redispatch > self.gen_max_ramp_down):
@@ -1490,6 +1661,12 @@ class BaseAction(GridObjects):
                         raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
                                                    "are below pmin for some generator.")
 
+        # storage specific checks:
+        self._is_storage_ambiguous()
+
+        # curtailment specific checks:
+        self._is_curtailment_ambiguous()
+
         # topological action
         if self._modif_set_bus and self._modif_change_bus and np.any(self._set_topo_vect[self._change_bus_vect] != 0):
             raise InvalidBusStatus("You asked to change the bus of an object with"
@@ -1503,7 +1680,8 @@ class BaseAction(GridObjects):
             raise InvalidBusStatus("Invalid set_bus. Buses should be either -1 (disconnect), 0 (change nothing),"
                                    "1 (assign this object to bus one) or 2 (assign this object to bus"
                                    "2). A number higher than 2 has been found: substations with more than 2 busbars"
-                                   "are not supported by grid2op yet.")
+                                   "are not supported by grid2op at the moment. Do not hesitate to fill a feature "
+                                   "request on github if you need this feature.")
 
         if False:
             # TODO find an elegant way to disable that
@@ -1533,11 +1711,15 @@ class BaseAction(GridObjects):
             id_disc = np.where(idx)[0]
 
         if self._modif_set_bus:
+            if "set_bus" not in self.authorized_keys:
+                raise AmbiguousAction("Action of type \"set_bus\" are not supported by this action type")
             if np.any(self._set_topo_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
                     np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
-                        raise InvalidLineStatus("You ask to disconnect a powerline but also to connect it "
-                                                "to a certain bus.")
+                raise InvalidLineStatus("You ask to disconnect a powerline but also to connect it "
+                                        "to a certain bus.")
         if self._modif_change_bus:
+            if "change_bus" not in self.authorized_keys:
+                raise AmbiguousAction("Action of type \"change_bus\" are not supported by this action type")
             if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
                     np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
                 raise InvalidLineStatus("You ask to disconnect a powerline but also to change its bus.")
@@ -1568,7 +1750,61 @@ class BaseAction(GridObjects):
             if self.shunt_q is not None:
                 raise AmbiguousAction("Attempt to modify a shunt (shunt_q) while shunt data is not handled by backend")
             if self.shunt_bus is not None:
-                raise AmbiguousAction("Attempt to modify a shunt (shunt_bus) while shunt data is not handled by backend")
+                raise AmbiguousAction("Attempt to modify a shunt (shunt_bus) while shunt data is not handled "
+                                      "by backend")
+
+    def _is_storage_ambiguous(self):
+        """check if storage actions are ambiguous"""
+        if self._modif_storage:
+            if "set_storage" not in self.authorized_keys:
+                raise AmbiguousAction("Action of type \"set_storage\" are not supported by this action type")
+            if self.n_storage == 0:
+                raise InvalidStorage("Attempt to modify a storage unit while there is none on the grid")
+            if self._storage_power.shape[0] != self.n_storage:
+                raise InvalidStorage("self._storage_power.shape[0] != self.n_storage: wrong number of storage "
+                                     "units affected")
+            if np.any(self._storage_power < -self.storage_max_p_prod):
+                where_bug = np.where(self._storage_power < -self.storage_max_p_prod)[0]
+                raise InvalidStorage(f"you asked a storage unit to absorb more than what it can: "
+                                     f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
+            if np.any(self._storage_power > self.storage_max_p_absorb):
+                where_bug = np.where(self._storage_power > self.storage_max_p_absorb)[0]
+                raise InvalidStorage(f"you asked a storage unit to produce more than what it can: "
+                                     f"self._storage_power[{where_bug}] > self.storage_max_p_absorb[{where_bug}].")
+
+        if "_storage_power" not in self.attr_list_set:
+            if np.any(self._set_topo_vect[self.storage_pos_topo_vect] > 0):
+                raise InvalidStorage("Attempt to modify bus (set) of a storage unit")
+            if np.any(self._change_bus_vect[self.storage_pos_topo_vect]):
+                raise InvalidStorage("Attempt to modify bus (change) of a storage unit")
+
+    def _is_curtailment_ambiguous(self):
+        """check if curtailment action is ambiguous"""
+        if self._modif_curtailment:
+            if "curtail" not in self.authorized_keys:
+                raise AmbiguousAction("Action of type \"curtail\" are not supported by this action type")
+
+            if not self.redispatching_unit_commitment_availble:
+                raise UnitCommitorRedispachingNotAvailable("Impossible to use a redispatching action in this "
+                                                           "environment. Please set up the proper costs for generator. "
+                                                           "This also means curtailment feature is not available.")
+
+            if self._curtail.shape[0] != self.n_gen:
+                raise InvalidCurtailment("self._curtail.shape[0] != self.n_gen: wrong number of generator "
+                                         "units affected")
+
+            if np.any((self._curtail < 0.) & (self._curtail != -1.)):
+                where_bug = np.where((self._curtail < 0.) & (self._curtail != -1.))[0]
+                raise InvalidCurtailment(f"you asked to perform a negative curtailment: "
+                                         f"self._curtail[{where_bug}] < 0. "
+                                         f"Curtailment should be a real number between 0.0 and 1.0")
+            if np.any(self._curtail > 1.):
+                where_bug = np.where(self._curtail > 1.)[0]
+                raise InvalidCurtailment(f"you asked a storage unit to produce more than what it can: "
+                                         f"self._curtail[{where_bug}] > 1. "
+                                         f"Curtailment should be a real number between 0.0 and 1.0")
+            if np.any(self._curtail[~self.gen_renewable] != -1.):
+                raise InvalidCurtailment("Trying to apply a curtailment on a non renewable generator")
 
     def _ignore_topo_action_if_disconnection(self, sel_):
         # force ignore of any topological actions
@@ -1596,14 +1832,20 @@ class BaseAction(GridObjects):
             for l_id, id_in_topo in enumerate(self.line_or_pos_topo_vect):
                 if id_in_topo == id_:
                     obj_id = l_id
-                    objt_type = "line (origin)"
+                    objt_type = self._line_or_str
                     array_subid = self.line_or_to_subid
         if obj_id is None:
             for l_id, id_in_topo in enumerate(self.line_ex_pos_topo_vect):
                 if id_in_topo == id_:
                     obj_id = l_id
-                    objt_type = "line (extremity)"
+                    objt_type = self._line_ex_str
                     array_subid = self.line_ex_to_subid
+        if obj_id is None:
+            for l_id, id_in_topo in enumerate(self.storage_pos_topo_vect):
+                if id_in_topo == id_:
+                    obj_id = l_id
+                    objt_type = "storage"
+                    array_subid = self.storage_to_subid
         substation_id = array_subid[obj_id]
         return obj_id, objt_type, substation_id
 
@@ -1616,6 +1858,16 @@ class BaseAction(GridObjects):
         str: :class:`str`
             The string representation of an :class:`BaseAction` in a human-readable format.
 
+        Examples
+        ---------
+
+        It is simply the "print" function:
+
+        .. code-block:: python
+
+            action = env.action_space(...)
+            print(action)
+
         """
         res = ["This action will:"]
         impact = self.impact_on_objects()
@@ -1624,31 +1876,61 @@ class BaseAction(GridObjects):
         injection_impact = impact['injection']
         if injection_impact['changed']:
             for change in injection_impact['impacted']:
-                res.append("\t - set {} to {}".format(change['set'], change['to']))
+                res.append("\t - Set {} to {}".format(change['set'], change['to']))
         else:
             res.append("\t - NOT change anything to the injections")
 
         # redispatch
-        if np.any(self._redispatch != 0.):
+        if self._modif_redispatch:
+            res.append("\t - Modify the generators with redispatching in the following way:")
             for gen_idx in range(self.n_gen):
                 if self._redispatch[gen_idx] != 0.0:
                     gen_name = self.name_gen[gen_idx]
                     r_amount = self._redispatch[gen_idx]
-                    res.append("\t - Redispatch {} of {}".format(gen_name, r_amount))
+                    res.append("\t \t - Redispatch \"{}\" of {:.2f} MW".format(gen_name, r_amount))
         else:
             res.append("\t - NOT perform any redispatching action")
+
+        # storage
+        if self._modif_storage:
+            res.append("\t - Modify the storage units in the following way:")
+            for stor_idx in range(self.n_storage):
+                amount_ = self._storage_power[stor_idx]
+                if np.isfinite(amount_) and amount_ != 0.:
+                    name_ = self.name_storage[stor_idx]
+                    res.append("\t \t - Ask unit \"{}\" to {} {:.2f} MW (setpoint: {:.2f} MW)"
+                               "".format(name_,
+                                         "absorb" if amount_ > 0. else "produce",
+                                         np.abs(amount_),
+                                         amount_)
+                               )
+        else:
+            res.append("\t - NOT modify any storage capacity")
+
+        # curtailment
+        if self._modif_curtailment:
+            res.append("\t - Perform the following curtailment:")
+            for gen_idx in range(self.n_gen):
+                amount_ = self._curtail[gen_idx]
+                if np.isfinite(amount_) and amount_ != -1.:
+                    name_ = self.name_gen[gen_idx]
+                    res.append("\t \t - Limit unit \"{}\" to {:.1f}% of its Pmax (setpoint: {:.3f})"
+                               "".format(name_, 100. * amount_, amount_)
+                               )
+        else:
+            res.append("\t - NOT perform any curtailment")
 
         # force line status
         force_line_impact = impact['force_line']
         if force_line_impact['changed']:
             reconnections = force_line_impact['reconnections']
             if reconnections['count'] > 0:
-                res.append("\t - force reconnection of {} powerlines ({})"
+                res.append("\t - Force reconnection of {} powerlines ({})"
                            .format(reconnections['count'], reconnections['powerlines']))
 
             disconnections = force_line_impact['disconnections']
             if disconnections['count'] > 0:
-                res.append("\t - force disconnection of {} powerlines ({})"
+                res.append("\t - Force disconnection of {} powerlines ({})"
                            .format(disconnections['count'], disconnections['powerlines']))
         else:
             res.append("\t - NOT force any line status")
@@ -1656,17 +1938,18 @@ class BaseAction(GridObjects):
         # swtich line status
         swith_line_impact = impact['switch_line']
         if swith_line_impact['changed']:
-            res.append("\t - switch status of {} powerlines ({})"
-                       .format(swith_line_impact['count'], swith_line_impact['powerlines']))
+            res.append("\t - Switch status of {} powerlines ({})"
+                       .format(swith_line_impact['count'],
+                               swith_line_impact['powerlines']))
         else:
             res.append("\t - NOT switch any line status")
 
         # topology
         bus_switch_impact = impact['topology']['bus_switch']
         if len(bus_switch_impact) > 0:
-            res.append("\t - Change the bus of the following element:")
+            res.append("\t - Change the bus of the following element(s):")
             for switch in bus_switch_impact:
-                res.append("\t \t - switch bus of {} {} [on substation {}]"
+                res.append("\t \t - Switch bus of {} id {} [on substation {}]"
                            .format(switch['object_type'], switch['object_id'],
                                    switch['substation']))
         else:
@@ -1675,20 +1958,23 @@ class BaseAction(GridObjects):
         assigned_bus_impact = impact['topology']['assigned_bus']
         disconnect_bus_impact = impact['topology']['disconnect_bus']
         if len(assigned_bus_impact) > 0 or len(disconnect_bus_impact) > 0:
-            res.append("\t - Set the bus of the following element:")
+            if assigned_bus_impact:
+                res.append("\t - Set the bus of the following element(s):")
             for assigned in assigned_bus_impact:
-                res.append("\t \t - assign bus {} to {} {} [on substation {}]"
-                           .format(assigned['bus'], assigned['object_type'], assigned['object_id'],
+                res.append("\t \t - Assign bus {} to {} id {} [on substation {}]"
+                           .format(assigned['bus'],
+                                   assigned['object_type'],
+                                   assigned['object_id'],
                                    assigned['substation']))
-
+            if disconnect_bus_impact:
+                res.append("\t - Disconnect the following element(s):")
             for disconnected in disconnect_bus_impact:
-                res.append("\t - disconnect {} {} [on substation {}]"
-                           .format(disconnected['object_type'], disconnected['object_id'],
+                res.append("\t - Disconnect {} id {} [on substation {}]"
+                           .format(disconnected['object_type'],
+                                   disconnected['object_id'],
                                    disconnected['substation']))
-
         else:
             res.append("\t - NOT force any particular bus configuration")
-
         return "\n".join(res)
 
     def impact_on_objects(self):
@@ -1809,13 +2095,45 @@ class BaseAction(GridObjects):
             redispatch["changed"] = True
             has_impact = True
 
+        storage = {"changed": False, "capacities": []}
+        if self._modif_storage:
+            for str_idx in range(self.n_storage):
+                tmp = self._storage_power[str_idx]
+                if np.isfinite(tmp):
+                    name_ = self.name_storage[str_idx]
+                    new_capacity = tmp
+                    storage["capacities"].append({
+                        "storage_id": str_idx,
+                        "storage_name": name_,
+                        "new_capacity": new_capacity
+                    })
+            storage["changed"] = True
+            has_impact = True
+
+        curtailment = {"changed": False, "limit": []}
+        if self._modif_curtailment:
+            for gen_idx in range(self.n_gen):
+                tmp = self._curtail[gen_idx]
+                if np.isfinite(tmp) and tmp != -1:
+                    name_ = self.name_gen[gen_idx]
+                    new_max = tmp
+                    curtailment["limit"].append({
+                        "generator_id": gen_idx,
+                        "generator_name": name_,
+                        "amount": new_max
+                    })
+            storage["changed"] = True
+            has_impact = True
+
         return {
             'has_impact': has_impact,
             'injection': inject_detail,
             'force_line': force_line_status,
             'switch_line': switch_line_status,
             'topology': topology,
-            'redispatch': redispatch
+            'redispatch': redispatch,
+            "storage": storage,
+            "curtailment": curtailment
         }
 
     def as_dict(self):
@@ -1871,6 +2189,8 @@ class BaseAction(GridObjects):
             disconnected because of maintenance operations.
           * `redispatch` the redispatching action (if any). It gives, for each generator (all generator, not just the
             dispatchable one) the amount of power redispatched in this action.
+          * `storage_power`: the setpoint for production / consumption for all storage units
+          * `curtailment`: the curtailment performed on all generator
 
         Returns
         -------
@@ -1944,6 +2264,12 @@ class BaseAction(GridObjects):
         if np.any(self._redispatch != 0.):
             res["redispatch"] = self._redispatch
 
+        if self._modif_storage:
+            res["storage_power"] = self._storage_power
+
+        if self._modif_curtailment:
+            res["curtailment"] = self._curtail
+
         return res
 
     def get_types(self):
@@ -1954,14 +2280,22 @@ class BaseAction(GridObjects):
         - "voltage": does this action modifies the generator voltage setpoint or the shunts
         - "topology": does this action modifies the topology of the grid (*ie* set or switch some buses)
         - "line": does this action modifies the line status
-        - "redispatching" does this action modifies the
+        - "redispatching" does this action modifies the redispatching
+        - "storage" does this action impact the production / consumption of storage units
+
+        Notes
+        ------
 
         A single action can be of multiple types.
 
-        Do nothing has no types at all.
+        The `do nothing` has no type at all.
 
-        **NB** if a line only set / change the status of a powerline then it does not count as a topological
+        If a line only set / change the status of a powerline then it does not count as a topological
         modification.
+
+        If the bus to which a storage unit is connected is modified, but there is no setpoint for
+        the production / consumption of any storage units, then the action is **NOT** taged as
+        an action on the storage units.
 
         Returns
         -------
@@ -1974,7 +2308,10 @@ class BaseAction(GridObjects):
         line: ``bool``
             Does it affect the line status (line status change / switch are **NOT** counted as topology)
         redispatching: ``bool``
-            Does it performs any redispatching
+            Does it performs (explicitly) any redispatching
+        storage: ``bool``
+            Does it performs (explicitly) any action on the storage production / consumption
+
         """
         injection = "load_p" in self._dict_inj or "prod_p" in self._dict_inj
         voltage = "prod_v" in self._dict_inj
@@ -1987,9 +2324,95 @@ class BaseAction(GridObjects):
         topology = np.any(subs_impacted)
         line = np.any(lines_impacted)
         redispatching = np.any(self._redispatch != 0.)
-        return injection, voltage, topology, line, redispatching
+        storage = self._modif_storage
+        curtailment = self._modif_curtailment
+        return injection, voltage, topology, line, redispatching, storage, curtailment
 
-    def effect_on(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
+    def _aux_effect_on_load(self, load_id):
+        if load_id >= self.n_load:
+            raise Grid2OpException(f"There are only {self.n_load} loads on the grid. Cannot check impact on "
+                                   f"`load_id={load_id}`")
+        if load_id < 0:
+            raise Grid2OpException(f"`load_id` should be positive.")
+        res = {"new_p": np.NaN, "new_q": np.NaN, "change_bus": False, "set_bus": 0}
+        if "load_p" in self._dict_inj:
+            res["new_p"] = self._dict_inj["load_p"][load_id]
+        if "load_q" in self._dict_inj:
+            res["new_q"] = self._dict_inj["load_q"][load_id]
+        my_id = self.load_pos_topo_vect[load_id]
+        res["change_bus"] = self._change_bus_vect[my_id]
+        res["set_bus"] = self._set_topo_vect[my_id]
+        return res
+
+    def _aux_effect_on_gen(self, gen_id):
+        if gen_id >= self.n_gen:
+            raise Grid2OpException(f"There are only {self.n_gen} gens on the grid. Cannot check impact on "
+                                   f"`gen_id={gen_id}`")
+        if gen_id < 0:
+            raise Grid2OpException(f"`gen_id` should be positive.")
+        res = {"new_p": np.NaN, "new_v": np.NaN, "set_bus": 0, "change_bus": False}
+        if "prod_p" in self._dict_inj:
+            res["new_p"] = self._dict_inj["prod_p"][gen_id]
+        if "prod_v" in self._dict_inj:
+            res["new_v"] = self._dict_inj["prod_v"][gen_id]
+        my_id = self.gen_pos_topo_vect[gen_id]
+        res["change_bus"] = self._change_bus_vect[my_id]
+        res["set_bus"] = self._set_topo_vect[my_id]
+        res["redispatch"] = self._redispatch[gen_id]
+        res["curtailment"] = self._curtail[gen_id]
+        return res
+
+    def _aux_effect_on_line(self, line_id):
+        if line_id >= self.n_line:
+            raise Grid2OpException(f"There are only {self.n_line} powerlines on the grid. Cannot check impact on "
+                                   f"`line_id={line_id}`")
+        if line_id < 0:
+            raise Grid2OpException(f"`line_id` should be positive.")
+        res = {}
+        # origin topology
+        my_id = self.line_or_pos_topo_vect[line_id]
+        res["change_bus_or"] = self._change_bus_vect[my_id]
+        res["set_bus_or"] = self._set_topo_vect[my_id]
+        # extremity topology
+        my_id = self.line_ex_pos_topo_vect[line_id]
+        res["change_bus_ex"] = self._change_bus_vect[my_id]
+        res["set_bus_ex"] = self._set_topo_vect[my_id]
+        # status
+        res["set_line_status"] = self._set_line_status[line_id]
+        res["change_line_status"] = self._switch_line_status[line_id]
+        return res
+
+    def _aux_effect_on_storage(self, storage_id):
+        if storage_id >= self.n_storage:
+            raise Grid2OpException(f"There are only {self.n_storage} storage units on the grid. "
+                                   f"Cannot check impact on "
+                                   f"`storage_id={storage_id}`")
+        if storage_id < 0:
+            raise Grid2OpException(f"`storage_id` should be positive.")
+        res = {"power": np.NaN, "set_bus": 0, "change_bus": False}
+        my_id = self.storage_pos_topo_vect[storage_id]
+        res["change_bus"] = self._change_bus_vect[my_id]
+        res["set_bus"] = self._set_topo_vect[my_id]
+        res["power"] = self._storage_power[storage_id]
+        return res
+
+    def _aux_effect_on_substation(self, substation_id):
+        if substation_id >= self.n_sub:
+            raise Grid2OpException(f"There are only {self.n_sub} substations on the grid. "
+                                   f"Cannot check impact on "
+                                   f"`substation_id={substation_id}`")
+        if substation_id < 0:
+            raise Grid2OpException(f"`substation_id` should be positive.")
+
+        res = {}
+        beg_ = int(np.sum(self.sub_info[:substation_id]))
+        end_ = int(beg_ + self.sub_info[substation_id])
+        res["change_bus"] = self._change_bus_vect[beg_:end_]
+        res["set_bus"] = self._set_topo_vect[beg_:end_]
+        return res
+
+    def effect_on(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None,
+                  storage_id=None):
         """
         Return the effect of this action on a unique given load, generator unit, powerline or substation.
         Only one of load, gen, line or substation should be filled.
@@ -2014,6 +2437,9 @@ class BaseAction(GridObjects):
         substation_id: ``int``
             The ID of the substation we want to inspect
 
+        storage_id: ``int``
+            The ID of the storage unit we want to inspect
+
         Returns
         -------
         res: :class:`dict`
@@ -2036,6 +2462,7 @@ class BaseAction(GridObjects):
                 - "change_bus" whether or not this load will be moved from one bus to another (for example is an action
                   asked it to go from bus 1 to bus 2)
                 - "redispatch" the amount of power redispatched for this generator.
+                - "curtailment": the amount of curtailment on this generator
 
             - if a powerline is inspected then the keys are:
 
@@ -2050,6 +2477,13 @@ class BaseAction(GridObjects):
 
                 - "change_bus"
                 - "set_bus"
+
+            - if a storage unit is inspected, it returns a dictionary with:
+
+                - "change_bus"
+                - "set_bus"
+                - "power" : the power you want to produce  / absorb with the storage unit ( if < 0 the power is
+                  produced, if > 0 then power is absorbed)
 
         NB the difference between "set_bus" and "change_bus" is the following:
 
@@ -2068,57 +2502,1568 @@ class BaseAction(GridObjects):
             parameters are being set.
 
         """
+        EXCEPT_TOO_MUCH_ELEMENTS = "You can only the inspect the effect of an action on one single element"
         if _sentinel is not None:
             raise Grid2OpException("action.effect_on should only be called with named argument.")
 
-        if load_id is None and gen_id is None and line_id is None and substation_id is None:
-            raise Grid2OpException("You ask the effect of an action on something, wihtout provided anything")
+        if load_id is None and gen_id is None and line_id is None and storage_id is None and substation_id is None:
+            raise Grid2OpException("You ask the effect of an action on something, without provided anything")
 
         if load_id is not None:
-            if gen_id is not None or line_id is not None or substation_id is not None:
-                raise Grid2OpException("You can only the inpsect the effect of an action on one single element")
-            res = {"new_p": np.NaN, "new_q": np.NaN, "change_bus": False, "set_bus": 0}
-            if "load_p" in self._dict_inj:
-                res["new_p"] = self._dict_inj["load_p"][load_id]
-            if "load_q" in self._dict_inj:
-                res["new_q"] = self._dict_inj["load_q"][load_id]
-            my_id = self.load_pos_topo_vect[load_id]
-            res["change_bus"] = self._change_bus_vect[my_id]
-            res["set_bus"] = self._set_topo_vect[my_id]
+            if gen_id is not None or line_id is not None or storage_id is not None or substation_id is not None:
+                raise Grid2OpException(EXCEPT_TOO_MUCH_ELEMENTS)
+            res = self._aux_effect_on_load(load_id)
 
         elif gen_id is not None:
-            if line_id is not None or substation_id is not None:
-                raise Grid2OpException("You can only the inpsect the effect of an action on one single element")
-            res = {"new_p": np.NaN, "new_v": np.NaN, "set_bus": 0., "change_bus": False}
-            if "prod_p" in self._dict_inj:
-                res["new_p"] = self._dict_inj["prod_p"][gen_id]
-            if "prod_v" in self._dict_inj:
-                res["new_v"] = self._dict_inj["prod_v"][gen_id]
-            my_id = self.gen_pos_topo_vect[gen_id]
-            res["change_bus"] = self._change_bus_vect[my_id]
-            res["set_bus"] = self._set_topo_vect[my_id]
-            res["redispatch"] = self._redispatch[gen_id]
+            if line_id is not None or storage_id is not None or substation_id is not None:
+                raise Grid2OpException(EXCEPT_TOO_MUCH_ELEMENTS)
+            res = self._aux_effect_on_gen(gen_id)
 
         elif line_id is not None:
-            if substation_id is not None:
-                raise Grid2OpException("You can only the inpsect the effect of an action on one single element")
-            res = {}
-            # origin topology
-            my_id = self.line_or_pos_topo_vect[line_id]
-            res["change_bus_or"] = self._change_bus_vect[my_id]
-            res["set_bus_or"] = self._set_topo_vect[my_id]
-            # extremity topology
-            my_id = self.line_ex_pos_topo_vect[line_id]
-            res["change_bus_ex"] = self._change_bus_vect[my_id]
-            res["set_bus_ex"] = self._set_topo_vect[my_id]
-            # status
-            res["set_line_status"] = self._set_line_status[line_id]
-            res["change_line_status"] = self._switch_line_status[line_id]
-        else:
-            res = {}
-            beg_ = int(np.sum(self.sub_info[:substation_id]))
-            end_ = int(beg_ + self.sub_info[substation_id])
-            res["change_bus"] = self._change_bus_vect[beg_:end_]
-            res["set_bus"] = self._set_topo_vect[beg_:end_]
+            if storage_id is not None or substation_id is not None:
+                raise Grid2OpException(EXCEPT_TOO_MUCH_ELEMENTS)
+            res = self._aux_effect_on_line(line_id)
 
+        elif storage_id is not None:
+            if substation_id is not None:
+                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            res = self._aux_effect_on_storage(storage_id)
+
+        else:
+            res = self._aux_effect_on_substation(substation_id)
         return res
+
+    def get_storage_modif(self):
+        """
+        Retrieve the modification that will be performed on all the storage unit
+
+        Returns
+        -------
+        storage_power: ``np.ndarray``
+            New storage power target (Nan = not modified, otherwise the setpoint given) [in MW]
+        storage_set_bus: ``np.ndarray``
+            New bus of the storage units, affected with "set_bus" command (0 = not affected, -1 = disconnected)
+        storage_change_bus: ``np.ndarray``
+            New bus of the storage units, affected with "change_bus" command
+
+        """
+        storage_power = 1.0 * self._storage_power
+        storage_set_bus = 1 * self._set_topo_vect[self.storage_pos_topo_vect]
+        storage_change_bus = copy.deepcopy(self._change_bus_vect[self.storage_pos_topo_vect])
+        return storage_power, storage_set_bus, storage_change_bus
+
+    def get_load_modif(self):
+        """
+        Retrieve the modification that will be performed on all the loads
+
+        Returns
+        -------
+        load_p: ``np.ndarray``
+            New load p (Nan = not modified) [in MW]
+        load_q: ``np.ndarray``
+            New load q (Nan = not modified) [in MVaR]
+        load_set_bus: ``np.ndarray``
+            New bus of the loads, affected with "set_bus" command
+        load_change_bus: ``np.ndarray``
+            New bus of the loads, affected with "change_bus" command
+        """
+        load_p = np.full(self.n_load, fill_value=np.NaN, dtype=dt_float)
+        if "load_p" in self._dict_inj:
+            load_p[:] = self._dict_inj["load_p"]
+        load_q = 1.0 * load_p
+        if "load_q" in self._dict_inj:
+            load_q[:] = self._dict_inj["load_q"]
+        load_set_bus = 1 * self._set_topo_vect[self.load_pos_topo_vect]
+        load_change_bus = copy.deepcopy(self._change_bus_vect[self.load_pos_topo_vect])
+        return load_p, load_q, load_set_bus, load_change_bus
+
+    def get_gen_modif(self):
+        """
+        Retrieve the modification that will be performed on all the generators
+
+        TODO add curtailment and redispatching
+
+        Returns
+        -------
+        gen_p: ``np.ndarray``
+            New gen p (Nan = not modified) [in MW]
+        gen_v: ``np.ndarray``
+            New gen v setpoint (Nan = not modified) [in kV]
+        gen_set_bus: ``np.ndarray``
+            New bus of the generators, affected with "set_bus" command
+        gen_change_bus: ``np.ndarray``
+            New bus of the generators, affected with "change_bus" command
+
+        """
+        gen_p = np.full(self.n_load, fill_value=np.NaN, dtype=dt_float)
+        if "prod_p" in self._dict_inj:
+            gen_p[:] = self._dict_inj["prod_p"]
+        gen_v = 1.0 * gen_p
+        if "prod_v" in self._dict_inj:
+            gen_v[:] = self._dict_inj["prod_v"]
+        gen_set_bus = 1 * self._set_topo_vect[self.gen_pos_topo_vect]
+        gen_change_bus = copy.deepcopy(self._change_bus_vect[self.gen_pos_topo_vect])
+        return gen_p, gen_v, gen_set_bus, gen_change_bus
+
+    # TODO do the get_line_modif, get_line_or_modif and get_line_ex_modif
+
+    def _aux_affect_object_int(self, values, name_el, nb_els,
+                               name_els,
+                               inner_vect,
+                               outer_vect,
+                               min_val=-1,
+                               max_val=2,
+                               ):
+        """
+        NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
+        This is not set here, because it's recursive and if it fails at a point, it would be set for nothing
+
+        values: the new values to set
+        name_el: "load"
+        nb_els: self.n_load
+        inner_vect: self.load_pos_topo_vect
+        name_els: self.name_load
+        outer_vect: self._set_topo_vect
+
+        will modify outer_vect[inner_vect]
+        """
+        if isinstance(values, tuple):
+            # i provide a tuple: load_id, new_bus
+            if len(values) != 2:
+                raise IllegalAction(f"when set with tuple, this tuple should have size 2 and be: {name_el}_id, new_bus "
+                                    f"eg. (3, {max_val})")
+            el_id, new_bus = values
+            try:
+                new_bus = int(new_bus)
+            except Exception as exc_:
+                raise IllegalAction(f"new_bus should be convertible to integer. Error was : \"{exc_}\"")
+
+            if new_bus < min_val:
+                raise IllegalAction(f"new_bus should be between {min_val} and {max_val}")
+            if new_bus > max_val:
+                raise IllegalAction(f"new_bus should be between {min_val} and {max_val}")
+
+            if isinstance(el_id, (float, dt_float, np.float64)):
+                raise IllegalAction(f"{name_el}_id should be integers you provided float!")
+            if isinstance(el_id, (bool, dt_bool)):
+                raise IllegalAction(f"{name_el}_id should be integers you provided bool!")
+            if isinstance(el_id, str):
+                raise IllegalAction(f"{name_el}_id should be integers you provided string "
+                                    f"(hint: you can use a dictionary to set the bus by name eg. "
+                                    f"act.{name_el}_set_bus = {{act.name_{name_el}[0] : 1, act.name_{name_el}[1] : "
+                                    f"{max_val}}} )!")
+
+            try:
+                el_id = int(el_id)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
+            if el_id < 0:
+                raise IllegalAction(f"Impossible to set the bus of a {name_el} with negative id")
+            if el_id >= nb_els:
+                raise IllegalAction(f"Impossible to set a {name_el} id {el_id} because there are only "
+                                    f"{nb_els} on the grid (and in python id starts at 0)")
+            outer_vect[inner_vect[el_id]] = new_bus
+            return
+        elif isinstance(values, np.ndarray):
+            if isinstance(values.dtype, float) or values.dtype == dt_float or values.dtype == np.float64:
+                raise IllegalAction(f"{name_el}_id should be integers you provided float!")
+            if isinstance(values.dtype, bool) or values.dtype == dt_bool:
+                raise IllegalAction(f"{name_el}_id should be integers you provided boolean!")
+
+            try:
+                values = values.astype(dt_int)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
+            if np.any(values < min_val):
+                raise IllegalAction(f"new_bus should be between {min_val} and {max_val}, found a value < {min_val}")
+            if np.any(values > max_val):
+                raise IllegalAction(f"new_bus should be between {min_val} and {max_val}, found a value  > {max_val}")
+            outer_vect[inner_vect] = values
+            return
+        elif isinstance(values, list):
+            # 2 cases: list of tuple, or list (convertible to numpy array)
+            if len(values) == nb_els:
+                # 2 cases: either i set all loads in the form [(0,..), (1,..), (2,...)]
+                # or i should have converted the list to np array
+                if isinstance(values[0], tuple):
+                    # list of tuple, handled below
+                    # TODO can be somewhat "hacked" if the type of the object on the list is not always the same
+                    pass
+                else:
+                    # get back to case where it's a full vector
+                    values = np.array(values)
+                    self._aux_affect_object_int(values, name_el, nb_els, name_els,
+                                                inner_vect=inner_vect, outer_vect=outer_vect,
+                                                min_val=min_val, max_val=max_val)
+                    return
+
+            # expected list of tuple, each tuple is a pair with load_id, new_load_bus: example: [(0, 1), (2,2)]
+            for el in values:
+                if len(el) != 2:
+                    raise IllegalAction(f"If input is a list, it should be a  list of pair (el_id, new_bus) "
+                                        f"eg. [(0, {max_val}), (2, {min_val})]")
+                el_id, new_bus = el
+                if isinstance(el_id, str) and name_els is not None:
+                    tmp = np.where(name_els == el_id)[0]
+                    if len(tmp) == 0:
+                        raise IllegalAction(f"No known {name_el} with name {el_id}")
+                    el_id = tmp[0]
+                self._aux_affect_object_int((el_id, new_bus), name_el, nb_els, name_els,
+                                            inner_vect=inner_vect, outer_vect=outer_vect,
+                                            min_val=min_val, max_val=max_val)
+        elif isinstance(values, dict):
+            # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
+            for key, new_bus in values.items():
+                if isinstance(key, str) and name_els is not None:
+                    tmp = np.where(name_els == key)[0]
+                    if len(tmp) == 0:
+                        raise IllegalAction(f"No known {name_el} with name {key}")
+                    key = tmp[0]
+                self._aux_affect_object_int((key, new_bus), name_el, nb_els, name_els,
+                                            inner_vect=inner_vect, outer_vect=outer_vect,
+                                            min_val=min_val, max_val=max_val)
+        else:
+            raise IllegalAction(f"Impossible to modify the {name_el} bus with inputs {values}. "
+                                f"Please see the documentation.")
+
+    @property
+    def load_set_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which each storage unit is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
+        """
+        res = self.set_bus[self.load_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @load_set_bus.setter
+    def load_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the load bus (with \"set\") with this action type.")
+        orig_ = self.load_set_bus
+        try:
+            self._aux_affect_object_int(values, "load", self.n_load, self.name_load,
+                                        self.load_pos_topo_vect, self._set_topo_vect)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._aux_affect_object_int(orig_, "load", self.n_load, self.name_load,
+                                        self.load_pos_topo_vect, self._set_topo_vect)
+            raise IllegalAction(f"Impossible to modify the load bus with your input. Please consult the documentation. "
+                                f"The error was \"{exc_}\"")
+
+    @property
+    def gen_set_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which the action **set** the generator units.
+
+        Returns
+        -------
+        res:
+            A vector of integer, of size `act.n_gen` indicating what type of action is performed for
+            each generator units with the convention :
+
+            * 0 the action do not action on this storage unit
+            * -1 the action disconnect the storage unit
+            * 1 the action set the storage unit to busbar 1
+            * 2 the action set the storage unit to busbar 2
+
+        Examples
+        --------
+
+        To retrieve the impact of the action on the storage unit, you can do:
+
+        .. code-block:: python
+
+            gen_buses = act.gen_set_bus
+
+        To modify these buses with **set** you can do:
+
+        .. code-block:: python
+
+            # create an environment where i can modify everything
+            import numpy as np
+            import grid2op
+            from grid2op.Action import CompleteAction
+            env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction)
+
+            # create an action
+            act = env.action_space()
+
+            # method 1 : provide the full vector
+            act.gen_set_bus = np.ones(act.n_gen, dtype=int)
+
+            # method 2: provide the index of the unit you want to modify
+            act.gen_set_bus = (1, 2)
+
+            # method 3: provide a list of the units you want to modify
+            act.gen_set_bus = [(1, 2), (0, -1)]
+
+            # method 4: change the storage unit by their name with a dictionary
+            act.gen_set_bus = {"gen_1_0": 2}
+
+        .. note:: The "rule of thumb" to modify an object using "set" method it to provide always
+            the ID of an object AND its value. The ID should be an integer (or a name in some cases)
+            and the value an integer representing on which busbar to put the new element.
+
+        Notes
+        -----
+        It is a "property", you don't have to use parenthesis to access it:
+
+        .. code-block:: python
+
+            # valid code
+            gen_buses = act.gen_set_bus
+
+            # invalid code, it will crash, do not run
+            gen_buses = act.gen_set_bus()
+            # end do not run
+
+        And neither should you uses parenthesis to modify it:
+
+        .. code-block:: python
+
+            # valid code
+            act.gen_set_bus = [(1, 2), (0, -1)]
+
+            # invalid code, it will crash, do not run
+            act.gen_set_bus([(1, 2), (0, -1)])
+            # end do not run
+
+        Property cannot be set "directly", you have to use the `act.XXX = ...` syntax. For example:
+
+        .. code-block:: python
+
+            # valid code
+            act.gen_set_bus = [(1, 2), (0, -1)]
+
+            # invalid code, it will raise an error, and even if it did not it would have not effect
+            # do not run
+            act.gen_set_bus[1] = 2
+            # end do not run
+
+        .. note:: Be careful not to mix "change" and "set". For "change" you only need to provide the ID of the elements
+            you want to change, for "set" you need to provide the ID **AND** where you want to set them.
+
+        """
+        res = self.set_bus[self.gen_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @gen_set_bus.setter
+    def gen_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the gen bus (with \"set\") with this action type.")
+        orig_ = self.gen_set_bus
+        try:
+            self._aux_affect_object_int(values, "gen", self.n_gen, self.name_gen,
+                                        self.gen_pos_topo_vect, self._set_topo_vect)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._aux_affect_object_int(orig_, "gen", self.n_gen, self.name_gen,
+                                        self.gen_pos_topo_vect, self._set_topo_vect)
+            raise IllegalAction(f"Impossible to modify the gen bus with your input. Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def storage_set_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which each storage unit is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
+        """
+        if "set_storage" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        res = self.set_bus[self.storage_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @storage_set_bus.setter
+    def storage_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        if "set_storage" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        orig_ = self.storage_set_bus
+        try:
+            self._aux_affect_object_int(values, "storage", self.n_storage, self.name_storage,
+                                        self.storage_pos_topo_vect, self._set_topo_vect)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._aux_affect_object_int(orig_, "storage", self.n_storage, self.name_storage,
+                                        self.storage_pos_topo_vect, self._set_topo_vect)
+            raise IllegalAction(f"Impossible to modify the storage bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def line_or_set_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which the origin side of each powerline is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
+        """
+        res = self.set_bus[self.line_or_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @line_or_set_bus.setter
+    def line_or_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the line (origin) bus (with \"set\") with this action type.")
+        orig_ = self.line_or_set_bus
+        try:
+            self._aux_affect_object_int(values, self._line_or_str, self.n_line, self.name_line,
+                                        self.line_or_pos_topo_vect, self._set_topo_vect)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._aux_affect_object_int(orig_, self._line_or_str, self.n_line, self.name_line,
+                                        self.line_or_pos_topo_vect, self._set_topo_vect)
+            raise IllegalAction(f"Impossible to modify the line origin bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def line_ex_set_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which the extremity side of each powerline is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
+        """
+        res = self.set_bus[self.line_ex_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @line_ex_set_bus.setter
+    def line_ex_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the line (ex) bus (with \"set\") with this action type.")
+        orig_ = self.line_ex_set_bus
+        try:
+            self._aux_affect_object_int(values, self._line_ex_str, self.n_line, self.name_line,
+                                        self.line_ex_pos_topo_vect, self._set_topo_vect)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._aux_affect_object_int(orig_, self._line_ex_str, self.n_line, self.name_line,
+                                        self.line_ex_pos_topo_vect, self._set_topo_vect)
+            raise IllegalAction(f"Impossible to modify the line extrmity bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def set_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which any element is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus` and can be use to modify any elements type
+        as opposed to the more specific :attr:`BaseAction.gen_set_bus`, :attr:`BaseAction.load_set_bus`,
+        :attr:`BaseAction.line_or_set_bus`, :attr:`BaseAction.line_ex_set_bus` or
+        :attr:`BaseAction.storage_set_bus` that are specific to a certain type of objects.
+
+        Notes
+        -----
+
+        For performance reasons, it do not allow to modify the elements by there names.
+
+        The order of each elements are given in the :attr:`grid2op.Space.GridObjects.gen_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.line_or_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.line_ex_pos_topo_vect` or
+        :attr:`grid2op.Space.GridObjects.storage_pos_topo_vect`
+
+        For example:
+
+        .. code-block:: python
+
+            act.set_bus = [(0,1), (1, -1), (3, 2)]
+
+        Will:
+
+          * set to bus 1 the (unique) element for which \*_pos_topo_vect is 1
+          * disconnect the (unique) element for which \*_pos_topo_vect is 2
+          * set to bus 2 the (unique) element for which \*_pos_topo_vect is 3
+
+        You can use the documentation page :ref:`modeled-elements-module` for more information about which
+        element correspond to what component of this vector.
+
+        """
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the bus (with \"set\") with this action type.")
+        res = 1 * self._set_topo_vect
+        res.flags.writeable = False
+        return res
+
+    @set_bus.setter
+    def set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the bus (with \"set\") with this action type.")
+        orig_ = self.set_bus
+        try:
+            self._aux_affect_object_int(values, "", self.dim_topo, None,
+                                        np.arange(self.dim_topo), self._set_topo_vect)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._aux_affect_object_int(orig_, "", self.dim_topo, None,
+                                        np.arange(self.dim_topo), self._set_topo_vect)
+            raise IllegalAction(f"Impossible to modify the bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def line_set_status(self):
+        """
+        Property to set the status of the powerline.
+
+        It behave similarly than :attr:`BaseAction.gen_set_bus` but with the following convention:
+
+        * 0 still means it is not affected
+        * +1 means that we force the connection on a powerline
+        * -1 means we force the disconnection of a powerline
+
+        Notes
+        -----
+
+        Setting a status of a powerline to +2 will raise an error.
+
+        Examples
+        ---------
+
+        For example:
+
+        .. code-block:: python
+
+            act.line_set_status = [(0,1), (1, -1), (3, 1)]
+
+        Will force the reconnection of line id 0 and 1 and force disconnection of line id 1.
+
+        """
+        if "set_line_status" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the status of powerlines (with \"set\") with this action type.")
+        res = 1 * self._set_line_status
+        res.flags.writeable = False
+        return res
+
+    @line_set_status.setter
+    def line_set_status(self, values):
+        if "set_line_status" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the status of powerlines (with \"set\") with this action type.")
+        orig_ = 1 * self._set_line_status
+        try:
+            self._aux_affect_object_int(values, "line status", self.n_line, self.name_line,
+                                        np.arange(self.n_line), self._set_line_status,
+                                        max_val=1)
+            self._modif_set_status = True
+        except Exception as exc_:
+            self._aux_affect_object_int(orig_, "line status", self.n_line, self.name_line,
+                                        np.arange(self.n_line), self._set_line_status,
+                                        max_val=1)
+            raise IllegalAction(f"Impossible to modify the line status with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def set_line_status(self):
+        """another name for :func:`BaseAction.line_set_status`"""
+        return self.line_set_status
+
+    @set_line_status.setter
+    def set_line_status(self, values):
+        self.line_set_status = values
+
+    @property
+    def change_line_status(self):
+        """another name for :func:`BaseAction.change_line_status`"""
+        return self.line_change_status
+
+    @change_line_status.setter
+    def change_line_status(self, values):
+        self.line_change_status = values
+
+    def _aux_affect_object_bool(self, values, name_el, nb_els,
+                                name_els,
+                                inner_vect,
+                                outer_vect
+                                ):
+        """
+        NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
+        This is not set here, because it's recursive and if it fails at a point, it would be set for nothing
+
+        values: the new values to set
+        name_el: "load"
+        nb_els: self.n_load
+        inner_vect: self.load_pos_topo_vect
+        name_els: self.name_load
+        outer_vect: self._change_bus_vect
+
+        will modify outer_vect[inner_vect]
+        """
+        if isinstance(values, bool):
+            # to make it explicit, tuple modifications are deactivated
+            raise IllegalAction(f"Impossible to change a {name_el} with a tuple input. Accepted inputs are:"
+                                f"int, list of int, list of string, array of int, array of bool, set of int,"
+                                f"set of string")
+        elif isinstance(values, float):
+            # to make it explicit, tuple modifications are deactivated
+            raise IllegalAction(f"Impossible to change a {name_el} with a tuple input. Accepted inputs are:"
+                                f"int, list of int, list of string, array of int, array of bool, set of int,"
+                                f"set of string")
+        elif isinstance(values, (int, dt_int, np.int64)):
+            # i provide an int: load_id
+            try:
+                el_id = int(values)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
+            if el_id < 0:
+                raise IllegalAction(f"Impossible to change a negative {name_el} with negative id")
+            if el_id >= nb_els:
+                raise IllegalAction(f"Impossible to change a {name_el} id {el_id} because there are only "
+                                    f"{nb_els} on the grid (and in python id starts at 0)")
+            outer_vect[inner_vect[el_id]] = not outer_vect[inner_vect[el_id]]
+            return
+        elif isinstance(values, tuple):
+            # to make it explicit, tuple modifications are deactivated
+            raise IllegalAction(f"Impossible to change a {name_el} with a tuple input. Accepted inputs are:"
+                                f"int, list of int, list of string, array of int, array of bool, set of int,"
+                                f"set of string")
+        elif isinstance(values, np.ndarray):
+            # either the int id i need to change or the full value.
+            if isinstance(values.dtype, bool) or values.dtype == dt_bool or values.dtype == bool:
+                # so i change by giving the full vector
+                if values.shape[0] != nb_els:
+                    raise IllegalAction(f"If provided with bool array, the number of components of the vector"
+                                        f"should match the total number of {name_el}. You provided a vector "
+                                        f"with size {values.shape[0]} and there are {nb_els} {name_el} "
+                                        f"on the grid.")
+                outer_vect[inner_vect[values]] = ~outer_vect[inner_vect[values]]
+                return
+
+            # this is the case where i give the integers i want to change
+            try:
+                values = values.astype(dt_int)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
+            if np.any(values < 0):
+                raise IllegalAction(f"Impossible to change a negative {name_el} with negative id")
+            if np.any(values > nb_els):
+                raise IllegalAction(f"Impossible to change a {name_el} id because there are only "
+                                    f"{nb_els} on the grid and you wanted to change an element with an "
+                                    f"id > {nb_els} (in python id starts at 0)")
+            outer_vect[inner_vect[values]] = ~outer_vect[inner_vect[values]]
+            return
+        elif isinstance(values, list):
+            # 1 case only: list of int
+            # (note: i cannot convert to numpy array other I could mix types...)
+            for el_id_or_name in values:
+                if isinstance(el_id_or_name, str):
+                    tmp = np.where(name_els == el_id_or_name)[0]
+                    if len(tmp) == 0:
+                        raise IllegalAction(f"No known {name_el} with name \"{el_id_or_name}\"")
+                    el_id = tmp[0]
+                elif isinstance(el_id_or_name, (bool, dt_bool)):
+                    # somehow python considers bool are int...
+                    raise IllegalAction(f"If a list is provided, it is only valid with integer found "
+                                        f"{type(el_id_or_name)}.")
+                elif isinstance(el_id_or_name, (int, dt_int, np.int64)):
+                    el_id = el_id_or_name
+                else:
+                    raise IllegalAction(f"If a list is provided, it is only valid with integer found "
+                                        f"{type(el_id_or_name)}.")
+                el_id = int(el_id)
+                self._aux_affect_object_bool(el_id, name_el, nb_els, name_els,
+                                             inner_vect=inner_vect, outer_vect=outer_vect)
+        elif isinstance(values, set):
+            # 2 cases: either set of load_id or set of load_name
+            values = list(values)
+            self._aux_affect_object_bool(values, name_el, nb_els, name_els,
+                                         inner_vect=inner_vect, outer_vect=outer_vect)
+        else:
+            raise IllegalAction(f"Impossible to modify the {name_el} with inputs {values}. "
+                                f"Please see the documentation.")
+
+    @property
+    def change_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which any element is **change**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus` and can be use to modify any elements type
+        as opposed to the more specific :attr:`BaseAction.gen_change_bus`, :attr:`BaseAction.load_change_bus`,
+        :attr:`BaseAction.line_or_change_bus`, :attr:`BaseAction.line_ex_change_bus` or
+        :attr:`BaseAction.storage_change_bus` that are specific to a certain type of objects.
+
+        Notes
+        -----
+
+        For performance reasons, it do not allow to modify the elements by there names.
+
+        The order of each elements are given in the :attr:`grid2op.Space.GridObjects.gen_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.line_or_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.line_ex_pos_topo_vect` or
+        :attr:`grid2op.Space.GridObjects.storage_pos_topo_vect`
+
+        For example:
+
+        .. code-block:: python
+
+            act.set_bus [0, 1, 3]
+
+        Will:
+
+          * change the bus of the (unique) element for which \*_pos_topo_vect is 1
+          * change the bus of (unique) element for which \*_pos_topo_vect is 2
+          * change the bus of (unique) element for which \*_pos_topo_vect is 3
+
+        You can use the documentation page :ref:`modeled-elements-module` for more information about which
+        element correspond to what component of this "vector".
+
+        """
+        res = copy.deepcopy(self._change_bus_vect)
+        res.flags.writeable = False
+        return res
+
+    @change_bus.setter
+    def change_bus(self, values):
+        orig_ = self.change_bus
+        try:
+            self._aux_affect_object_bool(values, "", self.dim_topo, None,
+                                         np.arange(self.dim_topo), self._change_bus_vect)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._aux_affect_object_bool(orig_, "", self.dim_topo, None,
+                                         np.arange(self.dim_topo), self._change_bus_vect)
+            raise IllegalAction(f"Impossible to modify the bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def load_change_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which the loads is **changed**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus`. See the help there for more information.
+        """
+        res = self.change_bus[self.load_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @load_change_bus.setter
+    def load_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the load bus (with \"change\") with this action type.")
+        orig_ = self.load_change_bus
+        try:
+            self._aux_affect_object_bool(values, "load", self.n_load, self.name_load,
+                                         self.load_pos_topo_vect, self._change_bus_vect)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.load_pos_topo_vect] = orig_
+            raise IllegalAction(f"Impossible to modify the load bus with your input. Please consult the documentation. "
+                                f"The error was \"{exc_}\"")
+
+    @property
+    def gen_change_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which the action **change** the generator units.
+
+        Returns
+        -------
+        res:
+            A vector of bool, of size `act.n_gen` indicating what type of action is performed for
+            each generator units with the convention :
+
+            * ``False`` this generator is not affected by any "change" action
+            * ``True`` this generator bus is not affected by any "change" action. If it was
+              on bus 1, it will be moved to bus 2, if it was on bus 2 it will be moved to bus 1 (
+              and if it was disconnected it will stay disconnected)
+
+        Examples
+        --------
+
+        To retrieve the impact of the action on the storage unit, you can do:
+
+        .. code-block:: python
+
+            gen_buses = act.gen_change_bus
+
+        To modify these buses you can do:
+
+        .. code-block:: python
+
+            # create an environment where i can modify everything
+            import numpy as np
+            import grid2op
+            from grid2op.Action import CompleteAction
+            env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction)
+
+            # create an action
+            act = env.action_space()
+
+            # method 1 : provide the full vector
+            act.gen_change_bus = np.ones(act.n_gen, dtype=bool)
+
+            # method 2: provide the index of the unit you want to modify
+            act.gen_change_bus = 1
+
+            # method 3: provide a list of the units you want to modify
+            act.gen_change_bus = [1, 2]
+
+            # method 4: change the storage unit by their name with a set
+            act.gen_change_bus = {"gen_1_0"}
+
+        .. note:: The "rule of thumb" to modify an object using "change" method it to provide always
+            the ID of an object. The ID should be an integer (or a name in some cases). It does not
+            make any sense to provide a "value" associated to an ID: either you change it, or not.
+
+        Notes
+        -----
+        It is a "property", you don't have to use parenthesis to access it:
+
+        .. code-block:: python
+
+            # valid code
+            gen_buses = act.gen_change_bus
+
+            # invalid code, it will crash, do not run
+            gen_buses = act.gen_change_bus()
+            # end do not run
+
+        And neither should you uses parenthesis to modify it:
+
+        .. code-block:: python
+
+            # valid code
+            act.gen_change_bus = [1, 2, 3]
+
+            # invalid code, it will crash, do not run
+            act.gen_change_bus([1, 2, 3])
+            # end do not run
+
+        Property cannot be set "directly", you have to use the `act.XXX = ..` syntax. For example:
+
+        .. code-block:: python
+
+            # valid code
+            act.gen_change_bus = [1, 3, 4]
+
+            # invalid code, it will raise an error, and even if it did not it would have not effect
+            # do not run
+            act.gen_change_bus[1] = True
+            # end do not run
+
+        .. note:: Be careful not to mix "change" and "set". For "change" you only need to provide the ID of the elements
+            you want to change, for "set" you need to provide the ID **AND** where you want to set them.
+
+        """
+        res = self.change_bus[self.gen_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @gen_change_bus.setter
+    def gen_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the gen bus (with \"change\") with this action type.")
+        orig_ = self.gen_change_bus
+        try:
+            self._aux_affect_object_bool(values, "gen", self.n_gen, self.name_gen,
+                                         self.gen_pos_topo_vect, self._change_bus_vect)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.gen_pos_topo_vect] = orig_
+            raise IllegalAction(f"Impossible to modify the gen bus with your input. Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def storage_change_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which the storage units are **changed**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus`. See the help there for more information.
+        """
+        res = self.change_bus[self.storage_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @storage_change_bus.setter
+    def storage_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"change\") with this action type.")
+        if "set_storage" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage units with this action type.")
+        orig_ = self.storage_change_bus
+        try:
+            self._aux_affect_object_bool(values, "storage", self.n_storage, self.name_storage,
+                                         self.storage_pos_topo_vect, self._change_bus_vect)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.storage_pos_topo_vect] = orig_
+            raise IllegalAction(f"Impossible to modify the storage bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def line_or_change_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which the origin side of powerlines are **changed**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus`. See the help there for more information.
+        """
+        res = self.change_bus[self.line_or_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @line_or_change_bus.setter
+    def line_or_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the line (origin) bus (with \"change\") with this action type.")
+        orig_ = self.line_or_change_bus
+        try:
+            self._aux_affect_object_bool(values, self._line_or_str, self.n_line, self.name_line,
+                                         self.line_or_pos_topo_vect, self._change_bus_vect)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.line_or_pos_topo_vect] = orig_
+            raise IllegalAction(f"Impossible to modify the line origin bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def line_ex_change_bus(self):
+        """
+        Allows to retrieve (and affect) the busbars at which the extremity side of powerlines are **changed**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus`. See the help there for more information.
+        """
+        res = self.change_bus[self.line_ex_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @line_ex_change_bus.setter
+    def line_ex_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the line (ex) bus (with \"change\") with this action type.")
+        orig_ = self.line_ex_change_bus
+        try:
+            self._aux_affect_object_bool(values, self._line_ex_str, self.n_line, self.name_line,
+                                         self.line_ex_pos_topo_vect, self._change_bus_vect)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.line_ex_pos_topo_vect] = orig_
+            raise IllegalAction(f"Impossible to modify the line extrmity bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def line_change_status(self):
+        """
+        Property to set the status of the powerline.
+
+        It behave similarly than :attr:`BaseAction.gen_change_bus` but with the following convention:
+
+        * ``False`` will not affect the powerline
+        * ``True`` will change the status of the powerline. If it was connected, it will attempt to
+          disconnect it, if it was disconnected, it will attempt to reconnect it.
+
+        """
+        res = copy.deepcopy(self._switch_line_status)
+        res.flags.writeable = False
+        return res
+
+    @line_change_status.setter
+    def line_change_status(self, values):
+        if "change_line_status" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the status of powerlines (with \"change\") with this action type.")
+        orig_ = 1 * self._switch_line_status
+        try:
+            self._aux_affect_object_bool(values, "line status", self.n_line, self.name_line,
+                                         np.arange(self.n_line), self._switch_line_status)
+            self._modif_change_status = True
+        except Exception as exc_:
+            self._switch_line_status[:] = orig_
+            raise IllegalAction(f"Impossible to modify the line status with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    def _aux_affect_object_float(self, values, name_el, nb_els,
+                                 name_els,
+                                 inner_vect,
+                                 outer_vect,
+                                 ):
+        """
+        INTERNAL USE ONLY
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
+        This is not set here, because it's recursive and if it fails at a point, it would be set for nothing
+
+        values: the new values to set
+        name_el: "load"
+        nb_els: self.n_load
+        inner_vect: self.load_pos_topo_vect
+        name_els: self.name_load
+        outer_vect: self._set_topo_vect
+
+        will modify outer_vect[inner_vect]
+        """
+        if isinstance(values, (bool, dt_bool)):
+            raise IllegalAction(f"Impossible to set {name_el} values with a single boolean.")
+        elif isinstance(values, (int, dt_int, np.int64)):
+            raise IllegalAction(f"Impossible to set {name_el} values with a single integer.")
+        elif isinstance(values, (float, dt_float, np.float64)):
+            raise IllegalAction(f"Impossible to set {name_el} values with a single float.")
+        elif isinstance(values, tuple):
+            # i provide a tuple: load_id, new_vals
+            if len(values) != 2:
+                raise IllegalAction(f"when set with tuple, this tuple should have size 2 and be: {name_el}_id, new_bus "
+                                    f"eg. (3, 0.0)")
+            el_id, new_val = values
+            if isinstance(new_val, (bool, dt_bool)):
+                raise IllegalAction(f"new_val should be a float. A boolean was provided")
+
+            try:
+                new_val = float(new_val)
+            except Exception as exc_:
+                raise IllegalAction(f"new_val should be convertible to a float. Error was : \"{exc_}\"")
+
+            if isinstance(el_id, (float, dt_float, np.float64)):
+                raise IllegalAction(f"{name_el}_id should be integers you provided float!")
+            if isinstance(el_id, (bool, dt_bool)):
+                raise IllegalAction(f"{name_el}_id should be integers you provided bool!")
+            if isinstance(el_id, str):
+                raise IllegalAction(f"{name_el}_id should be integers you provided string "
+                                    f"(hint: you can use a dictionary to set the bus by name eg. "
+                                    f"act.{name_el}_set_bus = {{act.name_{name_el}[0] : 1, act.name_{name_el}[1] : "
+                                    f"0.0}} )!")
+
+            try:
+                el_id = int(el_id)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
+            if el_id < 0:
+                raise IllegalAction(f"Impossible to set the bus of a {name_el} with negative id")
+            if el_id >= nb_els:
+                raise IllegalAction(f"Impossible to set a {name_el} id {el_id} because there are only "
+                                    f"{nb_els} on the grid (and in python id starts at 0)")
+            if np.isfinite(new_val):
+                outer_vect[inner_vect[el_id]] = new_val
+            return
+        elif isinstance(values, np.ndarray):
+            if isinstance(values.dtype, int) or values.dtype == dt_int or values.dtype == np.int64:
+                # for this the user explicitly casted it as integer, this won't work.
+                raise IllegalAction(f"{name_el}_id should be floats you provided int!")
+
+            if isinstance(values.dtype, bool) or values.dtype == dt_bool:
+                raise IllegalAction(f"{name_el}_id should be floats you provided boolean!")
+            try:
+                values = values.astype(dt_float)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to float. Error was : \"{exc_}\"")
+            indx_ok = np.isfinite(values)
+            outer_vect[inner_vect[indx_ok]] = values[indx_ok]
+            return
+        elif isinstance(values, list):
+            # 2 cases: list of tuple, or list (convertible to numpy array)
+            if len(values) == nb_els:
+                # 2 cases: either i set all loads in the form [(0,..), (1,..), (2,...)]
+                # or i should have converted the list to np array
+                if isinstance(values, (bool, dt_bool)):
+                    raise IllegalAction(f"Impossible to set {name_el} values with a single boolean.")
+                elif isinstance(values, (int, dt_int, np.int64)):
+                    raise IllegalAction(f"Impossible to set {name_el} values with a single integer.")
+                elif isinstance(values, (float, dt_float, np.float64)):
+                    raise IllegalAction(f"Impossible to set {name_el} values with a single float.")
+                elif isinstance(values[0], tuple):
+                    # list of tuple, handled below
+                    # TODO can be somewhat "hacked" if the type of the object on the list is not always the same
+                    pass
+                else:
+                    # get back to case where it's a full vector
+                    values = np.array(values)
+                    self._aux_affect_object_float(values, name_el, nb_els, name_els,
+                                                  inner_vect=inner_vect, outer_vect=outer_vect)
+                    return
+
+            # expected list of tuple, each tuple is a pair with load_id, new_vals: example: [(0, -1.0), (2,2.7)]
+            for el in values:
+                if len(el) != 2:
+                    raise IllegalAction(f"If input is a list, it should be a  list of pair (el_id, new_val) "
+                                        f"eg. [(0, 1.0), (2, 2.7)]")
+                el_id, new_val = el
+                if isinstance(el_id, str):
+                    tmp = np.where(name_els == el_id)[0]
+                    if len(tmp) == 0:
+                        raise IllegalAction(f"No known {name_el} with name {el_id}")
+                    el_id = tmp[0]
+                self._aux_affect_object_float((el_id, new_val), name_el, nb_els, name_els,
+                                              inner_vect=inner_vect, outer_vect=outer_vect)
+        elif isinstance(values, dict):
+            # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
+            for key, new_val in values.items():
+                if isinstance(key, str):
+                    tmp = np.where(name_els == key)[0]
+                    if len(tmp) == 0:
+                        raise IllegalAction(f"No known {name_el} with name {key}")
+                    key = tmp[0]
+                self._aux_affect_object_float((key, new_val), name_el, nb_els, name_els,
+                                              inner_vect=inner_vect, outer_vect=outer_vect)
+        else:
+            raise IllegalAction(f"Impossible to modify the {name_el} with inputs {values}. "
+                                f"Please see the documentation.")
+
+    @property
+    def redispatch(self):
+        """
+        Allows to retrieve (and affect) the redispatching setpoint of the generators.
+
+        Returns
+        -------
+        res:
+            A vector of integer, of size `act.n_gen` indicating what type of action is performed for
+            each generator units. Note that these are the setpoint. The actual redispatching that will
+            be available might be different. See :ref:`generator-mod-el` for more information.
+
+        Examples
+        --------
+
+        To retrieve the impact of the action on the storage unit, you can do:
+
+        .. code-block:: python
+
+            redisp = act.redispatch
+
+        For each generator it will give the amount of redispatch this action wants to perform.
+
+        To change the setpoint of the redispatching, you can do:
+
+        .. code-block:: python
+
+            # create an environment where i can modify everything
+            import numpy as np
+            import grid2op
+            from grid2op.Action import CompleteAction
+            env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction)
+
+            # create an action
+            act = env.action_space()
+
+            # method 1 : provide the full vector
+            act.redispatch = np.ones(act.n_gen, dtype=float)  # only floats are accepted !
+
+            # method 2: provide the index of the unit you want to modify
+            act.redispatch = (1, 2.5)
+
+            # method 3: provide a list of the units you want to modify
+            act.redispatch = [(1, 2.5), (0, -1.3)]
+
+            # method 4: change the storage unit by their name with a dictionary
+            act.redispatch = {"gen_1_0": 2.0}
+
+        .. note:: The "rule of thumb" to perform redispatching is to provide always
+            the ID of an object AND its value. The ID should be an integer (or a name in some cases)
+            and the value a float representing what amount of redispatching you want to perform on the
+            unit with the associated ID.
+
+        Notes
+        -----
+        It is a "property", you don't have to use parenthesis to access it:
+
+        .. code-block:: python
+
+            # valid code
+            redisp = act.redispatch
+
+            # invalid code, it will crash, do not run
+            redisp = act.redispatch()
+            # end do not run
+
+        And neither should you uses parenthesis to modify it:
+
+        .. code-block:: python
+
+            # valid code
+            act.redispatch = [(1, 2.5), (0, -1.3)]
+
+            # invalid code, it will crash, do not run
+            act.redispatch([(1, 2.5), (0, -1.3)])
+            # end do not run
+
+        Property cannot be set "directly", you have to use the `act.XXX = ..` syntax. For example:
+
+        .. code-block:: python
+
+            # valid code
+            act.redispatch = [(1, 2.5), (0, -1.3)]
+
+            # invalid code, it will raise an error, and even if it did not it would have not effect
+            # do not run
+            act.redispatch[1] = 2.5
+            # end do not run
+
+        .. note:: Be careful not to mix action to set something on a bus bar (where the values are integer,
+            like "set_bus" or "set_status")
+            and continuous action (where the values are float, like "redispatch" or "storage_p")
+
+        """
+        res = 1.0 * self._redispatch
+        res.flags.writeable = False
+        return res
+
+    @redispatch.setter
+    def redispatch(self, values):
+        if "redispatch" not in self.authorized_keys:
+            raise IllegalAction("Impossible to perform redispatching with this action type.")
+        orig_ = self.redispatch
+        try:
+            self._aux_affect_object_float(values, "redispatching", self.n_gen, self.name_gen,
+                                          np.arange(self.n_gen), self._redispatch)
+            self._modif_redispatch = True
+        except Exception as exc_:
+            self._redispatch[:] = orig_
+            raise IllegalAction(f"Impossible to modify the redispatching with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def storage_p(self):
+        """
+        Allows to modify the setpoint of the storage units.
+
+        It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
+
+        Notes
+        ------
+        The "load convention" is used for storage units. This means that:
+
+        - if you ask a positive value, the storage unit will charge, power will be "taken" from the
+          grid to the unit. The unit in this case will behave like a *load*
+        - if you ask a negative value, the storage unit will discharge, power will be injected from
+          the unit to the grid. The unit, in this case, will behave like a *generator*.
+
+        For more information, feel free to consult the documentation :ref:`storage-mod-el` where more
+        details are given about the modeling ot these storage units.
+        """
+        res = 1.0 * self._storage_power
+        res.flags.writeable = False
+        return res
+
+    @storage_p.setter
+    def storage_p(self, values):
+        if "set_storage" not in self.authorized_keys:
+            raise IllegalAction("Impossible to perform storage action with this action type.")
+        if self.n_storage == 0:
+            raise IllegalAction("Impossible to perform storage action with this grid (no storage unit"
+                                "available)")
+        orig_ = self.storage_p
+        try:
+            self._aux_affect_object_float(values, "storage", self.n_storage, self.name_storage,
+                                          np.arange(self.n_storage), self._storage_power)
+            self._modif_storage = True
+        except Exception as exc_:
+            self._storage_power[:] = orig_
+            raise IllegalAction(f"Impossible to modify the storage active power with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def set_storage(self):
+        """Another name for the property :func:`BaseAction.storage_p`"""
+        return self.storage_p
+
+    @set_storage.setter
+    def set_storage(self, values):
+        self.storage_p = values
+
+    @property
+    def curtail(self):
+        """
+        Allows to perfom some curtailment on some generators
+
+        It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
+
+        For more information, feel free to consult the documentation :ref:`generator-mod-el` where more
+        details are given about the modeling ot these storage units.
+        """
+        res = 1.0 * self._curtail
+        res.flags.writeable = False
+        return res
+
+    @curtail.setter
+    def curtail(self, values):
+        if "curtail" not in self.authorized_keys:
+            raise IllegalAction("Impossible to perform curtailment action with this action type.")
+        if not self.redispatching_unit_commitment_availble:
+            raise IllegalAction("Impossible to perform curtailment as it is not possible to compute redispatching. "
+                                "Your backend do not support \"redispatching_unit_commitment_availble\"")
+
+        orig_ = self.curtail
+        try:
+            self._aux_affect_object_float(values, "curtailment", self.n_gen, self.name_gen,
+                                          np.arange(self.n_gen), self._curtail)
+            self._modif_curtailment = True
+        except Exception as exc_:
+            self._curtail[:] = orig_
+            raise IllegalAction(f"Impossible to perform curtailment with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    def _aux_aux_convert_and_check_np_array(self, array_):
+        try:
+            array_ = np.array(array_)
+        except Exception as exc_:
+            raise IllegalAction(f"When setting the topology by substation and by giving a tuple, the "
+                                f"second element of the tuple should be convertible to a numpy "
+                                f"array of type int. Error was: \"{exc_}\"")
+        if isinstance(array_.dtype, (bool, dt_bool)) or array_.dtype == dt_bool or array_.dtype == bool:
+            raise IllegalAction("To set substation topology, you need a vector of integers, and not a vector "
+                                "of bool.")
+        elif isinstance(array_.dtype, (float, dt_float)) or array_.dtype == dt_float or array_.dtype == float:
+            raise IllegalAction("To set substation topology, you need a vector of integers, and not a vector "
+                                "of float.")
+        array_ = array_.astype(dt_int)
+        if np.any(array_ < -1):
+            raise IllegalAction(f"Impossible to set element to bus {np.min(array_)}. Buses must be "
+                                f"-1, 0, 1 or 2.")
+        if np.any(array_ > 2):
+            raise IllegalAction(f"Impossible to set element to bus {np.max(array_)}. Buses must be "
+                                f"-1, 0, 1 or 2.")
+        return array_
+
+    def _aux_set_bus_sub(self, values):
+        if isinstance(values, (bool, dt_bool)):
+            raise IllegalAction("Impossible to modify bus by substation with a single bool.")
+        elif isinstance(values, (int, dt_int, np.int64)):
+            raise IllegalAction("Impossible to modify bus by substation with a single integer.")
+        elif isinstance(values, (float, dt_float, np.float64)):
+            raise IllegalAction("Impossible to modify bus by substation with a single float.")
+        elif isinstance(values, np.ndarray):
+            # full topo vect
+            if values.shape[0] != self.dim_topo:
+                raise IllegalAction("Impossible to modify bus when providing a full topology vector "
+                                    "that has not the right ")
+            if values.dtype == dt_bool or values.dtype == bool:
+                raise IllegalAction("When using a full vector for setting the topology, it should be "
+                                    "of integer types")
+            values = self._aux_aux_convert_and_check_np_array(values)
+            self._set_topo_vect[:] = values
+        elif isinstance(values, tuple):
+            # should be a tuple (sub_id, new_topo)
+            sub_id, topo_repr, nb_el = self._check_for_right_vectors_sub(values)
+            topo_repr = self._aux_aux_convert_and_check_np_array(topo_repr)
+            start_ = np.sum(self.sub_info[:sub_id])
+            end_ = start_ + nb_el
+            self._set_topo_vect[start_:end_] = topo_repr
+        elif isinstance(values, list):
+            if len(values) == self.dim_topo:
+                # if list is the size of the full topo vect, it's a list representing it
+                values = self._aux_aux_convert_and_check_np_array(values)
+                self._aux_set_bus_sub(values)
+                return
+            # otherwise it should be a list of tuples: [(sub_id, topo), (sub_id, topo)]
+            for el in values:
+                if not isinstance(el, tuple):
+                    raise IllegalAction("When provided a list, it should be a list of tuples: "
+                                        "[(sub_id, topo), (sub_id, topo), ... ] ")
+                self._aux_set_bus_sub(el)
+        elif isinstance(values, dict):
+            for sub_id, topo_repr in values.items():
+                sub_id = self._aux_sub_when_dict_get_id(sub_id)
+                self._aux_set_bus_sub((sub_id, topo_repr))
+        else:
+            raise IllegalAction("Impossible to set the topology by substation with your input."
+                                "Please consult the documentation.")
+
+    @property
+    def sub_set_bus(self):
+        # TODO doc
+        res = 1 * self.set_bus
+        res.flags.writeable = False
+        return res
+
+    @sub_set_bus.setter
+    def sub_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the substation bus (with \"set\") with this action type.")
+        orig_ = self.sub_set_bus
+        try:
+            self._aux_set_bus_sub(values)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._set_topo_vect[:] = orig_
+            raise IllegalAction(f"Impossible to modify the substation bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    def _aux_aux_convert_and_check_np_array_change(self, array_):
+        try:
+            array_ = np.array(array_)
+        except Exception as exc_:
+            raise IllegalAction(f"When setting the topology by substation and by giving a tuple, the "
+                                f"second element of the tuple should be convertible to a numpy "
+                                f"array of type int. Error was: \"{exc_}\"")
+        if isinstance(array_.dtype, (int, dt_int)) or array_.dtype == dt_int or array_.dtype == int:
+            raise IllegalAction("To change substation topology, you need a vector of bools, and not a vector "
+                                "of int.")
+        elif isinstance(array_.dtype, (float, dt_float)) or array_.dtype == dt_float or array_.dtype == float:
+            raise IllegalAction("To change substation topology, you need a vector of bools, and not a vector "
+                                "of float.")
+        array_ = array_.astype(dt_bool)
+        return array_
+
+    def _check_for_right_vectors_sub(self, values):
+        if len(values) != 2:
+            raise IllegalAction("Impossible to set the topology of a substation with a tuple which "
+                                "has not a size of 2 (substation_id, topology_representation)")
+        sub_id, topo_repr = values
+        if isinstance(sub_id, (bool, dt_bool)):
+            raise IllegalAction("Substation id should be integer")
+        if isinstance(sub_id, (float, dt_float, np.float64)):
+            raise IllegalAction("Substation id should be integer")
+        try:
+            el_id = int(sub_id)
+        except Exception as exc_:
+            raise IllegalAction(f"Substation id should be convertible to integer. "
+                                f"Error was \"{exc_}\"")
+        try:
+            size_ = len(topo_repr)
+        except Exception as exc_:
+            raise IllegalAction(f"Topology cannot be set with your input."
+                                f"Error was \"{exc_}\"")
+        nb_el = self.sub_info[el_id]
+        if size_ != nb_el:
+            raise IllegalAction(f"To set topology of a substation, you must provide the full list of the "
+                                f"elements you want to modify. You provided a vector with {size_} components "
+                                f"while there are {self.sub_info[el_id]} on the substation.")
+
+        return sub_id, topo_repr, nb_el
+
+    def _aux_change_bus_sub(self, values):
+        if isinstance(values, (bool, dt_bool)):
+            raise IllegalAction("Impossible to modify bus by substation with a single bool.")
+        elif isinstance(values, (int, dt_int, np.int64)):
+            raise IllegalAction("Impossible to modify bus by substation with a single integer.")
+        elif isinstance(values, (float, dt_float, np.float64)):
+            raise IllegalAction("Impossible to modify bus by substation with a single float.")
+        elif isinstance(values, np.ndarray):
+            # full topo vect
+            if values.shape[0] != self.dim_topo:
+                raise IllegalAction("Impossible to modify bus when providing a full topology vector "
+                                    "that has not the right size.")
+            if values.dtype == dt_int or values.dtype == int:
+                raise IllegalAction("When using a full vector for setting the topology, it should be "
+                                    "of bool types")
+            values = self._aux_aux_convert_and_check_np_array_change(values)
+            self._change_bus_vect[:] = values
+        elif isinstance(values, tuple):
+            # should be a tuple (sub_id, new_topo)
+            sub_id, topo_repr, nb_el = self._check_for_right_vectors_sub(values)
+
+            topo_repr = self._aux_aux_convert_and_check_np_array_change(topo_repr)
+            start_ = np.sum(self.sub_info[:sub_id])
+            end_ = start_ + nb_el
+            self._change_bus_vect[start_:end_] = topo_repr
+        elif isinstance(values, list):
+            if len(values) == self.dim_topo:
+                # if list is the size of the full topo vect, it's a list representing it
+                values = self._aux_aux_convert_and_check_np_array_change(values)
+                self._aux_change_bus_sub(values)
+                return
+            # otherwise it should be a list of tuples: [(sub_id, topo), (sub_id, topo)]
+            for el in values:
+                if not isinstance(el, tuple):
+                    raise IllegalAction("When provided a list, it should be a list of tuples: "
+                                        "[(sub_id, topo), (sub_id, topo), ... ] ")
+                self._aux_change_bus_sub(el)
+        elif isinstance(values, dict):
+            for sub_id, topo_repr in values.items():
+                sub_id = self._aux_sub_when_dict_get_id(sub_id)
+                self._aux_change_bus_sub((sub_id, topo_repr))
+        else:
+            raise IllegalAction("Impossible to set the topology by substation with your input."
+                                "Please consult the documentation.")
+
+    def _aux_sub_when_dict_get_id(self, sub_id):
+        if isinstance(sub_id, str):
+            tmp = np.where(self.name_sub == sub_id)[0]
+            if len(tmp) == 0:
+                raise IllegalAction(f"No substation named {sub_id}")
+            sub_id = tmp[0]
+        elif not isinstance(sub_id, int):
+            raise IllegalAction(f"When using a dictionary it should be either with key = name of the "
+                                f"substation or key = id of the substation. You provided neither string nor"
+                                f"int but {type(sub_id)}."
+                                )
+        return sub_id
+
+    @property
+    def sub_change_bus(self):
+        res = copy.deepcopy(self.change_bus)
+        res.flags.writeable = False
+        return res
+
+    @sub_change_bus.setter
+    def sub_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the substation bus (with \"change\") with this action type.")
+        orig_ = self.sub_change_bus
+        try:
+            self._aux_change_bus_sub(values)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[:] = orig_
+            raise IllegalAction(f"Impossible to modify the substation bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    def curtailment_mw_to_ratio(self, curtailment_mw):
+        """
+        Transform a "curtailment" given as maximum MW to the grid2op formalism (in ratio of gen_pmax)
+
+        Parameters
+        ----------
+        curtailment_mw:
+            Same type of inputs you can use in `act.curtail = ...`
+
+        Returns
+        -------
+        A proper input to `act.curtail` with the converted input expressed in ratio of gen_pmax
+
+        Examples
+        --------
+
+        If you want to limit the production of generator 1 (suppose its renewable) at 1.5MW
+        then you can do:
+
+        .. code-block:: python
+
+            gen_id = 1
+            amount_max = 1.5
+            act.curtail = act.curtailment_mw_to_ratio([(gen_id, amount_max)])
+
+        """
+        values = self._curtail * self.gen_pmax
+        self._aux_affect_object_float(curtailment_mw, "curtailment", self.n_gen, self.name_gen,
+                                      np.arange(self.n_gen), values)
+        values /= self.gen_pmax
+        values[values >= 1.0] = 1.0
+        values[values < 0.] = -1.0
+        return values
+
+    @property
+    def curtail_mw(self):
+        """
+        Allows to perfom some curtailment on some generators in MW (by default in grid2Op it should be expressed
+        in ratio of gen_pmax)
+
+        It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
+
+        For more information, feel free to consult the documentation :ref:`generator-mod-el` where more
+        details are given about the modeling ot these storage units.
+        """
+        res = 1.0 * self._curtail * self.gen_pmax
+        res[res < 0.] = -1.0
+        res.flags.writeable = False
+        return res
+
+    @curtail_mw.setter
+    def curtail_mw(self, values_mw):
+        self.curtail = self.curtailment_mw_to_ratio(values_mw)

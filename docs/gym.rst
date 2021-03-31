@@ -1,4 +1,10 @@
+
+.. _BaseGymSpaceConverter.add_key: ./gym.html#grid2op.gym_compat.gym_space_converter._BaseGymSpaceConverter.add_key
+.. _BaseGymSpaceConverter.keep_only_attr: ./gym.html#grid2op.gym_compat.gym_space_converter._BaseGymSpaceConverter.keep_only_attr
+.. _BaseGymSpaceConverter.ignore_attr: ./gym.html#grid2op.gym_compat.gym_space_converter._BaseGymSpaceConverter.ignore_attr
+
 .. currentmodule:: grid2op.gym_compat
+
 .. _openai-gym:
 
 Compatibility with openAI gym
@@ -40,51 +46,153 @@ A simple usage is:
     print(f"Is gym_env and open AI gym environment: {isinstance(gym_env, gym.Env)}")
     # it shows "Is gym_env and open AI gym environment: True"
 
+.. note::
+
+    To be as close as grid2op as possible, by default (using the methode discribed above) the action
+    space will be encoded as a gym Dict with keys the attribute of a grid2op action. This might not
+    be the best representation to perform RL with (some framework do not really like it...)
+
+    For more customization on that side, please refer to the section :ref:`gym_compat_box_discrete` below
+
 Observation space and action space customization
 -------------------------------------------------
 By default, the action space and observation space are `gym.spaces.Dict` with the keys being the attribute
 to modify.
 
-For example, an observation space, for the environment "l2rpn_case14_sandbox" will look like:
+Default Observations space
+******************************
+For example, an observation space will look like:
 
-- "a_ex": Box(20,)
-- "a_or": Box(20,)
-- "actual_dispatch": Box(6,)
+- "a_ex": Box(`env.n_line`,) [type: float, low: 0, high: inf]
+- "a_or": Box(`env.n_line`,) [type: float, low: 0, high: inf]
+- "actual_dispatch": Box(`env.n_gen`,)
+- "curtailment": Box(`env.n_gen`,)  [type: float, low: 0., high: 1.0]
+- "curtailment_limit": Box(`env.n_gen`,)  [type: float, low: 0., high: 1.0]
+- "gen_p": Box(`env.n_gen`,)  [type: float, low: `env.gen_pmin`, high: `env.gen_pmax * 1.2`]
+- "gen_q": Box(`env.n_gen`,)  [type: float, low: -inf, high: inf]
+- "gen_v": Box(`env.n_gen`,)  [type: float, low: 0, high: inf]
 - "day": Discrete(32)
 - "day_of_week": Discrete(8)
-- "duration_next_maintenance": Box(20,)
+- "duration_next_maintenance": Box(`env.n_line`,)  [type: int, low: -1, high: inf]
 - "hour_of_day": Discrete(24)
-- "line_status": MultiBinary(20)
-- "load_p": Box(11,)
-- "load_q": Box(11,)
-- "load_v": Box(11,)
+- "line_status": MultiBinary(`env.n_line`)
+- "load_p": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
+- "load_q": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
+- "load_v": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
 - "minute_of_hour": Discrete(60)
 - "month": Discrete(13)
-- "p_ex": Box(20,)
-- "p_or": Box(20,)
-- "prod_p": Box(6,)
-- "prod_q": Box(6,)
-- "prod_v": Box(6,)
-- "q_ex": Box(20,)
-- "q_or": Box(20,)
-- "rho": Box(20,)
-- "target_dispatch": Box(6,)
-- "time_before_cooldown_line": Box(20,)
-- "time_before_cooldown_sub": Box(14,)
-- "time_next_maintenance": Box(20,)
-- "timestep_overflow": Box(20,)
-- "topo_vect": Box(57,)
-- "v_ex": Box(20,)
-- "v_or": Box(20,)
+- "p_ex": Box(`env.n_line`,)  [type: float, low: -inf, high: inf]
+- "p_or": Box(`env.n_line`,)  [type: float, low: -inf, high: inf]
+- "q_ex": Box(`env.n_line`,)  [type: float, low: -inf, high: inf]
+- "q_or": Box(`env.n_line`,)  [type: float, low: -inf, high: inf]
+- "rho": Box(`env.n_line`,)  [type: float, low: 0., high: inf]
+- "storage_charge": Box(`env.n_storage`,)  [type: float, low: 0., high: `env.storage_Emax`]
+- "storage_power": Box(`env.n_storage`,)  [type: float, low: `-env.storage_max_p_prod`, high: `env.storage_max_p_absorb`]
+- "storage_power_target": Box(`env.n_storage`,)  [type: float, low: `-env.storage_max_p_prod`, high: `env.storage_max_p_absorb`]
+- "target_dispatch": Box(`env.n_gen`,)
+- "time_before_cooldown_line": Box(`env.n_line`,) [type: int, low: 0, high: depending on parameters]
+- "time_before_cooldown_sub": Box(`env.n_sub`,)  [type: int, low: 0, high: depending on parameters]
+- "time_next_maintenance": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
+- "timestep_overflow": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
+- "topo_vect": Box(`env.dim_topo`,)  [type: int, low: -1, high: 2]
+- "v_ex": Box(`env.n_line`,)  [type: float, low: 0, high: inf]
+- "v_or": Box(`env.n_line`,)  [type: flaot, low: 0, high: inf]
 - "year": Discrete(2100)
 
-each keys correspond to an attribute of the observation. In this example `"line_status": MultiBinary(20)`
+Each keys correspond to an attribute of the observation. In this example `"line_status": MultiBinary(20)`
 represents the attribute `obs.line_status` which is a boolean vector (for each powerline
 `True` encodes for "connected" and `False` for "disconnected") See the chapter :ref:`observation_module` for
-more information
+more information about these attributes.
 
-We offer some convenience functions to customize these environment. They all more or less the same
-manner. We show here an example of a "converter" that will scale the data:
+Default Action space
+******************************
+The default action space is also a type of gym Dict. As for the observation space above, it is a
+straight translation from the attribute of the action to the key of the dictionary. This gives:
+
+- "change_bus": MultiBinary(`env.dim_topo`)
+- "change_line_status": MultiBinary(`env.n_line`)
+- "curtail": Box(`env.n_gen`) [type: float, low=0., high=1.0]
+- "redispatch": Box(`env.n_gen`) [type: float, low=-`env.gen_max_ramp_down`, high=`env.gen_max_ramp_up`]
+- "set_bus": Box(`env.dim_topo`) [type: int, low=-1, high=2]
+- "set_line_status": Box(`env.n_line`) [type: int, low=-1, high=1]
+- "storage_power": Box(`env.n_storage`) [type: float, low=-`env.storage_max_p_prod`, high=`env.storage_max_p_absorb`]
+
+.. _base_gym_space_function:
+
+Customizing the action and observation space
+********************************************
+
+We offer some convenience functions to customize these spaces.
+
+If you want a full control on this spaces, you need to implement something like:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = ...
+    env = grid2op.make(env_name)
+
+    from grid2op.gym_compat import GymEnv
+    # this of course will not work... Replace "AGymSpace" with a normal gym space, like Dict, Box, MultiDiscrete etc.
+    from gym.spaces import AGymSpace
+    gym_env = GymEnv(env)
+
+    class MyCustomObservationSpace(AGymSpace):
+        def __init__(self, whatever, you, want):
+            # do as you please here
+            pass
+            # don't forget to initialize the base class
+            AGymSpace.__init__(self, see, gym, doc, as, to, how, to, initialize, it)
+            # eg. Box.__init__(self, low=..., high=..., dtype=float)
+
+        def to_gym(self, observation):
+            # this is this very same function that you need to implement
+            # it should have this exact name, take only one observation (grid2op) as input
+            # and return a gym object that belong to your space "AGymSpace"
+            return SomethingThatBelongTo_AGymSpace
+            # eg. return np.concatenate((obs.gen_p * 0.1, np.sqrt(obs.load_p))
+
+    gym_env.observation_space = MyCustomObservationSpace(whatever, you, wanted)
+
+And for the action space:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = ...
+    env = grid2op.make(env_name)
+
+    from grid2op.gym_compat import GymEnv
+    # this of course will not work... Replace "AGymSpace" with a normal gym space, like Dict, Box, MultiDiscrete etc.
+    from gym.spaces import AGymSpace
+    gym_env = GymEnv(env)
+
+    class MyCustomActionSpace(AGymSpace):
+        def __init__(self, whatever, you, want):
+            # do as you please here
+            pass
+            # don't forget to initialize the base class
+            AGymSpace.__init__(self, see, gym, doc, as, to, how, to, initialize, it)
+            # eg. MultiDiscrete.__init__(self, nvec=...)
+
+        def from_gym(self, gym_action):
+            # this is this very same function that you need to implement
+            # it should have this exact name, take only one action (member of your gym space) as input
+            # and return a grid2op action
+            return TheGymAction_ConvertedTo_Grid2op_Action
+            # eg. return np.concatenate((obs.gen_p * 0.1, np.sqrt(obs.load_p))
+
+    gym_env.action_space = MyCustomActionSpace(whatever, you, wanted)
+
+
+Customizing the action and observation space, using Converter
+**************************************************************
+However, if you don't want to fully customize everything, we encourage you to have a look at the "GymConverter"
+that we coded to ease this process.
+
+They all more or less the same
+manner. We show here an example of a "converter" that will scale the data (removing the value in `substract`
+and divide input data by `divide`):
 
 .. code-block:: python
 
@@ -100,24 +208,127 @@ manner. We show here an example of a "converter" that will scale the data:
     ob_space = gym_env.observation_space
     ob_space = ob_space.reencode_space("actual_dispatch",
                                        ScalerAttrConverter(substract=0.,
-                                       divide=env.gen_pmax,
-                                       init_space=ob_space["actual_dispatch"])
+                                                           divide=env.gen_pmax,
+                                                           init_space=ob_space["actual_dispatch"]
+                                                           )
                                        )
 
     gym_env.observation_space = ob_space
 
 
-A detailled list of such "converter" is documented on the section "Detailed Documentation by class". In
+You can also add a specific keys into this observation space, for example say you want to compute
+the log of the loads instead of giving the direct value to your agent. This can be done with:
+
+.. code-block:: python
+
+    import grid2op
+    from grid2op.gym_compat import GymEnv
+    from grid2op.gym_compat import ScalerAttrConverter
+
+    env_name = "l2rpn_case14_sandbox"  # or any other grid2op environment name
+    g2op_env = grid2op.make(env_name)  # create the gri2op environment
+
+    gym_env = GymEnv(g2op_env)  # create the gym environment
+
+    ob_space = gym_env.observation_space
+    shape_ = (g2op_env.n_load, )
+    ob_space = ob_space.add_key("log_load",
+                                 lambda obs: np.log(obs.load_p),
+                                          Box(shape=shape_,
+                                              low=np.full(shape_, fill_value=-np.inf, dtype=float),
+                                              high=np.full(shape_, fill_value=-np.inf, dtype=float),
+                                              dtype=float
+                                              )
+                                       )
+
+    gym_env.observation_space = ob_space
+    # and now you will get the key "log_load" as part of your gym observation.
+
+A detailed list of such "converter" is documented on the section "Detailed Documentation by class". In
 the table below we describe some of them (**nb** if you notice a converter is not displayed there,
 do not hesitate to write us a "feature request" for the documentation, thanks in advance)
 
-======================================   ============================================================
-Converter name                           Objective
-======================================   ============================================================
-:class:`ContinuousToDiscreteConverter`   TODO
-:class:`MultiToTupleConverter`           TODO
-:class:`ScalerAttrConverter`             TODO
-======================================   ============================================================
+=============================================   ============================================================
+Converter name                                  Objective
+=============================================   ============================================================
+:class:`ContinuousToDiscreteConverter`          Convert a continuous space into a discrete one
+:class:`MultiToTupleConverter`                  Convert a gym MultiBinary to a gym Tuple of gym Binary and a gym MultiDiscrete to a Tuple of Discrete
+:class:`ScalerAttrConverter`                    Allows to scale (divide an attribute by something and subtract something from it
+`BaseGymSpaceConverter.add_key`_                Allows you to compute another "part" of the observation space (you add an information to the gym space)
+`BaseGymSpaceConverter.keep_only_attr`_         Allows you to specify which part of the action / observation you want to keep
+`BaseGymSpaceConverter.ignore_attr`_            Allows you to ignore some attributes of the action / observation (they will not be part of the gym space)
+=============================================   ============================================================
+
+
+.. note::
+
+    With the "converters" above, note that the observation space AND action space will still
+    inherit from gym Dict.
+
+    They are complex spaces that are not well handled by some RL framework.
+
+    These converters only change the keys of these dictionaries !
+
+
+.. _gym_compat_box_discrete:
+
+Customizing the action and observation space, into Box or Discrete
+*******************************************************************
+
+The use of the converter above is nice if you can work with gym Dict, but in some cases, or for some frameworks
+it is not convenient to do it at all.
+
+TO alleviate this problem, we developed 3 types of gym action space, following the architecture
+detailed in subsection :ref:`base_gym_space_function`
+
+===============================   ============================================================
+Converter name                    Objective
+===============================   ============================================================
+:class:`BoxGymObsSpace`           Convert the observation space to a single "Box"
+:class:`BoxGymActSpace`           Convert a gym MultiBinary to a gym Tuple of gym Binary and a gym MultiDiscrete to a Tuple of Discrete
+:class:`MultiDiscreteActSpace`    Allows to scale (divide an attribute by something and subtract something from it
+:class:`DiscreteActSpace`         Allows you to compute another "part" of the observation space (you add an information to the gym space)
+===============================   ============================================================
+
+They can all be used like:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = ...
+    env = grid2op.make(env_name)
+
+    from grid2op.gym_compat import GymEnv, BoxGymObsSpace
+    gym_env = GymEnv(env)
+    gym_env.observation_space = BoxGymObsSpace(gym_env.init_env)
+    gym_env.action_space = MultiDiscreteActSpace(gym_env.init_env)
+
+
+We encourage you to visit the documentation for more information on how to use these classes. Each offer
+different possible customization.
+
+Recommended usage of grid2op with other framework
+--------------------------------------------------
+
+Reinforcement learning frameworks
+*********************************
+
+TODO
+
+Other frameworks
+**********************
+Any contribution is welcome here
+
+
+Detailed Documentation by class
+--------------------------------
+.. automodule:: grid2op.gym_compat
+    :members:
+    :autosummary:
+
+.. autoclass:: grid2op.gym_compat.gym_space_converter._BaseGymSpaceConverter
+    :members:
+    :autosummary:
 
 
 Legacy version
@@ -165,12 +376,5 @@ If you are interested by this feature, we recommend you to proceed like this:
 We also implemented some "converter" that allow the conversion of some action space into more convenient
 `gym.spaces` (this is only available if gym is installed of course). Please check
 :class:`grid2op.gym_compat.GymActionSpace` for more information and examples.
-
-
-Detailed Documentation by class
---------------------------------
-.. automodule:: grid2op.gym_compat
-    :members:
-    :autosummary:
 
 .. include:: final.rst

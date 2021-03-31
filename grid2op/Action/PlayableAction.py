@@ -22,7 +22,9 @@ class PlayableAction(BaseAction):
         "change_line_status",
         "set_bus",
         "change_bus",
-        "redispatch"
+        "redispatch",
+        "set_storage",
+        "curtail"
     }
 
     attr_list_vect = [
@@ -30,9 +32,12 @@ class PlayableAction(BaseAction):
         "_switch_line_status",
         "_set_topo_vect",
         "_change_bus_vect",
-        "_redispatch"
+        "_redispatch",
+        "_storage_power",
+        "_curtail"
     ]
     attr_list_set = set(attr_list_vect)
+    shunt_added = True  # no shunt here
 
     def __init__(self):
         super().__init__()
@@ -42,7 +47,9 @@ class PlayableAction(BaseAction):
             "change_line_status": self._digest_change_status,
             "set_bus": self._digest_setbus,
             "change_bus": self._digest_change_bus,
-            "redispatch": self._digest_redispatching
+            "redispatch": self._digest_redispatching,
+            "set_storage": self._digest_storage,
+            "curtail": self._digest_curtailment,
         }
 
     def __call__(self):
@@ -70,19 +77,24 @@ class PlayableAction(BaseAction):
             This array is :attr:`BaseAction._change_bus_vect`
 
         redispatch: :class:`numpy.ndarray`, dtype:float
-            Thie array is :attr:`BaseAction._redispatch`
+            The array is :attr:`BaseAction._redispatch`
+
+        curtail: :class:`numpy.ndarray`, dtype:float
+            The array is :attr:`BaseAction._curtail`
 
         shunts: ``dict``
             Always empty for this class
         """
         if self._dict_inj:
             raise AmbiguousAction("Injections actions are not playable.")
-
+        
         self._check_for_ambiguity()
+        # TODO curtailment
         return {}, \
             self._set_line_status, self._switch_line_status, \
             self._set_topo_vect, self._change_bus_vect,\
-            self._redispatch, {}
+            self._redispatch, self._storage_power,\
+               {}
 
     def update(self, dict_):
         """
@@ -117,5 +129,3 @@ class PlayableAction(BaseAction):
                 self.authorized_keys_to_digest[kk](dict_)
 
         return self
-
-

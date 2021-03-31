@@ -15,7 +15,7 @@ are not limited to:
 
   - injections such as:
 
-    - productions active production setpoint
+    - generators active production setpoint
     - generators voltage setpoint
     - loads active consumption
     - loads reactive consumption
@@ -45,6 +45,47 @@ can be accessed via the :class:`grid2op.Observation.BaseObservation` and mainly 
 :func:`grid2op.Observation.BaseObservation.simulate` method. The data that are used to generate this forecasts
 come from the :class:`grid2op.GridValue` and are detailed in the
 :func:`GridValue.forecasts` method.
+
+
+More control on the chronics
+-------------------------------
+We explained, in the description of the :class:`grid2op.Environment` in sections
+:ref:`environment-module-chronics-info` and following how to have more control on which chronics is used,
+with steps are used within a chronics etc. We will not detailed here again, please refer to this page
+for more information.
+
+However, know that you can have a very detailed control on which chronics are used:
+
+- use `env.set_id(THE_CHRONIC_ID)` (see :func:`grid2op.Environment.Environment.set_id`) to set the id of the
+  chronics you want to use
+- use `env.chronics_handler.set_filter(a_function)` (see :func:`grid2op.Chronics.GridValue.set_filter`)
+  to only use certain chronics
+- use `env.chronics_handler.sample_next_chronics(probas)`
+  (see :func:`grid2op.Chronics.GridValue.sample_next_chronics`) to draw at random some chronics
+- use `env.fast_forward_chronics(nb_time_steps)`
+  (see :func:`grid2op.Environment.BaseEnv.fast_forward_chronics`) to skip initial number of steps
+  of a given chronics
+- use `env.chronics_handler.set_max_iter(nb_max_iter)`
+  (see :func:`grid2op.Chronics.ChronicsHandler.set_max_iter`) to limit the number of steps within an episode
+
+Chosing the right chronics can also lead to some large advantage in terms of computation time. This is
+particularly true if you want to benefit the most from HPC for example. More detailed is given in the
+:ref:`environment-module-data-pipeline` section. In summary:
+
+- set the "chunk" size (amount of data read from the disk, instead of reading an entire scenarios, you read
+  from the hard drive only a certain amount of data at a time, see
+  :func:`grid2op.Chronics.ChronicsHandler.set_chunk_size`) you can use it with
+  `env.chronics_handler.set_chunk_size(100)`
+- cache all the chronics and use them from memory (instead of reading them from the hard drive, see
+  :class:`grid2op.Chronics.MultifolderWithCache`) you can do this with
+  `env = grid2op.make(..., chronics_class=MultifolderWithCache)`
+
+Finally, if you need to study machine learning in a "regular" fashion, with a train / validation / set
+you can use the `env.train_val_split` or `env.train_val_split_random` functions to do that. See
+an example usage in the section :ref:`environment-module-train-val-test`.
+
+
+
 
 Detailed Documentation by class
 --------------------------------

@@ -83,6 +83,7 @@ class CombinedReward(BaseReward):
             reward_instance.initialize(env)
             self.reward_max += dt_float(reward_instance.reward_max * reward_w)
             self.reward_min += dt_float(reward_instance.reward_min * reward_w)
+        env.reward_range = self.get_range()
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         res = dt_float(0.0)

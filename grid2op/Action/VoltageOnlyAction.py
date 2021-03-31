@@ -14,6 +14,8 @@ from grid2op.Action.BaseAction import BaseAction
 
 class VoltageOnlyAction(BaseAction):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This is the main class used by the voltage controller.

@@ -8,7 +8,7 @@
 
 import numpy as np
 import copy
-from grid2op.dtypes import dt_float
+from grid2op.dtypes import dt_float, dt_int
 from grid2op.Backend import Backend
 from grid2op.Exceptions import Grid2OpException
 
@@ -91,15 +91,21 @@ class BackendConverter(Backend):
         self._shunt_sr2tg = None
         self._topo_tg2sr = None
         self._topo_sr2tg = None
+        self._storage_tg2sr = None
+        self._storage_sr2tg = None
 
         # for redispatching data
         self.path_redisp = None
         self.name_redisp = None
         self.path_grid_layout = None
         self.name_grid_layout = None
+        self.path_storage_data = None
+        self.name_storage_data = None
 
         # for easier copy of np array
         self.cst1 = dt_float(1.)
+
+        # TODO storage check all this class ! + the doc of the backend
 
     def load_grid(self, path=None, filename=None):
         self.source_backend.load_grid(path, filename)
@@ -120,6 +126,8 @@ class BackendConverter(Backend):
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("loads"))
         if self.n_line != self.target_backend.n_line:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("lines"))
+        if self.n_storage != self.target_backend.n_storage:
+            raise Grid2OpException(ERROR_NB_ELEMENTS.format("storages"))
 
     def _init_myself(self):
         # shortcut to set all information related to the class, except the name of the environment
@@ -129,8 +137,8 @@ class BackendConverter(Backend):
 
         # and now init all the converting vectors
         # a) for substation
-        self._sub_tg2sr = np.full(self.n_sub, fill_value=-1, dtype=np.int)
-        self._sub_sr2tg = np.full(self.n_sub, fill_value=-1, dtype=np.int)
+        self._sub_tg2sr = np.full(self.n_sub, fill_value=-1, dtype=dt_int)
+        self._sub_sr2tg = np.full(self.n_sub, fill_value=-1, dtype=dt_int)
         if self.sub_source_target is None:
             # automatic mode
             # I can only do it if the names matches
@@ -147,8 +155,8 @@ class BackendConverter(Backend):
                 self._sub_sr2tg[id_target] = id_source
 
         # b) for load
-        self._load_tg2sr = np.full(self.n_load, fill_value=-1, dtype=np.int)
-        self._load_sr2tg = np.full(self.n_load, fill_value=-1, dtype=np.int)
+        self._load_tg2sr = np.full(self.n_load, fill_value=-1, dtype=dt_int)
+        self._load_sr2tg = np.full(self.n_load, fill_value=-1, dtype=dt_int)
         # automatic mode
         self._auto_fill_vect_load_gen_shunt(n_element=self.n_load,
                                             source_2_id_sub=self.source_backend.load_to_subid,
@@ -158,8 +166,8 @@ class BackendConverter(Backend):
                                             nm="load")
 
         # c) for generator
-        self._gen_tg2sr = np.full(self.n_gen, fill_value=-1, dtype=np.int)
-        self._gen_sr2tg = np.full(self.n_gen, fill_value=-1, dtype=np.int)
+        self._gen_tg2sr = np.full(self.n_gen, fill_value=-1, dtype=dt_int)
+        self._gen_sr2tg = np.full(self.n_gen, fill_value=-1, dtype=dt_int)
         # automatic mode
         self._auto_fill_vect_load_gen_shunt(n_element=self.n_gen,
                                             source_2_id_sub=self.source_backend.gen_to_subid,
@@ -169,21 +177,32 @@ class BackendConverter(Backend):
                                             nm="gen")
 
         # d) for powerline
-        self._line_tg2sr = np.full(self.n_line, fill_value=-1, dtype=np.int)
-        self._line_sr2tg = np.full(self.n_line, fill_value=-1, dtype=np.int)
+        self._line_tg2sr = np.full(self.n_line, fill_value=-1, dtype=dt_int)
+        self._line_sr2tg = np.full(self.n_line, fill_value=-1, dtype=dt_int)
         # automatic
         self._auto_fill_vect_powerline()
 
         # e) and now the topology vectors.
-        self._topo_tg2sr = np.full(self.dim_topo, fill_value=-1, dtype=np.int)
-        self._topo_sr2tg = np.full(self.dim_topo, fill_value=-1, dtype=np.int)
+        self._topo_tg2sr = np.full(self.dim_topo, fill_value=-1, dtype=dt_int)
+        self._topo_sr2tg = np.full(self.dim_topo, fill_value=-1, dtype=dt_int)
         self._auto_fill_vect_topo()
+
+        # f) for the storage units
+        self._storage_tg2sr = np.full(self.n_storage, fill_value=-1, dtype=dt_int)
+        self._storage_sr2tg = np.full(self.n_storage, fill_value=-1, dtype=dt_int)
+        # automatic mode
+        self._auto_fill_vect_load_gen_shunt(n_element=self.n_storage,
+                                            source_2_id_sub=self.source_backend.storage_to_subid,
+                                            target_2_id_sub=self.target_backend.storage_to_subid,
+                                            tg2sr=self._storage_tg2sr,
+                                            sr2tg=self._storage_sr2tg,
+                                            nm="storage")
 
         # shunt are available if both source and target provide it
         self.shunts_data_available = self.source_backend.shunts_data_available and self.target_backend.shunts_data_available
         if self.shunts_data_available:
-            self._shunt_tg2sr = np.full(self.n_shunt, fill_value=-1, dtype=np.int)
-            self._shunt_sr2tg = np.full(self.n_shunt, fill_value=-1, dtype=np.int)
+            self._shunt_tg2sr = np.full(self.n_shunt, fill_value=-1, dtype=dt_int)
+            self._shunt_sr2tg = np.full(self.n_shunt, fill_value=-1, dtype=dt_int)
             # automatic mode
             self._auto_fill_vect_load_gen_shunt(n_element=self.n_shunt,
                                                 source_2_id_sub=self.source_backend.shunt_to_subid,
@@ -196,6 +215,8 @@ class BackendConverter(Backend):
         if self.path_redisp is not None:
             # redispatching data were available
             super().load_redispacthing_data(self.path_redisp, name=self.name_redisp)
+        if self.path_storage_data is not None:
+            super().load_storage_data(self.path_storage_data, self.name_storage_data)
         if self.path_grid_layout is not None:
             # grid layout data were available
             super().load_grid_layout(self.path_grid_layout, self.name_grid_layout)
@@ -211,7 +232,11 @@ class BackendConverter(Backend):
     def _auto_fill_vect_load_gen_shunt(self, n_element, source_2_id_sub, target_2_id_sub,
                                        tg2sr, sr2tg,
                                        nm):
-        nb_load_per_sub = np.zeros(self.n_sub, dtype=np.int)
+        nb_load_per_sub = np.zeros(self.n_sub, dtype=dt_int)
+        if source_2_id_sub.shape[0] != n_element:
+            raise RuntimeError("Impossible to convert backend that do not have the same number of objects")
+        if target_2_id_sub.shape[0] != n_element:
+            raise RuntimeError("Impossible to convert backend that do not have the same number of objects")
         for id_source in range(n_element):
             id_sub_target, id_target = self._get_possible_target_ids(id_source, source_2_id_sub, target_2_id_sub, nm)
             id_target = id_target[nb_load_per_sub[id_sub_target]]
@@ -223,7 +248,7 @@ class BackendConverter(Backend):
 
     def _auto_fill_vect_powerline(self):
         # automatic matching
-        nb_load_per_sub = np.zeros((self.n_sub, self.n_sub), dtype=np.int)
+        nb_load_per_sub = np.zeros((self.n_sub, self.n_sub), dtype=dt_int)
         n_element = self.n_line
         source_or_2_id_sub = self.source_backend.line_or_to_subid
         target_or_2_id_sub = self.target_backend.line_or_to_subid
@@ -266,6 +291,10 @@ class BackendConverter(Backend):
                                       self.source_backend.line_ex_pos_topo_vect,
                                       self.target_backend.line_ex_pos_topo_vect,
                                       self._line_sr2tg)
+        self._auto_fill_vect_topo_aux(self.n_storage,
+                                      self.source_backend.storage_pos_topo_vect,
+                                      self.target_backend.storage_pos_topo_vect,
+                                      self._storage_sr2tg)
 
     def _auto_fill_vect_topo_aux(self, n_elem, source_pos, target_pos, sr2tg):
         # TODO that might not be working as intented... it always says it's the identity...
@@ -303,6 +332,9 @@ class BackendConverter(Backend):
         self._check_both_consistent(self._topo_tg2sr, self._topo_sr2tg)
         if self.shunts_data_available:
             self._check_both_consistent(self._shunt_tg2sr, self._shunt_sr2tg)
+
+        # finally check that powergrids are identical (up to the env name)
+        type(self.target_backend).same_grid_class(type(self.source_backend))
 
     def _check_vect_valid(self, vect):
         assert np.all(vect >= 0), "invalid vector: some element are not found in either source or target"
@@ -427,13 +459,19 @@ class BackendConverter(Backend):
         target_action.reorder(no_load=self._load_sr2tg,
                               no_gen=self._gen_sr2tg,
                               no_topo=self._topo_sr2tg,
-                              no_shunt=self._shunt_sr2tg)
+                              no_shunt=self._shunt_sr2tg,
+                              no_storage=self._storage_sr2tg)
         return target_action
 
     def load_redispacthing_data(self, path, name='prods_charac.csv'):
         # data are loaded with the name of the source backend, i need to map it to the target backend too
         self.path_redisp = path
         self.name_redisp = name
+
+    def load_storage_data(self, path, name='storage_units_charac.csv'):
+        # data are loaded with the name of the source backend, i need to map it to the target backend too
+        self.path_storage_data = path
+        self.name_storage_data = name
 
     def load_grid_layout(self, path, name='grid_layout.json'):
         self.path_grid_layout = path

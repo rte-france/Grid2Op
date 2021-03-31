@@ -20,6 +20,8 @@ from grid2op.Chronics.GridStateFromFileWithForecasts import GridStateFromFileWit
 
 class GridStateFromFileWithForecastsWithoutMaintenance(GridStateFromFileWithForecasts):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This class is made mainly for debugging. And it is not well tested.

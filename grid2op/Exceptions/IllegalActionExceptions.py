@@ -80,6 +80,7 @@ class InvalidReconnection(OnLines):
     """
     pass
 
+
 # attempt to use redispatching or unit commit method in an environment not set up.
 class UnitCommitorRedispachingNotAvailable(IllegalAction):
     """

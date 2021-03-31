@@ -5,22 +5,6 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-"""
-This module presents the class that can be modified to adapt (on the fly) the setpoint of the generators with
-respect to the voltage magnitude.
-
-Voltage magnitude plays a big part in real time operation process. Bad voltages can lead to different kind of problem
-varying from:
-
-- high losses (the higher the voltages, the lower the losses in general)
-- equipment failures (typically if the voltages are too high)
-- a really bad "quality of electricity" for consumers (if voltages is too low)
-- partial or total blackout in case of voltage collapse (mainly if voltages are too low)
-
-We wanted, in this package, to treat the voltages setpoint of the generators differently from the other
-part of the game. This module exposes the main class to do this.
-"""
 from abc import ABC, abstractmethod
 import numpy as np
 import copy
@@ -46,7 +30,7 @@ class BaseVoltageController(RandomObject, ABC):
         gridobj: :class:`grid2op.Space.Gridobject`
             Structure of the powergrid
 
-        envbackend: :class:`grid2op.Backend.Backend`
+        controler_backend: :class:`grid2op.Backend.Backend`
             An instanciated backend to perform some computation on a powergrid, before taking some actions.
 
         """
@@ -58,6 +42,13 @@ class BaseVoltageController(RandomObject, ABC):
         self.backend = controler_backend.copy()
 
     def copy(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Make a (deep) copy of this instance.
+        """
         backend_tmp = self.backend
         self.backend = None
         res = copy.deepcopy(self)
@@ -66,9 +57,21 @@ class BaseVoltageController(RandomObject, ABC):
         return res
 
     def attach_layout(self, grid_layout):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        """
         self.action_space.attach_layout(grid_layout)
 
     def seed(self, seed):
+        """
+        Used to seed the voltage controler class
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        """
         me_seed = super().seed(seed)
         max_int = np.iinfo(dt_int).max
         seed_space = self.space_prng.randint(max_int)

@@ -8,6 +8,7 @@
 
 import numpy as np
 
+from grid2op.dtypes import dt_bool
 from grid2op.Agent.GreedyAgent import GreedyAgent
 
 
@@ -32,7 +33,7 @@ class PowerLineSwitch(GreedyAgent):
     def _get_tested_action(self, observation):
         res = [self.action_space({})]  # add the do nothing
         for i in range(self.action_space.n_line):
-            tmp = np.full(self.action_space.n_line, fill_value=False, dtype=np.bool)
+            tmp = np.full(self.action_space.n_line, fill_value=False, dtype=dt_bool)
             tmp[i] = True
             action = self.action_space({"change_line_status": tmp})
             if not observation.line_status[i]:

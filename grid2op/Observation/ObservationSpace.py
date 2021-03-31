@@ -32,7 +32,7 @@ class ObservationSpace(SerializableObservationSpace):
     observationClass: ``type``
         Class used to build the observations. It defaults to :class:`CompleteObservation`
 
-    parameters: :class:`grid2op.Parameters.Parameters`
+    _simulate_parameters: :class:`grid2op.Parameters.Parameters`
         Type of Parameters used to compute powerflow for the forecast.
 
     rewardClass: ``type``
@@ -60,6 +60,8 @@ class ObservationSpace(SerializableObservationSpace):
                  observationClass=CompleteObservation,
                  with_forecast=True):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
@@ -68,30 +70,26 @@ class ObservationSpace(SerializableObservationSpace):
         SerializableObservationSpace.__init__(self, gridobj, observationClass=observationClass)
 
         self.with_forecast = with_forecast
-        # print("ObservationSpace init with rewardClass: {}".format(rewardClass))
-        self.parameters = copy.deepcopy(env.parameters)
-        # for the observation, I switch between the _parameters for the environment and for the simulation
-        self.parameters.ENV_DC = self.parameters.FORECAST_DC
+        self._simulate_parameters = copy.deepcopy(env.parameters)
 
         if rewardClass is None:
-            self.rewardClass = env.rewardClass
+            self._reward_func = env._reward_helper.template_reward
         else:
-            self.rewardClass = rewardClass
+            self._reward_func = rewardClass
 
         # helpers
         self.action_helper_env = env._helper_action_env
-        self.reward_helper = RewardHelper(rewardClass=self.rewardClass)
+        self.reward_helper = RewardHelper(reward_func=self._reward_func)
         self.reward_helper.initialize(env)
 
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
 
         # TODO here: have another backend maybe
         self._backend_obs = env.backend.copy()
-
-        _ObsEnv_class = _ObsEnv.init_grid(self._backend_obs)
+        _ObsEnv_class = _ObsEnv.init_grid(type(self._backend_obs))
         self.obs_env = _ObsEnv_class(backend_instanciated=self._backend_obs,
-                                     obsClass=self.observationClass,
-                                     parameters=env.parameters,
+                                     obsClass=observationClass,  # do not put self.observationClass otherwise it's initialized twice
+                                     parameters=self._simulate_parameters,
                                      reward_helper=self.reward_helper,
                                      action_helper=self.action_helper_env,
                                      thermal_limit_a=env.get_thermal_limit(),
@@ -104,9 +102,65 @@ class ObservationSpace(SerializableObservationSpace):
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
 
-        self._empty_obs = self.observationClass(obs_env=self.obs_env,
-                                                action_helper=self.action_helper_env)
+        self._empty_obs = self._template_obj
         self._update_env_time = 0.
+
+    def _change_parameters(self, new_param):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        change the parameter of the "simulate" environment
+        """
+        self.obs_env.change_parameters(new_param)
+        self._simulate_parameters = new_param
+
+    def change_other_rewards(self, dict_reward):
+        """
+        this function is used to change the "other rewards" used when you perform simulate.
+
+        This can be used, for example, when you want to do faster call to "simulate". In this case you can remove all
+        the "other_rewards" that will be used by the simulate function.
+
+        Parameters
+        ----------
+        dict_reward: ``dict``
+            see description of :attr:`grid2op.Environment.BaseEnv.other_rewards`
+
+        Examples
+        ---------
+        If you want to deactive the reward in the simulate function, you can do as following:
+
+        .. code-block:: python
+
+           import grid2op
+           from grid2op.Reward import CloseToOverflowReward, L2RPNReward, RedispReward
+           env_name = "l2rpn_case14_sandbox"
+           other_rewards = {"close_overflow": CloseToOverflowReward,
+                            "l2rpn": L2RPNReward,
+                            "redisp": RedispReward}
+           env = grid2op.make(env_name, other_rewards=other_rewards)
+
+           env.observation_space.change_other_rewards({})
+
+        """
+        from grid2op.Reward import BaseReward
+        from grid2op.Exceptions import Grid2OpException
+        self.obs_env.other_rewards = {}
+        for k, v in dict_reward.items():
+            if not issubclass(v, BaseReward):
+                raise Grid2OpException("All values of \"rewards\" key word argument should be classes that inherit "
+                                       "from \"grid2op.BaseReward\"")
+            if not isinstance(k, str):
+                raise Grid2OpException("All keys of \"rewards\" should be of string type.")
+            self.obs_env.other_rewards[k] = RewardHelper(v)
+
+        for k, v in self.obs_env.other_rewards.items():
+            v.initialize(self.obs_env)
+
+    def change_reward(self, reward_func):
+        self.obs_env._reward_helper.change_reward(reward_func)
 
     def reset_space(self):
         if self.with_forecast:
@@ -134,6 +188,8 @@ class ObservationSpace(SerializableObservationSpace):
 
     def get_empty_observation(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         return an empty observation, for internal use only."""
@@ -141,6 +197,8 @@ class ObservationSpace(SerializableObservationSpace):
 
     def copy(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Perform a deep copy of the Observation space.

@@ -12,6 +12,7 @@ __all__ = [
     "PowerlineChangeAction",
     "PowerlineSetAndDispatchAction",
     "PowerlineChangeAndDispatchAction",
+    "PowerlineChangeDispatchAndStorageAction",
     "TopologyAction",
     "TopologyAndDispatchAction",
     "TopologySetAction",
@@ -34,6 +35,7 @@ from grid2op.Action.PowerlineSetAction import PowerlineSetAction
 from grid2op.Action.PowerlineChangeAction import PowerlineChangeAction
 from grid2op.Action.PowerlineSetAndDispatchAction import PowerlineSetAndDispatchAction
 from grid2op.Action.PowerlineChangeAndDispatchAction import PowerlineChangeAndDispatchAction
+from grid2op.Action.PowerlineChangeDispatchAndStorageAction import PowerlineChangeDispatchAndStorageAction
 from grid2op.Action.TopologyAction import TopologyAction
 from grid2op.Action.TopologyAndDispatchAction import TopologyAndDispatchAction
 from grid2op.Action.TopologySetAction import TopologySetAction

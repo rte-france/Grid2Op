@@ -21,27 +21,42 @@ class ScalerAttrConverter(BaseGymAttrConverter):
     It can be use to scale the observation by substracting the mean and dividing by the variance for
     example.
 
+    TODO work in progress !
+
+    Need help if you can :-)
+
     """
-    def __init__(self, substract, divide, init_space, dtype=None):
+    def __init__(self, substract, divide, dtype=None, init_space=None):
+        BaseGymAttrConverter.__init__(self,
+                                      g2op_to_gym=None,
+                                      gym_to_g2op=None,
+                                      space=None)
         self._substract = np.array(substract)
         self._divide = np.array(divide)
-        self.dtype = dtype if dtype is not None else dt_float
+        self.dtype = dtype if dtype is not None else np.dtype(dt_float)
+        if init_space is not None:
+            self.initialize_space(init_space)
+
+    def initialize_space(self, init_space):
+        if self._is_init_space:
+            return
         if not isinstance(init_space, Box):
             raise RuntimeError("Impossible to scale a converter if this one is not from type space.Box")
+
         tmp_space = copy.deepcopy(init_space)
         tmp_space.low = self.scale(tmp_space.low)
         tmp_space.high = self.scale(tmp_space.high)
-        if dtype is not None:
-            tmp_space.dtype = dtype
+        if self.dtype is not None:
+            tmp_space.dtype = np.dtype(self.dtype)
             tmp_space.low = tmp_space.low.astype(self.dtype)
             tmp_space.high = tmp_space.high.astype(self.dtype)
-        BaseGymAttrConverter.__init__(self,
-                                      g2op_to_gym=self.scale,
-                                      gym_to_g2op=self.unscale,
-                                      space=tmp_space)
+        self.base_initialize(space=tmp_space,
+                             g2op_to_gym=self.scale,
+                             gym_to_g2op=self.unscale)
         self.dtype = self.my_space.dtype
         self._substract = self._substract.astype(self.dtype)
         self._divide = self._divide.astype(self.dtype)
+        self._is_init_space = True
 
     def scale(self, vect):
         tmp = vect.astype(self.dtype)

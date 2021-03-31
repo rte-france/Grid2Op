@@ -87,11 +87,17 @@ def _check_path(path, info):
         raise EnvError("Cannot find {}. {}".format(path, info))
 
 
-def make_from_dataset_path(dataset_path="/", _add_to_name="", **kwargs):
+def make_from_dataset_path(dataset_path="/",
+                           _add_to_name="",
+                           _compat_glop_version=None,
+                           **kwargs):
     """
+    INTERNAL USE ONLY
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Prefer using the :func:`grid2op.make` function.
+
 
     This function is a shortcut to rapidly create environments within the grid2op Framework. We don't
     recommend using directly this function. Prefer using the :func:`make` function.
@@ -185,6 +191,9 @@ def make_from_dataset_path(dataset_path="/", _add_to_name="", **kwargs):
         defaults: :class:`grid2op.Opponent.UnlimitedBudget`
 
     _add_to_name:
+        Internal, used for test only. Do not attempt to modify under any circumstances.
+
+    _compat_glop_version:
         Internal, used for test only. Do not attempt to modify under any circumstances.
 
     Returns
@@ -499,6 +508,7 @@ def make_from_dataset_path(dataset_path="/", _add_to_name="", **kwargs):
                       opponent_budget_per_ts=opponent_budget_per_ts,
                       opponent_budget_class=opponent_budget_class,
                       kwargs_opponent=kwargs_opponent,
+                      _compat_glop_version=_compat_glop_version
                       )
 
     # Update the thermal limit if any

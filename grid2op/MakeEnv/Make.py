@@ -28,17 +28,20 @@ TEST_DEV_ENVS = {
     "rte_case14_test": DEV_DATASET.format("rte_case14_test"),
     "rte_case5_example": DEV_DATASET.format("rte_case5_example"),
     "rte_case118_example": DEV_DATASET.format("rte_case118_example"),
-    "l2rpn_wcci_2020": DEV_DATASET.format("l2rpn_wcci_2020"),
     "rte_case14_opponent": DEV_DATASET.format("rte_case14_opponent"),
+    "l2rpn_wcci_2020": DEV_DATASET.format("l2rpn_wcci_2020"),
     "l2rpn_neurips_2020_track2": DEV_DATASET.format("l2rpn_neurips_2020_track2"),
     "l2rpn_neurips_2020_track1": DEV_DATASET.format("l2rpn_neurips_2020_track1"),
+    "l2rpn_case14_sandbox": DEV_DATASET.format("l2rpn_case14_sandbox"),
+    # educational files
+    "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
+    "educ_case14_storage": DEV_DATASET.format("educ_case14_storage"),
     # keep the old names for now
     "case14_realistic": DEV_DATASET.format("rte_case14_realistic"),
     "case14_redisp": DEV_DATASET.format("rte_case14_redisp"),
     "case14_test": DEV_DATASET.format("rte_case14_test"),
     "case5_example": DEV_DATASET.format("rte_case5_example"),
     "case14_fromfile": DEV_DATASET.format("rte_case14_test"),
-    "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
 }
 
 _REQUEST_FAIL_EXHAUSTED_ERR = "Impossible to retrieve data at \"{}\".\n" \
@@ -85,6 +88,8 @@ _EXTRACT_DS_NAME_RECO_ERR = "Impossible to recognize the environment name from p
 
 def _send_request_retry(url, nb_retry=10, gh_session=None):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
     """
     if nb_retry <= 0:
@@ -187,14 +192,21 @@ def _aux_is_multimix(dataset_path):
     return False
 
 
-def _aux_make_multimix(dataset_path, **kwargs):
+def _aux_make_multimix(dataset_path, test=False, _add_to_name="", _compat_glop_version=None, **kwargs):
     # Local import to prevent imports loop
     from grid2op.Environment import MultiMixEnvironment
+    return MultiMixEnvironment(dataset_path,
+                               _test=test,
+                               _add_to_name=_add_to_name,
+                               _compat_glop_version=_compat_glop_version,
+                               **kwargs)
 
-    return MultiMixEnvironment(dataset_path, **kwargs)
 
-
-def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
+def make(dataset="rte_case14_realistic",
+         test=False,
+         _add_to_name="",
+         _compat_glop_version=None,
+         **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -217,7 +229,10 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
         the Parameters information of the :func:`make_from_dataset_path`.
 
     _add_to_name:
-        Internal, do not use
+        Internal, do not use (and can only be used when setting "test=True")
+
+    _compat_glop_version:
+        Internal, do not use (and can only be used when setting "test=True")
 
     Returns
     -------
@@ -232,16 +247,18 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
     .. code-block: python
 
         import grid2op
-        env = grid2op.make("rte_case14_realistic")
+        env_name = "rte_case14_realistic"  # or any other supported environment
+        env = grid2op.make(env_name)
         # env implements the openai gym interface (env.step, env.render, env.reset etc.)
 
     **NB** the first time you type this command, the dataset (approximately 300 MB for this one) will be
     downloaded from the internet, sizes vary per dataset.
 
     """
+
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
-        if not el in accepted_kwargs:
+        if el not in accepted_kwargs:
             raise Grid2OpException("The keyword argument \"{}\" you provided is invalid. Possible keyword "
                                    "arguments to create environments are \"{}\"."
                                    "".format(el, sorted(accepted_kwargs)))
@@ -251,10 +268,29 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
 
     # dataset arg is a valid path: load it
     if os.path.exists(dataset):
+        # check if its a test environment
+        if test:
+            _add_to_name_tmp = _add_to_name
+            _compat_glop_version_tmp = _compat_glop_version
+            test_tmp = True
+        else:
+            _add_to_name_tmp = ""
+            _compat_glop_version_tmp = None
+            test_tmp = False
+
         # Check if multimix from path
-        if _aux_is_multimix(dataset):
+        if _aux_is_multimix(dataset) and not test_tmp:
             make_from_path_fn = _aux_make_multimix
-        return make_from_path_fn(dataset_path=dataset, **kwargs)
+        elif _aux_is_multimix(dataset) and test_tmp:
+            def make_from_path_fn_(*args, **kwargs):
+                return _aux_make_multimix(*args, test=True, **kwargs)
+
+            make_from_path_fn = make_from_path_fn_
+
+        return make_from_path_fn(dataset_path=dataset,
+                                 _add_to_name=_add_to_name_tmp,
+                                 _compat_glop_version=_compat_glop_version_tmp,
+                                 **kwargs)
 
     # Not a path: get the dataset name and cache path
     dataset_name = _extract_ds_name(dataset)
@@ -273,9 +309,15 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
         ds_path = TEST_DEV_ENVS[dataset_name]
         # Check if multimix from path
         if _aux_is_multimix(ds_path):
-            make_from_path_fn = _aux_make_multimix
+            def make_from_path_fn_(*args, **kwargs):
+                return _aux_make_multimix(*args, test=True, **kwargs)
 
-        return make_from_path_fn(dataset_path=ds_path, _add_to_name=_add_to_name, **kwargs)
+            make_from_path_fn = make_from_path_fn_
+
+        return make_from_path_fn(dataset_path=ds_path,
+                                 _add_to_name=_add_to_name,
+                                 _compat_glop_version=_compat_glop_version,
+                                 **kwargs)
 
     # Env directory is present in the DEFAULT_PATH_DATA
     if os.path.exists(real_ds_path):

@@ -11,6 +11,7 @@ import numpy as np
 
 class RandomObject(object):
     """
+
     Utility class to deal with randomness in some aspect of the game (chronics, action_space, observation_space for
     examples.
 
@@ -26,6 +27,7 @@ class RandomObject(object):
 
     Notes
     -----
+
     In order to be reproducible, and to make proper use of the
     :func:`BaseAgent.seed` capabilities, you must absolutely NOT use the `random` python module (which will not
     be seeded) nor the `np.random` module and avoid any other "sources" of pseudo random numbers.
@@ -66,7 +68,7 @@ class RandomObject(object):
 
         # continue your experiments
 
-    If you are using a :class:`grid2op.Runner.Runner`we recommend using the "env_seeds" and "agent_seeds" when
+    If you are using a :class:`grid2op.Runner.Runner` we recommend using the "env_seeds" and "agent_seeds" when
     calling the function :func:`grid2op.Runner.Runner.run` like this:
 
     .. code-block:: python
@@ -104,6 +106,8 @@ class RandomObject(object):
 
     def seed(self, seed):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             We do not recommend to use this function outside of the two examples given in the description of this class.
 

@@ -38,9 +38,12 @@ class SerializableActionSpace(SerializableSpace):
     SET_BUS = 2
     CHANGE_BUS = 3
     REDISPATCHING = 4
+    STORAGE_POWER = 5
 
-    def __init__(self, gridobj, actionClass=BaseAction):
+    def __init__(self, gridobj, actionClass=BaseAction, _init_grid=True):
         """
+        INTERNAL USE ONLY
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
            The :class:`grid2op.Environment.Environment` is responsible for the creation of the
@@ -56,14 +59,15 @@ class SerializableActionSpace(SerializableSpace):
             :class:`BaseAction`.
 
         """
-        SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass)
-
-        self.actionClass = actionClass.init_grid(gridobj)
+        SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass, _init_grid=_init_grid)
+        self.actionClass = self.subtype
         self._template_act = self.actionClass()
 
     @staticmethod
     def from_dict(dict_):
         """
+        INTERNAL USE ONLY
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Allows the de-serialization of an object stored as a dictionary (for example in the case of JSON saving).
@@ -80,7 +84,8 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         tmp = SerializableSpace.from_dict(dict_)
-        res = SerializableActionSpace(gridobj=tmp, actionClass=tmp.subtype)
+        CLS = SerializableActionSpace.init_grid(tmp)
+        res = CLS(gridobj=tmp, actionClass=tmp.subtype, _init_grid=False)
         return res
 
     def _get_possible_action_types(self):
@@ -95,7 +100,63 @@ class SerializableActionSpace(SerializableSpace):
             rnd_types.append(self.CHANGE_BUS)
         if "redispatch" in self.actionClass.authorized_keys:
             rnd_types.append(self.REDISPATCHING)
+        if self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
+            rnd_types.append(self.STORAGE_POWER)
         return rnd_types
+
+    def supports_type(self, action_type):
+        """
+        Returns if the current action_space supports the current action type.
+
+        Parameters
+        ----------
+        action_type: ``str``
+            One of "set_line_status", "change_line_status", "set_bus", "change_bus", "redispatch",
+            "storage_power", "set_storage", "curtail" or "curtail_mw"
+            A string representing the action types you want to inspect.
+
+        Returns
+        -------
+        ``True`` if you can use the `action_type` to create an action, ``False`` otherwise.
+
+        Examples
+        ---------
+
+        To know if you can use the `act.set_bus` property to change the bus of an element, you can use:
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Converter import ConnectivityConverter
+
+            env = grid2op.make("rte_case14_realistic", test=True)
+            can_i_use_set_bus = env.action_space.supports_type("set_bus") # this is True
+
+            env2 = grid2op.make("educ_case14_storage", test=True)
+            can_i_use_set_bus = env2.action_space.supports_type("set_bus") # this is False
+            # this environment do not allow for topological changes but only action on storage units and redispatching
+
+        """
+        name_action_types = ["set_line_status",
+                             "change_line_status",
+                             "set_bus",
+                             "change_bus",
+                             "redispatch",
+                             "storage_power",
+                             "set_storage",
+                             "curtail",
+                             "curtail_mw"]
+        assert action_type in name_action_types, f"The action type provided should be in {name_action_types}. " \
+                                                 f"You provided {action_type} which is not supported."
+
+        if action_type == "storage_power":
+            return (self.n_storage > 0) and ("storage_power" in self.actionClass.authorized_keys)
+        elif action_type == "set_storage":
+            return (self.n_storage > 0) and ("storage_power" in self.actionClass.authorized_keys)
+        elif action_type == "curtail_mw":
+            return "curtail" in self.actionClass.authorized_keys
+        else:
+            return action_type in self.actionClass.authorized_keys
 
     def _sample_set_line_status(self, rnd_update=None):
         if rnd_update is None:
@@ -118,7 +179,7 @@ class SerializableActionSpace(SerializableSpace):
         rnd_sub = self.space_prng.randint(self.n_sub)
         sub_size = self.sub_info[rnd_sub]
         rnd_topo = self.space_prng.choice([-1, 0, 1, 2], sub_size)
-        rnd_update["set_bus"] = {"substations_id": [(rnd_sub, rnd_topo)] }
+        rnd_update["set_bus"] = {"substations_id": [(rnd_sub, rnd_topo)]}
         return rnd_update
 
     def _sample_change_bus(self, rnd_update=None):
@@ -126,8 +187,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_update = {}
         rnd_sub = self.space_prng.randint(self.n_sub)
         sub_size = self.sub_info[rnd_sub]
-        rnd_topo = self.space_prng.choice([0, 1], sub_size)
-        rnd_update["change_bus"] = {"substations_id": [(rnd_sub, rnd_topo)] }
+        rnd_topo = self.space_prng.choice([0, 1], sub_size).astype(dt_bool)
+        rnd_update["change_bus"] = {"substations_id": [(rnd_sub, rnd_topo)]}
         return rnd_update
 
     def _sample_redispatch(self, rnd_update=None):
@@ -141,6 +202,21 @@ class SerializableActionSpace(SerializableSpace):
         rnd_disp = np.zeros(self.n_gen)
         rnd_disp[rnd_gen] = rnd_gen_disp
         rnd_update["redispatch"] = rnd_disp
+        rnd_update["redispatch"] = rnd_update["redispatch"].astype(dt_float)
+        return rnd_update
+
+    def _sample_storage_power(self, rnd_update=None):
+        if rnd_update is None:
+            rnd_update = {}
+        stor_unit = np.arange(self.n_storage)
+        rnd_sto = self.space_prng.choice(stor_unit)
+        rd = -self.storage_max_p_prod[rnd_sto]
+        ru = self.storage_max_p_absorb[rnd_sto]
+        rnd_sto_prod = (ru - rd) * self.space_prng.random() + rd
+        res = np.zeros(self.n_gen)
+        res[rnd_sto] = rnd_sto_prod
+        rnd_update["storage_power"] = res
+        rnd_update["storage_power"] = rnd_update["storage_power"].astype(dt_float)
         return rnd_update
 
     def sample(self):
@@ -212,6 +288,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_update = self._sample_change_bus()
         elif rnd_type == self.REDISPATCHING:
             rnd_update = self._sample_redispatch()
+        elif rnd_type == self.STORAGE_POWER:
+            rnd_update = self._sample_storage_power()
         else:
             raise Grid2OpException("Impossible to sample action of type {}".format(rnd_type))
 
@@ -903,6 +981,102 @@ class SerializableActionSpace(SerializableSpace):
             # Create ramp up actions
             for ramp in ramps:
                 action = action_space({"redispatch": [(gen_idx, ramp)]})
+                res.append(action)
+
+        return res
+
+    @staticmethod
+    def get_all_unitary_curtail(action_space, num_bin=10):
+        """
+        Curtailment action are continuous action. This method is an helper to convert the continuous
+        action into discrete action (by rounding).
+
+        The number of actions is equal to num_bin (by default 10) per renewable generator
+        (remember that only renewable generator can be curtailed in grid2op).
+
+
+        This method acts as followed:
+
+        - it will divide the interval [0, 1] into `num_bin`, each will make
+          a distinct action (then counting `num_bin` different action, because 0.0 is removed)
+
+
+        Parameters
+        ----------
+        action_space: :class:`grid2op.BaseAction.ActionHelper`
+            The action space used.
+
+        Returns
+        -------
+        res: ``list``
+            The list of all discretized curtailment actions.
+
+        """
+
+        res = []
+        n_gen = len(action_space.gen_renewable)
+
+        for gen_idx in range(n_gen):
+            # Skip non-renewable generators (they cannot be curtail)
+            if not action_space.gen_renewable[gen_idx]:
+                continue
+            # Create evenly spaced interval
+            ramps = np.linspace(0.0, action_space.gen_max_ramp_up[gen_idx], num=num_bin)
+
+            # Create ramp up actions
+            for ramp in ramps:
+                action = action_space({"curtail": [(gen_idx, ramp)]})
+                res.append(action)
+
+        return res
+
+    @staticmethod
+    def get_all_unitary_storage(action_space, num_down=5, num_up=5):
+        """
+        Storage action are continuous action. This method is an helper to convert the continuous
+        action into discrete action (by rounding).
+
+        The number of actions is equal to num_down + num_up (by default 10) per storage unit.
+
+
+        This method acts as followed:
+
+        - it will divide the interval [-storage_max_p_prod, 0] into `num_down`, each will make
+          a distinct action (then counting `num_down` different action, because 0.0 is removed)
+        - it will do the same for [0, storage_max_p_absorb]
+
+
+        Parameters
+        ----------
+        action_space: :class:`grid2op.BaseAction.ActionHelper`
+            The action space used.
+
+        Returns
+        -------
+        res: ``list``
+            The list of all discretized actions on storage units.
+
+        """
+
+        res = []
+        n_stor = action_space.n_storage
+
+        for stor_idx in range(n_stor):
+
+            # Create evenly spaced positive interval
+            ramps_up = np.linspace(0.0, action_space.storage_max_p_absorb[stor_idx], num=num_up)
+            ramps_up = ramps_up[1:]  # Exclude action of 0MW
+
+            # Create evenly spaced negative interval
+            ramps_down = np.linspace(-action_space.storage_max_p_prod[stor_idx], 0.0, num=num_down)
+            ramps_down = ramps_down[:-1] # Exclude action of 0MW
+
+            # Merge intervals
+            ramps = np.append(ramps_up, ramps_down)
+
+            # Create ramp up actions
+            for ramp in ramps:
+                action = action_space({"set_storage": [(stor_idx, ramp)]})
                 res.append(action)
 
         return res

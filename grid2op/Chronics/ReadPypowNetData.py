@@ -21,6 +21,10 @@ from grid2op.Exceptions import ChronicsError
 
 # Names of the csv were not the same
 class ReadPypowNetData(GridStateFromFileWithForecasts):
+    """
+    DEPRECATED, this class is no longer used nor tested.
+
+    """
     def __init__(self, path, sep=";", time_interval=timedelta(minutes=5),
                  max_iter=-1,
                  chunk_size=None):
@@ -29,9 +33,6 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
-        """
-        TODO Doc
-        """
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
         self.n_line = len(order_backend_lines)

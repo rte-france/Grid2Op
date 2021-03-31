@@ -33,9 +33,9 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
 
     And reciprocally, this action with :
 
-    - 0 is understand as -5.0 (middle of the interval -10 / 0)
-    - 1 is understand as 0.0 (middle of the interval represented by -10 / 10)
-    - 2 is understand as 5.0 (middle of the interval represented by 0 / 10)
+    - 0 is understood as -5.0 (middle of the interval -10 / 0)
+    - 1 is understood as 0.0 (middle of the interval represented by -10 / 10)
+    - 2 is understood as 5.0 (middle of the interval represented by 0 / 10)
 
     If `nb_bins` is 5 and  the original input space is [-10, 10], then the split is the following:
 
@@ -47,41 +47,61 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
 
     And reciprocally, this action with :
 
-    - 0 is understand as -6.6666...
-    - 1 is understand as -3.333...
-    - 2 is understand as 0.
-    - 3 is understand as 3.333...
-    - 4 is understand as 6.6666...
+    - 0 is understood as -6.6666...
+    - 1 is understood as -3.333...
+    - 2 is understood as 0.
+    - 3 is understood as 3.333...
+    - 4 is understood as 6.6666...
 
+    TODO add example of code on how to use this.
     """
-    def __init__(self, init_space, nb_bins):
-        if not isinstance(init_space, Box):
-            raise RuntimeError("Impossible to convert a gym space of type {} to a discrete space"
-                               " (it should be of "
-                               "type space.Box)"
-                               "".format(type(init_space)))
+    def __init__(self, nb_bins, init_space=None):
+        BaseGymAttrConverter.__init__(self,
+                                      g2op_to_gym=None,
+                                      gym_to_g2op=None,
+                                      space=None)
         if nb_bins < 2:
             raise RuntimeError("This do not work with less that 1 bin (if you want to ignored some part "
                                "of the action_space or observation_space please use the "
                                "\"gym_space.ignore_attr\" or \"gym_space.keep_only_attr\"")
 
+        self._nb_bins = nb_bins
+
+        self._ignored = None
+        self._res = None
+        self._values = None
+        self._bins_size = None
+        self._gen_idx = None
+
+        if init_space is not None:
+            self.initialize_space(init_space)
+
+    def initialize_space(self, init_space):
+        if not isinstance(init_space, Box):
+            raise RuntimeError("Impossible to convert a gym space of type {} to a discrete space"
+                               " (it should be of "
+                               "type space.Box)"
+                               "".format(type(init_space)))
+
         min_ = init_space.low
         max_ = init_space.high
         self._ignored = min_ == max_  # which component are ignored
         self._res = min_
-        self._values = np.linspace(min_, max_, num=nb_bins+2)
+        self._values = np.linspace(min_, max_, num=self._nb_bins+2)
         self._values = self._values[1:-1, :]  # the values that will be used when using #gym_to_glop
 
         # TODO there might a cleaner approach here
-        self._bins_size = np.linspace(min_, max_, num=2*nb_bins+1)
+        self._bins_size = np.linspace(min_, max_, num=2*self._nb_bins+1)
         self._bins_size = self._bins_size[2:-1:2, :]  # the values defining the "cuts"
 
         self._gen_idx = np.arange(self._bins_size.shape[-1])
-        n_bins = np.ones(min_.shape[0]) * nb_bins
+        n_bins = np.ones(min_.shape[0], dtype=dt_int) * dt_int(self._nb_bins)
         n_bins[self._ignored] = 1  # if min and max are equal, i don't want to have multiple variable
-        BaseGymAttrConverter.__init__(self,
-                                      space=MultiDiscrete(n_bins),
-                                      )
+        space = MultiDiscrete(n_bins)
+
+        self.base_initialize(space=space,
+                             g2op_to_gym=None,
+                             gym_to_g2op=None)
 
     def gym_to_g2op(self, gym_object):
         return copy.deepcopy(self._values[gym_object, self._gen_idx])

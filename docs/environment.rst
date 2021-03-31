@@ -98,8 +98,13 @@ increase the training time, especially at the beginning. This is due to the fact
 `env.reset` is called, the whole chronics is read from the hard drive. If you want to lower this
 impact then you might consult the `Optimize the data pipeline`_ section.
 
+.. _environment-module-chronics-info:
+
+Chronics Customization
++++++++++++++++++++++++
+
 Study always the same chronics
-++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you spotted a particularly interesting chronics, or if you want, for some reason
 your agent to see only one chronics, you can do this rather easily with grid2op.
 
@@ -151,7 +156,7 @@ the call to "env.reset". This gives the following code:
 (as always added line compared to the base code are highlighted: they are "circle" with `#####`)
 
 Shuffle the chronics order
-+++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In some other usecase, you might want to go through the whole set of chronics, and then loop again
 through them, but in a different order (remember that by default it will always loop in the same
 order 0, 1, 2, 3, ..., 0, 1, 2, 3, ..., 0, 1, 2, 3, ...).
@@ -199,7 +204,7 @@ that will do exactly that. You can use it like this:
 (as always added line compared to the base code are highlighted: they are "circle" with `#####`)
 
 Skipping some chronics
-+++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^
 Some chronics might be too hard to start a training ("learn to walk before running") and conversely some chronics might
 be too easy after a while (you can solve them without doing nothing basically). This is why grid2op allows you to
 have some control about which chronics will be used by the environment.
@@ -250,7 +255,7 @@ chronics and should return ``True`` / ``False`` whether or not you want to keep 
 (as always added line compared to the base code are highlighted: they are "circle" with `#####`)
 
 Sampling the chronics
-+++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Finally, for even more flexibility, you can choose to sample what will be the next used chronics. To achieve
 that you can call the `chronics_handler.sample_next_chronics` This function takes a vector of probabilities
@@ -311,7 +316,7 @@ reason oversampling the 10 first chronics, and under sample the last 10:
 for example to oversample scenarios your agent is having trouble to solve during the training.
 
 Skipping some time steps
-+++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Another way to customize which data your agent will face is to make as if the chronics started at different date
 and time. This might be handy in case a scenario is hard at the beginning but less hard at the end, or if you want
@@ -360,6 +365,8 @@ episode:
                break
 
 (as always added line compared to the base code are highlighted: they are "circle" with `#####`)
+
+.. _environment-module-data-pipeline:
 
 Optimize the data pipeline
 ++++++++++++++++++++++++++
@@ -516,6 +523,115 @@ This can be achieved with:
 
 Note that by default the `MultifolderWithCache` class will only load the **first** chronics it sees. You need
 to filter it and call `env.chronics_handler.real_data.reset()` for it to work properly.
+
+.. _environment-module-train-val-test:
+
+Splitting into raining, validation, test scenarios
+---------------------------------------------------
+In machine learning the "training / validation / test" framework is particularly usefull to
+avoid overfitting and develop models as performant as possible.
+
+Grid2op allows for such usage at the environment level. There is the possibility to "split" an environment
+into training / validation and test (*ie* using only some chronics for training, some others for validation
+and some others for testing).
+
+This can be done with:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = "l2rpn_case14_sandbox"  # or any other...
+    env = grid2op.make(env_name)
+
+    # extract 1% of the "chronics" to be used in the validation environment. The other 99% will
+    # be used for test
+    nm_env_train, nm_env_val = env.train_val_split_random(pct_val=1.)
+
+    # and now you can use the training set only to train your agent:
+    print(f"The name of the training environment is \\"{nm_env_train}\\"")
+    print(f"The name of the validation environment is \\"{nm_env_val}\\"")
+    env_train = grid2op.make(nm_env_train)
+
+You can then use, in the above case:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = "l2rpn_case14_sandbox"  # matching above
+
+    env_train = grid2op.make(env_name+"_train") to only use the "training chronics"
+    # do whatever you want with env_train
+
+And then, at time of validation:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = "l2rpn_case14_sandbox"  # matching above
+
+    env_train = grid2op.make(env_name+"_val") to only use the "training chronics"
+    # do whatever you want with env_train
+
+
+As of now, grid2op do not support "from the API" the possibility to split with convenient
+names a environment a second times. If you want to do a "train / validation / test" split we recommend you to:
+
+1. make a training / test split (see below)
+2. split again the training set into training / validation (see below)
+3. you will have locally an environment named "trainval" on your computer. This directory will not weight
+   more than a few kilobytes.
+
+The example, not really convenient at the moment, please find a feature request if that is a problem for
+you:
+
+.. code-block:: python
+
+    import grid2op
+    import os
+
+    env_name = "l2rpn_case14_sandbox"  # or any other...
+    env = grid2op.make(env_name)
+
+    # retrieve the names of the chronics:
+    full_path_data = env.chronics_handler.subpaths
+    chron_names = [os.path.split(el)[-1] for el in full_path_data]
+
+    # splitting into training / test, keeping the "last" 10 chronics to the test set
+    nm_env_trainval, nm_env_test = env.train_val_split(val_scen_id=chron_names[-10:],
+                                                       add_for_val="test",
+                                                       add_for_train="trainval")
+
+    # now splitting again the training set into training and validation, keeping the last 10 chronics
+    # of this environment for validation
+    env_trainval = grid2op.make(nm_env_trainval)  # create the "trainval" environment
+    full_path_data = env_trainval.chronics_handler.subpaths
+    chron_names = [os.path.split(el)[-1] for el in full_path_data]
+    nm_env_train, nm_env_val = env_trainval.train_val_split(val_scen_id=chron_names[-10:],
+                                                            remove_from_name="_trainval$")
+
+And later on, you can do, if you followed the names above:
+
+.. code-block:: python
+
+    import grid2op
+    import os
+
+    env_name = "l2rpn_case14_sandbox"  # or any other...
+    env_train = grid2op.make(env_name+"_train")
+    env_val = grid2op.make(env_name+"_val")
+    env_test = grid2op.make(env_name+"_test")
+
+And you can also, if you want, delete the folder "l2rpn_case14_sandbox_trainval" from your machine:
+
+.. code-block:: python
+
+    import grid2op
+    import os
+
+    env_name = "l2rpn_case14_sandbox"  # or any other...
+    env_trainval = grid2op.make(env_name+"_trainval")
+    print(f"You can safely delete, if you want, the folder: \n\t\"{env_trainval.get_path_env()}\" \nnow useless.")
+
 
 Customization
 -------------

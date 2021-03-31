@@ -25,6 +25,17 @@ def list_available_remote_env():
     res: ``list``
         a sorted list of available to environments that can be downloaded.
 
+    Examples
+    ---------
+    A usage example is
+
+    .. code-block:: python
+
+        import grid2op
+        li = grid2op.list_available_remote_env()
+        li_fmt = '\\n * '.join(li)
+        print(f"The available environments are: \\n * {li_fmt}")
+
     """
     avail_datasets_json = _list_available_remote_env_aux()
     return sorted(avail_datasets_json.keys())
@@ -40,6 +51,16 @@ def list_available_local_env():
     res: ``list``
         a sorted list of available environments locally.
 
+    Examples
+    ---------
+
+    .. code-block:: python
+
+        import grid2op
+        li = grid2op.list_available_local_env()
+        li_fmt = '\\n + '.join(li)
+        print(f"The locally available environments (without downloading anything) are: \\n * {li_fmt}")
+
     """
     res = []
     if not os.path.exists(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA):
@@ -54,6 +75,35 @@ def list_available_local_env():
     return res
 
 
+def list_available_test_env():
+    """
+    This functions list the environment available through "grid2op.make(..., test=True)", which are the environment
+    used for testing purpose, but available without the need to download any data.
+
+    The "test" environment are provided with the grid2op package.
+
+    Returns
+    -------
+    res: ``list``
+        a sorted list of available environments for testing / illustration purpose.
+
+    Examples
+    ---------
+
+    .. code-block:: python
+
+        import grid2op
+        li = grid2op.list_available_test_env()
+
+        env = grid2op.make(li[0], test=True)
+
+    """
+    from grid2op.MakeEnv.Make import TEST_DEV_ENVS
+    import re
+    res = sorted([el for el in TEST_DEV_ENVS.keys() if re.match("(^rte_.*)|(^l2rpn_.*)|(^educ_.*)", el) is not None])
+    return res
+
+
 def get_current_local_dir():
     """
     This function allows you to get the directory in which grid2op will download the datasets. This path can
@@ -62,7 +112,16 @@ def get_current_local_dir():
     Returns
     -------
     res: ``str``
-        The current path were data are downaloaded in.
+        The current path were data are downloaded in.
+
+    Examples
+    ---------
+
+    .. code-block:: python
+
+        import grid2op
+        print(f"Data about grid2op downloaded environments are stored in: \"{grid2op.get_current_local_dir()}\"")
+
     """
     return os.path.abspath(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA)
 
@@ -78,6 +137,19 @@ def change_local_dir(new_path):
     ----------
     new_path: ``str``
         The new path in which to download the datasets.
+
+    Examples
+    ---------
+    To set the download path, and the path where grid2op will look for available local environment you can:
+
+    .. code-block:: python
+
+        import grid2op
+        local_dir = ...  # should be a valid path on your machine
+        grid2op.change_local_dir(local_dir)
+
+        # check it has worked:
+        print(f"Data about grid2op downloaded environments are now stored in: \"{grid2op.get_current_local_dir()}\"")
 
     """
 

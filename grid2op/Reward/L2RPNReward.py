@@ -58,6 +58,7 @@ class L2RPNReward(BaseReward):
         else:
             # no more data to consider, no powerflow has been run, reward is what it is
             res = self.reward_min
+        # print(f"\t env.backend.get_line_flow(): {env.backend.get_line_flow()}")
         return res
 
     @staticmethod

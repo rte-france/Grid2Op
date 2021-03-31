@@ -154,11 +154,12 @@ class WeightedRandomOpponent(BaseOpponent):
 
         # If all attackable lines are disconnected, do not attack
         status = observation.line_status[self._lines_ids]
-        if np.all(status == False):
+        if np.all(~status):
             return None
-
         available_attacks = self._attacks[status]
         rho = observation.rho[self._lines_ids][status] / self._rho_normalization[status]
-        attack = self.space_prng.choice(available_attacks, p=rho / rho.sum())
-
+        rho_sum = rho.sum()
+        if rho_sum <= 0.:
+            return None
+        attack = self.space_prng.choice(available_attacks, p=rho / rho_sum)
         return attack

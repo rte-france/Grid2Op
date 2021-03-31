@@ -4,6 +4,7 @@
 .. _n_load: ./space.html#grid2op.Space.GridObjects.n_load
 .. _n_line: ./space.html#grid2op.Space.GridObjects.n_line
 .. _n_sub: ./space.html#grid2op.Space.GridObjects.n_sub
+.. _n_storage: ./space.html#grid2op.Space.GridObjects.n_storage
 .. _dim_topo: ./space.html#grid2op.Space.GridObjects.dim_topo
 .. _year: ./observation.html#grid2op.Observation.BaseObservation.year
 .. _month: ./observation.html#grid2op.Observation.BaseObservation.month
@@ -11,9 +12,9 @@
 .. _hour_of_day: ./observation.html#grid2op.Observation.BaseObservation.hour_of_day
 .. _minute_of_hour: ./observation.html#grid2op.Observation.BaseObservation.minute_of_hour
 .. _day_of_week: ./observation.html#grid2op.Observation.BaseObservation.day_of_week
-.. _prod_p: ./observation.html#grid2op.Observation.BaseObservation.prod_p
-.. _prod_q: ./observation.html#grid2op.Observation.BaseObservation.prod_q
-.. _prod_v: ./observation.html#grid2op.Observation.BaseObservation.prod_v
+.. _gen_p: ./observation.html#grid2op.Observation.BaseObservation.prod_p
+.. _gen_q: ./observation.html#grid2op.Observation.BaseObservation.prod_q
+.. _gen_v: ./observation.html#grid2op.Observation.BaseObservation.prod_v
 .. _load_p: ./observation.html#grid2op.Observation.BaseObservation.load_p
 .. _load_q: ./observation.html#grid2op.Observation.BaseObservation.load_q
 .. _load_v: ./observation.html#grid2op.Observation.BaseObservation.load_v
@@ -35,6 +36,11 @@
 .. _duration_next_maintenance: ./observation.html#grid2op.Observation.BaseObservation.duration_next_maintenance
 .. _target_dispatch: ./observation.html#grid2op.Observation.BaseObservation.target_dispatch
 .. _actual_dispatch: ./observation.html#grid2op.Observation.BaseObservation.actual_dispatch
+.. _storage_charge: ./observation.html#grid2op.Observation.BaseObservation.storage_charge
+.. _storage_power_target: ./observation.html#grid2op.Observation.BaseObservation.storage_power_target
+.. _storage_power: ./observation.html#grid2op.Observation.BaseObservation.storage_power
+.. _gen_p_before_curtail: ./observation.html#grid2op.Observation.BaseObservation.gen_p_before_curtail
+.. _curtailment: ./observation.html#grid2op.Observation.BaseObservation.curtailment
 
 .. _observation_module:
 
@@ -84,11 +90,11 @@ Main observation attributes
 In general, observations have the following attributes (if an attributes has name XXX [*eg* rho]  it can be accessed
 with `obs.XXX` [*eg* `obs.rho`])
 
-=============================================================================    ========= ===========
+=============================================================================    ========= ============
 Name(s)                                                                          Type      Size (each)
-=============================================================================    ========= ===========
+=============================================================================    ========= ============
 `year`_, `month`_, `day`_, `hour_of_day`_, `minute_of_hour`_, `day_of_week`_     int       1
-`prod_p`_, `prod_q`_, `prod_v`_                                                  float     `n_gen`_
+`gen_p`_, `gen_q`_, `gen_v`_                                                     float     `n_gen`_
 `load_p`_, `load_q`_, `load_v`_                                                  float     `n_load`_
 `p_or`_, `q_or`_, `v_or`_, `a_or`_                                               float     `n_line`_
 `p_ex`_, `q_ex`_, `v_ex`_, `a_ex`_                                               float     `n_line`_
@@ -102,11 +108,42 @@ Name(s)                                                                         
 `duration_next_maintenance`_                                                     int       `n_line`_
 `target_dispatch`_                                                               float     `n_gen`_
 `actual_dispatch`_                                                               float     `n_gen`_
-=============================================================================    ========= ===========
+`storage_charge`_                                                                float     `n_storage`_
+`storage_power_target`_                                                          float     `n_storage`_
+`storage_power`_                                                                 float     `n_storage`_
+`gen_p_before_curtail`_                                                          float     `n_gen`_
+`curtailment`_                                                                   float     `n_gen`_
+=============================================================================    ========= ============
 
 (*NB* for concision, if a coma ("*,*") is present in the "Name(s)" part of the column, it means multiple attributes
 are present. If we take the example of the first row, it means that `obs.year`, `obs.month`, etc. are all valid
 attributes of the observation, they are all integers and each is of size 1.)
+
+.. _observation_module_graph:
+
+But where is the graph ?
+--------------------------
+
+A powergrid can be represented as (at least) a graph (here: a mathematical object with nodes / vertices
+are connected by edges).
+
+Grid2op is made in a way that the observation and action do not explicitly represents such graph. This is
+motivated first by performance reasons, but also because multiple "graphs" can represent equally
+well a powergrid.
+
+The first one that come to mind is the graph where the nodes / vertices are the buses and the edges are
+the powerline. We will call this graph the "bus graph". It can be accessed in grid2op using the
+:func:`grid2op.Observation.BaseObservation.bus_connectivity_matrix` for example. This will return a matrix
+with 1 when 2 buses are connected and 0 otherwise, with the convention that a bus is always connected to
+itself. You can think of the environments in grid2op as an environment that allows you to manipulate
+this graph: split some bus in sub buses by changing at which busbar some elements are connected, or removing
+some edges from this graph when powerlines are connected / disconnected. An important feature of this
+graph is that its size changes: it can have a different number of nodes at different steps!
+
+TODO add some images, and explain these graphs!
+
+- :func:`grid2op.Observation.BaseObservation.connectivity_matrix`
+- :func:`grid2op.Observation.BaseObservation.flow_bus_matrix`
 
 Detailed Documentation by class
 --------------------------------

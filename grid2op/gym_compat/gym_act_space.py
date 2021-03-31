@@ -8,6 +8,7 @@
 
 from gym import spaces
 import warnings
+import numpy as np
 
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction, ActionSpace
@@ -80,7 +81,6 @@ class GymActionSpace(_BaseGymSpaceConverter):
         # be digest by grid2op directly. So you need to also convert it to grid2op
         grid2op_act = IdToAct.convert_act(converter_act)
 
-
     """
     # deals with the action space (it depends how it's encoded...)
     keys_grid2op_2_human = {"prod_p": "prod_p",
@@ -94,6 +94,8 @@ class GymActionSpace(_BaseGymSpaceConverter):
                             "_change_bus_vect": "change_bus",
                             "_hazards": "hazards",
                             "_maintenance": "maintenance",
+                            "_storage_power": "storage_power",
+                            "_curtail": "curtail"
                             }
     keys_human_2_grid2op = {v: k for k, v in keys_grid2op_2_human.items()}
 
@@ -177,8 +179,18 @@ class GymActionSpace(_BaseGymSpaceConverter):
         if fun is not None and not isinstance(fun, BaseGymAttrConverter):
             raise RuntimeError("Impossible to initialize a converter with a function of type {}".format(type(fun)))
         if key in self.keys_human_2_grid2op:
-            key = self.keys_human_2_grid2op[key]
-        my_dict[key] = fun
+            key2 = self.keys_human_2_grid2op[key]
+        else:
+            key2 = key
+
+        if fun is not None and not fun.is_init_space():
+            if key2 in my_dict:
+                fun.initialize_space(my_dict[key2])
+            elif key in self.spaces:
+                fun.initialize_space(self.spaces[key])
+            else:
+                raise RuntimeError(f"Impossible to find key {key} in your action space")
+        my_dict[key2] = fun
         res = GymActionSpace(env=self._init_env, dict_variables=my_dict)
         return res
 
@@ -227,10 +239,20 @@ class GymActionSpace(_BaseGymSpaceConverter):
                     low = 0.
                 elif attr_nm == "_redispatch":
                     # redispatch
-                    low = -action_space.gen_max_ramp_down
-                    high = action_space.gen_max_ramp_up
+                    low = -1.0 * action_space.gen_max_ramp_down
+                    high = 1.0 * action_space.gen_max_ramp_up
                     low[~action_space.gen_redispatchable] = 0.
                     high[~action_space.gen_redispatchable] = 0.
+                elif attr_nm == "_curtail":
+                    # curtailment
+                    low = np.zeros(action_space.n_gen, dtype=dt_float)
+                    high = np.ones(action_space.n_gen, dtype=dt_float)
+                    low[~action_space.gen_renewable] = 1.0
+                    high[~action_space.gen_renewable] = 1.0
+                elif attr_nm == "_storage_power":
+                    # storage power
+                    low = -1.0 * action_space.storage_max_p_prod
+                    high = 1.0 * action_space.storage_max_p_absorb
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)
 
             if my_type is None:
@@ -268,7 +290,12 @@ class GymActionSpace(_BaseGymSpaceConverter):
             # case where the action space is a "simple" action space
             res = self.initial_act_space()
             for k, v in gymlike_action.items():
-                res._assign_attr_from_name(self.keys_human_2_grid2op[k], v)
+                internal_k = self.keys_human_2_grid2op[k]
+                if internal_k in self._keys_encoding:
+                    tmp = self._keys_encoding[internal_k].gym_to_g2op(v)
+                else:
+                    tmp = v
+                res._assign_attr_from_name(internal_k, tmp)
         return res
 
     def to_gym(self, action: object) -> spaces.dict.OrderedDict:
@@ -292,6 +319,8 @@ class GymActionSpace(_BaseGymSpaceConverter):
         else:
             # in that case action should be an instance of grid2op BaseAction
             assert isinstance(action, BaseAction), "impossible to convert an action not coming from grid2op"
+            # TODO this do not work in case of multiple converter,
+            #  TODO this should somehow call tmp = self._keys_encoding[internal_k].g2op_to_gym(v)
             gym_action = self._base_to_gym(self.spaces.keys(),
                                            action,
                                            dtypes={k: self.spaces[k].dtype for k in self.spaces},
