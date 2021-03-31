@@ -22,7 +22,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.5.0] - 2021-xx-yy
+[1.5.0] - 2021-03-31
 -------------------------
 - [BREAKING] `backend.check_kirchoff()` method now returns also the discrepancy in the voltage magnitude
   and not only the error in the P and Q injected at each bus.
