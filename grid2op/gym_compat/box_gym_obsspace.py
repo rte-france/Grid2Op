@@ -268,6 +268,8 @@ class BoxGymObsSpace(Box):
         self.dict_properties["prod_q"] = self.dict_properties["gen_q"]
         self.dict_properties["prod_v"] = self.dict_properties["gen_v"]
 
+        if functs is None:
+            functs = {}
         for key in functs.keys():
             if key not in self._attr_to_keep:
                 raise RuntimeError(f"The key {key} is present in the \"functs\" dictionary but not in the "
@@ -287,8 +289,6 @@ class BoxGymObsSpace(Box):
         self.__func = {}
 
         self._dims = None
-        if functs is None:
-            functs = {}
         low, high, shape, dtype = self._get_info(functs)
 
         # initialize the base container
