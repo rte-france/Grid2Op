@@ -31,39 +31,17 @@ class TestRunner(HelperTests):
         self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
         self.max_iter = 10
-        # self.real_reward = dt_float(199.99800)
-        self.real_reward = dt_float(179.99818)
-        self.all_real_rewards = [19.999783, 19.999786, 19.999784, 19.999794, 19.9998,   19.999804, 19.999804, 19.999817, 19.999823,  0.      ]
-        self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
-                                                    "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
-                                                    "5_C201.84": 'load_4_4',
-                                                    "6_C-6.27": 'load_5_5', "9_C130.49": 'load_8_6',
-                                                    "10_C228.66": 'load_9_7',
-                                                    "11_C-138.89": 'load_10_8', "12_C-27.88": 'load_11_9',
-                                                    "13_C-13.33": 'load_12_10'},
-                                          "lines": {'1_2_1': '0_1_0', '1_5_2': '0_4_1', '9_10_16': '8_9_2',
-                                                    '9_14_17': '8_13_3',
-                                                    '10_11_18': '9_10_4', '12_13_19': '11_12_5', '13_14_20': '12_13_6',
-                                                    '2_3_3': '1_2_7', '2_4_4': '1_3_8', '2_5_5': '1_4_9',
-                                                    '3_4_6': '2_3_10',
-                                                    '4_5_7': '3_4_11', '6_11_11': '5_10_12', '6_12_12': '5_11_13',
-                                                    '6_13_13': '5_12_14', '4_7_8': '3_6_15', '4_9_9': '3_8_16',
-                                                    '5_6_10': '4_5_17',
-                                                    '7_8_14': '6_7_18', '7_9_15': '6_8_19'},
-                                          "prods": {"1_G137.1": 'gen_0_4', "3_G36.31": "gen_2_1", "6_G63.29": "gen_5_2",
-                                                    "2_G-56.47": "gen_1_0", "8_G40.43": "gen_7_3"},
-                                          }
-        self.gridStateclass = Multifolder
-        self.backendClass = PandaPowerBackend
-        self.runner = Runner(init_grid_path=self.init_grid_path,
-                             path_chron=self.path_chron,
-                             parameters_path=self.parameters_path,
-                             names_chronics_to_backend=self.names_chronics_to_backend,
-                             gridStateclass=self.gridStateclass,
-                             backendClass=self.backendClass,
-                             rewardClass=L2RPNReward,
-                             max_iter=self.max_iter,
-                             name_env="test_runner_env")
+        self.real_reward = dt_float(7748.425)
+        self.real_reward_li = [dt_float(7748.425), dt_float(7786.89599609375)]
+
+        self.all_real_rewards = [dt_float(el) for el in
+                                 [761.3295, 768.10144, 770.2673, 767.767, 768.69, 768.71246, 779.1029,
+                                 783.2737, 788.7833, 792.39764]
+                                ]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox", test=True)
+        self.runner = Runner(**env.get_params_for_runner())
 
     def test_one_episode(self):
         _, cum_reward, timestep, episode_data = self.runner.run_one_episode(max_iter=self.max_iter)
@@ -81,9 +59,9 @@ class TestRunner(HelperTests):
     def test_2episode(self):
         res = self.runner._run_sequential(nb_episode=2, max_iter=self.max_iter)
         assert len(res) == 2
-        for i, _, cum_reward, timestep, total_ts in res:
+        for i, (stuff, _, cum_reward, timestep, total_ts) in enumerate(res):
             assert int(timestep) == self.max_iter
-            assert np.abs(cum_reward - self.real_reward) <= self.tol_one
+            assert np.abs(cum_reward - self.real_reward_li[i]) <= self.tol_one
 
     def test_init_from_env(self):
         with warnings.catch_warnings():

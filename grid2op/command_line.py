@@ -10,6 +10,7 @@
 import warnings
 import os
 import unittest
+import sys
 
 from grid2op.main import main_cli as mainEntryPoint
 from grid2op.Download.download import main as downloadEntryPoint
@@ -66,5 +67,15 @@ def testinstall():
         test_suite.addTest(test_loader.discover(os.path.join(this_directory, 'tests'),
                                                 pattern=file_name)
                            )
-    runner = unittest.TextTestRunner()
-    runner.run(test_suite)
+    results = unittest.TextTestResult(stream=sys.stderr, descriptions=True, verbosity=1)
+    test_suite.run(results)
+    if results.wasSuccessful():
+        sys.exit(0)
+    else:
+        for _, str_ in results.errors:
+            print(str_)
+            print("-------------------------\n")
+        for _, str_ in results.failures:
+            print(str_)
+            print("-------------------------\n")
+        raise RuntimeError("Test not successful !")
