@@ -23,6 +23,8 @@ class MultiToTupleConverter(BaseGymAttrConverter):
     manipulation of them if using these frameworks.
 
     MultiBinary are encoded with gym Tuple of gym Discrete variables.
+
+    TODO add code example
     """
     def __init__(self, init_space=None):
         self.size = None

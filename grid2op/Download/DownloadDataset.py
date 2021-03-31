@@ -91,11 +91,10 @@ def _aux_download(url, dataset_name, path_data, ds_name_dl=None):
               "".format(path_data, ds_name_dl))
         try:
             os.mkdir(path_data)
-        except Exception as e:
-            str_ ="Impossible to create path \"{}\" to store the data. Please save the data in a different repository " \
-                  "with setting the argument \"--path_save\"" \
-                  "".format(path_data)
-            print(str_)
+        except Exception as exc_:
+            str_ = "Impossible to create path \"{}\" to store the data. Please save the data in a different repository " \
+                   "with setting the argument \"--path_save\"" \
+                   "Error was:\n{}".format(path_data, exc_)
             raise Grid2OpException(str_)
 
     output_path = os.path.abspath(os.path.join(path_data, "{}.tar.bz2".format(ds_name_dl)))

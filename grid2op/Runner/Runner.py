@@ -6,17 +6,16 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import time
+import os
 import warnings
-
 import sys
 import numpy as np
 import copy
-
 from multiprocessing import Pool
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Action import BaseAction, TopologyAction, DontAct
-from grid2op.Exceptions import *
+from grid2op.Exceptions import UsedRunnerError, Grid2OpException, EnvError
 from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import FlatReward, BaseReward
 from grid2op.Rules import AlwaysLegal, BaseRules
@@ -35,6 +34,8 @@ from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 # if i start using parallel i need to continue using parallel
 # so i force the usage of the "starmap" stuff even if there is one process on windows
 _IS_WINDOWS = sys.platform.startswith('win')
+_IS_LINUX = sys.platform.startswith("linux")
+_IS_MACOS = sys.platform.startswith("darwin")
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it!
@@ -115,10 +116,226 @@ class ConsoleLog(DoNothingLog):
                 print("WARNING: {}".format(kwargs))
 
 
+def _aux_one_process_parrallel(runner,
+                               episode_this_process,
+                               process_id,
+                               path_save=None,
+                               env_seeds=None,
+                               max_iter=None,
+                               add_detailed_output=False,
+                               agent_seeds=None):
+    """this is out of the runner, otherwise it does not work on windows / macos """
+    chronics_handler = ChronicsHandler(chronicsClass=runner.gridStateclass,
+                                       path=runner.path_chron,
+                                       **runner.gridStateclass_kwargs)
+    parameters = copy.deepcopy(runner.parameters)
+    nb_episode_this_process = len(episode_this_process)
+    res = [(None, None, None) for _ in range(nb_episode_this_process)]
+    for i, p_id in enumerate(episode_this_process):
+        env, agent = runner._new_env(chronics_handler=chronics_handler,
+                                     parameters=parameters)
+        try:
+            env_seed = None
+            if env_seeds is not None:
+                env_seed = env_seeds[i]
+            agt_seed = None
+            if agent_seeds is not None:
+                agt_seed = agent_seeds[i]
+            name_chron, cum_reward, nb_time_step, episode_data = _aux_run_one_episode(
+                env, agent, runner.logger, p_id, path_save, env_seed=env_seed, max_iter=max_iter, agent_seed=agt_seed,
+                detailed_output=add_detailed_output)
+            id_chron = chronics_handler.get_id()
+            max_ts = chronics_handler.max_timestep()
+            if add_detailed_output:
+                res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts, episode_data)
+            else:
+                res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
+        finally:
+            env.close()
+    return res
+
+
+def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
+                         pbar=False, env_seed=None, agent_seed=None, max_iter=None, detailed_output=False):
+    done = False
+    time_step = int(0)
+    time_act = 0.
+    cum_reward = dt_float(0.0)
+
+    # reset the environment
+    env.chronics_handler.tell_id(indx-1)
+    # the "-1" above is because the environment will be reset. So it will increase id of 1.
+
+    # set the seed
+    if env_seed is not None:
+        env.seed(env_seed)
+
+    # handle max_iter
+    if max_iter is not None:
+        env.chronics_handler.set_max_iter(max_iter)
+
+    # reset it
+    obs = env.reset()
+
+    # seed and reset the agent
+    if agent_seed is not None:
+        agent.seed(agent_seed)
+    agent.reset(obs)
+
+    # compute the size and everything if it needs to be stored
+    nb_timestep_max = env.chronics_handler.max_timestep()
+    efficient_storing = nb_timestep_max > 0
+    nb_timestep_max = max(nb_timestep_max, 0)
+
+    if path_save is None and not detailed_output:
+        # i don't store anything on drive, so i don't need to store anything on memory
+        nb_timestep_max = 0
+
+    disc_lines_templ = np.full(
+        (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
+
+    attack_templ = np.full(
+        (1, env._oppSpace.action_space.size()), fill_value=0., dtype=dt_float)
+    if efficient_storing:
+        times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
+        rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
+        actions = np.full((nb_timestep_max, env.action_space.n),
+                          fill_value=np.NaN, dtype=dt_float)
+        env_actions = np.full(
+            (nb_timestep_max, env._helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
+        observations = np.full(
+            (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
+        disc_lines = np.full(
+            (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
+        attack = np.full((nb_timestep_max, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
+    else:
+        times = np.full(0, fill_value=np.NaN, dtype=dt_float)
+        rewards = np.full(0, fill_value=np.NaN, dtype=dt_float)
+        actions = np.full((0, env.action_space.n), fill_value=np.NaN, dtype=dt_float)
+        env_actions = np.full((0, env._helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
+        observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
+        disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
+        attack = np.full((0, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
+
+    if path_save is not None:
+        # store observation at timestep 0
+        if efficient_storing:
+            observations[time_step, :] = obs.to_vect()
+        else:
+            observations = np.concatenate((observations, obs.to_vect().reshape(1, -1)))
+
+    episode = EpisodeData(actions=actions,
+                          env_actions=env_actions,
+                          observations=observations,
+                          rewards=rewards,
+                          disc_lines=disc_lines,
+                          times=times,
+                          observation_space=env.observation_space,
+                          action_space=env.action_space,
+                          helper_action_env=env._helper_action_env,
+                          path_save=path_save,
+                          disc_lines_templ=disc_lines_templ,
+                          attack_templ=attack_templ,
+                          attack=attack,
+                          attack_space=env._opponent_action_space,
+                          logger=logger,
+                          name=env.chronics_handler.get_name(),
+                          force_detail=detailed_output,
+                          other_rewards=[])
+    episode.set_parameters(env)
+
+    beg_ = time.time()
+
+    reward = float(env.reward_range[0])
+    done = False
+
+    next_pbar = [False]
+    with _aux_make_progress_bar(pbar, nb_timestep_max, next_pbar) as pbar_:
+        while not done:
+            beg__ = time.time()
+            act = agent.act(obs, reward, done)
+            end__ = time.time()
+            time_act += end__ - beg__
+
+            obs, reward, done, info = env.step(act)  # should load the first time stamp
+            cum_reward += reward
+            time_step += 1
+            pbar_.update(1)
+            opp_attack = env._oppSpace.last_attack
+            episode.incr_store(efficient_storing,
+                               time_step,
+                               end__ - beg__,
+                               float(reward),
+                               env._env_modification,
+                               act, obs, opp_attack,
+                               info)
+
+        end_ = time.time()
+
+    episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
+
+    li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
+               "\t - env update + observation: {:.2f}s", "Agent: {:.2f}s", "Total time: {:.2f}s",
+               "Cumulative reward: {:1f}"]
+    msg_ = "\n".join(li_text)
+    logger.info(msg_.format(
+        env._time_apply_act + env._time_powerflow + env._time_extract_obs,
+        env._time_apply_act, env._time_powerflow, env._time_extract_obs,
+        time_act, end_ - beg_, cum_reward))
+
+    episode.set_episode_times(env, time_act, beg_, end_)
+
+    episode.to_disk()
+    name_chron = env.chronics_handler.get_name()
+
+    return name_chron, cum_reward, int(time_step), episode
+
+
+def _aux_make_progress_bar(pbar, total, next_pbar):
+    """
+    INTERNAL
+
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+    Parameters
+    ----------
+    pbar: ``bool`` or ``type`` or ``object``
+        How to display the progress bar, understood as follow:
+
+        - if pbar is ``None`` nothing is done.
+        - if pbar is a boolean, tqdm pbar are used, if tqdm package is available and installed on the system
+          [if ``true``]. If it's false it's equivalent to pbar being ``None``
+        - if pbar is a ``type`` ( a class), it is used to build a progress bar at the highest level (episode) and
+          and the lower levels (step during the episode). If it's a type it muyst accept the argument "total"
+          and "desc" when being built, and the closing is ensured by this method.
+        - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
+          (episode) but not at lower levels (step during the episode)
+    """
+    pbar_ = _FakePbar()
+    next_pbar[0] = False
+
+    if isinstance(pbar, bool):
+        if pbar:
+            try:
+                from tqdm import tqdm
+                pbar_ = tqdm(total=total, desc="episode")
+                next_pbar[0] = True
+            except (ImportError, ModuleNotFoundError):
+                pass
+    elif isinstance(pbar, type):
+        pbar_ = pbar(total=total, desc="episode")
+        next_pbar[0] = pbar
+    elif isinstance(pbar, object):
+        pbar_ = pbar
+    return pbar_
+
+
 class Runner(object):
     """
-    A runner is a utilitary tool that allows to run simulations more easily. It is a more convenient way to execute the
-     following loops:
+    A runner is a utilitary tool that allows to run simulations more easily.
+
+    It is a more convenient way to execute the
+    following loops:
 
     .. code-block:: python
 
@@ -145,8 +362,8 @@ class Runner(object):
         res = runner.run(nb_episode=nn_episode)
 
 
-    This specific class as for main purpose to evaluate the performance of a trained :class:`grid2op.BaseAgent`,
-    rather than to train it.
+    This specific class as for main purpose to evaluate the performance of a trained
+    :class:`grid2op.Agent.BaseAgent` rather than to train it.
 
     It has also the good property to be able to save the results of a experiment in a standardized
     manner described in the :class:`grid2op.Episode.EpisodeData`.
@@ -272,7 +489,16 @@ class Runner(object):
     --------
     Different examples are showed in the description of the main method :func:`Runner.run`
 
+    Notes
+    -----
+
+    Runner does not necessarily behave normally when "nb_process" is not 1 on some platform (windows and some
+    version of macos). Please read the documentation, and especially the :ref:`runner-multi-proc-warning`
+    for more information and possible way to disable this feature.
+
     """
+    FORCE_SEQUENTIAL = "GRID2OP_RUNNER_FORCE_SEQUENTIAL"
+
     def __init__(self,
                  init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored
@@ -395,7 +621,6 @@ class Runner(object):
             raise RuntimeError("Impossible to create a runner without an observation class derived from "
                                "grid2op.BaseObservation. Please modify \"observationClass\" parameter.")
         self.observationClass = observationClass
-
         if not isinstance(rewardClass, type):
             raise Grid2OpException(
                 "Parameter \"rewardClass\" used to build the Runner should be a type (a class) and not an object "
@@ -471,6 +696,7 @@ class Runner(object):
         else:
             raise RuntimeError("Impossible to build the backend. Either AgentClass or agentInstance must be provided "
                                "and both are None.")
+        self.agentInstance = agentInstance
 
         self.logger = ConsoleLog(
             DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
@@ -480,14 +706,13 @@ class Runner(object):
         self.names_chronics_to_backend = names_chronics_to_backend
 
         # game _parameters
+        self.parameters_path = parameters_path
         if isinstance(parameters_path, str):
-            self.parameters_path = parameters_path
             self.parameters = Parameters(parameters_path)
         elif isinstance(parameters_path, dict):
             self.parameters = Parameters()
             self.parameters.init_from_dict(parameters_path)
         elif parameters_path is None:
-            self.parameters_path = parameters_path
             self.parameters = Parameters()
         else:
             raise RuntimeError("Impossible to build the parameters. The argument \"parameters_path\" should either "
@@ -503,14 +728,7 @@ class Runner(object):
                                                 path=self.path_chron,
                                                 **self.gridStateclass_kwargs)
 
-        # the backend, used to compute powerflows
-        self.backend = self.backendClass()
-
-        # build the environment
-        self.env = None
-
         self.verbose = verbose
-
         self.thermal_limit_a = thermal_limit_a
 
         # controler for voltage
@@ -541,17 +759,20 @@ class Runner(object):
         self.opponent_attack_duration = opponent_attack_duration
         self.opponent_attack_cooldown = opponent_attack_cooldown
         self.opponent_kwargs = opponent_kwargs
-
         self.grid_layout = grid_layout
 
-        # otherwise on windows it sometimes fail in the runner in multi process
-        self.init_env()
-        self.env = None
+        # otherwise on windows / macos it sometimes fail in the runner in multi process
+        # on linux like OS i prefer to generate all the proper classes accordingly
+        if _IS_LINUX:
+            env = self.init_env()
+            env.close()
 
-    def _new_env(self, chronics_handler, backend, parameters):
+        self.__used = False
+
+    def _new_env(self, chronics_handler, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
                             chronics_handler=chronics_handler,
-                            backend=backend,
+                            backend=self.backendClass(),
                             parameters=parameters,
                             name=self.name_env,
                             names_chronics_to_backend=self.names_chronics_to_backend,
@@ -597,7 +818,8 @@ class Runner(object):
         Function used to initialized the environment and the agent.
         It is called by :func:`Runner.reset`.
         """
-        self.env, self.agent = self._new_env(self.chronics_handler, self.backend, self.parameters)
+        env, self.agent = self._new_env(self.chronics_handler, self.parameters)
+        return env
 
     def reset(self):
         """
@@ -608,12 +830,15 @@ class Runner(object):
         Used to reset an environment. This method is called at the beginning of each new episode.
         If the environment is not initialized, then it initializes it with :func:`Runner.make_env`.
         """
-        if self.env is None:
-            self.init_env()
-        else:
-            self.env.reset()
+        pass
 
-    def run_one_episode(self, indx=0, path_save=None, pbar=False, env_seed=None, max_iter=None, agent_seed=None,
+    def run_one_episode(self,
+                        indx=0,
+                        path_save=None,
+                        pbar=False,
+                        env_seed=None,
+                        max_iter=None,
+                        agent_seed=None,
                         detailed_output=False):
         """
         INTERNAL
@@ -643,184 +868,26 @@ class Runner(object):
 
         """
         self.reset()
-        res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save,
-                                    pbar=pbar, env_seed=env_seed, max_iter=max_iter, agent_seed=agent_seed,
-                                    detailed_output=detailed_output)
+        with self.init_env() as env:
+            res = _aux_run_one_episode(env,
+                                       self.agent,
+                                       self.logger,
+                                       indx,
+                                       path_save,
+                                       pbar=pbar,
+                                       env_seed=env_seed,
+                                       max_iter=max_iter,
+                                       agent_seed=agent_seed,
+                                       detailed_output=detailed_output)
         return res
 
-    @staticmethod
-    def _run_one_episode(env, agent, logger, indx, path_save=None,
-                         pbar=False, env_seed=None, agent_seed=None, max_iter=None, detailed_output=False):
-        done = False
-        time_step = int(0)
-        time_act = 0.
-        cum_reward = dt_float(0.0)
-
-        # reset the environment
-        env.chronics_handler.tell_id(indx-1)
-        # the "-1" above is because the environment will be reset. So it will increase id of 1.
-
-        # set the seed
-        if env_seed is not None:
-            env.seed(env_seed)
-
-        # handle max_iter
-        if max_iter is not None:
-            env.chronics_handler.set_max_iter(max_iter)
-
-        # reset it
-        obs = env.reset()
-
-        # seed and reset the agent
-        if agent_seed is not None:
-            agent.seed(agent_seed)
-        agent.reset(obs)
-
-        # compute the size and everything if it needs to be stored
-        nb_timestep_max = env.chronics_handler.max_timestep()
-        efficient_storing = nb_timestep_max > 0
-        nb_timestep_max = max(nb_timestep_max, 0)
-
-        if path_save is None and not detailed_output:
-            # i don't store anything on drive, so i don't need to store anything on memory
-            nb_timestep_max = 0
-
-        disc_lines_templ = np.full(
-            (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
-
-        attack_templ = np.full(
-            (1, env._oppSpace.action_space.size()), fill_value=0., dtype=dt_float)
-        if efficient_storing:
-            times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
-            rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
-            actions = np.full((nb_timestep_max, env.action_space.n),
-                              fill_value=np.NaN, dtype=dt_float)
-            env_actions = np.full(
-                (nb_timestep_max, env._helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
-            observations = np.full(
-                (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
-            disc_lines = np.full(
-                (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
-            attack = np.full((nb_timestep_max, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
-        else:
-            times = np.full(0, fill_value=np.NaN, dtype=dt_float)
-            rewards = np.full(0, fill_value=np.NaN, dtype=dt_float)
-            actions = np.full((0, env.action_space.n), fill_value=np.NaN, dtype=dt_float)
-            env_actions = np.full((0, env._helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
-            observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
-            disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
-            attack = np.full((0, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
-
-        if path_save is not None:
-            # store observation at timestep 0
-            if efficient_storing:
-                observations[time_step, :] = obs.to_vect()
-            else:
-                observations = np.concatenate((observations, obs.to_vect().reshape(1, -1)))
-
-        episode = EpisodeData(actions=actions,
-                              env_actions=env_actions,
-                              observations=observations,
-                              rewards=rewards,
-                              disc_lines=disc_lines,
-                              times=times,
-                              observation_space=env.observation_space,
-                              action_space=env.action_space,
-                              helper_action_env=env._helper_action_env,
-                              path_save=path_save,
-                              disc_lines_templ=disc_lines_templ,
-                              attack_templ=attack_templ,
-                              attack=attack,
-                              attack_space=env._opponent_action_space,
-                              logger=logger,
-                              name=env.chronics_handler.get_name(),
-                              force_detail=detailed_output,
-                              other_rewards=[])
-
-        episode.set_parameters(env)
-
-        beg_ = time.time()
-
-        reward = float(env.reward_range[0])
-        done = False
-
-        next_pbar = [False]
-        with Runner._make_progress_bar(pbar, nb_timestep_max, next_pbar) as pbar_:
-            while not done:
-                beg__ = time.time()
-                act = agent.act(obs, reward, done)
-                end__ = time.time()
-                time_act += end__ - beg__
-
-                obs, reward, done, info = env.step(act)  # should load the first time stamp
-                cum_reward += reward
-                time_step += 1
-                pbar_.update(1)
-                opp_attack = env._oppSpace.last_attack
-                episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                                   float(reward), env._env_modification,
-                                   act, obs, opp_attack,
-                                   info)
-            end_ = time.time()
-
-        episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
-
-        li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
-                   "\t - env update + observation: {:.2f}s", "Agent: {:.2f}s", "Total time: {:.2f}s",
-                   "Cumulative reward: {:1f}"]
-        msg_ = "\n".join(li_text)
-        logger.info(msg_.format(
-            env._time_apply_act + env._time_powerflow + env._time_extract_obs,
-            env._time_apply_act, env._time_powerflow, env._time_extract_obs,
-            time_act, end_ - beg_, cum_reward))
-
-        episode.set_episode_times(env, time_act, beg_, end_)
-
-        episode.to_disk()
-        name_chron = env.chronics_handler.get_name()
-
-        return name_chron, cum_reward, int(time_step), episode
-
-    @staticmethod
-    def _make_progress_bar(pbar, total, next_pbar):
-        """
-        INTERNAL
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-        Parameters
-        ----------
-        pbar: ``bool`` or ``type`` or ``object``
-            How to display the progress bar, understood as follow:
-
-            - if pbar is ``None`` nothing is done.
-            - if pbar is a boolean, tqdm pbar are used, if tqdm package is available and installed on the system
-              [if ``true``]. If it's false it's equivalent to pbar being ``None``
-            - if pbar is a ``type`` ( a class), it is used to build a progress bar at the highest level (episode) and
-              and the lower levels (step during the episode). If it's a type it muyst accept the argument "total"
-              and "desc" when being built, and the closing is ensured by this method.
-            - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
-              (episode) but not at lower levels (step during the episode)
-        """
-        pbar_ = _FakePbar()
-        next_pbar[0] = False
-
-        if isinstance(pbar, bool):
-            if pbar:
-                try:
-                    from tqdm import tqdm
-                    pbar_ = tqdm(total=total, desc="episode")
-                    next_pbar[0] = True
-                except (ImportError, ModuleNotFoundError):
-                    pass
-        elif isinstance(pbar, type):
-            pbar_ = pbar(total=total, desc="episode")
-            next_pbar[0] = pbar
-        elif isinstance(pbar, object):
-            pbar_ = pbar
-        return pbar_
-
-    def _run_sequential(self, nb_episode, path_save=None, pbar=False, env_seeds=None, agent_seeds=None, max_iter=None,
+    def _run_sequential(self,
+                        nb_episode,
+                        path_save=None,
+                        pbar=False,
+                        env_seeds=None,
+                        agent_seeds=None,
+                        max_iter=None,
                         add_detailed_output=False):
         """
         INTERNAL
@@ -871,7 +938,7 @@ class Runner(object):
         res = [(None, None, None, None, None) for _ in range(nb_episode)]
 
         next_pbar = [False]
-        with self._make_progress_bar(pbar, nb_episode, next_pbar) as pbar_:
+        with _aux_make_progress_bar(pbar, nb_episode, next_pbar) as pbar_:
             for i in range(nb_episode):
                 env_seed = None
                 if env_seeds is not None:
@@ -894,37 +961,6 @@ class Runner(object):
                 else:
                     res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
                 pbar_.update(1)
-        return res
-
-    @staticmethod
-    def _one_process_parrallel(runner, episode_this_process, process_id, path_save=None,
-                               env_seeds=None, max_iter=None, add_detailed_output=False, agent_seeds=None):
-        chronics_handler = ChronicsHandler(chronicsClass=runner.gridStateclass,
-                                           path=runner.path_chron,
-                                           **runner.gridStateclass_kwargs)
-        parameters = copy.deepcopy(runner.parameters)
-        backend = runner.backendClass()
-        nb_episode_this_process = len(episode_this_process)
-        res = [(None, None, None) for _ in range(nb_episode_this_process)]
-        for i, p_id in enumerate(episode_this_process):
-            env, agent = runner._new_env(chronics_handler=chronics_handler,
-                                         backend=backend,
-                                         parameters=parameters)
-            env_seed = None
-            if env_seeds is not None:
-                env_seed = env_seeds[i]
-            agt_seed = None
-            if agent_seeds is not None:
-                agt_seed = agent_seeds[i]
-            name_chron, cum_reward, nb_time_step, episode_data = Runner._run_one_episode(
-                env, agent, runner.logger, p_id, path_save, env_seed=env_seed, max_iter=max_iter, agent_seed=agt_seed,
-                detailed_output=add_detailed_output)
-            id_chron = chronics_handler.get_id()
-            max_ts = chronics_handler.max_timestep()
-            if add_detailed_output:
-                res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts, episode_data)
-            else:
-                res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
         return res
 
     def _run_parrallel(self, nb_episode, nb_process=1, path_save=None, env_seeds=None, agent_seeds=None, max_iter=None,
@@ -969,7 +1005,6 @@ class Runner(object):
             scenario BEFORE calling `agent.reset()`.
         add_detailed_output: see Runner.run method
 
-
         Returns
         -------
         res: ``list``
@@ -986,16 +1021,22 @@ class Runner(object):
         if nb_process <= 0:
             raise RuntimeError(
                 "Runner: you need at least 1 process to run episodes")
-        if _IS_WINDOWS or nb_process == 1 or self.__can_copy_agent is False:
+        force_sequential = False
+        tmp = os.getenv(Runner.FORCE_SEQUENTIAL)
+        if tmp is not None:
+            force_sequential = int(tmp) > 0
+        if nb_process == 1 or (not self.__can_copy_agent) or force_sequential:
             # on windows if i start using sequential, i need to continue using sequential
             # if i start using parallel i need to continue using parallel
             # so i force the usage of the sequential mode
             self.logger.warn("Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
-            return self._run_sequential(nb_episode, path_save=path_save, env_seeds=env_seeds, agent_seeds=agent_seeds,
+            return self._run_sequential(nb_episode,
+                                        path_save=path_save,
+                                        env_seeds=env_seeds,
+                                        agent_seeds=agent_seeds,
                                         add_detailed_output=add_detailed_output)
         else:
             self._clean_up()
-            self.backend = self.backendClass()
 
             nb_process = int(nb_process)
             process_ids = [[] for i in range(nb_process)]
@@ -1019,12 +1060,51 @@ class Runner(object):
                     seeds_agt_res[i % nb_process].append(agent_seeds[i])
 
             res = []
+            if _IS_LINUX:
+                lists = [(self, pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
+                         for i, pn in enumerate(process_ids)]
+            else:
+                lists = [(Runner(**self._get_params()), pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
+                         for i, pn in enumerate(process_ids)]
             with Pool(nb_process) as p:
-                tmp = p.starmap(Runner._one_process_parrallel,
-                                [(self, pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
-                                 for i, pn in enumerate(process_ids)])
+                tmp = p.starmap(_aux_one_process_parrallel,
+                                lists)
             for el in tmp:
                 res += el
+        return res
+
+    def _get_params(self):
+        res = {"init_grid_path": self.init_grid_path,
+               "path_chron": self.path_chron,  # path where chronics of injections are stored
+               "name_env": self.name_env,
+               "parameters_path": self.parameters_path,
+               "names_chronics_to_backend": self.names_chronics_to_backend,
+               "actionClass": self.actionClass,
+               "observationClass": self.observationClass,
+               "rewardClass": self.rewardClass,
+               "legalActClass": self.legalActClass,
+               "envClass": self.envClass,
+               "gridStateclass": self.gridStateclass,
+               "backendClass": self.backendClass,
+               "agentClass": self.agentClass,
+               "agentInstance": self.agentInstance,
+               "verbose": self.verbose,
+               "gridStateclass_kwargs": copy.deepcopy(self.gridStateclass_kwargs),
+               "voltageControlerClass": self.voltageControlerClass,
+               "thermal_limit_a": self.thermal_limit_a,
+               "max_iter": self.max_iter,
+               "other_rewards": copy.deepcopy(self._other_rewards),
+               "opponent_action_class": self.opponent_action_class,
+               "opponent_class": self.opponent_class,
+               "opponent_init_budget": self.opponent_init_budget,
+               "opponent_budget_per_ts": self.opponent_budget_per_ts,
+               "opponent_budget_class": self.opponent_budget_class,
+               "opponent_attack_duration": self.opponent_attack_duration,
+               "opponent_attack_cooldown": self.opponent_attack_cooldown,
+               "opponent_kwargs": copy.deepcopy(self.opponent_kwargs),
+               "grid_layout": copy.deepcopy(self.grid_layout),
+               "with_forecast": self.with_forecast
+        }
         return res
 
     def _clean_up(self):
@@ -1036,15 +1116,13 @@ class Runner(object):
         close the environment if it has been created
 
         """
-        if self.env is not None:
-            self.env.close()
-        self.env = None
+        pass
 
     def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None,
             agent_seeds=None, add_detailed_output=False):
         """
-        Main method of the :class:`Runner` class. It will either call :func:`Runner.run_sequential` if "nb_process" is
-        1 or :func:`Runner.run_parrallel` if nb_process >= 2.
+        Main method of the :class:`Runner` class. It will either call :func:`Runner._run_sequential` if "nb_process" is
+        1 or :func:`Runner._run_parrallel` if nb_process >= 2.
 
         Parameters
         ----------
@@ -1095,7 +1173,8 @@ class Runner(object):
                 returned list are not necessarily sorted by this value)
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
-              - "episode_data" : [Optional] The :class:`EpisodeData` corresponding to this episode run
+              - "episode_data" : [Optional] The :class:`EpisodeData` corresponding to this episode run only
+                if `add_detailed_output=True`
 
         Examples
         --------
@@ -1165,20 +1244,25 @@ class Runner(object):
             try:
                 if nb_process <= 0:
                     raise RuntimeError("Impossible to run using less than 1 process.")
-
-                if _IS_WINDOWS and nb_process > 1:
-                    self.logger.warn("Parallel run are not fully supported on windows at the moment. So we decided "
-                                     "to fully deactivate them.")
-                if nb_process == 1 or _IS_WINDOWS:
+                self.__used = True
+                if nb_process == 1:
                     self.logger.info("Sequential runner used.")
                     res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
                                                env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds,
                                                add_detailed_output=add_detailed_output)
                 else:
-                    self.logger.info("Parallel runner used.")
-                    res = self._run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save,
-                                              env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds,
-                                              add_detailed_output=add_detailed_output)
+                    if add_detailed_output and (_IS_WINDOWS or _IS_MACOS):
+                        self.logger.warn("Parallel run are not fully supported on windows or macos when "
+                                         "\"add_detailed_output\" is True. So we decided "
+                                         "to fully deactivate them.")
+                        res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
+                                                   env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds,
+                                                   add_detailed_output=add_detailed_output)
+                    else:
+                        self.logger.info("Parallel runner used.")
+                        res = self._run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save,
+                                                  env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds,
+                                                  add_detailed_output=add_detailed_output)
             finally:
                 self._clean_up()
         return res

@@ -881,7 +881,8 @@ class BaseObservation(GridObjects):
     def connectivity_matrix(self, as_csr_matrix=False):
         """
         Computes and return the "connectivity matrix" `con_mat`.
-        if "dim_topo = 2 * n_line + n_prod + n_conso"
+        Let "dim_topo := 2 * n_line + n_prod + n_conso + n_storage" (the total number of elements on the grid)
+
         It is a matrix of size dim_topo, dim_topo, with values 0 or 1.
         For two objects (lines extremity, generator unit, load) i,j :
 

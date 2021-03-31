@@ -20,12 +20,12 @@ from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make
+from grid2op.Runner.Runner import _aux_one_process_parrallel
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
 from grid2op.Episode import EpisodeData
 from grid2op.Observation import CompleteObservation
-from grid2op.Action import TopologyAction
 warnings.simplefilter("error")
 
 
@@ -79,7 +79,7 @@ class TestRunner(HelperTests):
     def test_one_process_par(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            res = Runner._one_process_parrallel(self.runner, [0], 0, None, None, self.max_iter)
+            res = _aux_one_process_parrallel(self.runner, [0], 0, None, None, self.max_iter)
         assert len(res) == 1
         _, el1, el2, el3, el4 = res[0]
         assert el1 == "1"
@@ -90,7 +90,9 @@ class TestRunner(HelperTests):
     def test_2episode_2process(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            res = self.runner._run_parrallel(nb_episode=2, nb_process=2, max_iter=self.max_iter)
+            res = self.runner._run_parrallel(nb_episode=2,
+                                             nb_process=2,
+                                             max_iter=self.max_iter)
         assert len(res) == 2
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
@@ -99,13 +101,50 @@ class TestRunner(HelperTests):
     def test_2episode_2process_detailed(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            res = self.runner._run_parrallel(nb_episode=2, nb_process=2, max_iter=self.max_iter, add_detailed_output=True)
+            res = self.runner.run(nb_episode=2,
+                                  nb_process=2,
+                                  max_iter=self.max_iter,
+                                  add_detailed_output=True)
         assert len(res) == 2
         for i, _, cum_reward, timestep, total_ts, episode_data in res:
             assert int(timestep) == self.max_iter
             assert np.abs(cum_reward - self.real_reward) <= self.tol_one
             for j in range(len(self.all_real_rewards)):
                 assert np.abs(episode_data.rewards[j] - self.all_real_rewards[j]) <= self.tol_one
+
+    def test_multiprocess_windows_no_fail(self):
+        """test that i can run multiple times parallel run of the same env (breaks on windows)"""
+        nb_episode = 2
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example", test=True) as env:
+                f = tempfile.mkdtemp()
+                runner_params = env.get_params_for_runner()
+                runner = Runner(**runner_params)
+                res1 = runner.run(path_save=f,
+                                  nb_episode=nb_episode,
+                                  nb_process=2,
+                                  max_iter=self.max_iter)
+                res2 = runner.run(path_save=f,
+                                  nb_episode=nb_episode,
+                                  nb_process=1,
+                                  max_iter=self.max_iter)
+                res3 = runner.run(path_save=f,
+                                  nb_episode=nb_episode,
+                                  nb_process=2,
+                                  max_iter=self.max_iter)
+        test_ = set()
+        for id_chron, name_chron, cum_reward, nb_time_step, max_ts in res1:
+            test_.add(name_chron)
+        assert len(test_) == nb_episode
+        test_ = set()
+        for id_chron, name_chron, cum_reward, nb_time_step, max_ts in res2:
+            test_.add(name_chron)
+        assert len(test_) == nb_episode
+        test_ = set()
+        for id_chron, name_chron, cum_reward, nb_time_step, max_ts in res3:
+            test_.add(name_chron)
+        assert len(test_) == nb_episode
 
     def test_complex_agent(self):
         nb_episode = 4

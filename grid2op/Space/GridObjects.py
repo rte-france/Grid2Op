@@ -176,6 +176,7 @@ class GridObjects:
     - :attr:`GridObjects.gen_cost_per_MW`
     - :attr:`GridObjects.gen_startup_cost`
     - :attr:`GridObjects.gen_shutdown_cost`
+    - :attr:`GridObjects.gen_renewable`
 
     These information are loaded using the :func:`grid2op.Backend.Backend.load_redispacthing_data` method.
 
@@ -249,7 +250,8 @@ class GridObjects:
         The topology if the entire grid is given by a vector, say *topo_vect* of size
         :attr:`GridObjects.dim_topo`. For a given load of id *l*,
         :attr:`GridObjects.load_to_sub_pos` [l] is the index
-        of the load *l* in the vector :attr:`grid2op.BaseObservation.BaseObservation.topo_vect` . This means that, if
+        of the load *l* in the vector :attr:`grid2op.BaseObservation.BaseObservation.topo_vect` .
+        This means that, if
         "`topo_vect` [ :attr:`GridObjects.load_pos_topo_vect` \[l\] ]=2"
         then load of id *l* is connected to the second bus of the substation. [*class attribute*]
 
@@ -350,6 +352,10 @@ class GridObjects:
         The cost to shut down a generator. It's a positive real number. Optional. Used
         for unit commitment problems or redispacthing action. [*class attribute*]
 
+    gen_renewable: :class:`numpy.ndarray`, dtype:bool
+        Whether each generator is from a renewable energy sources (=can be curtailed). Optional. Used
+        for unit commitment problems or redispacthing action. [*class attribute*]
+
     redispatching_unit_commitment_availble: ``bool``
         Does the current grid allow for redispatching and / or unit commit problem. If not, any attempt to use it
         will raise a :class:`grid2op.Exceptions.UnitCommitorRedispachingNotAvailable` error. [*class attribute*]
@@ -366,6 +372,7 @@ class GridObjects:
           - :attr:`GridObjects.gen_cost_per_MW`
           - :attr:`GridObjects.gen_startup_cost`
           - :attr:`GridObjects.gen_shutdown_cost`
+          - :attr:`GridObjects.gen_renewable`
 
     grid_layout: ``dict`` or ``None``
         The layout of the powergrid in a form of a dictionnary with keys the substation name, and value a tuple of
@@ -486,9 +493,9 @@ class GridObjects:
     # for redispatching / unit commitment
     _li_attr_disp = ["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
                      "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
-                     "gen_startup_cost", "gen_shutdown_cost"]
+                     "gen_startup_cost", "gen_shutdown_cost", "gen_renewable"]
 
-    _type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float]
+    _type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float, bool]
 
     # redispatch data, not available in all environment
     redispatching_unit_commitment_availble = False
@@ -2519,7 +2526,16 @@ class GridObjects:
         else:
             cls.redispatching_unit_commitment_availble = True
             type_attr_disp = [str, dt_float, dt_float, dt_bool, dt_float, dt_float,
-                              dt_int, dt_int, dt_float, dt_float, dt_float]
+                              dt_int, dt_int, dt_float, dt_float, dt_float, dt_bool]
+
+            # small "hack" here for the "gen_renewable" attribute, used for curtailment, that
+            # is coded in grid2op >= 1.5 only
+            if "gen_renewable" not in dict_:
+                # before grid2op 1.4 it was not possible to make the difference between a renewable generator
+                # and a non dispatchable one. Though no environment have this property yet, it is
+                # possible to do it.
+                dict_["gen_renewable"] = [not el for el in dict_["gen_redispatchable"]]
+
             for nm_attr, type_attr in zip(cls._li_attr_disp, type_attr_disp):
                 setattr(cls, nm_attr, extract_from_dict(dict_, nm_attr, lambda x: np.array(x).astype(type_attr)))
 

@@ -230,11 +230,11 @@ class Environment(BaseEnv):
 
         self._helper_action_class = ActionSpace.init_grid(gridobj=bk_type)
         self._helper_action_player = self._helper_action_class(gridobj=bk_type,
-                                                               actionClass=self._actionClass,
+                                                               actionClass=actionClass,
                                                                legal_action=self._game_rules.legal_action)
         # action that affect the grid made by the environment.
         self._helper_action_env = self._helper_action_class(gridobj=bk_type,
-                                                            actionClass=self._complete_action_cls,
+                                                            actionClass=CompleteAction,
                                                             legal_action=self._game_rules.legal_action)
         self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
         self._helper_observation = self._helper_observation_class(gridobj=bk_type,

@@ -4,7 +4,6 @@ Change Log
 [TODO]
 --------------------
 - [???] add multi agent
-- [???] model curtailment
 - [???] better logging
 - [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
   stuff to break)
@@ -70,6 +69,9 @@ Change Log
 - [FIXED] issue `Issue #173 <https://github.com/rte-france/Grid2Op/issues/173>`_: a full nan vector could be
   converted to action or observation without any issue if it had the proper dimension. This was due to a conversion
   to integer from float.
+- [FIXED] an issue preventing to load the grid2op.utils submodule when installed not in "develop" mode
+- [FIXED] some issue with the multiprocessing of the runner on windows
+- [ADDED] more complete documentation for the runner.
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
 - [ADDED] a property to retrieve the thermal limits from the observation.

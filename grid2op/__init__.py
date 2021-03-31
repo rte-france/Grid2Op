@@ -24,6 +24,7 @@ __all__ = [
     "tests",
     "main",
     "command_line",
+    "utils",
     # utility functions
     "list_available_remote_env",
     "list_available_local_env",

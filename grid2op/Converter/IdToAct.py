@@ -26,6 +26,9 @@ class IdToAct(Converter):
     - disconnecting a single powerline
     - reconnecting a single powerline and connect it to bus xxx on its origin end and yyy on its extremity end
     - changing the topology of a single substation
+    - performing redispatching on a single generator
+    - performing curtailment on a single generator
+    - performing action on a single storage unit
 
     Examples of non unary actions include:
     - disconnection / reconnection of 2 or more powerlines
@@ -200,6 +203,23 @@ class IdToAct(Converter):
                     include_ = kwargs["redispatch"]
                 if include_:
                     self.all_actions += self.get_all_unitary_redispatch(self)
+
+            if "_curtail" in self._template_act.attr_list_vect:
+                # redispatch (transformed to discrete variables)
+                include_ = True
+                if "curtail" in kwargs:
+                    include_ = kwargs["curtail"]
+                if include_:
+                    self.all_actions += self.get_all_unitary_curtail(self)
+
+            if "_storage_power" in self._template_act.attr_list_vect:
+                # redispatch (transformed to discrete variables)
+                include_ = True
+                if "storage" in kwargs:
+                    include_ = kwargs["storage"]
+                if include_:
+                    self.all_actions += self.get_all_unitary_storage(self)
+
         elif isinstance(all_actions, str):
             # load the path from the path provided
             if not os.path.exists(all_actions):

@@ -33,9 +33,9 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
 
     And reciprocally, this action with :
 
-    - 0 is understand as -5.0 (middle of the interval -10 / 0)
-    - 1 is understand as 0.0 (middle of the interval represented by -10 / 10)
-    - 2 is understand as 5.0 (middle of the interval represented by 0 / 10)
+    - 0 is understood as -5.0 (middle of the interval -10 / 0)
+    - 1 is understood as 0.0 (middle of the interval represented by -10 / 10)
+    - 2 is understood as 5.0 (middle of the interval represented by 0 / 10)
 
     If `nb_bins` is 5 and  the original input space is [-10, 10], then the split is the following:
 
@@ -47,12 +47,13 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
 
     And reciprocally, this action with :
 
-    - 0 is understand as -6.6666...
-    - 1 is understand as -3.333...
-    - 2 is understand as 0.
-    - 3 is understand as 3.333...
-    - 4 is understand as 6.6666...
+    - 0 is understood as -6.6666...
+    - 1 is understood as -3.333...
+    - 2 is understood as 0.
+    - 3 is understood as 3.333...
+    - 4 is understood as 6.6666...
 
+    TODO add example of code on how to use this.
     """
     def __init__(self, nb_bins, init_space=None):
         BaseGymAttrConverter.__init__(self,

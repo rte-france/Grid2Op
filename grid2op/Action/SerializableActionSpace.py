@@ -111,7 +111,8 @@ class SerializableActionSpace(SerializableSpace):
         Parameters
         ----------
         action_type: ``str``
-            One of "set_line_status", "change_line_status", "set_bus", "change_bus", "redispatch" or "storage_power"
+            One of "set_line_status", "change_line_status", "set_bus", "change_bus", "redispatch",
+            "storage_power", "set_storage", "curtail" or "curtail_mw"
             A string representing the action types you want to inspect.
 
         Returns
@@ -136,13 +137,24 @@ class SerializableActionSpace(SerializableSpace):
             # this environment do not allow for topological changes but only action on storage units and redispatching
 
         """
-        name_action_types = ["set_line_status", "change_line_status", "set_bus", "change_bus",
-                             "redispatch", "storage_power"]
+        name_action_types = ["set_line_status",
+                             "change_line_status",
+                             "set_bus",
+                             "change_bus",
+                             "redispatch",
+                             "storage_power",
+                             "set_storage",
+                             "curtail",
+                             "curtail_mw"]
         assert action_type in name_action_types, f"The action type provided should be in {name_action_types}. " \
                                                  f"You provided {action_type} which is not supported."
 
         if action_type == "storage_power":
-            return self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys
+            return (self.n_storage > 0) and ("storage_power" in self.actionClass.authorized_keys)
+        elif action_type == "set_storage":
+            return (self.n_storage > 0) and ("storage_power" in self.actionClass.authorized_keys)
+        elif action_type == "curtail_mw":
+            return "curtail" in self.actionClass.authorized_keys
         else:
             return action_type in self.actionClass.authorized_keys
 
@@ -969,6 +981,102 @@ class SerializableActionSpace(SerializableSpace):
             # Create ramp up actions
             for ramp in ramps:
                 action = action_space({"redispatch": [(gen_idx, ramp)]})
+                res.append(action)
+
+        return res
+
+    @staticmethod
+    def get_all_unitary_curtail(action_space, num_bin=10):
+        """
+        Curtailment action are continuous action. This method is an helper to convert the continuous
+        action into discrete action (by rounding).
+
+        The number of actions is equal to num_bin (by default 10) per renewable generator
+        (remember that only renewable generator can be curtailed in grid2op).
+
+
+        This method acts as followed:
+
+        - it will divide the interval [0, 1] into `num_bin`, each will make
+          a distinct action (then counting `num_bin` different action, because 0.0 is removed)
+
+
+        Parameters
+        ----------
+        action_space: :class:`grid2op.BaseAction.ActionHelper`
+            The action space used.
+
+        Returns
+        -------
+        res: ``list``
+            The list of all discretized curtailment actions.
+
+        """
+
+        res = []
+        n_gen = len(action_space.gen_renewable)
+
+        for gen_idx in range(n_gen):
+            # Skip non-renewable generators (they cannot be curtail)
+            if not action_space.gen_renewable[gen_idx]:
+                continue
+            # Create evenly spaced interval
+            ramps = np.linspace(0.0, action_space.gen_max_ramp_up[gen_idx], num=num_bin)
+
+            # Create ramp up actions
+            for ramp in ramps:
+                action = action_space({"curtail": [(gen_idx, ramp)]})
+                res.append(action)
+
+        return res
+
+    @staticmethod
+    def get_all_unitary_storage(action_space, num_down=5, num_up=5):
+        """
+        Storage action are continuous action. This method is an helper to convert the continuous
+        action into discrete action (by rounding).
+
+        The number of actions is equal to num_down + num_up (by default 10) per storage unit.
+
+
+        This method acts as followed:
+
+        - it will divide the interval [-storage_max_p_prod, 0] into `num_down`, each will make
+          a distinct action (then counting `num_down` different action, because 0.0 is removed)
+        - it will do the same for [0, storage_max_p_absorb]
+
+
+        Parameters
+        ----------
+        action_space: :class:`grid2op.BaseAction.ActionHelper`
+            The action space used.
+
+        Returns
+        -------
+        res: ``list``
+            The list of all discretized actions on storage units.
+
+        """
+
+        res = []
+        n_stor = action_space.n_storage
+
+        for stor_idx in range(n_stor):
+
+            # Create evenly spaced positive interval
+            ramps_up = np.linspace(0.0, action_space.storage_max_p_absorb[stor_idx], num=num_up)
+            ramps_up = ramps_up[1:]  # Exclude action of 0MW
+
+            # Create evenly spaced negative interval
+            ramps_down = np.linspace(-action_space.storage_max_p_prod[stor_idx], 0.0, num=num_down)
+            ramps_down = ramps_down[:-1] # Exclude action of 0MW
+
+            # Merge intervals
+            ramps = np.append(ramps_up, ramps_down)
+
+            # Create ramp up actions
+            for ramp in ramps:
+                action = action_space({"set_storage": [(stor_idx, ramp)]})
                 res.append(action)
 
         return res

@@ -84,9 +84,6 @@ class CompleteObservation(BaseObservation):
         33. :attr:`BaseObservation.storage_power` the realized production / consumption of each storage unit
             [:attr:`grid2op.Space.GridObjects.n_storage` elements]
         34. :attr:`BaseObservation.gen_p_before_curtail` : the theoretical generation that would have happened
-            if no generator from renewable energy sources have been performed
-            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
-        35. :attr:`BaseObservation.gen_p_before_curtail` : the theoretical generation that would have happened
             if no generator from renewable energy sources have been performed (in MW)
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         35. :attr:`BaseObservation.curtailment` : the current curtailment applied
@@ -192,8 +189,13 @@ class CompleteObservation(BaseObservation):
 
         self._thermal_limit[:] = env.get_thermal_limit()
 
-        self.gen_p_before_curtail[:] = env._gen_before_curtailment
-        self.curtailment[:] = (self.gen_p_before_curtail - self.gen_p) / self.gen_pmax
-        self.curtailment[~self.gen_renewable] = 0.
-        self.curtailment_limit[:] = env._limit_curtailment
-        self.curtailment_limit[self.curtailment_limit >= 1.] = 1.0
+        if self.redispatching_unit_commitment_availble:
+            self.gen_p_before_curtail[:] = env._gen_before_curtailment
+            self.curtailment[:] = (self.gen_p_before_curtail - self.gen_p) / self.gen_pmax
+            self.curtailment[~self.gen_renewable] = 0.
+            self.curtailment_limit[:] = env._limit_curtailment
+            self.curtailment_limit[self.curtailment_limit >= 1.] = 1.0
+        else:
+            self.curtailment[:] = 0.
+            self.gen_p_before_curtail[:] = self.gen_p
+            self.curtailment_limit[:] = 1.0

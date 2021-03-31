@@ -141,6 +141,7 @@ def _get_action_grid_class():
         'gen_pmin': [0.0] * 5,
         'gen_pmax': [100.0] * 5,
         'gen_redispatchable': [True, False, False, True, False],
+        'gen_renewable': [False, True, True, False, True],
         'gen_max_ramp_up': [10., 5., 15., 7., 8.],
         'gen_max_ramp_down': [11., 6., 16., 8., 9.],
         'gen_min_uptime': [0] * 5,

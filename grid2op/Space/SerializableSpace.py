@@ -182,10 +182,9 @@ class SerializableSpace(GridObjects, RandomObject):
                     raise Grid2OpException(msg_err_)
         # create the proper SerializableSpace class for this environment
         CLS = SerializableSpace.init_grid(gridobj)
-        CLSSUBTYPE = subtype.init_grid(gridobj)
         res = CLS(gridobj=gridobj,
-                  subtype=CLSSUBTYPE,
-                  _init_grid=False)
+                  subtype=subtype,
+                  _init_grid=True)
         return res
 
     def cls_to_dict(self):
@@ -202,7 +201,8 @@ class SerializableSpace(GridObjects, RandomObject):
         -------
         res: ``dict``
             A dictionary representing this object content. It can be loaded back with
-             :func:`SerializableObservationSpace.from_dict`
+            :func:`SerializableObservationSpace.cls_from_dict`
+
         """
         # TODO this is super weird that this is a regular method, but inherit from a class method !
         res = super().cls_to_dict()

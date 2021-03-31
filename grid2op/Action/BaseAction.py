@@ -192,6 +192,10 @@ class BaseAction(GridObjects):
         power from the grid (=it will charge) and if you ask for a negative number, the storage unit
         will inject power on the grid (storage unit will discharge).
 
+    _curtail: :class:`numpy.ndarray`, dtype:float
+        For each renewable generator, allows you to give a maximum value (as ratio of Pmax, *eg* 0.5 =>
+        you limit the production of this generator to 50% of its Pmax) to renewable generators.
+
     Examples
     --------
     Here are example on how to use the action, for more information on what will be the effect of each,
@@ -302,7 +306,7 @@ class BaseAction(GridObjects):
     Typically 0<= gen_id < env.n_gen and `amount` is a floating point between gen_max_ramp_down and
     gen_min_ramp_down for the generator modified.
 
-    Finally, in order to perform action on storage units, you can:
+    In order to perform action on storage units, you can:
 
     .. code-block:: python
 
@@ -311,10 +315,26 @@ class BaseAction(GridObjects):
 
         # method 2
         act = env.action_space()
-        act.storage_p = [(storage_id, amount), (storage_id, amount), ...]
+        act.set_storage = [(storage_id, amount), (storage_id, amount), ...]
 
     Typically `0 <= storage_id < env.n_storage` and `amount` is a floating point between the maximum
     power and minimum power the storage unit can absorb / produce.
+
+    Finally, in order to perform curtailment action on renewable generators, you can:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"curtail": [(gen_id, amount), (gen_id, amount), ...]})
+
+        # method 2
+        act = env.action_space()
+        act.curtail = [(gen_id, amount), (gen_id, amount), ...]
+
+    Typically `0 <= gen_id < env.n_gen` and `amount` is a floating point between the 0. and 1.
+    giving the limit of power you allow each renewable generator to produce (expressed in ratio of 
+    Pmax). For example if `gen_id=1` and `amount=0.7` it means you limit the production of
+    generator 1 to 70% of its Pmax.
 
     """
     authorized_keys = {"injection",
@@ -3041,6 +3061,24 @@ class BaseAction(GridObjects):
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
 
+    @property
+    def set_line_status(self):
+        """another name for :func:`BaseAction.line_set_status`"""
+        return self.line_set_status
+
+    @set_line_status.setter
+    def set_line_status(self, values):
+        self.line_set_status = values
+
+    @property
+    def change_line_status(self):
+        """another name for :func:`BaseAction.change_line_status`"""
+        return self.line_change_status
+
+    @change_line_status.setter
+    def change_line_status(self, values):
+        self.line_change_status = values
+
     def _aux_affect_object_bool(self, values, name_el, nb_els,
                                 name_els,
                                 inner_vect,
@@ -3727,13 +3765,22 @@ class BaseAction(GridObjects):
                                 f"The error was:\n\"{exc_}\"")
 
     @property
+    def set_storage(self):
+        """Another name for the property :func:`BaseAction.storage_p`"""
+        return self.storage_p
+
+    @set_storage.setter
+    def set_storage(self, values):
+        self.storage_p = values
+
+    @property
     def curtail(self):
         """
         Allows to perfom some curtailment on some generators
 
         It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
 
-        For more information, feel free to consult the documentation :ref:`gen-mod-el` where more
+        For more information, feel free to consult the documentation :ref:`generator-mod-el` where more
         details are given about the modeling ot these storage units.
         """
         res = 1.0 * self._curtail
@@ -4009,7 +4056,7 @@ class BaseAction(GridObjects):
 
         It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
 
-        For more information, feel free to consult the documentation :ref:`gen-mod-el` where more
+        For more information, feel free to consult the documentation :ref:`generator-mod-el` where more
         details are given about the modeling ot these storage units.
         """
         res = 1.0 * self._curtail * self.gen_pmax

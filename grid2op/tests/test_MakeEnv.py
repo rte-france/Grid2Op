@@ -60,7 +60,8 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_blank(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("blank", test=True,
+            env = make("blank",
+                       test=True,
                        grid_path=EXAMPLE_CASEFILE,
                        chronics_class=ChangeNothing,
                        action_class=TopologyAndDispatchAction)

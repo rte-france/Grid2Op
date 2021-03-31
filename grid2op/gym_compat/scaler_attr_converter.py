@@ -21,6 +21,10 @@ class ScalerAttrConverter(BaseGymAttrConverter):
     It can be use to scale the observation by substracting the mean and dividing by the variance for
     example.
 
+    TODO work in progress !
+
+    Need help if you can :-)
+
     """
     def __init__(self, substract, divide, dtype=None, init_space=None):
         BaseGymAttrConverter.__init__(self,

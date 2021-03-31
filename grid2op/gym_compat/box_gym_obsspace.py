@@ -1,0 +1,424 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
+
+import numpy as np
+from gym.spaces import Box
+
+from grid2op.dtypes import dt_int, dt_bool, dt_float
+from grid2op.Observation import ObservationSpace
+
+# TODO doc
+
+
+ALL_ATTR_OBS = ("year", "month", "day", "hour_of_day", "minute_of_hour",
+                "day_of_week",
+                "gen_p", "gen_q", "gen_v",
+                "load_p", "load_q", "load_v",
+                "p_or", "q_or", "v_or", "a_or",
+                "p_ex", "q_ex", "v_ex", "a_ex",
+                "rho", "line_status",
+                "timestep_overflow", "topo_vect", "time_before_cooldown_line",
+                "time_before_cooldown_sub", "time_next_maintenance",
+                "duration_next_maintenance", "target_dispatch", "actual_dispatch",
+                "storage_charge", "storage_power_target", "storage_power", "curtailment",
+                "curtailment_limit", "thermal_limit"
+                )
+
+
+class BoxGymObsSpace(Box):
+    """
+    This class allows to convert a grid2op observation space into a gym "Box" which is
+    a regular Box in R^d.
+
+    It also allows to customize which part of the observation you want to use and offer capacity to
+    center / reduce the data or to use more complex function from the observation.
+
+    Examples
+    --------
+    If you simply want to use it you can do:
+
+    .. code-block:: python
+
+        import grid2op
+        env_name = ...
+        env = grid2op.make(env_name)
+
+        from grid2op.gym_compat import GymEnv, BoxGymObsSpace
+        gym_env = GymEnv(env)
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space)
+
+    In this case it will extract all the features in all the observation (a detailed list is given
+    in the documentation at :ref:`observation_module`.
+
+    You can select the attribute you want to keep, for example:
+
+    .. code-block:: python
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+                                                   attr_to_keep=['load_p', "gen_p", "rho])
+
+    You can also apply some basic transformation to the attribute of the observation before building
+    the resulting gym observation (which in this case is a vector). This can be done with:
+
+    .. code-block:: python
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+                                                   attr_to_keep=['load_p', "gen_p", "rho"],
+                                                   divide={"gen_p": env.gen_pmax},
+                                                   substract={"gen_p": 0.5 * env.gen_pmax})
+
+    In the above example, the resulting "gen_p" part of the vector will be given by the following
+    formula: `gym_obs = (grid2op_obs - substract) / divide`.
+
+    Hint: you can use: divide being the standard deviation and subtract being the average of the attribute
+    on a few episodes for example. This can be done with :class:`grid2op.utils.EpisodeStatistics` for example.
+
+    Finally, you can also modify more the attribute of the observation and add it to your box. This
+    can be done rather easily with the "functs" argument like:
+
+    .. code-block:: python
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+                                                   attr_to_keep=["connectivity_matrix", "log_load"],
+                                                   functs={"connectivity_matrix":
+                                                              (lambda grid2opobs: grid2opobs.connectivity_matrix().flatten(),
+                                                               0., 1.0, None, None),
+                                                           "log_load":
+                                                            (lambda grid2opobs: np.log(grid2opobs.load_p),
+                                                            None, 10., None, None)
+                                                        }
+                                                   )
+
+    In this case, "functs" should be a dictionary, the "keys" should be string (keys should also be
+    present in the `attr_to_keep` list) and the values should count 5 elements
+    (callable, low, high, shape, dtype) with:
+
+    - `callable` a function taking as input a grid2op observation and returning a numpy array
+    - `low` (optional) (put None if you don't want to specify it, defaults to `-np.inf`) the lowest value
+      your numpy array can take. It can be a single number or an array with the same shape
+      as the return value of your function.
+    - `high` (optional) (put None if you don't want to specify it, defaults to `np.inf`) the highest value
+      your numpy array can take. It can be a single number or an array with the same shape
+      as the return value of your function.
+    - `shape` (optional) (put None if you don't want to specify it) the shape of the return value
+      of your function. It should be a tuple (and not a single number). By default it is computed
+      with by applying your function to an observation.
+    - `dtype` (optional, put None if you don't want to change it, defaults to np.float32) the type of
+      the numpy array as output of your function.
+
+    """
+    def __init__(self,
+                 grid2op_observation_space,
+                 attr_to_keep=ALL_ATTR_OBS,
+                 subtract=None,
+                 divide=None,
+                 functs=None):
+        if not isinstance(grid2op_observation_space, ObservationSpace):
+            raise RuntimeError(f"Impossible to create a BoxGymObsSpace without providing a "
+                               f"grid2op observation. You provided {type(grid2op_observation_space)}"
+                               f"as the \"grid2op_observation_space\" attribute.")
+        self._attr_to_keep = attr_to_keep
+
+        ob_sp = grid2op_observation_space
+
+        self.dict_properties = {
+            "year": (0, 2200, (1,), dt_int),
+            "month": (0, 12, (1,), dt_int),
+            "day": (0, 31, (1,), dt_int),
+            "hour_of_day": (0, 24, (1,), dt_int),
+            "minute_of_hour": (0, 60, (1,), dt_int),
+            "day_of_week": (0, 7, (1,), dt_int),
+            "gen_p": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float),
+                      1.2 * ob_sp.gen_pmax,
+                      (ob_sp.n_gen,),
+                      dt_float),
+            "gen_q": (np.full(shape=(ob_sp.n_gen,), fill_value=-np.inf, dtype=dt_float),
+                      np.full(shape=(ob_sp.n_gen,), fill_value=np.inf, dtype=dt_float),
+                      (ob_sp.n_gen,),
+                      dt_float),
+            "gen_v": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float),
+                      np.full(shape=(ob_sp.n_gen,), fill_value=np.inf, dtype=dt_float),
+                      (ob_sp.n_gen,),
+                      dt_float),
+            "load_p": (np.full(shape=(ob_sp.n_load,), fill_value=-np.inf, dtype=dt_float),
+                       np.full(shape=(ob_sp.n_load,), fill_value=+np.inf, dtype=dt_float),
+                       (ob_sp.n_load,),
+                       dt_float),
+            "load_q": (np.full(shape=(ob_sp.n_load,), fill_value=-np.inf, dtype=dt_float),
+                       np.full(shape=(ob_sp.n_load,), fill_value=+np.inf, dtype=dt_float),
+                       (ob_sp.n_load,),
+                       dt_float),
+            "laod_v": (np.full(shape=(ob_sp.n_load,), fill_value=0., dtype=dt_float),
+                       np.full(shape=(ob_sp.n_load,), fill_value=np.inf, dtype=dt_float),
+                       (ob_sp.n_load,),
+                       dt_float),
+            "p_or": (np.full(shape=(ob_sp.n_line,), fill_value=-np.inf, dtype=dt_float),
+                     np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                     (ob_sp.n_line,),
+                     dt_float),
+            "q_or": (np.full(shape=(ob_sp.n_line,), fill_value=-np.inf, dtype=dt_float),
+                     np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                     (ob_sp.n_line,),
+                     dt_float),
+            "a_or": (np.full(shape=(ob_sp.n_line,), fill_value=0., dtype=dt_float),
+                     np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                     (ob_sp.n_line,),
+                     dt_float),
+            "v_or": (np.full(shape=(ob_sp.n_line,), fill_value=0., dtype=dt_float),
+                     np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                     (ob_sp.n_line,),
+                     dt_float),
+            "p_ex": (np.full(shape=(ob_sp.n_line,), fill_value=-np.inf, dtype=dt_float),
+                     np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                     (ob_sp.n_line,),
+                     dt_float),
+            "q_ex": (np.full(shape=(ob_sp.n_line,), fill_value=-np.inf, dtype=dt_float),
+                     np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                     (ob_sp.n_line,),
+                     dt_float),
+            "a_ex": (np.full(shape=(ob_sp.n_line,), fill_value=0., dtype=dt_float),
+                     np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                     (ob_sp.n_line,),
+                     dt_float),
+            "v_ex": (np.full(shape=(ob_sp.n_line,), fill_value=0., dtype=dt_float),
+                     np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                     (ob_sp.n_line,),
+                     dt_float),
+            "rho": (np.full(shape=(ob_sp.n_line,), fill_value=0., dtype=dt_float),
+                    np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                    (ob_sp.n_line,),
+                    dt_float),
+            "line_status": (np.full(shape=(ob_sp.n_line,), fill_value=0, dtype=dt_int),
+                            np.full(shape=(ob_sp.n_line,), fill_value=1, dtype=dt_int),
+                            (ob_sp.n_line,),
+                            dt_int),
+            "timestep_overflow": (np.full(shape=(ob_sp.n_line,), fill_value=-np.inf, dtype=dt_int),
+                                  np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+                                  (ob_sp.n_line,),
+                                  dt_int),
+            "topo_vect": (np.full(shape=(ob_sp.dim_topo,), fill_value=-1, dtype=dt_int),
+                          np.full(shape=(ob_sp.dim_topo,), fill_value=2, dtype=dt_int),
+                          (ob_sp.dim_topo,),
+                          dt_int),
+            "time_before_cooldown_line": (np.full(shape=(ob_sp.n_line,), fill_value=0, dtype=dt_int),
+                                          np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+                                          (ob_sp.n_line,),
+                                          dt_int),
+            "time_before_cooldown_sub": (np.full(shape=(ob_sp.n_sub,), fill_value=0, dtype=dt_int),
+                                         np.full(shape=(ob_sp.n_sub,), fill_value=np.inf, dtype=dt_int),
+                                         (ob_sp.n_sub,),
+                                         dt_int),
+            "time_next_maintenance": (np.full(shape=(ob_sp.n_line,), fill_value=-1, dtype=dt_int),
+                                      np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+                                      (ob_sp.n_line,),
+                                      dt_int),
+            "duration_next_maintenance": (np.full(shape=(ob_sp.n_line,), fill_value=0, dtype=dt_int),
+                                          np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+                                          (ob_sp.n_line,),
+                                          dt_int),
+            "target_dispatch": (np.minimum(ob_sp.gen_pmin, -ob_sp.gen_pmax),
+                                np.maximum(-ob_sp.gen_pmin, +ob_sp.gen_pmax),
+                                (ob_sp.n_gen,),
+                                dt_float),
+            "actual_dispatch": (np.minimum(ob_sp.gen_pmin, -ob_sp.gen_pmax),
+                                np.maximum(-ob_sp.gen_pmin, +ob_sp.gen_pmax),
+                                (ob_sp.n_gen,),
+                                dt_float),
+            "storage_charge": (np.full(shape=(ob_sp.n_storage,), fill_value=0, dtype=dt_float),
+                               1.0 * ob_sp.storage_Emax,
+                               (ob_sp.n_storage,),
+                               dt_float),
+            "storage_power_target": (-1.0 * ob_sp.storage_max_p_prod,
+                                     1.0 * ob_sp.storage_max_p_absorb,
+                                     (ob_sp.n_storage,),
+                                     dt_float),
+            "storage_power": (-1.0 * ob_sp.storage_max_p_prod,
+                              1.0 * ob_sp.storage_max_p_absorb,
+                              (ob_sp.n_storage,),
+                              dt_float),
+            "curtailment": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float),
+                            np.full(shape=(ob_sp.n_gen,), fill_value=1.0, dtype=dt_float),
+                            (ob_sp.n_gen,),
+                            dt_float),
+            "curtailment_limit": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float),
+                                  np.full(shape=(ob_sp.n_gen,), fill_value=1.0, dtype=dt_float),
+                                  (ob_sp.n_gen,),
+                                  dt_float),
+            "curtailment_mw": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float),
+                               1.0 * ob_sp.gen_pmax,
+                               (ob_sp.n_gen,),
+                               dt_float),
+            "curtailment_limit_mw": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float),
+                                     1.0 * ob_sp.gen_pmax,
+                                     (ob_sp.n_gen,),
+                                     dt_float),
+            "thermal_limit": (np.full(shape=(ob_sp.n_line,), fill_value=0., dtype=dt_float),
+                              np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                              (ob_sp.n_line,),
+                              dt_float),
+        }
+        self.dict_properties["prod_p"] = self.dict_properties["gen_p"]
+        self.dict_properties["prod_q"] = self.dict_properties["gen_q"]
+        self.dict_properties["prod_v"] = self.dict_properties["gen_v"]
+
+        if functs is None:
+            functs = {}
+        for key in functs.keys():
+            if key not in self._attr_to_keep:
+                raise RuntimeError(f"The key {key} is present in the \"functs\" dictionary but not in the "
+                                   f"\"attr_to_keep\". This is not consistent: either ignore this function, "
+                                   f"in that case remove \"{key}\" from \"functs\" or you want to add "
+                                   f"something to your observation, in that case add it to \"attr_to_keep\"")
+
+        if subtract is None:
+            subtract = {}
+        self._subtract = subtract
+        if divide is None:
+            divide = {}
+        self._divide = divide
+
+        # handle the "functional" part
+        self._template_obs = ob_sp._template_obj.copy()
+        self.__func = {}
+
+        self._dims = None
+        low, high, shape, dtype = self._get_info(functs)
+
+        # initialize the base container
+        Box.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
+
+    def _get_info(self, functs):
+        low = None
+        high = None
+        shape = None
+        dtype = None
+        self._dims = []
+        for el in self._attr_to_keep:
+            if el in functs:
+                # the attribute name "el" has been put in the functs
+                try:
+                    callable_, low_, high_, shape_, dtype_ = functs[el]
+                except Exception as exc_:
+                    raise RuntimeError(f"When using keyword argument \"functs\" you need to provide something "
+                                       f"like: (callable_, low_, high_, shape_, dtype_) for each key. "
+                                       f"There was an error with \"{el}\"."
+                                       f"The error was:\n {exc_}")
+
+                try:
+                    tmp = callable_(self._template_obs.copy())
+                except Exception as exc_:
+                    raise RuntimeError(f"Error for the function your provided with key \"{el}\" (using the"
+                                       f"\"functs\" dictionary) "
+                                       f"The error was :\n {exc_}")
+                if not isinstance(tmp, np.ndarray):
+                    raise RuntimeError(f"The result of the function you provided as part of the \"functs\""
+                                       f"dictionary for key {el}"
+                                       f"do not return a numpy array. This is not supported.")
+                self.__func[el] = callable_
+                if dtype_ is None:
+                    dtype_ = dt_float
+                if shape_ is None:
+                    shape_ = tmp.shape
+
+                if not isinstance(shape_, tuple):
+                    raise RuntimeError("You need to provide a tuple as a shape of the output of your data")
+
+                if low_ is None:
+                    low_ = np.full(shape_, fill_value=-np.inf, dtype=dtype_)
+                elif isinstance(low_, float):
+                    low_ = np.full(shape_, fill_value=low_, dtype=dtype_)
+
+                if high_ is None:
+                    high_ = np.full(shape_, fill_value=np.inf, dtype=dtype_)
+                elif isinstance(high_, float):
+                    high_ = np.full(shape_, fill_value=high_, dtype=dtype_)
+
+                if np.any((tmp < low_) | (tmp > high_)):
+                    raise RuntimeError(f"Wrong value for low / high in the functs argument for key {el}. Please"
+                                       f"fix the low_ / high_ in the tuple ( callable_, low_, high_, shape_, dtype_).")
+
+            elif el in self.dict_properties:
+                # el is an attribute of an observation, for example "load_q" or "topo_vect"
+                low_, high_, shape_, dtype_ = self.dict_properties[el]
+            else:
+                li_keys = '\n\t-'.join(sorted(list(self.dict_properties.keys()) +
+                                              list(self.__func.keys()))
+                                       )
+                raise RuntimeError(f"Unknown observation attributes \"{el}\". Supported attributes are: "
+                                   f"\n{li_keys}")
+
+            # handle the data type
+            if dtype is None:
+                dtype = dtype_
+            else:
+                if dtype_ == dt_float:
+                    dtype = dt_float
+
+            # handle the shape
+            if shape is None:
+                shape = shape_
+            else:
+                shape = (shape[0] + shape_[0],)
+
+            # handle low / high
+            if el in self._subtract:
+                low_ -= self._subtract[el]
+                high_ -= self._subtract[el]
+            if el in self._divide:
+                low_ /= self._divide[el]
+                high_ /= self._divide[el]
+            if low is None:
+                low = low_
+                high = high_
+            else:
+                low = np.concatenate((low.astype(dtype), low_.astype(dtype))).astype(dtype)
+                high = np.concatenate((high.astype(dtype), high_.astype(dtype))).astype(dtype)
+
+            # remember where this need to be stored
+            self._dims.append(shape[0])
+
+        return low, high, shape, dtype
+
+    def _handle_attribute(self, grid2op_observation, attr_nm):
+        res = getattr(grid2op_observation, attr_nm).astype(self.dtype)
+        if attr_nm in self._subtract:
+            res -= self._subtract[attr_nm]
+        if attr_nm in self._divide:
+            res /= self._divide[attr_nm]
+        return res
+
+    def to_gym(self, grid2op_observation):
+        """
+        This is the function that is called to transform a grid2Op observation, sent by the grid2op environment
+        and convert it to a numpy array (an element of a gym Box)
+
+        Parameters
+        ----------
+        grid2op_observation:
+            The grid2op observation (as a grid2op object)
+
+        Returns
+        -------
+        res: :class:`numpy.ndarray`
+            A numpy array compatible with the openAI gym Box that represents the action space.
+
+        """
+        res = np.empty(shape=self.shape, dtype=self.dtype)
+        prev = 0
+        for attr_nm, where_to_put in zip(self._attr_to_keep, self._dims):
+            if attr_nm in self.__func:
+                tmp = self.__func[attr_nm](grid2op_observation)
+            elif hasattr(grid2op_observation, attr_nm):
+                tmp = self._handle_attribute(grid2op_observation, attr_nm)
+            else:
+                raise RuntimeError(f"Unknown attribute \"{attr_nm}\".")
+            res[prev:where_to_put] = tmp
+            prev = where_to_put
+        return res
