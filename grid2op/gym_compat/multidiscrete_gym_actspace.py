@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 from gym.spaces import MultiDiscrete, Box
 
-from grid2op.Action import BaseAction
+from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 
 from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
@@ -37,6 +37,11 @@ class MultiDiscreteActSpace(MultiDiscrete):
                  attr_to_keep=ALL_ATTR,
                  nb_bins={"redispatch": 7, "set_storage": 7, "curtail": 7, "curtail_mw": 7}
                  ):
+
+        if not isinstance(grid2op_action_space, ActionSpace):
+            raise RuntimeError(f"Impossible to create a BoxGymActSpace without providing a "
+                               f"grid2op action_space. You provided {type(grid2op_action_space)}"
+                               f"as the \"grid2op_action_space\" attribute.")
 
         if attr_to_keep == ALL_ATTR:
             # by default, i remove all the attributes that are not supported by the action type
@@ -196,10 +201,10 @@ class MultiDiscreteActSpace(MultiDiscrete):
                         for sub_id in range(self._act_space.n_sub):
                             acts_this_sub = self._act_space.get_all_unitary_topologies_change(self._act_space,
                                                                                               sub_id=sub_id)
-                            if len(act_this_sub) == 0:
+                            if len(acts_this_sub) == 0:
                                 # no action can be done at this substation
-                                act_this_sub.append(self._act_space())
-                            nvec_.append(len(act_this_sub))
+                                acts_this_sub.append(self._act_space())
+                            nvec_.append(len(acts_this_sub))
                             self._sub_modifiers[el].append(acts_this_sub)
                         funct = self._funct_substations
                     elif el == "one_sub_set":
@@ -234,6 +239,8 @@ class MultiDiscreteActSpace(MultiDiscrete):
 
     def _handle_attribute(self, res, gym_act_this, attr_nm, funct, type_):
         """
+        INTERNAL
+
         TODO
 
         Parameters
@@ -256,14 +263,19 @@ class MultiDiscreteActSpace(MultiDiscrete):
 
     def from_gym(self, gym_act):
         """
-        TODO
+        This is the function that is called to transform a gym action (in this case a numpy array!)
+        sent by the agent
+        and convert it to a grid2op action that will be sent to the underlying grid2op environment.
 
         Parameters
         ----------
-        gym_act
+        gym_act: ``numpy.ndarray``
+            the gym action
 
         Returns
         -------
+        grid2op_act: :class:`grid2op.Action.BaseAction`
+            The corresponding grid2op action.
 
         """
         res = self._act_space()
