@@ -8,12 +8,10 @@
 
 import copy
 import warnings
-import numpy as np
-from gym.spaces import Discrete, Box
+from gym.spaces import Discrete
 
 
-from grid2op.Action import BaseAction
-from grid2op.dtypes import dt_int, dt_bool, dt_float
+from grid2op.Action import ActionSpace
 from grid2op.Converter import IdToAct
 
 from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
@@ -26,7 +24,75 @@ from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
 
 class DiscreteActSpace(Discrete):
     """
-    TODO
+    TODO the documentation of this class is in progress.
+
+    This class allows to convert a grid2op action space into a gym "Discrete". This means that the action are
+    labeled, and instead of describing the action itself, you provide only its ID.
+
+    It is related to the :class:`MultiDiscreteActSpace` but compared to this other representation, it
+    does not allow to do "multiple actions". Typically, if you use the snippets below:
+
+    .. code-block:: python
+
+        import grid2op
+        env_name = ...
+        env = grid2op.make(env_name)
+
+        from grid2op.gym_compat import GymEnv, MultiDiscreteActSpace, DiscreteActSpace
+        gym_env1 = GymEnv(env)
+        gym_env2 = GymEnv(env)
+
+        gym_env1.action_space = MultiDiscreteActSpace(env.action_space,
+                                                      attr_to_keep=['redispatch', "curtail", "one_sub_set"])
+        gym_env2.action_space = MultiDiscreteActSpace(env.action_space,
+                                                      attr_to_keep=['redispatch', "curtail", "set_bus"])
+
+
+    Then at each step, `gym_env1` will allow to perform a redispatching action (on any number of generators),
+    a curtailment
+    action (on any number of generators) __**AND**__  changing the topology at one substation. But at each
+    steps, the agent should predicts lots of "number".
+
+    On the other hand, at each step, the agent for `gym_env2` will have to predict a single integer (which is
+    usually the case in most RL environment) but it this action will affect redispatching on a single generator,
+    perform curtailment on a single generator __**OR**__  changing the topology at one substation. But at each
+    steps, the agent should predicts lots of "number".
+
+    The action set is then largely  constrained compared to the :class:`MultiDiscreteActSpace`
+
+    .. note::
+        This class is really closely related to the :class:`grid2op.Converter.IdToAct`. It basically "maps"
+        this "IdToAct" into a type of gym space, which, in this case, will be a Discrete one.
+
+    Examples
+    --------
+
+    We recommend to use it like:
+
+    .. code-block:: python
+
+        import grid2op
+        env_name = ...
+        env = grid2op.make(env_name)
+
+        from grid2op.gym_compat import GymEnv, MultiDiscreteActSpace, DiscreteActSpace
+        gym_env = GymEnv(env)
+
+        gym_env.observation_space = DiscreteActSpace(env.observation_space,
+                                                     attr_to_keep=['redispatch', "curtail", "set_bus"])
+
+    The possible attribute you can provide in the "attr_to_keep" are:
+
+    - "set_line_status"
+    - "change_line_status"
+    - "set_bus": corresponds to changing the topology using the "set_bus" (equivalent to the
+      "one_sub_set" keyword in the "attr_to_keep" of the :class:`MultiDiscreteActSpace`)
+    - "change_bus": corresponds to changing the topology using the "change_bus" (equivalent to the
+      "one_sub_change" keyword in the "attr_to_keep" of the :class:`MultiDiscreteActSpace`)
+    - "redispatch"
+    - "set_storage"
+    - "curtail"
+    - "curtail_mw" (same effect as "curtail")
 
     """
     def __init__(self,
@@ -34,6 +100,12 @@ class DiscreteActSpace(Discrete):
                  attr_to_keep=ALL_ATTR,
                  nb_bins={"redispatch": 7, "set_storage": 7, "curtail": 7}
                  ):
+
+        if not isinstance(grid2op_action_space, ActionSpace):
+            raise RuntimeError(f"Impossible to create a BoxGymActSpace without providing a "
+                               f"grid2op action_space. You provided {type(grid2op_action_space)}"
+                               f"as the \"grid2op_action_space\" attribute.")
+
         act_sp = grid2op_action_space
         self.action_space = copy.deepcopy(act_sp)
 
@@ -97,14 +169,19 @@ class DiscreteActSpace(Discrete):
 
     def from_gym(self, gym_act):
         """
-        TODO
+        This is the function that is called to transform a gym action (in this case a numpy array!)
+        sent by the agent
+        and convert it to a grid2op action that will be sent to the underlying grid2op environment.
 
         Parameters
         ----------
-        gym_act
+        gym_act: ``int````
+            the gym action (a single integer for this action space)
 
         Returns
         -------
+        grid2op_act: :class:`grid2op.Action.BaseAction`
+            The corresponding grid2op action.
 
         """
         res = self.converter.all_actions[int(gym_act)]

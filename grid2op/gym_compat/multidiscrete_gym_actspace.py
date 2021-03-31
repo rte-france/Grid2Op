@@ -27,7 +27,6 @@ class MultiDiscreteActSpace(MultiDiscrete):
     This class allows to convert a grid2op action space into a gym "MultiDiscrete". This means that the action are
     labeled, and instead of describing the action itself, you provide only its ID.
 
-
     .. note::
         This action space is particularly suited for represented discrete actions.
 
@@ -130,17 +129,17 @@ class MultiDiscreteActSpace(MultiDiscrete):
 
     .. code-block:: python
 
-        gym_env.observation_space = MultiDiscreteActSpace(env.observation_space,
-                                                          attr_to_keep=['redispatch', "curtail", "sub_set_bus"])
+        gym_env.action_space = MultiDiscreteActSpace(env.observation_space,
+                                                     attr_to_keep=['redispatch', "curtail", "sub_set_bus"])
 
     You can also apply some basic transformation when you "discretize" continuous action
 
     .. code-block:: python
 
-        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
-                                                   attr_to_keep=['redispatch', "curtail", "sub_set_bus"],
-                                                   nb_bins={"redispatch": 3, "curtail": 17},
-                                                   )
+        gym_env.action_space = MultiDiscreteActSpace(env.observation_space,
+                                                     attr_to_keep=['redispatch', "curtail", "sub_set_bus"],
+                                                     nb_bins={"redispatch": 3, "curtail": 17},
+                                                     )
 
     By default it is "discretized" in 7 different "bins". The more "bins" there will be, the more "precise"
     you can be in your control, but the higher the dimension of the action space.
