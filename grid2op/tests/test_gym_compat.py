@@ -883,7 +883,6 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == kept_attr
-        pdb.set_trace()
         assert len(self.env_gym.action_space.sample()) == 124
         self.env_gym.action_space.seed(0)
         # check that all types
@@ -936,12 +935,14 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == kept_attr
         assert len(self.env_gym.action_space.sample()) == 14
-        assert np.all(self.env_gym.action_space.nvec == [3, 29, 5, 31, 15, 113, 4, 1, 15, 3, 3, 3, 7, 3])
+        assert np.all(self.env_gym.action_space.nvec == [4, 30, 6, 32, 16, 114, 5, 1, 16, 4, 4, 4, 8, 4])
+        # assert that i can "do nothing" in all substation
+        for sub_id, li_act in enumerate(self.env_gym.action_space._sub_modifiers[kept_attr[0]]):
+            assert li_act[0] == self.env.action_space()
         ok_setbus = False
         for _ in range(10):
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             ok_setbus = ok_setbus or np.any(grid2op_act.set_bus != 0)
-
         if (not ok_setbus):
             raise RuntimeError("Some property of the actions are not modified !")
 
@@ -955,12 +956,14 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == kept_attr
         assert len(self.env_gym.action_space.sample()) == 14
-        assert np.all(self.env_gym.action_space.nvec == [3, 31, 7, 31, 15, 127, 3, 3, 15, 3, 3, 3, 7, 3])
+        assert np.all(self.env_gym.action_space.nvec == [4, 32, 8, 32, 16, 128, 4, 4, 16, 4, 4, 4, 8, 4])
+        # assert that i can "do nothing" in all substation
+        for sub_id, li_act in enumerate(self.env_gym.action_space._sub_modifiers[kept_attr[0]]):
+            assert li_act[0] == self.env.action_space()
         ok_changebus = False
         for _ in range(10):
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             ok_changebus = ok_changebus or np.any(grid2op_act.change_bus)
-
         if (not ok_changebus):
             raise RuntimeError("Some property of the actions are not modified !")
 

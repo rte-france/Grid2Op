@@ -24,7 +24,126 @@ from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
 
 class MultiDiscreteActSpace(MultiDiscrete):
     """
-    TODO
+    This class allows to convert a grid2op action space into a gym "MultiDiscrete". This means that the action are
+    labeled, and instead of describing the action itself, you provide only its ID.
+
+
+    .. note::
+        This action space is particularly suited for represented discrete actions.
+
+        It is possible to represent continuous actions with it. In that case, the continuous actions are "binarized"
+        thanks to the :class:`ContinuousToDiscreteConverter`. Feel free to consult its documentation for
+        more information.
+
+    In this case it will extract all the features in all the action with:
+
+    - "set_line_status": `n_line` dimensions, each containing 3 choices "DISCONNECT", "DONT AFFECT", "FORCE CONNECTION"
+      and affecting the powerline status (connected / disconnected)
+    - "change_line_status":  `n_line` dimensions, each containing 2 elements "CHANGE", "DONT CHANGE" and
+      affecting the powerline status (connected / disconnected)
+    - "set_bus": `dim_topo` dimensions, each containing 4 choices: "DISCONNECT", "DONT AFFECT", "CONNECT TO BUSBAR 1",
+      or "CONNECT TO BUSBAR 2" and affecting to which busbar an object is connected
+    - "change_bus": `dim_topo` dimensions, each containing 2 choices: "CHANGE", "DONT CHANGE" and affect
+      to which busbar an element is connected
+    - "redispatch": `n_gen` dimensions, each containing a certain number of choices depending on the value
+      of the keyword argument `nb_bins["redispatch"]` (by default 7) and will be 1 for non dispatchable generator
+    - "curtail": `n_gen` dimensions, each containing a certain number of choices depending on the value
+      of the keyword argument `nb_bins["curtail"]` (by default 7) and will be 1 for non renewable generator. This is
+      the "conversion to discrete action"
+      of the curtailment action.
+    - "curtail_mw": completely equivalent to "curtail" for this representation. This is the "conversion to
+      discrete action"
+      of the curtailment action.
+    - "set_storage": `n_storage` dimensions, each containing a certain number of choices depending on the value
+      of the keyword argument `nb_bins["set_storage"]` (by default 7). This is the "conversion to discrete action"
+      of the action on storage units.
+
+
+    We offer some extra customization, with the keywords:
+
+    - "sub_set_bus": `n_sub` dimension. This type of representation encodes each different possible combination
+      of elements that are possible at each substation. The choice at each component depends on the element connected
+      at this substation. Only configurations that will not lead to straight game over will be generated.
+    - "sub_change_bus": `n_sub` dimension. Same comment as for "sub_set_bus"
+    - "one_sub_set": 1 single dimension. This type of representation differs from the previous one only by the fact
+      that each step you can perform only one single action on a single substation (so unlikely to be illegal).
+    - "one_sub_change": 1 single dimension. Same as above.
+
+    .. warning::
+
+        We recommend to use either "set" or "change" way to look at things (**ie** either you want to target
+        a given state -in that case use "sub_set_bus", "line_set_status", "one_sub_set", or "set_bus" __**OR**__ you
+        prefer
+        reasoning in terms of "i want to change this or that" in that case use "sub_change_bus",
+        "line_change_status", "one_sub_change" or "change_bus".
+
+        Combining a "set" and "change" on the same element will most likely lead to an "ambiguous action". Indeed
+        what grid2op can do if you "tell element A to go to bus 1" and "tell element A2 to go to bus 2 if it was
+        to 1 and to move to bus 1 if it was on bus 2". It's not clear at all.
+
+        No error will be thrown if you mix this, this is your absolute right, be aware it might not
+        lead to the result you expect though.
+
+    .. warning::
+
+        The arguments "set_bus", "sub_set_bus" and "one_sub_set" will all perform "set_bus" action. The only
+        difference if "how you represent this action":
+
+        - In "set_bus" each component represent a single element of the grid. When you sample an action
+          with this keyword you will possibly change all the elements of the grid at once (this is likely to
+          be illega). Nothing prevents you to perform "weird" stuff, for example disconnecting a load or a generator
+          (which is straight game over) or having a load or a generator that will be "alone" on a busbar (which
+          will also lead to a straight game over). You can do anything with it, but as always "A great power
+          comes with a great responsibility".
+        - In "sub_set_bus" each component represent a substation of the grid. When you sample an action
+          from this, you will possibly change all the elements of the grid at once (because you can act
+          on all the substation at the same time). As opposed to "set_bus" however this constraint the action
+          space to "action that will not lead directly to a game over", in practice.
+        - In "one_sub_set": the single component represent the whole grid. When you sample an action
+          with this, you will sample a single action acting on a single substation. You will not be able to act
+          on multiple substation with this.
+
+        For this reason, we also do not recommend using only one of these arguments and only provide
+        only one of "set_bus", "sub_set_bus" and "one_sub_set". Again, no error will be thrown if you mix them
+        but be warned that the resulting behaviour might not be what you expect.
+
+    .. warning::
+
+        The same as above holds for "change_bus", "sub_change_bus" and "one_sub_change": Use only one of these !
+
+    Examples
+    --------
+    If you simply want to use it you can do:
+
+    .. code-block:: python
+
+        import grid2op
+        env_name = ...
+        env = grid2op.make(env_name)
+
+        from grid2op.gym_compat import GymEnv, MultiDiscreteActSpace
+        gym_env = GymEnv(env)
+
+        gym_env.action_space = MultiDiscreteActSpace(env.action_space)
+
+    You can select the attribute you want to keep, for example:
+
+    .. code-block:: python
+
+        gym_env.observation_space = MultiDiscreteActSpace(env.observation_space,
+                                                          attr_to_keep=['redispatch', "curtail", "sub_set_bus"])
+
+    You can also apply some basic transformation when you "discretize" continuous action
+
+    .. code-block:: python
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+                                                   attr_to_keep=['redispatch', "curtail", "sub_set_bus"],
+                                                   nb_bins={"redispatch": 3, "curtail": 17},
+                                                   )
+
+    By default it is "discretized" in 7 different "bins". The more "bins" there will be, the more "precise"
+    you can be in your control, but the higher the dimension of the action space.
 
     """
     ATTR_CHANGE = 0
@@ -188,22 +307,18 @@ class MultiDiscreteActSpace(MultiDiscrete):
                     if el == "sub_set_bus": 
                         # one action per substations, using "set"
                         for sub_id in range(self._act_space.n_sub):
-                            act_this_sub = self._act_space.get_all_unitary_topologies_set(self._act_space,
-                                                                                          sub_id=sub_id)
-                            if len(act_this_sub) == 0:
-                                # no action can be done at this substation
-                                act_this_sub.append(self._act_space())
+                            act_this_sub = [self._act_space()]
+                            act_this_sub += self._act_space.get_all_unitary_topologies_set(self._act_space,
+                                                                                           sub_id=sub_id)
                             nvec_.append(len(act_this_sub))
                             self._sub_modifiers[el].append(act_this_sub)
                         funct = self._funct_substations
                     elif el == "sub_change_bus":
                         # one action per substation, using "change"
                         for sub_id in range(self._act_space.n_sub):
-                            acts_this_sub = self._act_space.get_all_unitary_topologies_change(self._act_space,
-                                                                                              sub_id=sub_id)
-                            if len(acts_this_sub) == 0:
-                                # no action can be done at this substation
-                                acts_this_sub.append(self._act_space())
+                            acts_this_sub = [self._act_space()]
+                            acts_this_sub += self._act_space.get_all_unitary_topologies_change(self._act_space,
+                                                                                               sub_id=sub_id)
                             nvec_.append(len(acts_this_sub))
                             self._sub_modifiers[el].append(acts_this_sub)
                         funct = self._funct_substations

@@ -42,6 +42,18 @@ class ChangeNothing(GridValue):
 
         env_name = ...
         env = grid2op.make(env_name, data_feeding_kwargs={"gridvalueClass": ChangeNothing})
+
+    It can also be used with the "blank" environment:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Chronics import ChangeNothing
+        env = grid2op.make("blank",
+                           test=True,
+                           grid_path=EXAMPLE_CASEFILE,
+                           chronics_class=ChangeNothing,
+                           action_class=TopologyAndDispatchAction)
         
     """
     def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
