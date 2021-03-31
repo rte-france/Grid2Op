@@ -8,6 +8,7 @@
 
 from gym import spaces
 import warnings
+import numpy as np
 
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction, ActionSpace
@@ -94,8 +95,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
                             "_hazards": "hazards",
                             "_maintenance": "maintenance",
                             "_storage_power": "storage_power",
-                            "_curtail": "curtail",
-                            "_curtail_mw": "curtail_mw",
+                            "_curtail": "curtail"
                             }
     keys_human_2_grid2op = {v: k for k, v in keys_grid2op_2_human.items()}
 
@@ -239,10 +239,20 @@ class GymActionSpace(_BaseGymSpaceConverter):
                     low = 0.
                 elif attr_nm == "_redispatch":
                     # redispatch
-                    low = -action_space.gen_max_ramp_down
-                    high = action_space.gen_max_ramp_up
+                    low = -1.0 * action_space.gen_max_ramp_down
+                    high = 1.0 * action_space.gen_max_ramp_up
                     low[~action_space.gen_redispatchable] = 0.
                     high[~action_space.gen_redispatchable] = 0.
+                elif attr_nm == "_curtail":
+                    # curtailment
+                    low = np.zeros(action_space.n_gen, dtype=dt_float)
+                    high = np.ones(action_space.n_gen, dtype=dt_float)
+                    low[~action_space.gen_renewable] = 1.0
+                    high[~action_space.gen_renewable] = 1.0
+                elif attr_nm == "_storage_power":
+                    # storage power
+                    low = -1.0 * action_space.storage_max_p_prod
+                    high = 1.0 * action_space.storage_max_p_absorb
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)
 
             if my_type is None:

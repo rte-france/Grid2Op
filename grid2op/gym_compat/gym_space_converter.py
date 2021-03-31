@@ -92,13 +92,11 @@ class _BaseGymSpaceConverter(spaces.Dict):
         Allows to add arbitrary function to the representation, as a gym environment of
         the action space of the observation space.
 
-
         TODO
         **NB** this key is not used when converted back to grid2Op object, as of now we don't recommend to
         use it for the action space !
 
         See the example for more information.
-
 
         Parameters
         ----------
@@ -152,17 +150,29 @@ class _BaseGymSpaceConverter(spaces.Dict):
 
             obs_gym = env_gym.reset()
             print(f"Is the connectivity matrix part of the observation in gym: {'connectivity_matrix' in obs_gym}")
-
-
         """
 
         self.spaces[key_name] = return_type
         self.__func[key_name] = function
 
     def get_dict_encoding(self):
+        """
+        TODO examples and description
+
+        Returns
+        -------
+
+        """
         return copy.deepcopy(self._keys_encoding)
 
     def reencode_space(self, key, func):
+        """
+        TODO examples and description
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError("This should be implemented in the GymActionSpace and GymObservationSpace")
 
     def reenc(self, key, fun):

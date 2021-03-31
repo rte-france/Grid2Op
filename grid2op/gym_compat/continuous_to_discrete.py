@@ -53,6 +53,7 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
     - 3 is understand as 3.333...
     - 4 is understand as 6.6666...
 
+    TODO add example of code on how to use this.
     """
     def __init__(self, nb_bins, init_space=None):
         BaseGymAttrConverter.__init__(self,

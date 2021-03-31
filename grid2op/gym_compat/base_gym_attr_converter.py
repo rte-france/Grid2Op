@@ -9,6 +9,11 @@ from gym.spaces import Space
 
 
 class BaseGymAttrConverter(object):
+    """
+    TODO work in progress !
+
+    Need help if you can :-)
+    """
     def __init__(self, space=None, gym_to_g2op=None, g2op_to_gym=None):
         self.__is_init_super = False  # is the "super" class initialized, do not modify in child class
 

@@ -57,7 +57,7 @@ the agent pretty easily, and allows easy saving into gif format (see below for m
     # execute this agent on 1 scenario, saving the results
     runner = Runner(**env.get_params_for_runner(), agentClass=CustomRandom)
     path_agent = os.path.join(path_agents, "RandomAgent")
-    res = runner.run(nb_episode=1, path_save=path_agent, pbar=tqdm, agent_seeds=[0, 1])
+    res = runner.run(nb_episode=1, path_save=path_agent, pbar=tqdm, agent_seeds=[0])
     # and now reload it and display the "movie" of this scenario
     plot_epi = EpisodeReplay(path_agent)
     plot_epi.replay_episode(res[0][1], gif_name="episode")
