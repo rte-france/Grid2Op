@@ -25,7 +25,93 @@ from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
 
 class BoxGymActSpace(Box):
     """
-    TODO
+    This class allows to convert a grid2op action space into a gym "Box" which is
+    a regular Box in R^d.
+
+    It also allows to customize which part of the action you want to use and offer capacity to
+    center / reduce the data or to use more complex function from the observation.
+
+    .. note::
+        Though it is possible to use every type of action with this type of action space, be aware that
+        this is not recommended at all to use it for discrete attribute (set_bus, change_bus, set_line_status or
+        change_line_status) !
+
+        Basically, when doing action in gym for these attributes, this converter will involve rounding and
+        is definitely not the best representation. Prefer the :class:`MultiDiscreteActSpace` or
+        the :class:`DiscreteActSpace` classes.
+
+    Examples
+    --------
+    If you simply want to use it you can do:
+
+    .. code-block:: python
+
+        import grid2op
+        env_name = ...
+        env = grid2op.make(env_name)
+
+        from grid2op.gym_compat import GymEnv, BoxGymActSpace
+        gym_env = GymEnv(env)
+
+        gym_env.action_space = BoxGymActSpace(env.action_space)
+
+    In this case it will extract all the features in all the action (a detailed list is given
+    in the documentation at :ref:`action-module`).
+
+    You can select the attribute you want to keep, for example:
+
+    .. code-block:: python
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+                                                   attr_to_keep=['redispatch', "curtail"])
+
+    You can also apply some basic transformation to the attribute of the action. This can be done with:
+
+    .. code-block:: python
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+                                                   attr_to_keep=['redispatch', "curtail"],
+                                                   multiply={"redispatch": env.gen_max_ramp_up},
+                                                   add={"redispatch": 0.5 * env.gen_max_ramp_up})
+
+    In the above example, the resulting "redispatch" part of the vector will be given by the following
+    formula: `grid2op_act = gym_act * multiply + add`
+
+    Hint: you can use: `multiply` being the standard deviation and `add` being the average of the attribute.
+
+    Notes
+    -------
+    For more customization, this code is roughly equivalent to something like:
+
+    .. code-block:: python
+
+        import grid2op
+        env_name = ...
+        env = grid2op.make(env_name)
+
+        from grid2op.gym_compat import GymEnv
+        # this of course will not work... Replace "AGymSpace" with a normal gym space, like Dict, Box, MultiDiscrete etc.
+        from gym.spaces import AGymSpace
+        gym_env = GymEnv(env)
+
+        class MyCustomActionSpace(AGymSpace):
+            def __init__(self, whatever, you, want):
+                # do as you please here
+                pass
+                # don't forget to initialize the base class
+                AGymSpace.__init__(self, see, gym, doc, as, to, how, to, initialize, it)
+                # eg. MultiDiscrete.__init__(self, nvec=...)
+
+            def from_gym(self, gym_action):
+                # this is this very same function that you need to implement
+                # it should have this exact name, take only one action (member of your gym space) as input
+                # and return a grid2op action
+                return TheGymAction_ConvertedTo_Grid2op_Action
+                # eg. return np.concatenate((obs.gen_p * 0.1, np.sqrt(obs.load_p))
+
+        gym_env.action_space = MyCustomActionSpace(whatever, you, wanted)
+
+    And you can implement pretty much anything in the "from_gym" function.
 
     """
     def __init__(self,
@@ -220,6 +306,8 @@ class BoxGymActSpace(Box):
 
     def _handle_attribute(self, res, gym_act_this, attr_nm):
         """
+        INTERNAL
+
         TODO
 
         Parameters
@@ -241,14 +329,19 @@ class BoxGymActSpace(Box):
 
     def from_gym(self, gym_act):
         """
-        TODO
+        This is the function that is called to transform a gym action (in this case a numpy array!)
+        sent by the agent
+        and convert it to a grid2op action that will be sent to the underlying grid2op environment.
 
         Parameters
         ----------
-        gym_act
+        gym_act: ``numpy.ndarray``
+            the gym action
 
         Returns
         -------
+        grid2op_act: :class:`grid2op.Action.BaseAction`
+            The corresponding grid2op action.
 
         """
         res = self._act_space()

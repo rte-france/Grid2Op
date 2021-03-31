@@ -70,12 +70,12 @@ class BoxGymObsSpace(Box):
     .. code-block:: python
 
         gym_env.observation_space = BoxGymObsSpace(env.observation_space,
-                                                   attr_to_keep=['load_p', "gen_p", "rho],
-                                                   divide={"gen_p": self.env.gen_pmax},
-                                                   substract={"gen_p": 0.5 * self.env.gen_pmax})
+                                                   attr_to_keep=['load_p', "gen_p", "rho"],
+                                                   divide={"gen_p": env.gen_pmax},
+                                                   substract={"gen_p": 0.5 * env.gen_pmax})
 
     In the above example, the resulting "gen_p" part of the vector will be given by the following
-    formula: gym_obs = (grid2op_obs - substract) / divide.
+    formula: `gym_obs = (grid2op_obs - substract) / divide`.
 
     Hint: you can use: divide being the standard deviation and subtract being the average of the attribute
     on a few episodes for example. This can be done with :class:`grid2op.utils.EpisodeStatistics` for example.
