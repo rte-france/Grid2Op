@@ -121,8 +121,8 @@ class BoxGymObsSpace(Box):
                  divide={},
                  functs={}):
         if not isinstance(grid2op_observation_space, ObservationSpace):
-            raise RuntimeError(f"Impossible to create a BoxGymSPace without providing a "
-                               f"grid2op action_space. You provided {type(grid2op_observation_space)}"
+            raise RuntimeError(f"Impossible to create a BoxGymObsSpace without providing a "
+                               f"grid2op observation. You provided {type(grid2op_observation_space)}"
                                f"as the \"grid2op_observation_space\" attribute.")
         self._attr_to_keep = attr_to_keep
 

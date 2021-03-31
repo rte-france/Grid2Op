@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 from gym.spaces import Box
 
-from grid2op.Action import BaseAction
+from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 
 # TODO test that it works normally
@@ -34,6 +34,10 @@ class BoxGymActSpace(Box):
                  add={},
                  multiply={},
                  functs={}):
+        if not isinstance(grid2op_action_space, ActionSpace):
+            raise RuntimeError(f"Impossible to create a BoxGymActSpace without providing a "
+                               f"grid2op action_space. You provided {type(grid2op_action_space)}"
+                               f"as the \"grid2op_action_space\" attribute.")
 
         if attr_to_keep == ALL_ATTR:
             # by default, i remove all the attributes that are not supported by the action type
@@ -58,6 +62,10 @@ class BoxGymActSpace(Box):
         high_gen = 1.0 * act_sp.gen_max_ramp_up
         low_gen[~act_sp.gen_redispatchable] = 0.
         high_gen[~act_sp.gen_redispatchable] = 0.
+        curtail = np.full(shape=(act_sp.n_gen,), fill_value=0., dtype=dt_float)
+        curtail[~act_sp.gen_renewable] = 1.0
+        curtail_mw = np.full(shape=(act_sp.n_gen,), fill_value=0., dtype=dt_float)
+        curtail_mw[~act_sp.gen_renewable] = act_sp.gen_pmax[~act_sp.gen_renewable]
         self.dict_properties = {
             "set_line_status": (np.full(shape=(act_sp.n_line,), fill_value=-1, dtype=dt_int),
                                 np.full(shape=(act_sp.n_line,), fill_value=1, dtype=dt_int),
@@ -83,11 +91,11 @@ class BoxGymActSpace(Box):
                             1.0 * act_sp.storage_max_p_absorb,
                             (act_sp.n_storage,),
                             dt_float),
-            "curtail": (np.full(shape=(act_sp.n_gen,), fill_value=0., dtype=dt_float),
+            "curtail": (curtail,
                         np.full(shape=(act_sp.n_gen,), fill_value=1., dtype=dt_float),
                         (act_sp.n_gen,),
                         dt_float),
-            "curtail_mw": (np.full(shape=(act_sp.n_gen,), fill_value=0., dtype=dt_float),
+            "curtail_mw": (curtail_mw,
                            1.0 * act_sp.gen_pmax,
                            (act_sp.n_gen,),
                            dt_float),
@@ -167,11 +175,11 @@ class BoxGymActSpace(Box):
                 # el is an attribute of an observation, for example "load_q" or "topo_vect"
                 low_, high_, shape_, dtype_ = self.dict_properties[el]
             else:
-                li_keys = '\n\t-'.join(sorted(list(self.dict_properties.keys()) +
+                li_keys = '\n\t- '.join(sorted(list(self.dict_properties.keys()) +
                                               list(self.__func.keys()))
                                        )
                 raise RuntimeError(f"Unknown action attributes \"{el}\". Supported attributes are: "
-                                   f"\n{li_keys}")
+                                   f"\n\t- {li_keys}")
 
             # handle the data type
             if dtype is None:
@@ -188,12 +196,15 @@ class BoxGymActSpace(Box):
 
             # handle low / high
             # NB: the formula is: glop = gym * multiply + add
-            if el in self._multiply:
-                low_ /= self._multiply[el]
-                high_ /= self._multiply[el]
             if el in self._add:
                 low_ -= self._add[el]
                 high_ -= self._add[el]
+            if el in self._multiply:
+                # special case if a 0 were entered
+                arr_ = 1.0 * self._multiply[el]
+                is_nzero = arr_ != 0.
+                low_[is_nzero] /= arr_[is_nzero]
+                high_[is_nzero] /= arr_[is_nzero]
             if low is None:
                 low = low_
                 high = high_
@@ -255,7 +266,7 @@ class BoxGymActSpace(Box):
                     this_part = np.round(this_part, 0).astype(dtype)
                 elif glop_dtype == dt_bool:
                     # convert floating point actions to bool.
-                    # NB: i suppose here the numbers are between 0 and 1
+                    # NB: it's important here the numbers are between 0 and 1
                     this_part = (this_part >= 0.5).astype(dt_bool)
 
                 self._handle_attribute(res, this_part, attr_nm)
