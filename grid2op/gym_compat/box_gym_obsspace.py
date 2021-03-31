@@ -117,9 +117,9 @@ class BoxGymObsSpace(Box):
     def __init__(self,
                  grid2op_observation_space,
                  attr_to_keep=ALL_ATTR_OBS,
-                 subtract={},
-                 divide={},
-                 functs={}):
+                 subtract=None,
+                 divide=None,
+                 functs=None):
         if not isinstance(grid2op_observation_space, ObservationSpace):
             raise RuntimeError(f"Impossible to create a BoxGymObsSpace without providing a "
                                f"grid2op observation. You provided {type(grid2op_observation_space)}"
@@ -275,7 +275,11 @@ class BoxGymObsSpace(Box):
                                    f"in that case remove \"{key}\" from \"functs\" or you want to add "
                                    f"something to your observation, in that case add it to \"attr_to_keep\"")
 
+        if subtract is None:
+            subtract = {}
         self._subtract = subtract
+        if divide is None:
+            divide = {}
         self._divide = divide
 
         # handle the "functional" part
@@ -283,6 +287,8 @@ class BoxGymObsSpace(Box):
         self.__func = {}
 
         self._dims = None
+        if functs is None:
+            functs = {}
         low, high, shape, dtype = self._get_info(functs)
 
         # initialize the base container

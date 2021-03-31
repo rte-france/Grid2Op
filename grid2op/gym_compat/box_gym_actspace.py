@@ -117,9 +117,9 @@ class BoxGymActSpace(Box):
     def __init__(self,
                  grid2op_action_space,
                  attr_to_keep=ALL_ATTR,
-                 add={},
-                 multiply={},
-                 functs={}):
+                 add=None,
+                 multiply=None,
+                 functs=None):
         if not isinstance(grid2op_action_space, ActionSpace):
             raise RuntimeError(f"Impossible to create a BoxGymActSpace without providing a "
                                f"grid2op action_space. You provided {type(grid2op_action_space)}"
@@ -194,14 +194,22 @@ class BoxGymActSpace(Box):
                                       "set_storage": dt_float,
                                       "curtail": dt_float,
                                       "curtail_mw": dt_float}
-        self._add = add
-        self._multiply = multiply
+        if add is not None:
+            self._add = add
+        else:
+            self._add = {}
+        if multiply is not None:
+            self._multiply = multiply
+        else:
+            self._multiply = {}
 
         # handle the "functional" part
         self.__func = {}
 
         self._dims = None
         self._dtypes = None
+        if functs is None:
+            functs = {}
         low, high, shape, dtype = self._get_info(functs)
 
         # initialize the base container

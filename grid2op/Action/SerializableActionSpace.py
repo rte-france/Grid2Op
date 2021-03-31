@@ -111,7 +111,8 @@ class SerializableActionSpace(SerializableSpace):
         Parameters
         ----------
         action_type: ``str``
-            One of "set_line_status", "change_line_status", "set_bus", "change_bus", "redispatch" or "storage_power"
+            One of "set_line_status", "change_line_status", "set_bus", "change_bus", "redispatch",
+            "storage_power", "set_storage", "curtail" or "curtail_mw"
             A string representing the action types you want to inspect.
 
         Returns
@@ -136,16 +137,22 @@ class SerializableActionSpace(SerializableSpace):
             # this environment do not allow for topological changes but only action on storage units and redispatching
 
         """
-        name_action_types = ["set_line_status", "change_line_status", "set_bus", "change_bus",
-                             "redispatch", "storage_power", "set_storage",
-                             "curtail", "curtail_mw"]
+        name_action_types = ["set_line_status",
+                             "change_line_status",
+                             "set_bus",
+                             "change_bus",
+                             "redispatch",
+                             "storage_power",
+                             "set_storage",
+                             "curtail",
+                             "curtail_mw"]
         assert action_type in name_action_types, f"The action type provided should be in {name_action_types}. " \
                                                  f"You provided {action_type} which is not supported."
 
         if action_type == "storage_power":
-            return self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys
+            return (self.n_storage > 0) and ("storage_power" in self.actionClass.authorized_keys)
         elif action_type == "set_storage":
-            return self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys
+            return (self.n_storage > 0) and ("storage_power" in self.actionClass.authorized_keys)
         elif action_type == "curtail_mw":
             return "curtail" in self.actionClass.authorized_keys
         else:
@@ -1013,10 +1020,8 @@ class SerializableActionSpace(SerializableSpace):
             # Skip non-renewable generators (they cannot be curtail)
             if not action_space.gen_renewable[gen_idx]:
                 continue
-
             # Create evenly spaced interval
             ramps = np.linspace(0.0, action_space.gen_max_ramp_up[gen_idx], num=num_bin)
-            ramps = ramps
 
             # Create ramp up actions
             for ramp in ramps:

@@ -98,13 +98,16 @@ class DiscreteActSpace(Discrete):
     def __init__(self,
                  grid2op_action_space,
                  attr_to_keep=ALL_ATTR,
-                 nb_bins={"redispatch": 7, "set_storage": 7, "curtail": 7}
+                 nb_bins=None,
                  ):
 
         if not isinstance(grid2op_action_space, ActionSpace):
             raise RuntimeError(f"Impossible to create a BoxGymActSpace without providing a "
                                f"grid2op action_space. You provided {type(grid2op_action_space)}"
                                f"as the \"grid2op_action_space\" attribute.")
+
+        if nb_bins is None:
+            nb_bins = {"redispatch": 7, "set_storage": 7, "curtail": 7}
 
         act_sp = grid2op_action_space
         self.action_space = copy.deepcopy(act_sp)

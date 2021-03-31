@@ -216,8 +216,7 @@ def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
         observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
         disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
         attack = np.full((0, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
-    # print(f"env._helper_action_env.n: {env._helper_action_env.n}")
-    # print(f"env._helper_action_env._template_obj: {type(env._helper_action_env._template_obj)}")
+
     if path_save is not None:
         # store observation at timestep 0
         if efficient_storing:
@@ -263,7 +262,6 @@ def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
             time_step += 1
             pbar_.update(1)
             opp_attack = env._oppSpace.last_attack
-            # print(f"env._env_modification: {type(env._env_modification)}")
             episode.incr_store(efficient_storing,
                                time_step,
                                end__ - beg__,
@@ -271,7 +269,7 @@ def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
                                env._env_modification,
                                act, obs, opp_attack,
                                info)
-            # raise RuntimeError("")
+
         end_ = time.time()
 
     episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
@@ -832,7 +830,7 @@ class Runner(object):
         Used to reset an environment. This method is called at the beginning of each new episode.
         If the environment is not initialized, then it initializes it with :func:`Runner.make_env`.
         """
-        return
+        pass
 
     def run_one_episode(self,
                         indx=0,
@@ -1039,7 +1037,6 @@ class Runner(object):
                                         add_detailed_output=add_detailed_output)
         else:
             self._clean_up()
-            # self.backend = self.backendClass()
 
             nb_process = int(nb_process)
             process_ids = [[] for i in range(nb_process)]
@@ -1119,7 +1116,7 @@ class Runner(object):
         close the environment if it has been created
 
         """
-        return
+        pass
 
     def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None,
             agent_seeds=None, add_detailed_output=False):
@@ -1240,9 +1237,6 @@ class Runner(object):
 
         if max_iter is not None:
             max_iter = int(max_iter)
-
-        if (_IS_WINDOWS or _IS_MACOS) and self.__used:
-            pass
 
         if nb_episode == 0:
             res = []
