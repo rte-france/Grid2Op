@@ -119,6 +119,10 @@ class _ObsEnv(BaseEnv):
         self._sum_curtailment_mw_init = 0.
         self._sum_curtailment_mw_prev_init = 0.
 
+    def _init_myclass(self):
+        """this class has already all the powergrid information: it is initialized in the obs space !"""
+        pass
+
     def _init_backend(self,
                       init_grid_path,
                       chronics_handler,
@@ -131,7 +135,7 @@ class _ObsEnv(BaseEnv):
         self._env_dc = self.parameters.ENV_DC
         self.chronics_handler = chronics_handler
         self.backend = backend
-        self._has_been_initialized()
+        self._has_been_initialized()  # really important to include this piece of code! and just here after the
 
         if not issubclass(legalActClass, BaseRules):
             raise Grid2OpException(
@@ -152,7 +156,6 @@ class _ObsEnv(BaseEnv):
         # backend has loaded everything
         self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
         self._hazard_duration = np.zeros(shape=self.n_line, dtype=dt_int)
-        self._has_been_initialized()
 
     def _do_nothing(self, x):
         """

@@ -536,6 +536,113 @@ class GridObjects:
         pass
 
     @classmethod
+    def _clear_class_attribute(cls):
+        cls.glop_version = grid2op.__version__
+
+        cls.SUB_COL = 0
+        cls.LOA_COL = 1
+        cls.GEN_COL = 2
+        cls.LOR_COL = 3
+        cls.LEX_COL = 4
+        cls.STORAGE_COL = 5
+
+        cls.attr_list_vect = None
+        cls.attr_list_set = {}
+        cls.attr_list_json = []
+        cls.attr_nan_list_set = set()
+
+        # class been init
+        # __is_init = False
+
+        # name of the objects
+        cls.env_name = "unknown"
+        cls.name_load = None
+        cls.name_gen = None
+        cls.name_line = None
+        cls.name_sub = None
+        cls.name_storage = None
+
+        cls.n_gen = -1
+        cls.n_load = -1
+        cls.n_line = -1
+        cls.n_sub = -1
+        cls.n_storage = -1
+
+        cls.sub_info = None
+        cls.dim_topo = -1
+
+        # to which substation is connected each element
+        cls.load_to_subid = None
+        cls.gen_to_subid = None
+        cls.line_or_to_subid = None
+        cls.line_ex_to_subid = None
+        cls.storage_to_subid = None
+
+        # which index has this element in the substation vector
+        cls.load_to_sub_pos = None
+        cls.gen_to_sub_pos = None
+        cls.line_or_to_sub_pos = None
+        cls.line_ex_to_sub_pos = None
+        cls.storage_to_sub_pos = None
+
+        # which index has this element in the topology vector
+        cls.load_pos_topo_vect = None
+        cls.gen_pos_topo_vect = None
+        cls.line_or_pos_topo_vect = None
+        cls.line_ex_pos_topo_vect = None
+        cls.storage_pos_topo_vect = None
+
+        # "convenient" way to retrieve information of the grid
+        cls.grid_objects_types = None
+        # to which substation each element of the topovect is connected
+        cls._topo_vect_to_sub = None
+
+        # list of attribute to convert it from/to a vector
+        cls._vectorized = None
+
+        # for redispatching / unit commitment
+        cls._li_attr_disp = ["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
+                         "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
+                         "gen_startup_cost", "gen_shutdown_cost", "gen_renewable"]
+
+        cls._type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float, bool]
+
+        # redispatch data, not available in all environment
+        cls.redispatching_unit_commitment_availble = False
+        cls.gen_type = None
+        cls.gen_pmin = None
+        cls.gen_pmax = None
+        cls.gen_redispatchable = None
+        cls.gen_max_ramp_up = None
+        cls.gen_max_ramp_down = None
+        cls.gen_min_uptime = None
+        cls.gen_min_downtime = None
+        cls.gen_cost_per_MW = None  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
+        cls.gen_startup_cost = None  # start cost (in currency)
+        cls.gen_shutdown_cost = None  # shutdown cost (in currency)
+        cls.gen_renewable = None
+
+        # storage unit static data
+        cls.storage_type = None
+        cls.storage_Emax = None
+        cls.storage_Emin = None
+        cls.storage_max_p_prod = None
+        cls.storage_max_p_absorb = None
+        cls.storage_marginal_cost = None
+        cls.storage_loss = None
+        cls.storage_charging_efficiency = None
+        cls.storage_discharging_efficiency = None
+
+        # grid layout
+        cls.grid_layout = None
+
+        # shunt data, not available in every backend
+        cls.shunts_data_available = False
+        cls.n_shunt = None
+        cls.name_shunt = None
+        cls.shunt_to_subid = None
+
+    @classmethod
     def _update_value_set(cls):
         """
         INTERNAL
@@ -963,11 +1070,15 @@ class GridObjects:
             res[i] = obj_before + my_pos
         return res
 
-    def _init_class_attr(self):
-        """init the class attribute from an instance of the class"""
+    def _init_class_attr(self, obj=None):
+        """init the class attribute from an instance of the class
+            THIS IS NOT A CLASS ATTR
+        """
+        if obj is None:
+            obj = self
         cls = type(self)
         cls_as_dict = {}
-        GridObjects._make_cls_dict_extended(self, cls_as_dict, as_list=False)
+        GridObjects._make_cls_dict_extended(obj, cls_as_dict, as_list=False)
         for attr_nm, attr in cls_as_dict.items():
             setattr(cls, attr_nm, attr)
 
@@ -1898,7 +2009,7 @@ class GridObjects:
         cls.env_name = name
 
     @classmethod
-    def init_grid(cls, gridobj, force=False):
+    def init_grid(cls, gridobj, force=False, extra_name=None):
         """
         INTERNAL
 
@@ -1939,6 +2050,10 @@ class GridObjects:
         res_cls._compute_pos_big_topo_cls()
         if res_cls.glop_version != grid2op.__version__:
             res_cls.process_grid2op_compat()
+        if extra_name is not None:
+            import pdb
+            pdb.set_trace()
+
         # store the type created here in the "globals" to prevent the initialization of the same class over and over
         globals()[name_res] = res_cls
         return res_cls

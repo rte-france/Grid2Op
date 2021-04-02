@@ -73,6 +73,7 @@ class BackendConverter(Backend):
         difcf = detailed_infos_for_cascading_failures
         self.source_backend = source_backend_class(detailed_infos_for_cascading_failures=difcf)
         self.target_backend = target_backend_class(detailed_infos_for_cascading_failures=difcf)
+        # if the target backend (the one performing the powerflows) needs a different file
         self.target_backend_grid_path = target_backend_grid_path
 
         # key: name in the source backend, value name in the target backend, for the substations
@@ -117,22 +118,22 @@ class BackendConverter(Backend):
             self.target_backend.load_grid(path, filename)
 
     def _assert_same_grid(self):
-        """basic assertion that self and the target backend have the same grid"""
-        if self.n_sub != self.target_backend.n_sub:
+        """basic assertion that self and the target backend have the same grid
+        but not necessarily the same object at the same place of course"""
+        if type(self).n_sub != type(self.target_backend).n_sub:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("substations"))
-        if self.n_gen != self.target_backend.n_gen:
+        if type(self).n_gen != type(self.target_backend).n_gen:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("generators"))
-        if self.n_load != self.target_backend.n_load:
+        if type(self).n_load != type(self.target_backend).n_load:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("loads"))
-        if self.n_line != self.target_backend.n_line:
+        if type(self).n_line != type(self.target_backend).n_line:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("lines"))
-        if self.n_storage != self.target_backend.n_storage:
+        if type(self).n_storage != type(self.target_backend).n_storage:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("storages"))
 
     def _init_myself(self):
         # shortcut to set all information related to the class, except the name of the environment
         # this should been done when the source backend is fully initialized only
-        self.__class__ = self.init_grid(self.source_backend)
         self._assert_same_grid()
 
         # and now init all the converting vectors
@@ -212,15 +213,6 @@ class BackendConverter(Backend):
                                                 nm="shunt")
         self.set_thermal_limit(self.target_backend.thermal_limit_a[self._line_tg2sr])
 
-        if self.path_redisp is not None:
-            # redispatching data were available
-            super().load_redispacthing_data(self.path_redisp, name=self.name_redisp)
-        if self.path_storage_data is not None:
-            super().load_storage_data(self.path_storage_data, self.name_storage_data)
-        if self.path_grid_layout is not None:
-            # grid layout data were available
-            super().load_grid_layout(self.path_grid_layout, self.name_grid_layout)
-
     def _get_possible_target_ids(self, id_source, source_2_id_sub, target_2_id_sub, nm):
         id_sub_source = source_2_id_sub[id_source]
         id_sub_target = self._sub_tg2sr[id_sub_source]
@@ -229,7 +221,9 @@ class BackendConverter(Backend):
             raise RuntimeError(ERROR_ELEMENT_CONNECTED.format(nm, id_sub_target, id_sub_source))
         return id_sub_target, ids_target
 
-    def _auto_fill_vect_load_gen_shunt(self, n_element, source_2_id_sub, target_2_id_sub,
+    def _auto_fill_vect_load_gen_shunt(self,
+                                       n_element,
+                                       source_2_id_sub, target_2_id_sub,
                                        tg2sr, sr2tg,
                                        nm):
         nb_load_per_sub = np.zeros(self.n_sub, dtype=dt_int)
@@ -301,24 +295,39 @@ class BackendConverter(Backend):
         self._topo_tg2sr[source_pos[sr2tg]] = target_pos
         self._topo_sr2tg[target_pos] = source_pos[sr2tg]
 
-    def assert_grid_correct_cls(self):
+    def assert_grid_correct(self):
         # this is done before a call to this function, by the environment
-        self.source_backend.set_env_name(self.env_name)
-        self.target_backend.set_env_name(self.env_name)
+        env_name = type(self).env_name
+        type(self.target_backend).set_env_name(env_name)
+        type(self.source_backend).set_env_name(env_name)
+        self._init_class_attr(obj=self.source_backend)
+
+        if self.path_redisp is not None:
+            # redispatching data were available
+            super().load_redispacthing_data(self.path_redisp, name=self.name_redisp)
+            self.source_backend.load_redispacthing_data(self.path_redisp, name=self.name_redisp)
+            self.target_backend.load_redispacthing_data(self.path_redisp, name=self.name_redisp)
+        if self.path_storage_data is not None:
+            super().load_storage_data(self.path_storage_data, self.name_storage_data)
+            self.source_backend.load_storage_data(self.path_redisp, name=self.name_redisp)
+            self.target_backend.load_storage_data(self.path_redisp, name=self.name_redisp)
+        if self.path_grid_layout is not None:
+            # grid layout data were available
+            super().load_grid_layout(self.path_grid_layout, self.name_grid_layout)
+            self.source_backend.load_grid_layout(self.path_redisp, name=self.name_redisp)
+
+        # init the target backend (the one that does the computation and that is initialized)
+        self.target_backend.assert_grid_correct()
+        # initialize the other one, because, well the grid should be seen from both backend
+        self.source_backend._init_class_attr(obj=self)
+        self.source_backend.assert_grid_correct()
+
+        # and this should be called after all the rest
+        super().assert_grid_correct()
 
         # everything went well, so i can properly terminate my initialization
         self._init_myself()
 
-        # the next is not done as it is supposed to be done in "assert_grid_correct_after_powerflow"
-        self.source_backend.__class__ = self.source_backend.init_grid(self)
-        self.target_backend.__class__ = self.target_backend.init_grid(self)  # for this one i am not sure
-
-        # now i assert that the powergrids are ok
-        self.source_backend.assert_grid_correct()
-        self.target_backend.assert_grid_correct()
-
-        # and this should be called after all the rest
-        super().assert_grid_correct()
         if self.sub_source_target is None:
             # automatic mode for substations, names must match
             assert np.all(self.target_backend.name_sub[self._sub_tg2sr] == self.source_backend.name_sub)

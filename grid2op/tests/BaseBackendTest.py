@@ -86,6 +86,7 @@ class BaseTestNames(MakeBackend):
             warnings.filterwarnings("ignore")
             with make(os.path.join(path, "5bus_example_diff_name"),
                       backend=backend,
+                      _add_to_name="BaseTestNames"
                       ) as env:
                 obs = env.reset()
                 assert np.all(obs.name_load == ["tutu", "toto", "tata"])
@@ -100,7 +101,7 @@ class BaseTestLoadingCase(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             backend.load_grid(path_matpower, case_file)
-        backend.set_env_name("TestLoadingCase_env")
+        type(backend).set_env_name("BaseTestLoadingCase")
         backend.assert_grid_correct()
 
         assert backend.n_line == 20
@@ -150,7 +151,7 @@ class BaseTestLoadingCase(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             backend.load_grid(path_matpower, case_file)
-        backend.set_env_name("TestLoadingCase_env2")
+        type(backend).set_env_name("TestLoadingCase_env2_test_assert_grid_correct")
         backend.assert_grid_correct()
         conv = backend.runpf()
         assert conv, "powerflow diverge it is not supposed to!"
@@ -165,7 +166,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, self.case_file)
-        self.backend.set_env_name("TestLoadingBackendFunc_env")
+        type(self.backend).set_env_name("TestLoadingBackendFunc_env")
         type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
@@ -575,7 +576,7 @@ class BaseTestTopoAction(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, self.case_file)
-        self.backend.set_env_name("TestTopoAction_env")
+        type(self.backend).set_env_name("BaseTestTopoAction")
         type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
@@ -1064,12 +1065,13 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
     """
     def setUp(self):
         self.backend = self.make_backend(detailed_infos_for_cascading_failures=True)
+        type(self.backend)._clear_class_attribute()
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, self.case_file)
-        self.backend.set_env_name("TestEnvPerformsCorrectCascadingFailures_env")
+        type(self.backend).set_env_name("TestEnvPerformsCorrectCascadingFailures_env")
         type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
@@ -1333,6 +1335,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         self.skip_if_needed()
         # print("test_set_bus")
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
@@ -1347,6 +1350,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         self.skip_if_needed()
         # print("test_change_bus")
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
@@ -1360,6 +1364,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         self.skip_if_needed()
         # print("test_change_bustwice")
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
@@ -1380,6 +1385,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         self.skip_if_needed()
         # print("test_isolate_load")
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
@@ -1391,6 +1397,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         self.skip_if_needed()
         # print("test_reco_disco_bus")
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case1 = make("rte_case5_example", test=True, gamerules_class=AlwaysLegal, backend=backend)
@@ -1408,6 +1415,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         self.skip_if_needed()
         # print("test_reco_disco_bus2")
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case2 = make("rte_case5_example", test=True, gamerules_class=AlwaysLegal, backend=backend)
@@ -1425,6 +1433,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         self.skip_if_needed()
         # print("test_reco_disco_bus3")
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case2 = make("rte_case5_example", test=True, gamerules_class=AlwaysLegal, backend=backend)
@@ -1440,6 +1449,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         self.skip_if_needed()
         # print("test_reco_disco_bus4")
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case2 = make("rte_case5_example", test=True, gamerules_class=AlwaysLegal, backend=backend)
@@ -1455,6 +1465,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         self.skip_if_needed()
         # print("test_reco_disco_bus5")
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case2 = make("rte_case5_example", test=True, gamerules_class=AlwaysLegal, backend=backend)
@@ -1470,6 +1481,7 @@ class BaseTestShuntAction(MakeBackend):
     def test_shunt_ambiguous_id_incorrect(self):
         self.skip_if_needed()
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case5_example", test=True, gamerules_class=AlwaysLegal,
@@ -1481,6 +1493,7 @@ class BaseTestShuntAction(MakeBackend):
         self.skip_if_needed()
         backend1 = self.make_backend()
         backend2 = self.make_backend()
+        type(backend1)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_ref = make("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal,
@@ -1507,6 +1520,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
     def setUp(self):
         backend1 = self.make_backend()
         backend2 = self.make_backend()
+        type(backend1)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env1 = make("rte_case5_example", test=True, backend=backend1)
@@ -1625,6 +1639,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
     def test_combined_changes(self):
         # Unlimited sub changes
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         params = grid2op.Parameters.Parameters()
         params.MAX_SUB_CHANGED = 999
 
@@ -1697,6 +1712,7 @@ class BaseTestVoltageOWhenDisco(MakeBackend):
     def test_this(self):
         self.skip_if_needed()
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case14_realistic", test=True, backend=backend) as env:
@@ -1710,6 +1726,7 @@ class BaseTestChangeBusSlack(MakeBackend):
     def test_change_slack_case14(self):
         self.skip_if_needed()
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True, backend=backend)
@@ -1742,6 +1759,7 @@ class BaseTestStorageAction(MakeBackend):
         """test the backend properly loaded the storage units"""
         self.skip_if_needed()
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("educ_case14_storage", test=True, backend=backend)
@@ -1751,6 +1769,7 @@ class BaseTestStorageAction(MakeBackend):
         """test the actions are properly implemented in the backend"""
         self.skip_if_needed()
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("educ_case14_storage", test=True, backend=backend)
@@ -1817,6 +1836,7 @@ class BaseTestStorageAction(MakeBackend):
         param.NB_TIMESTEP_COOLDOWN_SUB = 0
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("educ_case14_storage", test=True, backend=backend,
@@ -1925,6 +1945,7 @@ class BaseIssuesTest(MakeBackend):
         # https://github.com/rte-france/Grid2Op/issues/125
         self.skip_if_needed()
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True,
@@ -1947,6 +1968,7 @@ class BaseIssuesTest(MakeBackend):
     def test_issue_134(self):
         self.skip_if_needed()
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         param = Parameters()
 
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
@@ -2010,6 +2032,7 @@ class BaseIssuesTest(MakeBackend):
     def test_issue_134_check_ambiguity(self):
         self.skip_if_needed()
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         param = Parameters()
 
         param.MAX_LINE_STATUS_CHANGED = 9999
@@ -2037,6 +2060,7 @@ class BaseIssuesTest(MakeBackend):
     def test_issue_134_withcooldown_forrules(self):
         self.skip_if_needed()
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         param = Parameters()
 
         param.NB_TIMESTEP_COOLDOWN_LINE = 20
@@ -2133,6 +2157,7 @@ class BaseIssuesTest(MakeBackend):
     def test_issue_copyenv(self):
         # https://github.com/BDonnot/lightsim2grid/issues/10
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env1 = grid2op.make("rte_case14_realistic",
@@ -2147,6 +2172,7 @@ class BaseIssuesTest(MakeBackend):
 class BaseStatusActions(MakeBackend):
     def _make_my_env(self):
         backend = self.make_backend()
+        type(backend)._clear_class_attribute()
         param = Parameters()
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
         param.NB_TIMESTEP_COOLDOWN_SUB = 0

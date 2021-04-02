@@ -236,6 +236,7 @@ class Environment(BaseEnv):
         self._helper_action_env = self._helper_action_class(gridobj=bk_type,
                                                             actionClass=CompleteAction,
                                                             legal_action=self._game_rules.legal_action)
+
         self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
         self._observation_space = self._helper_observation_class(gridobj=bk_type,
                                                                  observationClass=observationClass,

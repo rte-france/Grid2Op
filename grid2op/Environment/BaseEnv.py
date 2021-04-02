@@ -479,14 +479,22 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._oppSpace.init_opponent(partial_env=self, **self._kwargs_opponent)
         self._oppSpace.reset()
 
+    def _init_myclass(self):
+        if self._backend_action_class is not None:
+            # the class has already been initialized
+            return
+        bk_type = type(self.backend)  # be careful here: you need to initialize from the class, and not from the object
+        # create the proper environment class for this specific environment
+        self.__class__ = type(self).init_grid(bk_type)
+
     def _has_been_initialized(self):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
-        bk_type = type(self.backend)  # be carefull here: you need to initialize from the class, and not from the object
-        self.__class__ = self.init_grid(bk_type)  # create the proper environment class for this specific environment
+        self._init_myclass()
+        bk_type = type(self.backend)
         if np.min([self.n_line, self.n_gen, self.n_load, self.n_sub]) <= 0:
             raise EnvironmentError("Environment has not been initialized properly")
-        self._backend_action_class = _BackendAction.init_grid(self.backend)
+        self._backend_action_class = _BackendAction.init_grid(bk_type)
         self._backend_action = self._backend_action_class()
 
         # initialize maintenance / hazards
