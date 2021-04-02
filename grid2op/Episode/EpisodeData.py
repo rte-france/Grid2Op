@@ -559,10 +559,12 @@ class EpisodeData:
             self.env_actions.update(time_step, env_act, efficient_storing)
             # deactive the possibility to do "forecast" in this serialized instance
             tmp_obs_env = obs._obs_env
+            tmp_inj = obs._forecasted_inj
             obs._obs_env = None
             obs._forecasted_inj = []
             self.observations.update(time_step + 1, obs, efficient_storing)
             obs._obs_env = tmp_obs_env
+            obs._forecasted_inj = tmp_inj
 
             if opp_attack is not None:
                 self.attacks.update(time_step, opp_attack, efficient_storing)
