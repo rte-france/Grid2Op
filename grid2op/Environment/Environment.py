@@ -107,8 +107,8 @@ class Environment(BaseEnv):
         self.name = name
 
         # for gym compatibility (initialized below)
-        self.action_space = None
-        self.observation_space = None
+        # self.action_space = None
+        # self.observation_space = None
         self.reward_range = None
         self.viewer = None
         self.metadata = None
@@ -229,18 +229,18 @@ class Environment(BaseEnv):
         self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type)
 
         self._helper_action_class = ActionSpace.init_grid(gridobj=bk_type)
-        self._helper_action_player = self._helper_action_class(gridobj=bk_type,
-                                                               actionClass=actionClass,
-                                                               legal_action=self._game_rules.legal_action)
+        self._action_space = self._helper_action_class(gridobj=bk_type,
+                                                       actionClass=actionClass,
+                                                       legal_action=self._game_rules.legal_action)
         # action that affect the grid made by the environment.
         self._helper_action_env = self._helper_action_class(gridobj=bk_type,
                                                             actionClass=CompleteAction,
                                                             legal_action=self._game_rules.legal_action)
         self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
-        self._helper_observation = self._helper_observation_class(gridobj=bk_type,
-                                                                  observationClass=observationClass,
-                                                                  rewardClass=rewardClass,
-                                                                  env=self)
+        self._observation_space = self._helper_observation_class(gridobj=bk_type,
+                                                                 observationClass=observationClass,
+                                                                 rewardClass=rewardClass,
+                                                                 env=self)
 
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
@@ -290,8 +290,8 @@ class Environment(BaseEnv):
         self.backend.assert_grid_correct_after_powerflow()
 
         # for gym compatibility
-        self.action_space = self._helper_action_player  # this should be an action !!!
-        self.observation_space = self._helper_observation  # this return an observation.
+        # self._action_space = self._helper_action_player  # this should be an action !!!
+        # self._observation_space = self._helper_observation  # this return an observation.
         self.reward_range = self._reward_helper.range()
         self.viewer = None
         self.viewer_fig = None
@@ -304,6 +304,14 @@ class Environment(BaseEnv):
 
         # reset everything to be consistent
         self._reset_vectors_and_timings()
+
+    @property
+    def _helper_observation(self):
+        return self._observation_space
+
+    @property
+    def _helper_action_player(self):
+        return self._action_space
 
     def _handle_compat_glop_version(self):
         if self._compat_glop_version is not None and self._compat_glop_version != grid2op.__version__:
@@ -501,9 +509,9 @@ class Environment(BaseEnv):
         """
         try:
             id_ = int(id_)
-        except:
+        except Exception as exc_:
             raise EnvError("the \"id_\" parameters should be convertible to integer and not be of type {}"
-                           "".format(type(id_)))
+                           "with error \n\"{}\"".format(type(id_), exc_))
 
         self.chronics_handler.tell_id(id_-1)
 
@@ -565,7 +573,7 @@ class Environment(BaseEnv):
                       "Please install matplotlib or run pip install grid2op[optional]"
             raise Grid2OpException(err_msg) from None
 
-        self.viewer = PlotMatplot(self._helper_observation)
+        self.viewer = PlotMatplot(self._observation_space)
         self.viewer_fig = None
         # Set renderer modes
         self.metadata = {'render.modes': ["human", "silent"]}
@@ -738,9 +746,8 @@ class Environment(BaseEnv):
         tmp_backend = self.backend
         self.backend = None
 
-        tmp_obs_space = self._helper_observation
-        self.observation_space = None
-        self._helper_observation = None
+        tmp_obs_space = self._observation_space
+        self._observation_space = None
 
         obs_tmp = self.current_obs
         self.current_obs = None
@@ -750,17 +757,15 @@ class Environment(BaseEnv):
 
         res = copy.deepcopy(self)
         res.backend = tmp_backend.copy()
-        res._helper_observation = tmp_obs_space.copy()
-        res.observation_space = res._helper_observation
+        res._observation_space = tmp_obs_space.copy()
         res.current_obs = obs_tmp.copy()
-        res.current_obs._obs_env = res._helper_observation.obs_env  # retrieve the pointer to the proper backend
+        res.current_obs._obs_env = res._observation_space.obs_env  # retrieve the pointer to the proper backend
         res._voltage_controler = volt_cont.copy()
 
         if self._thermal_limit_a is not None:
             res.backend.set_thermal_limit(self._thermal_limit_a)
         self.backend = tmp_backend
-        self.observation_space = tmp_obs_space
-        self._helper_observation = tmp_obs_space
+        self._observation_space = tmp_obs_space
         self.current_obs = obs_tmp
         self._voltage_controler = volt_cont
         return res

@@ -165,7 +165,7 @@ class OpponentSpace(object):
                                           self.previous_fails)
             attack_called = True
             # If the cost is too high
-            final_budget  = self.budget  # TODO add the: + self.budget_per_timestep * (self.attack_duration - 1)
+            final_budget = self.budget  # TODO add the: + self.budget_per_timestep * (self.attack_duration - 1)
             # i did not do it in case an attack is ok at the beginning, ok at the end, but at some point in the attack
             # process it is not (but i'm not sure this can happen, and don't have time to think about it right now)
             if self.attack_duration * self.compute_budget(attack) > final_budget:

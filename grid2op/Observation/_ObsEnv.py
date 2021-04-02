@@ -128,7 +128,8 @@ class _ObsEnv(BaseEnv):
                       names_chronics_to_backend,
                       actionClass,
                       observationClass,
-                      rewardClass, legalActClass):
+                      rewardClass,
+                      legalActClass):
         self._env_dc = self.parameters.ENV_DC
         self.chronics_handler = chronics_handler
         self.backend = backend
@@ -141,7 +142,7 @@ class _ObsEnv(BaseEnv):
                     type(legalActClass)))
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._legalActClass = legalActClass
-        self._helper_action_player = self._do_nothing
+        self._action_space = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
         self._create_opponent()
 
@@ -156,6 +157,12 @@ class _ObsEnv(BaseEnv):
         self._has_been_initialized()
 
     def _do_nothing(self, x):
+        """
+        this is should be only called within _Obsenv.step, and there, only return the "do nothing"
+        action.
+
+        This is why this function is used as the "obsenv action space"
+        """
         return self._do_nothing_act
 
     def _update_actions(self):

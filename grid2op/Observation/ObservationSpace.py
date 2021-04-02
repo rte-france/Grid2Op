@@ -94,7 +94,7 @@ class ObservationSpace(SerializableObservationSpace):
                                      action_helper=self.action_helper_env,
                                      thermal_limit_a=env.get_thermal_limit(),
                                      legalActClass=env._legalActClass,
-                                     donothing_act=env._helper_action_player(),
+                                     donothing_act=env._action_space(),
                                      other_rewards=other_rewards,
                                      completeActionClass=env._helper_action_env.actionClass,
                                      helper_action_class=env._helper_action_class,
