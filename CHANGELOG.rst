@@ -25,7 +25,7 @@ Change Log
 [1.5.1] - 2021-xx-yy
 -----------------------
 - [IMPROVED] extra layer of security preventing modification of `observation_space` and `action_space` of environment
-
+- [IMPROVED] better handling of dynamically generated classes
 
 [1.5.0] - 2021-03-31
 -------------------------

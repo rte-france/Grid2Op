@@ -58,6 +58,7 @@ class ObservationSpace(SerializableObservationSpace):
                  env,
                  rewardClass=None,
                  observationClass=CompleteObservation,
+                 actionClass=None,
                  with_forecast=True):
         """
         INTERNAL
@@ -66,6 +67,10 @@ class ObservationSpace(SerializableObservationSpace):
 
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
         """
+
+        if actionClass is None:
+            from grid2op.Action import CompleteAction
+            actionClass = CompleteAction
 
         SerializableObservationSpace.__init__(self, gridobj, observationClass=observationClass)
 
@@ -86,17 +91,15 @@ class ObservationSpace(SerializableObservationSpace):
 
         # TODO here: have another backend maybe
         self._backend_obs = env.backend.copy()
-        _ObsEnv_class = _ObsEnv.init_grid(type(self._backend_obs))
+        _ObsEnv_class = _ObsEnv.init_grid(type(env.backend))
         self.obs_env = _ObsEnv_class(backend_instanciated=self._backend_obs,
                                      obsClass=observationClass,  # do not put self.observationClass otherwise it's initialized twice
                                      parameters=self._simulate_parameters,
                                      reward_helper=self.reward_helper,
                                      action_helper=self.action_helper_env,
                                      thermal_limit_a=env.get_thermal_limit(),
-                                     legalActClass=env._legalActClass,
-                                     donothing_act=env._action_space(),
+                                     legalActClass=copy.deepcopy(env._legalActClass),
                                      other_rewards=other_rewards,
-                                     completeActionClass=env._helper_action_env.actionClass,
                                      helper_action_class=env._helper_action_class,
                                      helper_action_env=env._helper_action_env)
         for k, v in self.obs_env.other_rewards.items():

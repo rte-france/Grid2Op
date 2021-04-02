@@ -1042,6 +1042,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Simulate & Step
         self.sim_obs, _, _, _ = self.obs.simulate(change_act)
         self.step_obs, _, _, _ = self.env.step(change_act)
+        assert isinstance(self.sim_obs, type(self.step_obs)), "sim_obs is not the same type as the step"
+        assert isinstance(self.step_obs, type(self.sim_obs)), "step is not the same type as the simulation"
+
         # Test observations are the same
         if self.sim_obs != self.step_obs:
             diff_, attr_diff = self.sim_obs.where_different(self.step_obs)

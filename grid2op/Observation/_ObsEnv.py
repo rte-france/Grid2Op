@@ -44,14 +44,12 @@ class _ObsEnv(BaseEnv):
     """
     def __init__(self,
                  backend_instanciated,
-                 completeActionClass,
                  parameters,
                  reward_helper,
                  obsClass,
                  action_helper,
                  thermal_limit_a,
                  legalActClass,
-                 donothing_act,
                  helper_action_class,
                  helper_action_env,
                  other_rewards={}):

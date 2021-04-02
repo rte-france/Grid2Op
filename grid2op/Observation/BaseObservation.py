@@ -787,8 +787,13 @@ class BaseObservation(GridObjects):
         """
         same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
+            import pdb
+            pdb.set_trace()
             raise RuntimeError("Cannot compare to observation not coming from the same powergrid.")
+        tmp_obs_env = self._obs_env
+        self._obs_env = None  # keep aside the backend
         res = copy.deepcopy(self)
+        self._obs_env = tmp_obs_env
         for stat_nm in self._attr_eq:
             me_ = getattr(self, stat_nm)
             oth_ = getattr(other, stat_nm)

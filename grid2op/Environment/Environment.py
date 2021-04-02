@@ -239,6 +239,7 @@ class Environment(BaseEnv):
         self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
         self._observation_space = self._helper_observation_class(gridobj=bk_type,
                                                                  observationClass=observationClass,
+                                                                 actionClass=actionClass,
                                                                  rewardClass=rewardClass,
                                                                  env=self)
 
@@ -812,8 +813,8 @@ class Environment(BaseEnv):
             res["backend"] = self.backend.copy()
         res["parameters"] = copy.deepcopy(self._parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
-        res["actionClass"] = self._actionClass
-        res["observationClass"] = self._observationClass
+        res["actionClass"] = self._actionClass_orig
+        res["observationClass"] = self._observationClass_orig
         res["rewardClass"] = self._rewardClass
         res["legalActClass"] = self._legalActClass
         res["epsilon_poly"] = self._epsilon_poly

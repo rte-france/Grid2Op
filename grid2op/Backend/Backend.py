@@ -1470,8 +1470,9 @@ class Backend(GridObjects, ABC):
         from grid2op.Action import CompleteAction
         from grid2op.Action._BackendAction import _BackendAction
         self.__class__ = self.init_grid(self)
-        self.my_bk_act_class = _BackendAction.init_grid(self)
-        self._complete_action_class = CompleteAction.init_grid(self)
+        my_cls = type(self)
+        my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls)
+        my_cls._complete_action_class = CompleteAction.init_grid(my_cls)
         super().assert_grid_correct()
 
     def assert_grid_correct_after_powerflow(self):
