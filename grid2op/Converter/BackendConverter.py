@@ -301,7 +301,7 @@ class BackendConverter(Backend):
         self._topo_tg2sr[source_pos[sr2tg]] = target_pos
         self._topo_sr2tg[target_pos] = source_pos[sr2tg]
 
-    def assert_grid_correct(self):
+    def assert_grid_correct_cls(self):
         # this is done before a call to this function, by the environment
         self.source_backend.set_env_name(self.env_name)
         self.target_backend.set_env_name(self.env_name)

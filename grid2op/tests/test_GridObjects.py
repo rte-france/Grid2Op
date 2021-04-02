@@ -15,6 +15,9 @@ import warnings
 
 import grid2op
 from grid2op.Backend.EducPandaPowerBackend import EducPandaPowerBackend
+from grid2op.Exceptions import EnvError
+
+import pdb
 
 
 class TestAuxFunctions(unittest.TestCase):
@@ -52,40 +55,47 @@ class TestAuxFunctions(unittest.TestCase):
         backend.line_or_to_subid = self.envref.backend.line_or_to_subid
         backend.line_ex_to_subid = self.envref.backend.line_ex_to_subid
 
+        # now "hack" the class to check that the correct element are correctly implemented
+        bk_cls = type(backend)
+
         # delete the attributes we want to test
-        backend.sub_info = None
-        backend.load_to_sub_pos = None
-        backend.gen_to_sub_pos = None
-        backend.line_or_to_sub_pos = None
-        backend.line_ex_to_sub_pos = None
-        backend.line_ex_to_sub_pos = None
-        backend.load_pos_topo_vect = None
-        backend.gen_pos_topo_vect = None
-        backend.line_or_pos_topo_vect = None
-        backend.line_ex_pos_topo_vect = None
+        bk_cls.sub_info = None
+        bk_cls.load_to_sub_pos = None
+        bk_cls.gen_to_sub_pos = None
+        bk_cls.line_or_to_sub_pos = None
+        bk_cls.line_ex_to_sub_pos = None
+        bk_cls.line_ex_to_sub_pos = None
+        bk_cls.load_pos_topo_vect = None
+        bk_cls.gen_pos_topo_vect = None
+        bk_cls.line_or_pos_topo_vect = None
+        bk_cls.line_ex_pos_topo_vect = None
+
+        # test that the grid is not correct now
+        with self.assertRaises(EnvError):
+            bk_cls.assert_grid_correct_cls()
 
         # fill the _compute_sub_elements
-        backend._compute_sub_elements()
-        assert np.sum(backend.sub_info) == 56
-        assert np.all(backend.sub_info == [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3])
+        bk_cls._compute_sub_elements()
+        assert np.sum(bk_cls.sub_info) == 56
+        assert np.all(bk_cls.sub_info == [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3])
 
         # fill the *sub_pos
-        backend._compute_sub_pos()
-        assert np.all(backend.load_to_sub_pos == 0)
-        assert np.all(backend.gen_to_sub_pos == [1, 1, 1, 0, 0])
-        assert np.all(backend.line_or_to_sub_pos == [1, 2, 2, 3, 4, 2, 1, 2, 3, 4, 1, 2, 1, 1, 1, 2, 3, 1, 0, 3])
-        assert np.all(backend.line_ex_to_sub_pos == [5, 2, 3, 4, 3, 5, 4, 1, 2, 2, 2, 1, 2, 3, 2, 1, 4, 5, 1, 2])
+        bk_cls._compute_sub_pos()
+        assert np.all(bk_cls.load_to_sub_pos == 0)
+        assert np.all(bk_cls.gen_to_sub_pos == [1, 1, 1, 0, 0])
+        assert np.all(bk_cls.line_or_to_sub_pos == [1, 2, 2, 3, 4, 2, 1, 2, 3, 4, 1, 2, 1, 1, 1, 2, 3, 1, 0, 3])
+        assert np.all(bk_cls.line_ex_to_sub_pos == [5, 2, 3, 4, 3, 5, 4, 1, 2, 2, 2, 1, 2, 3, 2, 1, 4, 5, 1, 2])
 
         # fill the *pos_topo_vect
-        backend._compute_pos_big_topo()
-        assert np.all(backend.load_pos_topo_vect == [3,  9, 13, 19, 24, 35, 40, 43, 46, 49, 53])
-        assert np.all(backend.gen_pos_topo_vect == [4, 10, 25, 33,  0])
-        assert np.all(backend.line_or_pos_topo_vect == [1,  2,  5,  6,  7, 11, 14, 26, 27, 28, 36, 37, 41, 47, 50, 15,
-                                                        16, 20, 30, 38])
-        assert np.all(backend.line_ex_pos_topo_vect == [8, 21, 12, 17, 22, 18, 23, 44, 48, 51, 42, 54, 45, 52, 55, 31,
-                                                        39, 29, 34, 32])
+        backend._compute_pos_big_topo()  # i test the object class here
+        assert np.all(bk_cls.load_pos_topo_vect == [3,  9, 13, 19, 24, 35, 40, 43, 46, 49, 53])
+        assert np.all(bk_cls.gen_pos_topo_vect == [4, 10, 25, 33,  0])
+        assert np.all(bk_cls.line_or_pos_topo_vect == [1,  2,  5,  6,  7, 11, 14, 26, 27, 28, 36, 37, 41, 47, 50, 15,
+                                                       16, 20, 30, 38])
+        assert np.all(bk_cls.line_ex_pos_topo_vect == [8, 21, 12, 17, 22, 18, 23, 44, 48, 51, 42, 54, 45, 52, 55, 31,
+                                                       39, 29, 34, 32])
         # this should pass
-        backend.assert_grid_correct()
+        bk_cls.assert_grid_correct_cls()
 
 
 if __name__ == "__main__":

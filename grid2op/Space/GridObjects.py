@@ -963,13 +963,18 @@ class GridObjects:
             res[i] = obj_before + my_pos
         return res
 
-    def _compute_pos_big_topo(self):
-        # TODO move the object attribute as class attribute !
+    def _init_class_attr(self):
+        """init the class attribute from an instance of the class"""
         cls = type(self)
         cls_as_dict = {}
         GridObjects._make_cls_dict_extended(self, cls_as_dict, as_list=False)
         for attr_nm, attr in cls_as_dict.items():
             setattr(cls, attr_nm, attr)
+
+    def _compute_pos_big_topo(self):
+        # TODO move the object attribute as class attribute !
+        self._init_class_attr()
+        cls = type(self)
         cls._compute_pos_big_topo_cls()
 
     @classmethod
@@ -1378,7 +1383,7 @@ class GridObjects:
                 cls.sub_info[s_id] += 1
 
     @classmethod
-    def assert_grid_correct(cls):
+    def assert_grid_correct_cls(cls):
         """
         INTERNAL
 

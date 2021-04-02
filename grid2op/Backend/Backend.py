@@ -1469,11 +1469,12 @@ class Backend(GridObjects, ABC):
         # lazy loading
         from grid2op.Action import CompleteAction
         from grid2op.Action._BackendAction import _BackendAction
-        self.__class__ = self.init_grid(self)
+        self._init_class_attr()
+        self.__class__ = type(self).init_grid(type(self))
         my_cls = type(self)
         my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls)
         my_cls._complete_action_class = CompleteAction.init_grid(my_cls)
-        super().assert_grid_correct()
+        my_cls.assert_grid_correct_cls()
 
     def assert_grid_correct_after_powerflow(self):
         """
