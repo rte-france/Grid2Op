@@ -2009,7 +2009,7 @@ class GridObjects:
         cls.env_name = name
 
     @classmethod
-    def init_grid(cls, gridobj, force=False, extra_name=None):
+    def init_grid(cls, gridobj, force=False, extra_name=None, force_module=None):
         """
         INTERNAL
 
@@ -2050,13 +2050,15 @@ class GridObjects:
         res_cls._compute_pos_big_topo_cls()
         if res_cls.glop_version != grid2op.__version__:
             res_cls.process_grid2op_compat()
-        if extra_name is not None:
-            import pdb
-            pdb.set_trace()
+
+        if force_module is not None:
+            res_cls.__module__ = force_module  # hack because otherwise it says "abc" which is not the case
+            # best would be to have a look at https://docs.python.org/3/library/types.html
 
         # store the type created here in the "globals" to prevent the initialization of the same class over and over
         globals()[name_res] = res_cls
-        return res_cls
+        del res_cls
+        return globals()[name_res]
 
     @classmethod
     def process_grid2op_compat(cls):

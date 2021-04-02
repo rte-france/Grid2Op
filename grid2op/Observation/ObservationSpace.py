@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import sys
 import copy
 
 from grid2op.Observation.SerializableObservationSpace import SerializableObservationSpace
@@ -91,7 +92,8 @@ class ObservationSpace(SerializableObservationSpace):
 
         # TODO here: have another backend maybe
         self._backend_obs = env.backend.copy()
-        _ObsEnv_class = _ObsEnv.init_grid(type(env.backend))
+        _ObsEnv_class = _ObsEnv.init_grid(type(env.backend), force_module=_ObsEnv.__module__)
+        setattr(sys.modules[_ObsEnv.__module__], _ObsEnv_class.__name__, _ObsEnv_class)
         self.obs_env = _ObsEnv_class(backend_instanciated=self._backend_obs,
                                      obsClass=observationClass,  # do not put self.observationClass otherwise it's initialized twice
                                      parameters=self._simulate_parameters,

@@ -24,6 +24,8 @@ from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageControll
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 
+from grid2op.Backend import PandaPowerBackend
+
 
 class Environment(BaseEnv):
     """
@@ -172,6 +174,8 @@ class Environment(BaseEnv):
         self.backend.load_redispacthing_data(self.get_path_env())
         self.backend.load_storage_data(self.get_path_env())
         self.backend.load_grid_layout(self.get_path_env())
+
+        # to force the initialization of the backend to the proper type
         self.backend.assert_grid_correct()
         self._handle_compat_glop_version()
 
