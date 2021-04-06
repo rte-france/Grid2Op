@@ -66,6 +66,16 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
                        chronics_class=ChangeNothing,
                        action_class=TopologyAndDispatchAction)
 
+        # test that it raises a warning because there is not layout
+        with self.assertRaises(UserWarning):
+            with warnings.catch_warnings():
+                warnings.filterwarnings("error")
+                env = make("blank",
+                           test=True,
+                           grid_path=EXAMPLE_CASEFILE,
+                           chronics_class=ChangeNothing,
+                           action_class=TopologyAndDispatchAction)
+
     def test_case14_fromfile(self):
         self.skipTest("deprecated test")
         with warnings.catch_warnings():
@@ -359,131 +369,164 @@ class TestkwargsName(unittest.TestCase):
 class TestMakeFromPathConfig(unittest.TestCase):
     def test_case5_config(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")
-        with make_from_dataset_path(dataset_path) as env:
-            # Check config is loaded from config.py
-            assert env._rewardClass == L2RPNReward
-            assert issubclass(env._actionClass, TopologyAction)
-            assert issubclass(env._observationClass, CompleteObservation)
-            assert isinstance(env.backend, PandaPowerBackend)
-            assert env._legalActClass == DefaultRules
-            assert isinstance(env._voltage_controler, ControlVoltageFromFile)
-            assert isinstance(env.chronics_handler.real_data, Multifolder)
-            assert env.action_space.grid_layout != None
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                # Check config is loaded from config.py
+                assert env._rewardClass == L2RPNReward
+                assert issubclass(env._actionClass, TopologyAction)
+                assert issubclass(env._observationClass, CompleteObservation)
+                assert isinstance(env.backend, PandaPowerBackend)
+                assert env._legalActClass == DefaultRules
+                assert isinstance(env._voltage_controler, ControlVoltageFromFile)
+                assert isinstance(env.chronics_handler.real_data, Multifolder)
+                assert env.action_space.grid_layout != None
             
     def test_case5_runs(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")
-        with make_from_dataset_path(dataset_path) as env:
-            assert env.redispatching_unit_commitment_availble == True
-            obs = env.reset()
-            sim_obs, reward, done, info = obs.simulate(env.action_space())
-            assert sim_obs != obs
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                assert env.redispatching_unit_commitment_availble == True
+                obs = env.reset()
+                sim_obs, reward, done, info = obs.simulate(env.action_space())
+                assert sim_obs != obs
 
     def test_case14_test_config(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_test")
-        with make_from_dataset_path(dataset_path) as env:
-            # Check config is loaded from config.py
-            assert env._rewardClass == RedispReward
-            assert issubclass(env._actionClass, TopologyAndDispatchAction)
-            assert issubclass(env._observationClass, CompleteObservation)
-            assert isinstance(env.backend, PandaPowerBackend)
-            assert env._legalActClass == DefaultRules
-            assert isinstance(env._voltage_controler, ControlVoltageFromFile)
-            assert isinstance(env.chronics_handler.real_data, Multifolder)
-            assert env.action_space.grid_layout != None
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                # Check config is loaded from config.py
+                assert env._rewardClass == RedispReward
+                assert issubclass(env._actionClass, TopologyAndDispatchAction)
+                assert issubclass(env._observationClass, CompleteObservation)
+                assert isinstance(env.backend, PandaPowerBackend)
+                assert env._legalActClass == DefaultRules
+                assert isinstance(env._voltage_controler, ControlVoltageFromFile)
+                assert isinstance(env.chronics_handler.real_data, Multifolder)
+                assert env.action_space.grid_layout != None
             
     def test_case14_test_runs(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_test")
-        with make_from_dataset_path(dataset_path) as env:
-            assert env.redispatching_unit_commitment_availble == True
-            obs = env.reset()
-            sim_obs, reward, done, info = obs.simulate(env.action_space())
-            assert sim_obs != obs
-            assert np.all(env._thermal_limit_a == case14_test_TH_LIM)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                assert env.redispatching_unit_commitment_availble == True
+                obs = env.reset()
+                sim_obs, reward, done, info = obs.simulate(env.action_space())
+                assert sim_obs != obs
+                assert np.all(env._thermal_limit_a == case14_test_TH_LIM)
 
     def test_case14_redisp_config(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_redisp")
-        with make_from_dataset_path(dataset_path) as env:
-            # Check config is loaded from config.py
-            assert env._rewardClass == RedispReward
-            assert issubclass(env._actionClass, TopologyAndDispatchAction)
-            assert issubclass(env._observationClass, CompleteObservation)
-            assert isinstance(env.backend, PandaPowerBackend)
-            assert env._legalActClass == DefaultRules
-            assert isinstance(env._voltage_controler, ControlVoltageFromFile)
-            assert isinstance(env.chronics_handler.real_data, Multifolder)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                # Check config is loaded from config.py
+                assert env._rewardClass == RedispReward
+                assert issubclass(env._actionClass, TopologyAndDispatchAction)
+                assert issubclass(env._observationClass, CompleteObservation)
+                assert isinstance(env.backend, PandaPowerBackend)
+                assert env._legalActClass == DefaultRules
+                assert isinstance(env._voltage_controler, ControlVoltageFromFile)
+                assert isinstance(env.chronics_handler.real_data, Multifolder)
             
     def test_case14_redisp_runs(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_redisp")
-        with make_from_dataset_path(dataset_path) as env:
-            assert env.redispatching_unit_commitment_availble == True
-            obs = env.reset()
-            sim_obs, reward, done, info = obs.simulate(env.action_space())
-            assert sim_obs != obs
-            assert np.all(env._thermal_limit_a == case14_redisp_TH_LIM)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                assert env.redispatching_unit_commitment_availble == True
+                obs = env.reset()
+                sim_obs, reward, done, info = obs.simulate(env.action_space())
+                assert sim_obs != obs
+                assert np.all(env._thermal_limit_a == case14_redisp_TH_LIM)
 
     def test_l2rpn19_test_config(self):
         self.skipTest("l2rpn has been removed")
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "l2rpn_2019")
-        with make_from_dataset_path(dataset_path) as env:
-            # Check config is loaded from config.py
-            assert env._rewardClass == L2RPNReward
-            assert env._actionClass == TopologyAction
-            assert env._observationClass == CompleteObservation
-            assert isinstance(env.backend, PandaPowerBackend)
-            assert env._legalActClass == DefaultRules
-            assert isinstance(env._voltage_controler, ControlVoltageFromFile)
-            assert isinstance(env.chronics_handler.real_data, Multifolder)
-            assert env.action_space.grid_layout != None
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                # Check config is loaded from config.py
+                assert env._rewardClass == L2RPNReward
+                assert env._actionClass == TopologyAction
+                assert env._observationClass == CompleteObservation
+                assert isinstance(env.backend, PandaPowerBackend)
+                assert env._legalActClass == DefaultRules
+                assert isinstance(env._voltage_controler, ControlVoltageFromFile)
+                assert isinstance(env.chronics_handler.real_data, Multifolder)
+                assert env.action_space.grid_layout != None
 
 
 class TestMakeFromPathConfigOverride(unittest.TestCase):
     def test_case5_override_reward(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")
-        with make_from_dataset_path(dataset_path, reward_class=FlatReward) as env:
-            assert env._rewardClass == FlatReward
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, reward_class=FlatReward) as env:
+                assert env._rewardClass == FlatReward
 
     def test_case14_test_override_reward(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_test")
-        with make_from_dataset_path(dataset_path, reward_class=FlatReward) as env:
-            assert env._rewardClass == FlatReward
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, reward_class=FlatReward) as env:
+                assert env._rewardClass == FlatReward
 
     def test_l2rpn19_override_reward(self):
         self.skipTest("l2rpn has been removed")
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "l2rpn_2019")
-        with make_from_dataset_path(dataset_path, reward_class=FlatReward) as env:
-            assert env._rewardClass == FlatReward
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, reward_class=FlatReward) as env:
+                assert env._rewardClass == FlatReward
 
     def test_case5_override_action(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")
-        with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
-            assert issubclass(env._actionClass, VoltageOnlyAction)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
+                assert issubclass(env._actionClass, VoltageOnlyAction)
 
     def test_case14_test_override_action(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_test")
-        with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
-            assert issubclass(env._actionClass, VoltageOnlyAction)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
+                assert issubclass(env._actionClass, VoltageOnlyAction)
 
     def test_l2rpn19_override_action(self):
         self.skipTest("l2rpn has been removed")
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "l2rpn_2019")
-        with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
-            assert issubclass(env._actionClass, VoltageOnlyAction)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
+                assert issubclass(env._actionClass, VoltageOnlyAction)
 
     def test_case5_override_chronics(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")
-        with make_from_dataset_path(dataset_path, chronics_class=ChangeNothing) as env:
-            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, chronics_class=ChangeNothing) as env:
+                assert isinstance(env.chronics_handler.real_data, ChangeNothing)
 
     def test_case14_test_override_chronics(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_test")
-        with make_from_dataset_path(dataset_path, chronics_class=ChangeNothing) as env:
-            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, chronics_class=ChangeNothing) as env:
+                assert isinstance(env.chronics_handler.real_data, ChangeNothing)
 
     def test_l2rpn19_override_chronics(self):
         self.skipTest("l2rpn has been removed")
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "l2rpn_2019")
-        with make_from_dataset_path(dataset_path, chronics_class=ChangeNothing) as env:
-            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, chronics_class=ChangeNothing) as env:
+                assert isinstance(env.chronics_handler.real_data, ChangeNothing)
 
     def test_case5_override_feed_kwargs(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")
@@ -493,8 +536,10 @@ class TestMakeFromPathConfigOverride(unittest.TestCase):
             "path": chronics_path,
             "gridvalueClass": GridStateFromFile
         }
-        with make_from_dataset_path(dataset_path, data_feeding_kwargs=dfk) as env:
-            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, data_feeding_kwargs=dfk) as env:
+                assert isinstance(env.chronics_handler.real_data, ChangeNothing)
 
     def test_case14_test_override_feed_kwargs(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_test")
@@ -504,8 +549,10 @@ class TestMakeFromPathConfigOverride(unittest.TestCase):
             "path": chronics_path,
             "gridvalueClass": GridStateFromFile
         }
-        with make_from_dataset_path(dataset_path, data_feeding_kwargs=dfk) as env:
-            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, data_feeding_kwargs=dfk) as env:
+                assert isinstance(env.chronics_handler.real_data, ChangeNothing)
 
     def test_l2rpn19_override_feed_kwargs(self):
         self.skipTest("l2rpn has been removed")
@@ -516,8 +563,10 @@ class TestMakeFromPathConfigOverride(unittest.TestCase):
             "path": chronics_path,
             "gridvalueClass": GridStateFromFile
         }
-        with make_from_dataset_path(dataset_path, data_feeding_kwargs=dfk) as env:
-            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, data_feeding_kwargs=dfk) as env:
+                assert isinstance(env.chronics_handler.real_data, ChangeNothing)
 
 
 class TestMakeFromPathParameters(unittest.TestCase):
