@@ -795,6 +795,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             The new thermal limit. It must be a numpy ndarray vector (or convertible to it). For each powerline it
             gives the new thermal limit.
 
+            Alternatively, this can be a dictionary mapping the line names (keys) to its thermal limits (values). In
+            that case, all thermal limits for all powerlines should be specified (this is a safety measure
+            to reduce the odds of misuse).
+
         Examples
         ---------
 
@@ -810,20 +814,49 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # i set the thermal limit of each powerline to 20000 amps
             env.set_thermal_limit([20000 for _ in range(env.n_line)])
 
+        Notes
+        -----
+        As of grid2op > 1.5.0, it is possible to set the thermal limit by using a dictionary with the keys being
+        the name of the powerline and the values the thermal limits.
 
         """
         if not self.__is_init:
             raise Grid2OpException("Impossible to set the thermal limit to a non initialized Environment")
-        try:
-            tmp = np.array(thermal_limit).flatten().astype(dt_float)
-        except Exception as exc_:
-            raise Grid2OpException(f"Impossible to convert the vector as input into a 1d numpy float array. "
-                                   f"Error was: \n {exc_}")
-        if tmp.shape[0] != self.n_line:
-            raise Grid2OpException("Attempt to set thermal limit on {} powerlines while there are {}"
-                                   "on the grid".format(tmp.shape[0], self.n_line))
-        if np.any(~np.isfinite(tmp)):
-            raise Grid2OpException("Impossible to use non finite value for thermal limits.")
+        if isinstance(thermal_limit, dict):
+            tmp = np.full(self.n_line, fill_value=np.NaN, dtype=dt_float)
+            for key, val in thermal_limit.items():
+                if key not in self.name_line:
+                    raise Grid2OpException(f"When setting a thermal limit with a dictionary, the keys should be line "
+                                           f"names. We found: {key} which is not a line name. The names of the "
+                                           f"powerlines are {self.name_line}")
+                ind_line = np.where(self.name_line == key)[0][0]
+                if np.isfinite(tmp[ind_line]):
+                    raise Grid2OpException(f"Humm, there is a really strange bug, some lines are set twice.")
+                try:
+                    val_fl = float(val)
+                except Exception as exc_:
+                    raise Grid2OpException(f"When setting thermal limit with a dictionary, the keys should be "
+                                           f"the values of the thermal limit (in amps) you provided something that "
+                                           f"cannot be converted to a float. Error was \"{exc_}\".")
+                tmp[ind_line] = val_fl
+
+        elif isinstance(thermal_limit, (np.ndarray, list)):
+            try:
+                tmp = np.array(thermal_limit).flatten().astype(dt_float)
+            except Exception as exc_:
+                raise Grid2OpException(f"Impossible to convert the vector as input into a 1d numpy float array. "
+                                       f"Error was: \n {exc_}")
+            if tmp.shape[0] != self.n_line:
+                raise Grid2OpException("Attempt to set thermal limit on {} powerlines while there are {}"
+                                       "on the grid".format(tmp.shape[0], self.n_line))
+            if np.any(~np.isfinite(tmp)):
+                raise Grid2OpException("Impossible to use non finite value for thermal limits.")
+        else:
+            raise Grid2OpException(f"You can only set the thermal limits of the environment with a dictionary (in that "
+                                   f"case the keys are the line names, and the values the thermal limits) or with "
+                                   f"a numpy array that has as many components of the number of powerlines on "
+                                   f"the grid. You provided something with type \"{type(thermal_limit)}\" which "
+                                   f"is not supported.")
 
         self._thermal_limit_a = tmp
         self.backend.set_thermal_limit(self._thermal_limit_a)

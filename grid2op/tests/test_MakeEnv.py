@@ -83,6 +83,13 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
             env = make("rte_case14_fromfile", test=True)
             obs = env.reset()
 
+    def test_l2rpn_case14_sandbox_fromfile(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_case14_sandbox", test=True)
+            obs = env.reset()
+            assert env.grid_layout, "env.grid_layout is empty but should not be"
+
     def test_case5_example(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -131,6 +138,25 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
             with make("rte_case14_redisp", test=True) as env:
                 obs = env.reset()
                 assert np.all(env._thermal_limit_a == case14_redisp_TH_LIM)
+
+                env.set_thermal_limit({k: 200000. for k in env.name_line})
+                assert np.all(env.get_thermal_limit() == 200000.)
+
+    def test_init_thlim_from_dict(self):
+        """
+        This tests that:
+        - can create an environment with thermal limit given as dictionary
+        - i can create an environment without chronics folder
+        - can create an environment without layout
+
+        So lots of tests here !
+
+        """
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "5bus_example_th_lim_dict"), test=True) as env:
+                obs = env.reset()
+                assert np.all(env._thermal_limit_a == [200., 300., 500., 600., 700., 800., 900., 1000.])
 
     def test_case14_realistic(self):
         with warnings.catch_warnings():

@@ -24,6 +24,8 @@ Change Log
 
 [1.5.1] - 2021-xx-yy
 -----------------------
+- [FIXED] `Issue #181 <https://github.com/rte-france/Grid2Op/issues/181>`_ : now environment can be created with
+  a layout and a warning is issued in this case.
 - [IMPROVED] extra layer of security preventing modification of `observation_space` and `action_space` of environment
 - [IMPROVED] better handling of dynamically generated classes
 

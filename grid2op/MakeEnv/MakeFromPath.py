@@ -10,6 +10,7 @@ import os
 import importlib.util
 import numpy as np
 import json
+import warnings
 
 from grid2op.Environment import Environment
 from grid2op.Backend import Backend, PandaPowerBackend
@@ -219,7 +220,11 @@ def make_from_dataset_path(dataset_path="/",
     else:
         # otherwise use it
         chronics_path_abs = os.path.abspath(chronics_path)
-    _check_path(chronics_path_abs, "Dataset chronics folder")
+    exc_chronics = None
+    try:
+        _check_path(chronics_path_abs, "Dataset chronics folder")
+    except Exception as exc_:
+        exc_chronics = exc_
 
     # Compute and find backend/grid file
     grid_path = _get_default_aux("grid_path", kwargs,
@@ -233,7 +238,11 @@ def make_from_dataset_path(dataset_path="/",
 
     # Compute and find grid layout file
     grid_layout_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_LAYOUT_FILE))
-    _check_path(grid_layout_path_abs, "Dataset grid layout")
+    try:
+        _check_path(grid_layout_path_abs, "Dataset grid layout")
+    except EnvError as exc_:
+        warnings.warn(f"Impossible to load the coordinate of the substation with error: \"{exc_}\". Expect some issue "
+                      f"if you attempt to plot the grid.")
 
     # Check provided config overrides are valid
     _check_kwargs(kwargs)
@@ -248,16 +257,18 @@ def make_from_dataset_path(dataset_path="/",
         config_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(config_module)
         config_data = config_module.config
-    except Exception as e:
-        print (e)
+    except Exception as exc_:
+        print(exc_)
         raise EnvError("Invalid dataset config file: {}".format(config_path_abs)) from None
 
     # Get graph layout
+    graph_layout = None
     try:
         with open(grid_layout_path_abs) as layout_fp:
             graph_layout = json.load(layout_fp)
-    except Exception as e:
-        raise EnvError("Dataset {} doesn't have a valid graph layout".format(config_path_abs))
+    except Exception as exc_:
+        warnings.warn("Dataset {} doesn't have a valid graph layout. Expect some failures when attempting "
+                      "to plot the grid. Error was: {}".format(config_path_abs, exc_))
 
     # Get thermal limits
     thermal_limits = None
@@ -395,7 +406,7 @@ def make_from_dataset_path(dataset_path="/",
                                            defaultinstance=default_chronics_kwargs,
                                            msg_error=ERR_MSG_KWARGS["data_feeding_kwargs"])
     for el in default_chronics_kwargs:
-        if not el in data_feeding_kwargs:
+        if el not in data_feeding_kwargs:
             data_feeding_kwargs[el] = default_chronics_kwargs[el]
 
     ### the chronics generator
@@ -404,6 +415,10 @@ def make_from_dataset_path(dataset_path="/",
                                            defaultClass=data_feeding_kwargs["chronicsClass"],
                                            msg_error=ERR_MSG_KWARGS["chronics_class"],
                                            isclass=True)
+    if (chronics_class_used != ChangeNothing) and exc_chronics is not None:
+        raise RuntimeError(f"Impossible to find the chronics for your environment. Please make sure to provide "
+                           f"a folder \"{NAME_CHRONICS_FOLDER}\" within your environment folder.")
+
     data_feeding_kwargs["chronicsClass"] = chronics_class_used
     data_feeding = _get_default_aux("data_feeding", kwargs,
                                     defaultClassApp=ChronicsHandler,

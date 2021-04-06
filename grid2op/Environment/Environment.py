@@ -174,7 +174,7 @@ class Environment(BaseEnv):
         self.backend.load_redispacthing_data(self.get_path_env())
         self.backend.load_storage_data(self.get_path_env())
         exc_ = self.backend.load_grid_layout(self.get_path_env())
-        if exc_ is None:
+        if exc_ is not None:
             warnings.warn(f"No layout have been found for you grid (or the layout provided was corrupted). You will "
                           f"not be able to use the renderer, plot the grid etc. The error was \"{exc_}\"")
 

@@ -1299,6 +1299,14 @@ class GridObjects:
             except Exception as exc_:
                 raise EnvError("self.name_storage should be convertible to a numpy array of type str. Error was "
                                f"{exc_}")
+        for arr_, nm in zip([cls.name_gen, cls.name_sub, cls.name_line, cls.name_load,
+                             cls.name_shunt, cls.name_storage],
+                            ["generators", "substations", "lines", "loads", "shunts", "storage units"]):
+            tmp = np.unique(arr_)
+            if tmp.shape[0] != arr_.shape[0]:
+                nms = '\n\t - '.join(sorted(arr_))
+                raise EnvError(f"Two {nm} have the same names. Please check the \"grid.json\" file and make sure the "
+                               f"name of the {nm} are all different. Right now they are \n\t - {nms}.")
 
     @classmethod
     def _check_sub_pos(cls):
