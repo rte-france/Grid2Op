@@ -178,8 +178,8 @@ class EducPandaPowerBackend(Backend):
                                                 copy.deepcopy(self._grid.trafo["lv_bus"])
                                                 ))
 
-        # and now we don't forget to inialize the rest
-        self._compute_pos_big_topo()
+        # and now we don't forget to initialize the rest
+        self._compute_pos_big_topo()  # we highly recommend you to call this !
 
         # and now the thermal limit
         self.thermal_limit_a = 1000 * np.concatenate((self._grid.line["max_i_ka"].values,

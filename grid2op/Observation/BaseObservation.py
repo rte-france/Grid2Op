@@ -787,8 +787,13 @@ class BaseObservation(GridObjects):
         """
         same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
+            import pdb
+            pdb.set_trace()
             raise RuntimeError("Cannot compare to observation not coming from the same powergrid.")
+        tmp_obs_env = self._obs_env
+        self._obs_env = None  # keep aside the backend
         res = copy.deepcopy(self)
+        self._obs_env = tmp_obs_env
         for stat_nm in self._attr_eq:
             me_ = getattr(self, stat_nm)
             oth_ = getattr(other, stat_nm)
@@ -1624,10 +1629,16 @@ class BaseObservation(GridObjects):
             # `simulated_info` gives extra information on this forecast state
 
         """
-        if self.action_helper is None or self._obs_env is None:
+        if self.action_helper is None:
             raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation "
                                       "(no action_space "
                                       "and no simulated environment are set).")
+        if self._obs_env is None:
+            raise EnvError("This observation has no \"environment used for simulation\" (_obs_env) is not created. "
+                           "This is the case if you loaded this observation from a disk (for example using "
+                           "EpisodeData) "
+                           "or used a Runner with multi processing with the \"add_detailed_output=True\" "
+                           "flag. This is a feature of grid2op: you cannot serialize backends.")
 
         if time_step < 0:
             raise NoForecastAvailable("Impossible to forecast in the past.")

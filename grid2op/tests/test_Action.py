@@ -652,7 +652,7 @@ class TestActionBase(ABC):
         action2 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         action3 = self.helper_action()
-        test = action1.assert_grid_correct()
+        test = type(action1).assert_grid_correct_cls()
         assert action1 == action2
         assert action1 != action3
 

@@ -20,7 +20,7 @@ class Test_iadd_Base(ABC):
 
     def _skipMissingKey(self, key):
         if key not in self.action_t.authorized_keys:
-            skip_msg = "Skipped: Missing authorized_key {key}"
+            skip_msg = f"Skipped: Missing authorized_key {key}"
             unittest.TestCase.skipTest(self, skip_msg)
 
     @classmethod

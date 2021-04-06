@@ -44,14 +44,12 @@ class _ObsEnv(BaseEnv):
     """
     def __init__(self,
                  backend_instanciated,
-                 completeActionClass,
                  parameters,
                  reward_helper,
                  obsClass,
                  action_helper,
                  thermal_limit_a,
                  legalActClass,
-                 donothing_act,
                  helper_action_class,
                  helper_action_env,
                  other_rewards={}):
@@ -121,6 +119,10 @@ class _ObsEnv(BaseEnv):
         self._sum_curtailment_mw_init = 0.
         self._sum_curtailment_mw_prev_init = 0.
 
+    def _init_myclass(self):
+        """this class has already all the powergrid information: it is initialized in the obs space !"""
+        pass
+
     def _init_backend(self,
                       init_grid_path,
                       chronics_handler,
@@ -128,11 +130,12 @@ class _ObsEnv(BaseEnv):
                       names_chronics_to_backend,
                       actionClass,
                       observationClass,
-                      rewardClass, legalActClass):
+                      rewardClass,
+                      legalActClass):
         self._env_dc = self.parameters.ENV_DC
         self.chronics_handler = chronics_handler
         self.backend = backend
-        self._has_been_initialized()
+        self._has_been_initialized()  # really important to include this piece of code! and just here after the
 
         if not issubclass(legalActClass, BaseRules):
             raise Grid2OpException(
@@ -141,7 +144,7 @@ class _ObsEnv(BaseEnv):
                     type(legalActClass)))
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._legalActClass = legalActClass
-        self._helper_action_player = self._do_nothing
+        self._action_space = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
         self._create_opponent()
 
@@ -153,9 +156,14 @@ class _ObsEnv(BaseEnv):
         # backend has loaded everything
         self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
         self._hazard_duration = np.zeros(shape=self.n_line, dtype=dt_int)
-        self._has_been_initialized()
 
     def _do_nothing(self, x):
+        """
+        this is should be only called within _Obsenv.step, and there, only return the "do nothing"
+        action.
+
+        This is why this function is used as the "obsenv action space"
+        """
         return self._do_nothing_act
 
     def _update_actions(self):

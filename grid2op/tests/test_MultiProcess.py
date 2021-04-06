@@ -28,6 +28,7 @@ class TestBaseMultiProcessEnvironment(unittest.TestCase):
             with make("rte_case5_example", test=True) as env:
                 envs = [env for _ in range(nb_env)]
                 multi_envs = BaseMultiProcessEnvironment(envs)
+
         obss, rewards, dones, infos = multi_envs.step([env.action_space() for _ in range(multi_envs.nb_env)])
         for ob in obss:
             assert isinstance(ob, CompleteObservation)

@@ -141,6 +141,16 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         obs2 = env2.reset()
         assert obs1 == obs2
 
+    def test_assign_action_space(self):
+        """test that i cannot change the action_space"""
+        with self.assertRaises(EnvError):
+            self.env.action_space = self.env._action_space
+
+    def test_assign_obs_space(self):
+        """test that i cannot change the observation_space"""
+        with self.assertRaises(EnvError):
+            self.env.observation_space = self.env._observation_space
+
     def test_step_doesnt_change_action(self):
         act = self.env.action_space()
         act_init = copy.deepcopy(act)
@@ -729,18 +739,18 @@ class TestDeactivateForecast(unittest.TestCase):
         self.env1.change_forecast_parameters(param)
         # in these first checks, parameters are not modified
         self._check_env_param(self.env1, real_orig_param)
-        self._check_env_param(self.env1._helper_observation.obs_env, real_orig_param)
+        self._check_env_param(self.env1._observation_space.obs_env, real_orig_param)
 
         obs, *_ = self.env1.step(self.env1.action_space())
         _ = obs.simulate(self.env1.action_space())
         self._check_env_param(self.env1, real_orig_param)
-        self._check_env_param(self.env1._helper_observation.obs_env, real_orig_param)
+        self._check_env_param(self.env1._observation_space.obs_env, real_orig_param)
 
         # reset triggers the modification
         obs = self.env1.reset()
         _ = obs.simulate(self.env1.action_space())
         self._check_env_param(self.env1, real_orig_param)
-        self._check_env_param(self.env1._helper_observation.obs_env, param)
+        self._check_env_param(self.env1._observation_space.obs_env, param)
 
     def test_change_parameters_forecast_fromissue_128(self):
         """

@@ -557,16 +557,22 @@ class EpisodeData:
         if self.force_detail or self.serialize:
             self.actions.update(time_step, act, efficient_storing)
             self.env_actions.update(time_step, env_act, efficient_storing)
+            # deactive the possibility to do "forecast" in this serialized instance
+            tmp_obs_env = obs._obs_env
+            tmp_inj = obs._forecasted_inj
+            obs._obs_env = None
+            obs._forecasted_inj = []
             self.observations.update(time_step + 1, obs, efficient_storing)
+            obs._obs_env = tmp_obs_env
+            obs._forecasted_inj = tmp_inj
+
             if opp_attack is not None:
-                self.attacks.update(
-                    time_step, opp_attack, efficient_storing)
+                self.attacks.update(time_step, opp_attack, efficient_storing)
             else:
                 if efficient_storing:
                     self.attacks.collection[time_step - 1, :] = 0.
                 else:
-                    self.attack = np.concatenate(
-                        (self.attack, self.attack_templ))
+                    self.attack = np.concatenate((self.attack, self.attack_templ))
 
             if efficient_storing:
                 # efficient way of writing
@@ -599,7 +605,7 @@ class EpisodeData:
     def _convert_to_float(self, el):
         try:
             res = float(el)
-        except Exception as e:
+        except Exception as exc_:
             res = -float('inf')
         return res
 

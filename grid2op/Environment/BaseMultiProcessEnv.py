@@ -235,7 +235,6 @@ class BaseMultiProcessEnvironment(GridObjects):
     """
     def __init__(self, envs, obs_as_class=True, return_info=True):
         GridObjects.__init__(self)
-        self.envs = envs
         for env in envs:
             if not isinstance(env, Environment):
                 raise MultiEnvException("You provided environment of type \"{}\" which is not supported."
@@ -244,17 +243,21 @@ class BaseMultiProcessEnvironment(GridObjects):
 
         self.nb_env = len(envs)
         max_int = np.iinfo(dt_int).max
-        self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
+        _remotes, _work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
-        env_params = [envs[e].get_kwargs(with_backend=False) for e in range(self.nb_env)]
-
+        env_params = [sub_env.get_kwargs(with_backend=False) for sub_env in envs]
         self._ps = [RemoteEnv(env_params=env_,
                               remote=work_remote,
                               parent_remote=remote,
-                              name="{}_subprocess_{}".format(envs[i].name, i),
+                              name="{}_{}".format(envs[i].name, i),
                               return_info=return_info,
                               seed=envs[i].space_prng.randint(max_int))
-                    for i, (work_remote, remote, env_) in enumerate(zip(self._work_remotes, self._remotes, env_params))]
+                    for i, (work_remote, remote, env_) in enumerate(zip(_work_remotes, _remotes, env_params))]
+
+        # on windows, this has to be created after
+        self.envs = envs
+        self._remotes = _remotes
+        self._work_remotes = _work_remotes
 
         for p in self._ps:
             p.daemon = True  # if the main process crashes, we should not cause things to hang

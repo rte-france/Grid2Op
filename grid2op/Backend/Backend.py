@@ -8,6 +8,7 @@
 
 import copy
 import os
+import sys
 import warnings
 import json
 
@@ -1464,15 +1465,28 @@ class Backend(GridObjects, ABC):
 
             This is done as it should be by the Environment
         """
-        # and set up the proper class and everything
-
         # lazy loading
         from grid2op.Action import CompleteAction
         from grid2op.Action._BackendAction import _BackendAction
-        self.__class__ = self.init_grid(self)
-        self.my_bk_act_class = _BackendAction.init_grid(self)
-        self._complete_action_class = CompleteAction.init_grid(self)
-        super().assert_grid_correct()
+
+        orig_type = type(self)
+        if orig_type.my_bk_act_class is None:
+            # class is already initialized
+            # and set up the proper class and everything
+            self._init_class_attr()
+            # hack due to changing class of imported module in the module itself
+            self.__class__ = type(self).init_grid(type(self), force_module=type(self).__module__)
+            setattr(sys.modules[type(self).__module__], self.__class__.__name__, self.__class__)
+
+            # reset the attribute of the grid2op.Backend.Backend class
+            # that can be messed up with depending on the initialization of the backend
+            Backend._clear_class_attribute()
+            orig_type._clear_class_attribute()
+
+        my_cls = type(self)
+        my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls)
+        my_cls._complete_action_class = CompleteAction.init_grid(my_cls)
+        my_cls.assert_grid_correct_cls()
 
     def assert_grid_correct_after_powerflow(self):
         """

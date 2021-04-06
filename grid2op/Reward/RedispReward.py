@@ -49,7 +49,7 @@ class RedispReward(BaseReward):
 
     def initialize(self, env):
         if not env.redispatching_unit_commitment_availble:
-            raise Grid2OpException("Impossible to use the RedispReward reward with an environment without generators"
+            raise Grid2OpException("Impossible to use the RedispReward reward with an environment without generators "
                                    "cost. Please make sure env.redispatching_unit_commitment_availble is available.")
         worst_marginal_cost = np.max(env.gen_cost_per_MW)
         worst_load = dt_float(np.sum(env.gen_pmax))

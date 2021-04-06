@@ -368,8 +368,12 @@ class BaseTestRedispTooLowHigh(MakeBackend):
             self.env = make("rte_case14_redisp", test=True, backend=backend)
 
         # i don't want to be bother by ramps in these test (note that is NOT recommended to change that)
-        self.env.gen_max_ramp_down[:] = 5000
-        self.env.gen_max_ramp_up[:] = 5000
+        type(self.env).gen_max_ramp_down[:] = 5000
+        type(self.env).gen_max_ramp_up[:] = 5000
+        act_cls = type(self.env.action_space())
+        act_cls.gen_max_ramp_down[:] = 5000
+        act_cls.gen_max_ramp_up[:] = 5000
+
         self.msg_ = 'Grid2OpException AmbiguousAction InvalidRedispatching NotEnoughGenerators "Attempt to use a ' \
                'redispatch action that does not sum to 0., but a'
         self.tol_one = self.env._tol_poly
@@ -389,12 +393,12 @@ class BaseTestRedispTooLowHigh(MakeBackend):
         act = self.env.action_space({"redispatch": (0, -1)})
         obs, reward, done, info = self.env.step(act)
         assert not done
-        assert info["is_dispatching_illegal"] is False
+        assert not info["is_dispatching_illegal"]
         assert np.all(self.env._target_dispatch == [-1., 0., 0., 0., 0.])
         act = self.env.action_space({"redispatch": (0, 0)})
         obs, reward, done, info = self.env.step(act)
         assert not done
-        assert info["is_dispatching_illegal"] is False
+        assert not info["is_dispatching_illegal"]
         assert np.all(self.env._target_dispatch == [-1., 0., 0., 0., 0.])
 
         # this one is not correct: too high decrease
