@@ -308,6 +308,14 @@ class BaseObservation(GridObjects):
         self.curtailment = np.empty(shape=self.n_gen, dtype=dt_float)
         self.curtailment_limit = np.empty(shape=self.n_gen, dtype=dt_float)
 
+        # the "theta" (voltage angle, in degree)
+        self.support_theta = False
+        self.theta_or = np.empty(shape=self.n_line, dtype=dt_float)
+        self.theta_ex = np.empty(shape=self.n_line, dtype=dt_float)
+        self.load_theta = np.empty(shape=self.n_load, dtype=dt_float)
+        self.gen_theta = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.storage_theta = np.empty(shape=self.n_storage, dtype=dt_float)
+
     def state_of(self,
                  _sentinel=None,
                  load_id=None,
@@ -355,6 +363,7 @@ class BaseObservation(GridObjects):
                 - "p" the active value consumed by the load
                 - "q" the reactive value consumed by the load
                 - "v" the voltage magnitude of the bus to which the load is connected
+                - "theta" (optional) the voltage angle (in degree) of the bus to which the load is connected
                 - "bus" on which bus the load is connected in the substation
                 - "sub_id" the id of the substation to which the load is connected
 
@@ -363,20 +372,23 @@ class BaseObservation(GridObjects):
                 - "p" the active value produced by the generator
                 - "q" the reactive value consumed by the generator
                 - "v" the voltage magnitude of the bus to which the generator is connected
+                - "theta" (optional) the voltage angle (in degree) of the bus to which the gen. is connected
                 - "bus" on which bus the generator is connected in the substation
                 - "sub_id" the id of the substation to which the generator is connected
                 - "actual_dispatch" the actual dispatch implemented for this generator
                 - "target_dispatch" the target dispatch (cumulation of all previously asked dispatch by the agent)
                   for this generator
 
-            - if a powerline is inspected then the keys are "origin" and "extremity" each being dictionnary with keys:
+            - if a powerline is inspected then the keys are "origin" and "extremity" each being dictionary with keys:
 
-                - "p" the active flow on line end (extremity or origin)
-                - "q" the reactive flow on line end (extremity or origin)
-                - "v" the voltage magnitude of the bus to which the line end (extremity or origin) is connected
-                - "bus" on which bus the line end (extremity or origin) is connected in the substation
-                - "sub_id" the id of the substation to which the generator is connected
-                - "a" the current flow on the line end (extremity or origin)
+                - "p" the active flow on line side (extremity or origin)
+                - "q" the reactive flow on line side (extremity or origin)
+                - "v" the voltage magnitude of the bus to which the line side (extremity or origin) is connected
+                - "theta" (optional) the voltage angle (in degree) of the bus to which line side (extremity or origin)
+                   is connected
+                - "bus" on which bus the line side (extremity or origin) is connected in the substation
+                - "sub_id" the id of the substation to which the line side is connected
+                - "a" the current flow on the line side (extremity or origin)
 
                 In the case of a powerline, additional information are:
 
@@ -390,6 +402,7 @@ class BaseObservation(GridObjects):
                 - "storage_power": the power the unit actually produced / absorbed
                 - "storage_charge": the state of the charge of the storage unit
                 - "storage_power_target": the power production / absorbtion targer
+                - "storage_theta": (optional) the voltage angle of the bus at which the storage unit is connected
                 - "bus": the bus (1 or 2) to which the storage unit is connected
                 - "sub_id" : the id of the substation to which the sotrage unit is connected
 
@@ -429,6 +442,8 @@ class BaseObservation(GridObjects):
                    "bus": self.topo_vect[self.load_pos_topo_vect[load_id]],
                    "sub_id": self.load_to_subid[load_id]
                    }
+            if self.support_theta:
+                res["theta"] = self.load_theta[load_id]
         elif gen_id is not None:
             if line_id is not None or substation_id is not None or storage_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
@@ -448,6 +463,8 @@ class BaseObservation(GridObjects):
                    "curtailment_limit": self.curtailment_limit[gen_id],
                    "p_before_curtail": self.gen_p_before_curtail[gen_id],
                    }
+            if self.support_theta:
+                res["theta"] = self.gen_theta[gen_id]
         elif line_id is not None:
             if substation_id is not None or storage_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
@@ -466,6 +483,8 @@ class BaseObservation(GridObjects):
                 "bus": self.topo_vect[self.line_or_pos_topo_vect[line_id]],
                 "sub_id": self.line_or_to_subid[line_id]
             }
+            if self.support_theta:
+                res["origin"]["theta"] = self.theta_or[line_id]
             # extremity information
             res["extremity"] = {
                 "p": self.p_ex[line_id],
@@ -475,6 +494,8 @@ class BaseObservation(GridObjects):
                 "bus": self.topo_vect[self.line_ex_pos_topo_vect[line_id]],
                 "sub_id": self.line_ex_to_subid[line_id]
             }
+            if self.support_theta:
+                res["origin"]["theta"] = self.theta_ex[line_id]
 
             # maintenance information
             res["maintenance"] = {"next": self.time_next_maintenance[line_id],
@@ -497,6 +518,8 @@ class BaseObservation(GridObjects):
             res["storage_power_target"] = self.storage_power_target[storage_id]
             res["bus"] = self.topo_vect[self.storage_pos_topo_vect[storage_id]]
             res["sub_id"] = self.storage_to_subid[storage_id]
+            if self.support_theta:
+                res["origin"]["theta"] = self.storage_theta[storage_id]
         else:
             if substation_id >= len(self.sub_info):
                 raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
@@ -615,6 +638,13 @@ class BaseObservation(GridObjects):
             self._shunt_v[:] = np.NaN
             self._shunt_bus[:] = -1
 
+        self.support_theta = False
+        self.theta_or[:] = np.NaN
+        self.theta_ex[:] = np.NaN
+        self.load_theta[:] = np.NaN
+        self.gen_theta[:] = np.NaN
+        self.storage_theta[:] = np.NaN
+
     def set_game_over(self):
         """
         Set the observation to the "game over" state:
@@ -688,6 +718,14 @@ class BaseObservation(GridObjects):
         self.hour_of_day = 0
         self.minute_of_hour = 0
         self.day_of_week = 1
+
+        if self.support_theta:
+            # by convention, I say it's 0 if the grid is in total blackout
+            self.theta_or[:] = 0.
+            self.theta_ex[:] = 0.
+            self.load_theta[:] = 0.
+            self.gen_theta[:] = 0.
+            self.storage_theta[:] = 0.
 
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
