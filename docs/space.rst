@@ -3,6 +3,11 @@
 Space
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 This module exposes the action space definition, the observation space definition (both depend on the underlying

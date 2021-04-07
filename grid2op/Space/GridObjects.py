@@ -47,6 +47,9 @@ class GridObjects:
     :class:`grid2op.Backend.Backend` all inherit from this class. This means that each of the above has its own
     representation of the powergrid.
 
+    Before diving into the technical details on the implementation, you might want to have a look at this
+    page of the documentation :ref:`graph-encoding-gridgraph` that details why this representation is suitable.
+
     The modeling adopted for describing a powergrid is the following:
 
     - only the main objects of a powergrid are represented. An "object" is either a load (consumption) a generator
@@ -119,8 +122,6 @@ class GridObjects:
           :func:`grid2op.Observation.BaseObservation.state_of` is such an interesting method. The two previous methods
           "method 1" and "method 2" were presented as a way to give detailed and "concrete" example on how the
           modeling of the powergrid work.
-
-
 
     For a given powergrid, this object should be initialized once in the :class:`grid2op.Backend.Backend` when
     the first call to :func:`grid2op.Backend.Backend.load_grid` is performed. In particular the following attributes
@@ -422,7 +423,9 @@ class GridObjects:
     grid_objects_types: ``matrix``
         Give the information about each element of the "topo_vect" vector. It is an "easy" way to retrieve at
         which element (side of a power, load, generator, storage units) a given component of the "topology vector"
-        is referring to. See the getting started notebook about the observation and the action for more information.
+        is referring to.
+        For more information, you can consult the :ref:`graph-encoding-gridgraph` of the documentation
+        or the getting started notebook about the observation and the action for more information.
 
     # TODO specify the unit of redispatching data MWh, $/MW etc.
     """

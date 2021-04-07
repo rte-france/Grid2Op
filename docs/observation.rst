@@ -47,6 +47,11 @@
 Observation
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 
@@ -140,10 +145,13 @@ this graph: split some bus in sub buses by changing at which busbar some element
 some edges from this graph when powerlines are connected / disconnected. An important feature of this
 graph is that its size changes: it can have a different number of nodes at different steps!
 
-TODO add some images, and explain these graphs!
+Some methods allow to retrieve these graphs, for example:
 
 - :func:`grid2op.Observation.BaseObservation.connectivity_matrix`
 - :func:`grid2op.Observation.BaseObservation.flow_bus_matrix`
+
+
+For more information, you can consult the :ref:`gridgraph-module` page.
 
 Detailed Documentation by class
 --------------------------------

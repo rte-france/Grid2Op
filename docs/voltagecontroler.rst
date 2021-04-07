@@ -2,6 +2,12 @@
 
 Voltage Controler
 ===================================
+
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 Powergrid are really complex objects. One of this complexity comes from the management of the voltages.

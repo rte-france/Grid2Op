@@ -3,6 +3,11 @@
 Rules of the Game
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 The Rules module define what is "Legal" and what is not. For example, it can be usefull, at the beginning of the

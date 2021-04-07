@@ -4,6 +4,12 @@
 Agent
 ============
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
+
 Objectives
 -----------
 In this RL framework, an Agent is an entity that acts on the Environment (modeled in grid2op as an object

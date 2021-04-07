@@ -3,6 +3,11 @@
 Chronics
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 This module is present to handle everything related to input data that are not structural.

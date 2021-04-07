@@ -262,8 +262,8 @@ class TestRunner(HelperTests):
                 assert len(this_episode.env_actions) == nb_ts, f"wrong number of elements for env_actions for " \
                                                                f"version {g2op_version_txt}: " \
                                                                f"{len(this_episode.env_actions)} vs {nb_ts}"
-            except:
-                raise
+            except Exception as exc_:
+                raise exc_
 
             if g2op_version <= "1.4.0":
                 assert EpisodeData.get_grid2op_version(full_episode_path) == "<=1.4.0", \

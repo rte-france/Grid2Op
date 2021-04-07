@@ -4,9 +4,15 @@
 .. |14bus_2| image:: ./img/14bus_2.png
 .. |14bus_th_lim| image:: ./img/14bus_th_lim.png
 
+.. _grid2op-plot-module:
 
 Grid2Op Plotting capabilities (beta)
 =====================================
+
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
 
 Objectives
 -----------

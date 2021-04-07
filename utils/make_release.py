@@ -154,6 +154,8 @@ if __name__ == "__main__":
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         PATH_PREVIOUS_RUNNER = os.path.join(path, "grid2op", "data_test", "runner_data")
+        # set the right grid2op version (instead of reloading the stuff, ugly, but working)
+        grid2op.__version__ = version
         env = grid2op.make("rte_case5_example", test=True)
         runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
         runner.run(nb_episode=2,

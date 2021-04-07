@@ -1342,9 +1342,7 @@ class BaseObservation(GridObjects):
         for (k1, k2), val in dict_.items():
             dict_2[(k2, k1)] = val
         dict_.update(dict_2)
-        networkx.set_edge_attributes(graph,
-                                     dict_,
-                                     attr_nm)
+        networkx.set_edge_attributes(graph, dict_, attr_nm)
 
     def _add_edges_multi(self,
                          vector_or,
@@ -1391,12 +1389,8 @@ class BaseObservation(GridObjects):
                 # networkx and grid2op do not share the same "direction"
                 dict_ex[(k2, k1)] = dict_or_glop[(k1, k2)]
 
-        networkx.set_edge_attributes(graph,
-                                     dict_or,
-                                     "{}_or".format(attr_nm))
-        networkx.set_edge_attributes(graph,
-                                     dict_ex,
-                                     "{}_ex".format(attr_nm))
+        networkx.set_edge_attributes(graph, dict_or, "{}_or".format(attr_nm))
+        networkx.set_edge_attributes(graph, dict_ex, "{}_ex".format(attr_nm))
 
     def as_networkx(self):
         """
@@ -1496,6 +1490,14 @@ class BaseObservation(GridObjects):
         bus_v = np.zeros(mat_p.shape[0])
         bus_v[lor_bus] = self.v_or
         bus_v[lex_bus] = self.v_ex
+        bus_theta = np.zeros(mat_p.shape[0])
+        bus_subid = np.zeros(mat_p.shape[0], dtype=dt_int)
+        bus_subid[lor_bus] = self.line_or_to_subid
+        bus_subid[lex_bus] = self.line_ex_to_subid
+        if self.support_theta:
+            bus_theta[lor_bus] = self.theta_or
+            bus_theta[lex_bus] = self.theta_ex
+
         # bus active injection
         bus_p = mat_p.diagonal().copy()
         mat_p.setdiag(0.)
@@ -1508,6 +1510,10 @@ class BaseObservation(GridObjects):
         networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_p)}, "p")
         networkx.set_node_attributes(graph, {el: val for el, val in enumerate(mat_q.diagonal())}, "q")
         networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_v)}, "v")
+        networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_subid)}, "sub_id")
+        if self.support_theta:
+            networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_theta)}, "theta")
+
         dict_cooldown = {el: val for el, val in enumerate(self.time_before_cooldown_sub)}
         dict_cooldown2 = {}
         for k, v in dict_cooldown.items():
@@ -1519,13 +1525,15 @@ class BaseObservation(GridObjects):
         self._add_edges_multi(self.p_or, self.p_ex, "p", lor_bus, lex_bus, graph)
         self._add_edges_multi(self.q_or, self.q_ex, "q", lor_bus, lex_bus, graph)
         self._add_edges_multi(self.a_or, self.a_ex, "a", lor_bus, lex_bus, graph)
+        if self.support_theta:
+            self._add_edges_multi(self.theta_or, self.theta_ex, "theta", lor_bus, lex_bus, graph)
 
         self._add_edges_simple(self.rho, "rho", lor_bus, lex_bus, graph)
         self._add_edges_simple(self.time_before_cooldown_line, "cooldown", lor_bus, lex_bus, graph)
         self._add_edges_simple(self.line_status, "status", lor_bus, lex_bus, graph)
         self._add_edges_simple(self.thermal_limit, "thermal_limit", lor_bus, lex_bus, graph)
         self._add_edges_simple(self.timestep_overflow, "timestep_overflow", lor_bus, lex_bus, graph)
-        networkx.freeze(graph)
+        networkx.freeze(graph)  # extra layer of security: prevent accidental modification of this graph
         return graph
 
     def get_forecasted_inj(self, time_step=1):

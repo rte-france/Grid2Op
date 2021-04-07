@@ -300,6 +300,7 @@ actions2.npy
 bug_discord_0.py
 invert_idto_act.py
 test_bug_discord1.py
+test_networkx.py
 
 
 # profiling files
