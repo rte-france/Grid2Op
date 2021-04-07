@@ -1366,6 +1366,7 @@ class Backend(GridObjects, ABC):
                                  "".format(el, e_))
 
         self.attach_layout(grid_layout=new_grid_layout)
+        return None
 
     def _aux_get_line_status_to_set(self, line_status):
         line_status = 2 * line_status - 1
