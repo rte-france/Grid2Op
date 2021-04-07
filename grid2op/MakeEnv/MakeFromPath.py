@@ -31,24 +31,28 @@ DIFFICULTY_NAME = "difficulty"
 CHALLENGE_NAME = "competition"
 ERR_MSG_KWARGS = {
     "backend": "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend",
-    "observation_class": "The type of observation of the environment (keyword \"observation_class\")" \
+    "observation_class": "The type of observation of the environment (keyword \"observation_class\")"
     " must be a subclass of grid2op.BaseObservation",
     "param": "The parameters of the environment (keyword \"param\") must be an instance of grid2op.Parameters",
-    "gamerules_class": "The type of rules of the environment (keyword \"gamerules_class\")" \
+    "gamerules_class": "The type of rules of the environment (keyword \"gamerules_class\")"
     " must be a subclass of grid2op.BaseRules",
-    "reward_class": "The type of reward in the environment (keyword \"reward_class\") must be a subclass of grid2op.BaseReward",
-    "action_class": "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.BaseAction",
-    "data_feeding_kwargs": "The argument to build the data generation process [chronics]" \
+    "reward_class": "The type of reward in the environment (keyword \"reward_class\") must be a subclass of "
+                    "grid2op.BaseReward",
+    "action_class": "The type of action of the environment (keyword \"action_class\") must be a subclass of "
+                    "grid2op.BaseAction",
+    "data_feeding_kwargs": "The argument to build the data generation process [chronics]"
     "  (keyword \"data_feeding_kwargs\") should be a dictionnary.",
-    "chronics_class": "The argument to build the data generation process [chronics] (keyword \"chronics_class\")" \
+    "chronics_class": "The argument to build the data generation process [chronics] (keyword \"chronics_class\")"
     " should be a class that inherit grid2op.Chronics.GridValue.",
-    "chronics_handler": "The argument to build the data generation process [chronics] (keyword \"data_feeding\")" \
+    "chronics_handler": "The argument to build the data generation process [chronics] (keyword \"data_feeding\")"
     " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler.",
-    "voltagecontroler_class": "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")" \
+    "voltagecontroler_class": "The argument to build the online controler for chronics (keyword "
+                              "\"volagecontroler_class\")"
     " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile.",
-    "names_chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
+    "names_chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") "
+                              "should be a dictionnary.",
     "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
-                     "should be dictionnary.",
+                     "should be dictionary.",
 
     "chronics_path": "The path where the data is located (keyword \"chronics_path\") should be a string.",
     "grid_path": "The path where the grid is located (keyword \"grid_path\") should be a string.",
@@ -62,8 +66,8 @@ ERR_MSG_KWARGS = {
     "opponent_budget_class": "The opponent budget class (\"opponent_budget_class\") should derive from "
                              "\"BaseActionBudget\".",
     "opponent_budget_per_ts": "The increase of the opponent's budget (\"opponent_budget_per_ts\") should be a float.",
-    "kwargs_opponent": "The extra kwargs argument used to properly initiliazed the opponent "
-                       "(\"kwargs_opponent\") shoud "
+    "kwargs_opponent": "The extra kwargs argument used to properly initialized the opponent "
+                       "(\"kwargs_opponent\") should "
                        "be a dictionary.",
     DIFFICULTY_NAME: "Unknown difficulty level {difficulty} for this environment. Authorized difficulties are "
                      "{difficulties}"
@@ -77,8 +81,8 @@ NAME_CONFIG_FILE = "config.py"
 
 def _check_kwargs(kwargs):
     for el in kwargs:
-        if not el in ERR_MSG_KWARGS.keys():
-            raise EnvError("Unknown keyword argument \"{}\" used to create an Environement. "
+        if el not in ERR_MSG_KWARGS.keys():
+            raise EnvError("Unknown keyword argument \"{}\" used to create an Environment. "
                            "No Environment will be created. "
                            "Accepted keyword arguments are {}".format(el, ERR_MSG_KWARGS.keys()))
 
@@ -318,9 +322,10 @@ def make_from_dataset_path(dataset_path="/",
                 my_difficulty = kwargs[DIFFICULTY_NAME]
                 try:
                     my_difficulty = str(my_difficulty)
-                except:
+                except Exception as exc_:
                     raise EnvError("Impossible to convert your difficulty into a valid string. Please make sure to "
-                                   "pass a string (eg \"2\") and not something else (eg. int(2)) as a difficulty")
+                                   "pass a string (eg \"2\") and not something else (eg. int(2)) as a difficulty."
+                                   "Error was \n{}".format(exc_))
                 if my_difficulty in dict_:
                     param.init_from_dict(dict_[my_difficulty])
                 else:
@@ -416,8 +421,8 @@ def make_from_dataset_path(dataset_path="/",
                                            msg_error=ERR_MSG_KWARGS["chronics_class"],
                                            isclass=True)
     if (chronics_class_used != ChangeNothing) and exc_chronics is not None:
-        raise RuntimeError(f"Impossible to find the chronics for your environment. Please make sure to provide "
-                           f"a folder \"{NAME_CHRONICS_FOLDER}\" within your environment folder.")
+        raise EnvError(f"Impossible to find the chronics for your environment. Please make sure to provide "
+                       f"a folder \"{NAME_CHRONICS_FOLDER}\" within your environment folder.")
 
     data_feeding_kwargs["chronicsClass"] = chronics_class_used
     data_feeding = _get_default_aux("data_feeding", kwargs,

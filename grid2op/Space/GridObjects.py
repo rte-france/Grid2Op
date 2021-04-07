@@ -1299,9 +1299,15 @@ class GridObjects:
             except Exception as exc_:
                 raise EnvError("self.name_storage should be convertible to a numpy array of type str. Error was "
                                f"{exc_}")
-        for arr_, nm in zip([cls.name_gen, cls.name_sub, cls.name_line, cls.name_load,
-                             cls.name_shunt, cls.name_storage],
-                            ["generators", "substations", "lines", "loads", "shunts", "storage units"]):
+
+        attrs_nms = [cls.name_gen, cls.name_sub, cls.name_line, cls.name_load, cls.name_storage]
+        nms = ["generators", "substations", "lines", "loads", "storage units"]
+        if cls.shunts_data_available:
+            # these are set to "None" if there is no shunts on the grid
+            attrs_nms.append(cls.name_shunt)
+            nms.append("shunts")
+
+        for arr_, nm in zip(attrs_nms, nms):
             tmp = np.unique(arr_)
             if tmp.shape[0] != arr_.shape[0]:
                 nms = '\n\t - '.join(sorted(arr_))
