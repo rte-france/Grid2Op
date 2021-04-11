@@ -28,7 +28,11 @@ Change Log
   a layout and a warning is issued in this case.
 - [FIXED] `Issue #180 <https://github.com/rte-france/Grid2Op/issues/180>`_ : it is now possible to set the thermal
   limit with a dictionary
+- [FIXED] an issue linked to the transformation into gym box space for some environments,
+  this **might** be linked to `Issue #185 <https://github.com/rte-france/Grid2Op/issues/185>`_
 - [ADDED] a feature to retrieve the voltage angle (theta) in the backend (`backend.get_theta`) and in the observation.
+- [ADDED] support for multimix in the GymEnv (lack of support spotted thanks to
+  `Issue #185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
 - [IMPROVED] extra layer of security preventing modification of `observation_space` and `action_space` of environment
 - [IMPROVED] better handling of dynamically generated classes
 
