@@ -49,6 +49,11 @@ Each type of elements will be described in the same way:
   to alter them.
 - `Equations satisfied` explains the "constraint" of all of the above
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 .. _generator-mod-el:
 
 Generators

@@ -3,6 +3,12 @@
 
 Grid2Op module
 ===================================
+
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 The grid2op module allows to model sequential decision making on a powergrid.
 
 It is modular in the sense that it allows to use different powerflow solver (denoted as "Backend").
@@ -143,6 +149,9 @@ This graph has some constraints:
 - the graph of the grid should be `connected` (made of one unique connex component): otherwise the condition number
   1 above (sum production = sum load + sum losses) will not be met in each of the independant subgraph, most likely.
 - there exist a solution to the `Kirchoff Circuits Laws`
+
+For more information on this "graph" and the way to retrieve it
+in different format, you can consult the page :ref:`gridgraph-module` of the documentation.
 
 The whole grid2op ecosystem aims at modeling the evolution of a "controller" that is able to make sure the
 "graph of grid", at all time meets all the constraints.

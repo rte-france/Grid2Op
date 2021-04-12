@@ -1,5 +1,10 @@
 Episode
 ===================================
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 Grid2op defines some special function that help with restoring agent that has run during some episode that has been

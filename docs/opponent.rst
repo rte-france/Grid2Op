@@ -3,6 +3,11 @@
 Opponent Modeling
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 Power systems are a really important tool today, that can be as resilient as possible to avoid possibly dramatic

@@ -179,6 +179,26 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def tearDown(self):
         pass
 
+    def test_theta_ok(self):
+        self.skip_if_needed()
+        if self.backend.can_output_theta:
+            theta_or, theta_ex, load_theta, gen_theta, storage_theta = self.backend.get_theta()
+            assert theta_or.shape[0] == self.backend.n_line
+            assert theta_ex.shape[0] == self.backend.n_line
+            assert load_theta.shape[0] == self.backend.n_load
+            assert gen_theta.shape[0] == self.backend.n_gen
+            assert storage_theta.shape[0] == self.backend.n_storage
+            assert np.all(np.isfinite(theta_or))
+            assert np.all(np.isfinite(theta_ex))
+            assert np.all(np.isfinite(load_theta))
+            assert np.all(np.isfinite(gen_theta))
+            assert np.all(np.isfinite(storage_theta))
+        else:
+            with self.assertRaises(NotImplementedError):
+                # if the "can_output_theta" flag is set to false, then it means the backend
+                # should not implement the get_theta class
+                self.backend.get_theta()
+
     def test_runpf_dc(self):
         self.skip_if_needed()
         conv = self.backend.runpf(is_dc=True)

@@ -1,6 +1,11 @@
 Getting started
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 In this chapter we present how to install grid2op.
 
 ############

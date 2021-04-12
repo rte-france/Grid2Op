@@ -323,7 +323,9 @@ Now to retrieve a "graph like" object, you can :
     # method 2
     obs_add = obs + add
 
-And refer to the section :ref:`observation_module_graph` to retrieve a graph structure from these observations.
+And refer to the page :ref:`gridgraph-module` or the section :ref:`observation_module_graph` to retrieve a graph
+structure from these observations.
+
 For example:
 
 .. code-block:: python
@@ -331,6 +333,7 @@ For example:
     bus_bus_mat = obs_add.bus_connectivity_matrix()  # alternatively  `sim_obs.bus_connectivity_matrix()`
     # or
     connect_mat = obs_add.connectivity_matrix()  # alternatively  `sim_obs.connectivity_matrix()`
+
 
 
 .. _Illegal-vs-Ambiguous:

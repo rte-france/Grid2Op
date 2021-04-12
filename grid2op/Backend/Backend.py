@@ -136,6 +136,7 @@ class Backend(GridObjects, ABC):
         # if this information is not present, then "get_action_to_set" might not behave correctly
 
         self.comp_time = 0.
+        self.can_output_theta = False
 
     @abstractmethod
     def load_grid(self, path, filename=None):
@@ -664,16 +665,36 @@ class Backend(GridObjects, ABC):
 
         Returns
         -------
-        shunt_p ``numpy.ndarray``
+        shunt_p: ``numpy.ndarray``
             For each shunt, the active power it withdraw at the bus to which it is connected.
-        shunt_q ``numpy.ndarray``
+        shunt_q: ``numpy.ndarray``
             For each shunt, the reactive power it withdraw at the bus to which it is connected.
-        shunt_v ``numpy.ndarray``
+        shunt_v: ``numpy.ndarray``
             For each shunt, the voltage magnitude of the bus to which it is connected.
-        shunt_bus ``numpy.ndarray``
+        shunt_bus: ``numpy.ndarray``
             For each shunt, the bus id to which it is connected.
         """
         return [], [], [], []
+
+    def get_theta(self):
+        """
+
+        Returns
+        -------
+        line_or_theta: ``numpy.ndarray``
+            For each orgin side of powerline, gives the voltage angle
+        line_ex_theta: ``numpy.ndarray``
+            For each extremity side of powerline, gives the voltage angle
+        load_theta: ``numpy.ndarray``
+            Gives the voltage angle to the bus at which each load is connected
+        load_theta: ``numpy.ndarray``
+            Gives the voltage angle to the bus at which each load is connected
+        gen_theta: ``numpy.ndarray``
+            Gives the voltage angle to the bus at which each generator is connected
+        storage_theta: ``numpy.ndarray``
+            Gives the voltage angle to the bus at which each storage unit is connected
+        """
+        raise NotImplementedError("Your backend does not support the retrieval of the voltage angle theta.")
 
     def sub_from_bus_id(self, bus_id):
         """

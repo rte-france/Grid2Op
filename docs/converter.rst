@@ -3,6 +3,11 @@
 Converters
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 In this module of grid2op, the "converters" are defined.

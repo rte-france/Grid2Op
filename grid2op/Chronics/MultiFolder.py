@@ -445,8 +445,8 @@ class Multifolder(GridValue):
                     obs, reward, done, info = env.step(act)
 
         .. warning:: Though it is possible to use this "shuffle" function to only use some chronics, we highly
-            recommend you to have a look at the sections :sec:`environment-module-chronics-info` or
-            :sec:`environment-module-train-val-test`. It is likely that you will find better way to do
+            recommend you to have a look at the sections :ref:`environment-module-chronics-info` or
+            :ref:`environment-module-train-val-test`. It is likely that you will find better way to do
             what you want to do there. Use this last example with care then.
 
         .. warning:: As stated on the :func:`MultiFolder.reset`, any call to `env.chronics_handler.reset`

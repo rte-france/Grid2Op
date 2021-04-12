@@ -1,0 +1,504 @@
+
+.. |grid_graph_1| image:: ./img/grid_graph_1.png
+    :width: 45%
+
+.. |grid_graph_2| image:: ./img/grid_graph_2.png
+    :width: 45%
+
+.. _gridgraph-module:
+
+A grid, a graph: grid2op representation of the powergrid
+===================================================================
+
+In this section of the documentation, we will dive a deeper into the "modeling" on which grid2op is based and
+especially how the underlying graph of the powergrid is represented and how it can be easily retrieved.
+
+.. note::
+
+    This whole page is a work in progress, and any contribution is welcome !
+
+
+First, we detail some concepts from the power system community in section
+:ref:`powersystem-desc-gridgraph`. Then we explain how this graph is coded in grid2op in section
+:ref:`graph-encoding-gridgraph`. Finally, we show some code examples on how to retrieve this graph in
+section :ref:`get-the-graph-gridgraph`.
+
+
+.. contents:: Table of Contents
+    :depth: 3
+
+.. _powersystem-desc-gridgraph:
+
+Description of a powergrid adopting the "graph" representation
+----------------------------------------------------------------
+
+A powergrid can be represented as a "graph" (in the mathematical meaning) where:
+
+- nodes / vertices are represented by "buses" (or "busbars"): that is the place that different elements of the grid
+  are interconnected
+- links / edges are represented by "powerlines".
+
+Nodes attributes
+~~~~~~~~~~~~~~~~~~
+
+The nodes of this graph have attributes:
+
+- they have "active power" injected at them. Adopting the "generator" convention, if power injected is positive then some
+  power is produced at this node, otherwise power is consumed. This active power is the sum of all power produced /
+  consumed for every load, generator, storage units (and optionally shunts) that are connected at this nodes.
+  In grid2op (to be consistent with the notations in power system literature) active power is noted "`p`"
+- they have "reactive power" injected at them. This "reactive power" is the similar to the active power. Reactive
+  power (out of consistency with power system literature) is noted "`q`".
+- they have a "voltage magnitude" which is more commonly known as "voltage" in "every day" use. As in the power system
+  literature, this "voltage magnitude" is noted "`v`". **NB** For reader mainly familiar with the power system
+  notations, "`v`" is a real number here, it is not the "complex voltage" but the voltage magnitude (module of
+  the complex voltage)
+- they have a "voltage angle" which is the "angle" of the "complex angle" denoted above and is denoted
+  "`theta`" and is given in degree (and not in radian!).
+  **NB** Depending on the solver that you are using, this might not be available.
+- "sub_id": the id of the substation to which this bus belongs.
+- "cooldown": if 0 it means you can split or merge this nodes with other nodes at the same substation, otherwise it
+  gives the number of steps you need to wait before being able to split / merge it.
+
+Edges attributes
+~~~~~~~~~~~~~~~~~~
+
+The edges of this graph have attributes:
+
+- "status": a powerline can be either connected (at both sides) or disconnected. Grid2op does not support, at the moment
+  a powerline connected at only one side.
+- "thermal_limit": the maximum current (measured in amps) that can flow on the powerline
+- "timestep_overflow": the number of steps the powerlines sees a current higher that the maximum flows. It is reset
+  to 0 each time the flow falls bellow the thermal limit.
+- "cooldown": same concept as the substations, but for powerline. You cannot change its status as frequently as you
+  want.
+- "rho": which is the relative flow. It is defined as the flow in amps (by default flows are measured on the origin side
+  divided by the thermal limit)
+- "p_or": the active flow at the origin side of the powerline
+- "p_ex": the active flow at the extremity side of the powerline
+- "q_or": the reactive flow at the origin side of the powerline
+- "q_ex": the reactive flow at the extremity side of the powerline
+- "a_or": the current flow at the origin side of the powerline
+- "a_ex": the current flow at the extremity side of the powerline
+- "v_or": (optional) the voltage magnitude at the origin side of the powerline
+- "V_ex": (optional) the voltage magnitude at the extremity side of the powerline
+- "theta_or": (optional) the voltage angle at the origin side of the powerline
+- "theta_ex": (optional) the voltage angle at the extremity side of the powerline
+
+**NB** A convention needs to be chosen (without loss of generality) for the orientation of the powerlines. When
+adopting the "graph representation" powerlines are oriented in this manner: if a powerline is connected at substation
+`j` on one side and at substation `k` on the other and `j < k`, then its origin side will be on the `j` side
+and its extremity side will be attached to `k`. To make it clear: if a powerline connects substation 12 to 14, then
+its origin side will be connected to 12 and it's origin side to 14.
+
+Some clarifications
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Redundant attributes
+++++++++++++++++++++++
+
+Some of these variables are redundant, for example:
+
+- if a powerline connects bus `j` with bus `k` (with `j < k`) then `v_or = nodes[j]["v"]`, `theta_or = nodes[j]["v"]`,
+  same for the extremity side: `v_ex = nodes[k]["v"]`, `theta_ex = nodes[k]["v"]`
+- if two powerlines are connected at the same bus. For example:
+
+    - the powerline id `l_1` is connected (origin side) at the
+      bus `j` and the powerline `l_2` is connected (origin side) at this same bus `j` then `v_or (l_1) = v_or (l_2)` and
+      `theta_or (l_1) = theta_or (l_2)`
+    - if `l_1` is connected on the extremity side at bus `k` and line `l_3` is connected at its origin side
+      at the same bus `k` then `v_ex (l_1) = v_or (l_2)` and
+      `theta_ex (l_1) = theta_or (l_2)`
+    - of course a similar relation holds if `l_1` and `l_2` are both connected at the extremity side on the
+      same bus.
+
+Physical equations
++++++++++++++++++++++
+All these variables are not independant from one another regardless of the "power system modeling" adopted.
+
+Generally speaking:
+
+- if you know "v" and "theta" at both sides of the powerline, you can deduce all the "p_or", "q_or",
+  "v_or", "theta_or", "p_ex", "q_ex", "v_ex" and "theta_ex"
+-  at each bus, the sum of all the "p_or" and "p_ex" and "p" is equal to 0.
+- at each bus, the sum of all the "q_or" and "q_ex" and "q" is equal to 0.
+
+Actually, it is by solving these constraints that everything is computed.
+
+.. note::
+
+    Grid2op itself does not compute anything. The task of computing a given consistent state (from a power system point
+    of view) is carried out by the `Backend` and only by it.
+
+    This means that nowhere, in grid2op code, you will find anything related to how these variables are linked to
+    one another.
+
+    This modularity is really important, because lots of sets of equations can represent a powergrid depending on
+    the problem studied. Grid2op does not assume anything regarding the set of equations implemented in the backend.
+
+    Actually, the same grid can be modeled with different sets of equations, leading to different results (in terms
+    of flows notably). This is perfectly possible in grid2op: only the backend needs to be changed. All the rest
+    can stay the same (*e.g.,* the agent does not need to be changed at all).
+
+
+The grid is immutable
++++++++++++++++++++++++
+Grid2op aims at modeling grid2op operation close to real time.
+
+This is why the powergrid is considered as "fixed" or "immutable". For example, if for a given environment load
+with id `j` is connected to substation with id `k` then for all the episodes on this environment, this will
+be the case (load cannot be magically connected to another substation).
+
+This is a property of power system: a load representing a city, in real time, it is not possible to move completly
+a city from one place of a state to another. And even if it was possible, it is definitely not desirable.
+
+This applies to all elements of the grid. For the same environment:
+
+- load will always be connected at the same substation
+- generator will always be connected at the same substation
+- storage units will always be connected at the same substation
+- powerlines will always connects the same substations, and in this case, grid2op also offer the guarantee that
+  origin side will always be connected at the same substation AND extremity side will always be connected at
+  the same substation. In other words, the orientation convention adopted to define "origin side" and
+  "extremity side" is part of the environment.
+
+.. warning::
+
+    If you decide to code a new Backend class, then you need to meet this property. Otherwise things might break.
+
+Not everything can be connected together
++++++++++++++++++++++++++++++++++++++++++++
+There are also constraints on what can be done, and what cannot.
+
+For example, it is not possible to connect directly (without powerline) a city in the North East of a State to a
+production unit at the South West of the same sate.
+
+To adopt a more precise vocabulary, only elements (load, generator, storage unit, origin side of a powerline,
+extremity side of a powerline) that are at the same substation can be directly connected together.
+
+If an element of the grid is connected at substation `j` and another one at substation `k` for a given environment,
+in absolutely no circumstances these two objects can be directly connected together, they will never be connected at
+the same bus.
+
+To state this constraint a bit differently, a substation can be split in independent buses (multiple nodes
+at the same substation) but a nodes can only connect elements of the same substation.
+
+.. note::
+
+    For simplicity (in the problem exposed) grid2op does not allow to have more than 2 independent buses at a
+    given substation at time of writing (April 2021).
+
+    Changing this would not be too difficult on grid2op side, but would make the action space even bigger. If you
+    really need to use more than 2 buses at the same substation, do not hesitate to fill a feature request.
+
+The graph is dynamic
+++++++++++++++++++++++
+Even though an element is always, under all circumstances, connected at the same substation, it can be connected
+at different buses (of this substation) at different step. This is even the main "flexibility" that is studied
+with grid2op.
+
+This implies that "the" graph representing the powergrid does not always have the same number of nodes depending
+on the time, nor the same number of edges, for example if powerlines are disconnected.
+
+.. note::
+
+    For real powergrid, this is possible to perform such changes in real time without the need to install new
+    infrastructure. This is because substations are full of "breakers" and other "switches" that can be opened or
+    closed.
+
+    Again, for the sake of simplicity, breakers / switches are not directly modeled in grid2op. An agent /
+    environment only needs to know what is connected to what without giving the details on how its done.
+
+    Manipulating breakers / switches is not an easy task and not everything can be done every time in real
+    powergrid. The removal of breaker is another simplification made for clarity.
+
+    If you want to model these, it is perfectly possible without too much trouble. You can fill a feature request
+    for this if that is interesting to you.
+
+.. note::
+
+    The graph of the grid has also the property that more than one edge can connect the same pair of buses (it is
+    the case for parallel powerlines)
+
+Wrapping it up
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The "sequential decision making" modeled by the grid2op aims then at finding good actions to keep the grid in safety
+(flows <= thermal limits on all powerlines) while allowing consumer to consume as much power as they want.
+
+The possible actions are:
+
+- connecting / disconnecting powerlines
+- changing the "topology" of some substations, which consists in merging or splitting buses at some substations
+- changing the amount of power some storage units produce / absorb
+- changing the production setpoint of the generators (aka redispatching or curtailment)
+
+For more information, technical details are provided in page :ref:`action-module`
+
+.. _graph-encoding-gridgraph:
+
+How the graph of the grid is encoded in grid2op
+----------------------------------------------------------------
+
+In computer science, there are lots of way to represent a graph structure, each solution having advantages and drawbacks.
+In grid2op, a drastic choice have been made: the graph of the grid will not be explicitly represented (but it can
+be computed on request, see section :ref:`get-the-graph-gridgraph`).
+
+Instead, the "graph" of the grid is stored in different vectors:
+
+One set of vectors (fixed, immutable) gives to which substation each element is connected, they are
+the `env.load_to_subid`, `env.gen_to_subid`, `env.line_or_to_subid`, `env.line_ex_to_subid` or `env.storage_to_subid`
+vectors.
+
+As an example, `env.load_to_subid` is vector that has as many components as there are loads on the grid,
+and for each load, it gives the id of the substation to which it is connected. More concretely, if
+`env.load_to_subid[load_id] = sub_id` it means that the load of id `load_id` is connected (and will always be!) at
+the substation of id `sub_id`
+
+
+Now, remember (from the previous section) that each object can either be connected on busbar 1 or on busbar 2.
+To know the completely graph of the grid, you simply need to know if the element is connected or not, and if
+it's connected, whether it is connected to bus 1 or bus 2.
+
+This is exactly how it is represented in grid2op. All objects are assigned (by the Backend, again, this
+is immutable and will always be the same for a given environment) to a position.
+
+These positions are given by the `env.load_pos_topo_vect`, `env.gen_pos_topo_vect`, `env.line_or_pos_topo_vect`,
+`env.line_ex_pos_topo_vect` or `env.storage_pos_topo_vect`
+(see :attr:`grid2op.Space.GridObjects.load_pos_topo_vect` for more information).
+
+And then, in the observation, you can retrieve the state of each object in the "topo_vect" vector: `obs.topo_vect`
+(see :attr:`grid2op.Observation.BaseObservation.topo_vect` for more information).
+
+As an exemple, say `obs.topo_vect[42] = 2` it means that the "42nd" element (remember in python index are 0 based,
+this is why i put quote on "42nd", this is actually the 43rd... but writing 43rd is more confusing, so we will
+stick to "42nd") of the grid is connected to bus 2.
+
+To know what element of the grid is the "42nd", you can:
+
+1) look at the `env.load_pos_topo_vect`, `env.gen_pos_topo_vect`, `env.line_or_pos_topo_vect`,
+   `env.line_ex_pos_topo_vect` or `env.storage_pos_topo_vect` and find where there is a "42" there. For example if
+   `env.line_ex_pos_topo_vect[line_id] = 42` then you know for sure that the "42nd" element of the grid is, in that
+   case the extremity side of powerline `line_id`.
+2) look at the table  :attr:`grid2op.Space.GridObjects.grid_objects_types` and especially the line 42 so
+   `env.grid_objects_types[42,:]` which contains this information as well. Each column of this table encodes
+   for one type of element (first column is substation, second is load, then generator, then origin end of
+   powerline then extremity end of powerline and finally storage unit. Each will have "-1" if the element
+   is not of that type, and otherwise and id > 0. Taking the same example as for the above bullet point!
+   `env.grid_objects_types[42,:] = [sub_id, -1, -1, -1, line_id, -1]` meaning the "42nd" element of the grid
+   if the extremity end (because it's the 5th column) of id `line_id` (the other element being marked as "-1").
+
+.. _get-the-graph-gridgraph:
+
+How to retrieve "the" graph in grid2op
+----------------------------------------------------------------
+
+As of now, we only presented a single graph that could represent the powergrid. This was to simplify the language. In
+fact the graph of the grid can be represented in different manners. Some of them will detailed in this section.
+
+A summary of the types of graph that can be used to (sometimes partially) represent a powergrid is:
+
+========================  ================  =====================================================================
+Type of graph             described in      grid2op method
+========================  ================  =====================================================================
+"normal graph"            :ref:`graph1-gg`  :func:`grid2op.Observation.BaseObservation.as_networkx`
+"connectivity graph"      :ref:`graph2-gg`  :func:`grid2op.Observation.BaseObservation.connectivity_matrix`
+"bus connectivity graph"  :ref:`graph3-gg`  :func:`grid2op.Observation.BaseObservation.bus_connectivity_matrix`
+"flow bus graph"          :ref:`graph4-gg`  :func:`grid2op.Observation.BaseObservation.flow_bus_matrix`
+========================  ================  =====================================================================
+
+.. note::
+
+    None of the name of the graph are standard... It's unlikely that searching for "flow bus graph" on google
+    will lead to interesting results. Sorry about that.
+
+    We are, however, really interested in having better names there. So if you have some, don't hesitate to
+    write an issue on the official grid2op github.
+
+And their respective properties:
+
+========================  ================  ========================  =====================
+Type of graph             always same size  encode all observation    has flow information
+========================  ================  ========================  =====================
+"normal graph"            no                yes                       yes
+"connectivity graph"      yes               no                        no
+"bus connectivity graph"  no                no                        no
+"flow bus graph"          no                no                        yes
+========================  ================  ========================  =====================
+
+.. _graph1-gg:
+
+Graph1: the "normal graph"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Because we don't really find fancy name for it, let's call it the "normal" graph of the grid. This graph, you
+might have guessed is the graph defined at the very top of this page of the documentation.
+
+Each edge is a powerline and each node is a "bus" (remember: by definition two objects are directly
+connected together if they are connected at the same "bus").
+
+This graph can be retrieved using the `obs.as_networkx()` command that returns a networkx graph for the entire
+observation, that has all the attributes described in :ref:`powersystem-desc-gridgraph`.
+
+You can retrieve it with:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = ...  # for example "l2rpn_case14_sandbox"
+    env = grid2op.make(env_name)
+
+    # retrieve the state, as a grid2op observation
+    obs = env.reset()
+    # the same state, as a graph
+    state_as_graph = obs.as_networkx()
+
+    # attributes of node 0
+    print(state_as_graph.nodes[0])
+
+    # print the "first" edge
+    first_edge = next(iter(state_as_graph.edges))
+    print(state_as_graph.edges[first_edge])
+
+.. note::
+
+    The main difference with the "graph of the grid" showed in the first section is that it is a "simple
+    graph" (as opposed to "multi graph"): two parallel edges are merged together.
+
+This graph varies in size: the number of nodes on this graph is the number of bus on the grid !
+
+Effect of an action on this graph
+----------------------------------------------------------------
+
+Now, let's do a topological action on this graph, and print the results:
+
+.. code-block:: python
+
+    import grid2op
+    import networkx
+    import matplotlib.pyplot as plt
+
+    env_name = "l2rpn_case14_sandbox"
+    env = grid2op.make(env_name)
+    col_no_change = "#c4e1f5"
+    col_change = "#1f78b4"
+    line_no_change = "#383636"
+    line_1 = "#e66363"
+    line_2 = "#63e6b6"
+    sub_id = 4
+
+    # retrieve the state, as a grid2op observation
+    obs = env.reset()
+    # the same state, as a graph
+    state_as_graph = obs.as_networkx()
+
+    ##############################################################################
+    # now plot this first graph (use some pretty color and layout...)
+    fig, ax = plt.subplots(1, 1, figsize=(5, 7.5))
+    # ax = axs[0]
+    node_color = [col_no_change for _ in range(env.n_sub)]
+    node_color[sub_id] = col_change
+    edge_color = [line_no_change for _ in range(env.n_line)]
+    edge_color[1] = line_1
+    edge_color[9] = line_1
+    edge_color[6] = line_2
+    edge_color[4] = line_2
+    networkx.draw(state_as_graph,
+                  pos={i: env.grid_layout[env.name_sub[i]] for i in range(env.n_sub)},
+                  node_color=node_color,
+                  edge_color=edge_color,
+                  labels={i: state_as_graph.nodes[i]["sub_id"] for i in range(env.n_sub)},
+                  ax=ax)
+    plt.tight_layout()
+    plt.show()
+    ##############################################################################
+
+    # perform an action to split substation 4 on two buses
+    action = env.action_space({"set_bus": {"substations_id": [(sub_id, [1, 2, 2, 1, 1])]}})
+    new_obs, *_ = env.step(action)
+    new_graph = new_obs.as_networkx()
+
+    ##############################################################################
+    # now pretty plot it
+    fig, ax = plt.subplots(1, 1, figsize=(5, 7.5))
+    # ax = axs[0]
+    dict_pos = {i: env.grid_layout[env.name_sub[i]] for i in range(env.n_sub)}
+    dict_pos[sub_id] = env.grid_layout[env.name_sub[4]][0] - 30, env.grid_layout[env.name_sub[4]][1]
+    dict_pos[env.n_sub] = env.grid_layout[env.name_sub[4]][0] + 30, env.grid_layout[env.name_sub[4]][1]
+    node_color = [col_no_change for _ in range(env.n_sub + 1)]
+    node_color[sub_id] = col_change
+    node_color[env.n_sub] = col_change
+
+    edge_color = [line_no_change for _ in range(env.n_line)]
+    edge_color[1] = line_1
+    edge_color[9] = line_1
+    edge_color[8] = line_2
+    edge_color[4] = line_2
+    circle1 = plt.Circle(env.grid_layout[env.name_sub[4]], 50, color=col_no_change, alpha=0.7)
+    ax.add_patch(circle1)
+    networkx.draw(new_graph,
+                  pos=dict_pos,
+                  node_color=node_color,
+                  edge_color=edge_color,
+                  labels={i: new_graph.nodes[i]["sub_id"] for i in range(env.n_sub+1)},
+                  ax=ax)
+    plt.tight_layout()
+    plt.show()
+    ##############################################################################
+
+
+And this gives:
+
+|grid_graph_1| |grid_graph_2|
+
+As you see, this action have for effect to split the substation 4 on 2 independent buses (one where there are
+the two red powerline, another where there are the two green)
+
+.. note::
+
+    On this example, for this visualization, lots of elements of the grid are not displayed. This is the case
+    for the load, generator and storage units for example.
+
+    For an easier to read (and to get! ) representation, feel free to consult the :ref:`grid2op-plot-module`
+
+.. _graph2-gg:
+
+Graph2: the "connectivity graph"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TODO: Work in progress, any help welcome
+
+In the mean time, some documentation are available at :func:`grid2op.Observation.BaseObservation.connectivity_matrix`
+
+.. note::
+
+    This graph is not represented as a networkx graph, but rather as a symmetrical (sparse) matrix.
+
+    It has no informations about the flows. It is a simple graph that indicates whether or not two objects
+    are on the same bus or not.
+
+.. _graph3-gg:
+
+Graph3: the "bus connectivity graph"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TODO: Work in progress, any help welcome
+
+In the mean time, some documentation are available at :func:`grid2op.Observation.BaseObservation.bus_connectivity_matrix`
+
+.. note::
+
+    This graph is not represented as a networkx graph, but rather as a symmetrical (sparse) matrix.
+
+    It has no information about flows, but simply about the presence / abscence of powerlines between two buses.
+
+.. _graph4-gg:
+
+Graph4: the "flow bus graph"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TODO: Work in progress, any help welcome
+
+In the mean time, some documentation are available at :func:`grid2op.Observation.BaseObservation.flow_bus_matrix`
+
+.. note::
+
+    This graph is not represented as a networkx graph, but rather as a (sparse) matrix.
+
+.. include:: final.rst
