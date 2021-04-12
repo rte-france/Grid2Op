@@ -161,7 +161,7 @@ To summarize what is going on here:
 Detailed Documentation by class
 --------------------------------
 .. automodule:: grid2op.Opponent
-   :members:
+    :members:
     :autosummary:
 
 .. include:: final.rst

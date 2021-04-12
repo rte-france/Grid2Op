@@ -33,8 +33,11 @@ Change Log
 - [ADDED] a feature to retrieve the voltage angle (theta) in the backend (`backend.get_theta`) and in the observation.
 - [ADDED] support for multimix in the GymEnv (lack of support spotted thanks to
   `Issue #185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
+- [ADDED] basic documentation of the environment available.
 - [IMPROVED] extra layer of security preventing modification of `observation_space` and `action_space` of environment
 - [IMPROVED] better handling of dynamically generated classes
+- [IMPROVED] the documentation of the opponent
+
 
 [1.5.0] - 2021-03-31
 -------------------------
