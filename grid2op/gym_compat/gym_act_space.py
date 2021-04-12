@@ -10,7 +10,7 @@ from gym import spaces
 import warnings
 import numpy as np
 
-from grid2op.Environment import Environment, MultiMixEnvironment, BaseMultiProcessEnv
+from grid2op.Environment import Environment, MultiMixEnvironment, BaseMultiProcessEnvironment
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Converter.Converters import Converter
@@ -106,7 +106,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
         """
         if dict_variables is None:
             dict_variables = {}
-        if isinstance(env, (Environment, MultiMixEnvironment, BaseMultiProcessEnv)):
+        if isinstance(env, (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)):
             # action_space is an environment
             self.initial_act_space = env.action_space
             self._init_env = env
