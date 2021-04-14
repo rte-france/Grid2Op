@@ -113,6 +113,7 @@ class RedispReward(BaseReward):
             res_cls = type(nm_res, (cls,), cls_attr_as_dict)
             res_cls.__module__ = cls.__module__
             setattr(sys.modules[cls.__module__], nm_res, res_cls)
+            globals()[nm_res] = res_cls
         else:
             # i mess with the default parameters in the base class, i know i know it's not pretty, but hey...
 
