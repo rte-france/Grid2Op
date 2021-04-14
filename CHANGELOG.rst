@@ -24,10 +24,14 @@ Change Log
 
 [1.5.1] - 2021-xx-yy
 -----------------------
+- [FIXED]: `Issue #187 <https://github.com/rte-france/Grid2Op/issues/187>`_: improve the computation and the
+  documentation of the `RedispReward`. This has an impact on the reward_range of all environments using this reward,
+  because the old "reward_max" was not correct.
 - [FIXED] `Issue #181 <https://github.com/rte-france/Grid2Op/issues/181>`_ : now environment can be created with
   a layout and a warning is issued in this case.
 - [FIXED] `Issue #180 <https://github.com/rte-france/Grid2Op/issues/180>`_ : it is now possible to set the thermal
   limit with a dictionary
+- [FIXED] a typo that would cause the attack to be discarded in the runner in some cases (cases for now not used)
 - [FIXED] an issue linked to the transformation into gym box space for some environments,
   this **might** be linked to `Issue #185 <https://github.com/rte-france/Grid2Op/issues/185>`_
 - [ADDED] a feature to retrieve the voltage angle (theta) in the backend (`backend.get_theta`) and in the observation.

@@ -346,7 +346,7 @@ Some other test environments are available:
 
 .. warning::
 
-    We dont' recommend to create any of these environments at all,
+    We don't recommend to create any of these environments at all,
     unless you want to perform some specific dedicated tests.
 
     This is why we don't detail them in this documentation.
@@ -355,6 +355,84 @@ Some other test environments are available:
 Miscellaneous
 --------------
 
-Possible workflow to create an environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-WORK IN PROGRESS
+Possible workflow to create an environment from existing chronics
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In this subsection, we will give an example on how to set up an environment in grid2op if you already
+have some data that represents loads and productions at each steps. This paragraph aims at making more concrete
+the description of the environment shown previously.
+
+For this, we suppose that you already have:
+- a powergrid in any type of format that represents the grid you have studied.
+- some injections data, in any format (csv, mysql, json, etc. etc.)
+
+The process to make this a grid2op environment is the following:
+
+1) :ref:`create_folder`: create the folder
+2) :ref:`grid_json_ex`: convert the grid file / make sure you have a "backend that can read it"
+3) :ref:`chronics_folder_ex`: convert your data / make sure to have a "GridValue" that understands it
+4) :ref:`config_py_ex`: create the `config.py` file
+5) [optional] :ref:`grid_layout_ex`: generate the `grid_layout.json`
+6) [optional] :ref:`prod_charac_ex`: generate the `prod_charac.csv`and `storage_units_charac.csv` if needed
+7) :ref:`test_env_ex`: charge the environment and test it
+8) [optional] :ref:`calibrate_th_lim_ex`: calibrate the thermal limit and set them in the `config.py` file
+
+Each task is briefly described in a following paragraph.
+
+.. _create_folder:
+
+Creating the folder
++++++++++++++++++++++
+First you need to create the folder that will represent your environment. Just create an empty folder anywhere
+on your computer.
+
+For the sake of the example, we assume here the folder is `EXAMPLE_FOLDER=C:\Users\Me\Documents\my_grid2op_env`, it
+can also be `EXAMPLE_FOLDER=/home/Me/Documents/my_grid2op_env` or
+`EXAMPLE_FOLDER=/home/Me/Documents/anything_i_want_really` it does not matter.
+
+.. _grid_json_ex:
+
+Generate the "grid.json" file
++++++++++++++++++++++++++++++
+TODO
+
+.. _chronics_folder_ex:
+
+Organize the "chronics" folder
++++++++++++++++++++++++++++++++
+TODO
+
+.. _config_py_ex:
+
+Set up the "config.py" file
++++++++++++++++++++++++++++
+
+TODO
+
+.. _grid_layout_ex:
+
+Obtain the "grid_layout.json"
+++++++++++++++++++++++++++++++
+
+TODO
+
+.. _prod_charac_ex:
+
+Set up the productions and storage characteristics
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+TODO
+
+.. _test_env_ex:
+
+Test your environment
++++++++++++++++++++++
+
+TODO
+
+.. _calibrate_th_lim_ex:
+
+Calibrate the thermal limit
++++++++++++++++++++++++++++
+
+TODO
+
