@@ -9,6 +9,7 @@
 import sys
 import numpy as np
 
+import re
 from grid2op.platform import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Reward.BaseReward import BaseReward
@@ -102,6 +103,7 @@ class RedispReward(BaseReward):
             # on linux it's fine, i can create new classes for each meta parameters
             nm_res = f"RedispReward_{alpha_redisph:.2f}_{min_load_ratio:.2f}_{worst_losses_ratio:.2f}"
             nm_res += f"_{min_reward:.2f}_{least_losses_ratio:.2f}_{reward_illegal_ambiguous:.2f}"
+            nm_res = re.sub("\\.", "@", nm_res)
             cls_attr_as_dict = {
                 "_alpha_redisp": dt_float(alpha_redisph),
                 "_min_load_ratio": dt_float(min_load_ratio),
