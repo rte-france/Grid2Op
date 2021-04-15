@@ -679,14 +679,17 @@ class Backend(GridObjects, ABC):
     def get_theta(self):
         """
 
+        Notes
+        -----
+        Don't forget to set the flag :attr:`Backend.can_output_theta` to ``True`` in the
+        :func:`Bakcend.load_grid` if you support this feature.
+
         Returns
         -------
         line_or_theta: ``numpy.ndarray``
-            For each orgin side of powerline, gives the voltage angle
+            For each origin side of powerline, gives the voltage angle
         line_ex_theta: ``numpy.ndarray``
             For each extremity side of powerline, gives the voltage angle
-        load_theta: ``numpy.ndarray``
-            Gives the voltage angle to the bus at which each load is connected
         load_theta: ``numpy.ndarray``
             Gives the voltage angle to the bus at which each load is connected
         gen_theta: ``numpy.ndarray``

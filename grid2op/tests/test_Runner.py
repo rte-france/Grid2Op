@@ -59,15 +59,17 @@ class TestRunner(HelperTests):
                                           }
         self.gridStateclass = Multifolder
         self.backendClass = PandaPowerBackend
-        self.runner = Runner(init_grid_path=self.init_grid_path,
-                             path_chron=self.path_chron,
-                             parameters_path=self.parameters_path,
-                             names_chronics_to_backend=self.names_chronics_to_backend,
-                             gridStateclass=self.gridStateclass,
-                             backendClass=self.backendClass,
-                             rewardClass=L2RPNReward,
-                             max_iter=self.max_iter,
-                             name_env="test_runner_env")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")  # silence the warning about missing layout
+            self.runner = Runner(init_grid_path=self.init_grid_path,
+                                 path_chron=self.path_chron,
+                                 parameters_path=self.parameters_path,
+                                 names_chronics_to_backend=self.names_chronics_to_backend,
+                                 gridStateclass=self.gridStateclass,
+                                 backendClass=self.backendClass,
+                                 rewardClass=L2RPNReward,
+                                 max_iter=self.max_iter,
+                                 name_env="test_runner_env")
 
     # def test_one_episode(self):  # tested in the runner fast
     # def test_one_episode_detailed(self):  # tested in the runner fast

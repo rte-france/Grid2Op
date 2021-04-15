@@ -38,6 +38,8 @@ Change Log
 - [ADDED] support for multimix in the GymEnv (lack of support spotted thanks to
   `Issue #185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
 - [ADDED] basic documentation of the environment available.
+- [ADDED] `Issue #166 <https://github.com/rte-france/Grid2Op/issues/166>`_ : support for simulate in multi environment
+  settings.
 - [IMPROVED] extra layer of security preventing modification of `observation_space` and `action_space` of environment
 - [IMPROVED] better handling of dynamically generated classes
 - [IMPROVED] the documentation of the opponent
