@@ -572,7 +572,8 @@ class EpisodeData:
                 if efficient_storing:
                     self.attacks.collection[time_step - 1, :] = 0.
                 else:
-                    self.attack = np.concatenate((self.attack, self.attack_templ))
+                    # might not work !
+                    self.attacks = np.concatenate((self.attacks, self.attack_templ))
 
             if efficient_storing:
                 # efficient way of writing
@@ -585,6 +586,7 @@ class EpisodeData:
                     else:
                         self.disc_lines[time_step - 1, :] = self.disc_lines_templ
             else:
+                # might not work !
                 # completely inefficient way of writing
                 self.times = np.concatenate(
                     (self.times, (time_step_duration,)))
