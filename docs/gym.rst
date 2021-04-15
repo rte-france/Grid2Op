@@ -54,6 +54,11 @@ A simple usage is:
 
     For more customization on that side, please refer to the section :ref:`gym_compat_box_discrete` below
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Observation space and action space customization
 -------------------------------------------------
 By default, the action space and observation space are `gym.spaces.Dict` with the keys being the attribute

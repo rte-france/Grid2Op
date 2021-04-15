@@ -59,15 +59,17 @@ class TestRunner(HelperTests):
                                           }
         self.gridStateclass = Multifolder
         self.backendClass = PandaPowerBackend
-        self.runner = Runner(init_grid_path=self.init_grid_path,
-                             path_chron=self.path_chron,
-                             parameters_path=self.parameters_path,
-                             names_chronics_to_backend=self.names_chronics_to_backend,
-                             gridStateclass=self.gridStateclass,
-                             backendClass=self.backendClass,
-                             rewardClass=L2RPNReward,
-                             max_iter=self.max_iter,
-                             name_env="test_runner_env")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")  # silence the warning about missing layout
+            self.runner = Runner(init_grid_path=self.init_grid_path,
+                                 path_chron=self.path_chron,
+                                 parameters_path=self.parameters_path,
+                                 names_chronics_to_backend=self.names_chronics_to_backend,
+                                 gridStateclass=self.gridStateclass,
+                                 backendClass=self.backendClass,
+                                 rewardClass=L2RPNReward,
+                                 max_iter=self.max_iter,
+                                 name_env="test_runner_env")
 
     # def test_one_episode(self):  # tested in the runner fast
     # def test_one_episode_detailed(self):  # tested in the runner fast
@@ -262,8 +264,8 @@ class TestRunner(HelperTests):
                 assert len(this_episode.env_actions) == nb_ts, f"wrong number of elements for env_actions for " \
                                                                f"version {g2op_version_txt}: " \
                                                                f"{len(this_episode.env_actions)} vs {nb_ts}"
-            except:
-                raise
+            except Exception as exc_:
+                raise exc_
 
             if g2op_version <= "1.4.0":
                 assert EpisodeData.get_grid2op_version(full_episode_path) == "<=1.4.0", \
@@ -277,7 +279,7 @@ class TestRunner(HelperTests):
 
     def test_backward_compatibility(self):
         backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3", "1.3.0", "1.3.1",
-                                 "1.4.0"]
+                                 "1.4.0", "1.5.0"]
         curr_version = "test_version"
         assert 'curtailment' in CompleteObservation.attr_list_vect, "error at the beginning"
         with warnings.catch_warnings():

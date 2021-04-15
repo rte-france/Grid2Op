@@ -171,7 +171,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         The rules of the game (define which actions are legal and which are not)
 
-    _helper_action_player: :class:`grid2op.Action.ActionSpace`
+    _action_space: :class:`grid2op.Action.ActionSpace`
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Helper used to manipulate more easily the actions given to / provided by the :class:`grid2op.Agent.BaseAgent`
@@ -182,7 +182,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Helper used to manipulate more easily the actions given to / provided by the environment to the backend.
 
-    _helper_observation: :class:`grid2op.Observation.ObservationSpace`
+    _observation_space: :class:`grid2op.Observation.ObservationSpace`
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Helper used to generate the observation that will be given to the :class:`grid2op.BaseAgent`
@@ -301,13 +301,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._helper_action_env = None
         self.chronics_handler = None
         self._game_rules = None
-        self._helper_action_player = None
+        self._action_space = None
 
         self._rewardClass = None
         self._actionClass = None
         self._observationClass = None
         self._legalActClass = None
-        self._helper_observation = None
+        self._observation_space = None
         self._names_chronics_to_backend = None
         self._reward_helper = None
 
@@ -378,6 +378,28 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_before_curtailment = None
         self._sum_curtailment_mw = None
         self._sum_curtailment_mw_prev = None
+
+    @property
+    def action_space(self):
+        """this represent a view on the action space"""
+        return self._action_space
+
+    @action_space.setter
+    def action_space(self, other):
+        raise EnvError("Impossible to modify the action space of the environment. You probably want to modify "
+                       "the action with which the agent is interacting. You can do that with a converter, or "
+                       "using the GymEnv. Please consult the documentation.")
+
+    @property
+    def observation_space(self):
+        """this represent a view on the action space"""
+        return self._observation_space
+
+    @observation_space.setter
+    def observation_space(self, other):
+        raise EnvError("Impossible to modify the observation space of the environment. You probably want to modify "
+                       "the observation with which the agent is interacting. You can do that with a converter, or "
+                       "using the GymEnv. Please consult the documentation.")
 
     def change_parameters(self, new_parameters):
         """
@@ -457,14 +479,22 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._oppSpace.init_opponent(partial_env=self, **self._kwargs_opponent)
         self._oppSpace.reset()
 
+    def _init_myclass(self):
+        if self._backend_action_class is not None:
+            # the class has already been initialized
+            return
+        bk_type = type(self.backend)  # be careful here: you need to initialize from the class, and not from the object
+        # create the proper environment class for this specific environment
+        self.__class__ = type(self).init_grid(bk_type)
+
     def _has_been_initialized(self):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
-        bk_type = type(self.backend)  # be carefull here: you need to initialize from the class, and not from the object
-        self.__class__ = self.init_grid(bk_type)  # create the proper environment class for this specific environment
+        self._init_myclass()
+        bk_type = type(self.backend)
         if np.min([self.n_line, self.n_gen, self.n_load, self.n_sub]) <= 0:
             raise EnvironmentError("Environment has not been initialized properly")
-        self._backend_action_class = _BackendAction.init_grid(self.backend)
+        self._backend_action_class = _BackendAction.init_grid(bk_type)
         self._backend_action = self._backend_action_class()
 
         # initialize maintenance / hazards
@@ -549,14 +579,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.__new_param is not None:
             self._update_parameters()  # reset __new_param to None too
         if self.__new_forecast_param is not None:
-            self._helper_observation._change_parameters(self.__new_forecast_param)
+            self._observation_space._change_parameters(self.__new_forecast_param)
             self.__new_forecast_param = None
         if self.__new_reward_func is not None:
             self._reward_helper.change_reward(self.__new_reward_func)
             self._reward_helper.initialize(self)
             self.reward_range = self._reward_helper.range()
             # change also the reward used in simulate
-            self._helper_observation.change_reward(self._reward_helper.template_reward)
+            self._observation_space.change_reward(self._reward_helper.template_reward)
             self.__new_reward_func = None
 
         self._reset_storage()
@@ -645,12 +675,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.chronics_handler is not None:
             seed = self.space_prng.randint(max_int)
             seed_chron = self.chronics_handler.seed(seed)
-        if self._helper_observation is not None:
+        if self._observation_space is not None:
             seed = self.space_prng.randint(max_int)
-            seed_obs = self._helper_observation.seed(seed)
-        if self._helper_action_player is not None:
+            seed_obs = self._observation_space.seed(seed)
+        if self._action_space is not None:
             seed = self.space_prng.randint(max_int)
-            seed_action_space = self._helper_action_player.seed(seed)
+            seed_action_space = self._action_space.seed(seed)
         if self._helper_action_env is not None:
             seed = self.space_prng.randint(max_int)
             seed_env_modif = self._helper_action_env.seed(seed)
@@ -696,8 +726,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # obs.simulate(do_nothing_action)  # DO NOT RUN IT RAISES AN ERROR
 
         """
-        if self._helper_observation is not None:
-            self._helper_observation.with_forecast = False
+        if self._observation_space is not None:
+            self._observation_space.with_forecast = False
         self.with_forecast = False
 
     def reactivate_forecast(self):
@@ -736,8 +766,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             simobs, sim_r, sim_d, sim_info = obs.simulate(do_nothing_action)
 
         """
-        if self._helper_observation is not None:
-            self._helper_observation.with_forecast = True
+        if self._observation_space is not None:
+            self._observation_space.with_forecast = True
         self.with_forecast = True
 
     @abstractmethod
@@ -765,6 +795,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             The new thermal limit. It must be a numpy ndarray vector (or convertible to it). For each powerline it
             gives the new thermal limit.
 
+            Alternatively, this can be a dictionary mapping the line names (keys) to its thermal limits (values). In
+            that case, all thermal limits for all powerlines should be specified (this is a safety measure
+            to reduce the odds of misuse).
+
         Examples
         ---------
 
@@ -780,20 +814,49 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # i set the thermal limit of each powerline to 20000 amps
             env.set_thermal_limit([20000 for _ in range(env.n_line)])
 
+        Notes
+        -----
+        As of grid2op > 1.5.0, it is possible to set the thermal limit by using a dictionary with the keys being
+        the name of the powerline and the values the thermal limits.
 
         """
         if not self.__is_init:
             raise Grid2OpException("Impossible to set the thermal limit to a non initialized Environment")
-        try:
-            tmp = np.array(thermal_limit).flatten().astype(dt_float)
-        except Exception as exc_:
-            raise Grid2OpException(f"Impossible to convert the vector as input into a 1d numpy float array. "
-                                   f"Error was: \n {exc_}")
-        if tmp.shape[0] != self.n_line:
-            raise Grid2OpException("Attempt to set thermal limit on {} powerlines while there are {}"
-                                   "on the grid".format(tmp.shape[0], self.n_line))
-        if np.any(~np.isfinite(tmp)):
-            raise Grid2OpException("Impossible to use non finite value for thermal limits.")
+        if isinstance(thermal_limit, dict):
+            tmp = np.full(self.n_line, fill_value=np.NaN, dtype=dt_float)
+            for key, val in thermal_limit.items():
+                if key not in self.name_line:
+                    raise Grid2OpException(f"When setting a thermal limit with a dictionary, the keys should be line "
+                                           f"names. We found: {key} which is not a line name. The names of the "
+                                           f"powerlines are {self.name_line}")
+                ind_line = np.where(self.name_line == key)[0][0]
+                if np.isfinite(tmp[ind_line]):
+                    raise Grid2OpException(f"Humm, there is a really strange bug, some lines are set twice.")
+                try:
+                    val_fl = float(val)
+                except Exception as exc_:
+                    raise Grid2OpException(f"When setting thermal limit with a dictionary, the keys should be "
+                                           f"the values of the thermal limit (in amps) you provided something that "
+                                           f"cannot be converted to a float. Error was \"{exc_}\".")
+                tmp[ind_line] = val_fl
+
+        elif isinstance(thermal_limit, (np.ndarray, list)):
+            try:
+                tmp = np.array(thermal_limit).flatten().astype(dt_float)
+            except Exception as exc_:
+                raise Grid2OpException(f"Impossible to convert the vector as input into a 1d numpy float array. "
+                                       f"Error was: \n {exc_}")
+            if tmp.shape[0] != self.n_line:
+                raise Grid2OpException("Attempt to set thermal limit on {} powerlines while there are {}"
+                                       "on the grid".format(tmp.shape[0], self.n_line))
+            if np.any(~np.isfinite(tmp)):
+                raise Grid2OpException("Impossible to use non finite value for thermal limits.")
+        else:
+            raise Grid2OpException(f"You can only set the thermal limits of the environment with a dictionary (in that "
+                                   f"case the keys are the line names, and the values the thermal limits) or with "
+                                   f"a numpy array that has as many components of the number of powerlines on "
+                                   f"the grid. You provided something with type \"{type(thermal_limit)}\" which "
+                                   f"is not supported.")
 
         self._thermal_limit_a = tmp
         self.backend.set_thermal_limit(self._thermal_limit_a)
@@ -1270,7 +1333,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # obs2 and obs are identical.
 
         """
-        res = self._helper_observation(env=self)
+        res = self._observation_space(env=self)
         return res
 
     def get_thermal_limit(self):
@@ -1494,7 +1557,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             is_legal, reason = self._game_rules(action=action, env=self)
             if not is_legal:
                 # action is replace by do nothing
-                action = self._helper_action_player({})
+                action = self._action_space({})
                 init_disp = 1.0 * action._redispatch  # dispatching action
                 action_storage_power = 1.0 * action._storage_power  # battery information
                 except_.append(reason)
@@ -1503,7 +1566,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             ambiguous, except_tmp = action.is_ambiguous()
             if ambiguous:
                 # action is replace by do nothing
-                action = self._helper_action_player({})
+                action = self._action_space({})
                 init_disp = 1.0 * action._redispatch  # dispatching action
                 action_storage_power = 1.0 * action._storage_power  # battery information
                 is_ambiguous = True
@@ -1560,7 +1623,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 valid_disp, except_tmp, info_ = self._prepare_redisp(action, new_p, already_modified_gen)
 
                 if except_tmp is not None:
-                    action = self._helper_action_player({})
+                    action = self._action_space({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
 
@@ -1578,7 +1641,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 valid_disp, except_tmp, info_ = self._make_redisp(already_modified_gen, new_p)
                 if not valid_disp or except_tmp is not None:
                     # game over case (divergence of the scipy routine to compute redispatching)
-                    action = self._helper_action_player({})
+                    action = self._action_space({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
                     is_done = True
@@ -1593,7 +1656,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
                 if except_tmp is not None:
                     is_illegal_reco = True
-                    action = self._helper_action_player({})
+                    action = self._action_space({})
                     except_.append(except_tmp)
                 self._time_redisp += time.time() - beg__redisp
 
@@ -1887,12 +1950,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                    "that will be used the grid layout. The error is: \"{}\""
                                    "".format(el, e_))
             super().attach_layout(res)
-            if self._helper_action_player is not None:
-                self._helper_action_player.attach_layout(res)
+            if self._action_space is not None:
+                self._action_space.attach_layout(res)
             if self._helper_action_env is not None:
                 self._helper_action_env.attach_layout(res)
-            if self._helper_observation is not None:
-                self._helper_observation.attach_layout(res)
+            if self._observation_space is not None:
+                self._observation_space.attach_layout(res)
             if self._voltage_controler is not None:
                 self._voltage_controler.attach_layout(res)
             if self._opponent_action_space is not None:
@@ -1958,7 +2021,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._times_before_topology_actionable[:] = np.maximum(ff_time_topo_act, min_time_topo)
 
         # Update to the fast forward state using a do nothing action
-        self.step(self._helper_action_player({}))
+        self.step(self._action_space({}))
 
     def get_current_line_status(self):
         """

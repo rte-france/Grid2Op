@@ -298,6 +298,11 @@ pp_error_non_connected_grid.py
 test_issue174.py
 actions2.npy
 bug_discord_0.py
+invert_idto_act.py
+test_bug_discord1.py
+test_networkx.py
+test_issue185.py
+test_can_make_opponent.py
 
 # profiling files
 **.prof

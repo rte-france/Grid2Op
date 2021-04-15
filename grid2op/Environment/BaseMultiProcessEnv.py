@@ -177,6 +177,12 @@ class RemoteEnv(Process):
             elif cmd == "set_id":
                 self.env.set_id(data)
                 self.remote.send(None)
+            elif cmd == "sim":
+                action = self.env.action_space.from_vect(data)
+                obs = self.env.get_obs()
+                sim_obs, sim_reward, sim_done, sim_info = obs.simulate(action)
+                sim_obs_v = sim_obs.to_vect()
+                self.remote.send((sim_obs_v, sim_reward, sim_done, sim_info))
             elif hasattr(self.env, cmd):
                 tmp = getattr(self.env, cmd)
                 self.remote.send(tmp)
@@ -235,7 +241,6 @@ class BaseMultiProcessEnvironment(GridObjects):
     """
     def __init__(self, envs, obs_as_class=True, return_info=True):
         GridObjects.__init__(self)
-        self.envs = envs
         for env in envs:
             if not isinstance(env, Environment):
                 raise MultiEnvException("You provided environment of type \"{}\" which is not supported."
@@ -244,17 +249,21 @@ class BaseMultiProcessEnvironment(GridObjects):
 
         self.nb_env = len(envs)
         max_int = np.iinfo(dt_int).max
-        self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
+        _remotes, _work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
-        env_params = [envs[e].get_kwargs(with_backend=False) for e in range(self.nb_env)]
-
+        env_params = [sub_env.get_kwargs(with_backend=False) for sub_env in envs]
         self._ps = [RemoteEnv(env_params=env_,
                               remote=work_remote,
                               parent_remote=remote,
-                              name="{}_subprocess_{}".format(envs[i].name, i),
+                              name="{}_{}".format(envs[i].name, i),
                               return_info=return_info,
                               seed=envs[i].space_prng.randint(max_int))
-                    for i, (work_remote, remote, env_) in enumerate(zip(self._work_remotes, self._remotes, env_params))]
+                    for i, (work_remote, remote, env_) in enumerate(zip(_work_remotes, _remotes, env_params))]
+
+        # on windows, this has to be created after
+        self.envs = envs
+        self._remotes = _remotes
+        self._work_remotes = _work_remotes
 
         for p in self._ps:
             p.daemon = True  # if the main process crashes, we should not cause things to hang
@@ -460,8 +469,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         try:
             ff_max = int(ff_max)
-        except:
-            raise RuntimeError("ff_max parameters should be convertible to an integer.")
+        except Exception as exc_:
+            raise RuntimeError("ff_max parameters should be convertible to an integer.") from exc_
 
         for remote in self._remotes:
             remote.send(('f', ff_max))
@@ -490,6 +499,66 @@ class BaseMultiProcessEnvironment(GridObjects):
             remote.send(('o', None))
         res = [self.envs[e].observation_space.from_vect(remote.recv()) for e, remote in enumerate(self._remotes)]
         return res
+
+    def _send_sim(self, actions):
+        for remote, action in zip(self._remotes, actions):
+            remote.send(('sim', action.to_vect()))
+        self._waiting = True
+
+    def simulate(self, actions):
+        """
+        Perform the equivalent of `obs.simulate` in all the underlying environment
+
+        Parameters
+        ----------
+        actions: ``list``
+            List of all action to simulate
+
+        Returns
+        ---------
+        sim_obs:
+            The observation resulting from the simulation
+        sim_rews:
+            The reward resulting from the simulation
+        sim_dones:
+            For each simulation, whether or not this the simulated action lead to a game over
+        sim_infos:
+            Additional information for each simulated actions.
+
+        Examples
+        --------
+
+        You can use this feature like:
+
+        .. code-block::
+
+            import grid2op
+            from grid2op.Environment import BaseMultiProcessEnvironment
+
+            env_name = ...  # for example "l2rpn_case14_sandbox"
+            env1 = grid2op.make(env_name)
+            env2 = grid2op.make(env_name)
+
+            multi_env = BaseMultiProcessEnvironment([env1, env2])
+            obss = multi_env.reset()
+
+            # simulate
+            actions = [env1.action_space(), env2.action_space()]
+            sim_obss, sim_rs, sim_ds, sim_is = multi_env.simulate(actions)
+
+        """
+        if len(actions) != self.nb_env:
+            raise MultiEnvException("Incorrect number of actions provided. You provided {} actions, but the "
+                                    "MultiEnvironment counts {} different environment."
+                                    "".format(len(actions), self.nb_env))
+        for act in actions:
+            if not isinstance(act, BaseAction):
+                raise MultiEnvException("All actions send to MultiEnvironment.step should be of type "
+                                        "\"grid2op.BaseAction\" and not {}".format(type(act)))
+
+        self._send_sim(actions)
+        sim_obs, sim_rews, sim_dones, sim_infos = self._wait_for_obs()
+        return sim_obs, sim_rews, sim_dones, sim_infos
 
     def __getattr__(self, name):
         """

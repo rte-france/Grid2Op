@@ -3,6 +3,11 @@
 Utility classes
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 This module exposes some utility classes that can be used for example to compute run and store some information about

@@ -66,6 +66,7 @@ Main module content
    available_envs
    modeled_elements
    gym
+   grid_graph
 
 Plotting capabilities
 ----------------------

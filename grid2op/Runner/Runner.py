@@ -33,9 +33,7 @@ from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 # on windows if i start using sequential, i need to continue using sequential
 # if i start using parallel i need to continue using parallel
 # so i force the usage of the "starmap" stuff even if there is one process on windows
-_IS_WINDOWS = sys.platform.startswith('win')
-_IS_LINUX = sys.platform.startswith("linux")
-_IS_MACOS = sys.platform.startswith("darwin")
+from grid2op.platform import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it!
@@ -223,7 +221,6 @@ def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
             observations[time_step, :] = obs.to_vect()
         else:
             observations = np.concatenate((observations, obs.to_vect().reshape(1, -1)))
-
     episode = EpisodeData(actions=actions,
                           env_actions=env_actions,
                           observations=observations,
@@ -271,7 +268,6 @@ def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
                                info)
 
         end_ = time.time()
-
     episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
 
     li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
@@ -287,7 +283,6 @@ def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
 
     episode.to_disk()
     name_chron = env.chronics_handler.get_name()
-
     return name_chron, cum_reward, int(time_step), episode
 
 
@@ -764,8 +759,10 @@ class Runner(object):
         # otherwise on windows / macos it sometimes fail in the runner in multi process
         # on linux like OS i prefer to generate all the proper classes accordingly
         if _IS_LINUX:
-            env = self.init_env()
-            env.close()
+            pass
+            with self.init_env() as env:
+               bk_class = type(env.backend)
+               pass
 
         self.__used = False
 
@@ -1061,7 +1058,7 @@ class Runner(object):
 
             res = []
             if _IS_LINUX:
-                lists = [(self, pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
+               lists = [(self, pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
                          for i, pn in enumerate(process_ids)]
             else:
                 lists = [(Runner(**self._get_params()), pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)

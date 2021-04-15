@@ -5,10 +5,11 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import numpy as np
 from gym import spaces
 
-
+from grid2op.Environment import Environment, MultiMixEnvironment, BaseMultiProcessEnvironment
 from grid2op.gym_compat.gym_space_converter import _BaseGymSpaceConverter
 from grid2op.Observation import BaseObservation
 from grid2op.dtypes import dt_int, dt_bool, dt_float
@@ -49,6 +50,9 @@ class GymObservationSpace(_BaseGymSpaceConverter):
 
     """
     def __init__(self, env, dict_variables=None):
+        if not isinstance(env, (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)):
+            raise RuntimeError("GymActionSpace must be created with an Environment of an ActionSpace (or a Converter)")
+
         self._init_env = env
         self.initial_obs_space = self._init_env.observation_space
         dict_ = {}  # will represent the gym.Dict space

@@ -4,6 +4,11 @@
 Environment
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 This module defines the :class:`Environment` the higher level representation of the world with which an

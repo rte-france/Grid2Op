@@ -15,11 +15,6 @@ from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 
 from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
-# TODO test that it works normally
-# TODO test the casting in dt_int or dt_float depending on the data
-# TODO test the scaling
-# TODO doc
-# TODO test the function part
 
 
 class MultiDiscreteActSpace(MultiDiscrete):

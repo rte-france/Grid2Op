@@ -8,6 +8,7 @@
 
 import copy
 import os
+import sys
 import warnings
 import json
 
@@ -135,6 +136,7 @@ class Backend(GridObjects, ABC):
         # if this information is not present, then "get_action_to_set" might not behave correctly
 
         self.comp_time = 0.
+        self.can_output_theta = False
 
     @abstractmethod
     def load_grid(self, path, filename=None):
@@ -663,16 +665,39 @@ class Backend(GridObjects, ABC):
 
         Returns
         -------
-        shunt_p ``numpy.ndarray``
+        shunt_p: ``numpy.ndarray``
             For each shunt, the active power it withdraw at the bus to which it is connected.
-        shunt_q ``numpy.ndarray``
+        shunt_q: ``numpy.ndarray``
             For each shunt, the reactive power it withdraw at the bus to which it is connected.
-        shunt_v ``numpy.ndarray``
+        shunt_v: ``numpy.ndarray``
             For each shunt, the voltage magnitude of the bus to which it is connected.
-        shunt_bus ``numpy.ndarray``
+        shunt_bus: ``numpy.ndarray``
             For each shunt, the bus id to which it is connected.
         """
         return [], [], [], []
+
+    def get_theta(self):
+        """
+
+        Notes
+        -----
+        Don't forget to set the flag :attr:`Backend.can_output_theta` to ``True`` in the
+        :func:`Bakcend.load_grid` if you support this feature.
+
+        Returns
+        -------
+        line_or_theta: ``numpy.ndarray``
+            For each origin side of powerline, gives the voltage angle
+        line_ex_theta: ``numpy.ndarray``
+            For each extremity side of powerline, gives the voltage angle
+        load_theta: ``numpy.ndarray``
+            Gives the voltage angle to the bus at which each load is connected
+        gen_theta: ``numpy.ndarray``
+            Gives the voltage angle to the bus at which each generator is connected
+        storage_theta: ``numpy.ndarray``
+            Gives the voltage angle to the bus at which each storage unit is connected
+        """
+        raise NotImplementedError("Your backend does not support the retrieval of the voltage angle theta.")
 
     def sub_from_bus_id(self, bus_id):
         """
@@ -1365,6 +1390,7 @@ class Backend(GridObjects, ABC):
                                  "".format(el, e_))
 
         self.attach_layout(grid_layout=new_grid_layout)
+        return None
 
     def _aux_get_line_status_to_set(self, line_status):
         line_status = 2 * line_status - 1
@@ -1464,15 +1490,28 @@ class Backend(GridObjects, ABC):
 
             This is done as it should be by the Environment
         """
-        # and set up the proper class and everything
-
         # lazy loading
         from grid2op.Action import CompleteAction
         from grid2op.Action._BackendAction import _BackendAction
-        self.__class__ = self.init_grid(self)
-        self.my_bk_act_class = _BackendAction.init_grid(self)
-        self._complete_action_class = CompleteAction.init_grid(self)
-        super().assert_grid_correct()
+
+        orig_type = type(self)
+        if orig_type.my_bk_act_class is None:
+            # class is already initialized
+            # and set up the proper class and everything
+            self._init_class_attr()
+            # hack due to changing class of imported module in the module itself
+            self.__class__ = type(self).init_grid(type(self), force_module=type(self).__module__)
+            setattr(sys.modules[type(self).__module__], self.__class__.__name__, self.__class__)
+
+            # reset the attribute of the grid2op.Backend.Backend class
+            # that can be messed up with depending on the initialization of the backend
+            Backend._clear_class_attribute()
+            orig_type._clear_class_attribute()
+
+        my_cls = type(self)
+        my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls)
+        my_cls._complete_action_class = CompleteAction.init_grid(my_cls)
+        my_cls.assert_grid_correct_cls()
 
     def assert_grid_correct_after_powerflow(self):
         """
