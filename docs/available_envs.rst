@@ -385,7 +385,7 @@ Creating the folder
 First you need to create the folder that will represent your environment. Just create an empty folder anywhere
 on your computer.
 
-For the sake of the example, we assume here the folder is `EXAMPLE_FOLDER=C:\Users\Me\Documents\my_grid2op_env`, it
+For the sake of the example, we assume here the folder is `EXAMPLE_FOLDER=C:\\Users\\Me\\Documents\\my_grid2op_env`, it
 can also be `EXAMPLE_FOLDER=/home/Me/Documents/my_grid2op_env` or
 `EXAMPLE_FOLDER=/home/Me/Documents/anything_i_want_really` it does not matter.
 
@@ -420,7 +420,7 @@ From there, there are 3 different situations you can be in:
 
 In all cases, after you converted your file, name it `grid.something` (for example `grid.json` if your grid is
 compatible with pandapowerr backend) into the folder `EXAMPLE_FOLDER` (for example
-`C:\Users\Me\Documents\my_grid2op_env`)
+`C:\\Users\\Me\\Documents\\my_grid2op_env`)
 
 The rest of this section is only relevant if you are in case 3 above. You can go to the next section
 :ref:`chronics_folder_ex` if you are in case 1 or 2 below.
@@ -444,8 +444,8 @@ Organize the "chronics" folder
 In this step, you are suppose to provide a way for grid2op to set the value of each production and load at each step.
 
 The first step is then to create a folder named "chronics" in `EXAMPLE_FOLDER` (remember, in our example
-`EXAMPLE_FOLDER` was `C:\Users\Me\Documents\my_grid2op_env`, so you need to create
-`C:\Users\Me\Documents\my_grid2op_env\chronics`)
+`EXAMPLE_FOLDER` was `C:\\Users\\Me\\Documents\\my_grid2op_env`, so you need to create
+`C:\\Users\\Me\\Documents\\my_grid2op_env\\chronics`)
 
 Then you need to fill this `chronics` folder with the data we supposed you had.
 You have different ways to achieve this task.
@@ -471,7 +471,7 @@ This file will be loaded each time your environment is created.
 
 This file looks like (example of the "l2rpn_case14_sandbox" one) the one below. Just copy paste it inside your
 environment folder `EXAMPLE_FOLDER` (remember, in our example `EXAMPLE_FOLDER` was
-`C:\Users\Me\Documents\my_grid2op_env`). We added some more comment for you to be able to more easily modify it:
+`C:\\Users\\Me\\Documents\\my_grid2op_env`). We added some more comment for you to be able to more easily modify it:
 
 .. code-block:: python
 
@@ -545,7 +545,7 @@ Once the previous steps have been performed, you can try to load your environmen
 is rather easy, but unfortunately, from our own experience, it might not be successful on the first trial.
 
 Anyway, assuming you created your environment in  `EXAMPLE_FOLDER` (remember, in our example `EXAMPLE_FOLDER` was
-`C:\Users\Me\Documents\my_grid2op_env`) you simply need to do, from a python "console" or a python script:
+`C:\\Users\\Me\\Documents\\my_grid2op_env`) you simply need to do, from a python "console" or a python script:
 
 .. code-block:: python
 
