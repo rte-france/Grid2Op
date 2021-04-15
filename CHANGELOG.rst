@@ -22,7 +22,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.5.1] - 2021-xx-yy
+[1.5.2] - 2021-xx-yy
+-----------------------
+
+
+[1.5.1] - 2021-04-15
 -----------------------
 - [FIXED]: `Issue #187 <https://github.com/rte-france/Grid2Op/issues/187>`_: improve the computation and the
   documentation of the `RedispReward`. This has an impact on the `env.reward_range` of all environments using this
@@ -43,7 +47,6 @@ Change Log
 - [IMPROVED] extra layer of security preventing modification of `observation_space` and `action_space` of environment
 - [IMPROVED] better handling of dynamically generated classes
 - [IMPROVED] the documentation of the opponent
-
 
 [1.5.0] - 2021-03-31
 -------------------------

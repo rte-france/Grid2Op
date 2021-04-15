@@ -67,8 +67,8 @@ class TestBaseMultiProcessEnvironment(unittest.TestCase):
         env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env1 = grid2op.make(env_name)
-            env2 = grid2op.make(env_name)
+            env1 = grid2op.make(env_name, test=True)
+            env2 = grid2op.make(env_name, test=True)
 
         multi_env = BaseMultiProcessEnvironment([env1, env2])
         obss = multi_env.reset()
