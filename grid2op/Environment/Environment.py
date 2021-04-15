@@ -460,6 +460,28 @@ class Environment(BaseEnv):
 
         self.chronics_handler.set_chunk_size(new_chunk_size)
 
+    def simulate(self, action):
+        """
+        Another method to call `obs.simulate` to ensure compatibility between multi environment and
+        regular one.
+
+        Parameters
+        ----------
+        action:
+            A grid2op action
+
+        Returns
+        -------
+        Same return type as :func:`grid2op.Environment.BaseEnv.step` or
+        :func:`grid2op.Observation.BaseObservation.simulate`
+
+        Notes
+        -----
+        Prefer using `obs.simulate` if possible, it will be faster than this function.
+
+        """
+        return self.get_obs().simulate(action)
+
     def set_id(self, id_):
         """
         Set the id that will be used at the next call to :func:`Environment.reset`.
