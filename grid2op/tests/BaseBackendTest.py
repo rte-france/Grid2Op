@@ -1859,15 +1859,19 @@ class BaseTestStorageAction(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend,
-                                    param=param, action_class=CompleteAction)
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    backend=backend,
+                                    param=param,
+                                    action_class=CompleteAction)
 
         # test i can do a reset
         obs = self.env.reset()
 
         # test i can do a step
         obs, reward, done, info = self.env.step(self.env.action_space())
-        assert not done
+        exc_ = info["exception"]
+        assert not done, f"i should be able to do a step with some storage units error is {exc_}"
         storage_p, storage_q, storage_v = self.env.backend.storages_info()
         assert np.all(np.abs(storage_p - 0.) <= self.tol_one)
         assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
@@ -1880,7 +1884,6 @@ class BaseTestStorageAction(MakeBackend):
                                                  "generators_id": [(3, 2)]}}
                                     )
         obs, reward, done, info = self.env.step(act)
-
         assert not info["exception"]
         storage_p, storage_q, storage_v = self.env.backend.storages_info()
         assert np.all(np.abs(storage_p - array_modif) <= self.tol_one)
@@ -1915,12 +1918,12 @@ class BaseTestStorageAction(MakeBackend):
                                                  "generators_id": [(3, 1)]}}
                                     )
         obs, reward, done, info = self.env.step(act)
-        assert not info["exception"]
+        assert not info["exception"], \
+            "error when storage is disconnected with 0 production, throw an error, but should not"
         assert not done
         storage_p, storage_q, storage_v = self.env.backend.storages_info()
         assert np.all(np.abs(storage_p - [0., array_modif[1]]) <= self.tol_one), \
             "storage is not disconnected, yet alone on its busbar"
-        assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
         assert obs.storage_bus[0] == -1, "storage should be disconnected"
         assert storage_v[0] == 0., "storage 0 should be disconnected"
         assert obs.line_or_bus[8] == 1

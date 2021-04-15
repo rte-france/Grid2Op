@@ -177,6 +177,12 @@ class RemoteEnv(Process):
             elif cmd == "set_id":
                 self.env.set_id(data)
                 self.remote.send(None)
+            elif cmd == "sim":
+                action = self.env.action_space.from_vect(data)
+                obs = self.env.get_obs()
+                sim_obs, sim_reward, sim_done, sim_info = obs.simulate(action)
+                sim_obs_v = sim_obs.to_vect()
+                self.remote.send((sim_obs_v, sim_reward, sim_done, sim_info))
             elif hasattr(self.env, cmd):
                 tmp = getattr(self.env, cmd)
                 self.remote.send(tmp)
@@ -463,8 +469,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         try:
             ff_max = int(ff_max)
-        except:
-            raise RuntimeError("ff_max parameters should be convertible to an integer.")
+        except Exception as exc_:
+            raise RuntimeError("ff_max parameters should be convertible to an integer.") from exc_
 
         for remote in self._remotes:
             remote.send(('f', ff_max))
@@ -493,6 +499,66 @@ class BaseMultiProcessEnvironment(GridObjects):
             remote.send(('o', None))
         res = [self.envs[e].observation_space.from_vect(remote.recv()) for e, remote in enumerate(self._remotes)]
         return res
+
+    def _send_sim(self, actions):
+        for remote, action in zip(self._remotes, actions):
+            remote.send(('sim', action.to_vect()))
+        self._waiting = True
+
+    def simulate(self, actions):
+        """
+        Perform the equivalent of `obs.simulate` in all the underlying environment
+
+        Parameters
+        ----------
+        actions: ``list``
+            List of all action to simulate
+
+        Returns
+        ---------
+        sim_obs:
+            The observation resulting from the simulation
+        sim_rews:
+            The reward resulting from the simulation
+        sim_dones:
+            For each simulation, whether or not this the simulated action lead to a game over
+        sim_infos:
+            Additional information for each simulated actions.
+
+        Examples
+        --------
+
+        You can use this feature like:
+
+        .. code-block::
+
+            import grid2op
+            from grid2op.Environment import BaseMultiProcessEnvironment
+
+            env_name = ...  # for example "l2rpn_case14_sandbox"
+            env1 = grid2op.make(env_name)
+            env2 = grid2op.make(env_name)
+
+            multi_env = BaseMultiProcessEnvironment([env1, env2])
+            obss = multi_env.reset()
+
+            # simulate
+            actions = [env1.action_space(), env2.action_space()]
+            sim_obss, sim_rs, sim_ds, sim_is = multi_env.simulate(actions)
+
+        """
+        if len(actions) != self.nb_env:
+            raise MultiEnvException("Incorrect number of actions provided. You provided {} actions, but the "
+                                    "MultiEnvironment counts {} different environment."
+                                    "".format(len(actions), self.nb_env))
+        for act in actions:
+            if not isinstance(act, BaseAction):
+                raise MultiEnvException("All actions send to MultiEnvironment.step should be of type "
+                                        "\"grid2op.BaseAction\" and not {}".format(type(act)))
+
+        self._send_sim(actions)
+        sim_obs, sim_rews, sim_dones, sim_infos = self._wait_for_obs()
+        return sim_obs, sim_rews, sim_dones, sim_infos
 
     def __getattr__(self, name):
         """
