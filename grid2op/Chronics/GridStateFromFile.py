@@ -53,7 +53,8 @@ class GridStateFromFile(GridValue):
     - "prod_p.csv": for each time steps, this file contains the value for the active production of
       each generators of the grid (it counts as many rows as the number of time steps - and its header)
       and as many columns as the number of generators on the grid. The header must contains the names of
-      the generators used to map their value on the grid. Values must be convertible to floating point.
+      the generators used to map their value on the grid. Values must be convertible to floating point and the
+      column separator of this file should be semi-colon `;` (unless you specify a "sep" when loading this class)
     - "prod_v.csv": same as "prod_p.csv" but for the production voltage setpoint.
     - "load_p.csv": same as "prod_p.csv" but for the load active value (number of columns = number of loads)
     - "load_q.csv": same as "prod_p.csv" but for the load reactive value (number of columns = number of loads)
@@ -61,6 +62,8 @@ class GridStateFromFile(GridValue):
       each time step (row).
     - "hazards.csv": that contains whether or not there is a hazard for a given powerline (column) at
       each time step (row).
+    - "start_datetime.info": the time stamp (date and time) at which the chronic is starting.
+    - "time_interval.info": the amount of time between two consecutive steps (*e.g.* 5 mins, or 1h)
 
     If a file is missing, it is understood as "this value will not be modified". For example, if the file
     "prod_v.csv" is not present, it will be equivalent as not modifying the production voltage setpoint, never.
