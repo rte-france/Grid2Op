@@ -33,7 +33,7 @@ from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 # on windows if i start using sequential, i need to continue using sequential
 # if i start using parallel i need to continue using parallel
 # so i force the usage of the "starmap" stuff even if there is one process on windows
-from grid2op.platform import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
+from grid2op._platform_info import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it!
