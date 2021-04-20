@@ -10,7 +10,7 @@ import sys
 import numpy as np
 
 import re
-from grid2op._platform_info import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
+from grid2op._glop_platform_info import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
