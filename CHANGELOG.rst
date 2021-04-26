@@ -24,10 +24,22 @@ Change Log
 
 [1.5.2] - 2021-xx-yy
 -----------------------
-
+- [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related to the
+  low / high of the observation if using the gym_compat module. Some more protections
+  are enforced now.
+- [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related the scaling when negative
+  numbers are used (in these cases low / max would be mixed up)
+- [IMPROVED]: on windows at least, grid2op does not work with gym < 0.17.2 Checks are performed in order to make sure
+  the installed open ai gym package meets this requirement (see issue
+  `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
+- [IMPROVED] the seed of openAI gym for composed action space (see issue `https://github.com/openai/gym/issues/2166`):
+  waiting for an official fix, grid2op will use the solution proposed there
+  https://github.com/openai/gym/issues/2166#issuecomment-803984619 )
 
 [1.5.1] - 2021-04-15
 -----------------------
+- [FIXED]: `Issue#194 <https://github.com/rte-france/Grid2Op/issues/194>`_: (post release): change the name
+  of the file `platform.py` that could be mixed with the python "platform" module to `_glop_platform_info.py`
 - [FIXED]: `Issue #187 <https://github.com/rte-france/Grid2Op/issues/187>`_: improve the computation and the
   documentation of the `RedispReward`. This has an impact on the `env.reward_range` of all environments using this
   reward, because the old "reward_max" was not correct.

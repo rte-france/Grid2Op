@@ -27,9 +27,6 @@ DEBUG = False
 if DEBUG:
     print("pandapower version : {}".format(pp.__version__))
 
-import warnings
-warnings.simplefilter("error")
-
 
 class TestAgent(HelperTests):
     def setUp(self):
@@ -64,10 +61,6 @@ class TestAgent(HelperTests):
             obs, reward, done, info = self.env.step(act)  # should load the first time stamp
             time_act += end__ - beg__
             cum_reward += reward
-            # print("reward: {}".format(reward))
-            # print("_______________")
-            # if reward <= 0 or np.any(obs.prod_p < 0):
-            #     pdb.set_trace()
             i += 1
             if i > i_max:
                 break
@@ -78,7 +71,6 @@ class TestAgent(HelperTests):
                        "\t - apply act {:.2f}s",
                        "\t - run pf: {:.2f}s",
                        "\t - env update + observation: {:.2f}s",
-                       "\t - time get topo vect: {:.2f}s",
                        "\t - time env obs space: {:.2f}s",
                        "BaseAgent: {:.2f}s", "Total time: {:.2f}s",
                        "Cumulative reward: {:1f}"]
@@ -88,7 +80,6 @@ class TestAgent(HelperTests):
                 self.env._time_apply_act,  # apply act
                 self.env._time_powerflow,  # run pf
                 self.env._time_extract_obs,  # env update + obs
-                self.env.backend._time_topo_vect,  # time get topo vect
                 self.env.observation_space._update_env_time,  # time get topo vect
                 time_act, end_-beg_, cum_reward))
         return i, cum_reward, all_acts

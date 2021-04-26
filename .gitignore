@@ -303,6 +303,8 @@ test_bug_discord1.py
 test_networkx.py
 test_issue185.py
 test_can_make_opponent.py
+enigma_nili.py
+test_issue196.py
 
 # profiling files
 **.prof

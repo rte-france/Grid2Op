@@ -5,7 +5,7 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
+import copy
 import numpy as np
 from gym import spaces
 
@@ -14,6 +14,7 @@ from grid2op.gym_compat.gym_space_converter import _BaseGymSpaceConverter
 from grid2op.Observation import BaseObservation
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
+from grid2op.gym_compat.utils import _compute_extra_power_for_losses
 
 
 class GymObservationSpace(_BaseGymSpaceConverter):
@@ -47,6 +48,14 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         # the conversion from gym_obs to grid2op obs is feasible, but i don't imagine
         # a situation where it is useful. And especially, you will not be able to
         # use "obs.simulate" for the observation converted back from this gym action.
+
+    Notes
+    -----
+    The range of the values for "gen_p" / "prod_p" are not strictly `env.gen_pmin` and `env.gen_pmax`.
+    This is due to the "approximation" when some redispatching is performed (the precision of the
+    algorithm that computes the actual dispatch from the information it receives) and also because
+    sometimes the losses of the grid are really different that the one anticipated in the "chronics" (yes
+    env.gen_pmin and env.gen_pmax are not always ensured in grid2op)
 
     """
     def __init__(self, env, dict_variables=None):
@@ -173,9 +182,19 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 shape = (sh,)
                 SpaceType = spaces.Box
                 if attr_nm == "gen_p" or attr_nm == "gen_p_before_curtail":
-                    low = observation_space.gen_pmin
-                    high = observation_space.gen_pmax * 1.2  # because of the slack bus... # TODO
+                    low = copy.deepcopy(observation_space.gen_pmin)
+                    high = copy.deepcopy(observation_space.gen_pmax)
                     shape = None
+
+                    # for redispatching
+                    low -= observation_space.obs_env._tol_poly
+                    high += observation_space.obs_env._tol_poly
+
+                    # for "power losses" that are not properly computed in the original data
+                    extra_for_losses = _compute_extra_power_for_losses(observation_space)
+                    low -= extra_for_losses
+                    high += extra_for_losses
+
                 elif attr_nm == "gen_v" or attr_nm == "load_v" or attr_nm == "v_or" or attr_nm == "v_ex":
                     # voltages can't be negative
                     low = 0.
