@@ -304,7 +304,7 @@ test_networkx.py
 test_issue185.py
 test_can_make_opponent.py
 enigma_nili.py
-test_issue_196.py
+test_issue196.py
 
 # profiling files
 **.prof

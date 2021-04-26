@@ -5,7 +5,7 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
+import copy
 import numpy as np
 from gym import spaces
 
@@ -182,8 +182,8 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 shape = (sh,)
                 SpaceType = spaces.Box
                 if attr_nm == "gen_p" or attr_nm == "gen_p_before_curtail":
-                    low = observation_space.gen_pmin
-                    high = observation_space.gen_pmax
+                    low = copy.deepcopy(observation_space.gen_pmin)
+                    high = copy.deepcopy(observation_space.gen_pmax)
                     shape = None
 
                     # for redispatching

@@ -12,8 +12,6 @@ import json
 import grid2op
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.tests.helper_path_test import *
-from grid2op.MakeEnv import make
-from grid2op.Converter import IdToAct, ToVect
 from grid2op.Action import PlayableAction
 
 try:
@@ -25,6 +23,7 @@ try:
     from grid2op.gym_compat import ScalerAttrConverter
     from grid2op.gym_compat import MultiToTupleConverter
     from grid2op.gym_compat import BoxGymObsSpace, BoxGymActSpace, MultiDiscreteActSpace, DiscreteActSpace
+    from grid2op.gym_compat.utils import _compute_extra_power_for_losses
     GYM_AVAIL = True
 except ImportError:
     GYM_AVAIL = False
@@ -94,6 +93,12 @@ class TestGymCompatModule(unittest.TestCase):
         """test a scale_attr converter"""
         env_gym = GymEnv(self.env)
         ob_space = env_gym.observation_space
+
+        key = "actual_dispatch"
+        low = - self.env.gen_pmax
+        high = 1.0 * self.env.gen_pmax
+        assert np.array_equal(env_gym.observation_space[key].low, low), f"issue for {key}"
+        assert np.array_equal(env_gym.observation_space[key].high, high), f"issue for {key}"
         ob_space = ob_space.reencode_space("actual_dispatch",
                                            ScalerAttrConverter(substract=0.,
                                                                divide=self.env.gen_pmax
@@ -101,7 +106,6 @@ class TestGymCompatModule(unittest.TestCase):
                                            )
         env_gym.observation_space = ob_space
         obs = env_gym.reset()
-        key = "actual_dispatch"
         assert key in env_gym.observation_space.spaces
         low = np.zeros(self.env.n_gen) - 1
         high = np.zeros(self.env.n_gen) + 1
@@ -253,15 +257,27 @@ class TestGymCompatModule(unittest.TestCase):
 
         key = "gen_p"
         assert key in env_gym.observation_space.spaces
-        low = np.zeros(shape=(env.n_gen,), dtype=dt_int)
-        high = env.gen_pmax * 1.2  # weird hey ? But expected because of slack bus
+        low = np.zeros(shape=(env.n_gen,), dtype=dt_float)
+        high = 1.0 * env.gen_pmax
+        low -= env._tol_poly
+        high += env._tol_poly
+        # for "power losses" that are not properly computed in the original data
+        extra_for_losses = _compute_extra_power_for_losses(env.observation_space)
+        low -= extra_for_losses
+        high += extra_for_losses
         assert np.array_equal(env_gym.observation_space[key].low, low), f"issue for {key}"
         assert np.array_equal(env_gym.observation_space[key].high, high), f"issue for {key}"
 
         key = "gen_p_before_curtail"
+        low = np.zeros(shape=(env.n_gen,), dtype=dt_float)
+        high = 1.0 * env.gen_pmax
+        low -= env._tol_poly
+        high += env._tol_poly
+        # for "power losses" that are not properly computed in the original data
+        extra_for_losses = _compute_extra_power_for_losses(env.observation_space)
+        low -= extra_for_losses
+        high += extra_for_losses
         assert key in env_gym.observation_space.spaces
-        low = np.zeros(shape=(env.n_gen,), dtype=dt_int)
-        high = env.gen_pmax * 1.2  # weird hey ? But expected because of slack bus
         assert np.array_equal(env_gym.observation_space[key].low, low), f"issue for {key}"
         assert np.array_equal(env_gym.observation_space[key].high, high), f"issue for {key}"
 

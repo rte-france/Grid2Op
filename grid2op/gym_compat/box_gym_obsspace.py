@@ -155,7 +155,7 @@ class BoxGymObsSpace(Box):
             "day_of_week": (np.zeros(1, dtype=dt_int),
                             np.zeros(1, dtype=dt_int) + 7, (1,), dt_int),
             "gen_p": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float) - tol_redisp - extra_for_losses,
-                      1.2 * ob_sp.gen_pmax + tol_redisp + extra_for_losses,
+                      ob_sp.gen_pmax + tol_redisp + extra_for_losses,
                       (ob_sp.n_gen,),
                       dt_float),
             "gen_q": (np.full(shape=(ob_sp.n_gen,), fill_value=-np.inf, dtype=dt_float),
@@ -286,6 +286,7 @@ class BoxGymObsSpace(Box):
         self.dict_properties["prod_p"] = self.dict_properties["gen_p"]
         self.dict_properties["prod_q"] = self.dict_properties["gen_q"]
         self.dict_properties["prod_v"] = self.dict_properties["gen_v"]
+        self.dict_properties["gen_p_before_curtail"] = self.dict_properties["gen_p"]
 
         if functs is None:
             functs = {}
