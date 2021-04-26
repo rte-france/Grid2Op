@@ -134,15 +134,29 @@ class TestGymCompatModule(unittest.TestCase):
 
     def test_chain_converter(self):
         """test i can do two converters on the same key"""
+
+        from grid2op._glop_platform_info import _IS_LINUX, _IS_WINDOWS, _IS_MACOS
+        if _IS_MACOS:
+            self.skipTest("Test not suited on macos")
         env_gym = GymEnv(self.env)
         env_gym.action_space = env_gym.action_space.reencode_space("redispatch",
                                                                    ContinuousToDiscreteConverter(nb_bins=11)
                                                                    )
         env_gym.action_space.seed(0)
         act_gym = env_gym.action_space.sample()
-        assert np.all(act_gym["redispatch"] == (7, 9, 0, 0, 0, 9)), f'wrong action: {act_gym["redispatch"]}'
+        if _IS_WINDOWS:
+            res = (7, 9, 0, 0, 0, 9)
+        else:
+            # it's linux
+            res = (1, 2, 0, 0, 0, 0)
+        assert np.all(act_gym["redispatch"] == res), f'wrong action: {act_gym["redispatch"]}'
         act_gym = env_gym.action_space.sample()
-        assert np.all(act_gym["redispatch"] == (2, 9, 0, 0, 0, 1)), f'wrong action: {act_gym["redispatch"]}'
+        if _IS_WINDOWS:
+            res = (2, 9, 0, 0, 0, 1)
+        else:
+            # it's linux
+            res = (0, 1, 0, 0, 0, 4)
+        assert np.all(act_gym["redispatch"] == res), f'wrong action: {act_gym["redispatch"]}'
         assert isinstance(env_gym.action_space["redispatch"], gym.spaces.MultiDiscrete)
         env_gym.action_space = env_gym.action_space.reencode_space("redispatch", MultiToTupleConverter())
         assert isinstance(env_gym.action_space["redispatch"], gym.spaces.Tuple)
@@ -153,17 +167,28 @@ class TestGymCompatModule(unittest.TestCase):
         # on all the "sub part" of the Tuple.. Thanks gym !
         # see https://github.com/openai/gym/issues/2166
         act_gym = env_gym.action_space.sample()
-        assert act_gym["redispatch"] == (6, 5, 0, 0, 0, 9)
+        if _IS_WINDOWS:
+            res_tup = (6, 5, 0, 0, 0, 9)
+            res_disp = np.array([0.833333, 0., 0., 0., 0., 10.], dtype=dt_float)
+        else:
+            # it's linux
+            res_tup = (1, 4, 0, 0, 0, 8)
+            res_disp = np.array([-3.3333333, -1.666667, 0., 0., 0., 7.5], dtype=dt_float)
+        assert act_gym["redispatch"] == res_tup, f'error. redispatch is {act_gym["redispatch"]}'
         act_glop = env_gym.action_space.from_gym(act_gym)
-        assert np.array_equal(act_glop._redispatch,
-                              np.array([0.833333, 0., 0., 0., 0., 10.], dtype=dt_float)
-                              ), f"error. redispatch is {act_glop._redispatch}"
+        assert np.array_equal(act_glop._redispatch, res_disp), f"error. redispatch is {act_glop._redispatch}"
         act_gym = env_gym.action_space.sample()
-        assert act_gym["redispatch"] == (5, 8, 0, 0, 0, 10)
+
+        if _IS_WINDOWS:
+            res_tup = (5, 8, 0, 0, 0, 10)
+            res_disp = np.array([0., 5., 0., 0., 0., 12.5], dtype=dt_float)
+        else:
+            # it's linux
+            res_tup = (3, 9, 0, 0, 0, 0)
+            res_disp = np.array([-1.6666665, 6.666666, 0., 0., 0., -12.5], dtype=dt_float)
+        assert act_gym["redispatch"] == res_tup, f'error. redispatch is {act_gym["redispatch"]}'
         act_glop = env_gym.action_space.from_gym(act_gym)
-        assert np.array_equal(act_glop._redispatch,
-                              np.array([0., 5., 0., 0., 0., 12.5], dtype=dt_float)
-                              ), f"error. redispatch is {act_glop._redispatch}"
+        assert np.array_equal(act_glop._redispatch, res_disp), f"error. redispatch is {act_glop._redispatch}"
 
     def test_all_together(self):
         """combine all test above (for the action space)"""
