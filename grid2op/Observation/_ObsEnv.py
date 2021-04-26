@@ -52,11 +52,15 @@ class _ObsEnv(BaseEnv):
                  legalActClass,
                  helper_action_class,
                  helper_action_env,
+                 epsilon_poly,
+                 tol_poly,
                  other_rewards={}):
         BaseEnv.__init__(self,
                          copy.deepcopy(parameters),
                          thermal_limit_a,
-                         other_rewards=other_rewards)
+                         other_rewards=other_rewards,
+                         epsilon_poly=epsilon_poly,
+                         tol_poly=tol_poly)
         self._helper_action_class = helper_action_class
         self._reward_helper = reward_helper
         self._obsClass = None
