@@ -140,30 +140,30 @@ class TestGymCompatModule(unittest.TestCase):
                                                                    )
         env_gym.action_space.seed(0)
         act_gym = env_gym.action_space.sample()
-        assert np.all(act_gym["redispatch"] == (7, 9, 0, 0, 0, 9))
+        assert np.all(act_gym["redispatch"] == (7, 9, 0, 0, 0, 9)), f'wrong action: {act_gym["redispatch"]}'
         act_gym = env_gym.action_space.sample()
-        assert np.all(act_gym["redispatch"] == (2, 9, 0, 0, 0, 1))
+        assert np.all(act_gym["redispatch"] == (2, 9, 0, 0, 0, 1)), f'wrong action: {act_gym["redispatch"]}'
         assert isinstance(env_gym.action_space["redispatch"], gym.spaces.MultiDiscrete)
         env_gym.action_space = env_gym.action_space.reencode_space("redispatch", MultiToTupleConverter())
         assert isinstance(env_gym.action_space["redispatch"], gym.spaces.Tuple)
 
         # and now test that the redispatching is properly computed
-        # env_gym.action_space.seed(0)
+        env_gym.action_space.seed(0)
         # TODO this doesn't work... because when you seed it appears to use the same seed on all
-        # on all the "sub part" of the Tuple.. THanks gym !
+        # on all the "sub part" of the Tuple.. Thanks gym !
         # see https://github.com/openai/gym/issues/2166
-        # act_gym = env_gym.action_space.sample()
-        # assert act_gym["redispatch"] == (0, 10, 0, 0, 0, 7)
-        # act_glop = env_gym.action_space.from_gym(act_gym)
-        # assert np.array_equal(act_glop._redispatch,
-        #                       np.array([-4.1666665, -8.333333, 0., 0., 0., -12.5], dtype=dt_float)
-        #                       )
-        # act_gym = env_gym.action_space.sample()
-        # assert act_gym["redispatch"] == (4, 7, 0, 0, 0, 10)
-        # act_glop = env_gym.action_space.from_gym(act_gym)
-        # assert np.array_equal(act_glop._redispatch,
-        #                       np.array([0.833333, 1.666666, 0., 0., 0., 2.5], dtype=dt_float)
-        #                       )
+        act_gym = env_gym.action_space.sample()
+        assert act_gym["redispatch"] == (6, 5, 0, 0, 0, 9)
+        act_glop = env_gym.action_space.from_gym(act_gym)
+        assert np.array_equal(act_glop._redispatch,
+                              np.array([0.833333, 0., 0., 0., 0., 10.], dtype=dt_float)
+                              ), f"error. redispatch is {act_glop._redispatch}"
+        act_gym = env_gym.action_space.sample()
+        assert act_gym["redispatch"] == (5, 8, 0, 0, 0, 10)
+        act_glop = env_gym.action_space.from_gym(act_gym)
+        assert np.array_equal(act_glop._redispatch,
+                              np.array([0., 5., 0., 0., 0., 12.5], dtype=dt_float)
+                              ), f"error. redispatch is {act_glop._redispatch}"
 
     def test_all_together(self):
         """combine all test above (for the action space)"""
