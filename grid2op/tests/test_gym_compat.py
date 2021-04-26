@@ -12,8 +12,6 @@ import json
 import grid2op
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.tests.helper_path_test import *
-from grid2op.MakeEnv import make
-from grid2op.Converter import IdToAct, ToVect
 from grid2op.Action import PlayableAction
 
 try:
@@ -25,6 +23,7 @@ try:
     from grid2op.gym_compat import ScalerAttrConverter
     from grid2op.gym_compat import MultiToTupleConverter
     from grid2op.gym_compat import BoxGymObsSpace, BoxGymActSpace, MultiDiscreteActSpace, DiscreteActSpace
+    from grid2op.gym_compat.utils import _compute_extra_power_for_losses
     GYM_AVAIL = True
 except ImportError:
     GYM_AVAIL = False
@@ -94,6 +93,12 @@ class TestGymCompatModule(unittest.TestCase):
         """test a scale_attr converter"""
         env_gym = GymEnv(self.env)
         ob_space = env_gym.observation_space
+
+        key = "actual_dispatch"
+        low = - self.env.gen_pmax
+        high = 1.0 * self.env.gen_pmax
+        assert np.array_equal(env_gym.observation_space[key].low, low), f"issue for {key}"
+        assert np.array_equal(env_gym.observation_space[key].high, high), f"issue for {key}"
         ob_space = ob_space.reencode_space("actual_dispatch",
                                            ScalerAttrConverter(substract=0.,
                                                                divide=self.env.gen_pmax
@@ -101,7 +106,6 @@ class TestGymCompatModule(unittest.TestCase):
                                            )
         env_gym.observation_space = ob_space
         obs = env_gym.reset()
-        key = "actual_dispatch"
         assert key in env_gym.observation_space.spaces
         low = np.zeros(self.env.n_gen) - 1
         high = np.zeros(self.env.n_gen) + 1
@@ -130,36 +134,61 @@ class TestGymCompatModule(unittest.TestCase):
 
     def test_chain_converter(self):
         """test i can do two converters on the same key"""
+
+        from grid2op._glop_platform_info import _IS_LINUX, _IS_WINDOWS, _IS_MACOS
+        if _IS_MACOS:
+            self.skipTest("Test not suited on macos")
         env_gym = GymEnv(self.env)
         env_gym.action_space = env_gym.action_space.reencode_space("redispatch",
                                                                    ContinuousToDiscreteConverter(nb_bins=11)
                                                                    )
         env_gym.action_space.seed(0)
         act_gym = env_gym.action_space.sample()
-        assert np.all(act_gym["redispatch"] == (0, 10, 0, 0, 0, 7))
+        if _IS_WINDOWS:
+            res = (7, 9, 0, 0, 0, 9)
+        else:
+            # it's linux
+            res = (1, 2, 0, 0, 0, 0)
+        assert np.all(act_gym["redispatch"] == res), f'wrong action: {act_gym["redispatch"]}'
         act_gym = env_gym.action_space.sample()
-        assert np.all(act_gym["redispatch"] == (4, 7, 0, 0, 0, 10))
+        if _IS_WINDOWS:
+            res = (2, 9, 0, 0, 0, 1)
+        else:
+            # it's linux
+            res = (0, 1, 0, 0, 0, 4)
+        assert np.all(act_gym["redispatch"] == res), f'wrong action: {act_gym["redispatch"]}'
         assert isinstance(env_gym.action_space["redispatch"], gym.spaces.MultiDiscrete)
         env_gym.action_space = env_gym.action_space.reencode_space("redispatch", MultiToTupleConverter())
         assert isinstance(env_gym.action_space["redispatch"], gym.spaces.Tuple)
 
         # and now test that the redispatching is properly computed
-        # env_gym.action_space.seed(0)
+        env_gym.action_space.seed(0)
         # TODO this doesn't work... because when you seed it appears to use the same seed on all
-        # on all the "sub part" of the Tuple.. THanks gym !
+        # on all the "sub part" of the Tuple.. Thanks gym !
         # see https://github.com/openai/gym/issues/2166
-        # act_gym = env_gym.action_space.sample()
-        # assert act_gym["redispatch"] == (0, 10, 0, 0, 0, 7)
-        # act_glop = env_gym.action_space.from_gym(act_gym)
-        # assert np.array_equal(act_glop._redispatch,
-        #                       np.array([-4.1666665, -8.333333, 0., 0., 0., -12.5], dtype=dt_float)
-        #                       )
-        # act_gym = env_gym.action_space.sample()
-        # assert act_gym["redispatch"] == (4, 7, 0, 0, 0, 10)
-        # act_glop = env_gym.action_space.from_gym(act_gym)
-        # assert np.array_equal(act_glop._redispatch,
-        #                       np.array([0.833333, 1.666666, 0., 0., 0., 2.5], dtype=dt_float)
-        #                       )
+        act_gym = env_gym.action_space.sample()
+        if _IS_WINDOWS:
+            res_tup = (6, 5, 0, 0, 0, 9)
+            res_disp = np.array([0.833333, 0., 0., 0., 0., 10.], dtype=dt_float)
+        else:
+            # it's linux
+            res_tup = (1, 4, 0, 0, 0, 8)
+            res_disp = np.array([-3.3333333, -1.666667, 0., 0., 0., 7.5], dtype=dt_float)
+        assert act_gym["redispatch"] == res_tup, f'error. redispatch is {act_gym["redispatch"]}'
+        act_glop = env_gym.action_space.from_gym(act_gym)
+        assert np.array_equal(act_glop._redispatch, res_disp), f"error. redispatch is {act_glop._redispatch}"
+        act_gym = env_gym.action_space.sample()
+
+        if _IS_WINDOWS:
+            res_tup = (5, 8, 0, 0, 0, 10)
+            res_disp = np.array([0., 5., 0., 0., 0., 12.5], dtype=dt_float)
+        else:
+            # it's linux
+            res_tup = (3, 9, 0, 0, 0, 0)
+            res_disp = np.array([-1.6666665, 6.666666, 0., 0., 0., -12.5], dtype=dt_float)
+        assert act_gym["redispatch"] == res_tup, f'error. redispatch is {act_gym["redispatch"]}'
+        act_glop = env_gym.action_space.from_gym(act_gym)
+        assert np.array_equal(act_glop._redispatch, res_disp), f"error. redispatch is {act_glop._redispatch}"
 
     def test_all_together(self):
         """combine all test above (for the action space)"""
@@ -253,15 +282,27 @@ class TestGymCompatModule(unittest.TestCase):
 
         key = "gen_p"
         assert key in env_gym.observation_space.spaces
-        low = np.zeros(shape=(env.n_gen,), dtype=dt_int)
-        high = env.gen_pmax * 1.2  # weird hey ? But expected because of slack bus
+        low = np.zeros(shape=(env.n_gen,), dtype=dt_float)
+        high = 1.0 * env.gen_pmax
+        low -= env._tol_poly
+        high += env._tol_poly
+        # for "power losses" that are not properly computed in the original data
+        extra_for_losses = _compute_extra_power_for_losses(env.observation_space)
+        low -= extra_for_losses
+        high += extra_for_losses
         assert np.array_equal(env_gym.observation_space[key].low, low), f"issue for {key}"
         assert np.array_equal(env_gym.observation_space[key].high, high), f"issue for {key}"
 
         key = "gen_p_before_curtail"
+        low = np.zeros(shape=(env.n_gen,), dtype=dt_float)
+        high = 1.0 * env.gen_pmax
+        low -= env._tol_poly
+        high += env._tol_poly
+        # for "power losses" that are not properly computed in the original data
+        extra_for_losses = _compute_extra_power_for_losses(env.observation_space)
+        low -= extra_for_losses
+        high += extra_for_losses
         assert key in env_gym.observation_space.spaces
-        low = np.zeros(shape=(env.n_gen,), dtype=dt_int)
-        high = env.gen_pmax * 1.2  # weird hey ? But expected because of slack bus
         assert np.array_equal(env_gym.observation_space[key].low, low), f"issue for {key}"
         assert np.array_equal(env_gym.observation_space[key].high, high), f"issue for {key}"
 

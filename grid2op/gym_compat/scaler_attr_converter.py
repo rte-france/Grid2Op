@@ -33,7 +33,7 @@ class ScalerAttrConverter(BaseGymAttrConverter):
                                       space=None)
         self._substract = np.array(substract)
         self._divide = np.array(divide)
-        self.dtype = dtype if dtype is not None else np.dtype(dt_float)
+        self.dtype = dtype if dtype is not None else dt_float
         if init_space is not None:
             self.initialize_space(init_space)
 
@@ -44,8 +44,14 @@ class ScalerAttrConverter(BaseGymAttrConverter):
             raise RuntimeError("Impossible to scale a converter if this one is not from type space.Box")
 
         tmp_space = copy.deepcopy(init_space)
-        tmp_space.low = self.scale(tmp_space.low)
-        tmp_space.high = self.scale(tmp_space.high)
+        # properly change the low / high value
+        low_tmp = self.scale(tmp_space.low)
+        high_tmp = self.scale(tmp_space.high)
+        low_ = np.minimum(high_tmp, low_tmp)
+        high_ = np.maximum(high_tmp, low_tmp)
+        tmp_space.low[:] = low_
+        tmp_space.high[:] = high_
+
         if self.dtype is not None:
             tmp_space.dtype = np.dtype(self.dtype)
             tmp_space.low = tmp_space.low.astype(self.dtype)

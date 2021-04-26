@@ -13,6 +13,8 @@ from gym.spaces import Box
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Observation import ObservationSpace
 
+from grid2op.gym_compat.utils import _compute_extra_power_for_losses
+from grid2op.gym_compat.utils import check_gym_version
 # TODO doc
 
 
@@ -113,6 +115,14 @@ class BoxGymObsSpace(Box):
     - `dtype` (optional, put None if you don't want to change it, defaults to np.float32) the type of
       the numpy array as output of your function.
 
+    Notes
+    -----
+    The range of the values for "gen_p" / "prod_p" are not strictly `env.gen_pmin` and `env.gen_pmax`.
+    This is due to the "approximation" when some redispatching is performed (the precision of the
+    algorithm that computes the actual dispatch from the information it receives) and also because
+    sometimes the losses of the grid are really different that the one anticipated in the "chronics" (yes
+    env.gen_pmin and env.gen_pmax are not always ensured in grid2op)
+
     """
     def __init__(self,
                  grid2op_observation_space,
@@ -120,6 +130,7 @@ class BoxGymObsSpace(Box):
                  subtract=None,
                  divide=None,
                  functs=None):
+        check_gym_version()
         if not isinstance(grid2op_observation_space, ObservationSpace):
             raise RuntimeError(f"Impossible to create a BoxGymObsSpace without providing a "
                                f"grid2op observation. You provided {type(grid2op_observation_space)}"
@@ -127,6 +138,8 @@ class BoxGymObsSpace(Box):
         self._attr_to_keep = attr_to_keep
 
         ob_sp = grid2op_observation_space
+        tol_redisp = ob_sp.obs_env._tol_poly  # add to gen_p otherwise ... well it can crash
+        extra_for_losses = _compute_extra_power_for_losses(ob_sp)
 
         self.dict_properties = {
             "year": (np.zeros(1, dtype=dt_int),
@@ -141,8 +154,8 @@ class BoxGymObsSpace(Box):
                                np.zeros(1, dtype=dt_int) + 60, (1,), dt_int),
             "day_of_week": (np.zeros(1, dtype=dt_int),
                             np.zeros(1, dtype=dt_int) + 7, (1,), dt_int),
-            "gen_p": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float),
-                      1.2 * ob_sp.gen_pmax,
+            "gen_p": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float) - tol_redisp - extra_for_losses,
+                      ob_sp.gen_pmax + tol_redisp + extra_for_losses,
                       (ob_sp.n_gen,),
                       dt_float),
             "gen_q": (np.full(shape=(ob_sp.n_gen,), fill_value=-np.inf, dtype=dt_float),
@@ -273,6 +286,7 @@ class BoxGymObsSpace(Box):
         self.dict_properties["prod_p"] = self.dict_properties["gen_p"]
         self.dict_properties["prod_q"] = self.dict_properties["gen_q"]
         self.dict_properties["prod_v"] = self.dict_properties["gen_v"]
+        self.dict_properties["gen_p_before_curtail"] = self.dict_properties["gen_p"]
 
         if functs is None:
             functs = {}

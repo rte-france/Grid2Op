@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 from gym.spaces import Space
+from grid2op.gym_compat.utils import check_gym_version
 
 
 class BaseGymAttrConverter(object):
@@ -15,6 +16,7 @@ class BaseGymAttrConverter(object):
     Need help if you can :-)
     """
     def __init__(self, space=None, gym_to_g2op=None, g2op_to_gym=None):
+        check_gym_version()
         self.__is_init_super = False  # is the "super" class initialized, do not modify in child class
 
         self._is_init_space = False  # is the instance initialized
