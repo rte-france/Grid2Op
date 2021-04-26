@@ -13,6 +13,7 @@ from gym.spaces import Box
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Observation import ObservationSpace
 
+from grid2op.gym_compat.utils import check_gym_version
 # TODO doc
 
 
@@ -120,6 +121,7 @@ class BoxGymObsSpace(Box):
                  subtract=None,
                  divide=None,
                  functs=None):
+        check_gym_version()
         if not isinstance(grid2op_observation_space, ObservationSpace):
             raise RuntimeError(f"Impossible to create a BoxGymObsSpace without providing a "
                                f"grid2op observation. You provided {type(grid2op_observation_space)}"

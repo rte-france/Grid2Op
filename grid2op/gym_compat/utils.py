@@ -6,6 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+_MIN_GYM_VERSION = "0.17.2"
+
 ALL_ATTR = ("set_line_status",
             "change_line_status",
             "set_bus",
@@ -22,3 +24,9 @@ ATTR_DISCRETE = ("set_line_status",
                  "sub_change_bus",
                  "one_sub_set",
                  "one_sub_change")
+
+def check_gym_version():
+    import gym
+    if gym.__version__ < _MIN_GYM_VERSION:
+        raise RuntimeError(f"Grid2op does not work with gym < {_MIN_GYM_VERSION} and you have gym with "
+                           f"version {gym.__version__} installed.")

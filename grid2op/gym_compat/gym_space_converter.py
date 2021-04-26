@@ -11,6 +11,7 @@ import numpy as np
 import copy
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
+from grid2op.gym_compat.utils import check_gym_version
 
 
 class _BaseGymSpaceConverter(spaces.Dict):
@@ -23,6 +24,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
 
     """
     def __init__(self, dict_gym_space, dict_variables=None):
+        check_gym_version()
         spaces.Dict.__init__(self, dict_gym_space)
         self._keys_encoding = {}
         if dict_variables is not None:

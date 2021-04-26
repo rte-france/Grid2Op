@@ -24,10 +24,15 @@ Change Log
 
 [1.5.2] - 2021-xx-yy
 -----------------------
+- [IMPROVED]: on windows at least, grid2op does not work with gym < 0.17.2 Checks are performed in order to make sure
+  the installed open ai gym package meets this requirement (see issue
+  `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
 
 
 [1.5.1] - 2021-04-15
 -----------------------
+- [FIXED]: `Issue#194 <https://github.com/rte-france/Grid2Op/issues/194>`_: (post release): change the name
+  of the file `platform.py` that could be mixed with the python "platform" module to `_glop_platform_info.py`
 - [FIXED]: `Issue #187 <https://github.com/rte-france/Grid2Op/issues/187>`_: improve the computation and the
   documentation of the `RedispReward`. This has an impact on the `env.reward_range` of all environments using this
   reward, because the old "reward_max" was not correct.
