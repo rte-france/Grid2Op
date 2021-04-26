@@ -209,3 +209,16 @@ class _BaseGymSpaceConverter(spaces.Dict):
             if k in attr_names:
                 res = res.reencode_space(k, None)
         return res
+
+    def seed(self, seed=None):
+        """Seed the PRNG of this space.
+        see issue https://github.com/openai/gym/issues/2166
+        of openAI gym
+        """
+        seeds = super(spaces.Dict, self).seed(seed)
+        sub_seeds = seeds
+        max_ = np.iinfo(int).max
+        for i, space_key in enumerate(sorted(self.spaces.keys())):
+            sub_seed = self.np_random.randint(max_)
+            sub_seeds.append(self.spaces[space_key].seed(sub_seed))
+        return sub_seeds
