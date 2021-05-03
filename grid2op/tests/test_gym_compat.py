@@ -409,7 +409,7 @@ class TestGymCompatModule(unittest.TestCase):
         low = np.zeros(env.n_line, dtype=dt_int)
         high = np.zeros(env.n_line, dtype=dt_int) + max(env.parameters.NB_TIMESTEP_RECONNECTION,
                                                         env.parameters.NB_TIMESTEP_COOLDOWN_LINE,
-                                                        env._oppSpace.attack_duration)
+                                                        env._oppSpace.attack_max_duration)
         assert np.array_equal(env_gym.observation_space[key].low, low), f"issue for {key}"
         assert np.array_equal(env_gym.observation_space[key].high, high), f"issue for {key}"
 
