@@ -108,20 +108,23 @@ class RandomLineOpponent(BaseOpponent):
         -------
         attack: :class:`grid2op.Action.Action`
             The attack performed by the opponent. In this case, a do nothing, all the time.
+
+        duration: ``int``
+            The duration of the attack (if ``None`` then the attack will be made for the longest allowed time)
         """
         # TODO maybe have a class "GymOpponent" where the observation would include the budget  and all other
         # TODO information, and forward something to the "act" method.
 
         if observation is None:  # during creation of the environment
-            return None  # i choose not to attack in this case
+            return None, 0  # i choose not to attack in this case
 
         # Status of attackable lines
         status = observation.line_status[self._lines_ids]
 
         # If all attackable lines are disconnected
         if np.all(~status):
-            return None  # i choose not to attack in this case
+            return None, 0  # i choose not to attack in this case
 
         # Pick a line among the connected lines
         attack = self.space_prng.choice(self._attacks[status])
-        return attack
+        return attack, None

@@ -244,13 +244,6 @@ class Environment(BaseEnv):
                                                             actionClass=CompleteAction,
                                                             legal_action=self._game_rules.legal_action)
 
-        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
-        self._observation_space = self._helper_observation_class(gridobj=bk_type,
-                                                                 observationClass=observationClass,
-                                                                 actionClass=actionClass,
-                                                                 rewardClass=rewardClass,
-                                                                 env=self)
-
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
             raise Grid2OpException(
@@ -262,6 +255,15 @@ class Environment(BaseEnv):
                                          self.name_line, self.name_sub,
                                          names_chronics_to_backend=names_chronics_to_backend)
         self.names_chronics_to_backend = names_chronics_to_backend
+
+        # this needs to be done after the chronics handler: rewards might need information
+        # about the chronics to work properly.
+        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
+        self._observation_space = self._helper_observation_class(gridobj=bk_type,
+                                                                 observationClass=observationClass,
+                                                                 actionClass=actionClass,
+                                                                 rewardClass=rewardClass,
+                                                                 env=self)
 
         # test to make sure the backend is consistent with the chronics generator
         self.chronics_handler.check_validity(self.backend)

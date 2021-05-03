@@ -24,16 +24,25 @@ Change Log
 
 [1.5.2] - 2021-xx-yy
 -----------------------
+- [BREAKING]: allow the opponent to chose the duration of its attack. This breaks the previous "Opponent.attack(...)"
+  signature by adding an object in the return value. All code provided with grid2op are compatible with this
+  new change. (for previously coded opponent, the only thing you have to do to make it compliant with
+  the new interface is, in the `opponent.attack(...)` function return `whatever_you_returned_before, None` instead
+  of simply `whatever_you_returned_before`
 - [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related to the
   low / high of the observation if using the gym_compat module. Some more protections
   are enforced now.
 - [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related the scaling when negative
   numbers are used (in these cases low / max would be mixed up)
+- [FIXED]: an issue with the `IncreasingFlatReward` reward types
+- [ADDED]: a reward `EpisodeDurationReward` that is always 0 unless at the end of an episode where it returns a float
+  proportional to the number of step made from the beginning of the environment.
+- [ADDED]: in the `Observation` the possibility to retrieve the current number of steps
 - [IMPROVED]: on windows at least, grid2op does not work with gym < 0.17.2 Checks are performed in order to make sure
   the installed open ai gym package meets this requirement (see issue
   `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
 - [IMPROVED] the seed of openAI gym for composed action space (see issue `https://github.com/openai/gym/issues/2166`):
-  waiting for an official fix, grid2op will use the solution proposed there
+  in waiting for an official fix, grid2op will use the solution proposed there
   https://github.com/openai/gym/issues/2166#issuecomment-803984619 )
 
 [1.5.1] - 2021-04-15

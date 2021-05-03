@@ -46,7 +46,7 @@ class TestSuiteOpponent_001(BaseOpponent):
         if observation is None:  # On first step
             return None
         attack = self.space_prng.choice(self.possible_attack)
-        return attack
+        return attack, None
 
 
 class TestWeightedRandomOpponent(WeightedRandomOpponent):
@@ -184,7 +184,7 @@ class TestLoadingOpp(unittest.TestCase):
                 obs = env.reset()
                 assert env._oppSpace.budget == init_budget
                 # The opponent can attack
-                for i in range(env._oppSpace.attack_duration):
+                for i in range(env._oppSpace.attack_max_duration):
                     obs, reward, done, info = env.step(env.action_space())
                     attack = env._oppSpace.last_attack
                     assert env._oppSpace.budget == init_budget - i - 1
@@ -427,7 +427,7 @@ class TestLoadingOpp(unittest.TestCase):
                     
                 attack = env._oppSpace.last_attack
                 attacked_line = np.where(attack._set_line_status == -1)[0][0]
-                if env._oppSpace.current_attack_duration < env._oppSpace.attack_duration:
+                if env._oppSpace.current_attack_duration < env._oppSpace.attack_max_duration:
                     # The attack is ungoing. The line must have been disconnected already
                     assert not pre_obs.line_status[attacked_line]
                 else:
@@ -755,7 +755,7 @@ class TestLoadingOpp(unittest.TestCase):
                 obs = env.reset()
                 assert env._oppSpace.budget == init_budget
                 # The opponent can attack
-                for i in range(env._oppSpace.attack_duration):
+                for i in range(env._oppSpace.attack_max_duration):
                     obs, reward, done, info = env.step(env.action_space())
                     attack = env._oppSpace.last_attack
                     assert env._oppSpace.budget == init_budget - i - 1
@@ -1013,7 +1013,7 @@ class TestLoadingOpp(unittest.TestCase):
                     
                 attack = env._oppSpace.last_attack
                 attacked_line = np.where(attack._set_line_status == -1)[0][0]
-                if env._oppSpace.current_attack_duration < env._oppSpace.attack_duration:
+                if env._oppSpace.current_attack_duration < env._oppSpace.attack_max_duration:
                     # The attack is ungoing. The line must have been disconnected already
                     assert not pre_obs.line_status[attacked_line]
                 else:

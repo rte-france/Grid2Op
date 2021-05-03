@@ -11,11 +11,10 @@ from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
 
-class IncreasingFlatReward(BaseReward):
+class EpisodeDurationReward(BaseReward):
     """
-    This reward just counts the number of timestep the agent has successfully manage to perform.
-
-    It adds a constant reward for each time step successfully handled.
+    This reward will always be 0., unless at the end of an episode where it will return the number
+    of steps made by the agent divided by the total number of steps possible in the episode.
 
     Examples
     ---------
@@ -24,31 +23,44 @@ class IncreasingFlatReward(BaseReward):
     .. code-block:
 
         import grid2op
-        from grid2op.Reward import IncreasingFlatReward
+        from grid2op.Reward import EpisodeDurationReward
 
         # then you create your environment with it:
         NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
-        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=IncreasingFlatReward)
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=EpisodeDurationReward)
         # and do a step with a "do nothing" action
         obs = env.reset()
         obs, reward, done, info = env.step(env.action_space())
-        # the reward is computed with the IncreasingFlatReward class
+        # the reward is computed with the EpisodeDurationReward class
+
+    Notes
+    -----
+    In case of an environment being "fast forward" (see :func:`grid2op.Environment.BaseEnv.fast_forward_chronics`)
+    the time "during" the fast forward are counted "as if" they were successful.
+
+    This means that if you "fast forward" up until the end of an episode, you are likely to receive a reward of 1.0
+
 
     """
     def __init__(self, per_timestep=1):
         BaseReward.__init__(self)
         self.per_timestep = dt_float(per_timestep)
-        self.reward_min = dt_float(0.0)
+        self.total_time_steps = dt_float(0.0)
+        self.reward_min = dt_float(0.)
+        self.reward_max = dt_float(1.)
 
     def initialize(self, env):
         if env.chronics_handler.max_timestep() > 0:
-            self.reward_max = env.chronics_handler.max_timestep() * self.per_timestep
+            self.total_time_steps = env.chronics_handler.max_timestep() * self.per_timestep
         else:
+            self.total_time_steps = np.inf
             self.reward_max = np.inf
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        if not has_error:
-            res = dt_float(env.nb_time_step * self.per_timestep)
+        if is_done:
+            res = env.nb_time_step
+            if np.isfinite(self.total_time_steps):
+                res /= self.total_time_steps
         else:
             res = self.reward_min
         return res
