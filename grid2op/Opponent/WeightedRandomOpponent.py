@@ -135,13 +135,16 @@ class WeightedRandomOpponent(BaseOpponent):
         -------
         attack: :class:`grid2op.Action.Action`
             The attack performed by the opponent. In this case, a do nothing, all the time.
+
+        duration: ``int``
+            The duration of the attack
         """
         # TODO maybe have a class "GymOpponent" where the observation would include the budget  and all other
         # TODO information, and forward something to the "act" method.
 
         # During creation of the environment, do not attack
         if observation is None:
-            return None
+            return None, 0
 
         # Decide the time of the next attack
         if self._next_attack_time is None:
@@ -150,16 +153,17 @@ class WeightedRandomOpponent(BaseOpponent):
 
         # If the attack time has not come yet, do not attack
         if self._next_attack_time > 0:
-            return None
+            return None, 0
 
         # If all attackable lines are disconnected, do not attack
         status = observation.line_status[self._lines_ids]
         if np.all(~status):
-            return None
+            return None, 0
+
         available_attacks = self._attacks[status]
         rho = observation.rho[self._lines_ids][status] / self._rho_normalization[status]
         rho_sum = rho.sum()
         if rho_sum <= 0.:
             return None
         attack = self.space_prng.choice(available_attacks, p=rho / rho_sum)
-        return attack
+        return attack, None

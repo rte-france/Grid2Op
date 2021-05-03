@@ -1551,6 +1551,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         lines_attacked, subs_attacked = None, None
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
+
         beg_step = time.time()
         try:
             beg_ = time.time()
