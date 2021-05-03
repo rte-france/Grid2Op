@@ -24,6 +24,11 @@ Change Log
 
 [1.5.2] - 2021-xx-yy
 -----------------------
+- [BREAKING]: allow the opponent to chose the duration of its attack. This breaks the previous "Opponent.attack(...)"
+  signature by adding an object in the return value. All code provided with grid2op are compatible with this
+  new change. (for previously coded opponent, the only thing you have to do to make it compliant with
+  the new interface is, in the `opponent.attack(...)` function return `whatever_you_returned_before, None` instead
+  of simply `whatever_you_returned_before`
 - [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related to the
   low / high of the observation if using the gym_compat module. Some more protections
   are enforced now.
