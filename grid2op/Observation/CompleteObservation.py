@@ -130,6 +130,9 @@ class CompleteObservation(BaseObservation):
         self._reset_matrices()
         self.reset()
 
+        # counter
+        self.current_step = env.nb_time_step
+
         # extract the time stamps
         self.year = dt_int(env.time_stamp.year)
         self.month = dt_int(env.time_stamp.month)

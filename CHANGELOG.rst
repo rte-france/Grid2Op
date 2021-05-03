@@ -32,6 +32,7 @@ Change Log
 - [FIXED]: an issue with the `IncreasingFlatReward` reward types
 - [ADDED]: a reward `EpisodeDurationReward` that is always 0 unless at the end of an episode where it returns a float
   proportional to the number of step made from the beginning of the environment.
+- [ADDED]: in the `Observation` the possibility to retrieve the current number of steps
 - [IMPROVED]: on windows at least, grid2op does not work with gym < 0.17.2 Checks are performed in order to make sure
   the installed open ai gym package meets this requirement (see issue
   `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
