@@ -455,6 +455,10 @@ class BaseAction(GridObjects):
                 cls.attr_list_vect.remove("_curtail")
                 cls.attr_list_set = set(cls.attr_list_vect)
 
+        if cls.glop_version < "1.6.0":
+            # this feature did not exist before.
+            cls.dim_alarms = 0
+
     def _reset_modified_flags(self):
         self._modif_inj = False
         self._modif_set_bus = False

@@ -444,9 +444,6 @@ class GridObjects:
     attr_list_json = []
     attr_nan_list_set = set()
 
-    # class been init
-    # __is_init = False
-
     # name of the objects
     env_name = "unknown"
     name_load = None
@@ -535,8 +532,20 @@ class GridObjects:
     name_shunt = None
     shunt_to_subid = None
 
+    # alarm feature
+    # dimension of the alarm "space" (number of alarm that can be raised at each step)
+    dim_alarms = 0  # TODO
+
     def __init__(self):
         pass
+
+    @classmethod
+    def tell_dim_alarm(cls, dim_alarms):
+        if cls.dim_alarms != 0:
+            # number of alarms has already been set, i issue a warning
+            warnings.warn("You will change the number of dimensions of the alarm. This might cause trouble "
+                          "if you environment is read back. We strongly recommend NOT to do this.")
+        cls.dim_alarms = dim_alarms
 
     @classmethod
     def _clear_class_attribute(cls):
@@ -644,6 +653,9 @@ class GridObjects:
         cls.n_shunt = None
         cls.name_shunt = None
         cls.shunt_to_subid = None
+
+        # alarms
+        cls.dim_alarms = 0
 
     @classmethod
     def _update_value_set(cls):
@@ -2084,7 +2096,9 @@ class GridObjects:
 
         This is called when the class is initialized, with `init_grid` to broadcast grid2op compatibility feature.
         """
-        pass
+        if cls.glop_version < "1.6.0":
+            # this feature did not exist before.
+            cls.dim_alarms = 0
 
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
