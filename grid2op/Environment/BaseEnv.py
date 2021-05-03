@@ -379,9 +379,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._sum_curtailment_mw = None
         self._sum_curtailment_mw_prev = None
 
-        # count number of steps properly performed
-        self._current_time_step = 0
-
     @property
     def action_space(self):
         """this represent a view on the action space"""
@@ -1554,7 +1551,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         lines_attacked, subs_attacked = None, None
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
-        self._current_time_step += 1
 
         beg_step = time.time()
         try:
@@ -1857,8 +1853,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # reward and others
         self.current_reward = self.reward_range[0]
         self.done = False
-
-        self._current_time_step = 0
 
     def _reset_maintenance(self):
         self._time_next_maintenance[:] = -1

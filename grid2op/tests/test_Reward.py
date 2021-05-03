@@ -192,18 +192,51 @@ class TestIncreaseFlatReward(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = make("l2rpn_case14_sandbox", reward_class=IncreasingFlatReward, test=True)
 
-        assert env._current_time_step == 0
+        assert env.nb_time_step == 0
         obs, reward, done, info = env.step(env.action_space())
-        assert env._current_time_step == 1
+        assert env.nb_time_step == 1
         assert reward == 1
         obs, reward, done, info = env.step(env.action_space())
-        assert env._current_time_step == 2
+        assert env.nb_time_step == 2
         assert reward == 2
         obs = env.reset()
-        assert env._current_time_step == 0
+        assert env.nb_time_step == 0
         obs, reward, done, info = env.step(env.action_space())
-        assert env._current_time_step == 1
+        assert env.nb_time_step == 1
         assert reward == 1
+
+
+class TestEpisodeDurationReward(unittest.TestCase):
+    def test_ok(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_case14_sandbox", reward_class=EpisodeDurationReward, test=True)
+
+        assert env.nb_time_step == 0
+        obs, reward, done, info = env.step(env.action_space())
+        assert env.nb_time_step == 1
+        assert reward == 0
+
+        obs, reward, done, info = env.step(env.action_space())
+        assert env.nb_time_step == 2
+        assert reward == 0
+
+        obs, reward, done, info = env.step(env.action_space({"set_bus": {"generators_id": [(0, -1)]}}))
+        assert done
+        assert env.nb_time_step == 3
+        assert reward == 3. / 575.
+
+        obs = env.reset()
+        assert env.nb_time_step == 0
+        obs, reward, done, info = env.step(env.action_space())
+        assert env.nb_time_step == 1
+        assert reward == 0
+
+        env.fast_forward_chronics(573)
+        obs, reward, done, info = env.step(env.action_space())
+        assert done
+        assert env.nb_time_step == 575
+        assert reward == 1.
 
 
 if __name__ == "__main__":
