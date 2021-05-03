@@ -29,6 +29,7 @@ Change Log
   are enforced now.
 - [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related the scaling when negative
   numbers are used (in these cases low / max would be mixed up)
+- [FIXED]: an issue with the `IncreasingFlatReward` reward types
 - [IMPROVED]: on windows at least, grid2op does not work with gym < 0.17.2 Checks are performed in order to make sure
   the installed open ai gym package meets this requirement (see issue
   `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )

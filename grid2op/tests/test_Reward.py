@@ -186,5 +186,25 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
         assert reward == 42.0
 
 
+class TestIncreaseFlatReward(unittest.TestCase):
+    def test_ok(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_case14_sandbox", reward_class=IncreasingFlatReward, test=True)
+
+        assert env._current_time_step == 0
+        obs, reward, done, info = env.step(env.action_space())
+        assert env._current_time_step == 1
+        assert reward == 1
+        obs, reward, done, info = env.step(env.action_space())
+        assert env._current_time_step == 2
+        assert reward == 2
+        obs = env.reset()
+        assert env._current_time_step == 0
+        obs, reward, done, info = env.step(env.action_space())
+        assert env._current_time_step == 1
+        assert reward == 1
+
+
 if __name__ == "__main__":
     unittest.main()
