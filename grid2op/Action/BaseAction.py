@@ -412,7 +412,11 @@ class BaseAction(GridObjects):
         mycls = type(self)
         if mycls.shunt_added is False and mycls.shunts_data_available:
             mycls.shunt_added = True
+
+            mycls.attr_list_vect = copy.deepcopy(mycls.attr_list_vect)
             mycls.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+
+            mycls.authorized_keys = copy.deepcopy(mycls.authorized_keys)
             mycls.authorized_keys.add("shunt")
             mycls.attr_nan_list_set.add("shunt_p")
             mycls.attr_nan_list_set.add("shunt_q")
