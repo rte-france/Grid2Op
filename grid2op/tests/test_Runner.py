@@ -279,7 +279,7 @@ class TestRunner(HelperTests):
 
     def test_backward_compatibility(self):
         backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3", "1.3.0", "1.3.1",
-                                 "1.4.0", "1.5.0"]
+                                 "1.4.0", "1.5.0", "1.5.1", "1.5.1.post1"]
         curr_version = "test_version"
         assert 'curtailment' in CompleteObservation.attr_list_vect, "error at the beginning"
         with warnings.catch_warnings():
