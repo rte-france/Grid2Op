@@ -35,6 +35,9 @@ class Issue185Tester(unittest.TestCase):
                 warnings.filterwarnings("ignore")
                 with grid2op.make(env_name, test=True) as env:
                     gym_env = GymEnv(env)
+                    gym_env.seed(0)
+                    gym_env.observation_space.seed(0)
+                    gym_env.action_space.seed(0)
                     obs_gym = gym_env.reset()
                     assert obs_gym["a_ex"].shape[0] == env.n_line, f"error for {env_name}"
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
@@ -49,6 +52,8 @@ class Issue185Tester(unittest.TestCase):
                 with grid2op.make(env_name, test=True) as env:
                     gym_env = GymEnv(env)
                     gym_env.action_space = BoxGymActSpace(gym_env.init_env.action_space)
+                    gym_env.seed(0)
+                    gym_env.observation_space.seed(0)
                     gym_env.action_space.seed(0)
                     obs_gym = gym_env.reset()
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
@@ -67,6 +72,8 @@ class Issue185Tester(unittest.TestCase):
                 with grid2op.make(env_name, test=True) as env:
                     gym_env = GymEnv(env)
                     gym_env.observation_space = BoxGymObsSpace(gym_env.init_env.observation_space)
+                    gym_env.seed(0)
+                    gym_env.observation_space.seed(0)
                     gym_env.action_space.seed(0)
                     obs_gym = gym_env.reset()
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
@@ -97,6 +104,8 @@ class Issue185Tester(unittest.TestCase):
                 with grid2op.make(env_name, test=True) as env:
                     gym_env = GymEnv(env)
                     gym_env.action_space = MultiDiscreteActSpace(gym_env.init_env.action_space)
+                    gym_env.seed(0)
+                    gym_env.observation_space.seed(0)
                     gym_env.action_space.seed(0)
                     obs_gym = gym_env.reset()
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
@@ -127,13 +136,20 @@ class Issue185Tester(unittest.TestCase):
                 with grid2op.make(env_name, test=True) as env:
                     gym_env = GymEnv(env)
                     gym_env.action_space = DiscreteActSpace(gym_env.init_env.action_space)
+                    gym_env.seed(0)
+                    gym_env.observation_space.seed(0)
                     gym_env.action_space.seed(0)
                     obs_gym = gym_env.reset()
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
                     act = gym_env.action_space.sample()
                     assert act in gym_env.action_space, f"error for {env_name}"
                     obs, reward, done, info = gym_env.step(act)
-                    assert obs in gym_env.observation_space, f"error for {env_name}"
+                    if obs not in gym_env.observation_space:
+                        for k in obs:
+                            if not obs[k] in gym_env.observation_space[k]:
+                                import pdb
+                                pdb.set_trace()
+                                raise RuntimeError(f"Error for key {k} for env {env_name}")
 
 
 if __name__ == "__main__":

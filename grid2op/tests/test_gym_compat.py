@@ -494,7 +494,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                                                 )
         obs_gym =  self.env_gym.reset()
         assert obs_gym in self.env_gym.observation_space
-        assert self.env_gym.observation_space._attr_to_keep == kept_attr
+        assert self.env_gym.observation_space._attr_to_keep == sorted(kept_attr)
         assert len(obs_gym) == 3583
 
     def test_can_create_int(self):
@@ -504,7 +504,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                                                         )
         obs_gym =  self.env_gym.reset()
         assert obs_gym in self.env_gym.observation_space
-        assert self.env_gym.observation_space._attr_to_keep == kept_attr
+        assert self.env_gym.observation_space._attr_to_keep == sorted(kept_attr)
         assert len(obs_gym) == 79   
         assert obs_gym.dtype == dt_int
 
@@ -568,7 +568,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                                                 )
         obs_gym = self.env_gym.reset()
         assert obs_gym in self.env_gym.observation_space
-        assert self.env_gym.observation_space._attr_to_keep == kept_attr
+        assert self.env_gym.observation_space._attr_to_keep == sorted(kept_attr)
         assert len(obs_gym) == 3583
 
         # test the stuff crashes if not used properly
@@ -694,7 +694,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
-        assert self.env_gym.action_space._attr_to_keep == kept_attr
+        assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert len(self.env_gym.action_space.sample()) == 124
         # check that all types
         ok_setbus = False
@@ -739,7 +739,7 @@ class TestBoxGymActSpace(unittest.TestCase):
             self.env_gym.action_space.seed(0)
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             assert isinstance(grid2op_act, PlayableAction)
-            assert self.env_gym.action_space._attr_to_keep == kept_attr
+            assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
             assert len(self.env_gym.action_space.sample()) == all_attr[attr_nm], f"wrong size for {attr_nm}"
             self.env_gym.action_space.seed(0)
             # check that all types
@@ -778,7 +778,7 @@ class TestBoxGymActSpace(unittest.TestCase):
             self.env_gym.action_space.seed(0)
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             assert isinstance(grid2op_act, PlayableAction)
-            assert self.env_gym.action_space._attr_to_keep == kept_attr
+            assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
             assert len(self.env_gym.action_space.sample()) == all_attr[attr_nm], f"wrong size for {attr_nm}"
             self.env_gym.action_space.seed(0)
             # check that all types
@@ -799,7 +799,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
-        assert self.env_gym.action_space._attr_to_keep == kept_attr
+        assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert len(self.env_gym.action_space.sample()) == 12, "wrong size"
         self.env_gym.action_space.seed(0)
         for _ in range(10):
@@ -829,7 +829,7 @@ class TestBoxGymActSpace(unittest.TestCase):
                                                        )
         self.env_gym.action_space.seed(0)
         act_gym = self.env_gym.action_space.sample()
-        assert self.env_gym.action_space._attr_to_keep == kept_attr
+        assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert act_gym.dtype == dt_float
         assert len(act_gym) == 79 + 6
 
@@ -846,7 +846,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         act_gym = self.env_gym.action_space.sample()
         assert np.array_equal(self.env_gym.action_space.low, -self.env.gen_max_ramp_down)
         assert np.array_equal(self.env_gym.action_space.high, self.env.gen_max_ramp_up)
-        assert self.env_gym.action_space._attr_to_keep == kept_attr
+        assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert len(act_gym) == 6
         assert np.any(act_gym >= 1.0)
         assert np.any(act_gym <= -1.0)
@@ -865,7 +865,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         assert np.array_equal(self.env_gym.action_space.high[~self.env.gen_redispatchable], np.zeros(3))
         self.env_gym.action_space.seed(0)
         act_gym = self.env_gym.action_space.sample()
-        assert self.env_gym.action_space._attr_to_keep == kept_attr
+        assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert len(act_gym) == 6
         assert np.all(act_gym <= 1.0)
         assert np.all(act_gym >= -1.0)
@@ -889,7 +889,7 @@ class TestBoxGymActSpace(unittest.TestCase):
                               self.env.gen_max_ramp_up[~self.env.gen_redispatchable])
         self.env_gym.action_space.seed(0)
         act_gym = self.env_gym.action_space.sample()
-        assert self.env_gym.action_space._attr_to_keep == kept_attr
+        assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert len(act_gym) == 6
         assert np.all(act_gym <= 0.)
         assert np.all(act_gym >= -2.0)
@@ -931,7 +931,7 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
-        assert self.env_gym.action_space._attr_to_keep == kept_attr
+        assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert len(self.env_gym.action_space.sample()) == 124
         # check that all types
         ok_setbus = False
@@ -958,9 +958,9 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
             self.env_gym.action_space.seed(0)
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             assert isinstance(grid2op_act, PlayableAction)
-            assert self.env_gym.action_space._attr_to_keep == kept_attr
+            assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
             assert len(self.env_gym.action_space.sample()) == 124
-            assert np.all(self.env_gym.action_space.nvec[-6:] == [nb_bin, nb_bin, 1, 1, 1, nb_bin])
+            assert np.all(self.env_gym.action_space.nvec[59:65] == [nb_bin, nb_bin, 1, 1, 1, nb_bin])
             ok_setbus = False
             ok_change_bus = False
             ok_redisp = False
@@ -983,7 +983,7 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
-        assert self.env_gym.action_space._attr_to_keep == kept_attr
+        assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert len(self.env_gym.action_space.sample()) == 14
         assert np.all(self.env_gym.action_space.nvec == [4, 30, 6, 32, 16, 114, 5, 1, 16, 4, 4, 4, 8, 4])
         # assert that i can "do nothing" in all substation
@@ -1005,7 +1005,7 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
-        assert self.env_gym.action_space._attr_to_keep == kept_attr
+        assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert len(self.env_gym.action_space.sample()) == 14
         assert np.all(self.env_gym.action_space.nvec == [4, 32, 8, 32, 16, 128, 4, 4, 16, 4, 4, 4, 8, 4])
         # assert that i can "do nothing" in all substation
@@ -1058,6 +1058,8 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
                                                                   attr_to_keep=kept_attr
                                                                   )
             assert self.env_gym.action_space._attr_to_keep == kept_attr
+            assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
+            assert len(self.env_gym.action_space.sample()) == dims[attr_nm], f"wrong size for {attr_nm}"
             self.env_gym.action_space.seed(0)
             assert len(self.env_gym.action_space.sample()) == dims[attr_nm], f"wrong size for {attr_nm}"
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
@@ -1100,7 +1102,7 @@ class TestDiscreteGymActSpace(unittest.TestCase):
         self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
-        assert self.env_gym.action_space._attr_to_keep == kept_attr
+        assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert isinstance(self.env_gym.action_space.sample(), int)
         assert self.env_gym.action_space.n == 525
 
@@ -1129,7 +1131,7 @@ class TestDiscreteGymActSpace(unittest.TestCase):
             self.env_gym.action_space.seed(0)
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             assert isinstance(grid2op_act, PlayableAction)
-            assert self.env_gym.action_space._attr_to_keep == kept_attr
+            assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
             assert self.env_gym.action_space.n == 525 - (7 - nb_bin) * 3 * 2
 
     def test_supported_keys(self):
@@ -1162,7 +1164,7 @@ class TestDiscreteGymActSpace(unittest.TestCase):
                 self.env_gym.action_space = DiscreteActSpace(self.env.action_space,
                                                              attr_to_keep=kept_attr
                                                              )
-            assert self.env_gym.action_space._attr_to_keep == kept_attr
+            assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
             assert self.env_gym.action_space.n == dims[attr_nm], f"wrong size for {attr_nm}"
             self.env_gym.action_space.seed(0)
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
@@ -1324,6 +1326,29 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
                 # NB for "set_storage" as there are no storage unit on this grid, then this test is doomed to fail
                 # this is why i don't perform it in this case
                 raise RuntimeError(f"Some property of the actions are not modified for attr {attr_nm}")
+
+
+class TestGOObsInRange(unittest.TestCase):
+    def _skip_if_no_gym(self):
+        if not GYM_AVAIL:
+            self.skipTest("Gym is not available")
+
+    def setUp(self) -> None:
+        self._skip_if_no_gym()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name="TestMultiDiscreteGymActSpace")
+        self.obs_env = self.env.reset()
+        self.env_gym = GymEnv(self.env)
+
+    def test_obs_in_go_state_dont_exceed_max(self):
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}}))
+        assert done
+        gym_obs = self.env_gym.observation_space.to_gym(obs)
+        assert gym_obs in self.env_gym.observation_space
 
 
 if __name__ == "__main__":
