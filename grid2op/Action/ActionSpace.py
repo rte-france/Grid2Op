@@ -143,6 +143,6 @@ class ActionSpace(SerializableActionSpace):
         """
         if env is None:
             warnings.warn("Cannot performed legality check because no environment is provided.")
-            return True
+            return True, None
         is_legal, reason = self.legal_action(action, env)
         return is_legal, reason

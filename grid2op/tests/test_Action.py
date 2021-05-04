@@ -166,7 +166,9 @@ def _get_action_grid_class():
         "alarms_lines_area": {},
         "alarms_area_lines": [],
     }
-    return GridObjects, json_
+    GridObjects.shunts_data_available = False
+    my_cls = GridObjects.init_grid(GridObjects, force=True)
+    return my_cls, json_
 
 
 class TestActionBase(ABC):
@@ -192,11 +194,12 @@ class TestActionBase(ABC):
         self.gridobj = GridObjects_cls()
         self.n_line = self.gridobj.n_line
 
-
-        # self.size_act = 229
         self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
         # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
-        self.helper_action = self._action_setup()
+        act_cls = self._action_setup()
+        act_cls = act_cls.init_grid(self.gridobj)
+        self.helper_action = self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
+                                                   actionClass=act_cls)
         self.helper_action.seed(42)
         # save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
         save_to_dict(self.res, self.helper_action,
@@ -208,11 +211,47 @@ class TestActionBase(ABC):
 
     def tearDown(self):
         self.authorized_keys = {}
+        self.gridobj._clear_class_attribute()
+
+    def test_reset_modified_flags(self):
+        act = self.helper_action.sample()
+        act._reset_modified_flags()
+        assert not act._modif_inj
+        assert not act._modif_set_bus
+        assert not act._modif_change_bus
+        assert not act._modif_set_status
+        assert not act._modif_change_status
+        assert not act._modif_redispatch
+        assert not act._modif_storage
+        assert not act._modif_curtailment
+
+    def test_get_array_from_attr_name(self):
+        act = self.helper_action.sample()
+        with self.assertRaises(Grid2OpException):
+            act._get_array_from_attr_name("toto")
+
+    def test_assign_attr_from_name(self):
+        key = "set_line_status"
+        if key in self.authorized_keys:
+            unittest.TestCase.skipTest(self, f"Skipped: key \"{key}\" is present, this test supposes it's not")
+        act = self.helper_action.sample()
+        with self.assertRaises(AmbiguousAction):
+            act._assign_attr_from_name("_set_line_status", np.zeros(self.helper_action.n_line))
+
+    def test_eq_none(self):
+        act = self.helper_action.sample()
+        assert not (act == None)
+
+    def test_eq_diff_grid(self):
+        act = self.helper_action.sample()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_ref = grid2op.make("rte_case5_example", test=True)
+            act_ref = env_ref.action_space()
+        assert not (act == act_ref)
 
     def test_from_vect_nan(self):
         """test of the issue https://github.com/rte-france/Grid2Op/issues/173"""
-        # import pdb
-        # pdb.set_trace()
         vect = np.full(self.helper_action.n, fill_value=np.NaN, dtype=float)
         if self.helper_action.n > 0:
             with self.assertRaises(NonFiniteElement):
@@ -602,15 +641,15 @@ class TestActionBase(ABC):
         arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
+
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
+
         res = action.to_vect()
         tmp = np.zeros(self.size_act)
         if "curtail" in action.authorized_keys:
             # for curtailment, at the end, and by default its -1
             tmp[-action.n_gen:] = -1
-        # if "_storage_power" in action.attr_list_set:
-        #     tmp[-2:] = np.NaN  # i did not modify the battery so i need to do that otherwise vectors are not equal
 
         # compute the "set_bus" vect
         id_set = np.where(np.array(action.attr_list_vect) == "_set_topo_vect")[0][0]
@@ -639,7 +678,6 @@ class TestActionBase(ABC):
                                                                            False, False, False, False, False, False,
                                                                            False, False, False, False, False, False,
                                                                            ])
-
         assert np.all(res[np.isfinite(tmp)] == tmp[np.isfinite(tmp)])
         assert np.all(np.isfinite(res) == np.isfinite(tmp))
 
@@ -1043,7 +1081,8 @@ class TestAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=BaseAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=BaseAction)
+        return BaseAction
 
 
 class TestTopologyAction(TestActionBase, unittest.TestCase):
@@ -1052,7 +1091,8 @@ class TestTopologyAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
+        return TopologyAction
 
 
 class TestDispatchAction(TestActionBase, unittest.TestCase):
@@ -1061,7 +1101,8 @@ class TestDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DispatchAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DispatchAction)
+        return DispatchAction
 
 
 class TestTopologyAndDispatchAction(TestActionBase, unittest.TestCase):
@@ -1070,7 +1111,8 @@ class TestTopologyAndDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAndDispatchAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAndDispatchAction)
+        return TopologyAndDispatchAction
 
 
 class TestTopologySetAction(TestActionBase, unittest.TestCase):
@@ -1079,7 +1121,8 @@ class TestTopologySetAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAction)
+        return TopologySetAction
 
 
 class TestTopologySetAndDispatchAction(TestActionBase, unittest.TestCase):
@@ -1088,7 +1131,8 @@ class TestTopologySetAndDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAndDispatchAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAndDispatchAction)
+        return TopologySetAndDispatchAction
 
 
 class TestTopologyChangeAction(TestActionBase, unittest.TestCase):
@@ -1097,7 +1141,8 @@ class TestTopologyChangeAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAction)
+        return TopologyChangeAction
 
 
 class TestTopologyChangeAndDispatchAction(TestActionBase, unittest.TestCase):
@@ -1106,7 +1151,8 @@ class TestTopologyChangeAndDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAndDispatchAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAndDispatchAction)
+        return TopologyChangeAndDispatchAction
 
 
 class TestPowerlineSetAction(TestActionBase, unittest.TestCase):
@@ -1115,7 +1161,8 @@ class TestPowerlineSetAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAction)
+        return PowerlineSetAction
 
 
 class TestPowerlineChangeAction(TestActionBase, unittest.TestCase):
@@ -1124,7 +1171,8 @@ class TestPowerlineChangeAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAction)
+        return PowerlineChangeAction
 
 
 class TestPowerlineSetAndDispatchAction(TestActionBase, unittest.TestCase):
@@ -1133,7 +1181,8 @@ class TestPowerlineSetAndDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAndDispatchAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAndDispatchAction)
+        return PowerlineSetAndDispatchAction
 
 
 class TestPowerlineChangeAndDispatchAction(TestActionBase, unittest.TestCase):
@@ -1142,7 +1191,8 @@ class TestPowerlineChangeAndDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAndDispatchAction)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAndDispatchAction)
+        return PowerlineChangeAndDispatchAction
 
 
 class TestDontAct(TestActionBase, unittest.TestCase):
@@ -1151,7 +1201,8 @@ class TestDontAct(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DontAct)
+        # return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DontAct)
+        return DontAct
 
 
 class TestIADD:
@@ -1532,22 +1583,26 @@ class TestTopologyAndDispatchAction_PowerlineChangeAndDispatchAction(TestIADD, u
     """
     def get_action_space_1(self):
         return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
-                           actionClass=TopologyAndDispatchAction)
+                                     actionClass=TopologyAndDispatchAction)
 
     def get_action_space_2(self):
         return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
-                           actionClass=PowerlineChangeAndDispatchAction)
+                                     actionClass=PowerlineChangeAndDispatchAction)
 
 
 class TestTopologicalImpact(unittest.TestCase):
     # weird stuf to avoid copy paste and inheritance
     def _action_setup(self):
-        return self.ActionSpaceClass(self.gridobj,
-                                     legal_action=self.game_rules.legal_action,
-                                     actionClass=TopologyAndDispatchAction)
+        return TopologyAndDispatchAction
 
     def setUp(self):
         TestActionBase.setUp(self)
+
+    def test_no_inj_possible(self):
+        donothing = self.helper_action()
+        donothing._dict_inj["prod_p"] = 0.
+        with self.assertRaises(AmbiguousAction):
+            _ = donothing()
 
     def test_get_topo_imp_dn(self):
         donothing = self.helper_action()

@@ -22,6 +22,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+
+[1.6.0] - 2021-xx-yy
+--------------------
+- [ADDED] support for the "alarm" feature
+
 [1.5.2] - 2021-xx-yy
 -----------------------
 - [BREAKING]: allow the opponent to chose the duration of its attack. This breaks the previous "Opponent.attack(...)"
@@ -35,6 +40,7 @@ Change Log
 - [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related the scaling when negative
   numbers are used (in these cases low / max would be mixed up)
 - [FIXED]: an issue with the `IncreasingFlatReward` reward types
+- [FIXED]: a bug due to the conversion of int to float in the range of the `BoxActionSpace` for the `gym_compat` module
 - [ADDED]: a reward `EpisodeDurationReward` that is always 0 unless at the end of an episode where it returns a float
   proportional to the number of step made from the beginning of the environment.
 - [ADDED]: in the `Observation` the possibility to retrieve the current number of steps
