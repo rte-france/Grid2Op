@@ -140,7 +140,7 @@ class BoxGymActSpace(Box):
                               f"as continuous. Consider using the \"MultiDiscreteActSpace\" for these attributes."
                               )
 
-        self._attr_to_keep = attr_to_keep
+        self._attr_to_keep = sorted(attr_to_keep)
 
         act_sp = grid2op_action_space
         self._act_space = copy.deepcopy(grid2op_action_space)
