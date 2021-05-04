@@ -36,9 +36,12 @@ Change Log
   numbers are used (in these cases low / max would be mixed up)
 - [FIXED]: an issue with the `IncreasingFlatReward` reward types
 - [FIXED]: a bug due to the conversion of int to float in the range of the `BoxActionSpace` for the `gym_compat` module
-- [FIXED]: a bug in the `BoxGymActSpace` and `BoxGymObsSpace` where the order of the attribute for the conversion
+- [FIXED]: a bug in the `BoxGymActSpace`, `BoxGymObsSpace`, `MultiDiscreteActSpace` and `DiscreteActSpace`
+  where the order of the attribute for the conversion
   was encoded in a set. We enforced a sorted list now. We did not manage to find a bug caused by this issue, but
   it is definitely possible. This has been fixed now.
+- [FIXED]: a bug where, when an observation was set to a "game over" state, some of its attributes were below the
+  maximum values allowed in the `BoxGymObsSpace`
 - [ADDED]: a reward `EpisodeDurationReward` that is always 0 unless at the end of an episode where it returns a float
   proportional to the number of step made from the beginning of the environment.
 - [ADDED]: in the `Observation` the possibility to retrieve the current number of steps
