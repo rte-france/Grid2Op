@@ -88,6 +88,7 @@ class Environment(BaseEnv):
                  _compat_glop_version=None,
                  ):
         BaseEnv.__init__(self,
+                         init_grid_path=init_grid_path,
                          parameters=parameters,
                          thermal_limit_a=thermal_limit_a,
                          epsilon_poly=epsilon_poly,
@@ -124,24 +125,13 @@ class Environment(BaseEnv):
         self._compat_glop_version = _compat_glop_version
 
         # for plotting
-        self._init_backend(init_grid_path, chronics_handler, backend,
+        self._init_backend(chronics_handler, backend,
                            names_chronics_to_backend, actionClass, observationClass,
                            rewardClass, legalActClass)
         self._actionClass_orig = actionClass
         self._observationClass_orig = observationClass
 
-    def get_path_env(self):
-        """
-        Get the path that allows to create this environment.
-
-        It can be used for example in `grid2op.utils.underlying_statistics` to save the information directly inside
-        the environment data.
-
-        """
-        return os.path.split(self._init_grid_path)[0]
-
-    def _init_backend(self,
-                      init_grid_path, chronics_handler, backend,
+    def _init_backend(self, chronics_handler, backend,
                       names_chronics_to_backend, actionClass, observationClass,
                       rewardClass, legalActClass):
         """
@@ -161,8 +151,6 @@ class Environment(BaseEnv):
                                    "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
 
         # backend
-        self._init_grid_path = os.path.abspath(init_grid_path)
-
         if not isinstance(backend, Backend):
             raise Grid2OpException("Parameter \"backend\" used to build the Environment should derived form the "
                                    "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
@@ -177,6 +165,8 @@ class Environment(BaseEnv):
         if exc_ is not None:
             warnings.warn(f"No layout have been found for you grid (or the layout provided was corrupted). You will "
                           f"not be able to use the renderer, plot the grid etc. The error was \"{exc_}\"")
+        # alarm set up
+        self.load_alarm_data()
 
         # to force the initialization of the backend to the proper type
         self.backend.assert_grid_correct()
@@ -184,6 +174,8 @@ class Environment(BaseEnv):
 
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
+        import pdb
+        pdb.set_trace()
         self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
 
         if self._thermal_limit_a is None:

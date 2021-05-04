@@ -7,8 +7,11 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import time
-import numpy as np
 import copy
+import os
+import json
+
+import numpy as np
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
 from abc import ABC, abstractmethod
@@ -194,7 +197,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     # TODO add the units (eg MW, MWh, MW/time step,etc.) in the redispatching related attributes
     """
+    ALARM_FILE_NAME = "alerts_info.json"
+
     def __init__(self,
+                 init_grid_path,
                  parameters,
                  voltagecontrolerClass,
                  thermal_limit_a=None,
@@ -214,13 +220,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
 
+        if init_grid_path is not None:
+            self._init_grid_path = os.path.abspath(init_grid_path)
+        else:
+            self._init_grid_path = None
+
         self._DEBUG = False
         # specific to power system
         if not isinstance(parameters, Parameters):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
                                    "grid2op.Parameters class, type provided is \"{}\"".format(type(parameters)))
         parameters.check_valid()  # check the provided parameters are valid
-        self._parameters = parameters
+        self._parameters = copy.deepcopy(parameters)
         self.with_forecast = with_forecast
 
         # some timers
@@ -346,9 +357,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._voltagecontrolerClass = voltagecontrolerClass
         self._voltage_controler = None
 
-        # backend
-        self._init_grid_path = None
-
         # backend action
         self._backend_action_class = None
         self._backend_action = None
@@ -378,6 +386,71 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_before_curtailment = None
         self._sum_curtailment_mw = None
         self._sum_curtailment_mw_prev = None
+
+    def get_path_env(self):
+        """
+        Get the path that allows to create this environment.
+
+        It can be used for example in `grid2op.utils.underlying_statistics` to save the information directly inside
+        the environment data.
+
+        """
+        return os.path.split(self._init_grid_path)[0]
+
+    def load_alarm_data(self):
+        """
+        Internal
+
+        Notes
+        ------
+        This is called when the environment class is not created, so i need to read the data of the grid from the
+        backend.
+
+        I cannot use "self.name_line" for example.
+
+        This function update the backend INSTANCE. The backend class is then updated in the env._init_backend(...)
+        function with a call to `self.backend.assert_grid_correct()`
+
+        Returns
+        -------
+
+        """
+        file_alerts = os.path.join(self.get_path_env(), BaseEnv.ALARM_FILE_NAME)
+        if os.path.exists(file_alerts) and os.path.isfile(file_alerts):
+            with open(file_alerts, mode="r", encoding="utf-8") as f:
+                dict_alarm = json.load(f)
+            key = "fixed"
+            if key not in dict_alarm:
+                raise EnvError("The key \"fixed\" should be present in the alarm data json, for now.")
+            nb_areas = len(dict_alarm[key])   # need to be remembered
+            line_names = {el: [] for el in self.backend.name_line}  # need to be remembered
+            area_names = sorted(dict_alarm[key].keys())  # need to be remembered
+            area_lines = [[] for _ in range(nb_areas)]  # need to be remembered
+            for area_id, area_name in enumerate(area_names):
+                # check that: all lines in files are in the grid
+                area = dict_alarm[key][area_name]
+                for line in area:
+                    if line not in line_names:
+                        raise EnvError(f"You provided a description of the area of the grid for the alarms, but a "
+                                       f"line named \"{line}\" is present in your file but not in the grid. Please "
+                                       f"check the file {file_alerts} and make sure it contains only the line named "
+                                       f"{sorted(self.backend.name_line)}.")
+                    # update the list and dictionnary that remembers everything
+                    line_names[line].append(area_name)
+                    area_lines[area_id].append(line)
+
+            for line, li_area in line_names.items():
+                # check that all lines in the grid are in at least one area
+                if not li_area:
+                    raise EnvError(f"Line (on the grid) named {line} is not in any areas. This is not supported at "
+                                   f"the moment")
+
+            # every check pass, i update the backend class
+            bk_cls = type(self.backend)
+            bk_cls.dim_alarms = nb_areas
+            bk_cls.alarms_area_names = copy.deepcopy(area_names)
+            bk_cls.alarms_lines_area = copy.deepcopy(line_names)
+            bk_cls.alarms_area_lines = copy.deepcopy(area_lines)
 
     @property
     def action_space(self):
@@ -771,7 +844,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.with_forecast = True
 
     @abstractmethod
-    def _init_backend(self, init_grid_path, chronics_handler, backend,
+    def _init_backend(self, chronics_handler, backend,
                       names_chronics_to_backend, actionClass, observationClass,
                       rewardClass, legalActClass):
         """
