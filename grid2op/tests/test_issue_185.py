@@ -40,6 +40,7 @@ class Issue185Tester(unittest.TestCase):
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
 
     def test_issue_185_act_box_space(self):
+        env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue
@@ -57,6 +58,7 @@ class Issue185Tester(unittest.TestCase):
                     assert obs in gym_env.observation_space, f"error for {env_name}"
 
     def test_issue_185_obs_box_space(self):
+        env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue
@@ -67,12 +69,6 @@ class Issue185Tester(unittest.TestCase):
                     gym_env.observation_space = BoxGymObsSpace(gym_env.init_env.observation_space)
                     gym_env.action_space.seed(0)
                     obs_gym = gym_env.reset()
-<<<<<<< HEAD
-                    if not obs_gym in gym_env.observation_space:
-                        import pdb
-                        pdb.set_trace()
-=======
->>>>>>> bd_dev
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
                     act = gym_env.action_space.sample()
                     assert act in gym_env.action_space, f"error for {env_name}"
