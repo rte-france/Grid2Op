@@ -1588,7 +1588,7 @@ class BaseAction(GridObjects):
                 raise IllegalAction("You illegally act on the bus (using set)")
 
         if np.any(self._set_line_status != 0):
-            if not self._modif_set_bus:
+            if not self._modif_set_status:
                 raise AmbiguousAction("A action of type line_set_status is performed while the appropriate flag is not "
                                       "set. Please use the official grid2op action API to modify the status of "
                                       "powerline using "
@@ -1623,11 +1623,11 @@ class BaseAction(GridObjects):
             if "set_storage" not in self.authorized_keys:
                 raise IllegalAction("You illegally act on the storage unit")
 
-        if np.any(self._curtail != 1.0):
+        if np.any(self._curtail != -1.0):
             if not self._modif_curtailment:
                 raise AmbiguousAction("A curtailment is performed while the action is not supposed to have done so. "
                                       "Please use the official grid2op action API to perform curtailment action.")
-            if "curtailment" not in self.authorized_keys:
+            if "curtail" not in self.authorized_keys:
                 raise IllegalAction("You illegally act on the curtailment")
 
         if np.any(self._raise_alarm):
