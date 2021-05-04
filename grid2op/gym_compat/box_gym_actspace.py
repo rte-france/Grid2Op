@@ -186,6 +186,10 @@ class BoxGymActSpace(Box):
                            1.0 * act_sp.gen_pmax,
                            (act_sp.n_gen,),
                            dt_float),
+            "raise_alarm": (np.full(shape=(act_sp.dim_alarms,), fill_value=0, dtype=dt_int),
+                            np.full(shape=(act_sp.dim_alarms,), fill_value=1, dtype=dt_int),
+                            (act_sp.dim_alarms,),
+                            dt_int)
         }
         self._key_dict_to_proptype = {"set_line_status": dt_int,
                                       "change_line_status": dt_bool,
@@ -194,7 +198,8 @@ class BoxGymActSpace(Box):
                                       "redispatch": dt_float,
                                       "set_storage": dt_float,
                                       "curtail": dt_float,
-                                      "curtail_mw": dt_float}
+                                      "curtail_mw": dt_float,
+                                      "raise_alarm": dt_bool}
         if add is not None:
             self._add = add
         else:
@@ -251,7 +256,7 @@ class BoxGymActSpace(Box):
                 fintte_low = np.isfinite(low_) & ~np.isfinite(high_)
                 fintte_high = ~np.isfinite(low_) & np.isfinite(high_)
                 vect_right_properties[finite_both] = vect_right_properties[finite_both] * \
-                                                     (high_[finite_both] - low_[finite_both]) +\
+                                                     (high_[finite_both] - low_[finite_both]) + \
                                                      low_[finite_both]
                 vect_right_properties[fintte_high] += low_[fintte_high]
 
@@ -265,14 +270,14 @@ class BoxGymActSpace(Box):
                                        f"should take a")
 
                 self.__func[el] = callable_
-                    
+
             elif el in self.dict_properties:
                 # el is an attribute of an observation, for example "load_q" or "topo_vect"
                 low_, high_, shape_, dtype_ = self.dict_properties[el]
             else:
                 li_keys = '\n\t- '.join(sorted(list(self.dict_properties.keys()) +
-                                              list(self.__func.keys()))
-                                       )
+                                               list(self.__func.keys()))
+                                        )
                 raise RuntimeError(f"Unknown action attributes \"{el}\". Supported attributes are: "
                                    f"\n\t- {li_keys}")
 
@@ -300,6 +305,13 @@ class BoxGymActSpace(Box):
                 is_nzero = arr_ != 0.
                 low_[is_nzero] /= arr_[is_nzero]
                 high_[is_nzero] /= arr_[is_nzero]
+
+            # "fix" the low / high : they can be inverted if self._multiply < 0. for example
+            tmp_l = copy.deepcopy(low_)
+            tmp_h = copy.deepcopy(high_)
+            low_ = np.minimum(tmp_h, tmp_l)
+            high_ = np.maximum(tmp_h, tmp_l)
+
             if low is None:
                 low = low_
                 high = high_
@@ -370,8 +382,9 @@ class BoxGymActSpace(Box):
                     # convert floating point actions to bool.
                     # NB: it's important here the numbers are between 0 and 1
                     this_part = (this_part >= 0.5).astype(dt_bool)
-
-                self._handle_attribute(res, this_part, attr_nm)
+                if this_part.shape and this_part.shape[0]:
+                    # only update the attribute if there is actually something to update
+                    self._handle_attribute(res, this_part, attr_nm)
             else:
                 raise RuntimeError(f"Unknown attribute \"{attr_nm}\".")
             prev = where_to_put

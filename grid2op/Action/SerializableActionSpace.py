@@ -763,6 +763,15 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
+    def get_all_unitary_alarm(action_space):
+        res = []
+        for i in range(action_space.dim_alarms):
+            status = np.full(action_space.dim_alarms, fill_value=False, dtype=dt_bool)
+            status[i] = True
+            res.append(action_space({"raise_alarm": status}))
+        return res
+
+    @staticmethod
     def get_all_unitary_line_change(action_space):
         """
         Return all unitary actions that "change" powerline status.
@@ -781,12 +790,10 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         res = []
-
         for i in range(action_space.n_line):
             status = action_space.get_change_line_status_vect()
             status[i] = True
             res.append(action_space({"change_line_status": status}))
-
         return res
 
     @staticmethod

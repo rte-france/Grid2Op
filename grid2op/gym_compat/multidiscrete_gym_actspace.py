@@ -194,6 +194,8 @@ class MultiDiscreteActSpace(MultiDiscrete):
                         act_sp.dim_topo, self.ATTR_SET),
             "change_bus": ([2 for _ in range(act_sp.dim_topo)],
                            act_sp.dim_topo, self.ATTR_CHANGE),
+            "raise_alarm": ([2 for _ in range(act_sp.dim_alarms)],
+                            act_sp.dim_alarms, self.ATTR_CHANGE),
             "sub_set_bus": (None, act_sp.n_sub, self.ATTR_NEEDBUILD),  # dimension will be computed on the fly, if the stuff is used
             "sub_change_bus": (None, act_sp.n_sub, self.ATTR_NEEDBUILD),  # dimension will be computed on the fly, if the stuff is used
             "one_sub_set": (None, 1, self.ATTR_NEEDBUILD),  # dimension will be computed on the fly, if the stuff is used
@@ -394,6 +396,8 @@ class MultiDiscreteActSpace(MultiDiscrete):
         prev = 0
         for attr_nm, where_to_put, funct, type_ in \
             zip(self._attr_to_keep, self._dims, self._functs, self._types):
+            if not gym_act.shape or not gym_act.shape[0]:
+                continue
             this_part = 1 * gym_act[prev:where_to_put]
             if attr_nm in self.dict_properties:
                 self._handle_attribute(res, this_part, attr_nm, funct, type_)

@@ -9,6 +9,8 @@
 # TODO test the json part but... https://github.com/openai/gym-http-api/issues/62 or https://github.com/openai/gym/issues/1841
 import tempfile
 import json
+from grid2op.tests.helper_path_test import *
+
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.tests.helper_path_test import *
 from grid2op.MakeEnv import make
@@ -59,10 +61,17 @@ class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
     def get_env_name(self):
         return "l2rpn_wcci_2020"
 
+    def get_env_path(self):
+        return None
+
     def test_creation(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(self.get_env_name(), test=True) as env:
+            if self.get_env_path() is not None:
+                env_path_or_name = os.path.join(self.get_env_path(), self.get_env_name())
+            else:
+                env_path_or_name = self.get_env_name()
+            with make(env_path_or_name, test=True) as env:
                 # test i can create
                 obs_space = GymObservationSpace(env)
                 act_space = GymActionSpace(env)
