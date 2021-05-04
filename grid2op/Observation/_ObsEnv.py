@@ -123,6 +123,9 @@ class _ObsEnv(BaseEnv):
         self._sum_curtailment_mw_init = 0.
         self._sum_curtailment_mw_prev_init = 0.
 
+        # step count
+        self._nb_time_step_init = 0
+
     def _init_myclass(self):
         """this class has already all the powergrid information: it is initialized in the obs space !"""
         pass
@@ -363,6 +366,9 @@ class _ObsEnv(BaseEnv):
         self._sum_curtailment_mw = self._sum_curtailment_mw_init
         self._sum_curtailment_mw_prev = self._sum_curtailment_mw_prev_init
 
+        # current step
+        self.nb_time_step = self._nb_time_step_init
+
     def simulate(self, action):
         """
         INTERNAL
@@ -489,6 +495,9 @@ class _ObsEnv(BaseEnv):
 
         # time delta
         self.delta_time_seconds = env.delta_time_seconds
+
+        # current time
+        self._nb_time_step_init = env.nb_time_step
 
     def get_current_line_status(self):
         return self._line_status == 1

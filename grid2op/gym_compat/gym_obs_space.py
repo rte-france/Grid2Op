@@ -159,7 +159,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     my_type = spaces.Box(low=0,
                                          high=max(env_params.NB_TIMESTEP_COOLDOWN_LINE,
                                                   env_params.NB_TIMESTEP_RECONNECTION,
-                                                  opponent_space.attack_duration
+                                                  opponent_space.attack_max_duration
                                                   ),
                                          shape=shape,
                                          dtype=dt)
