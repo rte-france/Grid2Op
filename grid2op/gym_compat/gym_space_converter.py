@@ -34,10 +34,14 @@ class _BaseGymSpaceConverter(spaces.Dict):
 
     @staticmethod
     def _generic_gym_space(dt, sh, low=None, high=None):
-        if low is None:
-            low = np.iinfo(dt).min
-        if high is None:
-            high = np.iinfo(dt).max
+        if dt == dt_int:
+            if low is None:
+                low = np.iinfo(dt).min
+            if high is None:
+                high = np.iinfo(dt).max
+        else:
+            low = -np.inf
+            high = +np.inf
         shape = (sh,)
         my_type = spaces.Box(low=dt.type(low), high=dt.type(high), shape=shape, dtype=dt)
         return my_type
