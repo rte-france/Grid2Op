@@ -1,4 +1,4 @@
-from grid2op.Action import TopologyAndDispatchAction, PowerlineSetAction
+from grid2op.Action import PlayableAction, PowerlineSetAction
 from grid2op.Reward import RedispReward
 from grid2op.Rules import DefaultRules
 from grid2op.Chronics import Multifolder
@@ -16,7 +16,7 @@ opponent_budget_per_ts = 0.16667  # opponent_attack_duration / opponent_attack_c
 opponent_init_budget = 144.  # no need to attack straightfully, it can attack starting at midday the first day
 config = {
     "backend": PandaPowerBackend,
-    "action_class": TopologyAndDispatchAction,
+    "action_class": PlayableAction,
     "observation_class": None,
     "reward_class": RedispReward,
     "gamerules_class": DefaultRules,

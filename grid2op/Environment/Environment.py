@@ -174,8 +174,6 @@ class Environment(BaseEnv):
 
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
-        import pdb
-        pdb.set_trace()
         self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
 
         if self._thermal_limit_a is None:

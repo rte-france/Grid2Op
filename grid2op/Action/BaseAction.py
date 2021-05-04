@@ -339,12 +339,12 @@ class BaseAction(GridObjects):
     """
     authorized_keys = {"injection",
                        "hazards", "maintenance", "set_line_status", "change_line_status",
-                       "set_bus", "change_bus", "redispatch", "set_storage", "curtail"}
+                       "set_bus", "change_bus", "redispatch", "set_storage", "curtail", "raise_alarm"}
 
     attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
                       "_set_line_status", "_switch_line_status",
                       "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance",
-                      "_storage_power", "_curtail"
+                      "_storage_power", "_curtail", "_raise_alarm"
                       ]
     attr_nan_list_set = set()
 
@@ -420,6 +420,8 @@ class BaseAction(GridObjects):
 
         self._single_act = True
 
+        self._raise_alarm = np.full(shape=self.dim_alarms, dtype=dt_bool, fill_value=False)  # TODO
+
         # change the stuff
         self._modif_inj = False
         self._modif_set_bus = False
@@ -429,6 +431,7 @@ class BaseAction(GridObjects):
         self._modif_redispatch = False
         self._modif_storage = False
         self._modif_curtailment = False
+        self._modif_alarm = False
 
     @classmethod
     def process_grid2op_compat(cls):
@@ -468,6 +471,7 @@ class BaseAction(GridObjects):
         self._modif_redispatch = False
         self._modif_storage = False
         self._modif_curtailment = False
+        self._modif_alarm = False
 
     def _get_array_from_attr_name(self, attr_name):
         if hasattr(self, attr_name):
@@ -494,6 +498,7 @@ class BaseAction(GridObjects):
         self._modif_redispatch = np.any(np.isfinite(self._redispatch) & (self._redispatch != 0.))
         self._modif_storage = np.any(self._storage_power != 0.)
         self._modif_curtailment = np.any(self._curtail != -1.)
+        self._modif_alarm = np.any(self._raise_alarm)
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
@@ -649,6 +654,10 @@ class BaseAction(GridObjects):
         # curtailment
         if (self._modif_curtailment != other._modif_curtailment) or \
                 not np.array_equal(self._curtail, other._curtail):
+            return False
+
+        # alarm
+        if (self._modif_alarm != other._modif_alarm) or not np.array_equal(self._raise_alarm, other._raise_alarm):
             return False
 
         # same topology changes
@@ -979,6 +988,10 @@ class BaseAction(GridObjects):
             shunt_bus[ok_ind] = val[ok_ind]
             self._assign_iadd_or_warn("shunt_bus", shunt_bus)
 
+        # alarm feature
+        self._raise_alarm[other._raise_alarm] = True
+
+        # the modif flags
         self._modif_change_bus = self._modif_change_bus or other._modif_change_bus
         self._modif_set_bus = self._modif_set_bus or other._modif_set_bus
         self._modif_change_status = self._modif_change_status or other._modif_change_status
@@ -987,6 +1000,7 @@ class BaseAction(GridObjects):
         self._modif_redispatch = self._modif_redispatch or other._modif_redispatch
         self._modif_storage = self._modif_storage or other._modif_storage
         self._modif_curtailment = self._modif_curtailment or other._modif_curtailment
+        self._modif_alarm = self._modif_alarm or other._modif_alarm
 
         return self
 
@@ -1084,6 +1098,7 @@ class BaseAction(GridObjects):
             shunts["shunt_p"] = self.shunt_p
             shunts["shunt_q"] = self.shunt_q
             shunts["shunt_bus"] = self.shunt_bus
+        # other remark: alarm are not handled in the backend, this is why it does not appear here !
         return dict_inj, \
                set_line_status, switch_line_status, \
                set_topo_vect, change_bus_vect, \
@@ -1296,6 +1311,10 @@ class BaseAction(GridObjects):
     def _digest_curtailment(self, dict_):
         if "curtail" in dict_:
             self.curtail = dict_["curtail"]
+
+    def _digest_alarm(self, dict_):
+        if "raise_alarm" in dict_:
+            self.raise_alarm = dict_["raise_alarm"]
 
     def _reset_vect(self):
         """
@@ -1520,6 +1539,7 @@ class BaseAction(GridObjects):
             self._digest_hazards(dict_)
             self._digest_maintenance(dict_)
             self._digest_change_status(dict_)
+            self._digest_alarm(dict_)
 
         return self
 
@@ -1544,6 +1564,78 @@ class BaseAction(GridObjects):
             info = exc_
             res = True
         return res, info
+
+    def _check_for_correct_modif_flags(self):
+        if self._dict_inj:
+            if not self._modif_inj:
+                raise AmbiguousAction("A action on the injection is performed while the appropriate flag is not "
+                                      "set. Please use the official grid2op action API to modify the injections.")
+            if "injection" not in self.authorized_keys:
+                raise IllegalAction("You illegally act on the injection")
+        if np.any(self._change_bus_vect):
+            if not self._modif_change_bus:
+                raise AmbiguousAction("A action of type change_bus is performed while the appropriate flag is not "
+                                      "set. Please use the official grid2op action API to modify the bus using "
+                                      "'change'.")
+            if "change_bus" not in self.authorized_keys:
+                raise IllegalAction("You illegally act on the bus (using change)")
+        if np.any(self._set_topo_vect != 0):
+            if not self._modif_set_bus:
+                raise AmbiguousAction("A action of type set_bus is performed while the appropriate flag is not "
+                                      "set. Please use the official grid2op action API to modify the bus using "
+                                      "'set'.")
+            if "set_bus" not in self.authorized_keys:
+                raise IllegalAction("You illegally act on the bus (using set)")
+
+        if np.any(self._set_line_status != 0):
+            if not self._modif_set_bus:
+                raise AmbiguousAction("A action of type line_set_status is performed while the appropriate flag is not "
+                                      "set. Please use the official grid2op action API to modify the status of "
+                                      "powerline using "
+                                      "'set'.")
+            if "set_line_status" not in self.authorized_keys:
+                raise IllegalAction("You illegally act on the powerline status (using set)")
+
+        if np.any(self._switch_line_status):
+            if not self._modif_change_status:
+                raise AmbiguousAction("A action of type line_change_status is performed while the appropriate flag "
+                                      "is not "
+                                      "set. Please use the official grid2op action API to modify the status of "
+                                      "powerlines using 'change'.")
+            if "change_line_status" not in self.authorized_keys:
+                raise IllegalAction("You illegally act on the powerline status (using change)")
+
+        if np.any(self._redispatch != 0.):
+            if not self._modif_redispatch:
+                raise AmbiguousAction("A action of type redispatch is performed while the appropriate flag "
+                                      "is not "
+                                      "set. Please use the official grid2op action API to perform redispatching "
+                                      "action.")
+            if "redispatch" not in self.authorized_keys:
+                raise IllegalAction("You illegally act on the redispatching")
+
+        if np.any(self._storage_power != 0.):
+            if not self._modif_storage:
+                raise AmbiguousAction("A action on the storage unit is performed while the appropriate flag "
+                                      "is not "
+                                      "set. Please use the official grid2op action API to perform "
+                                      "action on storage unit.")
+            if "set_storage" not in self.authorized_keys:
+                raise IllegalAction("You illegally act on the storage unit")
+
+        if np.any(self._curtail != 1.0):
+            if not self._modif_curtailment:
+                raise AmbiguousAction("A curtailment is performed while the action is not supposed to have done so. "
+                                      "Please use the official grid2op action API to perform curtailment action.")
+            if "curtailment" not in self.authorized_keys:
+                raise IllegalAction("You illegally act on the curtailment")
+
+        if np.any(self._raise_alarm):
+            if not self._modif_alarm:
+                raise AmbiguousAction("Incorrect way to raise some alarm, the appropriate flag is not "
+                                      "modified properly.")
+            if "raise_alarm" not in self.authorized_keys:
+                raise IllegalAction("You illegally send an alarm.")
 
     def _check_for_ambiguity(self):
         """
@@ -1597,6 +1689,9 @@ class BaseAction(GridObjects):
 
 
         """
+        # check that the correct flags are properly computed
+        self._check_for_correct_modif_flags()
+
         if self._modif_change_status and self._modif_set_status and \
                 np.any(self._set_line_status[self._switch_line_status] != 0):
             raise InvalidLineStatus("You asked to change the status (connected / disconnected) of a powerline by"
@@ -1756,6 +1851,15 @@ class BaseAction(GridObjects):
             if self.shunt_bus is not None:
                 raise AmbiguousAction("Attempt to modify a shunt (shunt_bus) while shunt data is not handled "
                                       "by backend")
+
+        if self._modif_alarm:
+            if self._raise_alarm.shape[0] != self.dim_alarms:
+                raise AmbiguousAction(f"Wrong number of alarm raised: {self._raise_alarm.shape[0]} raised, expecting "
+                                      f"{self.dim_alarms}")
+        else:
+            if np.any(self._raise_alarm):
+                raise AmbiguousAction(f"Unrecognize alarm action: an action acts on the alarm, yet it's not tagged "
+                                      f"as doing so. Expect wrong behaviour.")
 
     def _is_storage_ambiguous(self):
         """check if storage actions are ambiguous"""
@@ -1979,6 +2083,19 @@ class BaseAction(GridObjects):
                                    disconnected['substation']))
         else:
             res.append("\t - NOT force any particular bus configuration")
+
+        if type(self).dim_alarms > 0:
+            my_cls = type(self)
+            if self._modif_alarm:
+                li_area = np.array(my_cls.alarms_area_names)[np.where(self._raise_alarm)[0]]
+                if len(li_area) == 1:
+                    area_str = ": " + li_area[0]
+                else:
+                    area_str = "s: \n\t \t - " + "\n\t \t - ".join(li_area)
+                res.append(f"\t - Raise an alarm on area"
+                           f"{area_str}")
+            else:
+                res.append("\t - Not raise any alarm")
         return "\n".join(res)
 
     def impact_on_objects(self):
@@ -3484,6 +3601,53 @@ class BaseAction(GridObjects):
         except Exception as exc_:
             self._switch_line_status[:] = orig_
             raise IllegalAction(f"Impossible to modify the line status with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def raise_alarm(self):
+        """
+        Property to raise alarm.
+
+        If you set it to ``True`` an alarm is raised for the given area, otherwise None are raised.
+
+        Notes
+        -----
+        In order to be able to "cancel" an alarm properly, if you set "two consecutive alarm" on the same area
+        it will behave as if you had set none:
+
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...  # chose an environment that supports the alarm feature
+            env = grid2op.make(env_name)
+            act = env.action_space()
+
+            act.raise_alarm = [0]
+            # this act will raise an alarm on the area 0
+
+            act.raise_alarm = [0]
+            # this second call will "cancel" the alarm for convenience
+
+        This might be counter intuitive
+
+        """
+        res = copy.deepcopy(self._raise_alarm)
+        res.flags.writeable = False
+        return res
+
+    @raise_alarm.setter
+    def raise_alarm(self, values):
+        if "raise_alarm" not in self.authorized_keys:
+            raise IllegalAction("Impossible to send alarms with this action type.")
+        orig_ = copy.deepcopy(self._raise_alarm)
+        try:
+            self._aux_affect_object_bool(values, "raise alarm", self.dim_alarms, self.alarms_area_names,
+                                         np.arange(self.dim_alarms), self._raise_alarm)
+            self._modif_alarm = True
+        except Exception as exc_:
+            self._raise_alarm[:] = orig_
+            raise IllegalAction(f"Impossible to modify the alarm with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
 
