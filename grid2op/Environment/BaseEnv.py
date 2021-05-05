@@ -1624,6 +1624,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         lines_attacked, subs_attacked = None, None
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
+        self.nb_time_step += 1
 
         beg_step = time.time()
         try:
@@ -1772,8 +1773,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.backend.apply_action(self._backend_action)
 
             self._time_apply_act += time.time() - beg_
-
-            self.nb_time_step += 1
             try:
                 # compute the next _grid state
                 beg_pf = time.time()

@@ -437,6 +437,20 @@ class BaseAction(GridObjects):
         self._modif_curtailment = False
         self._modif_alarm = False
 
+    def alarm_raised(self):
+        """
+        INTERNAL
+
+        This function is used to know if the given action has raised an alarm or not.
+
+        Returns
+        -------
+        res: numpy array
+            The indexes of the areas where the agent has raised an alarm.
+
+        """
+        return np.where(self._raise_alarm)[0]
+
     @classmethod
     def process_grid2op_compat(cls):
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
