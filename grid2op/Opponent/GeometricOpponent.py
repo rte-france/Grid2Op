@@ -8,6 +8,7 @@
 import warnings
 import numpy as np
 
+from grid2op.dtypes import dt_int
 from grid2op.Opponent import BaseOpponent
 from grid2op.Exceptions import OpponentError
 
@@ -45,9 +46,9 @@ class GeometricOpponent(BaseOpponent):
     def init(self,
              partial_env,
              lines_attacked=(),
-             attack_hazard_rate=1 / (12 * 20),
-             recovery_rate=1 / (12 * 2),
-             recovery_minimum_duration=12 * 2,
+             attack_every_xxx_hour=24,
+             average_attack_duration_hour=4,
+             minimum_attack_duration_hour=2,
              pmax_pmin_ratio=4,
              **kwargs):
         """
@@ -62,7 +63,12 @@ class GeometricOpponent(BaseOpponent):
         lines_attacked: ``list``
             The list of lines that the XPOpponent should be able to disconnect
 
-        attack_hazard_rate: ``float``
+        attack_every_xxx_hour: ``float``
+            Provide the average duration between two attacks. Note that this should be greater
+            than `average_attack_duration_hour` as, for now, an agent can only do one consecutive attack.
+            You should provide it in "number of hours" and not in "number of steps"
+
+            It is used to compute the `attack_hazard_rate`.
             Attacks time are sampled with a duration distribution. For this opponent, we use the simplest of these
             distributions : The geometric disribution
             https://en.wikipedia.org/wiki/Geometric_distribution (the discrete time counterpart of the exponential
@@ -71,16 +77,20 @@ class GeometricOpponent(BaseOpponent):
             probability of having an attack
             in the next step. It is also the inverse of the expectation of the time to an attack.
 
-        recovery_rate: ``float``
+        average_attack_duration_hour: ``float``
+            Give, in number of hours, the average attack duration. This should be greater than
+            `recovery_minimum_duration_hour`
+
+            Used to compute the `recovery_rate`:
             Recovery times are random or at least should have a random part.
             In our case, we will say that the recovery time is equal to a fixed time (safety procedure time) plus a
             random time (investigations
             and repair operations) sampled according to a geometric distribution
 
-        recovery_minimum_duration ``int``
-            Minimum duration of an attack
+        minimum_attack_duration_hour: ``int``
+            Minimum duration of an attack (give it in hour)
 
-        pmax_pmin_ratio ``float``
+        pmax_pmin_ratio: ``float``
             Ratio between the probability of the most likely line to be disconnected and the least likely one.
         """
         self._env = partial_env
@@ -112,9 +122,18 @@ class GeometricOpponent(BaseOpponent):
         self._attacks = np.array(self._attacks)
 
         # Opponent's attack and recovery rates and minimum duration
-        self._attack_hazard_rate = attack_hazard_rate
-        self._recovery_rate = recovery_rate
-        self._recovery_minimum_duration = recovery_minimum_duration
+        # number of steps per hour
+        ts_per_hour = 3600. / partial_env.delta_time_seconds
+        self._recovery_minimum_duration = int(minimum_attack_duration_hour * ts_per_hour)
+        if average_attack_duration_hour < minimum_attack_duration_hour:
+            raise OpponentError("The average duration of an attack cannot be lower than the minimum time of an attack")
+        elif average_attack_duration_hour == minimum_attack_duration_hour:
+            raise OpponentError("Case average_attack_duration_hour == minimum_attack_duration_hour is not supported "
+                                "at the moment")
+        self._recovery_rate = 1. / (ts_per_hour * (average_attack_duration_hour - minimum_attack_duration_hour))
+        if attack_every_xxx_hour <= average_attack_duration_hour:
+            raise OpponentError("attack_every_xxx_hour <= average_attack_duration_hour is not supported at the moment.")
+        self._attack_hazard_rate = 1. / (ts_per_hour * (attack_every_xxx_hour - average_attack_duration_hour))
 
         # Opponent's pmax pmin ratio
         self._pmax_pmin_ratio = pmax_pmin_ratio
@@ -168,6 +187,10 @@ class GeometricOpponent(BaseOpponent):
                 self._attack_durations.append(attack_duration)
                 t = t + attack_duration
             # TODO : Log these times and durations in a log.file
+
+        self._attack_times = np.array(self._attack_times).astype(dt_int)
+        self._attack_waiting_times = np.array(self._attack_waiting_times).astype(dt_int)
+        self._attack_durations = np.array(self._attack_durations).astype(dt_int)
 
     def tell_attack_continues(self, observation, agent_action, env_action, budget):
         self._next_attack_time = None
