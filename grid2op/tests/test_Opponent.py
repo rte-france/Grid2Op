@@ -9,7 +9,7 @@
 import tempfile
 import warnings
 from grid2op.tests.helper_path_test import *
-from grid2op.Opponent import BaseOpponent, RandomLineOpponent, WeightedRandomOpponent
+from grid2op.Opponent import BaseOpponent, RandomLineOpponent, WeightedRandomOpponent, GeometricOpponent
 from grid2op.Action import TopologyAction
 from grid2op.MakeEnv import make
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget
@@ -25,9 +25,6 @@ ATTACK_DURATION = 48
 ATTACK_COOLDOWN = 100
 LINES_ATTACKED = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
 RHO_NORMALIZATION = [1, 1, 1, 1, 1, 1]
-
-import warnings
-warnings.simplefilter("error")
 
 
 class TestSuiteBudget_001(BaseActionBudget):
@@ -1111,6 +1108,167 @@ class TestLoadingOpp(unittest.TestCase):
                 assert env._oppSpace.opponent._attack_counter \
                      + env._oppSpace.opponent._attack_continues_counter \
                        == length
+
+
+class TestGeometricOpponent(unittest.TestCase):
+    def test_can_create(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example", test=True) as env:
+                my_opp = GeometricOpponent(action_space=env.action_space)
+
+    def test_can_init(self):
+        init_budget = 120.
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=0.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=1,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                env.seed(0)
+                obs = env.reset()
+
+    def test_does_attack_outsideenv(self):
+        init_budget = 120.
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=0.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=1,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                env.seed(0)
+                obs = env.reset()
+                opponent = env._opponent
+                assert opponent._attack_times == [64, 407, 487, 522]
+                assert opponent._attack_waiting_times == [64, 312, 48, 4]
+                assert opponent._attack_durations == [31, 32, 31, 25]
+                assert opponent._number_of_attacks == 4
+
+                # now i simulate what happens in the "real" game up to the first attack, it should not attack !
+                # 64 is hard coded here because i set the seed ! and it's an error if the seeding does not work
+                for i in range(64):
+                    attack, duration = opponent.attack(obs, None, None, None, None)
+                    assert attack is None
+                    assert duration is None
+
+                # it should do an attack
+                attack, duration = opponent.attack(obs, None, None, None, None)
+                assert attack is not None
+                assert duration == 31
+                lines_impacted, subs_impacted = attack.get_topological_impact()
+                assert np.sum(lines_impacted) == 1
+                assert lines_impacted[4]
+
+                # now the attack last 31 steps, so I "tell attack continues" for that long
+                for i in range(31):
+                    opponent.tell_attack_continues(obs, None, None, None)
+
+                # now i have to wait for another 312 steps
+                for i in range(312):
+                    attack, duration = opponent.attack(obs, None, None, None, None)
+                    assert attack is None, f"error for step {i}"
+                    assert duration is None, f"error for step {i}"
+
+                # it should do another attack
+                attack, duration = opponent.attack(obs, None, None, None, None)
+                assert attack is not None
+                assert duration == 32
+                lines_impacted, subs_impacted = attack.get_topological_impact()
+                assert np.sum(lines_impacted) == 1
+                assert lines_impacted[12]
+
+                # now i reset it
+                obs = env.reset()
+                assert opponent._attack_times == [168]
+                assert opponent._attack_waiting_times == [168]
+                assert opponent._attack_durations == [33]
+                assert opponent._number_of_attacks == 1
+
+                for i in range(168):
+                    attack, duration = opponent.attack(obs, None, None, None, None)
+                    assert attack is None
+                    assert duration is None
+
+                # it should do an attack
+                attack, duration = opponent.attack(obs, None, None, None, None)
+                assert attack is not None
+                assert duration == 33
+                lines_impacted, subs_impacted = attack.get_topological_impact()
+                assert np.sum(lines_impacted) == 1
+                assert lines_impacted[14]
+
+    def test_does_attack(self):
+        init_budget = 500
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=200.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=300,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      param=param,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                env.seed(0)
+                obs = env.reset()
+                opponent = env._opponent
+                assert opponent._attack_times == [64, 407, 487, 522]
+                assert opponent._attack_waiting_times == [64, 312, 48, 4]
+                assert opponent._attack_durations == [31, 32, 31, 25]
+                assert opponent._number_of_attacks == 4
+                # it should not attack before due time
+                for i in range(64):
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert info["opponent_attack_duration"] == 0, f"attack detected at iteration {i}"
+                    assert info["opponent_attack_line"] is None, f"attack detected at iteration {i}"
+                # now it should attack
+                obs, reward, done, info = env.step(env.action_space())
+                assert info["opponent_attack_duration"] == 31
+                assert info["opponent_attack_line"][4]
+                # here the attack continues
+                for i in range(30):
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert info["opponent_attack_duration"] == 30-i, f"wrong attack duration at iteration {i}"
+                    assert info["opponent_attack_line"][4], f"wrong line attacked at iteration {i}"
+
+                # I will NOT simulate the 312 steps where the opponent does not attack... I only do a few for speed
+                for i in range(10):
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert info["opponent_attack_duration"] == 0, f"attack detected at iteration {i}"
+                    assert info["opponent_attack_line"] is None, f"attack detected at iteration {i}"
+
+                # reset
+                obs = env.reset()
+                # NOTE this is not the same times as above... Indeed the sequence of prn generated is not the same
+                # (because as opposed to test_does_attack_outsideenv, this time i don't simulate everything)
+                assert opponent._attack_times == [237, 360]
+                assert opponent._attack_waiting_times == [237, 82]
+                assert opponent._attack_durations == [41, 65]
+                assert opponent._number_of_attacks == 2
+                # it should not attack before due time, but i don't simulate everything...
+                for i in range(10):
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert info["opponent_attack_duration"] == 0, f"attack detected at iteration {i}"
+                    assert info["opponent_attack_line"] is None, f"attack detected at iteration {i}"
 
 
 if __name__ == "__main__":
