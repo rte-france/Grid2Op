@@ -45,7 +45,8 @@ __all__ = [
     "BackendError",
     "PlotError",
     "OpponentError",
-    "UsedRunnerError"
+    "UsedRunnerError",
+    "NotEnoughAttentionBudget"
 ]
 
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
@@ -105,3 +106,5 @@ from grid2op.Exceptions.PlotExceptions import PlotError
 from grid2op.Exceptions.OpponentError import OpponentError
 
 from grid2op.Exceptions.RunnerError import UsedRunnerError
+
+from grid2op.Exceptions.AttentionBudgetExceptions import NotEnoughAttentionBudget

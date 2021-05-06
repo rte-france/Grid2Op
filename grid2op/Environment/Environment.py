@@ -23,6 +23,7 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
+from grid2op.operator_attention import LinearAttentionBudget
 
 from grid2op.Backend import PandaPowerBackend
 
@@ -84,6 +85,8 @@ class Environment(BaseEnv):
                  opponent_attack_duration=0,
                  opponent_attack_cooldown=99999,
                  kwargs_opponent={},
+                 attention_budget_cls=LinearAttentionBudget,
+                 kwargs_attention_budget={},
                  _raw_backend_class=None,
                  _compat_glop_version=None,
                  ):
@@ -103,7 +106,10 @@ class Environment(BaseEnv):
                          opponent_budget_per_ts=opponent_budget_per_ts,
                          opponent_attack_duration=opponent_attack_duration,
                          opponent_attack_cooldown=opponent_attack_cooldown,
-                         kwargs_opponent=kwargs_opponent)
+                         kwargs_opponent=kwargs_opponent,
+                         attention_budget_cls=attention_budget_cls,
+                         kwargs_attention_budget=kwargs_attention_budget,
+                         )
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
@@ -276,6 +282,9 @@ class Environment(BaseEnv):
         # create the opponent
         # At least the 3 following attributes should be set before calling _create_opponent
         self._create_opponent()
+
+        # create the attention budget
+        self._create_attention_budget()
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)

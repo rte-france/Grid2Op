@@ -5,6 +5,7 @@ from grid2op.Chronics import Multifolder
 from grid2op.Chronics import GridStateFromFileWithForecasts
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Opponent import WeightedRandomOpponent, BaseActionBudget
+from grid2op.operator_attention import LinearAttentionBudget
 
 lines_attacked = ["62_58_180", "62_63_160", "48_50_136", "48_53_141", "41_48_131", "39_41_121",
                   "43_44_125", "44_45_126", "34_35_110", "54_58_154"]
@@ -40,5 +41,9 @@ config = {
     "opponent_budget_class": BaseActionBudget,
     'kwargs_opponent': {"lines_attacked": lines_attacked,
                         "rho_normalization": rho_normalization,
-                        "attack_period": opponent_attack_cooldown}
+                        "attack_period": opponent_attack_cooldown},
+    "attention_budget_class": LinearAttentionBudget,
+    "kwargs_attention_budget": {"max_budget": 5,
+                                "budget_per_ts": 1. / (12.*8),
+                                "alarm_cost": 1}
 }

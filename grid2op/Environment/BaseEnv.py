@@ -26,6 +26,7 @@ from grid2op.Opponent import OpponentSpace, NeverAttackBudget
 from grid2op.Action import DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
+from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Action._BackendAction import _BackendAction
 
 # TODO put in a separate class the redispatching function
@@ -215,7 +216,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  opponent_budget_class=NeverAttackBudget,
                  opponent_attack_duration=0,
                  opponent_attack_cooldown=99999,
-                 kwargs_opponent={}
+                 kwargs_opponent={},
+                 attention_budget_cls=LinearAttentionBudget,
+                 kwargs_attention_budget={},
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
@@ -387,6 +390,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._sum_curtailment_mw = None
         self._sum_curtailment_mw_prev = None
 
+        # attention budget
+        self._attention_budget = None
+        self._attention_budget_cls = attention_budget_cls
+        self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
+
     def get_path_env(self):
         """
         Get the path that allows to create this environment.
@@ -517,6 +525,21 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                            "grid2op.Parameters.Parameters.")
         new_parameters.check_valid()    # check the provided parameters are valid
         self.__new_forecast_param = new_parameters
+
+    def _create_attention_budget(self):
+        if not self.__is_init:
+            raise EnvError("Impossible to create an attention budget with a non initialized environment!")
+        self._attention_budget = self._attention_budget_cls()
+        self._attention_budget.init(self, **self._kwargs_attention_budget)
+        # TODO: in step
+        # TODO in reset
+        # TODO in simulate (make sure to reset the budget properly)
+
+        # TODO  attention_budget_cls and kwargs_attention_budget in make
+        # TODO  attention_budget_cls and kwargs_attention_budget in runner
+        # TODO  attention_budget_cls and kwargs_attention_budget in get_kwargs
+        # TODO  attention_budget_cls and kwargs_attention_budget in get_params_for_runner
+        # TODO  attention_budget_cls and kwargs_attention_budget in config.py
 
     def _create_opponent(self):
         if not self.__is_init:

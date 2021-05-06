@@ -7,15 +7,22 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
+from grid2op.Exceptions import NotEnoughAttentionBudget
 
 
 class LinearAttentionBudget:
-    def __init__(self, max_budget, budget_per_ts, alarm_cost):
-        self.max_budget = max_budget
-        self.budget_per_ts = budget_per_ts
-        self.alarm_cost = alarm_cost
-        self.current_budget = max_budget
-        self.last_alarm_raised = -1
+    def __init__(self):
+        self._max_budget = None
+        self._budget_per_ts = None
+        self._alarm_cost = None
+        self._current_budget = None
+        self._last_alarm_raised = -1
+
+    def init(self, partial_env, max_budget, budget_per_ts, alarm_cost, **kwargs):
+        self._max_budget = max_budget
+        self._budget_per_ts = budget_per_ts
+        self._alarm_cost = alarm_cost
+        self._current_budget = max_budget
 
     def reset(self):
         """
@@ -25,8 +32,8 @@ class LinearAttentionBudget:
         -------
 
         """
-        self.current_budget = self.max_budget
-        self.last_alarm_raised = -1
+        self._current_budget = self.max_budget
+        self._last_alarm_raised = -1
 
     def register_action(self, env, action):
         """
@@ -44,18 +51,22 @@ class LinearAttentionBudget:
 
         """
         if action.dim_alarms == 0:
+            # this feature is not supported (grid2op <= 1.6.0) or is not activated
             return None
 
         if action.alarm_raised().size:
             # an alarm has been raised
-            self.last_alarm_raised = env.nb_time_step
-            if self.current_budget >= self.alarm_cost:
+            self._last_alarm_raised = env.nb_time_step
+            if self._current_budget >= self.alarm_cost:
                 # i could raise it
-                self.current_budget -= self.alarm_cost
+                self._current_budget -= self.alarm_cost
             else:
-                # no more budget
-                # TODO
-                pass
+                # not enough budget
+                current_budget = self._current_budget
+                self._current_budget = 0
+                return NotEnoughAttentionBudget(f"You need a budget of {self._alarm_cost} to raise an alarm "
+                                                f"but you had only {current_budget}")
         else:
-            self.current_budget = min(self.max_budget, self.budget_per_ts + self.current_budget)
+            # no alarm has been raised, budget increases
+            self._current_budget = min(self._max_budget, self._budget_per_ts + self._current_budget)
         return None
