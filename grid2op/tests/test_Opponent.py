@@ -1420,6 +1420,76 @@ class TestGeometricOpponent(unittest.TestCase):
                             average_attack_duration_hour=19,
                             minimum_attack_duration_hour=20)
 
+    def test_simulate(self):
+        """test the opponent is working with the simulate function"""
+        init_budget = 500
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        line_id = 4
+        opponent_attack_duration = 31
+        first_attack_ts = 64
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=200.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=300,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      param=param,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                reco_line = env.action_space({"set_line_status": [(line_id, 1)]})
+                env.seed(0)
+                obs = env.reset()
+                opponent = env._opponent
+                assert np.all(opponent._attack_times == [64, 407, 487, 522])
+                assert np.all(opponent._attack_waiting_times == [64, 312, 48, 4])
+                assert np.all(opponent._attack_durations == [31, 32, 31, 25])
+                assert np.all(opponent._number_of_attacks == 4)
+
+                # do steps just before the first attack
+                for i in range(first_attack_ts):
+                    obs, reward, done, info = env.step(env.action_space())
+
+                # i can simulate anything and it should be working
+                simobs, sim_r, sim_d, sim_info = obs.simulate(env.action_space())
+                assert simobs.rho[line_id] > 0.
+                simobs, sim_r, sim_d, sim_info = obs.simulate(reco_line)
+                assert simobs.rho[line_id] > 0.
+
+                # i do a step, powerline should be disconnected even if i reconnect it
+                obs, reward, done, info = env.step(reco_line)
+                assert obs.rho[line_id] == 0.
+                assert not obs.line_status[line_id]
+
+                # check that the line disconnected cannot be reconnected
+                for i in range(opponent_attack_duration+1):
+                    simobs, sim_r, sim_d, sim_info = obs.simulate(reco_line)
+                    assert simobs.rho[line_id] == 0.
+                    assert not simobs.line_status[line_id]
+
+                # check that the opponent continue its attacks
+                for i in range(opponent_attack_duration - 1):
+                    obs, reward, done, info = env.step(reco_line)
+                    assert obs.rho[line_id] == 0.
+                    assert not obs.line_status[line_id]
+
+                # i should be able to simulate a reconnection now (attack is over)
+                simobs, sim_r, sim_d, sim_info = obs.simulate(reco_line)
+                assert simobs.rho[line_id] > 0.
+                assert simobs.line_status[line_id]
+                # this should not affect the environment
+                assert obs.rho[line_id] == 0.
+                assert not obs.line_status[line_id]
+
+                # and now that i'm able to reconnect the powerline in the real environment
+                obs, reward, done, info = env.step(reco_line)
+                assert obs.rho[line_id] > 0.
+                assert obs.line_status[line_id]
+
 
 if __name__ == "__main__":
     unittest.main()

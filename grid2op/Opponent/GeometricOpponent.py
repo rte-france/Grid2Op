@@ -281,3 +281,13 @@ class GeometricOpponent(BaseOpponent):
         attack = self.space_prng.choice(available_attacks, p=b_probabilities)
 
         return attack, attack_duration
+
+    def get_state(self):
+        return self._attack_times,  self._attack_waiting_times, self._attack_durations, self._number_of_attacks
+
+    def set_state(self, my_state):
+        _attack_times, _attack_waiting_times, _attack_durations, _number_of_attacks = my_state
+        self._attack_times = 1 * _attack_times
+        self._attack_waiting_times = 1 * _attack_waiting_times
+        self._attack_durations = 1 * _attack_durations
+        self._number_of_attacks = 1 * _number_of_attacks
