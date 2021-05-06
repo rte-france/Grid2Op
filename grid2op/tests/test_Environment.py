@@ -29,9 +29,6 @@ PROFILE_CODE = False
 if PROFILE_CODE:
     import cProfile
 
-import warnings
-warnings.simplefilter("error")
-
 
 class TestLoadingBackendPandaPower(unittest.TestCase):
     def get_backend(self):
@@ -775,6 +772,38 @@ class TestDeactivateForecast(unittest.TestCase):
         # this action modfies both substation 0 and substation 8
         sim_o, sim_r, sim_d, sim_info = obs.simulate(act)
         assert sim_info["is_illegal"] is False
+
+
+class TestMaxIter(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("l2rpn_case14_sandbox", test=True)
+
+    def tearDown(self) -> None:
+        self.env.close()
+
+    def test_can_use_max_iter(self):
+        assert self.env.get_episode_duration() == 575
+
+    def test_can_change_max_iter(self):
+        # restrict the maximum number of iteration
+        self.env.set_max_iter(20)
+        assert self.env.get_episode_duration() == 20
+        # increase it again, above the maximum number of steps in the chronics
+        self.env.set_max_iter(580)
+        assert self.env.get_episode_duration() == 575
+        # decrease it again
+        self.env.set_max_iter(30)
+        assert self.env.get_episode_duration() == 30
+        # set it to infinity
+        self.env.set_max_iter(-1)
+        assert self.env.get_episode_duration() == 575
+        # check that it raises an error when used with wrong number
+        with self.assertRaises(Grid2OpException):
+            self.env.set_max_iter(-2)
+        with self.assertRaises(Grid2OpException):
+            self.env.set_max_iter(0)
 
 
 if __name__ == "__main__":
