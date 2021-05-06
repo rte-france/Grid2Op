@@ -47,6 +47,8 @@ Change Log
 - [ADDED]: in the `Observation` the possibility to retrieve the current number of steps
 - [ADDED]: easier function to manipulate the max number of iteration we want to perform directly from the environment
 - [ADDED]: function to retrieve the maximum duration of the current episode.
+- [ADDED]: a new kind of opponent that is able to attack at "more random" times with "more random" duration.
+  See the `GeometricOpponent`.
 - [IMPROVED]: on windows at least, grid2op does not work with gym < 0.17.2 Checks are performed in order to make sure
   the installed open ai gym package meets this requirement (see issue
   `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
