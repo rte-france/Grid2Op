@@ -1455,12 +1455,14 @@ class TestGeometricOpponent(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
 
                 # i can simulate anything and it should be working
+                # opponent won't disconnect anything in simulate
                 simobs, sim_r, sim_d, sim_info = obs.simulate(env.action_space())
                 assert simobs.rho[line_id] > 0.
                 simobs, sim_r, sim_d, sim_info = obs.simulate(reco_line)
                 assert simobs.rho[line_id] > 0.
 
                 # i do a step, powerline should be disconnected even if i reconnect it
+                # => basically i check the attack has been performed
                 obs, reward, done, info = env.step(reco_line)
                 assert obs.rho[line_id] == 0.
                 assert not obs.line_status[line_id]
