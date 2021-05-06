@@ -9,6 +9,7 @@
 import tempfile
 import warnings
 from grid2op.tests.helper_path_test import *
+from grid2op.Chronics import ChangeNothing
 from grid2op.Opponent import BaseOpponent, RandomLineOpponent, WeightedRandomOpponent, GeometricOpponent
 from grid2op.Action import TopologyAction
 from grid2op.MakeEnv import make
@@ -1347,6 +1348,55 @@ class TestGeometricOpponent(unittest.TestCase):
                 assert np.all(opponent._attack_durations >= 30*12)
                 obs = env.reset()
                 assert np.all(opponent._attack_durations >= 30*12)
+
+    def test_average_attack_duration(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example",
+                      test=True,
+                      chronics_class=ChangeNothing) as env:
+                my_opp = GeometricOpponent(action_space=env.action_space)
+                with self.assertRaises(OpponentError):
+                    # this is not supported, as there are an infinite number of steps in this environment
+                    my_opp.init(partial_env=env,
+                                lines_attacked=env.name_line,
+                                attack_every_xxx_hour=24,
+                                average_attack_duration_hour=2,
+                                minimum_attack_duration_hour=1)
+                env.set_max_iter(3000000)
+                threshold = 1.0  # balance between test speed and precision i ask to match the theoretical average
+                for mean_duration_hour in [2, 4, 8, 12, 16, 20]:
+                    my_opp.seed(0)
+                    my_opp.init(partial_env=env,
+                                lines_attacked=env.name_line,
+                                attack_every_xxx_hour=24,
+                                average_attack_duration_hour=mean_duration_hour,
+                                minimum_attack_duration_hour=1)
+                    assert abs(np.mean(my_opp._attack_durations) - mean_duration_hour*12) < threshold, \
+                              f"error for {mean_duration_hour}: {np.mean(my_opp._attack_durations):.2f}"
+
+    def test_attack_every_xxx_hour(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example",
+                      test=True,
+                      chronics_class=ChangeNothing) as env:
+                my_opp = GeometricOpponent(action_space=env.action_space)
+                n_ = 3_000_000
+                env.set_max_iter(n_)
+                threshold = 0.03  # balance between test speed and precision i ask to match the theoretical average
+                average_attack_duration_hour = 2
+                for mean_attack_every_xxx_hour in [12, 16, 20, 24, 48]:
+                    my_opp.seed(1)
+                    my_opp.init(partial_env=env,
+                                lines_attacked=env.name_line,
+                                attack_every_xxx_hour=mean_attack_every_xxx_hour,
+                                average_attack_duration_hour=average_attack_duration_hour,
+                                minimum_attack_duration_hour=1)
+                    std = np.sqrt((1 - my_opp._attack_hazard_rate)/(my_opp._attack_hazard_rate**2))
+                    duration_avg = np.mean(my_opp._attack_waiting_times + my_opp._attack_durations)
+                    assert abs(duration_avg - mean_attack_every_xxx_hour*12) < threshold * std, \
+                              f"error for {mean_attack_every_xxx_hour}: {duration_avg:.2f}"
 
     def test_cannot_init_with_wrong_param(self):
         with warnings.catch_warnings():

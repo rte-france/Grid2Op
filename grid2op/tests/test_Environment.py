@@ -784,21 +784,21 @@ class TestMaxIter(unittest.TestCase):
         self.env.close()
 
     def test_can_use_max_iter(self):
-        assert self.env.get_episode_duration() == 575
+        assert self.env.max_episode_duration() == 575
 
     def test_can_change_max_iter(self):
         # restrict the maximum number of iteration
         self.env.set_max_iter(20)
-        assert self.env.get_episode_duration() == 20
+        assert self.env.max_episode_duration() == 20
         # increase it again, above the maximum number of steps in the chronics
         self.env.set_max_iter(580)
-        assert self.env.get_episode_duration() == 575
+        assert self.env.max_episode_duration() == 575
         # decrease it again
         self.env.set_max_iter(30)
-        assert self.env.get_episode_duration() == 30
+        assert self.env.max_episode_duration() == 30
         # set it to infinity
         self.env.set_max_iter(-1)
-        assert self.env.get_episode_duration() == 575
+        assert self.env.max_episode_duration() == 575
         # check that it raises an error when used with wrong number
         with self.assertRaises(Grid2OpException):
             self.env.set_max_iter(-2)

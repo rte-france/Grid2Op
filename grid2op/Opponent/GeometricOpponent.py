@@ -148,8 +148,8 @@ class GeometricOpponent(BaseOpponent):
         self._attack_counter = 0
 
     def _get_episode_duration(self):
-        tmp = self._env.get_episode_duration()
-        if not np.isfinite(tmp) or tmp == np.iinfo(tmp).max:
+        tmp = self._env.max_episode_duration()
+        if (not np.isfinite(tmp)) or (tmp == np.iinfo(tmp).max):
             raise OpponentError("Geometric opponent only works (for now) with a known finite episode duration.")
         return tmp
 

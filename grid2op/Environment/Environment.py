@@ -316,7 +316,7 @@ class Environment(BaseEnv):
         # reset everything to be consistent
         self._reset_vectors_and_timings()
 
-    def get_episode_duration(self):
+    def max_episode_duration(self):
         """
         Return the maximum duration (in number of steps) of the current episode.
 
@@ -326,9 +326,9 @@ class Environment(BaseEnv):
         to the maximum 32 bit integer (usually `2147483647`)
 
         """
-        tmp = self.chronics_handler.max_episode_duration()
+        tmp = dt_int(self.chronics_handler.max_episode_duration())
         if tmp < 0:
-            tmp = np.iinfo(dt_int).max
+            tmp = dt_int(np.iinfo(dt_int).max)
         return tmp
 
     def set_max_iter(self, max_iter):
