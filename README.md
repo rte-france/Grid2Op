@@ -8,7 +8,7 @@
 [![discord](https://discord.com/api/guilds/698080905209577513/embed.png)]( https://discord.gg/cYsYrPT)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/rte-france/Grid2Op/master)
 
-Grid2Op is a plateform, built with modularity in mind, that allows to perform powergrid operation.
+Grid2Op is a platform, built with modularity in mind, that allows to perform powergrid operation.
 And that's what it stands for: Grid To Operate.
 Grid2Op acts as a replacement of [pypownet](https://github.com/MarvinLer/pypownet) 
 as a library used for the Learning To Run Power Network [L2RPN](https://l2rpn.chalearn.org/). 
