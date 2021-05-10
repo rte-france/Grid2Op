@@ -44,7 +44,8 @@ config = {
                         "attack_period": opponent_attack_cooldown},
     "has_attention_budget": True,
     "attention_budget_class": LinearAttentionBudget,
-    "kwargs_attention_budget": {"max_budget": 5,
+    "kwargs_attention_budget": {"max_budget": 5.,
                                 "budget_per_ts": 1. / (12.*8),
-                                "alarm_cost": 1}
+                                "alarm_cost": 1.,
+                                "init_budget": 3.}
 }

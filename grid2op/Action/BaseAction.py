@@ -850,6 +850,9 @@ class BaseAction(GridObjects):
             self.shunt_q[:] = np.NaN
             self.shunt_bus[:] = 0
 
+        # alarm
+        self._raise_alarm[:] = False
+
         self._reset_modified_flags()
 
     def _assign_iadd_or_warn(self, attr_name, new_value):

@@ -821,21 +821,67 @@ class TestAlarmFeature(unittest.TestCase):
         assert self.env._has_attention_budget
         assert self.env._attention_budget is not None
         assert isinstance(self.env._attention_budget, LinearAttentionBudget)
-        assert self.env._attention_budget._budget_per_ts == 1. / (12.*8)
-        assert self.env._attention_budget._max_budget == 5
-        assert self.env._attention_budget._alarm_cost == 1
+        assert abs(self.env._attention_budget._budget_per_ts - 1. / (12.*8)) <= 1e-6
+        assert abs(self.env._attention_budget._max_budget - 5) <= 1e-6
+        assert abs(self.env._attention_budget._alarm_cost - 1) <= 1e-6
+        assert abs(self.env._attention_budget._current_budget - 3.) <= 1e-6
 
-        env = make(self.env_nm, has_attention_budget=False)
-        assert env._has_attention_budget is False
-        assert env._attention_budget is None
+        with make(self.env_nm, has_attention_budget=False) as env:
+            assert env._has_attention_budget is False
+            assert env._attention_budget is None
 
-        env = make(self.env_nm, kwargs_attention_budget={"max_budget": 15, "budget_per_ts": 1, "alarm_cost": 12})
-        assert env._has_attention_budget
-        assert env._attention_budget is not None
-        assert isinstance(env._attention_budget, LinearAttentionBudget)
-        assert env._attention_budget._budget_per_ts == 1.
-        assert env._attention_budget._max_budget == 15
-        assert env._attention_budget._alarm_cost == 12
+        with make(self.env_nm, kwargs_attention_budget={"max_budget": 15,
+                                                        "budget_per_ts": 1,
+                                                        "alarm_cost": 12,
+                                                        "init_budget": 0}) as env:
+            assert env._has_attention_budget
+            assert env._attention_budget is not None
+            assert isinstance(env._attention_budget, LinearAttentionBudget)
+            assert abs(env._attention_budget._budget_per_ts - 1.) <= 1e-6
+            assert abs(env._attention_budget._max_budget - 15) <= 1e-6
+            assert abs(env._attention_budget._alarm_cost - 12) <= 1e-6
+            assert abs(env._attention_budget._current_budget - 0.) <= 1e-6
+
+    def test_budget_increases_ok(self):
+        # check increaes ok normally
+        self.env.step(self.env.action_space())
+        assert abs(self.env._attention_budget._current_budget - (3 + 1. / (12. * 8.))) <= 1e-6
+        self.env.step(self.env.action_space())
+        assert abs(self.env._attention_budget._current_budget - (3 + 2. / (12. * 8.))) <= 1e-6
+
+        # check that it does not "overflow"
+        with make(self.env_nm, kwargs_attention_budget={"max_budget": 5,
+                                                        "budget_per_ts": 1,
+                                                        "alarm_cost": 12,
+                                                        "init_budget": 0}) as env:
+            env.step(self.env.action_space())
+            assert abs(env._attention_budget._current_budget - 1) <= 1e-6
+            env.step(self.env.action_space())
+            assert abs(env._attention_budget._current_budget - 2) <= 1e-6
+            env.step(self.env.action_space())
+            assert abs(env._attention_budget._current_budget - 3) <= 1e-6
+            env.step(self.env.action_space())
+            assert abs(env._attention_budget._current_budget - 4) <= 1e-6
+            env.step(self.env.action_space())
+            assert abs(env._attention_budget._current_budget - 5) <= 1e-6
+            env.step(self.env.action_space())
+            assert abs(env._attention_budget._current_budget - 5) <= 1e-6
+
+    def test_alarm_in_legal_action_ok(self):
+        """I test the budget is properly updated when the action is legal and non ambiguous"""
+        act = self.env.action_space()
+        act.raise_alarm = [0]
+        self.env.step(act)
+        assert abs(self.env._attention_budget._current_budget - 2) <= 1e-6
+
+    def test_reset_ok(self):
+        self.env.step(self.env.action_space())
+        assert abs(self.env._attention_budget._current_budget - (3 + 1. / (12. * 8.))) <= 1e-6
+        self.env.reset()
+        assert abs(self.env._attention_budget._current_budget - 3) <= 1e-6
+
+    # TODO: test_alarm_in_illegal_action_ok, test_alarm_in_ambiguous_action_ok
+    # TODO test_alarm_in_simulate
 
 
 if __name__ == "__main__":

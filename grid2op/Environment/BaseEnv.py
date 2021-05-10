@@ -1647,6 +1647,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_ambiguous = False
         is_illegal_redisp = False
         is_illegal_reco = False
+        is_attention_illegal = None  # not None in case of trouble with the budget
         except_ = []
         detailed_info = []
         init_disp = 1.0 * action._redispatch  # dispatching action
@@ -1668,6 +1669,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 action_storage_power = 1.0 * action._storage_power  # battery information
                 except_.append(reason)
                 is_illegal = True
+
+            if self._has_attention_budget:
+                # this feature is implemented, so i do it
+                is_attention_illegal = self._attention_budget.register_action(self, action)
 
             ambiguous, except_tmp = action.is_ambiguous()
             if ambiguous:
@@ -1952,6 +1957,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_opponent = dt_float(0.)
         self._time_redisp = dt_float(0.)
         self._time_step = dt_float(0.)
+
+        if self._has_attention_budget:
+            self._attention_budget.reset()
 
         # reward and others
         self.current_reward = self.reward_range[0]
