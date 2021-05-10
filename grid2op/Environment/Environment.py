@@ -87,6 +87,7 @@ class Environment(BaseEnv):
                  kwargs_opponent={},
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
+                 has_attention_budget=False,
                  _raw_backend_class=None,
                  _compat_glop_version=None,
                  ):
@@ -107,12 +108,13 @@ class Environment(BaseEnv):
                          opponent_attack_duration=opponent_attack_duration,
                          opponent_attack_cooldown=opponent_attack_cooldown,
                          kwargs_opponent=kwargs_opponent,
+                         has_attention_budget=has_attention_budget,
                          attention_budget_cls=attention_budget_cls,
                          kwargs_attention_budget=kwargs_attention_budget,
                          )
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
-                          "to use an environment without a name")
+                          "to use an environment without a name...")
         self.name = name
 
         # for gym compatibility (initialized below)

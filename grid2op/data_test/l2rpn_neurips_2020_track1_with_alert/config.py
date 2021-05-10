@@ -42,6 +42,7 @@ config = {
     'kwargs_opponent': {"lines_attacked": lines_attacked,
                         "rho_normalization": rho_normalization,
                         "attack_period": opponent_attack_cooldown},
+    "has_attention_budget": True,
     "attention_budget_class": LinearAttentionBudget,
     "kwargs_attention_budget": {"max_budget": 5,
                                 "budget_per_ts": 1. / (12.*8),

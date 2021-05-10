@@ -70,6 +70,8 @@ ERR_MSG_KWARGS = {
     "kwargs_opponent": "The extra kwargs argument used to properly initialized the opponent "
                        "(\"kwargs_opponent\") should "
                        "be a dictionary.",
+    "has_attention_budget": "The \"has_attention_budget\" key word argument should be a flag indicating whether "
+                            "you want this feature or not. It should be a boolean.",
     "attention_budget_class": "The attention budget class (\"attention_budget_class\") should derive from "
                               "\"LinearAttentionBudget\".",
     "kwargs_attention_budget": "The extra kwargs argument used to properly initialized the attention budget "
@@ -206,6 +208,8 @@ def make_from_dataset_path(dataset_path="/",
 
     _compat_glop_version:
         Internal, used for test only. Do not attempt to modify under any circumstances.
+
+    # TODO update doc with attention budget
 
     Returns
     -------
@@ -514,6 +518,15 @@ def make_from_dataset_path(dataset_path="/",
                                        isclass=False)
 
     # attention budget
+    has_attention_budget_cfg = False
+    if "has_attention_budget" in config_data and config_data["has_attention_budget"] is not None:
+        has_attention_budget_cfg = config_data["has_attention_budget"]
+    has_attention_budget = _get_default_aux("has_attention_budget",
+                                            kwargs,
+                                            defaultClassApp=bool,
+                                            defaultinstance=has_attention_budget_cfg,
+                                            msg_error=ERR_MSG_KWARGS["has_attention_budget"],
+                                            isclass=False)
     attention_budget_class_cfg = LinearAttentionBudget
     if "attention_budget_class" in config_data and config_data["attention_budget_class"] is not None:
         attention_budget_class_cfg = config_data["attention_budget_class"]
@@ -527,13 +540,14 @@ def make_from_dataset_path(dataset_path="/",
     kwargs_attention_budget_cfg = {}
     if "kwargs_attention_budget" in config_data and config_data["kwargs_attention_budget"] is not None:
         kwargs_attention_budget_cfg = config_data["kwargs_attention_budget"]
-    kwargs_attention_budget = _get_default_aux("kwargs_attention_budget", kwargs,
+    kwargs_attention_budget = _get_default_aux("kwargs_attention_budget",
+                                               kwargs,
                                                defaultClassApp=dict,
                                                defaultinstance=kwargs_attention_budget_cfg,
                                                msg_error=ERR_MSG_KWARGS["kwargs_attention_budget"],
                                                isclass=False)
 
-    # Finally instanciate env from config & overrides
+    # Finally instantiate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
                       chronics_handler=data_feeding,
                       backend=backend,
@@ -554,6 +568,7 @@ def make_from_dataset_path(dataset_path="/",
                       opponent_budget_per_ts=opponent_budget_per_ts,
                       opponent_budget_class=opponent_budget_class,
                       kwargs_opponent=kwargs_opponent,
+                      has_attention_budget=has_attention_budget,
                       attention_budget_cls=attention_budget_class,
                       kwargs_attention_budget=kwargs_attention_budget,
                       _compat_glop_version=_compat_glop_version

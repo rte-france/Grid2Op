@@ -217,6 +217,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  opponent_attack_duration=0,
                  opponent_attack_cooldown=99999,
                  kwargs_opponent={},
+                 has_attention_budget=False,
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
                  ):
@@ -391,6 +392,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._sum_curtailment_mw_prev = None
 
         # attention budget
+        self._has_attention_budget = has_attention_budget
         self._attention_budget = None
         self._attention_budget_cls = attention_budget_cls
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
@@ -529,17 +531,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _create_attention_budget(self):
         if not self.__is_init:
             raise EnvError("Impossible to create an attention budget with a non initialized environment!")
-        self._attention_budget = self._attention_budget_cls()
-        self._attention_budget.init(self, **self._kwargs_attention_budget)
+        if self._has_attention_budget:
+            self._attention_budget = self._attention_budget_cls()
+            try:
+                self._attention_budget.init(partial_env=self,
+                                            **self._kwargs_attention_budget)
+            except TypeError as exc_:
+                raise EnvError("Impossible to create the attention budget with the provided argument. Please "
+                               "change the content of the argument \"kwargs_attention_budget\".") from exc_
         # TODO: in step
         # TODO in reset
         # TODO in simulate (make sure to reset the budget properly)
 
-        # TODO  attention_budget_cls and kwargs_attention_budget in make
-        # TODO  attention_budget_cls and kwargs_attention_budget in runner
-        # TODO  attention_budget_cls and kwargs_attention_budget in get_kwargs
-        # TODO  attention_budget_cls and kwargs_attention_budget in get_params_for_runner
-        # TODO  attention_budget_cls and kwargs_attention_budget in config.py
+        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in make
+        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in runner
+        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in get_kwargs
+        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in get_params_for_runner
+        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in config.py
 
     def _create_opponent(self):
         if not self.__is_init:

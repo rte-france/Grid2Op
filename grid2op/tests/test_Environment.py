@@ -21,7 +21,7 @@ from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
 from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
 from grid2op.Rules import RulesChecker, DefaultRules
-from grid2op.Action import *
+from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.dtypes import dt_float
 
 DEBUG = False
@@ -804,6 +804,38 @@ class TestMaxIter(unittest.TestCase):
             self.env.set_max_iter(-2)
         with self.assertRaises(Grid2OpException):
             self.env.set_max_iter(0)
+
+
+class TestAlarmFeature(unittest.TestCase):
+    def setUp(self) -> None:
+        self.env_nm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make(self.env_nm, test=True)
+
+    def tearDown(self) -> None:
+        self.env.close()
+
+    def test_create_ok(self):
+        """test that the stuff is created with the right parameters"""
+        assert self.env._has_attention_budget
+        assert self.env._attention_budget is not None
+        assert isinstance(self.env._attention_budget, LinearAttentionBudget)
+        assert self.env._attention_budget._budget_per_ts == 1. / (12.*8)
+        assert self.env._attention_budget._max_budget == 5
+        assert self.env._attention_budget._alarm_cost == 1
+
+        env = make(self.env_nm, has_attention_budget=False)
+        assert env._has_attention_budget is False
+        assert env._attention_budget is None
+
+        env = make(self.env_nm, kwargs_attention_budget={"max_budget": 15, "budget_per_ts": 1, "alarm_cost": 12})
+        assert env._has_attention_budget
+        assert env._attention_budget is not None
+        assert isinstance(env._attention_budget, LinearAttentionBudget)
+        assert env._attention_budget._budget_per_ts == 1.
+        assert env._attention_budget._max_budget == 15
+        assert env._attention_budget._alarm_cost == 12
 
 
 if __name__ == "__main__":

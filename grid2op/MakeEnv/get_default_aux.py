@@ -86,7 +86,7 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                         # if this is base numeric type, like float or anything, i try to convert to it (i want to
                         # accept that "int" are float for example.
                         res = defaultClassApp(res)
-                    except:
+                    except Exception as exc_:
                         # if there is any error, i raise the error message
                         raise EnvError(msg_error)
                 else:
@@ -131,5 +131,4 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                 err_msg += "A class must be returned yet a default instance is provided"
                 raise EnvError(err_msg.format(name))
             res = defaultClass
-
     return res
