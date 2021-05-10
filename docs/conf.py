@@ -81,6 +81,7 @@ pdf_documents = [('index', u'rst2pdf', u'Sample rst2pdf doc', u'Your Name'),]
 
 
 def setup(app):
-  app.add_javascript('custom.js')
-  if app.config.language == 'ja':
+    # app.add_javascript('custom.js')
+    app.add_js_file('custom.js')
+    if app.config.language == 'ja':
         app.config.intersphinx_mapping['py'] = ('https://docs.python.org/ja/3', None)
