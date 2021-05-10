@@ -608,10 +608,9 @@ class GridValue(RandomObject, ABC):
         Returns
         -------
         res: ``int``
-            -1 if possibly infinite length of a positive integer representing the maximum duration of this episode
+            -1 if possibly infinite length or a positive integer representing the maximum duration of this episode
 
         """
-        # warnings.warn("Class {} has possibly and infinite duration.".format(type(self).__name__))
         return self.max_iter
 
     def shuffle(self, shuffler=None):

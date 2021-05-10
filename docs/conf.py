@@ -22,7 +22,7 @@ copyright = '2019, RTE France'
 author = 'Benjamin Donnot'
 
 # The full version, including alpha/beta/rc tags
-release = '1.5.1.post1'
+release = '1.5.2'
 version = '1.5'
 
 
@@ -77,10 +77,11 @@ highlight_language = 'python3'
 html_static_path = ['_static']
 
 # for pdf
-pdf_documents = [('index', u'rst2pdf', u'Sample rst2pdf doc', u'Your Name'),]
+pdf_documents = [('index', u'rst2pdf', u'Grid2op documentation', u'B. DONNOT'),]
 
 
 def setup(app):
-  app.add_javascript('custom.js')
-  if app.config.language == 'ja':
+    # app.add_javascript('custom.js')
+    app.add_js_file('custom.js')
+    if app.config.language == 'ja':
         app.config.intersphinx_mapping['py'] = ('https://docs.python.org/ja/3', None)

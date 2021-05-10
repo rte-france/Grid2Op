@@ -9,7 +9,8 @@
 import tempfile
 import warnings
 from grid2op.tests.helper_path_test import *
-from grid2op.Opponent import BaseOpponent, RandomLineOpponent, WeightedRandomOpponent
+from grid2op.Chronics import ChangeNothing
+from grid2op.Opponent import BaseOpponent, RandomLineOpponent, WeightedRandomOpponent, GeometricOpponent
 from grid2op.Action import TopologyAction
 from grid2op.MakeEnv import make
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget
@@ -18,6 +19,8 @@ from grid2op.Parameters import Parameters
 from grid2op.Runner import Runner
 from grid2op.Episode import EpisodeData
 from grid2op.Environment import SingleEnvMultiProcess
+from grid2op.Exceptions import OpponentError
+
 from grid2op.Agent import BaseAgent
 import pdb
 
@@ -25,9 +28,6 @@ ATTACK_DURATION = 48
 ATTACK_COOLDOWN = 100
 LINES_ATTACKED = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
 RHO_NORMALIZATION = [1, 1, 1, 1, 1, 1]
-
-import warnings
-warnings.simplefilter("error")
 
 
 class TestSuiteBudget_001(BaseActionBudget):
@@ -1111,6 +1111,386 @@ class TestLoadingOpp(unittest.TestCase):
                 assert env._oppSpace.opponent._attack_counter \
                      + env._oppSpace.opponent._attack_continues_counter \
                        == length
+
+
+class TestGeometricOpponent(unittest.TestCase):
+    def test_can_create(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example", test=True) as env:
+                my_opp = GeometricOpponent(action_space=env.action_space)
+
+    def test_can_init(self):
+        init_budget = 120.
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=0.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=1,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                env.seed(0)
+                obs = env.reset()
+
+    def test_does_attack_outsideenv(self):
+        init_budget = 120.
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=0.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=1,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                env.seed(0)
+                obs = env.reset()
+                opponent = env._opponent
+                assert np.all(opponent._attack_times == [64, 407, 487, 522])
+                assert np.all(opponent._attack_waiting_times == [64, 312, 48, 4])
+                assert np.all(opponent._attack_durations == [31, 32, 31, 25])
+                assert np.all(opponent._number_of_attacks == 4)
+
+                # now i simulate what happens in the "real" game up to the first attack, it should not attack !
+                # 64 is hard coded here because i set the seed ! and it's an error if the seeding does not work
+                for i in range(64):
+                    attack, duration = opponent.attack(obs, None, None, None, None)
+                    assert attack is None
+                    assert duration is None
+
+                # it should do an attack
+                attack, duration = opponent.attack(obs, None, None, None, None)
+                assert attack is not None
+                assert duration == 31
+                lines_impacted, subs_impacted = attack.get_topological_impact()
+                assert np.sum(lines_impacted) == 1
+                assert lines_impacted[4]
+
+                # now the attack last 31 steps, so I "tell attack continues" for that long
+                for i in range(31):
+                    opponent.tell_attack_continues(obs, None, None, None)
+
+                # now i have to wait for another 312 steps
+                for i in range(312):
+                    attack, duration = opponent.attack(obs, None, None, None, None)
+                    assert attack is None, f"error for step {i}"
+                    assert duration is None, f"error for step {i}"
+
+                # it should do another attack
+                attack, duration = opponent.attack(obs, None, None, None, None)
+                assert attack is not None
+                assert duration == 32
+                lines_impacted, subs_impacted = attack.get_topological_impact()
+                assert np.sum(lines_impacted) == 1
+                assert lines_impacted[12]
+
+                # now i reset it
+                obs = env.reset()
+                assert np.all(opponent._attack_times == [168])
+                assert np.all(opponent._attack_waiting_times == [168])
+                assert np.all(opponent._attack_durations == [33])
+                assert np.all(opponent._number_of_attacks == 1)
+
+                for i in range(168):
+                    attack, duration = opponent.attack(obs, None, None, None, None)
+                    assert attack is None
+                    assert duration is None
+
+                # it should do an attack
+                attack, duration = opponent.attack(obs, None, None, None, None)
+                assert attack is not None
+                assert duration == 33
+                lines_impacted, subs_impacted = attack.get_topological_impact()
+                assert np.sum(lines_impacted) == 1
+                assert lines_impacted[14]
+
+    def test_does_attack(self):
+        init_budget = 500
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=200.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=300,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      param=param,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                env.seed(0)
+                obs = env.reset()
+                opponent = env._opponent
+                assert np.all(opponent._attack_times == [64, 407, 487, 522])
+                assert np.all(opponent._attack_waiting_times == [64, 312, 48, 4])
+                assert np.all(opponent._attack_durations == [31, 32, 31, 25])
+                assert np.all(opponent._number_of_attacks == 4)
+                # it should not attack before due time
+                for i in range(64):
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert info["opponent_attack_duration"] == 0, f"attack detected at iteration {i}"
+                    assert info["opponent_attack_line"] is None, f"attack detected at iteration {i}"
+                # now it should attack
+                obs, reward, done, info = env.step(env.action_space())
+                assert info["opponent_attack_duration"] == 31
+                assert info["opponent_attack_line"][4]
+                # here the attack continues
+                for i in range(30):
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert info["opponent_attack_duration"] == 30-i, f"wrong attack duration at iteration {i}"
+                    assert info["opponent_attack_line"][4], f"wrong line attacked at iteration {i}"
+
+                # I will NOT simulate the 312 steps where the opponent does not attack... I only do a few for speed
+                for i in range(10):
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert info["opponent_attack_duration"] == 0, f"attack detected at iteration {i}"
+                    assert info["opponent_attack_line"] is None, f"attack detected at iteration {i}"
+
+                # reset
+                obs = env.reset()
+                # NOTE this is not the same times as above... Indeed the sequence of prn generated is not the same
+                # (because as opposed to test_does_attack_outsideenv, this time i don't simulate everything)
+                assert np.all(opponent._attack_times == [237, 360])
+                assert np.all(opponent._attack_waiting_times == [237, 82])
+                assert np.all(opponent._attack_durations == [41, 65])
+                assert np.all(opponent._number_of_attacks == 2)
+                # it should not attack before due time, but i don't simulate everything...
+                for i in range(10):
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert info["opponent_attack_duration"] == 0, f"attack detected at iteration {i}"
+                    assert info["opponent_attack_line"] is None, f"attack detected at iteration {i}"
+
+    def test_minimum_attack_duration(self):
+        init_budget = 500
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=200.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=300,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      param=param,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "attack_every_xxx_hour": 24,
+                                       "average_attack_duration_hour": 5,
+                                       "minimum_attack_duration_hour": 4}
+                      ) as env:
+                env.seed(0)
+                obs = env.reset()
+                opponent = env._opponent
+                assert np.all(opponent._attack_durations >= 48)
+                obs = env.reset()
+                assert np.all(opponent._attack_durations >= 48)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=200.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=300,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      param=param,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "attack_every_xxx_hour": 24,
+                                       "average_attack_duration_hour": 5,
+                                       "minimum_attack_duration_hour": 1}
+                      ) as env:
+                env.seed(0)
+                obs = env.reset()
+                opponent = env._opponent
+                assert np.all(opponent._attack_durations >= 12)
+                obs = env.reset()
+                assert np.all(opponent._attack_durations >= 12)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=200.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=300,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      param=param,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "attack_every_xxx_hour": 50,
+                                       "average_attack_duration_hour": 31,
+                                       "minimum_attack_duration_hour": 30}
+                      ) as env:
+                env.seed(0)
+                obs = env.reset()
+                opponent = env._opponent
+                assert np.all(opponent._attack_durations >= 30*12)
+                obs = env.reset()
+                assert np.all(opponent._attack_durations >= 30*12)
+
+    def test_average_attack_duration(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example",
+                      test=True,
+                      chronics_class=ChangeNothing) as env:
+                my_opp = GeometricOpponent(action_space=env.action_space)
+                with self.assertRaises(OpponentError):
+                    # this is not supported, as there are an infinite number of steps in this environment
+                    my_opp.init(partial_env=env,
+                                lines_attacked=env.name_line,
+                                attack_every_xxx_hour=24,
+                                average_attack_duration_hour=2,
+                                minimum_attack_duration_hour=1)
+                env.set_max_iter(3000000)
+                threshold = 1.0  # balance between test speed and precision i ask to match the theoretical average
+                for mean_duration_hour in [2, 4, 8, 12, 16, 20]:
+                    my_opp.seed(0)
+                    my_opp.init(partial_env=env,
+                                lines_attacked=env.name_line,
+                                attack_every_xxx_hour=24,
+                                average_attack_duration_hour=mean_duration_hour,
+                                minimum_attack_duration_hour=1)
+                    assert abs(np.mean(my_opp._attack_durations) - mean_duration_hour*12) < threshold, \
+                              f"error for {mean_duration_hour}: {np.mean(my_opp._attack_durations):.2f}"
+
+    def test_attack_every_xxx_hour(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example",
+                      test=True,
+                      chronics_class=ChangeNothing) as env:
+                my_opp = GeometricOpponent(action_space=env.action_space)
+                n_ = 3_000_000
+                env.set_max_iter(n_)
+                threshold = 0.03  # balance between test speed and precision i ask to match the theoretical average
+                average_attack_duration_hour = 2
+                for mean_attack_every_xxx_hour in [12, 16, 20, 24, 48]:
+                    my_opp.seed(1)
+                    my_opp.init(partial_env=env,
+                                lines_attacked=env.name_line,
+                                attack_every_xxx_hour=mean_attack_every_xxx_hour,
+                                average_attack_duration_hour=average_attack_duration_hour,
+                                minimum_attack_duration_hour=1)
+                    std = np.sqrt((1 - my_opp._attack_hazard_rate)/(my_opp._attack_hazard_rate**2))
+                    duration_avg = np.mean(my_opp._attack_waiting_times + my_opp._attack_durations)
+                    assert abs(duration_avg - mean_attack_every_xxx_hour*12) < threshold * std, \
+                              f"error for {mean_attack_every_xxx_hour}: {duration_avg:.2f}"
+
+    def test_cannot_init_with_wrong_param(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example", test=True) as env:
+                my_opp = GeometricOpponent(action_space=env.action_space)
+
+            with self.assertRaises(OpponentError):
+                # i cannot do an attack every 19 hours on average when an attack last 21h on average
+                my_opp.init(partial_env=env,
+                            lines_attacked=LINES_ATTACKED,
+                            attack_every_xxx_hour=19,
+                            average_attack_duration_hour=21,
+                            minimum_attack_duration_hour=20)
+
+            with self.assertRaises(OpponentError):
+                # i cannot do an attack that last 19 hours on average and a minimum of 20 hours
+                my_opp.init(partial_env=env,
+                            lines_attacked=LINES_ATTACKED,
+                            attack_every_xxx_hour=50,
+                            average_attack_duration_hour=19,
+                            minimum_attack_duration_hour=20)
+
+    def test_simulate(self):
+        """test the opponent is working with the simulate function"""
+        init_budget = 500
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        line_id = 4
+        opponent_attack_duration = 31
+        first_attack_ts = 64
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=200.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=300,  # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      param=param,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                reco_line = env.action_space({"set_line_status": [(line_id, 1)]})
+                env.seed(0)
+                obs = env.reset()
+                opponent = env._opponent
+                assert np.all(opponent._attack_times == [64, 407, 487, 522])
+                assert np.all(opponent._attack_waiting_times == [64, 312, 48, 4])
+                assert np.all(opponent._attack_durations == [31, 32, 31, 25])
+                assert np.all(opponent._number_of_attacks == 4)
+
+                # do steps just before the first attack
+                for i in range(first_attack_ts):
+                    obs, reward, done, info = env.step(env.action_space())
+
+                # i can simulate anything and it should be working
+                # opponent won't disconnect anything in simulate
+                simobs, sim_r, sim_d, sim_info = obs.simulate(env.action_space())
+                assert simobs.rho[line_id] > 0.
+                simobs, sim_r, sim_d, sim_info = obs.simulate(reco_line)
+                assert simobs.rho[line_id] > 0.
+
+                # i do a step, powerline should be disconnected even if i reconnect it
+                # => basically i check the attack has been performed
+                obs, reward, done, info = env.step(reco_line)
+                assert obs.rho[line_id] == 0.
+                assert not obs.line_status[line_id]
+
+                # check that the line disconnected cannot be reconnected
+                for i in range(opponent_attack_duration+1):
+                    simobs, sim_r, sim_d, sim_info = obs.simulate(reco_line)
+                    assert simobs.rho[line_id] == 0.
+                    assert not simobs.line_status[line_id]
+
+                # check that the opponent continue its attacks
+                for i in range(opponent_attack_duration - 1):
+                    obs, reward, done, info = env.step(reco_line)
+                    assert obs.rho[line_id] == 0.
+                    assert not obs.line_status[line_id]
+
+                # i should be able to simulate a reconnection now (attack is over)
+                simobs, sim_r, sim_d, sim_info = obs.simulate(reco_line)
+                assert simobs.rho[line_id] > 0.
+                assert simobs.line_status[line_id]
+                # this should not affect the environment
+                assert obs.rho[line_id] == 0.
+                assert not obs.line_status[line_id]
+
+                # and now that i'm able to reconnect the powerline in the real environment
+                obs, reward, done, info = env.step(reco_line)
+                assert obs.rho[line_id] > 0.
+                assert obs.line_status[line_id]
 
 
 if __name__ == "__main__":

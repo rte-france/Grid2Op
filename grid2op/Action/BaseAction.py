@@ -743,6 +743,26 @@ class BaseAction(GridObjects):
             component ``True`` if the substation is impacted by the action, and ``False`` otherwise. See
             :attr:`BaseAction._subs_impacted` for more information.
 
+        Examples
+        --------
+
+        You can use this function like;
+
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...  # chose an environment
+            env = grid2op.make(env_name)
+
+            # get an action
+            action = env.action_space.sample()
+            # inspect its impact
+            lines_impacted, subs_impacted = action.get_topological_impact()
+
+            for line_id in np.where(lines_impacted)[0]:
+                print(f"The line {env.name_line[line_id]} with id {line_id} is impacted by this action")
+
+            print(action)
         """
         if powerline_status is None:
             isnotconnected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
