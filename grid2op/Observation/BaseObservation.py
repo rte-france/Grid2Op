@@ -188,6 +188,9 @@ class BaseObservation(GridObjects):
     curtailment_limit: :class:`numpy.ndarray`, dtype:float
         Limit (in ratio of gen_pmax) imposed on each renewable generator.
 
+    current_step: ``int``
+        Current number of step performed up until this observation (NB this is not given in the observation if
+        it is transformed into a vector)
     """
 
     _attr_eq = ["line_status",
@@ -315,6 +318,9 @@ class BaseObservation(GridObjects):
         self.load_theta = np.empty(shape=self.n_load, dtype=dt_float)
         self.gen_theta = np.empty(shape=self.n_gen, dtype=dt_float)
         self.storage_theta = np.empty(shape=self.n_storage, dtype=dt_float)
+
+        # counter
+        self.current_step = 0
 
     def state_of(self,
                  _sentinel=None,
@@ -697,10 +703,10 @@ class BaseObservation(GridObjects):
         self.gen_p_before_curtail[:] = 0.
 
         # cooldown
-        self.time_before_cooldown_line[:] = 99999
-        self.time_before_cooldown_sub[:] = 99999
-        self.time_next_maintenance[:] = 99999
-        self.duration_next_maintenance[:] = 99999
+        self.time_before_cooldown_line[:] = 0
+        self.time_before_cooldown_sub[:] = 0
+        self.time_next_maintenance[:] = -1
+        self.duration_next_maintenance[:] = 0
 
         # overflow
         self.timestep_overflow[:] = 0

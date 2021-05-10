@@ -103,7 +103,10 @@ class ObservationSpace(SerializableObservationSpace):
                                      legalActClass=copy.deepcopy(env._legalActClass),
                                      other_rewards=other_rewards,
                                      helper_action_class=env._helper_action_class,
-                                     helper_action_env=env._helper_action_env)
+                                     helper_action_env=env._helper_action_env,
+                                     epsilon_poly=env._epsilon_poly,
+                                     tol_poly=env._tol_poly,
+                                     )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
 

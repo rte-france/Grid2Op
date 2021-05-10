@@ -89,6 +89,12 @@ class SerializableSpace(GridObjects, RandomObject):
             self.subtype = subtype.init_grid(gridobj)
         else:
             self.subtype = subtype
+
+        from grid2op.Action import BaseAction  # lazy import to avoid circular reference
+        from grid2op.Observation import BaseObservation  # lazy import to avoid circular reference
+        if not issubclass(subtype, (BaseAction, BaseObservation)):
+            raise RuntimeError(f"\"subtype\" should inherit either BaseAction or BaseObservation. Currently it "
+                               f"is \"{subtype}\"")
         self._template_obj = self.subtype()
         self.n = self._template_obj.size()
 

@@ -244,13 +244,6 @@ class Environment(BaseEnv):
                                                             actionClass=CompleteAction,
                                                             legal_action=self._game_rules.legal_action)
 
-        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
-        self._observation_space = self._helper_observation_class(gridobj=bk_type,
-                                                                 observationClass=observationClass,
-                                                                 actionClass=actionClass,
-                                                                 rewardClass=rewardClass,
-                                                                 env=self)
-
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
             raise Grid2OpException(
@@ -262,6 +255,15 @@ class Environment(BaseEnv):
                                          self.name_line, self.name_sub,
                                          names_chronics_to_backend=names_chronics_to_backend)
         self.names_chronics_to_backend = names_chronics_to_backend
+
+        # this needs to be done after the chronics handler: rewards might need information
+        # about the chronics to work properly.
+        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
+        self._observation_space = self._helper_observation_class(gridobj=bk_type,
+                                                                 observationClass=observationClass,
+                                                                 actionClass=actionClass,
+                                                                 rewardClass=rewardClass,
+                                                                 env=self)
 
         # test to make sure the backend is consistent with the chronics generator
         self.chronics_handler.check_validity(self.backend)
@@ -313,6 +315,39 @@ class Environment(BaseEnv):
 
         # reset everything to be consistent
         self._reset_vectors_and_timings()
+
+    def max_episode_duration(self):
+        """
+        Return the maximum duration (in number of steps) of the current episode.
+
+        Notes
+        -----
+        For possibly infinite episode, the duration is returned as `np.iinfo(np.int32).max` which corresponds
+        to the maximum 32 bit integer (usually `2147483647`)
+
+        """
+        tmp = dt_int(self.chronics_handler.max_episode_duration())
+        if tmp < 0:
+            tmp = dt_int(np.iinfo(dt_int).max)
+        return tmp
+
+    def set_max_iter(self, max_iter):
+        """
+
+        Parameters
+        ----------
+        max_iter: ``int``
+            The maximum number of iteration you can do before reaching the end of the episode. Set it to "-1" for
+            possibly infinite episode duration.
+
+        Notes
+        -------
+
+        Maximum length of the episode can depend on the chronics used. See :attr:`Environment.chronics_handler` for
+        more information
+
+        """
+        self.chronics_handler.set_max_iter(max_iter)
 
     @property
     def _helper_observation(self):

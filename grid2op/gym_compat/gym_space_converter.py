@@ -11,6 +11,7 @@ import numpy as np
 import copy
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
+from grid2op.gym_compat.utils import check_gym_version
 
 
 class _BaseGymSpaceConverter(spaces.Dict):
@@ -23,6 +24,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
 
     """
     def __init__(self, dict_gym_space, dict_variables=None):
+        check_gym_version()
         spaces.Dict.__init__(self, dict_gym_space)
         self._keys_encoding = {}
         if dict_variables is not None:
@@ -32,10 +34,14 @@ class _BaseGymSpaceConverter(spaces.Dict):
 
     @staticmethod
     def _generic_gym_space(dt, sh, low=None, high=None):
-        if low is None:
-            low = np.iinfo(dt).min
-        if high is None:
-            high = np.iinfo(dt).max
+        if dt == dt_int:
+            if low is None:
+                low = np.iinfo(dt).min
+            if high is None:
+                high = np.iinfo(dt).max
+        else:
+            low = -np.inf
+            high = +np.inf
         shape = (sh,)
         my_type = spaces.Box(low=dt.type(low), high=dt.type(high), shape=shape, dtype=dt)
         return my_type
@@ -207,3 +213,16 @@ class _BaseGymSpaceConverter(spaces.Dict):
             if k in attr_names:
                 res = res.reencode_space(k, None)
         return res
+
+    def seed(self, seed=None):
+        """Seed the PRNG of this space.
+        see issue https://github.com/openai/gym/issues/2166
+        of openAI gym
+        """
+        seeds = super(spaces.Dict, self).seed(seed)
+        sub_seeds = seeds
+        max_ = np.iinfo(int).max
+        for i, space_key in enumerate(sorted(self.spaces.keys())):
+            sub_seed = self.np_random.randint(max_)
+            sub_seeds.append(self.spaces[space_key].seed(sub_seed))
+        return sub_seeds

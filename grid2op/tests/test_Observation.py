@@ -1428,6 +1428,30 @@ class TestSimulateEqualsStep(unittest.TestCase):
         assert abs(rew1 - rew3) <= 1e-8, "issue with reward"
         self._check_equal(sim_obs1, sim_obs3)
 
+    def test_nb_step(self):
+        obs = self.env.reset()
+        sim_obs1, rew1, done1, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
+        sim_obs3, rew3, done3, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        assert obs.current_step == 0
+        assert sim_obs1.current_step == 1
+        assert sim_obs2.current_step == 1
+        assert sim_obs3.current_step == 1
+
+        obs, *_ = self.env.step(self.env.action_space())
+        sim_obs1, rew1, done1, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        assert obs.current_step == 1
+        assert sim_obs1.current_step == 2
+
+        obs = self.env.reset()
+        sim_obs1, rew1, done1, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
+        sim_obs3, rew3, done3, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        assert obs.current_step == 0
+        assert sim_obs1.current_step == 1
+        assert sim_obs2.current_step == 1
+        assert sim_obs3.current_step == 1
+
 
 class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
     def setUp(self):

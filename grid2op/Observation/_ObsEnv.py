@@ -52,11 +52,15 @@ class _ObsEnv(BaseEnv):
                  legalActClass,
                  helper_action_class,
                  helper_action_env,
+                 epsilon_poly,
+                 tol_poly,
                  other_rewards={}):
         BaseEnv.__init__(self,
                          copy.deepcopy(parameters),
                          thermal_limit_a,
-                         other_rewards=other_rewards)
+                         other_rewards=other_rewards,
+                         epsilon_poly=epsilon_poly,
+                         tol_poly=tol_poly)
         self._helper_action_class = helper_action_class
         self._reward_helper = reward_helper
         self._obsClass = None
@@ -118,6 +122,9 @@ class _ObsEnv(BaseEnv):
         self._gen_before_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
         self._sum_curtailment_mw_init = 0.
         self._sum_curtailment_mw_prev_init = 0.
+
+        # step count
+        self._nb_time_step_init = 0
 
     def _init_myclass(self):
         """this class has already all the powergrid information: it is initialized in the obs space !"""
@@ -359,6 +366,9 @@ class _ObsEnv(BaseEnv):
         self._sum_curtailment_mw = self._sum_curtailment_mw_init
         self._sum_curtailment_mw_prev = self._sum_curtailment_mw_prev_init
 
+        # current step
+        self.nb_time_step = self._nb_time_step_init
+
     def simulate(self, action):
         """
         INTERNAL
@@ -485,6 +495,9 @@ class _ObsEnv(BaseEnv):
 
         # time delta
         self.delta_time_seconds = env.delta_time_seconds
+
+        # current time
+        self._nb_time_step_init = env.nb_time_step
 
     def get_current_line_status(self):
         return self._line_status == 1

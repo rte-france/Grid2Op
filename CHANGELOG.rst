@@ -24,10 +24,42 @@ Change Log
 
 [1.5.2] - 2021-xx-yy
 -----------------------
-
+- [BREAKING]: allow the opponent to chose the duration of its attack. This breaks the previous "Opponent.attack(...)"
+  signature by adding an object in the return value. All code provided with grid2op are compatible with this
+  new change. (for previously coded opponent, the only thing you have to do to make it compliant with
+  the new interface is, in the `opponent.attack(...)` function return `whatever_you_returned_before, None` instead
+  of simply `whatever_you_returned_before`
+- [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related to the
+  low / high of the observation if using the gym_compat module. Some more protections
+  are enforced now.
+- [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related the scaling when negative
+  numbers are used (in these cases low / max would be mixed up)
+- [FIXED]: an issue with the `IncreasingFlatReward` reward types
+- [FIXED]: a bug due to the conversion of int to float in the range of the `BoxActionSpace` for the `gym_compat` module
+- [FIXED]: a bug in the `BoxGymActSpace`, `BoxGymObsSpace`, `MultiDiscreteActSpace` and `DiscreteActSpace`
+  where the order of the attribute for the conversion
+  was encoded in a set. We enforced a sorted list now. We did not manage to find a bug caused by this issue, but
+  it is definitely possible. This has been fixed now.
+- [FIXED]: a bug where, when an observation was set to a "game over" state, some of its attributes were below the
+  maximum values allowed in the `BoxGymObsSpace`
+- [ADDED]: a reward `EpisodeDurationReward` that is always 0 unless at the end of an episode where it returns a float
+  proportional to the number of step made from the beginning of the environment.
+- [ADDED]: in the `Observation` the possibility to retrieve the current number of steps
+- [ADDED]: easier function to manipulate the max number of iteration we want to perform directly from the environment
+- [ADDED]: function to retrieve the maximum duration of the current episode.
+- [ADDED]: a new kind of opponent that is able to attack at "more random" times with "more random" duration.
+  See the `GeometricOpponent`.
+- [IMPROVED]: on windows at least, grid2op does not work with gym < 0.17.2 Checks are performed in order to make sure
+  the installed open ai gym package meets this requirement (see issue
+  `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
+- [IMPROVED] the seed of openAI gym for composed action space (see issue `https://github.com/openai/gym/issues/2166`):
+  in waiting for an official fix, grid2op will use the solution proposed there
+  https://github.com/openai/gym/issues/2166#issuecomment-803984619 )
 
 [1.5.1] - 2021-04-15
 -----------------------
+- [FIXED]: `Issue#194 <https://github.com/rte-france/Grid2Op/issues/194>`_: (post release): change the name
+  of the file `platform.py` that could be mixed with the python "platform" module to `_glop_platform_info.py`
 - [FIXED]: `Issue #187 <https://github.com/rte-france/Grid2Op/issues/187>`_: improve the computation and the
   documentation of the `RedispReward`. This has an impact on the `env.reward_range` of all environments using this
   reward, because the old "reward_max" was not correct.

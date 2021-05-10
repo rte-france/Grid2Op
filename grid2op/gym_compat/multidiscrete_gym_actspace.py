@@ -14,7 +14,7 @@ from gym.spaces import MultiDiscrete, Box
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 
-from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
+from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE, check_gym_version
 
 
 class MultiDiscreteActSpace(MultiDiscrete):
@@ -150,7 +150,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
                  attr_to_keep=ALL_ATTR,
                  nb_bins=None
                  ):
-
+        check_gym_version()
         if not isinstance(grid2op_action_space, ActionSpace):
             raise RuntimeError(f"Impossible to create a BoxGymActSpace without providing a "
                                f"grid2op action_space. You provided {type(grid2op_action_space)}"
@@ -174,7 +174,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
                               f"Consider using the \"BoxGymActSpace\" for these attributes."
                               )
 
-        self._attr_to_keep = attr_to_keep
+        self._attr_to_keep = sorted(attr_to_keep)
 
         act_sp = grid2op_action_space
         self._act_space = copy.deepcopy(grid2op_action_space)

@@ -9,6 +9,7 @@
 import gym
 from grid2op.gym_compat.gym_obs_space import GymObservationSpace
 from grid2op.gym_compat.gym_act_space import GymActionSpace
+from grid2op.gym_compat.utils import check_gym_version
 
 
 class GymEnv(gym.Env):
@@ -39,6 +40,7 @@ class GymEnv(gym.Env):
 
     """
     def __init__(self, env_init):
+        check_gym_version()
         self.init_env = env_init.copy()
         self.action_space = GymActionSpace(self.init_env)
         self.observation_space = GymObservationSpace(self.init_env)

@@ -1488,7 +1488,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 dictionary with keys:
 
                     - "disc_lines": a numpy array (or ``None``) saying, for each powerline if it has been disconnected
-                        due to overflow
+                      due to overflow
                     - "is_illegal" (``bool``) whether the action given as input was illegal
                     - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
                     - "is_dispatching_illegal" (``bool``) was the action illegal due to redispatching
@@ -1551,6 +1551,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         lines_attacked, subs_attacked = None, None
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
+
         beg_step = time.time()
         try:
             beg_ = time.time()
