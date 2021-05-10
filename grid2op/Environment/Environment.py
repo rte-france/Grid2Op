@@ -173,6 +173,7 @@ class Environment(BaseEnv):
         if exc_ is not None:
             warnings.warn(f"No layout have been found for you grid (or the layout provided was corrupted). You will "
                           f"not be able to use the renderer, plot the grid etc. The error was \"{exc_}\"")
+
         # alarm set up
         self.load_alarm_data()
 
