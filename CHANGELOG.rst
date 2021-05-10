@@ -27,7 +27,7 @@ Change Log
 --------------------
 - [ADDED] support for the "alarm operator" / "attention budget" feature
 
-[1.5.2] - 2021-xx-yy
+[1.5.2] - 2021-05-10
 -----------------------
 - [BREAKING]: allow the opponent to chose the duration of its attack. This breaks the previous "Opponent.attack(...)"
   signature by adding an object in the return value. All code provided with grid2op are compatible with this
