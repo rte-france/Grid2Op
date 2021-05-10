@@ -24,6 +24,7 @@ from grid2op.Reward import BaseReward, L2RPNReward
 from grid2op.Rules import BaseRules, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent, BaseActionBudget, NeverAttackBudget
+from grid2op.operator_attention import LinearAttentionBudget
 
 from grid2op.MakeEnv.get_default_aux import _get_default_aux
 
@@ -69,6 +70,11 @@ ERR_MSG_KWARGS = {
     "kwargs_opponent": "The extra kwargs argument used to properly initialized the opponent "
                        "(\"kwargs_opponent\") should "
                        "be a dictionary.",
+    "attention_budget_class": "The attention budget class (\"attention_budget_class\") should derive from "
+                              "\"LinearAttentionBudget\".",
+    "kwargs_attention_budget": "The extra kwargs argument used to properly initialized the attention budget "
+                               "(\"kwargs_attention_budget\") should "
+                               "be a dictionary.",
     DIFFICULTY_NAME: "Unknown difficulty level {difficulty} for this environment. Authorized difficulties are "
                      "{difficulties}"
 }
@@ -507,6 +513,26 @@ def make_from_dataset_path(dataset_path="/",
                                        msg_error=ERR_MSG_KWARGS["kwargs_opponent"],
                                        isclass=False)
 
+    # attention budget
+    attention_budget_class_cfg = LinearAttentionBudget
+    if "attention_budget_class" in config_data and config_data["attention_budget_class"] is not None:
+        attention_budget_class_cfg = config_data["attention_budget_class"]
+    attention_budget_class = _get_default_aux("attention_budget_class",
+                                              kwargs,
+                                              defaultClassApp=LinearAttentionBudget,
+                                              defaultClass=attention_budget_class_cfg,
+                                              msg_error=ERR_MSG_KWARGS["attention_budget_class"],
+                                              isclass=True)
+
+    kwargs_attention_budget_cfg = {}
+    if "kwargs_attention_budget" in config_data and config_data["kwargs_attention_budget"] is not None:
+        kwargs_attention_budget_cfg = config_data["kwargs_attention_budget"]
+    kwargs_attention_budget = _get_default_aux("kwargs_attention_budget", kwargs,
+                                               defaultClassApp=dict,
+                                               defaultinstance=kwargs_attention_budget_cfg,
+                                               msg_error=ERR_MSG_KWARGS["kwargs_attention_budget"],
+                                               isclass=False)
+
     # Finally instanciate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
                       chronics_handler=data_feeding,
@@ -528,6 +554,8 @@ def make_from_dataset_path(dataset_path="/",
                       opponent_budget_per_ts=opponent_budget_per_ts,
                       opponent_budget_class=opponent_budget_class,
                       kwargs_opponent=kwargs_opponent,
+                      attention_budget_cls=attention_budget_class,
+                      kwargs_attention_budget=kwargs_attention_budget,
                       _compat_glop_version=_compat_glop_version
                       )
 

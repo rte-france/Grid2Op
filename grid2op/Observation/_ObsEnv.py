@@ -43,6 +43,7 @@ class _ObsEnv(BaseEnv):
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
     def __init__(self,
+                 init_grid_path,
                  backend_instanciated,
                  parameters,
                  reward_helper,
@@ -56,6 +57,7 @@ class _ObsEnv(BaseEnv):
                  tol_poly,
                  other_rewards={}):
         BaseEnv.__init__(self,
+                         init_grid_path,
                          copy.deepcopy(parameters),
                          thermal_limit_a,
                          other_rewards=other_rewards,
@@ -75,8 +77,7 @@ class _ObsEnv(BaseEnv):
         self.target_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
         self.actual_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
 
-        self._init_backend(init_grid_path=None,
-                           chronics_handler=_ObsCH(),
+        self._init_backend(chronics_handler=_ObsCH(),
                            backend=backend_instanciated,
                            names_chronics_to_backend=None,
                            actionClass=action_helper.actionClass,
@@ -131,7 +132,6 @@ class _ObsEnv(BaseEnv):
         pass
 
     def _init_backend(self,
-                      init_grid_path,
                       chronics_handler,
                       backend,
                       names_chronics_to_backend,

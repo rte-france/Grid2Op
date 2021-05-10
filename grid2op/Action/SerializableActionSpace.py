@@ -39,6 +39,7 @@ class SerializableActionSpace(SerializableSpace):
     CHANGE_BUS = 3
     REDISPATCHING = 4
     STORAGE_POWER = 5
+    RAISE_ALARM = 6
 
     def __init__(self, gridobj, actionClass=BaseAction, _init_grid=True):
         """
@@ -102,6 +103,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_types.append(self.REDISPATCHING)
         if self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
             rnd_types.append(self.STORAGE_POWER)
+        if self.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
+            rnd_types.append(self.RAISE_ALARM)
         return rnd_types
 
     def supports_type(self, action_type):
@@ -145,7 +148,8 @@ class SerializableActionSpace(SerializableSpace):
                              "storage_power",
                              "set_storage",
                              "curtail",
-                             "curtail_mw"]
+                             "curtail_mw",
+                             "raise_alarm"]
         assert action_type in name_action_types, f"The action type provided should be in {name_action_types}. " \
                                                  f"You provided {action_type} which is not supported."
 
@@ -219,6 +223,13 @@ class SerializableActionSpace(SerializableSpace):
         rnd_update["storage_power"] = rnd_update["storage_power"].astype(dt_float)
         return rnd_update
 
+    def _sample_raise_alarm(self, rnd_update=None):
+        if rnd_update is None:
+            rnd_update = {}
+        rnd_area = self.space_prng.randint(self.dim_alarms)
+        rnd_update["raise_alarm"] = [rnd_area]
+        return rnd_update
+
     def sample(self):
         """
         A utility used to sample a new random :class:`BaseAction`.
@@ -270,8 +281,10 @@ class SerializableActionSpace(SerializableSpace):
         """
         rnd_act = self.actionClass()
 
-        # Cannot sample this space, return do nothing
+        # get the type of actions I am allowed to perform
         rnd_types = self._get_possible_action_types()
+
+        # Cannot sample this space, return do nothing
         if not len(rnd_types):
             return rnd_act
 
@@ -290,6 +303,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_update = self._sample_redispatch()
         elif rnd_type == self.STORAGE_POWER:
             rnd_update = self._sample_storage_power()
+        elif rnd_type == self.RAISE_ALARM:
+            rnd_update = self._sample_raise_alarm()
         else:
             raise Grid2OpException("Impossible to sample action of type {}".format(rnd_type))
 
@@ -748,6 +763,15 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
+    def get_all_unitary_alarm(action_space):
+        res = []
+        for i in range(action_space.dim_alarms):
+            status = np.full(action_space.dim_alarms, fill_value=False, dtype=dt_bool)
+            status[i] = True
+            res.append(action_space({"raise_alarm": status}))
+        return res
+
+    @staticmethod
     def get_all_unitary_line_change(action_space):
         """
         Return all unitary actions that "change" powerline status.
@@ -766,12 +790,10 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         res = []
-
         for i in range(action_space.n_line):
             status = action_space.get_change_line_status_vect()
             status[i] = True
             res.append(action_space({"change_line_status": status}))
-
         return res
 
     @staticmethod

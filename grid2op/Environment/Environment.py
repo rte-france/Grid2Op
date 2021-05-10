@@ -23,6 +23,7 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
+from grid2op.operator_attention import LinearAttentionBudget
 
 from grid2op.Backend import PandaPowerBackend
 
@@ -84,10 +85,13 @@ class Environment(BaseEnv):
                  opponent_attack_duration=0,
                  opponent_attack_cooldown=99999,
                  kwargs_opponent={},
+                 attention_budget_cls=LinearAttentionBudget,
+                 kwargs_attention_budget={},
                  _raw_backend_class=None,
                  _compat_glop_version=None,
                  ):
         BaseEnv.__init__(self,
+                         init_grid_path=init_grid_path,
                          parameters=parameters,
                          thermal_limit_a=thermal_limit_a,
                          epsilon_poly=epsilon_poly,
@@ -102,7 +106,10 @@ class Environment(BaseEnv):
                          opponent_budget_per_ts=opponent_budget_per_ts,
                          opponent_attack_duration=opponent_attack_duration,
                          opponent_attack_cooldown=opponent_attack_cooldown,
-                         kwargs_opponent=kwargs_opponent)
+                         kwargs_opponent=kwargs_opponent,
+                         attention_budget_cls=attention_budget_cls,
+                         kwargs_attention_budget=kwargs_attention_budget,
+                         )
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
@@ -124,24 +131,13 @@ class Environment(BaseEnv):
         self._compat_glop_version = _compat_glop_version
 
         # for plotting
-        self._init_backend(init_grid_path, chronics_handler, backend,
+        self._init_backend(chronics_handler, backend,
                            names_chronics_to_backend, actionClass, observationClass,
                            rewardClass, legalActClass)
         self._actionClass_orig = actionClass
         self._observationClass_orig = observationClass
 
-    def get_path_env(self):
-        """
-        Get the path that allows to create this environment.
-
-        It can be used for example in `grid2op.utils.underlying_statistics` to save the information directly inside
-        the environment data.
-
-        """
-        return os.path.split(self._init_grid_path)[0]
-
-    def _init_backend(self,
-                      init_grid_path, chronics_handler, backend,
+    def _init_backend(self, chronics_handler, backend,
                       names_chronics_to_backend, actionClass, observationClass,
                       rewardClass, legalActClass):
         """
@@ -161,8 +157,6 @@ class Environment(BaseEnv):
                                    "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
 
         # backend
-        self._init_grid_path = os.path.abspath(init_grid_path)
-
         if not isinstance(backend, Backend):
             raise Grid2OpException("Parameter \"backend\" used to build the Environment should derived form the "
                                    "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
@@ -177,6 +171,8 @@ class Environment(BaseEnv):
         if exc_ is not None:
             warnings.warn(f"No layout have been found for you grid (or the layout provided was corrupted). You will "
                           f"not be able to use the renderer, plot the grid etc. The error was \"{exc_}\"")
+        # alarm set up
+        self.load_alarm_data()
 
         # to force the initialization of the backend to the proper type
         self.backend.assert_grid_correct()
@@ -286,6 +282,9 @@ class Environment(BaseEnv):
         # create the opponent
         # At least the 3 following attributes should be set before calling _create_opponent
         self._create_opponent()
+
+        # create the attention budget
+        self._create_attention_budget()
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)

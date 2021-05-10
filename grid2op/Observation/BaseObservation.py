@@ -566,6 +566,10 @@ class BaseObservation(GridObjects):
 
             cls.attr_list_set = set(cls.attr_list_vect)
 
+        if cls.glop_version < "1.6.0":
+            # this feature did not exist before.
+            cls.dim_alarms = 0
+
     def reset(self):
         """
         INTERNAL

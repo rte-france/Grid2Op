@@ -22,6 +22,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+
+[1.6.0] - 2021-xx-yy
+--------------------
+- [ADDED] support for the "alarm operator" / "attention budget" feature
+
 [1.5.2] - 2021-xx-yy
 -----------------------
 - [BREAKING]: allow the opponent to chose the duration of its attack. This breaks the previous "Opponent.attack(...)"

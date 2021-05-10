@@ -23,8 +23,8 @@ class Issue185Tester(unittest.TestCase):
     """
     def get_list_env(self):
         res = grid2op.list_available_test_env()
-        # env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
-        # res.append(env_with_alarm)
+        env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
+        res.append(env_with_alarm)
         return res
 
     def test_issue_185(self):
@@ -43,6 +43,7 @@ class Issue185Tester(unittest.TestCase):
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
 
     def test_issue_185_act_box_space(self):
+        env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue
@@ -62,6 +63,7 @@ class Issue185Tester(unittest.TestCase):
                     assert obs in gym_env.observation_space, f"error for {env_name}"
 
     def test_issue_185_obs_box_space(self):
+        env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue

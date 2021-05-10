@@ -18,7 +18,7 @@ to manipulate.
 
 """
 import warnings
-import grid2op
+import copy
 import numpy as np
 
 import grid2op
@@ -444,9 +444,6 @@ class GridObjects:
     attr_list_json = []
     attr_nan_list_set = set()
 
-    # class been init
-    # __is_init = False
-
     # name of the objects
     env_name = "unknown"
     name_load = None
@@ -535,8 +532,23 @@ class GridObjects:
     name_shunt = None
     shunt_to_subid = None
 
+    # alarm feature
+    # dimension of the alarm "space" (number of alarm that can be raised at each step)
+    dim_alarms = 0  # TODO
+    alarms_area_names = []  # name of each area  # TODO
+    alarms_lines_area = {}  # for each lines of the grid, gives on which area(s) it is  # TODO
+    alarms_area_lines = []  # for each area in the grid, gives which powerlines it contains # TODO
+
     def __init__(self):
         pass
+
+    @classmethod
+    def tell_dim_alarm(cls, dim_alarms):
+        if cls.dim_alarms != 0:
+            # number of alarms has already been set, i issue a warning
+            warnings.warn("You will change the number of dimensions of the alarm. This might cause trouble "
+                          "if you environment is read back. We strongly recommend NOT to do this.")
+        cls.dim_alarms = dim_alarms
 
     @classmethod
     def _clear_class_attribute(cls):
@@ -644,6 +656,12 @@ class GridObjects:
         cls.n_shunt = None
         cls.name_shunt = None
         cls.shunt_to_subid = None
+
+        # alarms
+        cls.dim_alarms = 0
+        cls.alarms_area_names = []
+        cls.alarms_lines_area = {}
+        cls.alarms_area_lines = []
 
     @classmethod
     def _update_value_set(cls):
@@ -1723,7 +1741,7 @@ class GridObjects:
 
         # no empty bus: at least one element should be present on each bus
         if np.any(cls.sub_info < 1):
-            raise BackendError("There are {} bus with 0 element connected to it.".format(np.sum(self.sub_info < 1)))
+            raise BackendError("There are {} bus with 0 element connected to it.".format(np.sum(cls.sub_info < 1)))
 
         # redispatching / unit commitment
         if cls.redispatching_unit_commitment_availble:
@@ -1735,6 +1753,57 @@ class GridObjects:
 
         # storage data
         cls._check_validity_storage_data()
+
+        # alarm data
+        cls._check_validity_alarm_data()
+
+    @classmethod
+    def _check_validity_alarm_data(cls):
+        if cls.dim_alarms == 0:
+            # no alarm data
+            assert cls.alarms_area_names == [], "No alarm data is provided, yet cls.alarms_area_names != []"
+            assert cls.alarms_lines_area == {}, "No alarm data is provided, yet cls.alarms_lines_area != {}"
+            assert cls.alarms_area_lines == [], "No alarm data is provided, yet cls.alarms_area_lines != []"
+        elif cls.dim_alarms < 0:
+            raise EnvError(f"The number of areas for the alarm feature should be >= 0. It currently is {cls.dim_alarms}")
+        else:
+            # the "alarm" feature is supported
+            assert isinstance(cls.alarms_area_names, list), "cls.alarms_area_names should be a list"
+            assert isinstance(cls.alarms_lines_area, dict), "cls.alarms_lines_area should be a dict"
+            assert isinstance(cls.alarms_area_lines, list), "cls.alarms_area_lines should be a dict"
+            assert len(cls.alarms_area_names) == cls.dim_alarms, "len(cls.alarms_area_names) != cls.dim_alarms"
+            names_to_id = {nm: id_ for id_, nm in enumerate(cls.alarms_area_names)}
+
+            # check that information in alarms_lines_area and alarms_area_lines match
+            for l_nm, li_area in cls.alarms_lines_area.items():
+                for area_nm in li_area:
+                    area_id = names_to_id[area_nm]
+                    all_lines_this_area = cls.alarms_area_lines[area_id]
+                    assert l_nm in all_lines_this_area, f"line \"{l_nm}\" is said to belong to area \"{area_nm}\" " \
+                                                        f"in cls.alarms_lines_area yet when looking for the lines in " \
+                                                        f"this " \
+                                                        f"area in cls.alarms_area_lines, this line is not in there"
+
+            for area_id, all_lines_this_area in enumerate(cls.alarms_area_lines):
+                area_nm = cls.alarms_area_names[area_id]
+                for l_nm in all_lines_this_area:
+                    assert area_nm in cls.alarms_lines_area[l_nm], f"line \"{l_nm}\" is said to belong to area " \
+                                                                   f"\"{area_nm}\" " \
+                                                                   f"in cls.alarms_area_lines yet when looking for " \
+                                                                   f"the areas where this line belong in " \
+                                                                   f"cls.alarms_lines_area it appears it does not " \
+                                                                   f"belong there."
+
+            # now check that all lines are in at least one area
+            for line, li_area in cls.alarms_lines_area.items():
+                # check that all lines in the grid are in at least one area
+                if not li_area:
+                    raise EnvError(f"Line (on the grid) named {line} is not in any area. This is not supported at "
+                                   f"the moment")
+            # finally check that all powerlines are represented in the dictionary:
+            for l_nm in cls.name_line:
+                if l_nm not in cls.alarms_lines_area:
+                    raise EnvError(f"The powerline \"{l_nm}\" is not in cls.alarms_lines_area")
 
     @classmethod
     def _check_validity_storage_data(cls):
@@ -2084,7 +2153,9 @@ class GridObjects:
 
         This is called when the class is initialized, with `init_grid` to broadcast grid2op compatibility feature.
         """
-        pass
+        if cls.glop_version < "1.6.0":
+            # this feature did not exist before.
+            cls.dim_alarms = 0
 
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
@@ -2559,6 +2630,18 @@ class GridObjects:
         save_to_dict(res, cls, "storage_discharging_efficiency",
                      (lambda li: [float(el) for el in li]) if as_list else None,
                      copy_)
+
+        # area for the alarm feature
+        res["dim_alarms"] = cls.dim_alarms
+        save_to_dict(res, cls, "alarms_area_names",
+                     (lambda li: [str(el) for el in li]),
+                     copy_)
+        save_to_dict(res, cls, "alarms_lines_area",
+                     (lambda dict_: {str(l_nm): [str(ar_nm) for ar_nm in areas] for l_nm, areas in dict_.items()}),
+                     copy_)
+        save_to_dict(res, cls, "alarms_area_lines",
+                     (lambda lili: [[str(l_nm) for l_nm in lines] for lines in lili]),
+                     copy_)
         return res
 
     @staticmethod
@@ -2726,6 +2809,14 @@ class GridObjects:
             # cls.set_env_name(f"{cls.env_name}_{cls.glop_version}")
             # and now post process the class attributes for that
             cls.process_grid2op_compat()
+
+        # alarm information
+        if "dim_alarms" in dict_:
+            # NB by default the constructor do as if there were no alarm so that's great !
+            cls.dim_alarms = dict_["dim_alarms"]
+            cls.alarms_area_names = copy.deepcopy(dict_["alarms_area_names"])
+            cls.alarms_lines_area = copy.deepcopy(dict_["alarms_lines_area"])
+            cls.alarms_area_lines = copy.deepcopy(dict_["alarms_area_lines"])
 
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
