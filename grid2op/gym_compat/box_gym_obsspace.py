@@ -135,7 +135,7 @@ class BoxGymObsSpace(Box):
             raise RuntimeError(f"Impossible to create a BoxGymObsSpace without providing a "
                                f"grid2op observation. You provided {type(grid2op_observation_space)}"
                                f"as the \"grid2op_observation_space\" attribute.")
-        self._attr_to_keep = attr_to_keep
+        self._attr_to_keep = sorted(attr_to_keep)
 
         ob_sp = grid2op_observation_space
         tol_redisp = ob_sp.obs_env._tol_poly  # add to gen_p otherwise ... well it can crash
@@ -218,8 +218,8 @@ class BoxGymObsSpace(Box):
                             np.full(shape=(ob_sp.n_line,), fill_value=1, dtype=dt_int),
                             (ob_sp.n_line,),
                             dt_int),
-            "timestep_overflow": (np.full(shape=(ob_sp.n_line,), fill_value=-np.inf, dtype=dt_int),
-                                  np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+            "timestep_overflow": (np.full(shape=(ob_sp.n_line,), fill_value=np.iinfo(dt_int).min, dtype=dt_int),
+                                  np.full(shape=(ob_sp.n_line,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                                   (ob_sp.n_line,),
                                   dt_int),
             "topo_vect": (np.full(shape=(ob_sp.dim_topo,), fill_value=-1, dtype=dt_int),
@@ -227,19 +227,19 @@ class BoxGymObsSpace(Box):
                           (ob_sp.dim_topo,),
                           dt_int),
             "time_before_cooldown_line": (np.full(shape=(ob_sp.n_line,), fill_value=0, dtype=dt_int),
-                                          np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+                                          np.full(shape=(ob_sp.n_line,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                                           (ob_sp.n_line,),
                                           dt_int),
             "time_before_cooldown_sub": (np.full(shape=(ob_sp.n_sub,), fill_value=0, dtype=dt_int),
-                                         np.full(shape=(ob_sp.n_sub,), fill_value=np.inf, dtype=dt_int),
+                                         np.full(shape=(ob_sp.n_sub,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                                          (ob_sp.n_sub,),
                                          dt_int),
             "time_next_maintenance": (np.full(shape=(ob_sp.n_line,), fill_value=-1, dtype=dt_int),
-                                      np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+                                      np.full(shape=(ob_sp.n_line,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                                       (ob_sp.n_line,),
                                       dt_int),
             "duration_next_maintenance": (np.full(shape=(ob_sp.n_line,), fill_value=0, dtype=dt_int),
-                                          np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+                                          np.full(shape=(ob_sp.n_line,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                                           (ob_sp.n_line,),
                                           dt_int),
             "target_dispatch": (np.minimum(ob_sp.gen_pmin, -ob_sp.gen_pmax),
