@@ -127,7 +127,7 @@ class DiscreteActSpace(Discrete):
                               f"Consider using the \"BoxGymActSpace\" for these attributes."
                               )
 
-        self._attr_to_keep = attr_to_keep
+        self._attr_to_keep = sorted(attr_to_keep)
         self._nb_bins = nb_bins
 
         self.dict_properties = {

@@ -316,6 +316,39 @@ class Environment(BaseEnv):
         # reset everything to be consistent
         self._reset_vectors_and_timings()
 
+    def max_episode_duration(self):
+        """
+        Return the maximum duration (in number of steps) of the current episode.
+
+        Notes
+        -----
+        For possibly infinite episode, the duration is returned as `np.iinfo(np.int32).max` which corresponds
+        to the maximum 32 bit integer (usually `2147483647`)
+
+        """
+        tmp = dt_int(self.chronics_handler.max_episode_duration())
+        if tmp < 0:
+            tmp = dt_int(np.iinfo(dt_int).max)
+        return tmp
+
+    def set_max_iter(self, max_iter):
+        """
+
+        Parameters
+        ----------
+        max_iter: ``int``
+            The maximum number of iteration you can do before reaching the end of the episode. Set it to "-1" for
+            possibly infinite episode duration.
+
+        Notes
+        -------
+
+        Maximum length of the episode can depend on the chronics used. See :attr:`Environment.chronics_handler` for
+        more information
+
+        """
+        self.chronics_handler.set_max_iter(max_iter)
+
     @property
     def _helper_observation(self):
         return self._observation_space

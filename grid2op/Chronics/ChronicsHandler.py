@@ -69,9 +69,9 @@ class ChronicsHandler(RandomObject):
         try:
             self._real_data = self.chronicsClass(time_interval=time_interval, max_iter=self.max_iter,
                                                  **self.kwargs)
-        except TypeError:
+        except TypeError as exc_:
             raise ChronicsError("Impossible to build a chronics of type {} with arguments in "
-                                "{}".format(chronicsClass, self.kwargs))
+                                "{}".format(chronicsClass, self.kwargs)) from exc_
 
     @property
     def real_data(self):
@@ -86,6 +86,28 @@ class ChronicsHandler(RandomObject):
         """
         res = self._real_data.load_next()
         return res
+
+    def max_episode_duration(self):
+        """
+        Returns
+        -------
+        max_duration: ``int``
+            The maximum duration of the current episode
+        Notes
+        -----
+        Using this function (which we do not recommend) you will receive "-1" for "infinite duration" otherwise
+        you will receive a positive integer
+
+        """
+        tmp = self.max_iter
+        if tmp == -1:
+            # tmp = -1 means "infinite duration" but in this case, i can have a limit
+            # due to the data used (especially if read from files)
+            tmp = self._real_data.max_timestep()
+        else:
+            # i can also have a limit on the maximum number of data in the chronics (especially if read from files)
+            tmp = min(tmp, self._real_data.max_timestep())
+        return tmp
 
     def get_name(self):
         """
@@ -104,15 +126,18 @@ class ChronicsHandler(RandomObject):
         Parameters
         ----------
         max_iter: ``int``
-            The maximum number of timestep in the chronics.
-
-        Returns
-        -------
+            The maximum number of steps that can be done before reaching the end of the episode
 
         """
 
         if not isinstance(max_iter, int):
             raise Grid2OpException("The maximum number of iterations possible for this chronics, before it ends.")
+        if max_iter == 0:
+            raise Grid2OpException("The maximum number of iteration should be > 0 (or -1 if you mean "
+                                   "\"don't limit it\")")
+        elif max_iter < -1:
+            raise Grid2OpException("The maximum number of iteration should be > 0 (or -1 if you mean "
+                                   "\"don't limit it\")")
         self.max_iter = max_iter
         self._real_data.max_iter = max_iter
 

@@ -703,10 +703,10 @@ class BaseObservation(GridObjects):
         self.gen_p_before_curtail[:] = 0.
 
         # cooldown
-        self.time_before_cooldown_line[:] = 99999
-        self.time_before_cooldown_sub[:] = 99999
-        self.time_next_maintenance[:] = 99999
-        self.duration_next_maintenance[:] = 99999
+        self.time_before_cooldown_line[:] = 0
+        self.time_before_cooldown_sub[:] = 0
+        self.time_next_maintenance[:] = -1
+        self.duration_next_maintenance[:] = 0
 
         # overflow
         self.timestep_overflow[:] = 0

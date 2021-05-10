@@ -35,9 +35,20 @@ Change Log
 - [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related the scaling when negative
   numbers are used (in these cases low / max would be mixed up)
 - [FIXED]: an issue with the `IncreasingFlatReward` reward types
+- [FIXED]: a bug due to the conversion of int to float in the range of the `BoxActionSpace` for the `gym_compat` module
+- [FIXED]: a bug in the `BoxGymActSpace`, `BoxGymObsSpace`, `MultiDiscreteActSpace` and `DiscreteActSpace`
+  where the order of the attribute for the conversion
+  was encoded in a set. We enforced a sorted list now. We did not manage to find a bug caused by this issue, but
+  it is definitely possible. This has been fixed now.
+- [FIXED]: a bug where, when an observation was set to a "game over" state, some of its attributes were below the
+  maximum values allowed in the `BoxGymObsSpace`
 - [ADDED]: a reward `EpisodeDurationReward` that is always 0 unless at the end of an episode where it returns a float
   proportional to the number of step made from the beginning of the environment.
 - [ADDED]: in the `Observation` the possibility to retrieve the current number of steps
+- [ADDED]: easier function to manipulate the max number of iteration we want to perform directly from the environment
+- [ADDED]: function to retrieve the maximum duration of the current episode.
+- [ADDED]: a new kind of opponent that is able to attack at "more random" times with "more random" duration.
+  See the `GeometricOpponent`.
 - [IMPROVED]: on windows at least, grid2op does not work with gym < 0.17.2 Checks are performed in order to make sure
   the installed open ai gym package meets this requirement (see issue
   `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
