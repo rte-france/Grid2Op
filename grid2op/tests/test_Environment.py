@@ -852,6 +852,8 @@ class TestAlarmFeature(unittest.TestCase):
             assert abs(env._attention_budget._current_budget - 0.) <= 1e-6
 
     def test_budget_increases_ok(self):
+        """test the attention budget properly increases when no alarm are raised
+        and that it does not exceed the maximum value"""
         # check increaes ok normally
         self.env.step(self.env.action_space())
         assert abs(self.env._attention_budget._current_budget - (3 + 1. / (12. * 8.))) <= 1e-6
@@ -890,24 +892,47 @@ class TestAlarmFeature(unittest.TestCase):
         assert abs(self.env._attention_budget._current_budget - 3) <= 1e-6
 
     def test_illegal_action(self):
+        """illegal action should not modify the alarm budget"""
+        th_budget = 3.
         act = self.env.action_space()
         arr = 1 * act.set_bus
         arr[:12] = 1
         act.set_bus = arr
         obs, reward, done, info = self.env.step(act)
         assert info["is_illegal"]
-        assert abs(self.env._attention_budget._current_budget - 3.) <= 1e-6
-        assert abs(self.env._attention_budget._current_budget - 3) <= 1e-6
+        assert abs(self.env._attention_budget._current_budget - th_budget) <= 1e-6
+        assert abs(self.env._attention_budget._current_budget - th_budget) <= 1e-6
+
+        act = self.env.action_space()
+        arr = 1 * act.set_bus
+        arr[:12] = 1
+        act.set_bus = arr
+        act.raise_alarm = [0]
+        obs, reward, done, info = self.env.step(act)
+        assert info["is_illegal"]
+        assert abs(self.env._attention_budget._current_budget - th_budget) <= 1e-6
+        assert abs(self.env._attention_budget._current_budget - th_budget) <= 1e-6
 
     def test_ambiguous_action(self):
+        """ambiguous action should not modify the alarm budget"""
+        th_budget = 3.
         act = self.env.action_space()
         act.set_bus = [(0, 1)]
         act.change_bus = [0]
         obs, reward, done, info = self.env.step(act)
         assert info["is_ambiguous"]
-        assert abs(self.env._attention_budget._current_budget - 3.) <= 1e-6
+        assert abs(self.env._attention_budget._current_budget - th_budget) <= 1e-6
+
+        act = self.env.action_space()
+        act.set_bus = [(0, 1)]
+        act.change_bus = [0]
+        act.raise_alarm = [0]
+        obs, reward, done, info = self.env.step(act)
+        assert info["is_ambiguous"]
+        assert abs(self.env._attention_budget._current_budget - th_budget) <= 1e-6
 
     def test_alarm_obs_noalarm(self):
+        """test the observation is behaving correctly concerning the alarm part, when i don't send alarms"""
         obs = self.env.reset()
         assert abs(self.env._attention_budget._current_budget - 3.) <= 1e-6
         assert abs(obs.attention_budget - 3.) <= 1e-6
@@ -918,6 +943,7 @@ class TestAlarmFeature(unittest.TestCase):
         assert obs.time_since_last_alarm == -1
 
     def test_alarm_obs_whenalarm(self):
+        """test the observation is behaving correctly concerning the alarm part, when i send alarms"""
         act = self.env.action_space()
         act.raise_alarm = [0]
         obs, reward, done, info = self.env.step(act)
@@ -1015,7 +1041,8 @@ class TestAlarmFeature(unittest.TestCase):
         assert not done
         assert reward == 0
 
-    def test_alarm_reward(self):
+    def test_alarm_reward_simple(self):
+        """very basic test for the reward and """
         # normal step, no game over => 0
         obs, reward, done, info = self.env.step(self.env.action_space())
         assert reward == 0
@@ -1028,9 +1055,11 @@ class TestAlarmFeature(unittest.TestCase):
         obs, reward, done, info = self.env.step(self.env.action_space())
         assert done
         assert reward == +1
+        assert not obs.was_alarm_used_after_game_over
 
+    def test_reward_game_over_connex(self):
+        """test i don't get any points if there is a game over for non connex grid"""
         # game over not due to line disconnection, no points
-        obs = self.env.reset()
         obs = self.env.reset()
         act_ko = self.env.action_space()
         act_ko.gen_set_bus = [(0, -1)]
@@ -1039,21 +1068,21 @@ class TestAlarmFeature(unittest.TestCase):
         assert reward == -1
         assert not obs.was_alarm_used_after_game_over
 
+    def test_reward_no_alarm(self):
+        """test that i don't get any points if i don't send any alarm"""
         # FYI parrallel lines:
         # 48, 49  || 18, 19  || 27, 28 || 37, 38
 
         # game not due to line disconnection, but no alarm => no points
-        obs = self.env.reset()
-        obs = self.env.reset()
         self._aux_trigger_cascading_failure()
         obs, reward, done, info = self.env.step(self.env.action_space())
         assert done
         assert reward == -1
         assert not obs.was_alarm_used_after_game_over
 
+    def test_reward_wrong_area_wrong_time(self):
+        """test that i got a few point for the wrong area, but at the wrong time"""
         # now i raise an alarm, and after i do a cascading failure (but i send a wrong alarm)
-        obs = self.env.reset()
-        obs = self.env.reset()
         act = self.env.action_space()
         act.raise_alarm = [0]
         obs, reward, done, info = self.env.step(act)
@@ -1063,9 +1092,9 @@ class TestAlarmFeature(unittest.TestCase):
         assert reward == 0.375
         assert obs.was_alarm_used_after_game_over
 
+    def test_reward_right_area_not_best_time(self):
+        """test that i got some point for the right area, but at the wrong time"""
         # now i raise an alarm, and after i do a cascading failure (and i send a right alarm)
-        obs = self.env.reset()
-        obs = self.env.reset()
         act = self.env.action_space()
         act.raise_alarm = [1]
         obs, reward, done, info = self.env.step(act)
@@ -1075,9 +1104,9 @@ class TestAlarmFeature(unittest.TestCase):
         assert reward == 0.75
         assert obs.was_alarm_used_after_game_over
 
+    def test_reward_right_time_wrong_area(self):
+        """test that the alarm has half "value" if taken exactly at the right time but for the wrong area"""
         # now i raise an alarm just at the right time, and after i do a cascading failure (wrong zone)
-        obs = self.env.reset()
-        obs = self.env.reset()
         act = self.env.action_space()
         act.raise_alarm = [0]
         obs, reward, done, info = self.env.step(act)
@@ -1089,9 +1118,9 @@ class TestAlarmFeature(unittest.TestCase):
         assert reward == 0.5
         assert obs.was_alarm_used_after_game_over
 
+    def test_reward_right_time_right_area(self):
+        """test that the alarm has perfect "value" if taken exactly at the right time and for the right area"""
         # now i raise an alarm just at the right time, and after i do a cascading failure (right zone)
-        obs = self.env.reset()
-        obs = self.env.reset()
         act = self.env.action_space()
         act.raise_alarm = [1]
         obs, reward, done, info = self.env.step(act)
@@ -1103,9 +1132,9 @@ class TestAlarmFeature(unittest.TestCase):
         assert reward == 1
         assert obs.was_alarm_used_after_game_over
 
+    def test_reward_right_area_too_early(self):
+        """test that the alarm is not taken into account if send too early"""
         # now i raise an alarm but too early, i don't get any points (even if right zone)
-        obs = self.env.reset()
-        obs = self.env.reset()
         act = self.env.action_space()
         act.raise_alarm = [1]
         obs, reward, done, info = self.env.step(act)
@@ -1119,10 +1148,10 @@ class TestAlarmFeature(unittest.TestCase):
         assert reward == -1
         assert not obs.was_alarm_used_after_game_over
 
+    def test_reward_correct_alarmused_right_early(self):
+        """test that the maximum is taken, when an alarm is send at the right time, and another one too early"""
         # now i raise two alarms: one at just the right time, another one a bit earlier, and i check the correct
         # one is used
-        obs = self.env.reset()
-        obs = self.env.reset()
         act = self.env.action_space()
         act.raise_alarm = [1]
         obs, reward, done, info = self.env.step(act)  # a bit too early
@@ -1137,13 +1166,13 @@ class TestAlarmFeature(unittest.TestCase):
         assert reward == 1.  # it should count this one
         assert obs.was_alarm_used_after_game_over
 
+    def test_reward_correct_alarmused_right_toolate(self):
+        """test that the maximum is taken, when an alarm is send at the right time, and another one too late"""
         # now i raise two alarms: one at just the right time, another one a bit later, and i check the correct
         # one is used
-        obs = self.env.reset()
-        obs = self.env.reset()
         act = self.env.action_space()
         act.raise_alarm = [1]
-        obs, reward, done, info = self.env.step(act)# just at the right time
+        obs, reward, done, info = self.env.step(act)  # just at the right time
         for _ in range(3):
             obs, reward, done, info = self.env.step(self.env.action_space())
         obs, reward, done, info = self.env.step(act)  # a bit too early
