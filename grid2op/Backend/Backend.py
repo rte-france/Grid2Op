@@ -816,13 +816,14 @@ class Backend(GridObjects, ABC):
 
         """
         infos = []
-        disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
+        disconnected_during_cf = np.full(self.n_line, fill_value=-1, dtype=dt_int)
         conv_ = self._runpf_with_diverging_exception(is_dc)
         if env._no_overflow_disconnection or conv_ is not None:
             return disconnected_during_cf, infos, conv_
 
         # the environment disconnect some powerlines
         init_time_step_overflow = copy.deepcopy(env._timestep_overflow)
+        ts = 0
         while True:
             # simulate the cascading failure
             lines_flows = self.get_line_flow()
@@ -840,7 +841,7 @@ class Backend(GridObjects, ABC):
             if np.sum(to_disc[lines_status]) == 0:
                 # no powerlines have been disconnected at this time step, i stop the computation there
                 break
-            disconnected_during_cf[to_disc] = True
+            disconnected_during_cf[to_disc] = ts
 
             # perform the disconnection action
             [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
@@ -852,6 +853,7 @@ class Backend(GridObjects, ABC):
 
             if conv_ is not None:
                 break
+            ts += 1
         return disconnected_during_cf, infos, conv_
 
     def storages_info(self):

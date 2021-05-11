@@ -57,6 +57,7 @@ class _ObsEnv(BaseEnv):
                  helper_action_env,
                  epsilon_poly,
                  tol_poly,
+                 max_episode_duration,
                  other_rewards={},
                  has_attention_budget=False,
                  attention_budget_cls=LinearAttentionBudget,
@@ -139,6 +140,12 @@ class _ObsEnv(BaseEnv):
         # alarm / attention budget
         self._attention_budget_state_init = None
 
+        self._disc_lines = np.zeros(shape=self.n_line, dtype=dt_int) - 1
+        self._max_episode_duration = max_episode_duration
+
+    def max_episode_duration(self):
+        return self._max_episode_duration
+    
     def _init_myclass(self):
         """this class has already all the powergrid information: it is initialized in the obs space !"""
         pass
@@ -387,7 +394,8 @@ class _ObsEnv(BaseEnv):
         self.nb_time_step = self._nb_time_step_init
 
         # attention budget
-        self._attention_budget.set_state(self._attention_budget_state_init)
+        if self._has_attention_budget:
+            self._attention_budget.set_state(self._attention_budget_state_init)
 
     def simulate(self, action):
         """
@@ -520,7 +528,8 @@ class _ObsEnv(BaseEnv):
         self._nb_time_step_init = env.nb_time_step
 
         # attention budget
-        self._attention_budget_state_init = env._attention_budget.get_state()
+        if self._has_attention_budget:
+            self._attention_budget_state_init = env._attention_budget.get_state()
 
     def get_current_line_status(self):
         return self._line_status == 1

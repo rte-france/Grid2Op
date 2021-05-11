@@ -110,6 +110,7 @@ class ObservationSpace(SerializableObservationSpace):
                                      has_attention_budget=env._has_attention_budget,
                                      attention_budget_cls=env._attention_budget_cls,
                                      kwargs_attention_budget=env._kwargs_attention_budget,
+                                     max_episode_duration=env.max_episode_duration()
                                      )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
@@ -206,6 +207,12 @@ class ObservationSpace(SerializableObservationSpace):
 
         return an empty observation, for internal use only."""
         return copy.deepcopy(self._empty_obs)
+
+    def reset(self, real_env):
+        """reset the observation space with the new values of the environment"""
+        self.obs_env._reward_helper.reset(real_env)
+        for k, v in self.obs_env.other_rewards.items():
+            v.reset(real_env)
 
     def copy(self):
         """

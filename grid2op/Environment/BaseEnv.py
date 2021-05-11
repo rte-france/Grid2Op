@@ -303,6 +303,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_activeprod_t_redisp = None
 
         self._thermal_limit_a = thermal_limit_a
+        self._disc_lines = None
 
         # store environment modifications
         self._injection = None
@@ -447,7 +448,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                        f"line named \"{line}\" is present in your file but not in the grid. Please "
                                        f"check the file {file_alerts} and make sure it contains only the line named "
                                        f"{sorted(self.backend.name_line)}.")
-                    # update the list and dictionnary that remembers everything
+                    # update the list and dictionary that remembers everything
                     line_names[line].append(area_name)
                     area_lines[area_id].append(line)
 
@@ -1594,7 +1595,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 dictionary with keys:
 
                     - "disc_lines": a numpy array (or ``None``) saying, for each powerline if it has been disconnected
-                      due to overflow
+                      due to overflow (if not disconnected it will be -1, otherwise it will be a
+                      positive integer: 0 meaning that is one of the cause of the cascading failure, 1 means
+                      that it is disconnected just after, 2 that it's disconnected just after etc.)
                     - "is_illegal" (``bool``) whether the action given as input was illegal
                     - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
                     - "is_dispatching_illegal" (``bool``) was the action illegal due to redispatching
@@ -1663,6 +1666,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
         self.nb_time_step += 1
+        self._disc_lines[:] = -1
 
         beg_step = time.time()
         try:
@@ -1824,6 +1828,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # compute the next _grid state
                 beg_pf = time.time()
                 disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self._env_dc)
+                self._disc_lines[:] = disc_lines
                 self._time_powerflow += time.time() - beg_pf
                 if conv_ is None:
                     beg_res = time.time()
@@ -1888,7 +1893,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._backend_action.reset()
         if conv_ is not None:
             except_.append(conv_)
-        infos = {"disc_lines": disc_lines,
+        infos = {"disc_lines": self._disc_lines,
                  "is_illegal": is_illegal,
                  "is_ambiguous": is_ambiguous,
                  "is_dispatching_illegal": is_illegal_redisp,
@@ -1911,9 +1916,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if has_error and self.current_obs is not None:
             # forward to the observation if an alarm is used or not
             if hasattr(self._reward_helper.template_reward, "has_alarm_component"):
-                if self._reward_helper.template_reward.has_alarm_component:
-                    self._reward_helper.template_reward.compute_reward_alarm(self, disc_lines)
-                    self._is_alarm_used_in_reward = self._reward_helper.template_reward.is_alarm_used
+                self._is_alarm_used_in_reward = self._reward_helper.template_reward.is_alarm_used
             # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
 

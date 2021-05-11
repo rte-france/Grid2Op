@@ -427,6 +427,11 @@ class GridObjects:
         For more information, you can consult the :ref:`graph-encoding-gridgraph` of the documentation
         or the getting started notebook about the observation and the action for more information.
 
+    dim_alarms = 0  # TODO
+    alarms_area_names = []  # name of each area  # TODO
+    alarms_lines_area = {}  # for each lines of the grid, gives on which area(s) it is  # TODO
+    alarms_area_lines = []  # for each area in the grid, gives which powerlines it contains # TODO
+
     # TODO specify the unit of redispatching data MWh, $/MW etc.
     """
     BEFORE_COMPAT_VERSION = "neurips_2020_compat"

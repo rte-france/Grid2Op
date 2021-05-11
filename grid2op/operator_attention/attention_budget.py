@@ -120,7 +120,7 @@ class LinearAttentionBudget:
         self._current_budget = _current_budget
         self._time_last_successful_alarm_raised = _time_last_successful_alarm_raised
         self._last_successful_alarm_raised[:] = _last_successful_alarm_raised
-        self._all_successful_alarms = _all_successful_alarms
+        self._all_successful_alarms = copy.copy(_all_successful_alarms)
 
     def register_action(self, env, action, is_action_illegal, is_action_ambiguous):
         """

@@ -23,6 +23,8 @@ from grid2op.MakeEnv import make
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.dtypes import dt_float
+from grid2op.Reward import RedispReward
+
 
 DEBUG = False
 PROFILE_CODE = False
@@ -826,7 +828,14 @@ class TestAlarmFeature(unittest.TestCase):
         assert abs(self.env._attention_budget._alarm_cost - 1) <= 1e-6
         assert abs(self.env._attention_budget._current_budget - 3.) <= 1e-6
 
-        with make(self.env_nm, has_attention_budget=False) as env:
+        with self.assertRaises(Grid2OpException):
+            # it raises because the default reward: AlarmReward can only be used
+            # if there is an alarm budget
+            with make(self.env_nm, has_attention_budget=False) as env:
+                assert env._has_attention_budget is False
+                assert env._attention_budget is None
+
+        with make(self.env_nm, has_attention_budget=False, reward_class=RedispReward) as env:
             assert env._has_attention_budget is False
             assert env._attention_budget is None
 
@@ -977,8 +986,175 @@ class TestAlarmFeature(unittest.TestCase):
         assert sim_obs.time_since_last_alarm == 0
         assert np.all(sim_obs.last_alarm == [1, 2, -1])
 
+    def _aux_trigger_cascading_failure(self):
+        act_ko1 = self.env.action_space()
+        act_ko1.line_set_status = [(56, -1)]
+        obs, reward, done, info = self.env.step(act_ko1)
+        assert not done
+        assert reward == 0
+        act_ko2 = self.env.action_space()
+        act_ko2.line_set_status = [(41, -1)]
+        obs, reward, done, info = self.env.step(act_ko2)
+        assert not done
+        assert reward == 0
+        act_ko3 = self.env.action_space()
+        act_ko3.line_set_status = [(40, -1)]
+        obs, reward, done, info = self.env.step(act_ko3)
+        assert not done
+        assert reward == 0
 
-# TODO tester la "fin de l'episode"
+        act_ko4 = self.env.action_space()
+        act_ko4.line_set_status = [(39, -1)]
+        obs, reward, done, info = self.env.step(act_ko4)
+        assert not done
+        assert reward == 0
+
+        act_ko5 = self.env.action_space()
+        act_ko5.line_set_status = [(13, -1)]
+        obs, reward, done, info = self.env.step(act_ko5)
+        assert not done
+        assert reward == 0
+
+    def test_alarm_reward(self):
+        # normal step, no game over => 0
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert reward == 0
+        self.env.fast_forward_chronics(861)
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        assert reward == 0
+
+        # end of an episode, no game over: +1
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        assert reward == +1
+
+        # game over not due to line disconnection, no points
+        obs = self.env.reset()
+        obs = self.env.reset()
+        act_ko = self.env.action_space()
+        act_ko.gen_set_bus = [(0, -1)]
+        obs, reward, done, info = self.env.step(act_ko)
+        assert done
+        assert reward == -1
+        assert not obs.was_alarm_used_after_game_over
+
+        # FYI parrallel lines:
+        # 48, 49  || 18, 19  || 27, 28 || 37, 38
+
+        # game not due to line disconnection, but no alarm => no points
+        obs = self.env.reset()
+        obs = self.env.reset()
+        self._aux_trigger_cascading_failure()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        assert reward == -1
+        assert not obs.was_alarm_used_after_game_over
+
+        # now i raise an alarm, and after i do a cascading failure (but i send a wrong alarm)
+        obs = self.env.reset()
+        obs = self.env.reset()
+        act = self.env.action_space()
+        act.raise_alarm = [0]
+        obs, reward, done, info = self.env.step(act)
+        self._aux_trigger_cascading_failure()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        assert reward == 0.375
+        assert obs.was_alarm_used_after_game_over
+
+        # now i raise an alarm, and after i do a cascading failure (and i send a right alarm)
+        obs = self.env.reset()
+        obs = self.env.reset()
+        act = self.env.action_space()
+        act.raise_alarm = [1]
+        obs, reward, done, info = self.env.step(act)
+        self._aux_trigger_cascading_failure()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        assert reward == 0.75
+        assert obs.was_alarm_used_after_game_over
+
+        # now i raise an alarm just at the right time, and after i do a cascading failure (wrong zone)
+        obs = self.env.reset()
+        obs = self.env.reset()
+        act = self.env.action_space()
+        act.raise_alarm = [0]
+        obs, reward, done, info = self.env.step(act)
+        for _ in range(6):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        self._aux_trigger_cascading_failure()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        assert reward == 0.5
+        assert obs.was_alarm_used_after_game_over
+
+        # now i raise an alarm just at the right time, and after i do a cascading failure (right zone)
+        obs = self.env.reset()
+        obs = self.env.reset()
+        act = self.env.action_space()
+        act.raise_alarm = [1]
+        obs, reward, done, info = self.env.step(act)
+        for _ in range(6):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        self._aux_trigger_cascading_failure()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        assert reward == 1
+        assert obs.was_alarm_used_after_game_over
+
+        # now i raise an alarm but too early, i don't get any points (even if right zone)
+        obs = self.env.reset()
+        obs = self.env.reset()
+        act = self.env.action_space()
+        act.raise_alarm = [1]
+        obs, reward, done, info = self.env.step(act)
+        for _ in range(6):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        for _ in range(12):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        self._aux_trigger_cascading_failure()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        assert reward == -1
+        assert not obs.was_alarm_used_after_game_over
+
+        # now i raise two alarms: one at just the right time, another one a bit earlier, and i check the correct
+        # one is used
+        obs = self.env.reset()
+        obs = self.env.reset()
+        act = self.env.action_space()
+        act.raise_alarm = [1]
+        obs, reward, done, info = self.env.step(act)  # a bit too early
+        for _ in range(3):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(act)
+        for _ in range(6):
+            obs, reward, done, info = self.env.step(self.env.action_space())  # just at the right time
+        self._aux_trigger_cascading_failure()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        assert reward == 1.  # it should count this one
+        assert obs.was_alarm_used_after_game_over
+
+        # now i raise two alarms: one at just the right time, another one a bit later, and i check the correct
+        # one is used
+        obs = self.env.reset()
+        obs = self.env.reset()
+        act = self.env.action_space()
+        act.raise_alarm = [1]
+        obs, reward, done, info = self.env.step(act)# just at the right time
+        for _ in range(3):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(act)  # a bit too early
+        for _ in range(2):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        self._aux_trigger_cascading_failure()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        assert reward == 1.  # it should count this one
+        assert obs.was_alarm_used_after_game_over
+
 
 if __name__ == "__main__":
     unittest.main()

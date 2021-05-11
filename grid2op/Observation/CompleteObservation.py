@@ -145,6 +145,7 @@ class CompleteObservation(BaseObservation):
 
         # counter
         self.current_step = env.nb_time_step
+        self.max_step = env.max_episode_duration()
 
         # extract the time stamps
         self.year = dt_int(env.time_stamp.year)

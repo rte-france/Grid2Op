@@ -128,6 +128,27 @@ class BaseReward(ABC):
         """
         pass
 
+    def reset(self, env):
+        """
+        This method is called each time `env` is reset.
+
+        It can be usefull, for example if the reward depends on the length of the current chronics.
+
+        It does nothing by default.
+
+        Parameters
+        ----------
+        env: :class:`grid2op.Environment.Environment`
+            The current environment
+
+        .. danger::
+            This function should not modify self.reward_min nor self.reward_max !!!
+
+            It might cause really hard trouble for agent to learn if you do so.
+
+        """
+        pass
+
     @abstractmethod
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         """

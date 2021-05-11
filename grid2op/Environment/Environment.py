@@ -184,6 +184,7 @@ class Environment(BaseEnv):
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
         self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
+        self._disc_lines = np.zeros(shape=self.n_line, dtype=dt_int) - 1
 
         if self._thermal_limit_a is None:
             self._thermal_limit_a = self.backend.thermal_limit_a.astype(dt_float)
@@ -734,9 +735,19 @@ class Environment(BaseEnv):
             self.viewer_fig = None
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
+        # the attention budget is reset above
 
         # reset the opponent
         self._oppSpace.reset()
+
+        # reset, if need, reward and other rewards
+        self._reward_helper.reset(self)
+        for extra_reward in self.other_rewards.values():
+            extra_reward.reset(self)
+
+        # and reset also the "simulated env" in the observation space
+        self._observation_space.reset(self)
+
         return self.get_obs()
 
     def render(self, mode='human'):
@@ -899,6 +910,8 @@ class Environment(BaseEnv):
         res["opponent_attack_duration"] = self._opponent_attack_duration
         res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
         res["kwargs_opponent"] = self._kwargs_opponent
+
+        # TODO alarm attention budget
         return res
 
     def _chronics_folder_name(self):
@@ -1222,4 +1235,5 @@ class Environment(BaseEnv):
         res["opponent_attack_duration"] = self._opponent_attack_duration
         res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
         res["opponent_kwargs"] = self._kwargs_opponent
+        # TODO alarm attention budget
         return res

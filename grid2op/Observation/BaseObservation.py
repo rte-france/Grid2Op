@@ -192,6 +192,9 @@ class BaseObservation(GridObjects):
         Current number of step performed up until this observation (NB this is not given in the observation if
         it is transformed into a vector)
 
+    max_step: ``int``
+        Maximum number of steps possible for this episode
+
     is_alarm_illegal: ``bool``
         whether the last alarm has been illegal (due to budget constraint). It can only be ``True`` if an alarm
         was raised by the agent on the previous step. Otherwise it is always ``False``
@@ -351,6 +354,7 @@ class BaseObservation(GridObjects):
 
         # counter
         self.current_step = 0
+        self.max_step = np.iinfo(dt_int).max
 
     def state_of(self,
                  _sentinel=None,
