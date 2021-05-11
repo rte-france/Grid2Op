@@ -395,6 +395,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._has_attention_budget = has_attention_budget
         self._attention_budget = None
         self._attention_budget_cls = attention_budget_cls
+        self._is_alarm_illegal = False
+        self._is_alarm_used_in_reward = False
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
 
     def get_path_env(self):
@@ -1597,6 +1599,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
                     - "is_dispatching_illegal" (``bool``) was the action illegal due to redispatching
                     - "is_illegal_reco" (``bool``) was the action illegal due to a powerline reconnection
+                    - "reason_alarm_illegal" (``None`` or ``Exception``) reason for which the alarm is illegal
+                      (it's None if no alarm are raised or if the alarm feature is not used)
                     - "opponent_attack_line" (``np.ndarray``, ``bool``) for each powerline, say if the opponent
                       attacked it (``True``) or not (``False``).
                     - "opponent_attack_sub" (``np.ndarray``, ``bool``) for each substation, say if the opponent
@@ -1647,7 +1651,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_ambiguous = False
         is_illegal_redisp = False
         is_illegal_reco = False
-        is_attention_illegal = None  # not None in case of trouble with the budget
+        reason_alarm_illegal = None
+        self._is_alarm_illegal = False
+        self._is_alarm_used_in_reward = False
         except_ = []
         detailed_info = []
         init_disp = 1.0 * action._redispatch  # dispatching action
@@ -1661,6 +1667,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         beg_step = time.time()
         try:
             beg_ = time.time()
+
             is_legal, reason = self._game_rules(action=action, env=self)
             if not is_legal:
                 # action is replace by do nothing
@@ -1670,10 +1677,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 except_.append(reason)
                 is_illegal = True
 
-            if self._has_attention_budget:
-                # this feature is implemented, so i do it
-                is_attention_illegal = self._attention_budget.register_action(self, action)
-
             ambiguous, except_tmp = action.is_ambiguous()
             if ambiguous:
                 # action is replace by do nothing
@@ -1682,6 +1685,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 action_storage_power = 1.0 * action._storage_power  # battery information
                 is_ambiguous = True
                 except_.append(except_tmp)
+
+            if self._has_attention_budget:
+                # this feature is implemented, so i do it
+                reason_alarm_illegal = self._attention_budget.register_action(self,
+                                                                              action,
+                                                                              is_illegal,
+                                                                              is_ambiguous)
+                self._is_alarm_illegal = reason_alarm_illegal is not None
 
             # get the modification of generator active setpoint from the environment
             self._env_modification, prod_v_chronics = self._update_actions()
@@ -1846,7 +1857,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     if self._max_timestep_topology_deactivated > 0:
                         self._times_before_topology_actionable[self._times_before_topology_actionable > 0] -= 1
                         self._times_before_topology_actionable[aff_subs] = self._max_timestep_topology_deactivated
-
                     # build the observation (it's a different one at each step, we cannot reuse the same one)
                     self.current_obs = self.get_obs()
                     # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
@@ -1875,7 +1885,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             is_done = True
         end_step = time.time()
         self._time_step += end_step - beg_step
-
         self._backend_action.reset()
         if conv_ is not None:
             except_.append(conv_)
@@ -1884,10 +1893,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  "is_ambiguous": is_ambiguous,
                  "is_dispatching_illegal": is_illegal_redisp,
                  "is_illegal_reco": is_illegal_reco,
+                 "reason_alarm_illegal": reason_alarm_illegal,
                  "opponent_attack_line": lines_attacked,
                  "opponent_attack_sub": subs_attacked,
                  "opponent_attack_duration": attack_duration,
-                 "exception": except_}
+                 "exception": except_,}
         if self.backend.detailed_infos_for_cascading_failures:
             infos["detailed_infos_for_cascading_failures"] = detailed_info
 
@@ -1899,8 +1909,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                              is_ambiguous)
         infos["rewards"] = other_reward
         if has_error and self.current_obs is not None:
+            # forward to the observation if an alarm is used or not
+            if hasattr(self._reward_helper.template_reward, "has_alarm_component"):
+                if self._reward_helper.template_reward.has_alarm_component:
+                    self._reward_helper.template_reward.compute_reward_alarm(self, disc_lines)
+                    self._is_alarm_used_in_reward = self._reward_helper.template_reward.is_alarm_used
             # update the observation so when it's plotted everything is "shutdown"
-            self.current_obs.set_game_over()
+            self.current_obs.set_game_over(self)
 
         # TODO documentation on all the possible way to be illegal now
         if self.done:

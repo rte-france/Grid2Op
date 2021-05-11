@@ -107,6 +107,9 @@ class ObservationSpace(SerializableObservationSpace):
                                      helper_action_env=env._helper_action_env,
                                      epsilon_poly=env._epsilon_poly,
                                      tol_poly=env._tol_poly,
+                                     has_attention_budget=env._has_attention_budget,
+                                     attention_budget_cls=env._attention_budget_cls,
+                                     kwargs_attention_budget=env._kwargs_attention_budget,
                                      )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)

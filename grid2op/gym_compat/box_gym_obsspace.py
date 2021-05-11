@@ -32,6 +32,10 @@ ALL_ATTR_OBS = ("year", "month", "day", "hour_of_day", "minute_of_hour",
                 "curtailment_limit", "thermal_limit"
                 )
 
+# TODO add the alarm stuff
+# TODO add the time step
+# TODO add the is_illegal and co there
+
 
 class BoxGymObsSpace(Box):
     """

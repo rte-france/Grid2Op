@@ -880,9 +880,105 @@ class TestAlarmFeature(unittest.TestCase):
         self.env.reset()
         assert abs(self.env._attention_budget._current_budget - 3) <= 1e-6
 
-    # TODO: test_alarm_in_illegal_action_ok, test_alarm_in_ambiguous_action_ok
-    # TODO test_alarm_in_simulate
+    def test_illegal_action(self):
+        act = self.env.action_space()
+        arr = 1 * act.set_bus
+        arr[:12] = 1
+        act.set_bus = arr
+        obs, reward, done, info = self.env.step(act)
+        assert info["is_illegal"]
+        assert abs(self.env._attention_budget._current_budget - 3.) <= 1e-6
+        assert abs(self.env._attention_budget._current_budget - 3) <= 1e-6
 
+    def test_ambiguous_action(self):
+        act = self.env.action_space()
+        act.set_bus = [(0, 1)]
+        act.change_bus = [0]
+        obs, reward, done, info = self.env.step(act)
+        assert info["is_ambiguous"]
+        assert abs(self.env._attention_budget._current_budget - 3.) <= 1e-6
+
+    def test_alarm_obs_noalarm(self):
+        obs = self.env.reset()
+        assert abs(self.env._attention_budget._current_budget - 3.) <= 1e-6
+        assert abs(obs.attention_budget - 3.) <= 1e-6
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        nb_th = 3 + 1. / (12. * 8.)
+        assert abs(self.env._attention_budget._current_budget - nb_th) <= 1e-6
+        assert abs(obs.attention_budget - nb_th) <= 1e-6
+        assert obs.time_since_last_alarm == -1
+
+    def test_alarm_obs_whenalarm(self):
+        act = self.env.action_space()
+        act.raise_alarm = [0]
+        obs, reward, done, info = self.env.step(act)
+        nb_th = 2
+        assert abs(self.env._attention_budget._current_budget - nb_th) <= 1e-6
+        assert abs(obs.attention_budget - nb_th) <= 1e-6
+        assert obs.time_since_last_alarm == 0
+        assert np.all(obs.last_alarm == [1, -1, -1])
+
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        nb_th += 1. / (12. * 8.)
+        assert abs(self.env._attention_budget._current_budget - nb_th) <= 1e-6
+        assert abs(obs.attention_budget - nb_th) <= 1e-6
+        assert obs.time_since_last_alarm == 1
+        assert np.all(obs.last_alarm == [1, -1, -1])
+
+        obs = self.env.reset()
+        nb_th = 3
+        assert abs(self.env._attention_budget._current_budget - nb_th) <= 1e-6
+        assert abs(obs.attention_budget - nb_th) <= 1e-6
+        assert obs.time_since_last_alarm == -1
+        assert np.all(obs.last_alarm == [-1, -1, -1])
+
+    def test_simulate_act_ok(self):
+        """test the attention budget when simulating an ok action"""
+        obs = self.env.reset()
+        act = self.env.action_space()
+        act.raise_alarm = [0]
+        act2 = self.env.action_space()
+        act2.raise_alarm = [1]
+
+        # i simulate no action
+        sim_obs, *_ = obs.simulate(self.env.action_space())
+        nb_th = 3 + 1. / (12. * 8.)
+        assert abs(sim_obs.attention_budget - nb_th) <= 1e-6
+        assert sim_obs.time_since_last_alarm == -1
+        assert np.all(sim_obs.last_alarm == [-1, -1, -1])
+
+        # i simulate an action, this should work as for step, if i do no actions
+        sim_obs, *_ = obs.simulate(act)
+        nb_th = 2
+        assert abs(sim_obs.attention_budget - nb_th) <= 1e-6
+        assert sim_obs.time_since_last_alarm == 0
+        assert np.all(sim_obs.last_alarm == [1, -1, -1])
+
+        # i simulate no action, this should remove the previous stuff and work
+        sim_obs, *_ = obs.simulate(self.env.action_space())
+        nb_th = 3 + 1. / (12. * 8.)
+        assert abs(sim_obs.attention_budget - nb_th) <= 1e-6
+        assert sim_obs.time_since_last_alarm == -1
+        assert np.all(sim_obs.last_alarm == [-1, -1, -1])
+
+        # i do a step and check now
+        obs, *_ = self.env.step(act)
+
+        sim_obs, *_ = obs.simulate(self.env.action_space())
+        nb_th = 2 + 1. / (12. * 8.)
+        assert abs(sim_obs.attention_budget - nb_th) <= 1e-6
+        assert sim_obs.time_since_last_alarm == 1
+        assert np.all(sim_obs.last_alarm == [1, -1, -1])
+
+        # i simulate an action, this should work as for step, if i do no actions
+        sim_obs, *_ = obs.simulate(act2)
+        nb_th = 1
+        assert abs(sim_obs.attention_budget - nb_th) <= 1e-6
+        assert sim_obs.time_since_last_alarm == 0
+        assert np.all(sim_obs.last_alarm == [1, 2, -1])
+
+
+# TODO tester la "fin de l'episode"
 
 if __name__ == "__main__":
     unittest.main()

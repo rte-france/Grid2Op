@@ -303,8 +303,6 @@ class Environment(BaseEnv):
         self.backend.assert_grid_correct_after_powerflow()
 
         # for gym compatibility
-        # self._action_space = self._helper_action_player  # this should be an action !!!
-        # self._observation_space = self._helper_observation  # this return an observation.
         self.reward_range = self._reward_helper.range()
         self.viewer = None
         self.viewer_fig = None
