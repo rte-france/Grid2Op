@@ -33,4 +33,3 @@ class TopologyGreedy(GreedyAgent):
             res += self.action_space.get_all_unitary_topologies_set(self.action_space)
             self.tested_action = res
         return self.tested_action
-

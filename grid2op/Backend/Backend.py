@@ -784,49 +784,6 @@ class Backend(GridObjects, ABC):
                                         "or a load has been disconnected or a generator has been disconnected.")
         return exc_me
 
-    def next_grid_state_old(self, env, is_dc=False):
-        """
-        OLD VERSION SHOULD BE REMOVED !!!!
-        """
-        infos = []
-        disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
-        conv_ = self._runpf_with_diverging_exception(is_dc)
-        if env._no_overflow_disconnection or conv_ is not None:
-            return disconnected_during_cf, infos, conv_
-
-        # the environment disconnect some powerlines
-        init_time_step_overflow = copy.deepcopy(env._timestep_overflow)
-        while True:
-            # simulate the cascading failure
-            lines_flows = self.get_line_flow()
-            thermal_limits = self.get_thermal_limit()
-            lines_status = self.get_line_status()
-
-            # a) disconnect lines on hard overflow
-            to_disc = lines_flows > env._hard_overflow_threshold * thermal_limits
-
-            # b) deals with soft overflow
-            init_time_step_overflow[(lines_flows >= thermal_limits) & lines_status] += 1
-            to_disc[init_time_step_overflow > env._nb_timestep_overflow_allowed] = True
-
-            # disconnect the current power lines
-            if np.sum(to_disc[lines_status]) == 0:
-                # no powerlines have been disconnected at this time step, i stop the computation there
-                break
-            disconnected_during_cf[to_disc] = True
-
-            # perform the disconnection action
-            [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
-
-            # start a powerflow on this new state
-            conv_ = self._runpf_with_diverging_exception(is_dc)
-            if self.detailed_infos_for_cascading_failures:
-                infos.append(self.copy())
-
-            if conv_ is not None:
-                break
-        return disconnected_during_cf, infos, conv_
-
     def next_grid_state(self, env, is_dc=False):
         """
         INTERNAL

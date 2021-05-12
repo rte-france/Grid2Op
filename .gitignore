@@ -308,6 +308,7 @@ test_issue196.py
 test_increasingreward.py
 PlayWithRedispCurtail.ipynb
 test_jorge/
+grid2op/data_test/l2rpn_neurips_2020_track1_with_alert.zip
 
 # profiling files
 **.prof
