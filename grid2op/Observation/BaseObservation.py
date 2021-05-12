@@ -319,11 +319,11 @@ class BaseObservation(GridObjects):
         self.storage_power = np.empty(shape=self.n_storage, dtype=dt_float)  # in MW
 
         # attention budget
-        self.is_alarm_illegal = np.empty(shape=1, dtype=dt_bool)
+        self.is_alarm_illegal = np.ones(shape=1, dtype=dt_bool)
         self.time_since_last_alarm = np.empty(shape=1, dtype=dt_int)
         self.last_alarm = np.empty(shape=self.dim_alarms, dtype=dt_int)
         self.attention_budget = np.empty(shape=1, dtype=dt_int)
-        self.was_alarm_used_after_game_over = np.empty(shape=1, dtype=dt_bool)
+        self.was_alarm_used_after_game_over = np.zeros(shape=1, dtype=dt_bool)
 
         # to save some computation time
         self._connectivity_matrix_ = None
@@ -716,7 +716,7 @@ class BaseObservation(GridObjects):
         self.attention_budget[:] = -1
         self.was_alarm_used_after_game_over[:] = False
 
-    def set_game_over(self, env):
+    def set_game_over(self, env=None):
         """
         Set the observation to the "game over" state:
 
@@ -724,6 +724,11 @@ class BaseObservation(GridObjects):
         - all loads are 0.
         - all prods are 0.
         - etc.
+
+        Notes
+        -----
+        As some attributes are initialized with `np.empty` it is recommended to reset here all attributes to avoid
+        non deterministic behaviour.
         """
         self.gen_p[:] = 0.
         self.gen_q[:] = 0.
@@ -798,7 +803,15 @@ class BaseObservation(GridObjects):
             self.gen_theta[:] = 0.
             self.storage_theta[:] = 0.
 
-        self.was_alarm_used_after_game_over[:] = env._is_alarm_used_in_reward
+        # stuff related to alarm
+        self.is_alarm_illegal[:] = False
+        self.time_since_last_alarm[:] = -1
+        self.last_alarm[:] = False
+        self.attention_budget[:] = -1
+        if env is not None:
+            self.was_alarm_used_after_game_over[:] = env._is_alarm_used_in_reward
+        else:
+            self.was_alarm_used_after_game_over[:] = False
 
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
@@ -2169,7 +2182,7 @@ class BaseObservation(GridObjects):
 
         act = copy.deepcopy(act)
         res = type(self)()
-        res.set_game_over()
+        res.set_game_over(env=None)
 
         res.topo_vect[:] = self.topo_vect
         res.line_status[:] = self.line_status
@@ -2217,14 +2230,6 @@ class BaseObservation(GridObjects):
         if "change_bus" in act.authorized_keys:
             do_change_bus_on = act.change_bus & (res.topo_vect > 0)  # change bus of elements that were on
             res.topo_vect[do_change_bus_on] = 3 - res.topo_vect[do_change_bus_on]
-            # change bus of elements that were off : does nothing
-            # do_change_bus_off = act.change_bus & (res.topo_vect == -1)
-            # if np.any(do_change_bus_off) and issue_warn:
-            #     warnings.warn("You asked to reconnect a object with the \"change_bus\" in your action. This is "
-            #                   "of course perfectly fine in the environment, but might not be computed properly "
-            #                   "by the `obs + act` method. Please have a look at the document for more "
-            #                   "information.")
-            # res.topo_vect[do_change_bus_off] = 1
 
         # topo vect: reco of powerline that should be
         res.line_status = (res.topo_vect[self.line_or_pos_topo_vect] >= 1) & \

@@ -2118,7 +2118,7 @@ class BaseAction(GridObjects):
             if disconnect_bus_impact:
                 res.append("\t - Disconnect the following element(s):")
             for disconnected in disconnect_bus_impact:
-                res.append("\t - Disconnect {} id {} [on substation {}]"
+                res.append("\t \t - Disconnect {} id {} [on substation {}]"
                            .format(disconnected['object_type'],
                                    disconnected['object_id'],
                                    disconnected['substation']))

@@ -59,6 +59,7 @@ from grid2op.Action._BackendAction import _BackendAction
 
 import pdb
 
+
 class MakeBackend(ABC):
     @abstractmethod
     def make_backend(self, detailed_infos_for_cascading_failures=False):
@@ -1996,12 +1997,14 @@ class BaseIssuesTest(MakeBackend):
 
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
         param.NB_TIMESTEP_COOLDOWN_SUB = 0
+        # param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic",
                                test=True,
                                backend=backend,
                                param=param)
+        obs_init = env.get_obs()
         LINE_ID = 2
 
         # Disconnect ex
@@ -2012,6 +2015,7 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == False
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
@@ -2024,10 +2028,11 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == True
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == 1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == 2
-    
+
         # Disconnect or
         action = env.action_space({
             'set_bus': {
@@ -2036,6 +2041,7 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == False
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
@@ -2048,6 +2054,7 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == True
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == 1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == 2

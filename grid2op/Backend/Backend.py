@@ -826,7 +826,7 @@ class Backend(GridObjects, ABC):
         ts = 0
         while True:
             # simulate the cascading failure
-            lines_flows = self.get_line_flow()
+            lines_flows = 1.0 * self.get_line_flow()
             thermal_limits = self.get_thermal_limit()
             lines_status = self.get_line_status()
 
@@ -834,7 +834,7 @@ class Backend(GridObjects, ABC):
             to_disc = (lines_flows > env._hard_overflow_threshold * thermal_limits) & lines_status
 
             # b) deals with soft overflow (disconnect them if lines still connected)
-            init_time_step_overflow[(lines_flows >= thermal_limits) & (lines_status)] += 1
+            init_time_step_overflow[(lines_flows >= thermal_limits) & lines_status] += 1
             to_disc[(init_time_step_overflow > env._nb_timestep_overflow_allowed) & lines_status] = True
 
             # disconnect the current power lines
@@ -842,9 +842,10 @@ class Backend(GridObjects, ABC):
                 # no powerlines have been disconnected at this time step, i stop the computation there
                 break
             disconnected_during_cf[to_disc] = ts
-
             # perform the disconnection action
-            [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
+            for i, el in enumerate(to_disc):
+                if el:
+                    self._disconnect_line(i)
 
             # start a powerflow on this new state
             conv_ = self._runpf_with_diverging_exception(is_dc)
