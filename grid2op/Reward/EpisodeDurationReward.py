@@ -50,8 +50,11 @@ class EpisodeDurationReward(BaseReward):
         self.reward_max = dt_float(1.)
 
     def initialize(self, env):
+        self.reset(env)
+
+    def reset(self, env):
         if env.chronics_handler.max_timestep() > 0:
-            self.total_time_steps = env.chronics_handler.max_timestep() * self.per_timestep
+            self.total_time_steps = env.max_episode_duration() * self.per_timestep
         else:
             self.total_time_steps = np.inf
             self.reward_max = np.inf

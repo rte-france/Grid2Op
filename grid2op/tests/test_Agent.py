@@ -176,6 +176,7 @@ class TestRecoPowerlineAgent(HelperTests):
             with grid2op.make("rte_case5_example", test=True, param=param) as env:
                 my_agent = RecoPowerlineAgent(env.action_space)
                 obs = env.reset()
+                assert np.sum(obs.time_before_cooldown_line) == 0
                 obs, reward, done, info = env.step(env.action_space({'set_line_status': [(1, -1)]}))
                 assert np.sum(obs.time_before_cooldown_line) == 1
                 # the agent should do nothing, as the line is still in cooldown

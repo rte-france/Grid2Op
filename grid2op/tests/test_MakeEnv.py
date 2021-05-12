@@ -35,23 +35,6 @@ from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent
 from grid2op.Environment import MultiMixEnvironment, Environment
 
-# TODO make a test that the defaults are correct for all environment below
-# (eg that the env.chronics_handler has
-# by default the type given in the "make" function,
-# that the backend if of the proper type, that the thermal
-# limit are properly set up etc.
-# basically, test, for all env, all that is defined there:
-# if name_env.lower() == "case14_fromfile":
-#    default_grid_path = CASE_14_FILE
-#    if chronics_path == '':
-#        chronics_path = CHRONICS_MLUTIEPISODE
-#
-#    defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
-#                                       "gridvalueClass": GridStateFromFileWithForecasts}
-#    default_name_converter = NAMES_CHRONICS_TO_BACKEND
-#    default_action_class = TopologyAction
-#    default_reward_class = L2RPNReward
-
 import warnings
 warnings.simplefilter("error")
 
@@ -633,6 +616,7 @@ class TestMakeFromPathParameters(unittest.TestCase):
             with self.assertRaises(EnvError):
                 with make_from_dataset_path(dataset_path, difficulty="3") as env:
                     assert False, "this should have raised an exception"
+
 
 class TestMakeMultiMix(unittest.TestCase):
     def test_create_dev(self):

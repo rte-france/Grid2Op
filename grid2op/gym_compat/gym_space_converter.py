@@ -51,8 +51,16 @@ class _BaseGymSpaceConverter(spaces.Dict):
         return spaces.MultiBinary(n=sh)
 
     @staticmethod
-    def _extract_obj_grid2op(vect, dtype):
-        if len(vect) == 1:
+    def _simplifykeys_for_timestamps(key):
+        """some keys are encoded to be returned as scalar, i need to transform them."""
+        res = (key == "year") or (key == "month") or (key == "day") or (key == "hour_of_day") or \
+              (key == "minute_of_hour") or (key == "day_of_week")
+        res = res or (key == "is_alarm_illegal") or (key == "was_alarm_used_after_game_over")
+        return res
+
+    @staticmethod
+    def _extract_obj_grid2op(vect, dtype, key):
+        if len(vect) == 1 and _BaseGymSpaceConverter._simplifykeys_for_timestamps(key):
             res = vect[0]
             # convert the types for json serializable
             # this is not automatically done by gym...
@@ -88,7 +96,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
                         # i need to process the "function" part in the keys
                         obj_json_cleaned = self._keys_encoding[conv_k].g2op_to_gym(obj_raw)
                 else:
-                    obj_json_cleaned = self._extract_obj_grid2op(obj_raw, dtypes[k])
+                    obj_json_cleaned = self._extract_obj_grid2op(obj_raw, dtypes[k], k)
             res[k] = obj_json_cleaned
         return res
 

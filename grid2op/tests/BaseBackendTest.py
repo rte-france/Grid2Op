@@ -59,6 +59,7 @@ from grid2op.Action._BackendAction import _BackendAction
 
 import pdb
 
+
 class MakeBackend(ABC):
     @abstractmethod
     def make_backend(self, detailed_infos_for_cascading_failures=False):
@@ -1154,7 +1155,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 1  # check that i have only one overflow
-        assert np.sum(disco) == 1
+        assert np.sum(disco >= 0) == 1
 
     def test_next_grid_state_1overflow_envNoCF(self):
         # third i test that, if a line is on hard overflow, but i'm on a "no cascading failure" mode,
@@ -1186,7 +1187,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert not infos  # check that don't simulate a cascading failure
-        assert np.sum(disco) == 0
+        assert np.sum(disco >= 0) == 0
 
     def test_set_thermal_limit(self):
         thermal_limit = np.arange(self.backend.n_line)
@@ -1227,9 +1228,9 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 2  # check that there is a cascading failure of length 2
-        assert disco[self.id_first_line_disco]
-        assert disco[self.id_2nd_line_disco]
-        assert np.sum(disco) == 2
+        assert disco[self.id_first_line_disco] >= 0
+        assert disco[self.id_2nd_line_disco] >= 0
+        assert np.sum(disco >= 0) == 2
 
     def test_nb_timestep_overflow_nodisc(self):
         # on this _grid, first line with id 18 is overheated,
@@ -1265,8 +1266,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 1  # check that don't simulate a cascading failure
-        assert disco[self.id_first_line_disco]
-        assert np.sum(disco) == 1
+        assert disco[self.id_first_line_disco] >= 0
+        assert np.sum(disco >= 0) == 1
 
     def test_nb_timestep_overflow_nodisc_2(self):
         # on this _grid, first line with id 18 is overheated,
@@ -1303,8 +1304,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 1  # check that don't simulate a cascading failure
-        assert disco[self.id_first_line_disco]
-        assert np.sum(disco) == 1
+        assert disco[self.id_first_line_disco] >= 0
+        assert np.sum(disco >= 0) == 1
 
     def test_nb_timestep_overflow_disc2(self):
         # on this _grid, first line with id 18 is overheated,
@@ -1341,9 +1342,9 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 2  # check that there is a cascading failure of length 2
-        assert disco[self.id_first_line_disco]
-        assert disco[self.id_2nd_line_disco]
-        assert np.sum(disco) == 2
+        assert disco[self.id_first_line_disco] >= 0
+        assert disco[self.id_2nd_line_disco] >= 0
+        assert np.sum(disco >= 0) == 2
         for i, grid_tmp in enumerate(infos):
             assert (not grid_tmp.get_line_status()[self.id_first_line_disco])
             if i == 1:
@@ -1996,12 +1997,14 @@ class BaseIssuesTest(MakeBackend):
 
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
         param.NB_TIMESTEP_COOLDOWN_SUB = 0
+        # param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic",
                                test=True,
                                backend=backend,
                                param=param)
+        obs_init = env.get_obs()
         LINE_ID = 2
 
         # Disconnect ex
@@ -2012,6 +2015,7 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == False
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
@@ -2024,10 +2028,11 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == True
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == 1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == 2
-    
+
         # Disconnect or
         action = env.action_space({
             'set_bus': {
@@ -2036,6 +2041,7 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == False
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
@@ -2048,6 +2054,7 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == True
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == 1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == 2

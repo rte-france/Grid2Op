@@ -4,6 +4,7 @@ Change Log
 [TODO]
 --------------------
 - [???] add multi agent
+- [???] make observation read only / immutable for all its properties (and not just for `prod_p`)
 - [???] better logging
 - [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
   stuff to break)
@@ -22,7 +23,20 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.5.2] - 2021-xx-yy
+[1.6.0] - 2021-06-yy
+--------------------
+- [BREAKING] (but transparent for everyone): the `disc_lines` attribute is now part of the environment, and is also
+  containing integer (representing the "order" on which the lines are disconnected due to protections) rather
+  than just boolean.
+- [FIXED]: some bugs in the `action_space.get_all_unitary_redispatch` and `action_space.get_all_unitary_curtail`
+- [FIXED]: some bugs in the `GreedyAgent` and `TopologyGreedy`
+- [ADDED] support for the "alarm operator" / "attention budget" feature
+- [ADDED] retrieval of the `max_step` (ie the maximum number of step that can be performed for the current episode)
+  in the observation
+- [ADDED] some handy argument in the `action_space.get_all_unitary_redispatch` and
+  `action_space.get_all_unitary_curtail` (see doc)
+
+[1.5.2] - 2021-05-10
 -----------------------
 - [BREAKING]: allow the opponent to chose the duration of its attack. This breaks the previous "Opponent.attack(...)"
   signature by adding an object in the return value. All code provided with grid2op are compatible with this
