@@ -1841,7 +1841,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # one timestep passed, i can maybe reconnect some lines
                     self._times_before_line_status_actionable[self._times_before_line_status_actionable > 0] -= 1
                     # update the vector for lines that have been disconnected
-                    self._times_before_line_status_actionable[disc_lines] = int(self._nb_ts_reco)
+                    self._times_before_line_status_actionable[disc_lines >= 0] = int(self._nb_ts_reco)
                     self._update_time_reconnection_hazards_maintenance()
 
                     # for the powerline that are on overflow, increase this time step
