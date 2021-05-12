@@ -60,12 +60,13 @@ class TestGymCompatModule(unittest.TestCase):
         assert dim_act_space == 160
         dim_obs_space = np.sum([np.sum(env_gym.observation_space[el].shape).astype(int)
                                 for el in env_gym.observation_space.spaces])
-        assert dim_obs_space == 432
+        size_th = 434
+        assert dim_obs_space == size_th, f"Size should be {size_th} but is {dim_obs_space}"
 
         # test that i can do basic stuff there
         obs = env_gym.reset()
         for k in env_gym.observation_space.spaces.keys():
-            assert obs[k] in env_gym.observation_space[k], f"error for {k}"
+            assert obs[k] in env_gym.observation_space[k], f"error for key: {k}"
         act = env_gym.action_space.sample()
         obs2, reward2, done2, info2 = env_gym.step(act)
         assert obs2 in env_gym.observation_space
@@ -456,6 +457,8 @@ class TestGymCompatModule(unittest.TestCase):
         high = np.full(shape=(env.n_line,), fill_value=np.inf, dtype=dt_float)
         assert np.array_equal(env_gym.observation_space[key].low, low), f"issue for {key}"
         assert np.array_equal(env_gym.observation_space[key].high, high), f"issue for {key}"
+
+        # TODO add tests for the alarm feature and curtailment and storage (if not present already)
 
 
 class TestBoxGymObsSpace(unittest.TestCase):

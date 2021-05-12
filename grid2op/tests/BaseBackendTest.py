@@ -1155,7 +1155,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 1  # check that i have only one overflow
-        assert np.sum(disco) == 1
+        assert np.sum(disco >= 0) == 1
 
     def test_next_grid_state_1overflow_envNoCF(self):
         # third i test that, if a line is on hard overflow, but i'm on a "no cascading failure" mode,
@@ -1187,7 +1187,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert not infos  # check that don't simulate a cascading failure
-        assert np.sum(disco) == 0
+        assert np.sum(disco >= 0) == 0
 
     def test_set_thermal_limit(self):
         thermal_limit = np.arange(self.backend.n_line)
@@ -1228,9 +1228,9 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 2  # check that there is a cascading failure of length 2
-        assert disco[self.id_first_line_disco]
-        assert disco[self.id_2nd_line_disco]
-        assert np.sum(disco) == 2
+        assert disco[self.id_first_line_disco] >= 0
+        assert disco[self.id_2nd_line_disco] >= 0
+        assert np.sum(disco >= 0) == 2
 
     def test_nb_timestep_overflow_nodisc(self):
         # on this _grid, first line with id 18 is overheated,
@@ -1266,8 +1266,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 1  # check that don't simulate a cascading failure
-        assert disco[self.id_first_line_disco]
-        assert np.sum(disco) == 1
+        assert disco[self.id_first_line_disco] >= 0
+        assert np.sum(disco >= 0) == 1
 
     def test_nb_timestep_overflow_nodisc_2(self):
         # on this _grid, first line with id 18 is overheated,
@@ -1304,8 +1304,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 1  # check that don't simulate a cascading failure
-        assert disco[self.id_first_line_disco]
-        assert np.sum(disco) == 1
+        assert disco[self.id_first_line_disco] >= 0
+        assert np.sum(disco >= 0) == 1
 
     def test_nb_timestep_overflow_disc2(self):
         # on this _grid, first line with id 18 is overheated,
@@ -1342,9 +1342,9 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 2  # check that there is a cascading failure of length 2
-        assert disco[self.id_first_line_disco]
-        assert disco[self.id_2nd_line_disco]
-        assert np.sum(disco) == 2
+        assert disco[self.id_first_line_disco] >= 0
+        assert disco[self.id_2nd_line_disco] >= 0
+        assert np.sum(disco >= 0) == 2
         for i, grid_tmp in enumerate(infos):
             assert (not grid_tmp.get_line_status()[self.id_first_line_disco])
             if i == 1:
