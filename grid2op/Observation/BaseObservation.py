@@ -319,11 +319,11 @@ class BaseObservation(GridObjects):
         self.storage_power = np.empty(shape=self.n_storage, dtype=dt_float)  # in MW
 
         # attention budget
-        self.is_alarm_illegal = False
-        self.time_since_last_alarm = -1
+        self.is_alarm_illegal = np.empty(shape=1, dtype=dt_bool)
+        self.time_since_last_alarm = np.empty(shape=1, dtype=dt_int)
         self.last_alarm = np.empty(shape=self.dim_alarms, dtype=dt_int)
-        self.attention_budget = -1
-        self.was_alarm_used_after_game_over = False
+        self.attention_budget = np.empty(shape=1, dtype=dt_int)
+        self.was_alarm_used_after_game_over = np.empty(shape=1, dtype=dt_bool)
 
         # to save some computation time
         self._connectivity_matrix_ = None
@@ -710,11 +710,11 @@ class BaseObservation(GridObjects):
         self.storage_theta[:] = np.NaN
         
         # alarm feature
-        self.is_alarm_illegal = False
-        self.time_since_last_alarm = -1
+        self.is_alarm_illegal[:] = False
+        self.time_since_last_alarm[:] = -1
         self.last_alarm[:] = False
-        self.attention_budget = -1
-        self.was_alarm_used_after_game_over = False
+        self.attention_budget[:] = -1
+        self.was_alarm_used_after_game_over[:] = False
 
     def set_game_over(self, env):
         """
@@ -798,7 +798,7 @@ class BaseObservation(GridObjects):
             self.gen_theta[:] = 0.
             self.storage_theta[:] = 0.
 
-        self.was_alarm_used_after_game_over = env._is_alarm_used_in_reward
+        self.was_alarm_used_after_game_over[:] = env._is_alarm_used_in_reward
 
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
@@ -2071,11 +2071,11 @@ class BaseObservation(GridObjects):
             self._dictionnarized["curtailment_limit"] = 1.0 * self.curtailment_limit
 
             # alarm / attention budget
-            self._dictionnarized["is_alarm_illegal"] = self.is_alarm_illegal
-            self._dictionnarized["time_since_last_alarm"] = self.time_since_last_alarm
+            self._dictionnarized["is_alarm_illegal"] = self.is_alarm_illegal[0]
+            self._dictionnarized["time_since_last_alarm"] = self.time_since_last_alarm[0]
             self._dictionnarized["last_alarm"] = copy.deepcopy(self.last_alarm)
-            self._dictionnarized["attention_budget"] = self.attention_budget
-            self._dictionnarized["was_alarm_used_after_game_over"] = self.was_alarm_used_after_game_over
+            self._dictionnarized["attention_budget"] = self.attention_budget[0]
+            self._dictionnarized["was_alarm_used_after_game_over"] = self.was_alarm_used_after_game_over[0]
 
         return self._dictionnarized
 

@@ -102,7 +102,6 @@ class BaseReward(ABC):
             return res
 
     """
-    @abstractmethod
     def __init__(self):
         """
         Initializes :attr:`BaseReward.reward_min` and :attr:`BaseReward.reward_max`

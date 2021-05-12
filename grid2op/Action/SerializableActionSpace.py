@@ -954,7 +954,7 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
-    def get_all_unitary_redispatch(action_space, num_down=5, num_up=5):
+    def get_all_unitary_redispatch(action_space, num_down=5, num_up=5, max_ratio_value=1.0):
         """
         Redispatching action are continuous action. This method is an helper to convert the continuous
         action into discrete action (by rounding).
@@ -974,6 +974,18 @@ class SerializableActionSpace(SerializableSpace):
         action_space: :class:`grid2op.BaseAction.ActionHelper`
             The action space used.
 
+        num_down: ``int``
+            In how many intervals the "redispatch down" will be split
+
+        num_up: ``int``
+            In how many intervals the "redispatch up" will be split
+
+        max_ratio_value: ``float``
+            Expressed in terms of ratio of `gen_max_ramp_up` / `gen_max_ramp_down`, it gives the maximum value
+            that will be used to generate the actions. For example, if `max_ratio_value=0.5`, then it will not
+            generate actions that attempts to redispatch more than `0.5 * gen_max_ramp_up` (or less than
+            `- 0.5 * gen_max_ramp_down`). This helps reducing the instability that can be caused by redispatching.
+
         Returns
         -------
         res: ``list``
@@ -990,12 +1002,12 @@ class SerializableActionSpace(SerializableSpace):
                 continue
 
             # Create evenly spaced positive interval
-            ramps_up = np.linspace(0.0, action_space.gen_max_ramp_up[gen_idx], num=num_up)
+            ramps_up = np.linspace(0.0, max_ratio_value * action_space.gen_max_ramp_up[gen_idx], num=num_up)
             ramps_up = ramps_up[1:]  # Exclude redispatch of 0MW
 
             # Create evenly spaced negative interval
-            ramps_down = np.linspace(-action_space.gen_max_ramp_down[gen_idx], 0.0, num=num_down)
-            ramps_down = ramps_down[:-1] # Exclude redispatch of 0MW
+            ramps_down = np.linspace(-max_ratio_value * action_space.gen_max_ramp_down[gen_idx], 0.0, num=num_down)
+            ramps_down = ramps_down[:-1]  # Exclude redispatch of 0MW
 
             # Merge intervals
             ramps = np.append(ramps_up, ramps_down)
@@ -1008,7 +1020,7 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
-    def get_all_unitary_curtail(action_space, num_bin=10):
+    def get_all_unitary_curtail(action_space, num_bin=10, min_value=0.5):
         """
         Curtailment action are continuous action. This method is an helper to convert the continuous
         action into discrete action (by rounding).
@@ -1028,11 +1040,17 @@ class SerializableActionSpace(SerializableSpace):
         action_space: :class:`grid2op.BaseAction.ActionHelper`
             The action space used.
 
+        num_bin: ``int``
+            Number of actions for each renewable generator
+
+        min_value: ``float``
+            Between 0. and 1.: minimum value allow for the curtailment. FOr example if you set this
+            value to be 0.2 then no curtailment will be done to limit the generator below 20% of its maximum capacity
+
         Returns
         -------
         res: ``list``
             The list of all discretized curtailment actions.
-
         """
 
         res = []
@@ -1043,7 +1061,7 @@ class SerializableActionSpace(SerializableSpace):
             if not action_space.gen_renewable[gen_idx]:
                 continue
             # Create evenly spaced interval
-            ramps = np.linspace(0.0, action_space.gen_max_ramp_up[gen_idx], num=num_bin)
+            ramps = np.linspace(min_value, 1.0, num=num_bin)
 
             # Create ramp up actions
             for ramp in ramps:

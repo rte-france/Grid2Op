@@ -28,9 +28,12 @@ Change Log
 - [BREAKING] (but transparent for everyone): the `disc_lines` attribute is now part of the environment, and is also
   containing integer (representing the "order" on which the lines are disconnected due to protections) rather
   than just boolean.
+- [FIXED]: some bugs in the `action_space.get_all_unitary_redispatch` and `action_space.get_all_unitary_curtail`
 - [ADDED] support for the "alarm operator" / "attention budget" feature
 - [ADDED] retrieval of the `max_step` (ie the maximum number of step that can be performed for the current episode)
   in the observation
+- [ADDED] some handy argument in the `action_space.get_all_unitary_redispatch` and
+  `action_space.get_all_unitary_curtail` (see doc)
 
 [1.5.2] - 2021-05-10
 -----------------------

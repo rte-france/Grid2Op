@@ -830,12 +830,12 @@ class Backend(GridObjects, ABC):
             thermal_limits = self.get_thermal_limit()
             lines_status = self.get_line_status()
 
-            # a) disconnect lines on hard overflow
-            to_disc = lines_flows > env._hard_overflow_threshold * thermal_limits
+            # a) disconnect lines on hard overflow (that are still connected)
+            to_disc = (lines_flows > env._hard_overflow_threshold * thermal_limits) & lines_status
 
-            # b) deals with soft overflow
+            # b) deals with soft overflow (disconnect them if lines still connected)
             init_time_step_overflow[(lines_flows >= thermal_limits) & (lines_status)] += 1
-            to_disc[init_time_step_overflow > env._nb_timestep_overflow_allowed] = True
+            to_disc[(init_time_step_overflow > env._nb_timestep_overflow_allowed) & lines_status] = True
 
             # disconnect the current power lines
             if np.sum(to_disc[lines_status]) == 0:

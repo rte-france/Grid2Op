@@ -306,6 +306,8 @@ test_can_make_opponent.py
 enigma_nili.py
 test_issue196.py
 test_increasingreward.py
+PlayWithRedispCurtail.ipynb
+test_jorge/
 
 # profiling files
 **.prof

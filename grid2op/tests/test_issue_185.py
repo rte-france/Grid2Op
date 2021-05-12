@@ -14,6 +14,11 @@ from grid2op.tests.helper_path_test import *
 import grid2op
 from grid2op.gym_compat import GymEnv, BoxGymActSpace, BoxGymObsSpace, MultiDiscreteActSpace, DiscreteActSpace
 
+import pdb
+
+
+ENV_WITH_ALARM_NAME = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
+
 
 class Issue185Tester(unittest.TestCase):
     """
@@ -23,8 +28,7 @@ class Issue185Tester(unittest.TestCase):
     """
     def get_list_env(self):
         res = grid2op.list_available_test_env()
-        env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
-        res.append(env_with_alarm)
+        res.append(ENV_WITH_ALARM_NAME)
         return res
 
     def test_issue_185(self):
@@ -40,10 +44,11 @@ class Issue185Tester(unittest.TestCase):
                     gym_env.action_space.seed(0)
                     obs_gym = gym_env.reset()
                     assert obs_gym["a_ex"].shape[0] == env.n_line, f"error for {env_name}"
-                    assert obs_gym in gym_env.observation_space, f"error for {env_name}"
+                    # if obs_gym not in gym_env.observation_space:
+                    for k in gym_env.observation_space.spaces.keys():
+                        assert obs_gym[k] in gym_env.observation_space[k], f"error for {env_name}, for key={k}"
 
     def test_issue_185_act_box_space(self):
-        env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue
@@ -63,7 +68,6 @@ class Issue185Tester(unittest.TestCase):
                     assert obs in gym_env.observation_space, f"error for {env_name}"
 
     def test_issue_185_obs_box_space(self):
-        env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue
@@ -83,7 +87,6 @@ class Issue185Tester(unittest.TestCase):
                     assert obs in gym_env.observation_space, f"error for {env_name}"
 
     def test_issue_185_act_multidiscrete_space(self):
-        env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue
@@ -96,7 +99,7 @@ class Issue185Tester(unittest.TestCase):
             elif env_name == "rte_case118_example":
                 # takes too much time
                 continue
-            elif env_name == env_with_alarm:
+            elif env_name == ENV_WITH_ALARM_NAME:
                 # takes too much time
                 continue
             with warnings.catch_warnings():
@@ -115,7 +118,6 @@ class Issue185Tester(unittest.TestCase):
                     assert obs in gym_env.observation_space, f"error for {env_name}"
 
     def test_issue_185_act_discrete_space(self):
-        env_with_alarm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue
@@ -128,7 +130,7 @@ class Issue185Tester(unittest.TestCase):
             elif env_name == "rte_case118_example":
                 # takes too much time
                 continue
-            elif env_name == env_with_alarm:
+            elif env_name == ENV_WITH_ALARM_NAME:
                 # takes too much time
                 continue
             with warnings.catch_warnings():

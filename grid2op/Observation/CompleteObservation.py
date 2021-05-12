@@ -119,7 +119,9 @@ class CompleteObservation(BaseObservation):
         "time_next_maintenance", "duration_next_maintenance",
         "target_dispatch", "actual_dispatch",
         "storage_charge", "storage_power_target", "storage_power",
-        "gen_p_before_curtail", "curtailment", "curtailment_limit"
+        "gen_p_before_curtail", "curtailment", "curtailment_limit",
+        "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
+        "was_alarm_used_after_game_over",
     ]
     attr_list_json = ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",
                       "_thermal_limit",
@@ -225,10 +227,10 @@ class CompleteObservation(BaseObservation):
                 env.backend.get_theta()
 
         if self.dim_alarms and env._has_attention_budget:
-            self.is_alarm_illegal = env._is_alarm_illegal
+            self.is_alarm_illegal[:] = env._is_alarm_illegal
             if env._attention_budget.time_last_successful_alarm_raised > 0:
-                self.time_since_last_alarm = self.current_step - env._attention_budget.time_last_successful_alarm_raised
+                self.time_since_last_alarm[:] = self.current_step - env._attention_budget.time_last_successful_alarm_raised
             else:
-                self.time_since_last_alarm = -1
+                self.time_since_last_alarm[:] = -1
             self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
-            self.attention_budget = env._attention_budget.current_budget
+            self.attention_budget[:] = env._attention_budget.current_budget
