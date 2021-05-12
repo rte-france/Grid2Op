@@ -96,14 +96,15 @@ class TestObservationHazard(unittest.TestCase):
 
         # _parameters for the environment
         self.env_params = Parameters()
-
-        self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                               backend=self.backend,
-                               chronics_handler=self.chronics_handler,
-                               parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend,
-                               rewardClass=self.rewardClass,
-                               name="test_obs_env1")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                                   backend=self.backend,
+                                   chronics_handler=self.chronics_handler,
+                                   parameters=self.env_params,
+                                   names_chronics_to_backend=self.names_chronics_to_backend,
+                                   rewardClass=self.rewardClass,
+                                   name="test_obs_env1")
 
     def tearDown(self) -> None:
         self.env.close()
@@ -175,14 +176,16 @@ class TestObservationMaintenance(unittest.TestCase):
         # _parameters for the environment
         self.env_params = Parameters()
 
-        self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                               backend=self.backend,
-                               chronics_handler=self.chronics_handler,
-                               parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend,
-                               rewardClass=self.rewardClass,
-                               name="test_obs_env2",
-                               legalActClass=DefaultRules)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                                   backend=self.backend,
+                                   chronics_handler=self.chronics_handler,
+                                   parameters=self.env_params,
+                                   names_chronics_to_backend=self.names_chronics_to_backend,
+                                   rewardClass=self.rewardClass,
+                                   name="test_obs_env2",
+                                   legalActClass=DefaultRules)
 
     def tearDown(self) -> None:
         self.env.close()

@@ -138,7 +138,6 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     # none is by default to disable this feature
                     continue
                 my_type = dict_variables[attr_nm].my_space
-
             elif dt == dt_int:
                 # discrete observation space
                 if attr_nm == "year":
@@ -171,10 +170,18 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "duration_next_maintenance" or attr_nm == "time_next_maintenance":
                     # can be -1 if no maintenance, otherwise always positive
                     my_type = self._generic_gym_space(dt, sh, low=-1)
-
+                elif attr_nm == "time_since_last_alarm":
+                    # can be -1 if no maintenance, otherwise always positive
+                    my_type = self._generic_gym_space(dt, 1, low=-1)
+                elif attr_nm == "last_alarm":
+                    # can be -1 if no maintenance, otherwise always positive
+                    my_type = self._generic_gym_space(dt, sh, low=-1)
             elif dt == dt_bool:
                 # boolean observation space
-                my_type = self._boolean_type(sh)
+                if sh > 1:
+                    my_type = self._boolean_type(sh)
+                else:
+                    my_type = spaces.Discrete(n=2)
             else:
                 # continuous observation space
                 low = float("-inf")
@@ -216,6 +223,9 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "curtailment" or attr_nm == "curtailment_limit":
                     low = 0.
                     high = 1.0
+                elif attr_nm == "attention_budget":
+                    low = 0.
+                    high = np.inf
                 # curtailment, curtailment_limit, gen_p_before_curtail
 
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)

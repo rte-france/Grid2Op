@@ -760,36 +760,40 @@ class Runner(object):
         # on linux like OS i prefer to generate all the proper classes accordingly
         if _IS_LINUX:
             pass
-            with self.init_env() as env:
-               bk_class = type(env.backend)
-               pass
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                with self.init_env() as env:
+                   bk_class = type(env.backend)
+                   pass
 
         self.__used = False
 
     def _new_env(self, chronics_handler, parameters):
-        res = self.envClass(init_grid_path=self.init_grid_path,
-                            chronics_handler=chronics_handler,
-                            backend=self.backendClass(),
-                            parameters=parameters,
-                            name=self.name_env,
-                            names_chronics_to_backend=self.names_chronics_to_backend,
-                            actionClass=self.actionClass,
-                            observationClass=self.observationClass,
-                            rewardClass=self.rewardClass,
-                            legalActClass=self.legalActClass,
-                            voltagecontrolerClass=self.voltageControlerClass,
-                            other_rewards=self._other_rewards,
-                            opponent_action_class=self.opponent_action_class,
-                            opponent_class=self.opponent_class,
-                            opponent_init_budget=self.opponent_init_budget,
-                            opponent_budget_per_ts=self.opponent_budget_per_ts,
-                            opponent_budget_class=self.opponent_budget_class,
-                            opponent_attack_duration=self.opponent_attack_duration,
-                            opponent_attack_cooldown=self.opponent_attack_cooldown,
-                            kwargs_opponent=self.opponent_kwargs,
-                            with_forecast=self.with_forecast,
-                            _raw_backend_class=self.backendClass
-                            )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res = self.envClass(init_grid_path=self.init_grid_path,
+                                chronics_handler=chronics_handler,
+                                backend=self.backendClass(),
+                                parameters=parameters,
+                                name=self.name_env,
+                                names_chronics_to_backend=self.names_chronics_to_backend,
+                                actionClass=self.actionClass,
+                                observationClass=self.observationClass,
+                                rewardClass=self.rewardClass,
+                                legalActClass=self.legalActClass,
+                                voltagecontrolerClass=self.voltageControlerClass,
+                                other_rewards=self._other_rewards,
+                                opponent_action_class=self.opponent_action_class,
+                                opponent_class=self.opponent_class,
+                                opponent_init_budget=self.opponent_init_budget,
+                                opponent_budget_per_ts=self.opponent_budget_per_ts,
+                                opponent_budget_class=self.opponent_budget_class,
+                                opponent_attack_duration=self.opponent_attack_duration,
+                                opponent_attack_cooldown=self.opponent_attack_cooldown,
+                                kwargs_opponent=self.opponent_kwargs,
+                                with_forecast=self.with_forecast,
+                                _raw_backend_class=self.backendClass
+                                )
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)

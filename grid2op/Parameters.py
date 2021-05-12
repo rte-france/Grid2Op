@@ -99,6 +99,13 @@ class Parameters:
 
         Default: ``True``
 
+    ALARM_BEST_TIME: ``int``
+        Number of step for which it's best to send an alarm BEFORE a game over
+
+    ALARM_WINDOW_SIZE: ``int``
+        Number of steps for which it's worth it to give an alarm (if an alarm is send outside of the window
+        `[ALARM_BEST_TIME - ALARM_WINDOW_SIZE, ALARM_BEST_TIME + ALARM_WINDOW_SIZE]` then it does not grant anything
+
     """
     def __init__(self, parameters_path=None):
         """
@@ -160,6 +167,9 @@ class Parameters:
             else:
                 warn_msg = "Parameters: the file {} is not found. Continuing with default parameters."
                 warnings.warn(warn_msg.format(parameters_path))
+
+        self.ALARM_BEST_TIME = 12
+        self.ALARM_WINDOW_SIZE = 12
 
     @staticmethod
     def _isok_txt(arg):
@@ -246,6 +256,12 @@ class Parameters:
             self.INIT_STORAGE_CAPACITY = dt_float(dict_["INIT_STORAGE_CAPACITY"])
         if "ACTIVATE_STORAGE_LOSS" in dict_:
             self.ACTIVATE_STORAGE_LOSS = Parameters._isok_txt(dict_["ACTIVATE_STORAGE_LOSS"])
+
+        # alarm parameters
+        if "ALARM_BEST_TIME" in dict_:
+            self.ALARM_BEST_TIME = dt_int(dict_["ALARM_BEST_TIME"])
+        if "ALARM_WINDOW_SIZE" in dict_:
+            self.ALARM_WINDOW_SIZE = dt_int(dict_["ALARM_WINDOW_SIZE"])
 
         authorized_keys = set(self.__dict__.keys())
         authorized_keys = authorized_keys | {'NB_TIMESTEP_POWERFLOW_ALLOWED',
@@ -426,3 +442,8 @@ class Parameters:
             self.ACTIVATE_STORAGE_LOSS = dt_bool(self.ACTIVATE_STORAGE_LOSS)
         except Exception as exc_:
             raise RuntimeError(f"Impossible to convert ACTIVATE_STORAGE_LOSS to bool with error \n:\"{exc_}\"")
+
+        if self.ALARM_WINDOW_SIZE <= 0:
+            raise RuntimeError("self.ALARM_WINDOW_SIZE should be a positive integer !")
+        if self.ALARM_BEST_TIME <= 0:
+            raise RuntimeError("self.ALARM_BEST_TIME should be a positive integer !")

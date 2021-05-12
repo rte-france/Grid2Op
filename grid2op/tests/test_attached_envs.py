@@ -48,8 +48,8 @@ class TestL2RPNNEURIPS2020_Track1(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 1332, f"obs space size is {self.env.observation_space.n}," \
-                                                     f"should be {1332}"
+        assert self.env.observation_space.n == 1332 + 4, f"obs space size is {self.env.observation_space.n}," \
+                                                         f"should be {1332 + 4}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -88,7 +88,7 @@ class TestL2RPNNEURIPS2020_Track2(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 4054
+        assert self.env.observation_space.n == 4054 + 4
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -127,7 +127,7 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 438
+        assert self.env.observation_space.n == 438 + 4
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -166,7 +166,7 @@ class TestEDUC_CASE14_REDISP(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 438
+        assert self.env.observation_space.n == 438 + 4
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -205,7 +205,7 @@ class TestEDUC_STORAGE(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 446
+        assert self.env.observation_space.n == 446 + 4
 
     def test_random_action(self):
         """test i can perform some step (random)"""

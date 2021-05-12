@@ -7,8 +7,11 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import time
-import numpy as np
 import copy
+import os
+import json
+
+import numpy as np
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
 from abc import ABC, abstractmethod
@@ -23,6 +26,7 @@ from grid2op.Opponent import OpponentSpace, NeverAttackBudget
 from grid2op.Action import DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
+from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Action._BackendAction import _BackendAction
 
 # TODO put in a separate class the redispatching function
@@ -194,7 +198,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     # TODO add the units (eg MW, MWh, MW/time step,etc.) in the redispatching related attributes
     """
+    ALARM_FILE_NAME = "alerts_info.json"
+
     def __init__(self,
+                 init_grid_path,
                  parameters,
                  voltagecontrolerClass,
                  thermal_limit_a=None,
@@ -209,10 +216,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  opponent_budget_class=NeverAttackBudget,
                  opponent_attack_duration=0,
                  opponent_attack_cooldown=99999,
-                 kwargs_opponent={}
+                 kwargs_opponent={},
+                 has_attention_budget=False,
+                 attention_budget_cls=LinearAttentionBudget,
+                 kwargs_attention_budget={},
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
+
+        if init_grid_path is not None:
+            self._init_grid_path = os.path.abspath(init_grid_path)
+        else:
+            self._init_grid_path = None
 
         self._DEBUG = False
         # specific to power system
@@ -220,7 +235,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
                                    "grid2op.Parameters class, type provided is \"{}\"".format(type(parameters)))
         parameters.check_valid()  # check the provided parameters are valid
-        self._parameters = parameters
+        self._parameters = copy.deepcopy(parameters)
         self.with_forecast = with_forecast
 
         # some timers
@@ -288,6 +303,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_activeprod_t_redisp = None
 
         self._thermal_limit_a = thermal_limit_a
+        self._disc_lines = None
 
         # store environment modifications
         self._injection = None
@@ -346,9 +362,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._voltagecontrolerClass = voltagecontrolerClass
         self._voltage_controler = None
 
-        # backend
-        self._init_grid_path = None
-
         # backend action
         self._backend_action_class = None
         self._backend_action = None
@@ -378,6 +391,79 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_before_curtailment = None
         self._sum_curtailment_mw = None
         self._sum_curtailment_mw_prev = None
+
+        # attention budget
+        self._has_attention_budget = has_attention_budget
+        self._attention_budget = None
+        self._attention_budget_cls = attention_budget_cls
+        self._is_alarm_illegal = False
+        self._is_alarm_used_in_reward = False
+        self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
+
+    def get_path_env(self):
+        """
+        Get the path that allows to create this environment.
+
+        It can be used for example in `grid2op.utils.underlying_statistics` to save the information directly inside
+        the environment data.
+
+        """
+        return os.path.split(self._init_grid_path)[0]
+
+    def load_alarm_data(self):
+        """
+        Internal
+
+        Notes
+        ------
+        This is called when the environment class is not created, so i need to read the data of the grid from the
+        backend.
+
+        I cannot use "self.name_line" for example.
+
+        This function update the backend INSTANCE. The backend class is then updated in the env._init_backend(...)
+        function with a call to `self.backend.assert_grid_correct()`
+
+        Returns
+        -------
+
+        """
+        file_alerts = os.path.join(self.get_path_env(), BaseEnv.ALARM_FILE_NAME)
+        if os.path.exists(file_alerts) and os.path.isfile(file_alerts):
+            with open(file_alerts, mode="r", encoding="utf-8") as f:
+                dict_alarm = json.load(f)
+            key = "fixed"
+            if key not in dict_alarm:
+                raise EnvError("The key \"fixed\" should be present in the alarm data json, for now.")
+            nb_areas = len(dict_alarm[key])   # need to be remembered
+            line_names = {el: [] for el in self.backend.name_line}  # need to be remembered
+            area_names = sorted(dict_alarm[key].keys())  # need to be remembered
+            area_lines = [[] for _ in range(nb_areas)]  # need to be remembered
+            for area_id, area_name in enumerate(area_names):
+                # check that: all lines in files are in the grid
+                area = dict_alarm[key][area_name]
+                for line in area:
+                    if line not in line_names:
+                        raise EnvError(f"You provided a description of the area of the grid for the alarms, but a "
+                                       f"line named \"{line}\" is present in your file but not in the grid. Please "
+                                       f"check the file {file_alerts} and make sure it contains only the line named "
+                                       f"{sorted(self.backend.name_line)}.")
+                    # update the list and dictionary that remembers everything
+                    line_names[line].append(area_name)
+                    area_lines[area_id].append(line)
+
+            for line, li_area in line_names.items():
+                # check that all lines in the grid are in at least one area
+                if not li_area:
+                    raise EnvError(f"Line (on the grid) named {line} is not in any areas. This is not supported at "
+                                   f"the moment")
+
+            # every check pass, i update the backend class
+            bk_cls = type(self.backend)
+            bk_cls.dim_alarms = nb_areas
+            bk_cls.alarms_area_names = copy.deepcopy(area_names)
+            bk_cls.alarms_lines_area = copy.deepcopy(line_names)
+            bk_cls.alarms_area_lines = copy.deepcopy(area_lines)
 
     @property
     def action_space(self):
@@ -444,6 +530,27 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                            "grid2op.Parameters.Parameters.")
         new_parameters.check_valid()    # check the provided parameters are valid
         self.__new_forecast_param = new_parameters
+
+    def _create_attention_budget(self):
+        if not self.__is_init:
+            raise EnvError("Impossible to create an attention budget with a non initialized environment!")
+        if self._has_attention_budget:
+            self._attention_budget = self._attention_budget_cls()
+            try:
+                self._attention_budget.init(partial_env=self,
+                                            **self._kwargs_attention_budget)
+            except TypeError as exc_:
+                raise EnvError("Impossible to create the attention budget with the provided argument. Please "
+                               "change the content of the argument \"kwargs_attention_budget\".") from exc_
+        # TODO: in step
+        # TODO in reset
+        # TODO in simulate (make sure to reset the budget properly)
+
+        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in make
+        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in runner
+        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in get_kwargs
+        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in get_params_for_runner
+        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in config.py
 
     def _create_opponent(self):
         if not self.__is_init:
@@ -771,7 +878,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.with_forecast = True
 
     @abstractmethod
-    def _init_backend(self, init_grid_path, chronics_handler, backend,
+    def _init_backend(self, chronics_handler, backend,
                       names_chronics_to_backend, actionClass, observationClass,
                       rewardClass, legalActClass):
         """
@@ -1488,11 +1595,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 dictionary with keys:
 
                     - "disc_lines": a numpy array (or ``None``) saying, for each powerline if it has been disconnected
-                      due to overflow
+                      due to overflow (if not disconnected it will be -1, otherwise it will be a
+                      positive integer: 0 meaning that is one of the cause of the cascading failure, 1 means
+                      that it is disconnected just after, 2 that it's disconnected just after etc.)
                     - "is_illegal" (``bool``) whether the action given as input was illegal
                     - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
                     - "is_dispatching_illegal" (``bool``) was the action illegal due to redispatching
                     - "is_illegal_reco" (``bool``) was the action illegal due to a powerline reconnection
+                    - "reason_alarm_illegal" (``None`` or ``Exception``) reason for which the alarm is illegal
+                      (it's None if no alarm are raised or if the alarm feature is not used)
                     - "opponent_attack_line" (``np.ndarray``, ``bool``) for each powerline, say if the opponent
                       attacked it (``True``) or not (``False``).
                     - "opponent_attack_sub" (``np.ndarray``, ``bool``) for each substation, say if the opponent
@@ -1543,6 +1654,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_ambiguous = False
         is_illegal_redisp = False
         is_illegal_reco = False
+        reason_alarm_illegal = None
+        self._is_alarm_illegal = False
+        self._is_alarm_used_in_reward = False
         except_ = []
         detailed_info = []
         init_disp = 1.0 * action._redispatch  # dispatching action
@@ -1551,10 +1665,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         lines_attacked, subs_attacked = None, None
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
+        self.nb_time_step += 1
+        self._disc_lines[:] = -1
 
         beg_step = time.time()
         try:
             beg_ = time.time()
+
             is_legal, reason = self._game_rules(action=action, env=self)
             if not is_legal:
                 # action is replace by do nothing
@@ -1572,6 +1689,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 action_storage_power = 1.0 * action._storage_power  # battery information
                 is_ambiguous = True
                 except_.append(except_tmp)
+
+            if self._has_attention_budget:
+                # this feature is implemented, so i do it
+                reason_alarm_illegal = self._attention_budget.register_action(self,
+                                                                              action,
+                                                                              is_illegal,
+                                                                              is_ambiguous)
+                self._is_alarm_illegal = reason_alarm_illegal is not None
 
             # get the modification of generator active setpoint from the environment
             self._env_modification, prod_v_chronics = self._update_actions()
@@ -1699,12 +1824,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.backend.apply_action(self._backend_action)
 
             self._time_apply_act += time.time() - beg_
-
-            self.nb_time_step += 1
             try:
                 # compute the next _grid state
                 beg_pf = time.time()
                 disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self._env_dc)
+                self._disc_lines[:] = disc_lines
                 self._time_powerflow += time.time() - beg_pf
                 if conv_ is None:
                     beg_res = time.time()
@@ -1717,7 +1841,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # one timestep passed, i can maybe reconnect some lines
                     self._times_before_line_status_actionable[self._times_before_line_status_actionable > 0] -= 1
                     # update the vector for lines that have been disconnected
-                    self._times_before_line_status_actionable[disc_lines] = int(self._nb_ts_reco)
+                    self._times_before_line_status_actionable[disc_lines >= 0] = int(self._nb_ts_reco)
                     self._update_time_reconnection_hazards_maintenance()
 
                     # for the powerline that are on overflow, increase this time step
@@ -1738,7 +1862,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     if self._max_timestep_topology_deactivated > 0:
                         self._times_before_topology_actionable[self._times_before_topology_actionable > 0] -= 1
                         self._times_before_topology_actionable[aff_subs] = self._max_timestep_topology_deactivated
-
                     # build the observation (it's a different one at each step, we cannot reuse the same one)
                     self.current_obs = self.get_obs()
                     # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
@@ -1767,19 +1890,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             is_done = True
         end_step = time.time()
         self._time_step += end_step - beg_step
-
         self._backend_action.reset()
         if conv_ is not None:
             except_.append(conv_)
-        infos = {"disc_lines": disc_lines,
+        infos = {"disc_lines": self._disc_lines,
                  "is_illegal": is_illegal,
                  "is_ambiguous": is_ambiguous,
                  "is_dispatching_illegal": is_illegal_redisp,
                  "is_illegal_reco": is_illegal_reco,
+                 "reason_alarm_illegal": reason_alarm_illegal,
                  "opponent_attack_line": lines_attacked,
                  "opponent_attack_sub": subs_attacked,
                  "opponent_attack_duration": attack_duration,
-                 "exception": except_}
+                 "exception": except_,}
         if self.backend.detailed_infos_for_cascading_failures:
             infos["detailed_infos_for_cascading_failures"] = detailed_info
 
@@ -1791,8 +1914,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                              is_ambiguous)
         infos["rewards"] = other_reward
         if has_error and self.current_obs is not None:
+            # forward to the observation if an alarm is used or not
+            if hasattr(self._reward_helper.template_reward, "has_alarm_component"):
+                self._is_alarm_used_in_reward = self._reward_helper.template_reward.is_alarm_used
             # update the observation so when it's plotted everything is "shutdown"
-            self.current_obs.set_game_over()
+            self.current_obs.set_game_over(self)
 
         # TODO documentation on all the possible way to be illegal now
         if self.done:
@@ -1849,6 +1975,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_opponent = dt_float(0.)
         self._time_redisp = dt_float(0.)
         self._time_step = dt_float(0.)
+
+        if self._has_attention_budget:
+            self._attention_budget.reset()
 
         # reward and others
         self.current_reward = self.reward_range[0]

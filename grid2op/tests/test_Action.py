@@ -160,7 +160,11 @@ def _get_action_grid_class():
         "storage_discharging_efficiency": [1., 1.],
         "grid_layout": None,
         "shunt_to_subid": None,
-        "name_shunt": None
+        "name_shunt": None,
+        "dim_alarms": 0,
+        "alarms_area_names": [],
+        "alarms_lines_area": {},
+        "alarms_area_lines": [],
     }
     GridObjects.shunts_data_available = False
     my_cls = GridObjects.init_grid(GridObjects, force=True)

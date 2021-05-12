@@ -39,6 +39,7 @@ class SerializableActionSpace(SerializableSpace):
     CHANGE_BUS = 3
     REDISPATCHING = 4
     STORAGE_POWER = 5
+    RAISE_ALARM = 6
 
     def __init__(self, gridobj, actionClass=BaseAction, _init_grid=True):
         """
@@ -102,6 +103,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_types.append(self.REDISPATCHING)
         if self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
             rnd_types.append(self.STORAGE_POWER)
+        if self.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
+            rnd_types.append(self.RAISE_ALARM)
         return rnd_types
 
     def supports_type(self, action_type):
@@ -145,7 +148,8 @@ class SerializableActionSpace(SerializableSpace):
                              "storage_power",
                              "set_storage",
                              "curtail",
-                             "curtail_mw"]
+                             "curtail_mw",
+                             "raise_alarm"]
         assert action_type in name_action_types, f"The action type provided should be in {name_action_types}. " \
                                                  f"You provided {action_type} which is not supported."
 
@@ -219,6 +223,13 @@ class SerializableActionSpace(SerializableSpace):
         rnd_update["storage_power"] = rnd_update["storage_power"].astype(dt_float)
         return rnd_update
 
+    def _sample_raise_alarm(self, rnd_update=None):
+        if rnd_update is None:
+            rnd_update = {}
+        rnd_area = self.space_prng.randint(self.dim_alarms)
+        rnd_update["raise_alarm"] = [rnd_area]
+        return rnd_update
+
     def sample(self):
         """
         A utility used to sample a new random :class:`BaseAction`.
@@ -270,8 +281,10 @@ class SerializableActionSpace(SerializableSpace):
         """
         rnd_act = self.actionClass()
 
-        # Cannot sample this space, return do nothing
+        # get the type of actions I am allowed to perform
         rnd_types = self._get_possible_action_types()
+
+        # Cannot sample this space, return do nothing
         if not len(rnd_types):
             return rnd_act
 
@@ -290,6 +303,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_update = self._sample_redispatch()
         elif rnd_type == self.STORAGE_POWER:
             rnd_update = self._sample_storage_power()
+        elif rnd_type == self.RAISE_ALARM:
+            rnd_update = self._sample_raise_alarm()
         else:
             raise Grid2OpException("Impossible to sample action of type {}".format(rnd_type))
 
@@ -748,6 +763,15 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
+    def get_all_unitary_alarm(action_space):
+        res = []
+        for i in range(action_space.dim_alarms):
+            status = np.full(action_space.dim_alarms, fill_value=False, dtype=dt_bool)
+            status[i] = True
+            res.append(action_space({"raise_alarm": status}))
+        return res
+
+    @staticmethod
     def get_all_unitary_line_change(action_space):
         """
         Return all unitary actions that "change" powerline status.
@@ -766,12 +790,10 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         res = []
-
         for i in range(action_space.n_line):
             status = action_space.get_change_line_status_vect()
             status[i] = True
             res.append(action_space({"change_line_status": status}))
-
         return res
 
     @staticmethod
@@ -932,7 +954,7 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
-    def get_all_unitary_redispatch(action_space, num_down=5, num_up=5):
+    def get_all_unitary_redispatch(action_space, num_down=5, num_up=5, max_ratio_value=1.0):
         """
         Redispatching action are continuous action. This method is an helper to convert the continuous
         action into discrete action (by rounding).
@@ -952,6 +974,18 @@ class SerializableActionSpace(SerializableSpace):
         action_space: :class:`grid2op.BaseAction.ActionHelper`
             The action space used.
 
+        num_down: ``int``
+            In how many intervals the "redispatch down" will be split
+
+        num_up: ``int``
+            In how many intervals the "redispatch up" will be split
+
+        max_ratio_value: ``float``
+            Expressed in terms of ratio of `gen_max_ramp_up` / `gen_max_ramp_down`, it gives the maximum value
+            that will be used to generate the actions. For example, if `max_ratio_value=0.5`, then it will not
+            generate actions that attempts to redispatch more than `0.5 * gen_max_ramp_up` (or less than
+            `- 0.5 * gen_max_ramp_down`). This helps reducing the instability that can be caused by redispatching.
+
         Returns
         -------
         res: ``list``
@@ -968,12 +1002,12 @@ class SerializableActionSpace(SerializableSpace):
                 continue
 
             # Create evenly spaced positive interval
-            ramps_up = np.linspace(0.0, action_space.gen_max_ramp_up[gen_idx], num=num_up)
+            ramps_up = np.linspace(0.0, max_ratio_value * action_space.gen_max_ramp_up[gen_idx], num=num_up)
             ramps_up = ramps_up[1:]  # Exclude redispatch of 0MW
 
             # Create evenly spaced negative interval
-            ramps_down = np.linspace(-action_space.gen_max_ramp_down[gen_idx], 0.0, num=num_down)
-            ramps_down = ramps_down[:-1] # Exclude redispatch of 0MW
+            ramps_down = np.linspace(-max_ratio_value * action_space.gen_max_ramp_down[gen_idx], 0.0, num=num_down)
+            ramps_down = ramps_down[:-1]  # Exclude redispatch of 0MW
 
             # Merge intervals
             ramps = np.append(ramps_up, ramps_down)
@@ -986,7 +1020,7 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
-    def get_all_unitary_curtail(action_space, num_bin=10):
+    def get_all_unitary_curtail(action_space, num_bin=10, min_value=0.5):
         """
         Curtailment action are continuous action. This method is an helper to convert the continuous
         action into discrete action (by rounding).
@@ -1006,11 +1040,17 @@ class SerializableActionSpace(SerializableSpace):
         action_space: :class:`grid2op.BaseAction.ActionHelper`
             The action space used.
 
+        num_bin: ``int``
+            Number of actions for each renewable generator
+
+        min_value: ``float``
+            Between 0. and 1.: minimum value allow for the curtailment. FOr example if you set this
+            value to be 0.2 then no curtailment will be done to limit the generator below 20% of its maximum capacity
+
         Returns
         -------
         res: ``list``
             The list of all discretized curtailment actions.
-
         """
 
         res = []
@@ -1021,7 +1061,7 @@ class SerializableActionSpace(SerializableSpace):
             if not action_space.gen_renewable[gen_idx]:
                 continue
             # Create evenly spaced interval
-            ramps = np.linspace(0.0, action_space.gen_max_ramp_up[gen_idx], num=num_bin)
+            ramps = np.linspace(min_value, 1.0, num=num_bin)
 
             # Create ramp up actions
             for ramp in ramps:
