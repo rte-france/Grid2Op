@@ -585,7 +585,6 @@ class BaseObservation(GridObjects):
 
     @classmethod
     def process_grid2op_compat(cls):
-        print(f"Entering compat mode {cls.glop_version}")
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             # oldest version: no storage and no curtailment available
 

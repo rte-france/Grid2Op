@@ -79,7 +79,7 @@ pkgs = {
 
 
 setup(name='Grid2Op',
-      version='1.5.2',
+      version='1.6.0.rc1',
       description='An environment that allows to perform powergrid optimization.',
       long_description=long_description,
       long_description_content_type="text/markdown",

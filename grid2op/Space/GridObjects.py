@@ -983,7 +983,6 @@ class GridObjects:
             act_cpy = env.action_space.from_vect(act_as_vect)
 
         """
-
         if vect.shape[0] != self.size():
             raise IncorrectNumberOfElements("Incorrect number of elements found while load a GridObjects "
                                             "from a vector. Found {} elements instead of {}"
