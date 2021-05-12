@@ -220,7 +220,12 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                             352.8251647949219, 352.8251647949219, 352.8251647949219, 183197.6875,
                                             183197.6875, 183197.6875, 352.8251647949219, 352.8251647949219,
                                             352.8251647949219, 2721.794189453125, 2721.794189453125],
-                         "support_theta": [True]
+                         "support_theta": [True],
+                         "is_alarm_illegal": [False],
+                         "time_since_last_alarm": [-1],
+                         "last_alarm": [],
+                         "attention_budget": [0.],
+                         "was_alarm_used_after_game_over": [False]
                          }
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
@@ -233,7 +238,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                 dt_int, dt_int, dt_float, dt_float,
                                 dt_float, dt_float, dt_float,
                                 # curtailment
-                                dt_float, dt_float, dt_float
+                                dt_float, dt_float, dt_float,
+                                # alarm feature
+                                dt_bool, dt_int, dt_int, dt_float, dt_bool
                                 ],
                                dtype=object)
 
@@ -241,8 +248,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
                                  20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
-                                 5, 5, 0, 0, 0, 5, 5, 5])
-        self.size_obs = 429
+                                 5, 5, 0, 0, 0, 5, 5, 5, 1, 1, 0, 1, 1])
+        self.size_obs = 429 + 4
 
     def tearDown(self):
         self.env.close()

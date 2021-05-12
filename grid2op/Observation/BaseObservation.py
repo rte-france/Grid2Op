@@ -322,7 +322,7 @@ class BaseObservation(GridObjects):
         self.is_alarm_illegal = np.ones(shape=1, dtype=dt_bool)
         self.time_since_last_alarm = np.empty(shape=1, dtype=dt_int)
         self.last_alarm = np.empty(shape=self.dim_alarms, dtype=dt_int)
-        self.attention_budget = np.empty(shape=1, dtype=dt_int)
+        self.attention_budget = np.empty(shape=1, dtype=dt_float)
         self.was_alarm_used_after_game_over = np.zeros(shape=1, dtype=dt_bool)
 
         # to save some computation time
@@ -585,6 +585,7 @@ class BaseObservation(GridObjects):
 
     @classmethod
     def process_grid2op_compat(cls):
+        print(f"Entering compat mode {cls.glop_version}")
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             # oldest version: no storage and no curtailment available
 
@@ -611,7 +612,7 @@ class BaseObservation(GridObjects):
 
             cls.attr_list_set = set(cls.attr_list_vect)
 
-        if cls.glop_version < "1.6.0":
+        if cls.glop_version < "1.6.0" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             # this feature did not exist before and was introduced in grid2op 1.6.0
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
@@ -620,7 +621,8 @@ class BaseObservation(GridObjects):
                        "was_alarm_used_after_game_over"]:
                 try:
                     cls.attr_list_vect.remove(el)
-                except ValueError:
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
@@ -713,7 +715,7 @@ class BaseObservation(GridObjects):
         self.is_alarm_illegal[:] = False
         self.time_since_last_alarm[:] = -1
         self.last_alarm[:] = False
-        self.attention_budget[:] = -1
+        self.attention_budget[:] = 0
         self.was_alarm_used_after_game_over[:] = False
 
     def set_game_over(self, env=None):
@@ -807,7 +809,7 @@ class BaseObservation(GridObjects):
         self.is_alarm_illegal[:] = False
         self.time_since_last_alarm[:] = -1
         self.last_alarm[:] = False
-        self.attention_budget[:] = -1
+        self.attention_budget[:] = 0
         if env is not None:
             self.was_alarm_used_after_game_over[:] = env._is_alarm_used_in_reward
         else:
