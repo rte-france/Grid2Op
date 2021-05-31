@@ -138,6 +138,20 @@ class Backend(GridObjects, ABC):
         self.comp_time = 0.
         self.can_output_theta = False
 
+        # to prevent the use of the same backend instance in different environment.
+        self.__is_loaded = False
+
+    @property
+    def is_loaded(self):
+        return self.__is_loaded
+
+    @is_loaded.setter
+    def is_loaded(self, value):
+        if value is True:
+            self.__is_loaded = True
+        else:
+            raise BackendError("Impossible to unset the \"is_loaded\" status.")
+
     @abstractmethod
     def load_grid(self, path, filename=None):
         """
@@ -1476,6 +1490,9 @@ class Backend(GridObjects, ABC):
                  }
 
         if self.shunts_data_available and obs.shunts_data_available:
+            if "_shunt_bus" not in type(obs).attr_list_set:
+                raise BackendError("Impossible to set the backend to the state given by the observation: shunts data "
+                                   "are not present in the observation.")
             mults = (self._sh_vnkv / obs._shunt_v)**2
             dict_["shunt"] = {"shunt_p": obs._shunt_p * mults,
                               "shunt_q": obs._shunt_q * mults,

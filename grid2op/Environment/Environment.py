@@ -163,6 +163,9 @@ class Environment(BaseEnv):
             raise Grid2OpException("Parameter \"backend\" used to build the Environment should derived form the "
                                    "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
         self.backend = backend
+        if self.backend.is_loaded:
+            raise EnvError("Impossible to use the same backend twice. Please create your environment with a "
+                           "new backend instance.")
         # all the above should be done in this exact order, otherwise some weird behaviour might occur
         # this is due to the class attribute
         self.backend.set_env_name(self.name)
@@ -173,6 +176,7 @@ class Environment(BaseEnv):
         if exc_ is not None:
             warnings.warn(f"No layout have been found for you grid (or the layout provided was corrupted). You will "
                           f"not be able to use the renderer, plot the grid etc. The error was \"{exc_}\"")
+        self.backend.is_loaded = True
 
         # alarm set up
         self.load_alarm_data()

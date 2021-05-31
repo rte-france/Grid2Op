@@ -28,6 +28,8 @@ Change Log
 - [BREAKING] (but transparent for everyone): the `disc_lines` attribute is now part of the environment, and is also
   containing integer (representing the "order" on which the lines are disconnected due to protections) rather
   than just boolean.
+- [BREAKING] now the observation stores the information related to shunts by default. This means old logs computed with
+  the runner might not work with this new version.
 - [FIXED]: some bugs in the `action_space.get_all_unitary_redispatch` and `action_space.get_all_unitary_curtail`
 - [FIXED]: some bugs in the `GreedyAgent` and `TopologyGreedy`
 - [ADDED] support for the "alarm operator" / "attention budget" feature
@@ -35,6 +37,7 @@ Change Log
   in the observation
 - [ADDED] some handy argument in the `action_space.get_all_unitary_redispatch` and
   `action_space.get_all_unitary_curtail` (see doc)
+- [IMPROVED] prevent the use of the same instance of a backend in different environments
 
 [1.5.2] - 2021-05-10
 -----------------------

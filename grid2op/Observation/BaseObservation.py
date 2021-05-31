@@ -623,6 +623,14 @@ class BaseObservation(GridObjects):
                 except ValueError as exc_:
                     # this attribute was not there in the first place
                     pass
+
+            for el in ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]:
+                # added in grid2op 1.6.0 mainly for the EpisodeReboot
+                try:
+                    cls.attr_list_vect.remove(el)
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
+                    pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
     def reset(self):
