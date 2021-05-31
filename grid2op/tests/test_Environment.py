@@ -221,7 +221,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                                   backend=self.backend,
+                                   backend=self.get_backend(),
                                    chronics_handler=self.chronics_handler,
                                    parameters=self.env_params,
                                    rewardClass=L2RPNReward,

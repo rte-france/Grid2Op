@@ -139,16 +139,16 @@ class Backend(GridObjects, ABC):
         self.can_output_theta = False
 
         # to prevent the use of the same backend instance in different environment.
-        self.__is_loaded = False
+        self._is_loaded = False
 
     @property
     def is_loaded(self):
-        return self.__is_loaded
+        return self._is_loaded
 
     @is_loaded.setter
     def is_loaded(self, value):
         if value is True:
-            self.__is_loaded = True
+            self._is_loaded = True
         else:
             raise BackendError("Impossible to unset the \"is_loaded\" status.")
 
@@ -436,6 +436,7 @@ class Backend(GridObjects, ABC):
         res = copy.deepcopy(self)
         res._grid = copy.deepcopy(start_grid)
         self._grid = start_grid
+        res._is_loaded = False  # i can reload a copy of an environment
         return res
 
     def save_file(self, full_path):

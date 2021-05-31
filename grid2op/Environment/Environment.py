@@ -891,6 +891,7 @@ class Environment(BaseEnv):
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
             res["backend"] = self.backend.copy()
+            res["backend"]._is_loaded = False  # i can reload a copy of an environment
         res["parameters"] = copy.deepcopy(self._parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
         res["actionClass"] = self._actionClass_orig
