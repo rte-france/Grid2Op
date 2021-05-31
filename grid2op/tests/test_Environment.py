@@ -814,6 +814,9 @@ class TestAlarmFeature(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = make(self.env_nm, test=True)
+        self.env.seed(0)
+        self.env.reset()
+        self.env.reset()
 
     def tearDown(self) -> None:
         self.env.close()
