@@ -30,6 +30,9 @@ Change Log
   than just boolean.
 - [BREAKING] now the observation stores the information related to shunts by default. This means old logs computed with
   the runner might not work with this new version.
+- [BREAKING] the "Runner.py" file has been renamed, following pep convention "runner.py". You should rename your
+  import `from grid2op.Runner.Runner import Runner` to `from grid2op.Runner.runner import Runner`
+  (**NB** we higly recommend importing the `Runner` like `from grid2op.Runner import Runner` though !)
 - [FIXED]: some bugs in the `action_space.get_all_unitary_redispatch` and `action_space.get_all_unitary_curtail`
 - [FIXED]: some bugs in the `GreedyAgent` and `TopologyGreedy`
 - [ADDED] support for the "alarm operator" / "attention budget" feature

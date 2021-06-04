@@ -423,6 +423,7 @@ class TestAlarmFeature(unittest.TestCase):
             ep_dat = EpisodeData.from_disk(agent_path=f, name=res[0][1])
             assert len(ep_dat) == 10
             assert ep_dat.observations[0].attention_budget == 3
+            assert ep_dat.observations[1].attention_budget == 3 + 1. / (12. * 8.)
 
     def test_kwargs(self):
         """test the get_kwargs function properly foward the attention budget"""

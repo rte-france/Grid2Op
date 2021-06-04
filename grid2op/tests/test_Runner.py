@@ -20,7 +20,7 @@ from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make
-from grid2op.Runner.Runner import _aux_one_process_parrallel
+from grid2op.Runner.aux_fun import _aux_one_process_parrallel
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
