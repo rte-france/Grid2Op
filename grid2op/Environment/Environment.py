@@ -916,7 +916,9 @@ class Environment(BaseEnv):
         res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
         res["kwargs_opponent"] = self._kwargs_opponent
 
-        # TODO alarm attention budget
+        res["attention_budget_cls"] = self._attention_budget_cls
+        res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
+        res["has_attention_budget"] = self._has_attention_budget
         return res
 
     def _chronics_folder_name(self):
@@ -1240,5 +1242,8 @@ class Environment(BaseEnv):
         res["opponent_attack_duration"] = self._opponent_attack_duration
         res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
         res["opponent_kwargs"] = self._kwargs_opponent
-        # TODO alarm attention budget
+
+        res["attention_budget_cls"] = self._attention_budget_cls
+        res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
+        res["has_attention_budget"] = self._has_attention_budget
         return res
