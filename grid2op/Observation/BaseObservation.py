@@ -1371,9 +1371,9 @@ class BaseObservation(GridObjects):
             if self.shunts_data_available:
                 sh_vect = self._shunt_q
 
-        data = np.zeros(nb_bus + lor_bus.shape[0] + lex_bus.shape[0], dtype=dt_float)
         nb_lor = np.sum(lor_conn)
         nb_lex = np.sum(lex_conn)
+        data = np.zeros(nb_bus + nb_lor + nb_lex, dtype=dt_float)
 
         # if two generators / loads / storage unit are connected at the same bus
         # this is why i go with matrix product and sparse matrices
