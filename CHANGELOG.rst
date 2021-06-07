@@ -43,6 +43,8 @@ Change Log
 - [ADDED] some handy argument in the `action_space.get_all_unitary_redispatch` and
   `action_space.get_all_unitary_curtail` (see doc)
 - [IMPROVED] prevent the use of the same instance of a backend in different environments
+- [IMPROVED] `Issue#217 <https://github.com/rte-france/Grid2Op/issues/217>`_ : no more errors when trying to
+  load a grid with unsupported elements (eg. 3w trafos or static generators) by PandaPowerBackend
 
 [1.5.2] - 2021-05-10
 -----------------------
