@@ -28,13 +28,27 @@ Change Log
 - [BREAKING] (but transparent for everyone): the `disc_lines` attribute is now part of the environment, and is also
   containing integer (representing the "order" on which the lines are disconnected due to protections) rather
   than just boolean.
+- [BREAKING] now the observation stores the information related to shunts by default. This means old logs computed with
+  the runner might not work with this new version.
+- [BREAKING] the "Runner.py" file has been renamed, following pep convention "runner.py". You should rename your
+  import `from grid2op.Runner.Runner import Runner` to `from grid2op.Runner.runner import Runner`
+  (**NB** we higly recommend importing the `Runner` like `from grid2op.Runner import Runner` though !)
 - [FIXED]: some bugs in the `action_space.get_all_unitary_redispatch` and `action_space.get_all_unitary_curtail`
 - [FIXED]: some bugs in the `GreedyAgent` and `TopologyGreedy`
+- [FIXED]: `Issue#220 <https://github.com/rte-france/Grid2Op/issues/220>`_ `flow_bus_matrix` did not took into
+  account disconnected powerlines, leading to impossibility to compute this matrix in some cases.
 - [ADDED] support for the "alarm operator" / "attention budget" feature
 - [ADDED] retrieval of the `max_step` (ie the maximum number of step that can be performed for the current episode)
   in the observation
 - [ADDED] some handy argument in the `action_space.get_all_unitary_redispatch` and
   `action_space.get_all_unitary_curtail` (see doc)
+- [IMPROVED] prevent the use of the same instance of a backend in different environments
+- [IMPROVED] `Issue#217 <https://github.com/rte-france/Grid2Op/issues/217>`_ : no more errors when trying to
+  load a grid with unsupported elements (eg. 3w trafos or static generators) by PandaPowerBackend
+- [IMPROVED] `Issue#215 <https://github.com/rte-france/Grid2Op/issues/215>`_ : warnings are issued when elements
+  present in pandapower grid will not be modified grid2op side.
+- [IMPROVED] `Issue#214 <https://github.com/rte-france/Grid2Op/issues/214>`_ : adding the shunt information
+  in the observation documentation.
 
 [1.5.2] - 2021-05-10
 -----------------------

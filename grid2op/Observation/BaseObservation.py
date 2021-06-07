@@ -213,6 +213,19 @@ class BaseObservation(GridObjects):
         to the attention budget when there was a game over (can only be set to ``True`` if the observation
         corresponds to a game over, but not necessarily)
 
+    _shunt_p: :class:`numpy.ndarray`, dtype:float
+        Shunt active value (only available if shunts are available) (in MW)
+
+    _shunt_q: :class:`numpy.ndarray`, dtype:float
+        Shunt reactive value (only available if shunts are available) (in MVAr)
+
+    _shunt_v: :class:`numpy.ndarray`, dtype:float
+        Shunt voltage (only available if shunts are available) (in kV)
+
+    _shunt_bus: :class:`numpy.ndarray`, dtype:float
+        Bus (-1 disconnected, 1 for bus 1, 2 for bus 2) at which each shunt is connected
+        (only available if shunts are available)
+
     """
 
     _attr_eq = ["line_status",
@@ -618,6 +631,14 @@ class BaseObservation(GridObjects):
             cls.dim_alarms = 0
             for el in ["is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
                        "was_alarm_used_after_game_over"]:
+                try:
+                    cls.attr_list_vect.remove(el)
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
+                    pass
+
+            for el in ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]:
+                # added in grid2op 1.6.0 mainly for the EpisodeReboot
                 try:
                     cls.attr_list_vect.remove(el)
                 except ValueError as exc_:
@@ -1363,9 +1384,9 @@ class BaseObservation(GridObjects):
             if self.shunts_data_available:
                 sh_vect = self._shunt_q
 
-        data = np.zeros(nb_bus + lor_bus.shape[0] + lex_bus.shape[0], dtype=dt_float)
         nb_lor = np.sum(lor_conn)
         nb_lex = np.sum(lex_conn)
+        data = np.zeros(nb_bus + nb_lor + nb_lex, dtype=dt_float)
 
         # if two generators / loads / storage unit are connected at the same bus
         # this is why i go with matrix product and sparse matrices

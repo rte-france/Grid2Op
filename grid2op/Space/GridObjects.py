@@ -1638,7 +1638,7 @@ class GridObjects:
             raise IncorrectNumberOfSubstation("The number of substation is not consistent in "
                                               "self.sub_info (size \"{}\")"
                                               "and  self.n_sub ({})".format(len(cls.sub_info), cls.n_sub))
-        if np.sum(cls.sub_info) != cls.n_load + cls.n_gen + 2*cls.n_line + cls.n_storage:
+        if np.sum(cls.sub_info) != cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage:
             err_msg = "The number of elements of elements is not consistent between self.sub_info where there are "
             err_msg += "{} elements connected to all substations and the number of load, generators and lines in " \
                        "the _grid ({})."
@@ -1745,7 +1745,10 @@ class GridObjects:
 
         # no empty bus: at least one element should be present on each bus
         if np.any(cls.sub_info < 1):
-            raise BackendError("There are {} bus with 0 element connected to it.".format(np.sum(cls.sub_info < 1)))
+            # raise BackendError("There are {} bus with 0 element connected to it.".format(np.sum(cls.sub_info < 1)))
+            warnings.warn(f"There are {np.sum(cls.sub_info < 1)} substations where  no 'controlable' elements "
+                          f"are connected. These substations will be used in the computation of the powerflow "
+                          f"(by the backend) but you will NOT be able to control anything on them.")
 
         # redispatching / unit commitment
         if cls.redispatching_unit_commitment_availble:

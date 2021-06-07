@@ -60,7 +60,7 @@ class TestGymCompatModule(unittest.TestCase):
         assert dim_act_space == 160
         dim_obs_space = np.sum([np.sum(env_gym.observation_space[el].shape).astype(int)
                                 for el in env_gym.observation_space.spaces])
-        size_th = 434
+        size_th = 434 + 4
         assert dim_obs_space == size_th, f"Size should be {size_th} but is {dim_obs_space}"
 
         # test that i can do basic stuff there
