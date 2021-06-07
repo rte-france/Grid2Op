@@ -45,6 +45,8 @@ Change Log
 - [IMPROVED] prevent the use of the same instance of a backend in different environments
 - [IMPROVED] `Issue#217 <https://github.com/rte-france/Grid2Op/issues/217>`_ : no more errors when trying to
   load a grid with unsupported elements (eg. 3w trafos or static generators) by PandaPowerBackend
+- [IMPROVED] `Issue#215 <https://github.com/rte-france/Grid2Op/issues/215>`_ : warnings are issued when elements
+  present in pandapower grid will not be modified grid2op side.
 
 [1.5.2] - 2021-05-10
 -----------------------
