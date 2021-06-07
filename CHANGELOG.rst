@@ -47,6 +47,8 @@ Change Log
   load a grid with unsupported elements (eg. 3w trafos or static generators) by PandaPowerBackend
 - [IMPROVED] `Issue#215 <https://github.com/rte-france/Grid2Op/issues/215>`_ : warnings are issued when elements
   present in pandapower grid will not be modified grid2op side.
+- [IMPROVED] `Issue#214 <https://github.com/rte-france/Grid2Op/issues/214>`_ : adding the shunt information
+  in the observation documentation.
 
 [1.5.2] - 2021-05-10
 -----------------------

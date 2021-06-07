@@ -213,6 +213,19 @@ class BaseObservation(GridObjects):
         to the attention budget when there was a game over (can only be set to ``True`` if the observation
         corresponds to a game over, but not necessarily)
 
+    _shunt_p: :class:`numpy.ndarray`, dtype:float
+        Shunt active value (only available if shunts are available) (in MW)
+
+    _shunt_q: :class:`numpy.ndarray`, dtype:float
+        Shunt reactive value (only available if shunts are available) (in MVAr)
+
+    _shunt_v: :class:`numpy.ndarray`, dtype:float
+        Shunt voltage (only available if shunts are available) (in kV)
+
+    _shunt_bus: :class:`numpy.ndarray`, dtype:float
+        Bus (-1 disconnected, 1 for bus 1, 2 for bus 2) at which each shunt is connected
+        (only available if shunts are available)
+
     """
 
     _attr_eq = ["line_status",
