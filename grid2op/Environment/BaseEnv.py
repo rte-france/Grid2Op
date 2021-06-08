@@ -502,6 +502,27 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_parameters: :class:`grid2op.Parameters.Parameters`
             The new parameters you want the environment to get.
 
+
+        Examples
+        ---------
+
+        You can use this function like:
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Parameters import Parameters
+            env_name = ...
+
+            env = grid2op.make(env_name)
+            env.parameters.NO_OVERFLOW_DISCONNECTION  # -> False
+
+            new_param = Parameters()
+            new_param.A_MEMBER = A_VALUE  # eg new_param.NO_OVERFLOW_DISCONNECTION = True
+            env.change_parameters(new_param)
+            obs = env.reset()
+            env.parameters.NO_OVERFLOW_DISCONNECTION  # -> True
+
         """
         if not isinstance(new_parameters, Parameters):
             raise EnvError("The new parameters \"new_parameters\" should be an instance of "
