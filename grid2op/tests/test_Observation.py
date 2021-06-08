@@ -105,7 +105,12 @@ class TestBasisObsBehaviour(unittest.TestCase):
                       "storage_loss": [],
                       'storage_charging_efficiency': [],
                       'storage_discharging_efficiency': [],
-                      '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation'}
+                      '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation',
+                      "dim_alarms": 0,
+                      "alarms_area_names": [],
+                      "alarms_lines_area": {},
+                      "alarms_area_lines": [],
+                      }
 
         self.json_ref = {'year': [2019], 'month': [1], 'day': [6], 'hour_of_day': [0], 'minute_of_hour': [0],
                          'day_of_week': [6],
@@ -191,7 +196,36 @@ class TestBasisObsBehaviour(unittest.TestCase):
                          'storage_power': [],
                          "gen_p_before_curtail": [0.0, 0.0, 0.0, 7.599999904632568, 0.0],
                          "curtailment": [0.0, 0.0, 0.0, 0.0, 0.0],
-                         "curtailment_limit": [1.0, 1.0, 1.0, 1.0, 1.0]
+                         "curtailment_limit": [1.0, 1.0, 1.0, 1.0, 1.0],
+                         "theta_ex": [-1.3276801109313965, -4.100967884063721, -10.311812400817871, -11.245238304138184,
+                          -10.119081497192383, -10.50421142578125, -11.245238304138184, -4.473601341247559,
+                          -4.824699401855469, -4.100967884063721, -4.824699401855469, -4.100967884063721,
+                          -10.119081497192383, -10.39695930480957, -10.50421142578125, -7.88769006729126,
+                          -10.060456275939941, -9.613715171813965, -7.1114115715026855, -10.060456275939941],
+                         "theta_or": [0.0, 0.0, -10.060456275939941, -10.060456275939941, -10.311812400817871,
+                                      -10.39695930480957, -10.50421142578125, -1.3276801109313965,
+                                      -1.3276801109313965, -1.3276801109313965, -4.473601341247559,
+                                      -4.824699401855469, -9.613715171813965, -9.613715171813965,
+                                      -9.613715171813965, -4.824699401855469, -4.824699401855469,
+                                      -4.100967884063721, -7.88769006729126, -7.88769006729126],
+                         "gen_theta": [-1.3276801109313965, -4.473601341247559, -9.613715171813965,
+                                       -7.1114115715026855, 0.0],
+                         "load_theta": [-1.3276801109313965, -4.473601341247559, -11.245238304138184,
+                                        -4.824699401855469, -4.100967884063721, -9.613715171813965,
+                                        -10.060456275939941, -10.311812400817871, -10.119081497192383,
+                                        -10.39695930480957, -10.50421142578125],
+                         "storage_theta": [],
+                         "_thermal_limit": [352.8251647949219, 352.8251647949219, 183197.6875, 183197.6875, 183197.6875,
+                                            12213.1787109375, 183197.6875, 352.8251647949219, 352.8251647949219,
+                                            352.8251647949219, 352.8251647949219, 352.8251647949219, 183197.6875,
+                                            183197.6875, 183197.6875, 352.8251647949219, 352.8251647949219,
+                                            352.8251647949219, 2721.794189453125, 2721.794189453125],
+                         "support_theta": [True],
+                         "is_alarm_illegal": [False],
+                         "time_since_last_alarm": [-1],
+                         "last_alarm": [],
+                         "attention_budget": [0.],
+                         "was_alarm_used_after_game_over": [False]
                          }
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
@@ -204,7 +238,11 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                 dt_int, dt_int, dt_float, dt_float,
                                 dt_float, dt_float, dt_float,
                                 # curtailment
-                                dt_float, dt_float, dt_float
+                                dt_float, dt_float, dt_float,
+                                # alarm feature
+                                dt_bool, dt_int, dt_int, dt_float, dt_bool,
+                                # shunts
+                                dt_float, dt_float, dt_float, dt_int,
                                 ],
                                dtype=object)
 
@@ -212,8 +250,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
                                  20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
-                                 5, 5, 0, 0, 0, 5, 5, 5])
-        self.size_obs = 429
+                                 5, 5, 0, 0, 0, 5, 5, 5, 1, 1, 0, 1, 1,
+                                 1, 1, 1, 1,])
+        self.size_obs = 429 + 4 + 4
 
     def tearDown(self):
         self.env.close()
@@ -1403,6 +1442,30 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self._check_equal(sim_obs2, obs)
         assert abs(rew1 - rew3) <= 1e-8, "issue with reward"
         self._check_equal(sim_obs1, sim_obs3)
+
+    def test_nb_step(self):
+        obs = self.env.reset()
+        sim_obs1, rew1, done1, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
+        sim_obs3, rew3, done3, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        assert obs.current_step == 0
+        assert sim_obs1.current_step == 1
+        assert sim_obs2.current_step == 1
+        assert sim_obs3.current_step == 1
+
+        obs, *_ = self.env.step(self.env.action_space())
+        sim_obs1, rew1, done1, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        assert obs.current_step == 1
+        assert sim_obs1.current_step == 2
+
+        obs = self.env.reset()
+        sim_obs1, rew1, done1, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
+        sim_obs3, rew3, done3, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        assert obs.current_step == 0
+        assert sim_obs1.current_step == 1
+        assert sim_obs2.current_step == 1
+        assert sim_obs3.current_step == 1
 
 
 class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):

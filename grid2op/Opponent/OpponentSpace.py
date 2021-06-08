@@ -5,12 +5,19 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
+import numpy as np
+
 from grid2op.Exceptions import OpponentError
 
 
 class OpponentSpace(object):
     """
     Is similar to the action space, but for the opponent.
+
+    This class is used to express some "constraints" on the opponent attack. The opponent is free to attack whatever
+    it wants, for how long it wants and when it wants. This class ensures that the opponent does not break any
+    rules.
 
     Attributes
     ----------
@@ -32,7 +39,12 @@ class OpponentSpace(object):
     budget_per_timestep: ``float``
         The increase of the opponent budget per time step (if any)
     """
-    def __init__(self, compute_budget, init_budget, opponent, attack_duration, attack_cooldown,
+    def __init__(self,
+                 compute_budget,
+                 init_budget,
+                 opponent,
+                 attack_duration,  # maximum duration of an attack
+                 attack_cooldown,  # minimum duration between two consecutive attack
                  budget_per_timestep=0., action_space=None):
         if action_space is not None:
             if not isinstance(action_space, compute_budget.action_space):
@@ -48,7 +60,7 @@ class OpponentSpace(object):
         self._do_nothing = self.action_space()
         self.previous_fails = False
         self.budget_per_timestep = budget_per_timestep
-        self.attack_duration = attack_duration
+        self.attack_max_duration = attack_duration
         self.attack_cooldown = attack_cooldown
         self.current_attack_duration = 0
         self.current_attack_cooldown = attack_cooldown
@@ -150,32 +162,42 @@ class OpponentSpace(object):
         self.current_attack_cooldown = max(0, self.current_attack_cooldown - 1)
         attack_called = False
 
-        # If currently attacking
         if self.current_attack_duration > 0:
+            # previous attack is not over
             attack = self.last_attack
 
-        # If the opponent has already attacked today
         elif self.current_attack_cooldown > self.attack_cooldown:
+            # minimum time between two consecutive attack not met
             attack = None
 
         # If the opponent can attack  
         else:
             self.previous_fails = False
-            attack = self.opponent.attack(observation, agent_action, env_action, self.budget,
-                                          self.previous_fails)
             attack_called = True
+            attack, duration = self.opponent.attack(observation, agent_action, env_action, self.budget,
+                                                    self.previous_fails)
+            if duration is None:
+                if np.isfinite(self.attack_max_duration):
+                    duration = self.attack_max_duration
+                else:
+                    duration = 1
+
+            if duration > self.attack_max_duration:
+                # duration chosen by the opponent would exceed the maximum duration allowed
+                attack = None
+
             # If the cost is too high
             final_budget = self.budget  # TODO add the: + self.budget_per_timestep * (self.attack_duration - 1)
             # i did not do it in case an attack is ok at the beginning, ok at the end, but at some point in the attack
             # process it is not (but i'm not sure this can happen, and don't have time to think about it right now)
-            if self.attack_duration * self.compute_budget(attack) > final_budget:
+            if duration * self.compute_budget(attack) > final_budget:
                 attack = None
                 self.previous_fails = True
 
             # If we can afford the attack
             elif attack is not None:
-                # even if it's "do nothing", it's sill an attack. To bad if the opponent chose to do nothing.
-                self.current_attack_duration = self.attack_duration
+                # even if it's "do nothing", it's sill an attack. Too bad if the opponent chose to do nothing.
+                self.current_attack_duration = duration
                 self.current_attack_cooldown += self.attack_cooldown
 
         if not attack_called:

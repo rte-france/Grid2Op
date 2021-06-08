@@ -23,6 +23,7 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
+from grid2op.operator_attention import LinearAttentionBudget
 
 from grid2op.Backend import PandaPowerBackend
 
@@ -84,10 +85,14 @@ class Environment(BaseEnv):
                  opponent_attack_duration=0,
                  opponent_attack_cooldown=99999,
                  kwargs_opponent={},
+                 attention_budget_cls=LinearAttentionBudget,
+                 kwargs_attention_budget={},
+                 has_attention_budget=False,
                  _raw_backend_class=None,
                  _compat_glop_version=None,
                  ):
         BaseEnv.__init__(self,
+                         init_grid_path=init_grid_path,
                          parameters=parameters,
                          thermal_limit_a=thermal_limit_a,
                          epsilon_poly=epsilon_poly,
@@ -102,10 +107,14 @@ class Environment(BaseEnv):
                          opponent_budget_per_ts=opponent_budget_per_ts,
                          opponent_attack_duration=opponent_attack_duration,
                          opponent_attack_cooldown=opponent_attack_cooldown,
-                         kwargs_opponent=kwargs_opponent)
+                         kwargs_opponent=kwargs_opponent,
+                         has_attention_budget=has_attention_budget,
+                         attention_budget_cls=attention_budget_cls,
+                         kwargs_attention_budget=kwargs_attention_budget,
+                         )
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
-                          "to use an environment without a name")
+                          "to use an environment without a name...")
         self.name = name
 
         # for gym compatibility (initialized below)
@@ -124,24 +133,13 @@ class Environment(BaseEnv):
         self._compat_glop_version = _compat_glop_version
 
         # for plotting
-        self._init_backend(init_grid_path, chronics_handler, backend,
+        self._init_backend(chronics_handler, backend,
                            names_chronics_to_backend, actionClass, observationClass,
                            rewardClass, legalActClass)
         self._actionClass_orig = actionClass
         self._observationClass_orig = observationClass
 
-    def get_path_env(self):
-        """
-        Get the path that allows to create this environment.
-
-        It can be used for example in `grid2op.utils.underlying_statistics` to save the information directly inside
-        the environment data.
-
-        """
-        return os.path.split(self._init_grid_path)[0]
-
-    def _init_backend(self,
-                      init_grid_path, chronics_handler, backend,
+    def _init_backend(self, chronics_handler, backend,
                       names_chronics_to_backend, actionClass, observationClass,
                       rewardClass, legalActClass):
         """
@@ -161,19 +159,27 @@ class Environment(BaseEnv):
                                    "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
 
         # backend
-        self._init_grid_path = os.path.abspath(init_grid_path)
-
         if not isinstance(backend, Backend):
             raise Grid2OpException("Parameter \"backend\" used to build the Environment should derived form the "
                                    "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
         self.backend = backend
+        if self.backend.is_loaded:
+            raise EnvError("Impossible to use the same backend twice. Please create your environment with a "
+                           "new backend instance.")
         # all the above should be done in this exact order, otherwise some weird behaviour might occur
         # this is due to the class attribute
         self.backend.set_env_name(self.name)
         self.backend.load_grid(self._init_grid_path)  # the real powergrid of the environment
         self.backend.load_redispacthing_data(self.get_path_env())
         self.backend.load_storage_data(self.get_path_env())
-        self.backend.load_grid_layout(self.get_path_env())
+        exc_ = self.backend.load_grid_layout(self.get_path_env())
+        if exc_ is not None:
+            warnings.warn(f"No layout have been found for you grid (or the layout provided was corrupted). You will "
+                          f"not be able to use the renderer, plot the grid etc. The error was \"{exc_}\"")
+        self.backend.is_loaded = True
+
+        # alarm set up
+        self.load_alarm_data()
 
         # to force the initialization of the backend to the proper type
         self.backend.assert_grid_correct()
@@ -182,6 +188,7 @@ class Environment(BaseEnv):
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
         self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
+        self._disc_lines = np.zeros(shape=self.n_line, dtype=dt_int) - 1
 
         if self._thermal_limit_a is None:
             self._thermal_limit_a = self.backend.thermal_limit_a.astype(dt_float)
@@ -241,13 +248,6 @@ class Environment(BaseEnv):
                                                             actionClass=CompleteAction,
                                                             legal_action=self._game_rules.legal_action)
 
-        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
-        self._observation_space = self._helper_observation_class(gridobj=bk_type,
-                                                                 observationClass=observationClass,
-                                                                 actionClass=actionClass,
-                                                                 rewardClass=rewardClass,
-                                                                 env=self)
-
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
             raise Grid2OpException(
@@ -259,6 +259,15 @@ class Environment(BaseEnv):
                                          self.name_line, self.name_sub,
                                          names_chronics_to_backend=names_chronics_to_backend)
         self.names_chronics_to_backend = names_chronics_to_backend
+
+        # this needs to be done after the chronics handler: rewards might need information
+        # about the chronics to work properly.
+        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
+        self._observation_space = self._helper_observation_class(gridobj=bk_type,
+                                                                 observationClass=observationClass,
+                                                                 actionClass=actionClass,
+                                                                 rewardClass=rewardClass,
+                                                                 env=self)
 
         # test to make sure the backend is consistent with the chronics generator
         self.chronics_handler.check_validity(self.backend)
@@ -282,6 +291,9 @@ class Environment(BaseEnv):
         # At least the 3 following attributes should be set before calling _create_opponent
         self._create_opponent()
 
+        # create the attention budget
+        self._create_attention_budget()
+
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
         self._reset_maintenance()
@@ -296,8 +308,6 @@ class Environment(BaseEnv):
         self.backend.assert_grid_correct_after_powerflow()
 
         # for gym compatibility
-        # self._action_space = self._helper_action_player  # this should be an action !!!
-        # self._observation_space = self._helper_observation  # this return an observation.
         self.reward_range = self._reward_helper.range()
         self.viewer = None
         self.viewer_fig = None
@@ -310,6 +320,39 @@ class Environment(BaseEnv):
 
         # reset everything to be consistent
         self._reset_vectors_and_timings()
+
+    def max_episode_duration(self):
+        """
+        Return the maximum duration (in number of steps) of the current episode.
+
+        Notes
+        -----
+        For possibly infinite episode, the duration is returned as `np.iinfo(np.int32).max` which corresponds
+        to the maximum 32 bit integer (usually `2147483647`)
+
+        """
+        tmp = dt_int(self.chronics_handler.max_episode_duration())
+        if tmp < 0:
+            tmp = dt_int(np.iinfo(dt_int).max)
+        return tmp
+
+    def set_max_iter(self, max_iter):
+        """
+
+        Parameters
+        ----------
+        max_iter: ``int``
+            The maximum number of iteration you can do before reaching the end of the episode. Set it to "-1" for
+            possibly infinite episode duration.
+
+        Notes
+        -------
+
+        Maximum length of the episode can depend on the chronics used. See :attr:`Environment.chronics_handler` for
+        more information
+
+        """
+        self.chronics_handler.set_max_iter(max_iter)
 
     @property
     def _helper_observation(self):
@@ -456,6 +499,28 @@ class Environment(BaseEnv):
                                    "is a positive integer.")
 
         self.chronics_handler.set_chunk_size(new_chunk_size)
+
+    def simulate(self, action):
+        """
+        Another method to call `obs.simulate` to ensure compatibility between multi environment and
+        regular one.
+
+        Parameters
+        ----------
+        action:
+            A grid2op action
+
+        Returns
+        -------
+        Same return type as :func:`grid2op.Environment.BaseEnv.step` or
+        :func:`grid2op.Observation.BaseObservation.simulate`
+
+        Notes
+        -----
+        Prefer using `obs.simulate` if possible, it will be faster than this function.
+
+        """
+        return self.get_obs().simulate(action)
 
     def set_id(self, id_):
         """
@@ -674,9 +739,19 @@ class Environment(BaseEnv):
             self.viewer_fig = None
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
+        # the attention budget is reset above
 
         # reset the opponent
         self._oppSpace.reset()
+
+        # reset, if need, reward and other rewards
+        self._reward_helper.reset(self)
+        for extra_reward in self.other_rewards.values():
+            extra_reward.reset(self)
+
+        # and reset also the "simulated env" in the observation space
+        self._observation_space.reset(self)
+
         return self.get_obs()
 
     def render(self, mode='human'):
@@ -816,6 +891,7 @@ class Environment(BaseEnv):
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
             res["backend"] = self.backend.copy()
+            res["backend"]._is_loaded = False  # i can reload a copy of an environment
         res["parameters"] = copy.deepcopy(self._parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
         res["actionClass"] = self._actionClass_orig
@@ -839,6 +915,10 @@ class Environment(BaseEnv):
         res["opponent_attack_duration"] = self._opponent_attack_duration
         res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
         res["kwargs_opponent"] = self._kwargs_opponent
+
+        res["attention_budget_cls"] = self._attention_budget_cls
+        res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
+        res["has_attention_budget"] = self._has_attention_budget
         return res
 
     def _chronics_folder_name(self):
@@ -1162,4 +1242,8 @@ class Environment(BaseEnv):
         res["opponent_attack_duration"] = self._opponent_attack_duration
         res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
         res["opponent_kwargs"] = self._kwargs_opponent
+
+        res["attention_budget_cls"] = self._attention_budget_cls
+        res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
+        res["has_attention_budget"] = self._has_attention_budget
         return res

@@ -59,6 +59,7 @@ from grid2op.Action._BackendAction import _BackendAction
 
 import pdb
 
+
 class MakeBackend(ABC):
     @abstractmethod
     def make_backend(self, detailed_infos_for_cascading_failures=False):
@@ -178,6 +179,26 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
     def tearDown(self):
         pass
+
+    def test_theta_ok(self):
+        self.skip_if_needed()
+        if self.backend.can_output_theta:
+            theta_or, theta_ex, load_theta, gen_theta, storage_theta = self.backend.get_theta()
+            assert theta_or.shape[0] == self.backend.n_line
+            assert theta_ex.shape[0] == self.backend.n_line
+            assert load_theta.shape[0] == self.backend.n_load
+            assert gen_theta.shape[0] == self.backend.n_gen
+            assert storage_theta.shape[0] == self.backend.n_storage
+            assert np.all(np.isfinite(theta_or))
+            assert np.all(np.isfinite(theta_ex))
+            assert np.all(np.isfinite(load_theta))
+            assert np.all(np.isfinite(gen_theta))
+            assert np.all(np.isfinite(storage_theta))
+        else:
+            with self.assertRaises(NotImplementedError):
+                # if the "can_output_theta" flag is set to false, then it means the backend
+                # should not implement the get_theta class
+                self.backend.get_theta()
 
     def test_runpf_dc(self):
         self.skip_if_needed()
@@ -1134,7 +1155,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 1  # check that i have only one overflow
-        assert np.sum(disco) == 1
+        assert np.sum(disco >= 0) == 1
 
     def test_next_grid_state_1overflow_envNoCF(self):
         # third i test that, if a line is on hard overflow, but i'm on a "no cascading failure" mode,
@@ -1166,7 +1187,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert not infos  # check that don't simulate a cascading failure
-        assert np.sum(disco) == 0
+        assert np.sum(disco >= 0) == 0
 
     def test_set_thermal_limit(self):
         thermal_limit = np.arange(self.backend.n_line)
@@ -1207,9 +1228,9 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 2  # check that there is a cascading failure of length 2
-        assert disco[self.id_first_line_disco]
-        assert disco[self.id_2nd_line_disco]
-        assert np.sum(disco) == 2
+        assert disco[self.id_first_line_disco] >= 0
+        assert disco[self.id_2nd_line_disco] >= 0
+        assert np.sum(disco >= 0) == 2
 
     def test_nb_timestep_overflow_nodisc(self):
         # on this _grid, first line with id 18 is overheated,
@@ -1245,8 +1266,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 1  # check that don't simulate a cascading failure
-        assert disco[self.id_first_line_disco]
-        assert np.sum(disco) == 1
+        assert disco[self.id_first_line_disco] >= 0
+        assert np.sum(disco >= 0) == 1
 
     def test_nb_timestep_overflow_nodisc_2(self):
         # on this _grid, first line with id 18 is overheated,
@@ -1283,8 +1304,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 1  # check that don't simulate a cascading failure
-        assert disco[self.id_first_line_disco]
-        assert np.sum(disco) == 1
+        assert disco[self.id_first_line_disco] >= 0
+        assert np.sum(disco >= 0) == 1
 
     def test_nb_timestep_overflow_disc2(self):
         # on this _grid, first line with id 18 is overheated,
@@ -1321,9 +1342,9 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert len(infos) == 2  # check that there is a cascading failure of length 2
-        assert disco[self.id_first_line_disco]
-        assert disco[self.id_2nd_line_disco]
-        assert np.sum(disco) == 2
+        assert disco[self.id_first_line_disco] >= 0
+        assert disco[self.id_2nd_line_disco] >= 0
+        assert np.sum(disco >= 0) == 2
         for i, grid_tmp in enumerate(infos):
             assert (not grid_tmp.get_line_status()[self.id_first_line_disco])
             if i == 1:
@@ -1839,15 +1860,19 @@ class BaseTestStorageAction(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend,
-                                    param=param, action_class=CompleteAction)
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    backend=backend,
+                                    param=param,
+                                    action_class=CompleteAction)
 
         # test i can do a reset
         obs = self.env.reset()
 
         # test i can do a step
         obs, reward, done, info = self.env.step(self.env.action_space())
-        assert not done
+        exc_ = info["exception"]
+        assert not done, f"i should be able to do a step with some storage units error is {exc_}"
         storage_p, storage_q, storage_v = self.env.backend.storages_info()
         assert np.all(np.abs(storage_p - 0.) <= self.tol_one)
         assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
@@ -1860,7 +1885,6 @@ class BaseTestStorageAction(MakeBackend):
                                                  "generators_id": [(3, 2)]}}
                                     )
         obs, reward, done, info = self.env.step(act)
-
         assert not info["exception"]
         storage_p, storage_q, storage_v = self.env.backend.storages_info()
         assert np.all(np.abs(storage_p - array_modif) <= self.tol_one)
@@ -1895,12 +1919,12 @@ class BaseTestStorageAction(MakeBackend):
                                                  "generators_id": [(3, 1)]}}
                                     )
         obs, reward, done, info = self.env.step(act)
-        assert not info["exception"]
+        assert not info["exception"], \
+            "error when storage is disconnected with 0 production, throw an error, but should not"
         assert not done
         storage_p, storage_q, storage_v = self.env.backend.storages_info()
         assert np.all(np.abs(storage_p - [0., array_modif[1]]) <= self.tol_one), \
             "storage is not disconnected, yet alone on its busbar"
-        assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
         assert obs.storage_bus[0] == -1, "storage should be disconnected"
         assert storage_v[0] == 0., "storage 0 should be disconnected"
         assert obs.line_or_bus[8] == 1
@@ -1973,12 +1997,14 @@ class BaseIssuesTest(MakeBackend):
 
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
         param.NB_TIMESTEP_COOLDOWN_SUB = 0
+        # param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic",
                                test=True,
                                backend=backend,
                                param=param)
+        obs_init = env.get_obs()
         LINE_ID = 2
 
         # Disconnect ex
@@ -1989,6 +2015,7 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == False
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
@@ -2001,10 +2028,11 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == True
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == 1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == 2
-    
+
         # Disconnect or
         action = env.action_space({
             'set_bus': {
@@ -2013,6 +2041,7 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == False
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
@@ -2025,6 +2054,7 @@ class BaseIssuesTest(MakeBackend):
             }
         })
         obs, reward, done, info = env.step(action)
+        assert not done
         assert obs.line_status[LINE_ID] == True
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == 1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == 2

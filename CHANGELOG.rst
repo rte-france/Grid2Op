@@ -4,6 +4,7 @@ Change Log
 [TODO]
 --------------------
 - [???] add multi agent
+- [???] make observation read only / immutable for all its properties (and not just for `prod_p`)
 - [???] better logging
 - [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
   stuff to break)
@@ -22,10 +23,90 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.5.1] - 2021-xx-yy
+[1.6.0] - 2021-06-yy
+--------------------
+- [BREAKING] (but transparent for everyone): the `disc_lines` attribute is now part of the environment, and is also
+  containing integer (representing the "order" on which the lines are disconnected due to protections) rather
+  than just boolean.
+- [BREAKING] now the observation stores the information related to shunts by default. This means old logs computed with
+  the runner might not work with this new version.
+- [BREAKING] the "Runner.py" file has been renamed, following pep convention "runner.py". You should rename your
+  import `from grid2op.Runner.Runner import Runner` to `from grid2op.Runner.runner import Runner`
+  (**NB** we higly recommend importing the `Runner` like `from grid2op.Runner import Runner` though !)
+- [FIXED]: some bugs in the `action_space.get_all_unitary_redispatch` and `action_space.get_all_unitary_curtail`
+- [FIXED]: some bugs in the `GreedyAgent` and `TopologyGreedy`
+- [FIXED]: `Issue#220 <https://github.com/rte-france/Grid2Op/issues/220>`_ `flow_bus_matrix` did not took into
+  account disconnected powerlines, leading to impossibility to compute this matrix in some cases.
+- [ADDED] support for the "alarm operator" / "attention budget" feature
+- [ADDED] retrieval of the `max_step` (ie the maximum number of step that can be performed for the current episode)
+  in the observation
+- [ADDED] some handy argument in the `action_space.get_all_unitary_redispatch` and
+  `action_space.get_all_unitary_curtail` (see doc)
+- [IMPROVED] prevent the use of the same instance of a backend in different environments
+- [IMPROVED] `Issue#217 <https://github.com/rte-france/Grid2Op/issues/217>`_ : no more errors when trying to
+  load a grid with unsupported elements (eg. 3w trafos or static generators) by PandaPowerBackend
+- [IMPROVED] `Issue#215 <https://github.com/rte-france/Grid2Op/issues/215>`_ : warnings are issued when elements
+  present in pandapower grid will not be modified grid2op side.
+- [IMPROVED] `Issue#214 <https://github.com/rte-france/Grid2Op/issues/214>`_ : adding the shunt information
+  in the observation documentation.
+
+[1.5.2] - 2021-05-10
 -----------------------
+- [BREAKING]: allow the opponent to chose the duration of its attack. This breaks the previous "Opponent.attack(...)"
+  signature by adding an object in the return value. All code provided with grid2op are compatible with this
+  new change. (for previously coded opponent, the only thing you have to do to make it compliant with
+  the new interface is, in the `opponent.attack(...)` function return `whatever_you_returned_before, None` instead
+  of simply `whatever_you_returned_before`
+- [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related to the
+  low / high of the observation if using the gym_compat module. Some more protections
+  are enforced now.
+- [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related the scaling when negative
+  numbers are used (in these cases low / max would be mixed up)
+- [FIXED]: an issue with the `IncreasingFlatReward` reward types
+- [FIXED]: a bug due to the conversion of int to float in the range of the `BoxActionSpace` for the `gym_compat` module
+- [FIXED]: a bug in the `BoxGymActSpace`, `BoxGymObsSpace`, `MultiDiscreteActSpace` and `DiscreteActSpace`
+  where the order of the attribute for the conversion
+  was encoded in a set. We enforced a sorted list now. We did not manage to find a bug caused by this issue, but
+  it is definitely possible. This has been fixed now.
+- [FIXED]: a bug where, when an observation was set to a "game over" state, some of its attributes were below the
+  maximum values allowed in the `BoxGymObsSpace`
+- [ADDED]: a reward `EpisodeDurationReward` that is always 0 unless at the end of an episode where it returns a float
+  proportional to the number of step made from the beginning of the environment.
+- [ADDED]: in the `Observation` the possibility to retrieve the current number of steps
+- [ADDED]: easier function to manipulate the max number of iteration we want to perform directly from the environment
+- [ADDED]: function to retrieve the maximum duration of the current episode.
+- [ADDED]: a new kind of opponent that is able to attack at "more random" times with "more random" duration.
+  See the `GeometricOpponent`.
+- [IMPROVED]: on windows at least, grid2op does not work with gym < 0.17.2 Checks are performed in order to make sure
+  the installed open ai gym package meets this requirement (see issue
+  `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
+- [IMPROVED] the seed of openAI gym for composed action space (see issue `https://github.com/openai/gym/issues/2166`):
+  in waiting for an official fix, grid2op will use the solution proposed there
+  https://github.com/openai/gym/issues/2166#issuecomment-803984619 )
+
+[1.5.1] - 2021-04-15
+-----------------------
+- [FIXED]: `Issue#194 <https://github.com/rte-france/Grid2Op/issues/194>`_: (post release): change the name
+  of the file `platform.py` that could be mixed with the python "platform" module to `_glop_platform_info.py`
+- [FIXED]: `Issue #187 <https://github.com/rte-france/Grid2Op/issues/187>`_: improve the computation and the
+  documentation of the `RedispReward`. This has an impact on the `env.reward_range` of all environments using this
+  reward, because the old "reward_max" was not correct.
+- [FIXED] `Issue #181 <https://github.com/rte-france/Grid2Op/issues/181>`_ : now environment can be created with
+  a layout and a warning is issued in this case.
+- [FIXED] `Issue #180 <https://github.com/rte-france/Grid2Op/issues/180>`_ : it is now possible to set the thermal
+  limit with a dictionary
+- [FIXED] a typo that would cause the attack to be discarded in the runner in some cases (cases for now not used)
+- [FIXED] an issue linked to the transformation into gym box space for some environments,
+  this **might** be linked to `Issue #185 <https://github.com/rte-france/Grid2Op/issues/185>`_
+- [ADDED] a feature to retrieve the voltage angle (theta) in the backend (`backend.get_theta`) and in the observation.
+- [ADDED] support for multimix in the GymEnv (lack of support spotted thanks to
+  `Issue #185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
+- [ADDED] basic documentation of the environment available.
+- [ADDED] `Issue #166 <https://github.com/rte-france/Grid2Op/issues/166>`_ : support for simulate in multi environment
+  settings.
 - [IMPROVED] extra layer of security preventing modification of `observation_space` and `action_space` of environment
 - [IMPROVED] better handling of dynamically generated classes
+- [IMPROVED] the documentation of the opponent
 
 [1.5.0] - 2021-03-31
 -------------------------

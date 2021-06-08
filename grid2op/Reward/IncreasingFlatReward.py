@@ -38,7 +38,6 @@ class IncreasingFlatReward(BaseReward):
     def __init__(self, per_timestep=1):
         BaseReward.__init__(self)
         self.per_timestep = dt_float(per_timestep)
-        self.total_reward = dt_float(0.0)
         self.reward_min = dt_float(0.0)
 
     def initialize(self, env):
@@ -49,7 +48,7 @@ class IncreasingFlatReward(BaseReward):
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if not has_error:
-            res = dt_float(env._nb_time_step * self.per_timestep)
+            res = dt_float(env.nb_time_step * self.per_timestep)
         else:
             res = self.reward_min
         return res

@@ -16,9 +16,6 @@ PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_mul
 PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
 
 import grid2op
-from grid2op.Chronics import Multifolder
-from grid2op.Reward import L2RPNReward
-from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
@@ -40,8 +37,8 @@ class TestRunner(HelperTests):
                                 ]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("l2rpn_case14_sandbox", test=True)
-        self.runner = Runner(**env.get_params_for_runner())
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
+        self.runner = Runner(**self.env.get_params_for_runner())
 
     def test_one_episode(self):
         _, cum_reward, timestep, episode_data = self.runner.run_one_episode(max_iter=self.max_iter)

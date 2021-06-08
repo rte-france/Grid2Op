@@ -188,6 +188,44 @@ class BaseObservation(GridObjects):
     curtailment_limit: :class:`numpy.ndarray`, dtype:float
         Limit (in ratio of gen_pmax) imposed on each renewable generator.
 
+    current_step: ``int``
+        Current number of step performed up until this observation (NB this is not given in the observation if
+        it is transformed into a vector)
+
+    max_step: ``int``
+        Maximum number of steps possible for this episode
+
+    is_alarm_illegal: ``bool``
+        whether the last alarm has been illegal (due to budget constraint). It can only be ``True`` if an alarm
+        was raised by the agent on the previous step. Otherwise it is always ``False``
+
+    time_since_last_alarm: ``int``
+        Number of steps since the last successful alarm has been raised. It is `-1` if no alarm has been raised yet.
+
+    last_alarm: :class:`numpy.ndarray`, dtype:int
+        For each zones, gives how many steps since the last alarm was raised successfully for this zone
+
+    attention_budget: ``int``
+        The current attention budget
+
+    was_alarm_used_after_game_over: ``bool``
+        Was the last alarm used to compute anything related
+        to the attention budget when there was a game over (can only be set to ``True`` if the observation
+        corresponds to a game over, but not necessarily)
+
+    _shunt_p: :class:`numpy.ndarray`, dtype:float
+        Shunt active value (only available if shunts are available) (in MW)
+
+    _shunt_q: :class:`numpy.ndarray`, dtype:float
+        Shunt reactive value (only available if shunts are available) (in MVAr)
+
+    _shunt_v: :class:`numpy.ndarray`, dtype:float
+        Shunt voltage (only available if shunts are available) (in kV)
+
+    _shunt_bus: :class:`numpy.ndarray`, dtype:float
+        Bus (-1 disconnected, 1 for bus 1, 2 for bus 2) at which each shunt is connected
+        (only available if shunts are available)
+
     """
 
     _attr_eq = ["line_status",
@@ -206,7 +244,11 @@ class BaseObservation(GridObjects):
                 # storage
                 "storage_charge", "storage_power_target", "storage_power",
                 # curtailment
-                "gen_p_before_curtail", "curtailment", "curtailment_limit"
+                "gen_p_before_curtail", "curtailment", "curtailment_limit",
+                # attention budget
+                "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
+                "was_alarm_used_after_game_over",
+
                 ]
 
     attr_list_vect = None
@@ -289,6 +331,13 @@ class BaseObservation(GridObjects):
         self.storage_power_target = np.empty(shape=self.n_storage, dtype=dt_float)  # in MW
         self.storage_power = np.empty(shape=self.n_storage, dtype=dt_float)  # in MW
 
+        # attention budget
+        self.is_alarm_illegal = np.ones(shape=1, dtype=dt_bool)
+        self.time_since_last_alarm = np.empty(shape=1, dtype=dt_int)
+        self.last_alarm = np.empty(shape=self.dim_alarms, dtype=dt_int)
+        self.attention_budget = np.empty(shape=1, dtype=dt_float)
+        self.was_alarm_used_after_game_over = np.zeros(shape=1, dtype=dt_bool)
+
         # to save some computation time
         self._connectivity_matrix_ = None
         self._bus_connectivity_matrix_ = None
@@ -307,6 +356,18 @@ class BaseObservation(GridObjects):
         self.gen_p_before_curtail = np.empty(shape=self.n_gen, dtype=dt_float)
         self.curtailment = np.empty(shape=self.n_gen, dtype=dt_float)
         self.curtailment_limit = np.empty(shape=self.n_gen, dtype=dt_float)
+
+        # the "theta" (voltage angle, in degree)
+        self.support_theta = False
+        self.theta_or = np.empty(shape=self.n_line, dtype=dt_float)
+        self.theta_ex = np.empty(shape=self.n_line, dtype=dt_float)
+        self.load_theta = np.empty(shape=self.n_load, dtype=dt_float)
+        self.gen_theta = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.storage_theta = np.empty(shape=self.n_storage, dtype=dt_float)
+
+        # counter
+        self.current_step = 0
+        self.max_step = np.iinfo(dt_int).max
 
     def state_of(self,
                  _sentinel=None,
@@ -355,6 +416,7 @@ class BaseObservation(GridObjects):
                 - "p" the active value consumed by the load
                 - "q" the reactive value consumed by the load
                 - "v" the voltage magnitude of the bus to which the load is connected
+                - "theta" (optional) the voltage angle (in degree) of the bus to which the load is connected
                 - "bus" on which bus the load is connected in the substation
                 - "sub_id" the id of the substation to which the load is connected
 
@@ -363,20 +425,23 @@ class BaseObservation(GridObjects):
                 - "p" the active value produced by the generator
                 - "q" the reactive value consumed by the generator
                 - "v" the voltage magnitude of the bus to which the generator is connected
+                - "theta" (optional) the voltage angle (in degree) of the bus to which the gen. is connected
                 - "bus" on which bus the generator is connected in the substation
                 - "sub_id" the id of the substation to which the generator is connected
                 - "actual_dispatch" the actual dispatch implemented for this generator
                 - "target_dispatch" the target dispatch (cumulation of all previously asked dispatch by the agent)
                   for this generator
 
-            - if a powerline is inspected then the keys are "origin" and "extremity" each being dictionnary with keys:
+            - if a powerline is inspected then the keys are "origin" and "extremity" each being dictionary with keys:
 
-                - "p" the active flow on line end (extremity or origin)
-                - "q" the reactive flow on line end (extremity or origin)
-                - "v" the voltage magnitude of the bus to which the line end (extremity or origin) is connected
-                - "bus" on which bus the line end (extremity or origin) is connected in the substation
-                - "sub_id" the id of the substation to which the generator is connected
-                - "a" the current flow on the line end (extremity or origin)
+                - "p" the active flow on line side (extremity or origin)
+                - "q" the reactive flow on line side (extremity or origin)
+                - "v" the voltage magnitude of the bus to which the line side (extremity or origin) is connected
+                - "theta" (optional) the voltage angle (in degree) of the bus to which line side (extremity or origin)
+                   is connected
+                - "bus" on which bus the line side (extremity or origin) is connected in the substation
+                - "sub_id" the id of the substation to which the line side is connected
+                - "a" the current flow on the line side (extremity or origin)
 
                 In the case of a powerline, additional information are:
 
@@ -390,6 +455,7 @@ class BaseObservation(GridObjects):
                 - "storage_power": the power the unit actually produced / absorbed
                 - "storage_charge": the state of the charge of the storage unit
                 - "storage_power_target": the power production / absorbtion targer
+                - "storage_theta": (optional) the voltage angle of the bus at which the storage unit is connected
                 - "bus": the bus (1 or 2) to which the storage unit is connected
                 - "sub_id" : the id of the substation to which the sotrage unit is connected
 
@@ -399,6 +465,11 @@ class BaseObservation(GridObjects):
                 - "nb_bus": number of active buses in this substations
                 - "cooldown_time": for how many timestep i am not supposed to act on the substation due to cooldown
                   (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_COOLDOWN_SUB` for more information)
+
+        Notes
+        -----
+        This function can only be used to retrieve the state of the element of the grid, and not the alarm sent
+        or not, to the operator.
 
         Raises
         ------
@@ -429,6 +500,8 @@ class BaseObservation(GridObjects):
                    "bus": self.topo_vect[self.load_pos_topo_vect[load_id]],
                    "sub_id": self.load_to_subid[load_id]
                    }
+            if self.support_theta:
+                res["theta"] = self.load_theta[load_id]
         elif gen_id is not None:
             if line_id is not None or substation_id is not None or storage_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
@@ -448,6 +521,8 @@ class BaseObservation(GridObjects):
                    "curtailment_limit": self.curtailment_limit[gen_id],
                    "p_before_curtail": self.gen_p_before_curtail[gen_id],
                    }
+            if self.support_theta:
+                res["theta"] = self.gen_theta[gen_id]
         elif line_id is not None:
             if substation_id is not None or storage_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
@@ -466,6 +541,8 @@ class BaseObservation(GridObjects):
                 "bus": self.topo_vect[self.line_or_pos_topo_vect[line_id]],
                 "sub_id": self.line_or_to_subid[line_id]
             }
+            if self.support_theta:
+                res["origin"]["theta"] = self.theta_or[line_id]
             # extremity information
             res["extremity"] = {
                 "p": self.p_ex[line_id],
@@ -475,6 +552,8 @@ class BaseObservation(GridObjects):
                 "bus": self.topo_vect[self.line_ex_pos_topo_vect[line_id]],
                 "sub_id": self.line_ex_to_subid[line_id]
             }
+            if self.support_theta:
+                res["origin"]["theta"] = self.theta_ex[line_id]
 
             # maintenance information
             res["maintenance"] = {"next": self.time_next_maintenance[line_id],
@@ -497,6 +576,8 @@ class BaseObservation(GridObjects):
             res["storage_power_target"] = self.storage_power_target[storage_id]
             res["bus"] = self.topo_vect[self.storage_pos_topo_vect[storage_id]]
             res["sub_id"] = self.storage_to_subid[storage_id]
+            if self.support_theta:
+                res["origin"]["theta"] = self.storage_theta[storage_id]
         else:
             if substation_id >= len(self.sub_info):
                 raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
@@ -528,13 +609,41 @@ class BaseObservation(GridObjects):
             cls.set_no_storage()
             for el in ["storage_charge", "storage_power_target", "storage_power"]:
                 if el in cls.attr_list_vect:
-                    cls.attr_list_vect.remove(el)
+                    try:
+                        cls.attr_list_vect.remove(el)
+                    except ValueError:
+                        pass
 
             # remove the curtailment
             for el in ["gen_p_before_curtail", "curtailment", "curtailment_limit"]:
                 if el in cls.attr_list_vect:
-                    cls.attr_list_vect.remove(el)
+                    try:
+                        cls.attr_list_vect.remove(el)
+                    except ValueError:
+                        pass
 
+            cls.attr_list_set = set(cls.attr_list_vect)
+
+        if cls.glop_version < "1.6.0" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # this feature did not exist before and was introduced in grid2op 1.6.0
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+            cls.dim_alarms = 0
+            for el in ["is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
+                       "was_alarm_used_after_game_over"]:
+                try:
+                    cls.attr_list_vect.remove(el)
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
+                    pass
+
+            for el in ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]:
+                # added in grid2op 1.6.0 mainly for the EpisodeReboot
+                try:
+                    cls.attr_list_vect.remove(el)
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
+                    pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
     def reset(self):
@@ -615,7 +724,21 @@ class BaseObservation(GridObjects):
             self._shunt_v[:] = np.NaN
             self._shunt_bus[:] = -1
 
-    def set_game_over(self):
+        self.support_theta = False
+        self.theta_or[:] = np.NaN
+        self.theta_ex[:] = np.NaN
+        self.load_theta[:] = np.NaN
+        self.gen_theta[:] = np.NaN
+        self.storage_theta[:] = np.NaN
+        
+        # alarm feature
+        self.is_alarm_illegal[:] = False
+        self.time_since_last_alarm[:] = -1
+        self.last_alarm[:] = False
+        self.attention_budget[:] = 0
+        self.was_alarm_used_after_game_over[:] = False
+
+    def set_game_over(self, env=None):
         """
         Set the observation to the "game over" state:
 
@@ -623,6 +746,11 @@ class BaseObservation(GridObjects):
         - all loads are 0.
         - all prods are 0.
         - etc.
+
+        Notes
+        -----
+        As some attributes are initialized with `np.empty` it is recommended to reset here all attributes to avoid
+        non deterministic behaviour.
         """
         self.gen_p[:] = 0.
         self.gen_q[:] = 0.
@@ -667,10 +795,10 @@ class BaseObservation(GridObjects):
         self.gen_p_before_curtail[:] = 0.
 
         # cooldown
-        self.time_before_cooldown_line[:] = 99999
-        self.time_before_cooldown_sub[:] = 99999
-        self.time_next_maintenance[:] = 99999
-        self.duration_next_maintenance[:] = 99999
+        self.time_before_cooldown_line[:] = 0
+        self.time_before_cooldown_sub[:] = 0
+        self.time_next_maintenance[:] = -1
+        self.duration_next_maintenance[:] = 0
 
         # overflow
         self.timestep_overflow[:] = 0
@@ -688,6 +816,24 @@ class BaseObservation(GridObjects):
         self.hour_of_day = 0
         self.minute_of_hour = 0
         self.day_of_week = 1
+
+        if self.support_theta:
+            # by convention, I say it's 0 if the grid is in total blackout
+            self.theta_or[:] = 0.
+            self.theta_ex[:] = 0.
+            self.load_theta[:] = 0.
+            self.gen_theta[:] = 0.
+            self.storage_theta[:] = 0.
+
+        # stuff related to alarm
+        self.is_alarm_illegal[:] = False
+        self.time_since_last_alarm[:] = -1
+        self.last_alarm[:] = False
+        self.attention_budget[:] = 0
+        if env is not None:
+            self.was_alarm_used_after_game_over[:] = env._is_alarm_used_in_reward
+        else:
+            self.was_alarm_used_after_game_over[:] = False
 
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
@@ -1238,9 +1384,9 @@ class BaseObservation(GridObjects):
             if self.shunts_data_available:
                 sh_vect = self._shunt_q
 
-        data = np.zeros(nb_bus + lor_bus.shape[0] + lex_bus.shape[0], dtype=dt_float)
         nb_lor = np.sum(lor_conn)
         nb_lex = np.sum(lex_conn)
+        data = np.zeros(nb_bus + nb_lor + nb_lex, dtype=dt_float)
 
         # if two generators / loads / storage unit are connected at the same bus
         # this is why i go with matrix product and sparse matrices
@@ -1304,9 +1450,7 @@ class BaseObservation(GridObjects):
         for (k1, k2), val in dict_.items():
             dict_2[(k2, k1)] = val
         dict_.update(dict_2)
-        networkx.set_edge_attributes(graph,
-                                     dict_,
-                                     attr_nm)
+        networkx.set_edge_attributes(graph, dict_, attr_nm)
 
     def _add_edges_multi(self,
                          vector_or,
@@ -1353,12 +1497,8 @@ class BaseObservation(GridObjects):
                 # networkx and grid2op do not share the same "direction"
                 dict_ex[(k2, k1)] = dict_or_glop[(k1, k2)]
 
-        networkx.set_edge_attributes(graph,
-                                     dict_or,
-                                     "{}_or".format(attr_nm))
-        networkx.set_edge_attributes(graph,
-                                     dict_ex,
-                                     "{}_ex".format(attr_nm))
+        networkx.set_edge_attributes(graph, dict_or, "{}_or".format(attr_nm))
+        networkx.set_edge_attributes(graph, dict_ex, "{}_ex".format(attr_nm))
 
     def as_networkx(self):
         """
@@ -1396,15 +1536,20 @@ class BaseObservation(GridObjects):
             - `a_or`: current flow injected at this node at the "origin side".
             - `a_ex`: current flow injected at this node at the "extremity side".
 
-        **IMPORTANT NOTE** the "origin" and "extremity" of the networkx graph is not necessarily the same as the one
-        in grid2op. The "origin" side will always be the nodes with the lowest id. For example, if an edges connects
-        the bus 6 to the bus 8, then the "origin" of this powerline is bus 6 (**eg** the active power injected at node
-        6 from this edge will be *p_or*) and the "extremity" side is bus 8 (**eg** the active power injectioned at
-        node 8 from this edge will be *p_ex*).
+        .. danger::
+            **IMPORTANT NOTE** the "origin" and "extremity" of the networkx graph is not necessarily the same as the one
+            in grid2op. The "origin" side will always be the nodes with the lowest id. For example, if an edges connects
+            the bus 6 to the bus 8, then the "origin" of this powerline is bus 6 (**eg** the active power injected at node
+            6 from this edge will be *p_or*) and the "extremity" side is bus 8 (**eg** the active power injectioned at
+            node 8 from this edge will be *p_ex*).
+
+        .. note::
+            The graph returned by this function is "frozen" to prevent its modification. If you really want to modify
+            it you can
 
         Returns
         -------
-        graph:
+        graph: ``networkx graph``
             A possible representation of the observation as a networkx graph
 
         Examples
@@ -1458,6 +1603,14 @@ class BaseObservation(GridObjects):
         bus_v = np.zeros(mat_p.shape[0])
         bus_v[lor_bus] = self.v_or
         bus_v[lex_bus] = self.v_ex
+        bus_theta = np.zeros(mat_p.shape[0])
+        bus_subid = np.zeros(mat_p.shape[0], dtype=dt_int)
+        bus_subid[lor_bus] = self.line_or_to_subid
+        bus_subid[lex_bus] = self.line_ex_to_subid
+        if self.support_theta:
+            bus_theta[lor_bus] = self.theta_or
+            bus_theta[lex_bus] = self.theta_ex
+
         # bus active injection
         bus_p = mat_p.diagonal().copy()
         mat_p.setdiag(0.)
@@ -1470,6 +1623,10 @@ class BaseObservation(GridObjects):
         networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_p)}, "p")
         networkx.set_node_attributes(graph, {el: val for el, val in enumerate(mat_q.diagonal())}, "q")
         networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_v)}, "v")
+        networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_subid)}, "sub_id")
+        if self.support_theta:
+            networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_theta)}, "theta")
+
         dict_cooldown = {el: val for el, val in enumerate(self.time_before_cooldown_sub)}
         dict_cooldown2 = {}
         for k, v in dict_cooldown.items():
@@ -1481,13 +1638,15 @@ class BaseObservation(GridObjects):
         self._add_edges_multi(self.p_or, self.p_ex, "p", lor_bus, lex_bus, graph)
         self._add_edges_multi(self.q_or, self.q_ex, "q", lor_bus, lex_bus, graph)
         self._add_edges_multi(self.a_or, self.a_ex, "a", lor_bus, lex_bus, graph)
+        if self.support_theta:
+            self._add_edges_multi(self.theta_or, self.theta_ex, "theta", lor_bus, lex_bus, graph)
 
         self._add_edges_simple(self.rho, "rho", lor_bus, lex_bus, graph)
         self._add_edges_simple(self.time_before_cooldown_line, "cooldown", lor_bus, lex_bus, graph)
         self._add_edges_simple(self.line_status, "status", lor_bus, lex_bus, graph)
         self._add_edges_simple(self.thermal_limit, "thermal_limit", lor_bus, lex_bus, graph)
         self._add_edges_simple(self.timestep_overflow, "timestep_overflow", lor_bus, lex_bus, graph)
-        networkx.freeze(graph)
+        networkx.freeze(graph)  # extra layer of security: prevent accidental modification of this graph
         return graph
 
     def get_forecasted_inj(self, time_step=1):
@@ -1936,6 +2095,23 @@ class BaseObservation(GridObjects):
             self._dictionnarized["redispatching"]["target_redispatch"] = self.target_dispatch
             self._dictionnarized["redispatching"]["actual_dispatch"] = self.actual_dispatch
 
+            # storage
+            self._dictionnarized["storage_charge"] = 1.0 * self.storage_charge
+            self._dictionnarized["storage_power_target"] = 1.0 * self.storage_power_target
+            self._dictionnarized["storage_power"] = 1.0 * self.storage_power
+
+            # curtailment
+            self._dictionnarized["gen_p_before_curtail"] = 1.0 * self.gen_p_before_curtail
+            self._dictionnarized["curtailment"] = 1.0 * self.curtailment
+            self._dictionnarized["curtailment_limit"] = 1.0 * self.curtailment_limit
+
+            # alarm / attention budget
+            self._dictionnarized["is_alarm_illegal"] = self.is_alarm_illegal[0]
+            self._dictionnarized["time_since_last_alarm"] = self.time_since_last_alarm[0]
+            self._dictionnarized["last_alarm"] = copy.deepcopy(self.last_alarm)
+            self._dictionnarized["attention_budget"] = self.attention_budget[0]
+            self._dictionnarized["was_alarm_used_after_game_over"] = self.was_alarm_used_after_game_over[0]
+
         return self._dictionnarized
 
     def add_act(self, act, issue_warn=True):
@@ -2028,7 +2204,7 @@ class BaseObservation(GridObjects):
 
         act = copy.deepcopy(act)
         res = type(self)()
-        res.set_game_over()
+        res.set_game_over(env=None)
 
         res.topo_vect[:] = self.topo_vect
         res.line_status[:] = self.line_status
@@ -2076,14 +2252,6 @@ class BaseObservation(GridObjects):
         if "change_bus" in act.authorized_keys:
             do_change_bus_on = act.change_bus & (res.topo_vect > 0)  # change bus of elements that were on
             res.topo_vect[do_change_bus_on] = 3 - res.topo_vect[do_change_bus_on]
-            # change bus of elements that were off : does nothing
-            # do_change_bus_off = act.change_bus & (res.topo_vect == -1)
-            # if np.any(do_change_bus_off) and issue_warn:
-            #     warnings.warn("You asked to reconnect a object with the \"change_bus\" in your action. This is "
-            #                   "of course perfectly fine in the environment, but might not be computed properly "
-            #                   "by the `obs + act` method. Please have a look at the document for more "
-            #                   "information.")
-            # res.topo_vect[do_change_bus_off] = 1
 
         # topo vect: reco of powerline that should be
         res.line_status = (res.topo_vect[self.line_or_pos_topo_vect] >= 1) & \

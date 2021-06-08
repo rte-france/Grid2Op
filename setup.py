@@ -29,7 +29,6 @@ pkgs = {
         "tqdm>=4.45.0",
         "pathlib>=1.0.1",
         "networkx>=2.4",
-        "scipy>=1.4.1",
         "requests>=2.23.0"
     ],
     "extras": {
@@ -79,8 +78,8 @@ pkgs = {
 
 
 setup(name='Grid2Op',
-      version='1.5.0',
-      description='An environment that allows to perform powergrid optimization.',
+      version='1.6.0.rc1',
+      description='An gym compatible environment to model sequential decision making  for powersystems',
       long_description=long_description,
       long_description_content_type="text/markdown",
       classifiers=[
@@ -93,7 +92,11 @@ setup(name='Grid2Op',
           "Intended Audience :: Developers",
           "Intended Audience :: Education",
           "Intended Audience :: Science/Research",
-          "Natural Language :: English"
+          "Natural Language :: English",
+          "Operating System :: MacOS",
+          "Operating System :: Microsoft :: Windows",
+          "Operating System :: POSIX",
+          "Topic :: Scientific/Engineering"
       ],
       keywords='ML powergrid optmization RL power-systems',
       author='Benjamin DONNOT',

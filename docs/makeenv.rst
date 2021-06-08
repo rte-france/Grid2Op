@@ -4,6 +4,11 @@
 Make: Using pre defined Environments
 ====================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 The function define in this module is the easiest and most convenient ways to create a valid

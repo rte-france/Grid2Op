@@ -6,6 +6,7 @@
 .. _n_sub: ./space.html#grid2op.Space.GridObjects.n_sub
 .. _n_storage: ./space.html#grid2op.Space.GridObjects.n_storage
 .. _dim_topo: ./space.html#grid2op.Space.GridObjects.dim_topo
+.. _dim_alarms: ./space.html#grid2op.Space.GridObjects.dim_alarms
 .. _year: ./observation.html#grid2op.Observation.BaseObservation.year
 .. _month: ./observation.html#grid2op.Observation.BaseObservation.month
 .. _day: ./observation.html#grid2op.Observation.BaseObservation.day
@@ -41,11 +42,23 @@
 .. _storage_power: ./observation.html#grid2op.Observation.BaseObservation.storage_power
 .. _gen_p_before_curtail: ./observation.html#grid2op.Observation.BaseObservation.gen_p_before_curtail
 .. _curtailment: ./observation.html#grid2op.Observation.BaseObservation.curtailment
+.. _curtailment_limit: ./observation.html#grid2op.Observation.BaseObservation.curtailment_limit
+.. _is_alarm_illegal: ./observation.html#grid2op.Observation.BaseObservation.is_alarm_illegal
+.. _time_since_last_alarm: ./observation.html#grid2op.Observation.BaseObservation.time_since_last_alarm
+.. _last_alarm: ./observation.html#grid2op.Observation.BaseObservation.last_alarm
+.. _attention_budget: ./observation.html#grid2op.Observation.BaseObservation.attention_budget
+.. _max_step: ./observation.html#grid2op.Observation.BaseObservation.max_step
+.. _current_step: ./observation.html#grid2op.Observation.BaseObservation.current_step
 
 .. _observation_module:
 
 Observation
 ===================================
+
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
 
 Objectives
 -----------
@@ -112,7 +125,12 @@ Name(s)                                                                         
 `storage_power_target`_                                                          float     `n_storage`_
 `storage_power`_                                                                 float     `n_storage`_
 `gen_p_before_curtail`_                                                          float     `n_gen`_
-`curtailment`_                                                                   float     `n_gen`_
+`curtailment`_, `curtailment_limit`_                                             float     `n_gen`_
+`is_alarm_illegal`_                                                              bool       1
+`time_since_last_alarm`_                                                         int        1
+`last_alarm`_                                                                    int        `dim_alarms`_
+`attention_budget`_                                                              int        1
+`max_step`_ , `current_step`_                                                    int        1
 =============================================================================    ========= ============
 
 (*NB* for concision, if a coma ("*,*") is present in the "Name(s)" part of the column, it means multiple attributes
@@ -140,10 +158,13 @@ this graph: split some bus in sub buses by changing at which busbar some element
 some edges from this graph when powerlines are connected / disconnected. An important feature of this
 graph is that its size changes: it can have a different number of nodes at different steps!
 
-TODO add some images, and explain these graphs!
+Some methods allow to retrieve these graphs, for example:
 
 - :func:`grid2op.Observation.BaseObservation.connectivity_matrix`
 - :func:`grid2op.Observation.BaseObservation.flow_bus_matrix`
+
+
+For more information, you can consult the :ref:`gridgraph-module` page.
 
 Detailed Documentation by class
 --------------------------------

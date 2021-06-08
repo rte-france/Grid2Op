@@ -136,6 +136,21 @@ class Backend(GridObjects, ABC):
         # if this information is not present, then "get_action_to_set" might not behave correctly
 
         self.comp_time = 0.
+        self.can_output_theta = False
+
+        # to prevent the use of the same backend instance in different environment.
+        self._is_loaded = False
+
+    @property
+    def is_loaded(self):
+        return self._is_loaded
+
+    @is_loaded.setter
+    def is_loaded(self, value):
+        if value is True:
+            self._is_loaded = True
+        else:
+            raise BackendError("Impossible to unset the \"is_loaded\" status.")
 
     @abstractmethod
     def load_grid(self, path, filename=None):
@@ -421,6 +436,7 @@ class Backend(GridObjects, ABC):
         res = copy.deepcopy(self)
         res._grid = copy.deepcopy(start_grid)
         self._grid = start_grid
+        res._is_loaded = False  # i can reload a copy of an environment
         return res
 
     def save_file(self, full_path):
@@ -664,16 +680,39 @@ class Backend(GridObjects, ABC):
 
         Returns
         -------
-        shunt_p ``numpy.ndarray``
+        shunt_p: ``numpy.ndarray``
             For each shunt, the active power it withdraw at the bus to which it is connected.
-        shunt_q ``numpy.ndarray``
+        shunt_q: ``numpy.ndarray``
             For each shunt, the reactive power it withdraw at the bus to which it is connected.
-        shunt_v ``numpy.ndarray``
+        shunt_v: ``numpy.ndarray``
             For each shunt, the voltage magnitude of the bus to which it is connected.
-        shunt_bus ``numpy.ndarray``
+        shunt_bus: ``numpy.ndarray``
             For each shunt, the bus id to which it is connected.
         """
         return [], [], [], []
+
+    def get_theta(self):
+        """
+
+        Notes
+        -----
+        Don't forget to set the flag :attr:`Backend.can_output_theta` to ``True`` in the
+        :func:`Bakcend.load_grid` if you support this feature.
+
+        Returns
+        -------
+        line_or_theta: ``numpy.ndarray``
+            For each origin side of powerline, gives the voltage angle
+        line_ex_theta: ``numpy.ndarray``
+            For each extremity side of powerline, gives the voltage angle
+        load_theta: ``numpy.ndarray``
+            Gives the voltage angle to the bus at which each load is connected
+        gen_theta: ``numpy.ndarray``
+            Gives the voltage angle to the bus at which each generator is connected
+        storage_theta: ``numpy.ndarray``
+            Gives the voltage angle to the bus at which each storage unit is connected
+        """
+        raise NotImplementedError("Your backend does not support the retrieval of the voltage angle theta.")
 
     def sub_from_bus_id(self, bus_id):
         """
@@ -792,34 +831,36 @@ class Backend(GridObjects, ABC):
 
         """
         infos = []
-        disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
+        disconnected_during_cf = np.full(self.n_line, fill_value=-1, dtype=dt_int)
         conv_ = self._runpf_with_diverging_exception(is_dc)
         if env._no_overflow_disconnection or conv_ is not None:
             return disconnected_during_cf, infos, conv_
 
         # the environment disconnect some powerlines
         init_time_step_overflow = copy.deepcopy(env._timestep_overflow)
+        ts = 0
         while True:
             # simulate the cascading failure
-            lines_flows = self.get_line_flow()
+            lines_flows = 1.0 * self.get_line_flow()
             thermal_limits = self.get_thermal_limit()
             lines_status = self.get_line_status()
 
-            # a) disconnect lines on hard overflow
-            to_disc = lines_flows > env._hard_overflow_threshold * thermal_limits
+            # a) disconnect lines on hard overflow (that are still connected)
+            to_disc = (lines_flows > env._hard_overflow_threshold * thermal_limits) & lines_status
 
-            # b) deals with soft overflow
-            init_time_step_overflow[(lines_flows >= thermal_limits) & (lines_status)] += 1
-            to_disc[init_time_step_overflow > env._nb_timestep_overflow_allowed] = True
+            # b) deals with soft overflow (disconnect them if lines still connected)
+            init_time_step_overflow[(lines_flows >= thermal_limits) & lines_status] += 1
+            to_disc[(init_time_step_overflow > env._nb_timestep_overflow_allowed) & lines_status] = True
 
             # disconnect the current power lines
             if np.sum(to_disc[lines_status]) == 0:
                 # no powerlines have been disconnected at this time step, i stop the computation there
                 break
-            disconnected_during_cf[to_disc] = True
-
+            disconnected_during_cf[to_disc] = ts
             # perform the disconnection action
-            [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
+            for i, el in enumerate(to_disc):
+                if el:
+                    self._disconnect_line(i)
 
             # start a powerflow on this new state
             conv_ = self._runpf_with_diverging_exception(is_dc)
@@ -828,6 +869,7 @@ class Backend(GridObjects, ABC):
 
             if conv_ is not None:
                 break
+            ts += 1
         return disconnected_during_cf, infos, conv_
 
     def storages_info(self):
@@ -1366,6 +1408,7 @@ class Backend(GridObjects, ABC):
                                  "".format(el, e_))
 
         self.attach_layout(grid_layout=new_grid_layout)
+        return None
 
     def _aux_get_line_status_to_set(self, line_status):
         line_status = 2 * line_status - 1
@@ -1448,6 +1491,9 @@ class Backend(GridObjects, ABC):
                  }
 
         if self.shunts_data_available and obs.shunts_data_available:
+            if "_shunt_bus" not in type(obs).attr_list_set:
+                raise BackendError("Impossible to set the backend to the state given by the observation: shunts data "
+                                   "are not present in the observation.")
             mults = (self._sh_vnkv / obs._shunt_v)**2
             dict_["shunt"] = {"shunt_p": obs._shunt_p * mults,
                               "shunt_q": obs._shunt_q * mults,

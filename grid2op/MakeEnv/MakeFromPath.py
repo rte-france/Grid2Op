@@ -10,6 +10,7 @@ import os
 import importlib.util
 import numpy as np
 import json
+import warnings
 
 from grid2op.Environment import Environment
 from grid2op.Backend import Backend, PandaPowerBackend
@@ -23,6 +24,7 @@ from grid2op.Reward import BaseReward, L2RPNReward
 from grid2op.Rules import BaseRules, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent, BaseActionBudget, NeverAttackBudget
+from grid2op.operator_attention import LinearAttentionBudget
 
 from grid2op.MakeEnv.get_default_aux import _get_default_aux
 
@@ -30,24 +32,28 @@ DIFFICULTY_NAME = "difficulty"
 CHALLENGE_NAME = "competition"
 ERR_MSG_KWARGS = {
     "backend": "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend",
-    "observation_class": "The type of observation of the environment (keyword \"observation_class\")" \
+    "observation_class": "The type of observation of the environment (keyword \"observation_class\")"
     " must be a subclass of grid2op.BaseObservation",
     "param": "The parameters of the environment (keyword \"param\") must be an instance of grid2op.Parameters",
-    "gamerules_class": "The type of rules of the environment (keyword \"gamerules_class\")" \
+    "gamerules_class": "The type of rules of the environment (keyword \"gamerules_class\")"
     " must be a subclass of grid2op.BaseRules",
-    "reward_class": "The type of reward in the environment (keyword \"reward_class\") must be a subclass of grid2op.BaseReward",
-    "action_class": "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.BaseAction",
-    "data_feeding_kwargs": "The argument to build the data generation process [chronics]" \
+    "reward_class": "The type of reward in the environment (keyword \"reward_class\") must be a subclass of "
+                    "grid2op.BaseReward",
+    "action_class": "The type of action of the environment (keyword \"action_class\") must be a subclass of "
+                    "grid2op.BaseAction",
+    "data_feeding_kwargs": "The argument to build the data generation process [chronics]"
     "  (keyword \"data_feeding_kwargs\") should be a dictionnary.",
-    "chronics_class": "The argument to build the data generation process [chronics] (keyword \"chronics_class\")" \
+    "chronics_class": "The argument to build the data generation process [chronics] (keyword \"chronics_class\")"
     " should be a class that inherit grid2op.Chronics.GridValue.",
-    "chronics_handler": "The argument to build the data generation process [chronics] (keyword \"data_feeding\")" \
+    "chronics_handler": "The argument to build the data generation process [chronics] (keyword \"data_feeding\")"
     " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler.",
-    "voltagecontroler_class": "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")" \
+    "voltagecontroler_class": "The argument to build the online controler for chronics (keyword "
+                              "\"volagecontroler_class\")"
     " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile.",
-    "names_chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
+    "names_chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") "
+                              "should be a dictionnary.",
     "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
-                     "should be dictionnary.",
+                     "should be dictionary.",
 
     "chronics_path": "The path where the data is located (keyword \"chronics_path\") should be a string.",
     "grid_path": "The path where the grid is located (keyword \"grid_path\") should be a string.",
@@ -61,9 +67,16 @@ ERR_MSG_KWARGS = {
     "opponent_budget_class": "The opponent budget class (\"opponent_budget_class\") should derive from "
                              "\"BaseActionBudget\".",
     "opponent_budget_per_ts": "The increase of the opponent's budget (\"opponent_budget_per_ts\") should be a float.",
-    "kwargs_opponent": "The extra kwargs argument used to properly initiliazed the opponent "
-                       "(\"kwargs_opponent\") shoud "
+    "kwargs_opponent": "The extra kwargs argument used to properly initialized the opponent "
+                       "(\"kwargs_opponent\") should "
                        "be a dictionary.",
+    "has_attention_budget": "The \"has_attention_budget\" key word argument should be a flag indicating whether "
+                            "you want this feature or not. It should be a boolean.",
+    "attention_budget_class": "The attention budget class (\"attention_budget_class\") should derive from "
+                              "\"LinearAttentionBudget\".",
+    "kwargs_attention_budget": "The extra kwargs argument used to properly initialized the attention budget "
+                               "(\"kwargs_attention_budget\") should "
+                               "be a dictionary.",
     DIFFICULTY_NAME: "Unknown difficulty level {difficulty} for this environment. Authorized difficulties are "
                      "{difficulties}"
 }
@@ -76,8 +89,8 @@ NAME_CONFIG_FILE = "config.py"
 
 def _check_kwargs(kwargs):
     for el in kwargs:
-        if not el in ERR_MSG_KWARGS.keys():
-            raise EnvError("Unknown keyword argument \"{}\" used to create an Environement. "
+        if el not in ERR_MSG_KWARGS.keys():
+            raise EnvError("Unknown keyword argument \"{}\" used to create an Environment. "
                            "No Environment will be created. "
                            "Accepted keyword arguments are {}".format(el, ERR_MSG_KWARGS.keys()))
 
@@ -196,6 +209,8 @@ def make_from_dataset_path(dataset_path="/",
     _compat_glop_version:
         Internal, used for test only. Do not attempt to modify under any circumstances.
 
+    # TODO update doc with attention budget
+
     Returns
     -------
     env: :class:`grid2op.Environment.Environment`
@@ -219,7 +234,11 @@ def make_from_dataset_path(dataset_path="/",
     else:
         # otherwise use it
         chronics_path_abs = os.path.abspath(chronics_path)
-    _check_path(chronics_path_abs, "Dataset chronics folder")
+    exc_chronics = None
+    try:
+        _check_path(chronics_path_abs, "Dataset chronics folder")
+    except Exception as exc_:
+        exc_chronics = exc_
 
     # Compute and find backend/grid file
     grid_path = _get_default_aux("grid_path", kwargs,
@@ -233,7 +252,11 @@ def make_from_dataset_path(dataset_path="/",
 
     # Compute and find grid layout file
     grid_layout_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_LAYOUT_FILE))
-    _check_path(grid_layout_path_abs, "Dataset grid layout")
+    try:
+        _check_path(grid_layout_path_abs, "Dataset grid layout")
+    except EnvError as exc_:
+        warnings.warn(f"Impossible to load the coordinate of the substation with error: \"{exc_}\". Expect some issue "
+                      f"if you attempt to plot the grid.")
 
     # Check provided config overrides are valid
     _check_kwargs(kwargs)
@@ -248,16 +271,18 @@ def make_from_dataset_path(dataset_path="/",
         config_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(config_module)
         config_data = config_module.config
-    except Exception as e:
-        print (e)
+    except Exception as exc_:
+        print(exc_)
         raise EnvError("Invalid dataset config file: {}".format(config_path_abs)) from None
 
     # Get graph layout
+    graph_layout = None
     try:
         with open(grid_layout_path_abs) as layout_fp:
             graph_layout = json.load(layout_fp)
-    except Exception as e:
-        raise EnvError("Dataset {} doesn't have a valid graph layout".format(config_path_abs))
+    except Exception as exc_:
+        warnings.warn("Dataset {} doesn't have a valid graph layout. Expect some failures when attempting "
+                      "to plot the grid. Error was: {}".format(config_path_abs, exc_))
 
     # Get thermal limits
     thermal_limits = None
@@ -307,9 +332,10 @@ def make_from_dataset_path(dataset_path="/",
                 my_difficulty = kwargs[DIFFICULTY_NAME]
                 try:
                     my_difficulty = str(my_difficulty)
-                except:
+                except Exception as exc_:
                     raise EnvError("Impossible to convert your difficulty into a valid string. Please make sure to "
-                                   "pass a string (eg \"2\") and not something else (eg. int(2)) as a difficulty")
+                                   "pass a string (eg \"2\") and not something else (eg. int(2)) as a difficulty."
+                                   "Error was \n{}".format(exc_))
                 if my_difficulty in dict_:
                     param.init_from_dict(dict_[my_difficulty])
                 else:
@@ -395,7 +421,7 @@ def make_from_dataset_path(dataset_path="/",
                                            defaultinstance=default_chronics_kwargs,
                                            msg_error=ERR_MSG_KWARGS["data_feeding_kwargs"])
     for el in default_chronics_kwargs:
-        if not el in data_feeding_kwargs:
+        if el not in data_feeding_kwargs:
             data_feeding_kwargs[el] = default_chronics_kwargs[el]
 
     ### the chronics generator
@@ -404,6 +430,10 @@ def make_from_dataset_path(dataset_path="/",
                                            defaultClass=data_feeding_kwargs["chronicsClass"],
                                            msg_error=ERR_MSG_KWARGS["chronics_class"],
                                            isclass=True)
+    if (chronics_class_used != ChangeNothing) and exc_chronics is not None:
+        raise EnvError(f"Impossible to find the chronics for your environment. Please make sure to provide "
+                       f"a folder \"{NAME_CHRONICS_FOLDER}\" within your environment folder.")
+
     data_feeding_kwargs["chronicsClass"] = chronics_class_used
     data_feeding = _get_default_aux("data_feeding", kwargs,
                                     defaultClassApp=ChronicsHandler,
@@ -487,7 +517,37 @@ def make_from_dataset_path(dataset_path="/",
                                        msg_error=ERR_MSG_KWARGS["kwargs_opponent"],
                                        isclass=False)
 
-    # Finally instanciate env from config & overrides
+    # attention budget
+    has_attention_budget_cfg = False
+    if "has_attention_budget" in config_data and config_data["has_attention_budget"] is not None:
+        has_attention_budget_cfg = config_data["has_attention_budget"]
+    has_attention_budget = _get_default_aux("has_attention_budget",
+                                            kwargs,
+                                            defaultClassApp=bool,
+                                            defaultinstance=has_attention_budget_cfg,
+                                            msg_error=ERR_MSG_KWARGS["has_attention_budget"],
+                                            isclass=False)
+    attention_budget_class_cfg = LinearAttentionBudget
+    if "attention_budget_class" in config_data and config_data["attention_budget_class"] is not None:
+        attention_budget_class_cfg = config_data["attention_budget_class"]
+    attention_budget_class = _get_default_aux("attention_budget_class",
+                                              kwargs,
+                                              defaultClassApp=LinearAttentionBudget,
+                                              defaultClass=attention_budget_class_cfg,
+                                              msg_error=ERR_MSG_KWARGS["attention_budget_class"],
+                                              isclass=True)
+
+    kwargs_attention_budget_cfg = {}
+    if "kwargs_attention_budget" in config_data and config_data["kwargs_attention_budget"] is not None:
+        kwargs_attention_budget_cfg = config_data["kwargs_attention_budget"]
+    kwargs_attention_budget = _get_default_aux("kwargs_attention_budget",
+                                               kwargs,
+                                               defaultClassApp=dict,
+                                               defaultinstance=kwargs_attention_budget_cfg,
+                                               msg_error=ERR_MSG_KWARGS["kwargs_attention_budget"],
+                                               isclass=False)
+
+    # Finally instantiate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
                       chronics_handler=data_feeding,
                       backend=backend,
@@ -508,6 +568,9 @@ def make_from_dataset_path(dataset_path="/",
                       opponent_budget_per_ts=opponent_budget_per_ts,
                       opponent_budget_class=opponent_budget_class,
                       kwargs_opponent=kwargs_opponent,
+                      has_attention_budget=has_attention_budget,
+                      attention_budget_cls=attention_budget_class,
+                      kwargs_attention_budget=kwargs_attention_budget,
                       _compat_glop_version=_compat_glop_version
                       )
 

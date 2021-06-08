@@ -135,6 +135,9 @@ class EpisodeReboot:
             self.episode_data = copy.deepcopy(data)
             self.episode_data.reboot()
 
+        if self.env is not None:
+            self.env.close()
+            self.env = None
         self.chronics_handler = ChronicsHandler(chronicsClass=_GridFromLog,
                                                 episode_data=self.episode_data)
 
@@ -147,7 +150,6 @@ class EpisodeReboot:
         if "name" in env_kwargs:
             del env_kwargs["name"]
 
-        nm = "unknonwn"
         seed = None
         with open(os.path.join(agent_path, name, "episode_meta.json")) as f:
             dict_ = json.load(f)
@@ -204,22 +206,40 @@ class EpisodeReboot:
             self.env._backend_action.update_state(disc_lines)
         self.env._backend_action.reset()
 
-    def next(self, update=False):
+    def next(self, _sentinel=None, _update=False):
         """
         go to next time step
         if "update" then i reuse the observation stored to go to this time step, otherwise not
 
         do as if the environment will execute the action the stored agent did at the next time step
         (compared to the time step the environment is currently at)
+
+        Parameters
+        ----------
+        _sentinel: ``None``
+            Used to prevent positional parameters. Internal, do not use.
+
+        _update: ``bool``
+            Internal, you should not use it.
+            # TODO split self._next (called by both self.next and self.go_to that has the `_update` kwargs
+
         """
+        if _sentinel is not None:
+            raise Grid2OpException("You should not use reboot.next() with any argument.")
+
         if self.current_time_step is None:
             raise Grid2OpException("Impossible to go to the next time step with an episode not loaded. "
                                    "Call \"EpisodeReboot.load\" before.")
 
-        if update:
+        if _update:
             # I put myself at the observation just before the next time step
             obs = self.episode_data.observations[self.current_time_step]
             self.env._backend_action = self.env._backend_action_class()
+
+            # update the "previous topological state" to the right value
+            self._update_bk_act_topo(obs)
+
+            # assign the right state of the grid
             self._assign_state(obs)
 
         self.action = self.episode_data.actions[self.current_time_step]
@@ -228,6 +248,15 @@ class EpisodeReboot:
         self.current_time_step += 1
         # the chronics handler handled the "self.env.chronics_handler.curr_iter += 1"
         return new_obs, new_reward, new_done, new_info
+
+    def _update_bk_act_topo(self, obs):
+        """update the "previous topological state" to the right value"""
+        self.env._backend_action.current_topo.values[:] = obs.topo_vect
+        self.env._backend_action.current_topo.changed[:] = True
+        if obs.shunts_data_available:
+            self.env._backend_action.shunt_bus.values[:] = obs._shunt_bus
+        self.env._backend_action.shunt_bus.changed[:] = True
+        # TODO previous update self.env._backend_action.last_topo_registered too !
 
     def go_to(self, time_step):
         """
@@ -245,4 +274,4 @@ class EpisodeReboot:
             raise Grid2OpException("You cannot go to timestep <= 0, it does not make sense (as there is not \"-1th\""
                                    "action). If you want to load the data, please use \"EpisodeReboot.load\".")
         self.current_time_step = time_step - 1
-        return self.next(update=True)
+        return self.next(_update=True)

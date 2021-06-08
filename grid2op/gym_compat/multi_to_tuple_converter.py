@@ -13,6 +13,26 @@ from grid2op.dtypes import dt_int
 from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 
 
+class FixedTuple(Tuple):
+    """I simply overload the "seed" function because the default one behaves
+    really really poorly
+    see issue https://github.com/openai/gym/issues/2166
+    """
+
+    def seed(self, seed=None):
+        """Seed the PRNG of this space.
+        see issue https://github.com/openai/gym/issues/2166
+        of openAI gym
+        """
+        seeds = super(Tuple, self).seed(seed)
+        sub_seeds = seeds
+        max_ = np.iinfo(int).max
+        for i, space in enumerate(self.spaces):
+            sub_seed = self.np_random.randint(max_)
+            sub_seeds.append(space.seed(sub_seed))
+        return sub_seeds
+
+
 class MultiToTupleConverter(BaseGymAttrConverter):
     """
     Some framework, for example ray[rllib] do not support MultiBinary nor MultiDiscrete gym
@@ -67,7 +87,7 @@ class MultiToTupleConverter(BaseGymAttrConverter):
             if isinstance(init_space, MultiDiscrete):
                 tmp_sz = init_space.nvec[i]
             li.append(Discrete(tmp_sz))
-        self.base_initialize(space=Tuple(li),
+        self.base_initialize(space=FixedTuple(li),
                              g2op_to_gym=None,
                              gym_to_g2op=None)
 

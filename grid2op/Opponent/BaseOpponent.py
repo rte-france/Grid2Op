@@ -68,10 +68,14 @@ class BaseOpponent(RandomObject):
         -------
         attack: :class:`grid2op.Action.Action`
             The attack performed by the opponent. In this case, a do nothing, all the time.
+
+        duration: ``int``
+            The duration of the attack
+
         """
         # TODO maybe have a class "GymOpponent" where the observation would include the budget  and all other
         # TODO information, and forward something to the "act" method.
-        return None
+        return None, None
 
     def tell_attack_continues(self, observation, agent_action, env_action, budget):
         """

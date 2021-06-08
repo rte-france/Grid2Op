@@ -9,15 +9,14 @@
 import pdb
 import warnings
 from grid2op.tests.helper_path_test import *
+
+import grid2op
 from grid2op.Environment import BaseMultiProcessEnvironment
 from grid2op.Environment import SingleEnvMultiProcess
 from grid2op.Environment import MultiEnvMultiProcess
 from grid2op.MakeEnv import make
 from grid2op.Observation import CompleteObservation
 import pdb
-
-import warnings
-warnings.simplefilter("error")
 
 
 class TestBaseMultiProcessEnvironment(unittest.TestCase):
@@ -63,6 +62,24 @@ class TestBaseMultiProcessEnvironment(unittest.TestCase):
                 multi_envs3.close()
                 assert np.all(seeds_1 == seeds_3)
                 assert np.any(seeds_1 != seeds_2)
+
+    def test_simulate(self):
+        env_name = "l2rpn_case14_sandbox"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env1 = grid2op.make(env_name, test=True)
+            env2 = grid2op.make(env_name, test=True)
+
+        multi_env = BaseMultiProcessEnvironment([env1, env2])
+        obss = multi_env.reset()
+
+        # simulate
+        actions = [env1.action_space(), env2.action_space()]
+        sim_obss, sim_rs, sim_ds, sim_is = multi_env.simulate(actions)
+        multi_env.close()
+        env1.close()
+        env2.close()
+
 
 class TestSingleEnvMultiProcess(unittest.TestCase):
     def test_creation_multienv(self):

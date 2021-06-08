@@ -11,6 +11,7 @@ import numpy as np
 import copy
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
+from grid2op.gym_compat.utils import check_gym_version
 
 
 class _BaseGymSpaceConverter(spaces.Dict):
@@ -23,6 +24,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
 
     """
     def __init__(self, dict_gym_space, dict_variables=None):
+        check_gym_version()
         spaces.Dict.__init__(self, dict_gym_space)
         self._keys_encoding = {}
         if dict_variables is not None:
@@ -32,10 +34,14 @@ class _BaseGymSpaceConverter(spaces.Dict):
 
     @staticmethod
     def _generic_gym_space(dt, sh, low=None, high=None):
-        if low is None:
-            low = np.iinfo(dt).min
-        if high is None:
-            high = np.iinfo(dt).max
+        if dt == dt_int:
+            if low is None:
+                low = np.iinfo(dt).min
+            if high is None:
+                high = np.iinfo(dt).max
+        else:
+            low = -np.inf
+            high = +np.inf
         shape = (sh,)
         my_type = spaces.Box(low=dt.type(low), high=dt.type(high), shape=shape, dtype=dt)
         return my_type
@@ -45,8 +51,16 @@ class _BaseGymSpaceConverter(spaces.Dict):
         return spaces.MultiBinary(n=sh)
 
     @staticmethod
-    def _extract_obj_grid2op(vect, dtype):
-        if len(vect) == 1:
+    def _simplifykeys_for_timestamps(key):
+        """some keys are encoded to be returned as scalar, i need to transform them."""
+        res = (key == "year") or (key == "month") or (key == "day") or (key == "hour_of_day") or \
+              (key == "minute_of_hour") or (key == "day_of_week")
+        res = res or (key == "is_alarm_illegal") or (key == "was_alarm_used_after_game_over")
+        return res
+
+    @staticmethod
+    def _extract_obj_grid2op(vect, dtype, key):
+        if len(vect) == 1 and _BaseGymSpaceConverter._simplifykeys_for_timestamps(key):
             res = vect[0]
             # convert the types for json serializable
             # this is not automatically done by gym...
@@ -82,7 +96,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
                         # i need to process the "function" part in the keys
                         obj_json_cleaned = self._keys_encoding[conv_k].g2op_to_gym(obj_raw)
                 else:
-                    obj_json_cleaned = self._extract_obj_grid2op(obj_raw, dtypes[k])
+                    obj_json_cleaned = self._extract_obj_grid2op(obj_raw, dtypes[k], k)
             res[k] = obj_json_cleaned
         return res
 
@@ -207,3 +221,16 @@ class _BaseGymSpaceConverter(spaces.Dict):
             if k in attr_names:
                 res = res.reencode_space(k, None)
         return res
+
+    def seed(self, seed=None):
+        """Seed the PRNG of this space.
+        see issue https://github.com/openai/gym/issues/2166
+        of openAI gym
+        """
+        seeds = super(spaces.Dict, self).seed(seed)
+        sub_seeds = seeds
+        max_ = np.iinfo(int).max
+        for i, space_key in enumerate(sorted(self.spaces.keys())):
+            sub_seed = self.np_random.randint(max_)
+            sub_seeds.append(self.spaces[space_key].seed(sub_seed))
+        return sub_seeds

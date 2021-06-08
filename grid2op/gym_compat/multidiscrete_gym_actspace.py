@@ -14,12 +14,7 @@ from gym.spaces import MultiDiscrete, Box
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 
-from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
-# TODO test that it works normally
-# TODO test the casting in dt_int or dt_float depending on the data
-# TODO test the scaling
-# TODO doc
-# TODO test the function part
+from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE, check_gym_version
 
 
 class MultiDiscreteActSpace(MultiDiscrete):
@@ -155,7 +150,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
                  attr_to_keep=ALL_ATTR,
                  nb_bins=None
                  ):
-
+        check_gym_version()
         if not isinstance(grid2op_action_space, ActionSpace):
             raise RuntimeError(f"Impossible to create a BoxGymActSpace without providing a "
                                f"grid2op action_space. You provided {type(grid2op_action_space)}"
@@ -179,7 +174,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
                               f"Consider using the \"BoxGymActSpace\" for these attributes."
                               )
 
-        self._attr_to_keep = attr_to_keep
+        self._attr_to_keep = sorted(attr_to_keep)
 
         act_sp = grid2op_action_space
         self._act_space = copy.deepcopy(grid2op_action_space)
@@ -199,6 +194,8 @@ class MultiDiscreteActSpace(MultiDiscrete):
                         act_sp.dim_topo, self.ATTR_SET),
             "change_bus": ([2 for _ in range(act_sp.dim_topo)],
                            act_sp.dim_topo, self.ATTR_CHANGE),
+            "raise_alarm": ([2 for _ in range(act_sp.dim_alarms)],
+                            act_sp.dim_alarms, self.ATTR_CHANGE),
             "sub_set_bus": (None, act_sp.n_sub, self.ATTR_NEEDBUILD),  # dimension will be computed on the fly, if the stuff is used
             "sub_change_bus": (None, act_sp.n_sub, self.ATTR_NEEDBUILD),  # dimension will be computed on the fly, if the stuff is used
             "one_sub_set": (None, 1, self.ATTR_NEEDBUILD),  # dimension will be computed on the fly, if the stuff is used
@@ -399,6 +396,8 @@ class MultiDiscreteActSpace(MultiDiscrete):
         prev = 0
         for attr_nm, where_to_put, funct, type_ in \
             zip(self._attr_to_keep, self._dims, self._functs, self._types):
+            if not gym_act.shape or not gym_act.shape[0]:
+                continue
             this_part = 1 * gym_act[prev:where_to_put]
             if attr_nm in self.dict_properties:
                 self._handle_attribute(res, this_part, attr_nm, funct, type_)

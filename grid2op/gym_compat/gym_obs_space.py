@@ -5,14 +5,16 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+import copy
 import numpy as np
 from gym import spaces
 
-
+from grid2op.Environment import Environment, MultiMixEnvironment, BaseMultiProcessEnvironment
 from grid2op.gym_compat.gym_space_converter import _BaseGymSpaceConverter
 from grid2op.Observation import BaseObservation
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
+from grid2op.gym_compat.utils import _compute_extra_power_for_losses
 
 
 class GymObservationSpace(_BaseGymSpaceConverter):
@@ -47,8 +49,19 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         # a situation where it is useful. And especially, you will not be able to
         # use "obs.simulate" for the observation converted back from this gym action.
 
+    Notes
+    -----
+    The range of the values for "gen_p" / "prod_p" are not strictly `env.gen_pmin` and `env.gen_pmax`.
+    This is due to the "approximation" when some redispatching is performed (the precision of the
+    algorithm that computes the actual dispatch from the information it receives) and also because
+    sometimes the losses of the grid are really different that the one anticipated in the "chronics" (yes
+    env.gen_pmin and env.gen_pmax are not always ensured in grid2op)
+
     """
     def __init__(self, env, dict_variables=None):
+        if not isinstance(env, (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)):
+            raise RuntimeError("GymActionSpace must be created with an Environment of an ActionSpace (or a Converter)")
+
         self._init_env = env
         self.initial_obs_space = self._init_env.observation_space
         dict_ = {}  # will represent the gym.Dict space
@@ -125,7 +138,6 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     # none is by default to disable this feature
                     continue
                 my_type = dict_variables[attr_nm].my_space
-
             elif dt == dt_int:
                 # discrete observation space
                 if attr_nm == "year":
@@ -146,7 +158,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     my_type = spaces.Box(low=0,
                                          high=max(env_params.NB_TIMESTEP_COOLDOWN_LINE,
                                                   env_params.NB_TIMESTEP_RECONNECTION,
-                                                  opponent_space.attack_duration
+                                                  opponent_space.attack_max_duration
                                                   ),
                                          shape=shape,
                                          dtype=dt)
@@ -158,10 +170,18 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "duration_next_maintenance" or attr_nm == "time_next_maintenance":
                     # can be -1 if no maintenance, otherwise always positive
                     my_type = self._generic_gym_space(dt, sh, low=-1)
-
+                elif attr_nm == "time_since_last_alarm":
+                    # can be -1 if no maintenance, otherwise always positive
+                    my_type = self._generic_gym_space(dt, 1, low=-1)
+                elif attr_nm == "last_alarm":
+                    # can be -1 if no maintenance, otherwise always positive
+                    my_type = self._generic_gym_space(dt, sh, low=-1)
             elif dt == dt_bool:
                 # boolean observation space
-                my_type = self._boolean_type(sh)
+                if sh > 1:
+                    my_type = self._boolean_type(sh)
+                else:
+                    my_type = spaces.Discrete(n=2)
             else:
                 # continuous observation space
                 low = float("-inf")
@@ -169,9 +189,19 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 shape = (sh,)
                 SpaceType = spaces.Box
                 if attr_nm == "gen_p" or attr_nm == "gen_p_before_curtail":
-                    low = observation_space.gen_pmin
-                    high = observation_space.gen_pmax * 1.2  # because of the slack bus... # TODO
+                    low = copy.deepcopy(observation_space.gen_pmin)
+                    high = copy.deepcopy(observation_space.gen_pmax)
                     shape = None
+
+                    # for redispatching
+                    low -= observation_space.obs_env._tol_poly
+                    high += observation_space.obs_env._tol_poly
+
+                    # for "power losses" that are not properly computed in the original data
+                    extra_for_losses = _compute_extra_power_for_losses(observation_space)
+                    low -= extra_for_losses
+                    high += extra_for_losses
+
                 elif attr_nm == "gen_v" or attr_nm == "load_v" or attr_nm == "v_or" or attr_nm == "v_ex":
                     # voltages can't be negative
                     low = 0.
@@ -193,6 +223,9 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "curtailment" or attr_nm == "curtailment_limit":
                     low = 0.
                     high = 1.0
+                elif attr_nm == "attention_budget":
+                    low = 0.
+                    high = np.inf
                 # curtailment, curtailment_limit, gen_p_before_curtail
 
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)

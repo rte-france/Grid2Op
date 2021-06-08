@@ -13,6 +13,8 @@ from gym.spaces import Box
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Observation import ObservationSpace
 
+from grid2op.gym_compat.utils import _compute_extra_power_for_losses
+from grid2op.gym_compat.utils import check_gym_version
 # TODO doc
 
 
@@ -27,8 +29,15 @@ ALL_ATTR_OBS = ("year", "month", "day", "hour_of_day", "minute_of_hour",
                 "time_before_cooldown_sub", "time_next_maintenance",
                 "duration_next_maintenance", "target_dispatch", "actual_dispatch",
                 "storage_charge", "storage_power_target", "storage_power", "curtailment",
-                "curtailment_limit", "thermal_limit"
+                "curtailment_limit", "thermal_limit",
+
+                "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
+                "was_alarm_used_after_game_over"
                 )
+
+# TODO add the alarm stuff
+# TODO add the time step
+# TODO add the is_illegal and co there
 
 
 class BoxGymObsSpace(Box):
@@ -113,6 +122,14 @@ class BoxGymObsSpace(Box):
     - `dtype` (optional, put None if you don't want to change it, defaults to np.float32) the type of
       the numpy array as output of your function.
 
+    Notes
+    -----
+    The range of the values for "gen_p" / "prod_p" are not strictly `env.gen_pmin` and `env.gen_pmax`.
+    This is due to the "approximation" when some redispatching is performed (the precision of the
+    algorithm that computes the actual dispatch from the information it receives) and also because
+    sometimes the losses of the grid are really different that the one anticipated in the "chronics" (yes
+    env.gen_pmin and env.gen_pmax are not always ensured in grid2op)
+
     """
     def __init__(self,
                  grid2op_observation_space,
@@ -120,23 +137,32 @@ class BoxGymObsSpace(Box):
                  subtract=None,
                  divide=None,
                  functs=None):
+        check_gym_version()
         if not isinstance(grid2op_observation_space, ObservationSpace):
             raise RuntimeError(f"Impossible to create a BoxGymObsSpace without providing a "
                                f"grid2op observation. You provided {type(grid2op_observation_space)}"
                                f"as the \"grid2op_observation_space\" attribute.")
-        self._attr_to_keep = attr_to_keep
+        self._attr_to_keep = sorted(attr_to_keep)
 
         ob_sp = grid2op_observation_space
+        tol_redisp = ob_sp.obs_env._tol_poly  # add to gen_p otherwise ... well it can crash
+        extra_for_losses = _compute_extra_power_for_losses(ob_sp)
 
         self.dict_properties = {
-            "year": (0, 2200, (1,), dt_int),
-            "month": (0, 12, (1,), dt_int),
-            "day": (0, 31, (1,), dt_int),
-            "hour_of_day": (0, 24, (1,), dt_int),
-            "minute_of_hour": (0, 60, (1,), dt_int),
-            "day_of_week": (0, 7, (1,), dt_int),
-            "gen_p": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float),
-                      1.2 * ob_sp.gen_pmax,
+            "year": (np.zeros(1, dtype=dt_int),
+                     np.zeros(1, dtype=dt_int) + 2200, (1,), dt_int),
+            "month": (np.zeros(1, dtype=dt_int),
+                      np.zeros(1, dtype=dt_int) + 12, (1,), dt_int),
+            "day": (np.zeros(1, dtype=dt_int),
+                    np.zeros(1, dtype=dt_int) + 31, (1,), dt_int),
+            "hour_of_day": (np.zeros(1, dtype=dt_int),
+                            np.zeros(1, dtype=dt_int) + 24, (1,), dt_int),
+            "minute_of_hour": (np.zeros(1, dtype=dt_int),
+                               np.zeros(1, dtype=dt_int) + 60, (1,), dt_int),
+            "day_of_week": (np.zeros(1, dtype=dt_int),
+                            np.zeros(1, dtype=dt_int) + 7, (1,), dt_int),
+            "gen_p": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float) - tol_redisp - extra_for_losses,
+                      ob_sp.gen_pmax + tol_redisp + extra_for_losses,
                       (ob_sp.n_gen,),
                       dt_float),
             "gen_q": (np.full(shape=(ob_sp.n_gen,), fill_value=-np.inf, dtype=dt_float),
@@ -155,7 +181,7 @@ class BoxGymObsSpace(Box):
                        np.full(shape=(ob_sp.n_load,), fill_value=+np.inf, dtype=dt_float),
                        (ob_sp.n_load,),
                        dt_float),
-            "laod_v": (np.full(shape=(ob_sp.n_load,), fill_value=0., dtype=dt_float),
+            "load_v": (np.full(shape=(ob_sp.n_load,), fill_value=0., dtype=dt_float),
                        np.full(shape=(ob_sp.n_load,), fill_value=np.inf, dtype=dt_float),
                        (ob_sp.n_load,),
                        dt_float),
@@ -199,8 +225,8 @@ class BoxGymObsSpace(Box):
                             np.full(shape=(ob_sp.n_line,), fill_value=1, dtype=dt_int),
                             (ob_sp.n_line,),
                             dt_int),
-            "timestep_overflow": (np.full(shape=(ob_sp.n_line,), fill_value=-np.inf, dtype=dt_int),
-                                  np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+            "timestep_overflow": (np.full(shape=(ob_sp.n_line,), fill_value=np.iinfo(dt_int).min, dtype=dt_int),
+                                  np.full(shape=(ob_sp.n_line,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                                   (ob_sp.n_line,),
                                   dt_int),
             "topo_vect": (np.full(shape=(ob_sp.dim_topo,), fill_value=-1, dtype=dt_int),
@@ -208,19 +234,19 @@ class BoxGymObsSpace(Box):
                           (ob_sp.dim_topo,),
                           dt_int),
             "time_before_cooldown_line": (np.full(shape=(ob_sp.n_line,), fill_value=0, dtype=dt_int),
-                                          np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+                                          np.full(shape=(ob_sp.n_line,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                                           (ob_sp.n_line,),
                                           dt_int),
             "time_before_cooldown_sub": (np.full(shape=(ob_sp.n_sub,), fill_value=0, dtype=dt_int),
-                                         np.full(shape=(ob_sp.n_sub,), fill_value=np.inf, dtype=dt_int),
+                                         np.full(shape=(ob_sp.n_sub,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                                          (ob_sp.n_sub,),
                                          dt_int),
             "time_next_maintenance": (np.full(shape=(ob_sp.n_line,), fill_value=-1, dtype=dt_int),
-                                      np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+                                      np.full(shape=(ob_sp.n_line,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                                       (ob_sp.n_line,),
                                       dt_int),
             "duration_next_maintenance": (np.full(shape=(ob_sp.n_line,), fill_value=0, dtype=dt_int),
-                                          np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_int),
+                                          np.full(shape=(ob_sp.n_line,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                                           (ob_sp.n_line,),
                                           dt_int),
             "target_dispatch": (np.minimum(ob_sp.gen_pmin, -ob_sp.gen_pmax),
@@ -263,10 +289,31 @@ class BoxGymObsSpace(Box):
                               np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
                               (ob_sp.n_line,),
                               dt_float),
+            "is_alarm_illegal": (np.full(shape=(1,), fill_value=False, dtype=dt_bool),
+                                 np.full(shape=(1,), fill_value=True, dtype=dt_bool),
+                                 (1,),
+                                 dt_bool),
+            "time_since_last_alarm": (np.full(shape=(1,), fill_value=-1, dtype=dt_int),
+                                      np.full(shape=(1,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                                      (1,),
+                                      dt_int),
+            "last_alarm": (np.full(shape=(ob_sp.dim_alarms,), fill_value=-1, dtype=dt_int),
+                           np.full(shape=(ob_sp.dim_alarms,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                           (ob_sp.dim_alarms,),
+                           dt_int),
+            "attention_budget": (np.full(shape=(1,), fill_value=-1, dtype=dt_float),
+                                 np.full(shape=(1,), fill_value=np.inf, dtype=dt_float),
+                                 (1,),
+                                 dt_float),
+            "was_alarm_used_after_game_over": (np.full(shape=(1,), fill_value=False, dtype=dt_bool),
+                                               np.full(shape=(1,), fill_value=True, dtype=dt_bool),
+                                               (1,),
+                                               dt_bool),
         }
         self.dict_properties["prod_p"] = self.dict_properties["gen_p"]
         self.dict_properties["prod_q"] = self.dict_properties["gen_q"]
         self.dict_properties["prod_v"] = self.dict_properties["gen_v"]
+        self.dict_properties["gen_p_before_curtail"] = self.dict_properties["gen_p"]
 
         if functs is None:
             functs = {}

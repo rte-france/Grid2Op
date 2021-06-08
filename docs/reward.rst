@@ -3,6 +3,11 @@
 Reward
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
 Objectives
 -----------
 This module implements some utilities to get rewards given an :class:`grid2op.Action` an :class:`grid2op.Environment`

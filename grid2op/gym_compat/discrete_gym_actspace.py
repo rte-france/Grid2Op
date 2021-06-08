@@ -127,7 +127,7 @@ class DiscreteActSpace(Discrete):
                               f"Consider using the \"BoxGymActSpace\" for these attributes."
                               )
 
-        self._attr_to_keep = attr_to_keep
+        self._attr_to_keep = sorted(attr_to_keep)
         self._nb_bins = nb_bins
 
         self.dict_properties = {
@@ -138,7 +138,8 @@ class DiscreteActSpace(Discrete):
             "redispatch": act_sp.get_all_unitary_redispatch,
             "set_storage": act_sp.get_all_unitary_storage,
             "curtail": act_sp.get_all_unitary_curtail,
-            "curtail_mw": act_sp.get_all_unitary_curtail
+            "curtail_mw": act_sp.get_all_unitary_curtail,
+            "raise_alarm": act_sp.get_all_unitary_alarm,
         }
 
         self.converter = None

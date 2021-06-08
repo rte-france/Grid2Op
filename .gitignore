@@ -300,7 +300,18 @@ actions2.npy
 bug_discord_0.py
 invert_idto_act.py
 test_bug_discord1.py
-
+test_networkx.py
+test_issue185.py
+test_can_make_opponent.py
+enigma_nili.py
+test_issue196.py
+test_increasingreward.py
+PlayWithRedispCurtail.ipynb
+test_jorge/
+grid2op/data_test/l2rpn_neurips_2020_track1_with_alert.zip
+issue_208_res/
+test_issue_208.py
+test_issue_220.py
 
 # profiling files
 **.prof

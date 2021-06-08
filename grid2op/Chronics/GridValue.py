@@ -439,7 +439,7 @@ class GridValue(RandomObject, ABC):
             about the grid state (load p and load q, prod p and prod v as well as some maintenance
             or hazards information)
 
-        Generate the next values, either by reading from a file, or by generating on the fly and return a dictionnary
+        Generate the next values, either by reading from a file, or by generating on the fly and return a dictionary
         compatible with the :class:`grid2op.BaseAction` class allowed for the :class:`Environment`.
 
         More information about this dictionary can be found at :func:`grid2op.BaseAction.update`.
@@ -608,10 +608,9 @@ class GridValue(RandomObject, ABC):
         Returns
         -------
         res: ``int``
-            -1 if possibly infinite length of a positive integer representing the maximum duration of this episode
+            -1 if possibly infinite length or a positive integer representing the maximum duration of this episode
 
         """
-        # warnings.warn("Class {} has possibly and infinite duration.".format(type(self).__name__))
         return self.max_iter
 
     def shuffle(self, shuffler=None):

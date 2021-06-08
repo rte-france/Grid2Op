@@ -66,21 +66,24 @@ if __name__ == "__main__":
 
     try:
         maj_, min_, minmin_, *post = version.split(".")
-    except:
+    except Exception as exc_:
         raise RuntimeError(
-            "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1). Please modify \"--version\" argument")
+            "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1). "
+            "Please modify \"--version\" argument")
 
     regex_version = "[0-9]+\.[0-9]+\.[0-9]+(.post[0-9]+){0,1}"
     if re.match("^{}$".format(regex_version), version) is None:
         raise RuntimeError(
-            "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1) and not {}. Please modify \"--version\" argument".format(
+            "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1) and not {}. "
+            "Please modify \"--version\" argument".format(
                 version))
 
     # setup.py
     setup_path = os.path.join(path, "setup.py")
     if not os.path.exists(setup_path):
         raise RuntimeError(
-            "script \"update_version\" cannot find the root path of Grid2op. Please provide a valid \"--path\" argument.")
+            "script \"update_version\" cannot find the root path of Grid2op. "
+            "Please provide a valid \"--path\" argument.")
     with open(setup_path, "r") as f:
         new_setup = f.read()
     try:
@@ -154,6 +157,8 @@ if __name__ == "__main__":
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         PATH_PREVIOUS_RUNNER = os.path.join(path, "grid2op", "data_test", "runner_data")
+        # set the right grid2op version (instead of reloading the stuff, ugly, but working)
+        grid2op.__version__ = version
         env = grid2op.make("rte_case5_example", test=True)
         runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
         runner.run(nb_episode=2,
