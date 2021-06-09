@@ -539,6 +539,7 @@ class PandaPowerBackend(Backend):
         self.n_shunt = self._grid.shunt.shape[0]
         self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
         name_shunt = []
+        # TODO read name from the grid if provided
         for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
             bus = int(row["bus"])
             name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))

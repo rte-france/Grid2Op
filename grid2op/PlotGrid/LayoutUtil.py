@@ -60,6 +60,10 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
     gen_w = 25
     stor_w = 25
 
+    # add the nodes
+    for sub_id in range(obs.n_sub):
+        G.add_node(sub_id)
+
     # Set lines edges
     for line_idx in range(obs.n_line):
         lor_sub = obs.line_or_to_subid[line_idx]
@@ -107,9 +111,8 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
         initial_layout = {}
         for sub_idx, sub_name in enumerate(layout_keys):
             sub_pos = copy.deepcopy(obs.grid_layout[sub_name])
-            #sub_pos[0] *= scale
-            #sub_pos[1] *= scale
             initial_layout[sub_idx] = sub_pos
+
         for load_idx, load_subid in enumerate(obs.load_to_subid):
             sub_name = layout_keys[load_subid]
             load_sub_pos = obs.load_to_sub_pos[load_idx]
@@ -119,6 +122,7 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
             load_pos[0] += math.cos(load_sub_pos) * load_w
             load_pos[1] += math.sin(load_sub_pos) * load_w
             initial_layout[load_offset + load_idx] = load_pos
+
         for gen_idx, gen_subid in enumerate(obs.gen_to_subid):
             sub_name = layout_keys[gen_subid]
             gen_sub_pos = obs.gen_to_sub_pos[gen_idx]
@@ -145,8 +149,11 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
         fix = list(range(obs.n_sub))
         seed = np.random.RandomState(0)
         # Use Fruchterman-Reingold algorithm
-        kkl = nx.spring_layout(G, scale=scale, fixed=fix,
-                               pos=initial_layout, seed=seed,
+        kkl = nx.spring_layout(G,
+                               scale=scale,
+                               fixed=fix,
+                               pos=initial_layout,
+                               seed=seed,
                                iterations=1000)
     else:
         # Use kamada_kawai algorithm

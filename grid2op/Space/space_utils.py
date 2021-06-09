@@ -9,6 +9,10 @@
 import copy
 from grid2op.Exceptions import Grid2OpException
 
+# i already issued the warning for the "some substations have no controllable elements"
+_WARNING_ISSUED_FOR_SUB_NO_ELEM = False
+# this global variable is not const ! It is modified in GridObjects.py
+
 
 def extract_from_dict(dict_, key, converter):
     if key not in dict_:

@@ -37,6 +37,10 @@ Change Log
 - [FIXED]: some bugs in the `GreedyAgent` and `TopologyGreedy`
 - [FIXED]: `Issue#220 <https://github.com/rte-france/Grid2Op/issues/220>`_ `flow_bus_matrix` did not took into
   account disconnected powerlines, leading to impossibility to compute this matrix in some cases.
+- [FIXED]: `Issue#223 <https://github.com/rte-france/Grid2Op/issues/223>`_ : now able to plot a grid even
+  if there is nothing controllable in grid2op present in it.
+- [FIXED]: an issue where the parameters would not be completely saved when saved in json format (alarm feature was
+  absent) (related to `Issue#224 <https://github.com/rte-france/Grid2Op/issues/224>`_ )
 - [ADDED] support for the "alarm operator" / "attention budget" feature
 - [ADDED] retrieval of the `max_step` (ie the maximum number of step that can be performed for the current episode)
   in the observation
@@ -49,6 +53,7 @@ Change Log
   present in pandapower grid will not be modified grid2op side.
 - [IMPROVED] `Issue#214 <https://github.com/rte-france/Grid2Op/issues/214>`_ : adding the shunt information
   in the observation documentation.
+- [IMPROVED] documentation to use the `env.change_paramters` function.
 
 [1.5.2] - 2021-05-10
 -----------------------

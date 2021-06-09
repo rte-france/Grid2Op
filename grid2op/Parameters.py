@@ -297,6 +297,8 @@ class Parameters:
         res["NB_TIMESTEP_COOLDOWN_SUB"] = int(self.NB_TIMESTEP_COOLDOWN_SUB)
         res["INIT_STORAGE_CAPACITY"] = float(self.INIT_STORAGE_CAPACITY)
         res["ACTIVATE_STORAGE_LOSS"] = bool(self.ACTIVATE_STORAGE_LOSS)
+        res["ALARM_BEST_TIME"] = int(self.ALARM_BEST_TIME)
+        res["ALARM_WINDOW_SIZE"] = int(self.ALARM_WINDOW_SIZE)
         return res
 
     def init_from_json(self, json_path):
@@ -442,6 +444,15 @@ class Parameters:
             self.ACTIVATE_STORAGE_LOSS = dt_bool(self.ACTIVATE_STORAGE_LOSS)
         except Exception as exc_:
             raise RuntimeError(f"Impossible to convert ACTIVATE_STORAGE_LOSS to bool with error \n:\"{exc_}\"")
+
+        try:
+            self.ALARM_WINDOW_SIZE = dt_int(self.ALARM_WINDOW_SIZE)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert ALARM_WINDOW_SIZE to int with error \n:\"{exc_}\"")
+        try:
+            self.ALARM_BEST_TIME = dt_int(self.ALARM_BEST_TIME)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert ALARM_BEST_TIME to int with error \n:\"{exc_}\"")
 
         if self.ALARM_WINDOW_SIZE <= 0:
             raise RuntimeError("self.ALARM_WINDOW_SIZE should be a positive integer !")

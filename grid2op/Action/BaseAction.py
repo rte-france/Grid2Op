@@ -937,7 +937,7 @@ class BaseAction(GridObjects):
             else:
                 self._storage_power[ok_ind] += set_storage[ok_ind]
 
-        # storage
+        # curtailment
         curtailment = other._curtail
         ok_ind = np.isfinite(curtailment) & np.any(curtailment != -1.)
         if np.any(ok_ind):

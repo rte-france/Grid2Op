@@ -26,8 +26,8 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
-
 # TODO tests of these methods and this class in general
+
 
 class GridObjects:
     """
@@ -1745,10 +1745,11 @@ class GridObjects:
 
         # no empty bus: at least one element should be present on each bus
         if np.any(cls.sub_info < 1):
-            # raise BackendError("There are {} bus with 0 element connected to it.".format(np.sum(cls.sub_info < 1)))
-            warnings.warn(f"There are {np.sum(cls.sub_info < 1)} substations where  no 'controlable' elements "
-                          f"are connected. These substations will be used in the computation of the powerflow "
-                          f"(by the backend) but you will NOT be able to control anything on them.")
+            if not grid2op.Space.space_utils._WARNING_ISSUED_FOR_SUB_NO_ELEM:
+                warnings.warn(f"There are {np.sum(cls.sub_info < 1)} substations where  no 'controlable' elements "
+                              f"are connected. These substations will be used in the computation of the powerflow "
+                              f"(by the backend) but you will NOT be able to control anything on them.")
+                grid2op.Space.space_utils._WARNING_ISSUED_FOR_SUB_NO_ELEM = True
 
         # redispatching / unit commitment
         if cls.redispatching_unit_commitment_availble:
