@@ -40,7 +40,7 @@ Change Log
 - [FIXED]: `Issue#223 <https://github.com/rte-france/Grid2Op/issues/223>`_ : now able to plot a grid even
   if there is nothing controllable in grid2op present in it.
 - [FIXED]: an issue where the parameters would not be completely saved when saved in json format (alarm feature was
-  absent)
+  absent) (related to `Issue#224 <https://github.com/rte-france/Grid2Op/issues/224>`_ )
 - [ADDED] support for the "alarm operator" / "attention budget" feature
 - [ADDED] retrieval of the `max_step` (ie the maximum number of step that can be performed for the current episode)
   in the observation
