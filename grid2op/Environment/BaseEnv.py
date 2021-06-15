@@ -1946,6 +1946,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # forward to the observation if an alarm is used or not
             if hasattr(self._reward_helper.template_reward, "has_alarm_component"):
                 self._is_alarm_used_in_reward = self._reward_helper.template_reward.is_alarm_used
+            self.current_obs = self.get_obs()
             # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
 
