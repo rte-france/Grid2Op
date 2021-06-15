@@ -318,7 +318,12 @@ class Parameters:
             warn_msg = "Could not load from {}\n" \
                        "Continuing with default parameters. \n\nThe error was \"{}\""
             warnings.warn(warn_msg.format(json_path, exc_))
-        
+
+    def __eq__(self, other):
+        this_dict = self.to_dict()
+        other_dict = other.to_dict()
+        return this_dict == other_dict
+
     @staticmethod
     def from_json(json_path):
         """
