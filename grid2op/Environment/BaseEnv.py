@@ -1662,6 +1662,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 action = agent.act(obs, reward, done)
                 obs, reward, done, info = env.step(action)
 
+        Notes
+        -----
+
+        If the flag `done=True` is raised (*ie* this is the end of the episode) then the observation is NOT properly
+        updated and should not be used at all.
+
+        Actually, it will be in a "game over" state (see :class:`grid2op.Observation.BaseObservation.set_game_over`).
+
         """
 
         if not self.__is_init:
