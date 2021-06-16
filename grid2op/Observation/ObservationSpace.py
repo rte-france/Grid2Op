@@ -180,16 +180,17 @@ class ObservationSpace(SerializableObservationSpace):
             self.obs_env.reset_space()
         self.action_helper_env.actionClass.reset_space()
 
-    def __call__(self, env):
+    def __call__(self, env, _update_state=True):
         if self.with_forecast:
             self.obs_env.update_grid(env)
 
         res = self.observationClass(obs_env=self.obs_env,
                                     action_helper=self.action_helper_env)
 
-        # TODO how to make sure that whatever the number of time i call "simulate" i still get the same observations
-        # TODO use self.obs_prng when updating actions
-        res.update(env=env, with_forecast=self.with_forecast)
+        if _update_state:
+            # TODO how to make sure that whatever the number of time i call "simulate" i still get the same observations
+            # TODO use self.obs_prng when updating actions
+            res.update(env=env, with_forecast=self.with_forecast)
         return res
 
     def size_obs(self):

@@ -33,6 +33,9 @@ Change Log
 - [BREAKING] the "Runner.py" file has been renamed, following pep convention "runner.py". You should rename your
   import `from grid2op.Runner.Runner import Runner` to `from grid2op.Runner.runner import Runner`
   (**NB** we higly recommend importing the `Runner` like `from grid2op.Runner import Runner` though !)
+- [FIXED]: the L2RPN_2020 score has been updated to reflect the score used during these competitions (there was an
+  error between `DoNothingAgent` and `RecoPowerlineAgent`)
+  [see `Issue#228 <https://github.com/rte-france/Grid2Op/issues/228>`_ ]
 - [FIXED]: some bugs in the `action_space.get_all_unitary_redispatch` and `action_space.get_all_unitary_curtail`
 - [FIXED]: some bugs in the `GreedyAgent` and `TopologyGreedy`
 - [FIXED]: `Issue#220 <https://github.com/rte-france/Grid2Op/issues/220>`_ `flow_bus_matrix` did not took into
@@ -41,6 +44,8 @@ Change Log
   if there is nothing controllable in grid2op present in it.
 - [FIXED]: an issue where the parameters would not be completely saved when saved in json format (alarm feature was
   absent) (related to `Issue#224 <https://github.com/rte-france/Grid2Op/issues/224>`_ )
+- [FIXED]: an error caused by the observation non being copied when a game over occurred that caused some issue in
+  some cases (related to `Issue#226 <https://github.com/rte-france/Grid2Op/issues/226>`_ )
 - [ADDED] support for the "alarm operator" / "attention budget" feature
 - [ADDED] retrieval of the `max_step` (ie the maximum number of step that can be performed for the current episode)
   in the observation
