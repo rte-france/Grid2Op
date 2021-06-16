@@ -444,7 +444,7 @@ class _ObsEnv(BaseEnv):
         obs, reward, done, info = self.step(action)
         return obs, reward, done, info
 
-    def get_obs(self):
+    def get_obs(self, _update_state=False):
         """
         INTERNAL
 
