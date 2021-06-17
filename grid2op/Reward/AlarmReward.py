@@ -151,7 +151,7 @@ class AlarmReward(BaseReward):
             disc_lines = env._disc_lines
 
             # so now i can consider the alarms.
-            best_score, is_alarm_used = -1, False
+            best_score, is_alarm_used = self.reward_min, False
             for alarm in successfull_alarms:
                 tmp_sc, tmp_is = self._points_for_alarm(*alarm,
                                                         step_game_over=step_game_over,
