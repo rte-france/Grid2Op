@@ -70,8 +70,8 @@ class AlarmReward(BaseReward):
 
     def reset(self, env):
         self.total_time_steps = env.max_episode_duration()
-        self.window_size = env.parameters.ALARM_BEST_TIME
-        self.best_time = env.parameters.ALARM_WINDOW_SIZE
+        self.best_time = env.parameters.ALARM_BEST_TIME
+        self.window_size = env.parameters.ALARM_WINDOW_SIZE
 
     def _tmp_score_time(self, step_alarm, step_game_over):
         """

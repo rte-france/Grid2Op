@@ -49,6 +49,7 @@ Change Log
 - [FIXED]: a bug in the opponent space where the "`previous_fail`" kwargs was not updated properly and send wrongly
   to the opponent
 - [FIXED]: a bug in the geometric opponent when it did attack that failed.
+- [FIXED]: `Issue#229 <https://github.com/rte-france/Grid2Op/issues/229>`_ typo in the  `AlarmReward` class when reset.
 - [ADDED] support for the "alarm operator" / "attention budget" feature
 - [ADDED] retrieval of the `max_step` (ie the maximum number of step that can be performed for the current episode)
   in the observation
