@@ -13,7 +13,7 @@ PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
 from grid2op.Reward import L2RPNSandBoxScore
 from grid2op.MakeEnv import make
 from grid2op.dtypes import dt_float
-from grid2op.Agent import DoNothingAgent
+from grid2op.Agent import DoNothingAgent, RecoPowerlineAgent
 from grid2op.utils import EpisodeStatistics, ScoreL2RPN2020
 from grid2op.Parameters import Parameters
 
@@ -113,12 +113,17 @@ class TestL2RPNSCORE(HelperTests):
             # delete them
             stats_0 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN)
             stats_1 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)
+            stats_2 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)
             stats_0.clear_all()
             stats_1.clear_all()
+            stats_2.clear_all()
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+            assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)))
+
 
     def test_donothing_0(self):
         """test that do nothing has a score of 0.00"""
@@ -140,12 +145,16 @@ class TestL2RPNSCORE(HelperTests):
             # delete them
             stats_0 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN)
             stats_1 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)
+            stats_2 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)
             stats_0.clear_all()
             stats_1.clear_all()
+            stats_2.clear_all()
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+            assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)))
 
     def test_modif_max_step_decrease(self):
         """
@@ -177,12 +186,16 @@ class TestL2RPNSCORE(HelperTests):
             # delete them
             stats_0 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN)
             stats_1 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)
+            stats_2 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)
             stats_0.clear_all()
             stats_1.clear_all()
+            stats_2.clear_all()
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+            assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)))
 
     def test_modif_max_step_increase(self):
         """test that i can modify the max step (and that if I increase it it does trigger a recomputation)"""
@@ -208,12 +221,16 @@ class TestL2RPNSCORE(HelperTests):
             # delete them
             stats_0 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN)
             stats_1 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)
+            stats_2 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)
             stats_0.clear_all()
             stats_1.clear_all()
+            stats_2.clear_all()
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+            assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)))
 
     def test_modif_nb_scenario(self):
         """
@@ -246,14 +263,18 @@ class TestL2RPNSCORE(HelperTests):
             # delete them
             stats_0 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN)
             stats_1 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)
+            stats_2 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)
             stats_0.clear_all()
             stats_1.clear_all()
+            stats_2.clear_all()
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+            assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)))
 
-    def test_donothing_noov_80(self):
+    def test_reco_noov_80(self):
         """test that do nothing has a score of 80.0 if it is run with "no overflow disconnection" """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -262,6 +283,7 @@ class TestL2RPNSCORE(HelperTests):
                 scores = ScoreL2RPN2020(env, nb_scenario=2, verbose=0, max_step=130)
                 assert scores._recomputed_dn
                 assert scores._recomputed_no_ov
+                assert scores._recomputed_no_ov_rp
 
                 # the statistics have been properly computed
                 assert os.path.exists(os.path.join(env.get_path_env(),
@@ -279,19 +301,24 @@ class TestL2RPNSCORE(HelperTests):
                 scores2 = ScoreL2RPN2020(env, nb_scenario=2, verbose=0, max_step=130)
                 assert not scores2._recomputed_dn
                 assert not scores2._recomputed_no_ov
-                my_agent = DoNothingAgent(env.action_space)
+                assert not scores2._recomputed_no_ov_rp
+                my_agent = RecoPowerlineAgent(env.action_space)
                 my_scores, *_ = scores2.get(my_agent)
                 assert np.max(np.abs(np.array(my_scores) - 80.0)) <= self.tol_one
 
             # delete them
             stats_0 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN)
             stats_1 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)
+            stats_2 = EpisodeStatistics(env, ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)
             stats_0.clear_all()
             stats_1.clear_all()
+            stats_2.clear_all()
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+            assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)))
 
 
 if __name__ == "__main__":

@@ -313,6 +313,9 @@ issue_208_res/
 test_issue_208.py
 test_issue_220.py
 test_issue_*.py
+res_alert/
+env_debug_time_last_alarm_inconsistency.zip
+env_debug_time_last_alarm_inconsistency/
 
 # profiling files
 **.prof

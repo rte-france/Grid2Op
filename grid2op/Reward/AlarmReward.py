@@ -70,8 +70,8 @@ class AlarmReward(BaseReward):
 
     def reset(self, env):
         self.total_time_steps = env.max_episode_duration()
-        self.window_size = env.parameters.ALARM_BEST_TIME
-        self.best_time = env.parameters.ALARM_WINDOW_SIZE
+        self.best_time = env.parameters.ALARM_BEST_TIME
+        self.window_size = env.parameters.ALARM_WINDOW_SIZE
 
     def _tmp_score_time(self, step_alarm, step_game_over):
         """
@@ -151,7 +151,7 @@ class AlarmReward(BaseReward):
             disc_lines = env._disc_lines
 
             # so now i can consider the alarms.
-            best_score, is_alarm_used = -1, False
+            best_score, is_alarm_used = self.reward_min, False
             for alarm in successfull_alarms:
                 tmp_sc, tmp_is = self._points_for_alarm(*alarm,
                                                         step_game_over=step_game_over,

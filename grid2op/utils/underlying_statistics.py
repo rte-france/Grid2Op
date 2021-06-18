@@ -325,6 +325,8 @@ class EpisodeStatistics(object):
 
         This is permanent. If you want this data to be available again, you will need to run an expensive
         :func:`EpisodeStatistics.compute` again.
+
+        Once done, this cannot be undone.
         """
         if os.path.exists(self.path_save_stats) and os.path.isdir(self.path_save_stats):
             shutil.rmtree(self.path_save_stats)

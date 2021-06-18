@@ -564,7 +564,7 @@ You can then use, in the above case:
     import grid2op
     env_name = "l2rpn_case14_sandbox"  # matching above
 
-    env_train = grid2op.make(env_name+"_train") to only use the "training chronics"
+    env_train = grid2op.make(env_name+"_train")  # to only use the "training chronics"
     # do whatever you want with env_train
 
 And then, at time of validation:
@@ -574,8 +574,8 @@ And then, at time of validation:
     import grid2op
     env_name = "l2rpn_case14_sandbox"  # matching above
 
-    env_train = grid2op.make(env_name+"_val") to only use the "training chronics"
-    # do whatever you want with env_train
+    env_val = grid2op.make(env_name+"_val") # to only use the "validation chronics"
+    # do whatever you want with env_val
 
 
 As of now, grid2op do not support "from the API" the possibility to split with convenient

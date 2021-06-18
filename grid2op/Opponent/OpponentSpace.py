@@ -93,6 +93,7 @@ class OpponentSpace(object):
         self.current_attack_cooldown = self.attack_cooldown
         self.last_attack = None
         self.opponent.reset(self.budget)
+        self.previous_fails = False
 
     def _get_state(self):
         # used for simulate
@@ -172,9 +173,11 @@ class OpponentSpace(object):
 
         # If the opponent can attack  
         else:
-            self.previous_fails = False
             attack_called = True
-            attack, duration = self.opponent.attack(observation, agent_action, env_action, self.budget,
+            attack, duration = self.opponent.attack(observation,
+                                                    agent_action,
+                                                    env_action,
+                                                    self.budget,
                                                     self.previous_fails)
             if duration is None:
                 if np.isfinite(self.attack_max_duration):
@@ -182,12 +185,16 @@ class OpponentSpace(object):
                 else:
                     duration = 1
 
+            self.previous_fails = False
+
             if duration > self.attack_max_duration:
                 # duration chosen by the opponent would exceed the maximum duration allowed
                 attack = None
+                self.previous_fails = True
 
             # If the cost is too high
             final_budget = self.budget  # TODO add the: + self.budget_per_timestep * (self.attack_duration - 1)
+
             # i did not do it in case an attack is ok at the beginning, ok at the end, but at some point in the attack
             # process it is not (but i'm not sure this can happen, and don't have time to think about it right now)
             if duration * self.compute_budget(attack) > final_budget:
@@ -195,13 +202,14 @@ class OpponentSpace(object):
                 self.previous_fails = True
 
             # If we can afford the attack
-            elif attack is not None:
+            if attack is not None:
                 # even if it's "do nothing", it's sill an attack. Too bad if the opponent chose to do nothing.
                 self.current_attack_duration = duration
                 self.current_attack_cooldown += self.attack_cooldown
 
         if not attack_called:
             self.opponent.tell_attack_continues(observation, agent_action, env_action, self.budget)
+            self.previous_fails = False
 
         self.budget -= self.compute_budget(attack)
         self.last_attack = attack

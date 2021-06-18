@@ -1432,7 +1432,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_downtime[gen_still_disconnected] += 1
         return except_
 
-    def get_obs(self):
+    def get_obs(self, _update_state=True):
         """
         Return the observations of the current environment made by the :class:`grid2op.BaseAgent.BaseAgent`.
 
@@ -1461,7 +1461,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # obs2 and obs are identical.
 
         """
-        res = self._observation_space(env=self)
+        res = self._observation_space(env=self, _update_state=_update_state)
         return res
 
     def get_thermal_limit(self):
@@ -1661,6 +1661,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             while not done:
                 action = agent.act(obs, reward, done)
                 obs, reward, done, info = env.step(action)
+
+        Notes
+        -----
+
+        If the flag `done=True` is raised (*ie* this is the end of the episode) then the observation is NOT properly
+        updated and should not be used at all.
+
+        Actually, it will be in a "game over" state (see :class:`grid2op.Observation.BaseObservation.set_game_over`).
 
         """
 
@@ -1938,6 +1946,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # forward to the observation if an alarm is used or not
             if hasattr(self._reward_helper.template_reward, "has_alarm_component"):
                 self._is_alarm_used_in_reward = self._reward_helper.template_reward.is_alarm_used
+            self.current_obs = self.get_obs(_update_state=False)
             # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
 

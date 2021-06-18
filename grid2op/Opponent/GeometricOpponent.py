@@ -5,6 +5,7 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import warnings
 import numpy as np
 
@@ -224,7 +225,6 @@ class GeometricOpponent(BaseOpponent):
         duration: ``int``
             The duration of the attack (if ``None`` then the attack will be made for the longest allowed time)
         """
-
         # During creation of the environment, do not attack
         if observation is None:
             return None, None
@@ -232,6 +232,11 @@ class GeometricOpponent(BaseOpponent):
         # If there are no more attacks to come, do not attack
         if self._attack_counter >= self._number_of_attacks:
             return None, None
+
+        if previous_fails:
+            # i cannot do the attack, it failed (so self._attack_counter >= 1)
+            self._next_attack_time = self._attack_waiting_times[self._attack_counter] + \
+                                     self._attack_durations[self._attack_counter - 1]
 
         # Set the time of the next attack
         if self._next_attack_time is None:
@@ -279,7 +284,6 @@ class GeometricOpponent(BaseOpponent):
         raw_probabilities = np.exp(b_beta * rho_ranks)
         b_probabilities = raw_probabilities / raw_probabilities.sum()
         attack = self.space_prng.choice(available_attacks, p=b_probabilities)
-
         return attack, attack_duration
 
     def get_state(self):
