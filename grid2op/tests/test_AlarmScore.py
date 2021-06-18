@@ -236,13 +236,14 @@ class TestAlarmScore(unittest.TestCase):
         """test that the maximum is taken, when an alarm is send at the right time with only lines got diconnected at
         the time of cascading failure"""
 
+        #changing parameters to allow for multiple line actions in order to create a cascading failure in one time_step
         param = Parameters()
         param.init_from_dict({'MAX_LINE_STATUS_CHANGED': 999})
         self.env.change_parameters(param)
         self.env.reset()
 
         act = self.env.action_space()
-        alarm_zone_id=1
+        alarm_zone_id=1 #right zone
         zone_alarm=self.env.alarms_area_names[alarm_zone_id]
         act.raise_alarm = [alarm_zone_id]
         disc_lines_before_cascade=[]
@@ -253,6 +254,7 @@ class TestAlarmScore(unittest.TestCase):
             obs, reward, done, info = self.env.step(self.env.action_space())
             assert(len(list(np.where(info["disc_lines"] == 0)[0]))==0)
 
+        # cascading failure in one step
         act=self.env.action_space({'set_line_status':[(56, -1),(41,-1),(40, -1),(39, -1),(13, -1)]})
         obs, reward, done, info = self.env.step(act)
 
@@ -274,10 +276,9 @@ class TestAlarmScore(unittest.TestCase):
         self.env.reset()
 
         act = self.env.action_space()
-        alarm_zone_id=0
+        alarm_zone_id=0 #wrong zone
         zone_alarm=self.env.alarms_area_names[alarm_zone_id]
         act.raise_alarm = [alarm_zone_id]
-        disc_lines_before_cascade=[]
 
         obs, reward, done, info = self.env.step(act)  # just at the right time
         assert(len(list(np.where(info["disc_lines"] == 0)[0]))==0)#no line disconnected before cascade
@@ -285,6 +286,7 @@ class TestAlarmScore(unittest.TestCase):
             obs, reward, done, info = self.env.step(self.env.action_space())
             assert(len(list(np.where(info["disc_lines"] == 0)[0]))==0)
 
+        #cascading failure in one step
         act=self.env.action_space({'set_line_status':[(56, -1),(41,-1),(40, -1),(39, -1),(13, -1)]})
         obs, reward, done, info = self.env.step(act)
 
@@ -305,6 +307,7 @@ class TestAlarmScore(unittest.TestCase):
         #dis_lines_before_cascade=[[], [], [45], [], [], [41], [], [], [40], [], []] => only line 40 should be consider for points here
         #disc_lines_in_cascade= [13, 22, 23, 31, 32, 33, 34, 35, 39]
 
+        #changing thermal limits to create an overload since the beginning and a slow cascading failure
         new_thermal_limit = self.env.get_thermal_limit()
         line_id=45
         new_thermal_limit[line_id]=new_thermal_limit[line_id]/3
@@ -341,6 +344,8 @@ class TestAlarmScore(unittest.TestCase):
         # we should get geo_points in the end
         #dis_lines_before_cascade=[[], [], [45], [], [], [41], [], [], [40], [], []] => only line 40 should be consider for points here
         #disc_lines_in_cascade= [13, 22, 23, 31, 32, 33, 34, 35, 39]
+
+        # changing thermal limits to create an overload since the beginning and a slow cascading failure
         new_thermal_limit = self.env.get_thermal_limit()
         line_id=45
         new_thermal_limit[line_id]=new_thermal_limit[line_id]/3
@@ -376,10 +381,10 @@ class TestAlarmScore(unittest.TestCase):
         # dis_lines_before_cascade=[[], [], [45], [], [], [41], [], [], [], [], []] => only line 40 should be consider for points here
         # disc_lines_in_cascade= [13, 22, 23, 31, 32, 33, 34, 35, 39]
 
+        # changing thermal limits to create an overload since the beginning and a slow cascading failure
         new_thermal_limit = self.env.get_thermal_limit()
         line_id=45
         new_thermal_limit[line_id]=new_thermal_limit[line_id]/3
-        new_thermal_limit[40] = new_thermal_limit[40] * 3
         self.env.set_thermal_limit(new_thermal_limit)
 
         act = self.env.action_space()
@@ -392,7 +397,8 @@ class TestAlarmScore(unittest.TestCase):
         disc_lines_before_cascade=[]
         while not done:#will fail at timestep 13
             act = self.env.action_space()
-            if(t==9):
+            if(t==9):#disconnecting the line ourself so that it does not appear in disc_lines
+                # in the window_disconnection
                 act = self.env.action_space({'set_line_status': [(40, -1)]})
             obs, reward, done, info = self.env.step(act)
             if not done:
@@ -413,9 +419,9 @@ class TestAlarmScore(unittest.TestCase):
         #dis_lines_before_cascade=[[], [], [45], [], [], [41], [], [], [40], [], []] => only line 40 should be consider for points here
         #disc_lines_in_cascade= [13, 22, 23, 31, 32, 33, 34, 35, 39]
 
+        # changing thermal limits to create an overload since the beginning and a slow cascading failure
         new_thermal_limit = self.env.get_thermal_limit()
         line_id=45
-        print("initially: "+str(new_thermal_limit[line_id]))
         new_thermal_limit[line_id]=new_thermal_limit[line_id]/3
         self.env.set_thermal_limit(new_thermal_limit)
 
@@ -423,33 +429,25 @@ class TestAlarmScore(unittest.TestCase):
         act.raise_alarm = [1]
         obs, reward, done, info = self.env.step(act)  # just at the right time
         t=1
-        disc_lines_before_cascade=[]
         while not done:
             act = self.env.action_space()
             obs, reward, done, info = self.env.step(act)
-            if not done:
-                disc_lines_before_cascade.append(list(np.where(info["disc_lines"]==0)[0]))
-            else:
-                disc_lines_in_cascade=list(np.where(info["disc_lines"]==0)[0])
             t+=1
 
         assert reward== 1/1.5 #get points for perfect time but not for zone
-        print("stop")
-
-        pass
 
 
 
     def test_alarm_reward_no_point_factor_multi_zone(self):
         """test that the geo points are not taken, when an alarm is send on multi zones"""
 
+        # changing thermal limits to create an overload since the beginning and a slow cascading failure
         new_thermal_limit = self.env.get_thermal_limit()
         line_id = 45
         new_thermal_limit[line_id] = new_thermal_limit[line_id] / 3
         self.env.set_thermal_limit(new_thermal_limit)
 
         act = self.env.action_space()
-
         act.raise_alarm = [0,1]
 
         obs, reward, done, info = self.env.step(act)  # first step and an overload occur on our line 45
@@ -459,22 +457,18 @@ class TestAlarmScore(unittest.TestCase):
         while not done:  # will fail at timestep 13
             act = self.env.action_space()
             obs, reward, done, info = self.env.step(act)
-            if not done:
-                disc_lines_before_cascade.append(list(np.where(info["disc_lines"] == 0)[0]))
-            else:
-                disc_lines_in_cascade = list(np.where(info["disc_lines"] == 0)[0])
             t += 1
 
          # But it is not the zone in which the first line we considered disconnected. So will not give points
         assert reward == 1 / 1.5  # get points for perfect time but not for zone
 
-        pass
 
     #zero if dics
     def test_alarm_after_line_diconnection_score_low(self):
         """test that the score is low when an alarm is sent at the time of an observed line disconnection
         at the beginning of disconnection window"""
 
+        # changing thermal limits to create an overload since the beginning and a slow cascading failure
         new_thermal_limit = self.env.get_thermal_limit()
         line_id=45
         new_thermal_limit[line_id]=new_thermal_limit[line_id]/3
@@ -493,10 +487,6 @@ class TestAlarmScore(unittest.TestCase):
             if(t==9):#right at the time of line disconnection in window_disconnection
                 act.raise_alarm = [alarm_zone_id]
             obs, reward, done, info = self.env.step(act)
-            if not done:
-                disc_lines_before_cascade.append(list(np.where(info["disc_lines"]==0)[0]))
-            else:
-                disc_lines_in_cascade=list(np.where(info["disc_lines"]==0)[0])
             t+=1
 
         assert np.round(reward,2)== 0.29 #get points for perfect zone but not time
@@ -506,11 +496,16 @@ class TestAlarmScore(unittest.TestCase):
          when an alarm is sent at the time of an observed line disconnection
         at the beginning of disconnection window"""
 
-        param = Parameters()
+        #changing alarm time parameters
+        param = self.env.parameters
         param.init_from_dict({'ALARM_WINDOW_SIZE': 5, 'ALARM_BEST_TIME': 7})
         self.env.change_parameters(param)
+        self.env.seed(0)
         self.env.reset()
+        self.env.reset()
+        ###
 
+        # changing thermal limits to create an overload since the beginning and a slow cascading failure
         new_thermal_limit = self.env.get_thermal_limit()
         line_id=45
         new_thermal_limit[line_id]=new_thermal_limit[line_id]/3
@@ -518,7 +513,6 @@ class TestAlarmScore(unittest.TestCase):
 
         act = self.env.action_space()
         alarm_zone_id=1
-        zone_alarm=self.env.alarms_area_names[alarm_zone_id]
 
         obs, reward, done, info = self.env.step(act)  # first step and an overload occur on our line 45
 
@@ -528,14 +522,10 @@ class TestAlarmScore(unittest.TestCase):
             act = self.env.action_space()
             if(t==9):#right at the time of line disconnection in window_disconnection
                 act.raise_alarm = [alarm_zone_id]
+            if (t == 2):
+                print("stop")
             obs, reward, done, info = self.env.step(act)
-            if not done:
-                disc_lines_before_cascade.append(list(np.where(info["disc_lines"]==0)[0]))
-            else:
-                disc_lines_in_cascade=list(np.where(info["disc_lines"]==0)[0])
             t+=1
 
-        #bug for now, somehow we reach done =true a lot sooner for "isolated load",
-        # whereas we only changed alarm_best_time and window_size parameters
-        assert np.round(reward,2)== None#to be defined
+        assert np.round(reward,2)== 0.24
 
