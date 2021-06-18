@@ -240,7 +240,7 @@ class TestAlarmScore(unittest.TestCase):
         param = Parameters()
         param.init_from_dict({'MAX_LINE_STATUS_CHANGED': 999})
         self.env.change_parameters(param)
-        self.env.reset()
+        self.env.reset()# env.reset() on saute sur le scénario suivant, en plus de mettre à jour les paramètres
 
         act = self.env.action_space()
         alarm_zone_id=1 #right zone
@@ -273,7 +273,7 @@ class TestAlarmScore(unittest.TestCase):
         param = Parameters()
         param.init_from_dict({'MAX_LINE_STATUS_CHANGED': 999})
         self.env.change_parameters(param)
-        self.env.reset()
+        self.env.reset()# env.reset() on saute sur le scénario suivant, en plus de mettre à jour les paramètres
 
         act = self.env.action_space()
         alarm_zone_id=0 #wrong zone
@@ -500,9 +500,8 @@ class TestAlarmScore(unittest.TestCase):
         param = self.env.parameters
         param.init_from_dict({'ALARM_WINDOW_SIZE': 5, 'ALARM_BEST_TIME': 7})
         self.env.change_parameters(param)
-        self.env.seed(0)
         self.env.reset()
-        self.env.reset()
+        self.env.reset()#2 env.reset() pour revenir sur le scénario de départ dans un jeu de 2 scénarios
         ###
 
         # changing thermal limits to create an overload since the beginning and a slow cascading failure
@@ -525,6 +524,10 @@ class TestAlarmScore(unittest.TestCase):
             if (t == 2):
                 print("stop")
             obs, reward, done, info = self.env.step(act)
+            if not done:
+                disc_lines_before_cascade.append(list(np.where(info["disc_lines"]==0)[0]))
+            else:
+                disc_lines_in_cascade=list(np.where(info["disc_lines"]==0)[0])
             t+=1
 
         assert np.round(reward,2)== 0.24
