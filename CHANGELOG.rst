@@ -57,6 +57,8 @@ Change Log
   `action_space.get_all_unitary_curtail` (see doc)
 - [ADDED] as utils function to compute the score used for the ICAPS 2021 competition (see
   `from grid2op.utils import ScoreICAPS2021` and the associate documentation for more information)
+- [ADDED] a first version of the "l2rpn_icaps_2021" environment (accessible with
+  `grid2op.make("l2rpn_icaps_2021", test=True)`)
 - [IMPROVED] prevent the use of the same instance of a backend in different environments
 - [IMPROVED] `Issue#217 <https://github.com/rte-france/Grid2Op/issues/217>`_ : no more errors when trying to
   load a grid with unsupported elements (eg. 3w trafos or static generators) by PandaPowerBackend

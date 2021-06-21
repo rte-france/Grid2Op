@@ -17,6 +17,7 @@ from grid2op.Action.PowerlineSetAction import PowerlineSetAction
 from grid2op.Action.PlayableAction import PlayableAction
 from grid2op.Observation.CompleteObservation import CompleteObservation
 from grid2op.Action.DontAct import DontAct
+from grid2op.Opponent import GeometricOpponent
 
 import pdb
 
@@ -50,6 +51,48 @@ class TestL2RPNNEURIPS2020_Track1(unittest.TestCase):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
         assert self.env.observation_space.n == 1332 + 4 + 24, f"obs space size is {self.env.observation_space.n}," \
                                                               f"should be {1332 + 4 + 24}"
+
+    def test_random_action(self):
+        """test i can perform some step (random)"""
+        i = 0
+        for i in range(10):
+            act = self.env.action_space.sample()
+            obs, reward, done, info = self.env.step(act)
+            if done:
+                break
+        assert i >= 1, "could not perform the random action test because it games over first time step. " \
+                       "Please fix the test and try again"
+
+
+class TestL2RPNICAPS2021(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("l2rpn_icaps_2021",
+                                    test=True)
+            self.env.seed(0)
+
+    def test_elements(self):
+        assert self.env.n_sub == 36
+        assert self.env.n_line == 59
+        assert self.env.n_load == 37
+        assert self.env.n_gen == 22
+        assert self.env.n_storage == 0
+
+    def test_opponent(self):
+        assert issubclass(self.env._opponent_action_class, PowerlineSetAction)
+        assert isinstance(self.env._opponent, GeometricOpponent)
+        assert self.env._opponent_action_space.n == self.env.n_line
+
+    def test_action_space(self):
+        assert issubclass(self.env.action_space.subtype, PlayableAction)
+        assert self.env.action_space.n == 519, f"act space size is {self.env.action_space.n}," \
+                                               f"should be {519}"
+
+    def test_observation_space(self):
+        assert issubclass(self.env.observation_space.subtype, CompleteObservation)
+        assert self.env.observation_space.n == 1332 + 4 + 24 + 3, f"obs space size is {self.env.observation_space.n}," \
+                                                                  f"should be {1363}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
