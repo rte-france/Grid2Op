@@ -91,8 +91,6 @@ class _AlarmScore(AlarmReward):
         nb_obs = len(self.disc_lines_all_before_cascade)
 
         for t in range(nb_obs - self.window_disconnection, nb_obs):
-            #disc_lines_t = np.where(self.disc_lines_all_before_cascade[t] >= 0)[0]
-            #disc_lines_to_consider_for_score += list(disc_lines_t)
             disc_lines_to_consider_for_score[self.disc_lines_all_before_cascade[t] >= 0]=True
 
         if (np.sum(disc_lines_to_consider_for_score) == 0):
@@ -115,12 +113,10 @@ class _AlarmScore(AlarmReward):
 
             if np.all(env._disc_lines == -1):
                 # game over is not caused by the tripping of a powerline
-                print("no line disconnected")
                 return self.reward_min
 
             if len(env._attention_budget._all_successful_alarms) == 0:
                 # no alarm have been sent, so it's the minimum
-                print("no successful alarm")
                 return self.reward_min
 
             successfull_alarms = env._attention_budget._all_successful_alarms

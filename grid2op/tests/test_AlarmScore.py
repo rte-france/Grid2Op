@@ -240,7 +240,8 @@ class TestAlarmScore(unittest.TestCase):
         param = Parameters()
         param.init_from_dict({'MAX_LINE_STATUS_CHANGED': 999})
         self.env.change_parameters(param)
-        self.env.reset()# env.reset() on saute sur le scénario suivant, en plus de mettre à jour les paramètres
+        self.env.reset()# env.reset() to reset the parameters. Note that we also jump to a new scenario by doing
+        # env.reset(), which is desired here
 
         act = self.env.action_space()
         alarm_zone_id=1 #right zone
@@ -273,7 +274,8 @@ class TestAlarmScore(unittest.TestCase):
         param = Parameters()
         param.init_from_dict({'MAX_LINE_STATUS_CHANGED': 999})
         self.env.change_parameters(param)
-        self.env.reset()# env.reset() on saute sur le scénario suivant, en plus de mettre à jour les paramètres
+        self.env.reset()# env.reset() to reset the parameters. Note that we also jump to a new scenario by doing
+        # env.reset(), which is desired here
 
         act = self.env.action_space()
         alarm_zone_id=0 #wrong zone
@@ -500,8 +502,8 @@ class TestAlarmScore(unittest.TestCase):
         param = self.env.parameters
         param.init_from_dict({'ALARM_WINDOW_SIZE': 5, 'ALARM_BEST_TIME': 7})
         self.env.change_parameters(param)
-        self.env.reset()
-        self.env.reset()#2 env.reset() pour revenir sur le scénario de départ dans un jeu de 2 scénarios
+        self.env.reset()# env.reset() to reset the parameters. Note that this also jump to the next scenario.
+        self.env.reset()#we do one more env.reset() to jump back to our initial scenario among the two we have
         ###
 
         # changing thermal limits to create an overload since the beginning and a slow cascading failure
@@ -521,8 +523,6 @@ class TestAlarmScore(unittest.TestCase):
             act = self.env.action_space()
             if(t==9):#right at the time of line disconnection in window_disconnection
                 act.raise_alarm = [alarm_zone_id]
-            if (t == 2):
-                print("stop")
             obs, reward, done, info = self.env.step(act)
             if not done:
                 disc_lines_before_cascade.append(list(np.where(info["disc_lines"]==0)[0]))
