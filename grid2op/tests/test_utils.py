@@ -14,7 +14,7 @@ from grid2op.Reward import L2RPNSandBoxScore
 from grid2op.MakeEnv import make
 from grid2op.dtypes import dt_float
 from grid2op.Agent import DoNothingAgent, RecoPowerlineAgent
-from grid2op.utils import EpisodeStatistics, ScoreL2RPN2020
+from grid2op.utils import EpisodeStatistics, ScoreL2RPN2020, ScoreICAPS2021
 from grid2op.Parameters import Parameters
 
 import warnings
@@ -123,7 +123,6 @@ class TestL2RPNSCORE(HelperTests):
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)))
-
 
     def test_donothing_0(self):
         """test that do nothing has a score of 0.00"""
@@ -319,6 +318,49 @@ class TestL2RPNSCORE(HelperTests):
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
             assert not os.path.exists(os.path.join(env.get_path_env(),
                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERWLOW)))
+
+
+class TestICAPSSCORE(HelperTests):
+    """test teh grid2op.utils.EpisodeStatistics """
+    def test_can_compute(self):
+        """test that i can initialize the score and then delete the statistics"""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"), test=True) as env:
+                scores = ScoreICAPS2021(env,
+                                        nb_scenario=2,
+                                        verbose=0,
+                                        max_step=50,
+                                        env_seeds=[1, 2],  # with these seeds do nothing goes till the end
+                                        agent_seeds=[3, 4])
+                my_agent = DoNothingAgent(env.action_space)
+                scores, n_played, total_ts = scores.get(my_agent)
+                for (ep_score, op_score, alarm_score) in scores:
+                    assert np.abs(ep_score - 30.) <= self.tol_one, f"wrong score for the episode: {ep_score} vs 30."
+                    assert np.abs(op_score - 0.) <= self.tol_one, f"wrong score for the operationnal cost: " \
+                                                                  f"{op_score} vs 0."
+                    assert np.abs(alarm_score - 100.) <= self.tol_one, f"wrong score for the alarm: " \
+                                                                       f"{alarm_score} vs 100."
+
+            # the statistics have been properly computed
+            assert os.path.exists(os.path.join(env.get_path_env(),
+                                               EpisodeStatistics.get_name_dir(ScoreICAPS2021.NAME_DN)))
+            assert os.path.exists(os.path.join(env.get_path_env(),
+                                               EpisodeStatistics.get_name_dir(ScoreICAPS2021.NAME_DN_NO_OVERWLOW)))
+
+            # delete them
+            stats_0 = EpisodeStatistics(env, ScoreICAPS2021.NAME_DN)
+            stats_1 = EpisodeStatistics(env, ScoreICAPS2021.NAME_DN_NO_OVERWLOW)
+            stats_2 = EpisodeStatistics(env, ScoreICAPS2021.NAME_RP_NO_OVERWLOW)
+            stats_0.clear_all()
+            stats_1.clear_all()
+            stats_2.clear_all()
+            assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                   EpisodeStatistics.get_name_dir(ScoreICAPS2021.NAME_DN)))
+            assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                   EpisodeStatistics.get_name_dir(ScoreICAPS2021.NAME_DN_NO_OVERWLOW)))
+            assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                   EpisodeStatistics.get_name_dir(ScoreICAPS2021.NAME_RP_NO_OVERWLOW)))
 
 
 if __name__ == "__main__":

@@ -104,6 +104,9 @@ class AlarmReward(BaseReward):
         # extract the lines that have been disconnected due to cascading failures
         lines_disconnected_first = np.where(disc_lines == 0)[0]
 
+        if (np.sum(alarm) > 1):#if we have more than one zone in the alarm, we cannot discrtiminate, no bonus points
+            return res
+
         # extract the zones they belong too
         zones_these_lines = set()
         zone_for_each_lines = env.alarms_lines_area
