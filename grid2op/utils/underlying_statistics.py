@@ -20,6 +20,7 @@ from grid2op.Runner import Runner
 from grid2op.Environment import MultiMixEnvironment
 from grid2op.Episode import EpisodeData
 from grid2op.Reward import BaseReward
+from grid2op.Exceptions import Grid2OpException
 
 
 class EpisodeStatistics(object):
@@ -96,7 +97,6 @@ class EpisodeStatistics(object):
     maintenance or the opponent etc. We highly recommend you to use the env_seeds and agent_seeds keyword arguments
     when using the :func:`EpisodeStatistics.compute` function.
 
-
     """
     # TODO NB: name for generator are saved as "prod_p.npz", "prod_v.npz" and "prod_q.npz" and not
     # TODO NB: "gen_p.npz" for backward compatibility.
@@ -172,12 +172,16 @@ class EpisodeStatistics(object):
             self._save_numpy(os.path.join(path_tmp, episode_name, self.get_name_file(obs_nm)), all_attr)
         self._delete_if_exists(path_tmp, episode_name,  EpisodeData.OBSERVATIONS)
 
-    def _gather_all(self, li_episodes, dict_metadata, with_scores):
+    def _gather_all(self, li_episodes, dict_metadata, score_names):
+        """gather all the data from all the episodes into large array (for easier access later on)"""
         if len(li_episodes) == 0:
             return
 
         ids_ = np.zeros(shape=(0, 1))
         scores = None
+        if score_names:
+            scores = {el: None for el in score_names}
+
         first_attr = True
         for obs_nm in self.li_attributes:
             res = None
@@ -193,34 +197,39 @@ class EpisodeStatistics(object):
                     dict_metadata[f"{i}"] = {"path": path_tmp,
                                              "scenario_name": episode_name,
                                              "nb_step": int(tmp_arr.shape[0])}
-                    dict_metadata[f"{i}"]["scores"] = None
 
                 # save the ids corresponding to each scenarios (but only once)
                 if first_attr:
                     scen_sz = tmp_arr.shape[0]
-                    tmp_ids = np.ones(scen_sz, dtype=np.int).reshape((-1, 1))
+                    tmp_ids = np.ones(scen_sz, dtype=int).reshape((-1, 1))
                     tmp_ids *= i
-                    tmp_ids = tmp_ids.astype(np.int)
+                    tmp_ids = tmp_ids.astype(int)
                     ids_ = np.concatenate((ids_, tmp_ids))
 
                     # handles the scores (same, only once)
-                    if with_scores:
-                        tmp_scor = self._load(os.path.join(path_tmp, episode_name, self.SCORES))
-                        dict_metadata[f"{i}"]["scores"] = float(np.sum(tmp_scor))
+                    if score_names:
+                        for el in score_names:
+                            tmp_scor = self._load(os.path.join(path_tmp, episode_name, el))
+                            if len(score_names) == 0:
+                                dict_metadata[f"{i}"]["scores"] = float(np.sum(tmp_scor))
+                            else:
+                                dict_metadata[f"{i}"][f"scores_{el}"] = float(np.sum(tmp_scor))
 
-                        if scores is None:
-                            scores = tmp_scor
-                        else:
-                            scores = np.concatenate((scores, tmp_scor))
+                            if scores[el] is None:
+                                scores[el] = tmp_scor
+                            else:
+                                scores[el] = np.concatenate((scores[el], tmp_scor))
 
             # save for each attributes its content
             path_total = li_episodes[0][0]
             self._save_numpy(os.path.join(path_total, self.get_name_file(obs_nm)), array=res)
+
             # save the id, the metadata and the scores but only once
             if first_attr:
                 self._save_numpy(os.path.join(path_total, self.SCENARIO_IDS), array=ids_)
-                if with_scores:
-                    self._save_numpy(os.path.join(path_total, self.SCORES), array=scores)
+                if score_names:
+                    for el in scores:
+                        self._save_numpy(os.path.join(path_total, el), array=scores[el])
                     del scores
                 del ids_
                 with open(os.path.join(path_total, EpisodeStatistics.METADATA), "w", encoding="utf-8") as f:
@@ -236,6 +245,25 @@ class EpisodeStatistics(object):
             if os.path.exists(os.path.join(path_env, el, EpisodeStatistics.STATISTICS_FOOTPRINT)):
                 res.append((path_env, el))
         return sorted(res)
+
+    @staticmethod
+    def _is_score_attribute(attribute_name):
+        nm = None
+        # test if it a single stat or not
+        has_stat = attribute_name == EpisodeStatistics.SCORES or attribute_name == EpisodeStatistics.SCORES_CLEAN
+        if has_stat:
+            nm = EpisodeStatistics.SCORES
+        else:
+            # i test if it's a statistics with multiple scores
+            if re.match(f".*_{EpisodeStatistics.SCORES_CLEAN}", attribute_name) is not None:
+                # it's a match: multiple score were computed for this name
+                # i need to compute the name with which the files are stored
+                nm_stat = re.sub(f"(_{{0,1}}{EpisodeStatistics.SCORES_CLEAN})|(\\.npz)|(\\.npy)",
+                                 "",
+                                 attribute_name)
+                has_stat = True
+                nm = f"{nm_stat}_{EpisodeStatistics.SCORES}"  # should be the same as in "_retrieve_scores" function
+        return has_stat, nm
 
     def get(self, attribute_name):
         """
@@ -274,20 +302,22 @@ class EpisodeStatistics(object):
                                "Please use \"self.compute()\" to compute them. "
                                "And most importantly have a look at the documentation for precisions about this "
                                "feature.")
-        ids = self._load(os.path.join(self.path_save_stats, EpisodeStatistics.SCENARIO_IDS)).astype(np.int)
-        if attribute_name == self.SCORES or attribute_name == self.SCORES_CLEAN:
+        ids = self._load(os.path.join(self.path_save_stats, EpisodeStatistics.SCENARIO_IDS)).astype(int)
+        is_score, score_name = EpisodeStatistics._is_score_attribute(attribute_name)
+        if is_score:
             if not self._get_has_score():
                 # not score have been saved
                 raise RuntimeError("No score have been computed for this statistics. Please re run \"stats.compute\" "
                                    "by setting the \"scores_func\" argument.")
-            path_th = os.path.join(self.path_save_stats, self.SCORES)
+            # TODO here for multiple score
+            path_th = os.path.join(self.path_save_stats, score_name)
             ids_ = np.concatenate((ids[:, 0], (-1, )))
             diff_ = np.diff(ids_)
             ids = ids[diff_ == 0, :]
         else:
             path_th = os.path.join(self.path_save_stats, self.get_name_file(attribute_name))
         if not os.path.exists(path_th) or not os.path.isfile(path_th):
-            raise RuntimeError("Impossible to read the statistics for attribute \"{attribute_name}\"")
+            raise RuntimeError(f"Impossible to read the statistics for attribute \"{attribute_name}\"")
         array_ = self._load(path_th)
         return array_, ids
 
@@ -305,6 +335,7 @@ class EpisodeStatistics(object):
         Notes
         -----
         It clears all directory into the "statistics" directory
+
         """
         if not os.path.exists(self.path_save_stats) or not os.path.isdir(self.path_save_stats):
             raise RuntimeError("No statistics have been saved for this environment. Please use "
@@ -388,18 +419,52 @@ class EpisodeStatistics(object):
         my_path = os.path.join(path_tmp, episode_name, EpisodeData.OTHER_REWARDS)
         with open(my_path, "r", encoding="utf-8") as f:
             dict_rewards = json.load(f)
-        arr_ = np.array([dt_float(el[self.KEY_SCORE]) for el in dict_rewards])
-        self._save_numpy(os.path.join(path_tmp, episode_name, self.SCORES), arr_)
+
+        if not len(dict_rewards):
+            # nothing to do if the dictionary is empty
+            return
+
+        # check if the score is unique or if there are multiple scores
+        tmp = dict_rewards[0]
+
+        if self.KEY_SCORE in tmp:
+            # only one score was used
+            arr_ = np.array([dt_float(el[self.KEY_SCORE]) for el in dict_rewards])
+            self._save_numpy(os.path.join(path_tmp, episode_name, self.SCORES), arr_)
+        else:
+            for possible_key in tmp:
+                if re.match(f"{self.KEY_SCORE }_.*", possible_key) is None:
+                    # this key does not represent a score
+                    continue
+                nm_score = re.sub(f"{self.KEY_SCORE }_", "", possible_key)
+                arr_ = np.array([dt_float(el[possible_key]) for el in dict_rewards])
+                self._save_numpy(os.path.join(path_tmp, episode_name, f"{nm_score}_{self.SCORES}"), arr_)
+
+    @staticmethod
+    def _check_if_base_reward(stuff):
+        return isinstance(stuff, type) and issubclass(stuff, BaseReward)
 
     @staticmethod
     def run_env(env, path_save, parameters, scores_func, agent, nb_scenario,
                 max_step, env_seeds, agent_seeds, pbar, nb_process):
+
+        if scores_func is not None:
+            if not (EpisodeStatistics._check_if_base_reward(scores_func) or isinstance(scores_func, dict)):
+                raise Grid2OpException("score_func should be either a dictionary or an instance of BaseReward")
+
         dict_kwg = env.get_params_for_runner()
         dict_kwg["parameters_path"] = parameters.to_dict()
+        if "other_rewards" not in dict_kwg:
+            dict_kwg["other_rewards"] = {}
         if scores_func is not None:
-            if not issubclass(scores_func, BaseReward):
-                raise RuntimeError("\"scores_func\" should inherit from \"grid2op.Reward.BaseReward\"")
-            dict_kwg["other_rewards"] = {EpisodeStatistics.KEY_SCORE: scores_func}
+            if EpisodeStatistics._check_if_base_reward(scores_func):
+                dict_kwg["other_rewards"][EpisodeStatistics.KEY_SCORE] = scores_func
+            elif isinstance(scores_func, dict):
+                for nm, score_fun in scores_func.items():
+                    dict_kwg["other_rewards"][f"{EpisodeStatistics.KEY_SCORE}_{nm}"] = score_fun
+            else:
+                raise RuntimeError("\"scores_func\" should inherit from \"grid2op.Reward.BaseReward\" or "
+                                   "be a dictionary")
         runner = Runner(**dict_kwg, agentClass=None, agentInstance=agent)
         runner.run(path_save=path_save,
                    nb_episode=nb_scenario,
@@ -429,7 +494,7 @@ class EpisodeStatistics(object):
         This function will save (to be later used with :func:`EpisodeStatistics.get_statistics`) all the observation
         at all time steps, for a given number of scenario (see attributes nb_scenario).
 
-        This is usefull when you want to store at a given place some information to use later on on your agent.
+        This is useful when you want to store at a given place some information to use later on on your agent.
 
         Notes
         -----
@@ -453,24 +518,27 @@ class EpisodeStatistics(object):
         parameters: :class:`grid2op.Parameters.Parameters`
             The parameters you want to use when computing this statistics
 
-
         nb_scenario: ``int``
             Number of scenarios that will be evaluated
 
         scores_func: :class:`grid2op.Reward.BaseReward`
-            A reward used to compute the score of an Agent.
+            A reward used to compute the score of an Agent (it can now be a dictionary of BaseReward)
 
         nb_scenario: ``int``
             On how many scenarios you want the statistics to be computed
 
         max_step: ``int``
             Maximum number of steps you want to compute (see :func:`grid2op.Runner.Runner.run`)
+
         env_seeds: ``list``
             List of seeds used for the environment (for reproducible results) (see :func:`grid2op.Runner.Runner.run`)
+
         agent_seeds: ``list``
             List of seeds used for the agent (for reproducible results) (see :func:`grid2op.Runner.Runner.run`).
+
         nb_process: ``int``
             Number of process to use (see :func:`grid2op.Runner.Runner.run`)
+
         pbar: ``bool``
             Whether a progress bar is displayed (see :func:`grid2op.Runner.Runner.run`)
 
@@ -486,10 +554,23 @@ class EpisodeStatistics(object):
             raise RuntimeError("\"parameters\" should be either \"None\" to use the default parameters passed in the "
                                "environment or inherits grid2op.Parameters.Parameters")
 
+        score_names = None
         dict_metadata = self._fill_metadata(agent, parameters, max_step, agent_seeds, env_seeds)
 
         if scores_func is not None:
-            dict_metadata["score_class"] = f"{scores_func}"
+            if EpisodeStatistics._check_if_base_reward(scores_func):
+                dict_metadata["score_class"] = f"{scores_func}"
+                score_names = [self.SCORES]
+            elif isinstance(scores_func, dict):
+                score_names = []
+                for nm, score_fun in scores_func.items():
+                    if not EpisodeStatistics._check_if_base_reward(score_fun):
+                        raise Grid2OpException("if using \"score_fun\" as a dictionary, each value need to be a "
+                                               "BaseReward")
+                    dict_metadata[f"score_class_{nm}"] = f"{score_fun}"
+                    score_names.append(f"{nm}_{self.SCORES}")
+            else:
+                raise Grid2OpException("score_func should be either a dictionary or an instance of BaseReward")
 
         self.run_env(env=self.env,
                      path_save=self.path_save_stats,
@@ -532,44 +613,59 @@ class EpisodeStatistics(object):
             self._clean_observations(path_tmp, episode_name)
 
         # and now gather the information for at the top level
-        self._gather_all(li_episodes, dict_metadata, with_scores=scores_func is not None)
+        self._gather_all(li_episodes, dict_metadata, score_names=score_names)
 
 
 if __name__ == "__main__":
     import grid2op
     from lightsim2grid import LightSimBackend
     from grid2op.Agent import RandomAgent
-    from grid2op.Reward import L2RPNSandBoxScore
-    env = grid2op.make("l2rpn_case14_sandbox", backend=LightSimBackend())
+    from grid2op.Reward import L2RPNSandBoxScore, AlarmReward
+    # env = grid2op.make("l2rpn_case14_sandbox", backend=LightSimBackend())
     nb_scenario = 2
 
-    # for a example a simple do nothing agent
+    # # for a example a simple do nothing agent
+    # stats_dn = EpisodeStatistics(env, name_stats="do_nothing")
+    # stats_dn.compute(nb_scenario=nb_scenario,
+    #                  pbar=True,
+    #                  scores_func=L2RPNSandBoxScore)  # this will take a while to compute in most cases
+    # stats_dn.clear_episode_data()
+    #
+    # # you can also change the parameters
+    # param = Parameters()
+    # param.NO_OVERFLOW_DISCONNECTION = True
+    # stats_no_overflow = EpisodeStatistics(env, name_stats="no_overflow")
+    # stats_no_overflow.compute(nb_scenario=nb_scenario,
+    #                           parameters=param,
+    #                           pbar=True,
+    #                           scores_func=L2RPNSandBoxScore)  # this will take a while to compute in most cases
+    # stats_no_overflow.clear_episode_data()
+    #
+    # # or use a different agent
+    # my_agent = RandomAgent(env.action_space)  # use any grid2op agent you want here
+    # stats_custom_agent = EpisodeStatistics(env, name_stats="custom_agent")
+    # stats_custom_agent.compute(nb_scenario=nb_scenario,
+    #                            agent=my_agent,
+    #                            pbar=True,
+    #                            scores_func=L2RPNSandBoxScore)  # this will take a while to compute in most cases
+    # stats_custom_agent.clear_episode_data()
+    #
+    # # and then you can retrieve the statistics
+    # rho_dn, ids = stats_dn.get("rho")
+    # rho_dn_all, ids = stats_no_overflow.get("rho")
+    # rho_custom_agent, ids = stats_custom_agent.get("rho")
+
+    # with multiple "scores"
+    env = grid2op.make("/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alert",
+                       backend=LightSimBackend())
     stats_dn = EpisodeStatistics(env, name_stats="do_nothing")
     stats_dn.compute(nb_scenario=nb_scenario,
                      pbar=True,
-                     scores_func=L2RPNSandBoxScore)  # this will take a while to compute in most cases
-    stats_dn.clear_episode_data()
-
-    # you can also change the parameters
-    param = Parameters()
-    param.NO_OVERFLOW_DISCONNECTION = True
-    stats_no_overflow = EpisodeStatistics(env, name_stats="no_overflow")
-    stats_no_overflow.compute(nb_scenario=nb_scenario,
-                              parameters=param,
-                              pbar=True,
-                              scores_func=L2RPNSandBoxScore)  # this will take a while to compute in most cases
-    stats_no_overflow.clear_episode_data()
-
-    # or use a different agent
-    my_agent = RandomAgent(env.action_space)  # use any grid2op agent you want here
-    stats_custom_agent = EpisodeStatistics(env, name_stats="custom_agent")
-    stats_custom_agent.compute(nb_scenario=nb_scenario,
-                               agent=my_agent,
-                               pbar=True,
-                               scores_func=L2RPNSandBoxScore)  # this will take a while to compute in most cases
-    stats_custom_agent.clear_episode_data()
-
-    # and then you can retrieve the statistics
-    rho_dn, ids = stats_dn.get("rho")
-    rho_dn_all, ids = stats_no_overflow.get("rho")
-    rho_custom_agent, ids = stats_custom_agent.get("rho")
+                     scores_func={"grid_operational_cost": L2RPNSandBoxScore,
+                                  "operator_attention": AlarmReward})
+    # rho_dn, ids = stats_dn.get("rho")
+    score_op_cost, ids = stats_dn.get("grid_operational_cost_scores")
+    score_att_cost, ids = stats_dn.get("operator_attention_scores")
+    import pdb
+    pdb.set_trace()
+    assert score_att_cost.shape[0] == ids.shape[0]
