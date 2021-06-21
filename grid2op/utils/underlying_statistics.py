@@ -247,6 +247,12 @@ class EpisodeStatistics(object):
         return sorted(res)
 
     @staticmethod
+    def _nm_score_from_attr_name(attribute_name):
+        return re.sub(f"(_{{0,1}}{EpisodeStatistics.SCORES_CLEAN})|(\\.npz)|(\\.npy)",
+                                 "",
+                                 attribute_name)
+
+    @staticmethod
     def _is_score_attribute(attribute_name):
         nm = None
         # test if it a single stat or not
@@ -258,9 +264,7 @@ class EpisodeStatistics(object):
             if re.match(f".*_{EpisodeStatistics.SCORES_CLEAN}", attribute_name) is not None:
                 # it's a match: multiple score were computed for this name
                 # i need to compute the name with which the files are stored
-                nm_stat = re.sub(f"(_{{0,1}}{EpisodeStatistics.SCORES_CLEAN})|(\\.npz)|(\\.npy)",
-                                 "",
-                                 attribute_name)
+                nm_stat = EpisodeStatistics._nm_score_from_attr_name(attribute_name)
                 has_stat = True
                 nm = f"{nm_stat}_{EpisodeStatistics.SCORES}"  # should be the same as in "_retrieve_scores" function
         return has_stat, nm
