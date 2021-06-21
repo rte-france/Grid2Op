@@ -17,6 +17,8 @@ from grid2op.Agent import RecoPowerlineAgent
 from grid2op.utils.underlying_statistics import EpisodeStatistics
 from grid2op.Episode import EpisodeData
 
+import re
+
 
 class ScoreL2RPN2020(object):
     """
@@ -66,9 +68,11 @@ class ScoreL2RPN2020(object):
 
         The triggering (or not) of the recomputation of the statistics is not perfect for now.
         We recommend you to use always
-        the same seeds and the same parameters when using a given environments.
+        the same seeds (`env_seeds` and `agent_seeds` key word argument of this functions)
+        and the same parameters (`env.parameters`) when using a given environments.
+
         You might need to clean it manually if you change
-        one of theses things by calling :func:`ScoreL2RPN2020.clear_all` .
+        one of theses things by calling :func:`ScoreL2RPN2020.clear_all()` function .
 
     """
 
@@ -84,7 +88,9 @@ class ScoreL2RPN2020(object):
                  min_losses_ratio=0.8,
                  verbose=0,
                  max_step=-1,
-                 nb_process_stats=1):
+                 nb_process_stats=1,
+                 scores_func=L2RPNSandBoxScore,
+                 score_names=None):
         self.env = env
         self.nb_scenario = nb_scenario
         self.env_seeds = env_seeds
@@ -95,10 +101,13 @@ class ScoreL2RPN2020(object):
 
         computed_scenarios = [el[1] for el in EpisodeStatistics.list_stats(self.env)]
 
+        self.scores_func = scores_func
+
         # check if i need to compute stat for do nothing
         self.stat_dn = EpisodeStatistics(self.env, self.NAME_DN)
         self._recomputed_dn = self._init_stat(self.stat_dn, self.NAME_DN, computed_scenarios,
-                                              nb_process_stats=nb_process_stats)
+                                              nb_process_stats=nb_process_stats,
+                                              score_names=score_names)
 
         # check if i need to compute that for do nothing without overflow disconnection
         self.stat_no_overflow = EpisodeStatistics(self.env, self.NAME_DN_NO_OVERWLOW)
@@ -109,7 +118,8 @@ class ScoreL2RPN2020(object):
                                                  self.NAME_DN_NO_OVERWLOW,
                                                  computed_scenarios,
                                                  parameters=param_no_overflow,
-                                                 nb_process_stats=nb_process_stats)
+                                                 nb_process_stats=nb_process_stats,
+                                                 score_names=score_names)
 
         # check if i need to compute that for reco powerline without overflow disconnection
         self.stat_no_overflow_rp = EpisodeStatistics(self.env, self.NAME_RP_NO_OVERWLOW)
@@ -119,14 +129,24 @@ class ScoreL2RPN2020(object):
                                                     computed_scenarios,
                                                     parameters=param_no_overflow,
                                                     nb_process_stats=nb_process_stats,
-                                                    agent=agent_reco)
+                                                    agent=agent_reco,
+                                                    score_names=score_names)
 
-    def _init_stat(self, stat, stat_name, computed_scenarios, parameters=None, nb_process_stats=1, agent=None):
+    def _init_stat(self,
+                   stat,
+                   stat_name,
+                   computed_scenarios,
+                   parameters=None,
+                   nb_process_stats=1,
+                   agent=None,
+                   score_names=None):
         """will check if the statistics need to be computed"""
         need_recompute = True
+        if score_names is None:
+            score_names = [EpisodeStatistics.SCORES]
         if EpisodeStatistics.get_name_dir(stat_name) in computed_scenarios:
             # the things have been computed i check if the number of scenarios is big enough
-            scores, ids_ = stat.get(EpisodeStatistics.SCORES)
+            scores, ids_ = stat.get(score_names[0])
             metadata = stat.get_metadata()
             max_id = np.max(ids_)
 
@@ -156,7 +176,7 @@ class ScoreL2RPN2020(object):
                          pbar=self.verbose >= 2,
                          env_seeds=self.env_seeds,
                          agent_seeds=self.agent_seeds,
-                         scores_func=L2RPNSandBoxScore,
+                         scores_func=self.scores_func,
                          max_step=self.max_step,
                          parameters=parameters,
                          nb_process=nb_process_stats,
@@ -169,7 +189,8 @@ class ScoreL2RPN2020(object):
                                meta,
                                other_rewards,
                                dn_metadata,
-                               no_ov_metadata):
+                               no_ov_metadata,
+                               score_file_to_use=None):
         """
         Performs the rescaling of the score given the information stored in the "statistics" of this
         environment.
@@ -179,9 +200,18 @@ class ScoreL2RPN2020(object):
         load_p_rp, ids_rp = self.stat_no_overflow_rp.get("load_p")
         prod_p_rp, _ = self.stat_no_overflow_rp.get("load_p")
 
-        scores_dn, ids_dn_sc = self.stat_dn.get(EpisodeStatistics.SCORES)
-        scores_no_ov, ids_noov_sc = self.stat_no_overflow.get(EpisodeStatistics.SCORES)
-        scores_no_ov_rp, ids_noov_sc_rp = self.stat_no_overflow_rp.get(EpisodeStatistics.SCORES)
+        if score_file_to_use is None:
+            score_file_to_use = EpisodeStatistics.SCORES
+            key_score_file = EpisodeStatistics.KEY_SCORE
+        else:
+            # should match underlying_statistics.run_env `dict_kwg["other_rewards"][XXX] = ...`
+            # XXX is right now f"{EpisodeStatistics.KEY_SCORE}_{nm}" [this should match the XXX]
+            real_nm = EpisodeStatistics._nm_score_from_attr_name(score_file_to_use)
+            key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
+
+        scores_dn, ids_dn_sc = self.stat_dn.get(score_file_to_use)
+        scores_no_ov, ids_noov_sc = self.stat_no_overflow.get(score_file_to_use)
+        scores_no_ov_rp, ids_noov_sc_rp = self.stat_no_overflow_rp.get(score_file_to_use)
 
         # reshape to have 1 dim array
         ids = ids.reshape(-1)
@@ -224,7 +254,7 @@ class ScoreL2RPN2020(object):
 
         # this agent cumulated operationnal cost
         # same as above: i remove the last element which correspond to the last state, so irrelevant
-        ep_cost = np.array([el[EpisodeStatistics.KEY_SCORE] for el in other_rewards]).astype(dt_float)
+        ep_cost = np.array([el[key_score_file] for el in other_rewards]).astype(dt_float)
         if dn_metadata["max_step"] == self.max_step:
             ep_cost = ep_cost[:-1]
         ep_cost = np.sum(ep_cost)
@@ -306,7 +336,7 @@ class ScoreL2RPN2020(object):
                                   agent_seeds=self.agent_seeds,
                                   path_save=path_save,
                                   parameters=self.env.parameters,
-                                  scores_func=L2RPNSandBoxScore,
+                                  scores_func=self.scores_func,
                                   agent=agent,
                                   max_step=self.max_step,
                                   nb_scenario=self.nb_scenario,
@@ -337,9 +367,9 @@ class ScoreL2RPN2020(object):
             all_scores.append(score_this_ep)
             ts_survived.append(nb_ts_survived)
             total_ts.append(total_ts_tmp)
+
         if need_delete:
             dir_tmp.cleanup()
-
         return all_scores, ts_survived, total_ts
 
 

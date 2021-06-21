@@ -103,7 +103,7 @@ The most basic code, for those familiar with openAI gym (a well-known framework 
 
     # proceed as you would any open ai gym loop
     nb_episode = 10
-    for _ in range(nb_episde):
+    for _ in range(nb_episode):
         # you perform in this case 10 different episodes
         obs = env.reset()
         reward = env.reward_range[0]
@@ -112,7 +112,7 @@ The most basic code, for those familiar with openAI gym (a well-known framework 
             # here you loop on the time steps: at each step your agent receive an observation
             # takes an action
             # and the environment computes the next observation that will be used at the next step.
-            act = agent.act(obs, reward, done)
+            act = my_agent.act(obs, reward, done)
             obs, reward, done, info = env.step(act)
 
 .. warning:: Grid2Op environments implements the interface of defined by openAI gym environment, but they don't
