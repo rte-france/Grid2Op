@@ -138,6 +138,20 @@ class Backend(GridObjects, ABC):
         self.comp_time = 0.
         self.can_output_theta = False
 
+        # to prevent the use of the same backend instance in different environment.
+        self._is_loaded = False
+
+    @property
+    def is_loaded(self):
+        return self._is_loaded
+
+    @is_loaded.setter
+    def is_loaded(self, value):
+        if value is True:
+            self._is_loaded = True
+        else:
+            raise BackendError("Impossible to unset the \"is_loaded\" status.")
+
     @abstractmethod
     def load_grid(self, path, filename=None):
         """
@@ -422,6 +436,7 @@ class Backend(GridObjects, ABC):
         res = copy.deepcopy(self)
         res._grid = copy.deepcopy(start_grid)
         self._grid = start_grid
+        res._is_loaded = False  # i can reload a copy of an environment
         return res
 
     def save_file(self, full_path):
@@ -816,34 +831,36 @@ class Backend(GridObjects, ABC):
 
         """
         infos = []
-        disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
+        disconnected_during_cf = np.full(self.n_line, fill_value=-1, dtype=dt_int)
         conv_ = self._runpf_with_diverging_exception(is_dc)
         if env._no_overflow_disconnection or conv_ is not None:
             return disconnected_during_cf, infos, conv_
 
         # the environment disconnect some powerlines
         init_time_step_overflow = copy.deepcopy(env._timestep_overflow)
+        ts = 0
         while True:
             # simulate the cascading failure
-            lines_flows = self.get_line_flow()
+            lines_flows = 1.0 * self.get_line_flow()
             thermal_limits = self.get_thermal_limit()
             lines_status = self.get_line_status()
 
-            # a) disconnect lines on hard overflow
-            to_disc = lines_flows > env._hard_overflow_threshold * thermal_limits
+            # a) disconnect lines on hard overflow (that are still connected)
+            to_disc = (lines_flows > env._hard_overflow_threshold * thermal_limits) & lines_status
 
-            # b) deals with soft overflow
-            init_time_step_overflow[(lines_flows >= thermal_limits) & (lines_status)] += 1
-            to_disc[init_time_step_overflow > env._nb_timestep_overflow_allowed] = True
+            # b) deals with soft overflow (disconnect them if lines still connected)
+            init_time_step_overflow[(lines_flows >= thermal_limits) & lines_status] += 1
+            to_disc[(init_time_step_overflow > env._nb_timestep_overflow_allowed) & lines_status] = True
 
             # disconnect the current power lines
             if np.sum(to_disc[lines_status]) == 0:
                 # no powerlines have been disconnected at this time step, i stop the computation there
                 break
-            disconnected_during_cf[to_disc] = True
-
+            disconnected_during_cf[to_disc] = ts
             # perform the disconnection action
-            [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
+            for i, el in enumerate(to_disc):
+                if el:
+                    self._disconnect_line(i)
 
             # start a powerflow on this new state
             conv_ = self._runpf_with_diverging_exception(is_dc)
@@ -852,6 +869,7 @@ class Backend(GridObjects, ABC):
 
             if conv_ is not None:
                 break
+            ts += 1
         return disconnected_during_cf, infos, conv_
 
     def storages_info(self):
@@ -1473,6 +1491,9 @@ class Backend(GridObjects, ABC):
                  }
 
         if self.shunts_data_available and obs.shunts_data_available:
+            if "_shunt_bus" not in type(obs).attr_list_set:
+                raise BackendError("Impossible to set the backend to the state given by the observation: shunts data "
+                                   "are not present in the observation.")
             mults = (self._sh_vnkv / obs._shunt_v)**2
             dict_["shunt"] = {"shunt_p": obs._shunt_p * mults,
                               "shunt_q": obs._shunt_q * mults,

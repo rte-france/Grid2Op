@@ -1492,6 +1492,39 @@ class TestGeometricOpponent(unittest.TestCase):
                 assert obs.rho[line_id] > 0.
                 assert obs.line_status[line_id]
 
+    def test_last_attack(self):
+        init_budget = 500
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_case14_sandbox",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=200.,
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=30,  # max
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=GeometricOpponent,
+                      param=param,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                env.seed(0)
+                _ = env.reset()
+                # opponent = env._opponent
+                # opponent._attack_durations : should be [31, 32, 31, 25]
+                # opponent._attack_times : should be [64, 407, 487, 522]
+                dn = env.action_space()
+                for ts in range(522):
+                    # here the opponent cannot attack due to the `opponent_attack_duration` that is too low
+                    # chosen duration is below max_duration, so attack is not done.
+                    obs, reward, done, info = env.step(dn)
+                    assert info["opponent_attack_line"] is None
+
+                # opponent should attack at this exact step
+                obs, reward, done, info = env.step(dn)
+                assert info["opponent_attack_line"] is not None
+
 
 if __name__ == "__main__":
     unittest.main()

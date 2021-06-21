@@ -1,6 +1,6 @@
 .. |5subs_grid_layout| image:: ./img/5subs_grid_layout.jpg
 .. |5subs_grid_5_sub1_graph| image:: ./img/5subs_grid_5_sub1_graph.jpg
-.. |5subs_grid_all_1| image:: ./img/5subs_grid_all_1jpg
+.. |5subs_grid_all_1| image:: ./img/5subs_grid_all_1.jpg
 .. |5subs_grid_5_sub1_2_graph| image:: ./img/5subs_grid_5_sub1_2_graph.jpg
 
 .. _modeled-elements-module:

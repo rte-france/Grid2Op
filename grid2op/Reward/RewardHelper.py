@@ -64,6 +64,10 @@ class RewardHelper:
         """
         return self.template_reward.get_range()
 
+    def reset(self, env):
+        """called each time `env.reset` is invoked"""
+        self.template_reward.reset(env)
+
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         """
         Gives the reward that follows the execution of the :class:`grid2op.BaseAction.BaseAction` action in the

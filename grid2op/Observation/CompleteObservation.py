@@ -88,8 +88,21 @@ class CompleteObservation(BaseObservation):
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         35. :attr:`BaseObservation.curtailment` : the current curtailment applied
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
-        36. :attr:`BaseObservation.curtailment_limit` : the current curtailment limit (if any)
+        36. :attr:`BaseObservation.is_alarm_illegal` whether the last alarm has been illegal (due to budget
+            constraint) [``bool``]
+        37. :attr:`BaseObservation.curtailment_limit` : the current curtailment limit (if any)
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
+        38. :attr:`BaseObservation.time_since_last_alarm` number of step since the last alarm has been raised
+            successfully [``int``]
+        39. :attr:`BaseObservation.last_alarm` : for each alarm zone, gives the last step at which an alarm has
+            been successfully raised at this zone
+            [:attr:`grid2op.Space.GridObjects.dim_alarms` elements]
+        40. :attr:`BaseObservation.attention_budget` : the current attention budget
+            [``int``]
+        41. :attr:`BaseObservation.was_alarm_used_after_game_over` : was the last alarm used to compute anything related
+            to the attention budget when there was a game over (can only be set to ``True`` if the observation
+            corresponds to a game over)
+            [``bool``]
 
     """
     attr_list_vect = [
@@ -106,10 +119,12 @@ class CompleteObservation(BaseObservation):
         "time_next_maintenance", "duration_next_maintenance",
         "target_dispatch", "actual_dispatch",
         "storage_charge", "storage_power_target", "storage_power",
-        "gen_p_before_curtail", "curtailment", "curtailment_limit"
+        "gen_p_before_curtail", "curtailment", "curtailment_limit",
+        "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
+        "was_alarm_used_after_game_over",
+        "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",  # starting from grid2op version 1.6.0
     ]
-    attr_list_json = ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",
-                      "_thermal_limit",
+    attr_list_json = ["_thermal_limit",
                       "support_theta",
                       "theta_or", "theta_ex", "load_theta", "gen_theta", "storage_theta"]
     attr_list_set = set(attr_list_vect)
@@ -132,6 +147,7 @@ class CompleteObservation(BaseObservation):
 
         # counter
         self.current_step = env.nb_time_step
+        self.max_step = env.max_episode_duration()
 
         # extract the time stamps
         self.year = dt_int(env.time_stamp.year)
@@ -209,3 +225,12 @@ class CompleteObservation(BaseObservation):
             self.support_theta = True  # backend supports the computation of theta
             self.theta_or[:], self.theta_ex[:], self.load_theta[:], self.gen_theta[:], self.storage_theta[:] = \
                 env.backend.get_theta()
+
+        if self.dim_alarms and env._has_attention_budget:
+            self.is_alarm_illegal[:] = env._is_alarm_illegal
+            if env._attention_budget.time_last_successful_alarm_raised > 0:
+                self.time_since_last_alarm[:] = self.current_step - env._attention_budget.time_last_successful_alarm_raised
+            else:
+                self.time_since_last_alarm[:] = -1
+            self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
+            self.attention_budget[:] = env._attention_budget.current_budget

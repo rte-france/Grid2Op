@@ -187,6 +187,18 @@ class PandaPowerBackend(Backend):
         self.gen_theta = None
         self.storage_theta = None
 
+    def _check_for_non_modeled_elements(self):
+        """This function check for elements in the pandapower grid that will have no impact on grid2op.
+        See the full list of grid2op modeled elements in :ref:`modeled-elements-module`
+        """
+        for el_nm in ["trafo3w", "sgen", "switch", "motor", "asymmetric_load", "asymmetric_sgen",
+                      "impedance", "ward", "xward", "dcline", "measurement"]:
+            if el_nm in self._grid:
+                if self._grid[el_nm].shape[0]:
+                    warnings.warn(f"There are \"{el_nm}\" in the pandapower grid. These "
+                                  f"elements are not modeled on grid2op side (the environment will "
+                                  f"work, but you won't be able to modify them).")
+
     def get_theta(self):
         """
         TODO doc
@@ -283,6 +295,8 @@ class PandaPowerBackend(Backend):
             # remove deprecationg warnings for old version of pandapower
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             self._grid = pp.from_json(full_path)
+
+        self._check_for_non_modeled_elements()
 
         # add the slack bus that is often not modeled as a generator, but i need it for this backend to work
         bus_gen_added = None
@@ -525,6 +539,7 @@ class PandaPowerBackend(Backend):
         self.n_shunt = self._grid.shunt.shape[0]
         self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
         name_shunt = []
+        # TODO read name from the grid if provided
         for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
             bus = int(row["bus"])
             name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))

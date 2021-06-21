@@ -9,6 +9,8 @@
 # TODO test the json part but... https://github.com/openai/gym-http-api/issues/62 or https://github.com/openai/gym/issues/1841
 import tempfile
 import json
+from grid2op.tests.helper_path_test import *
+
 import grid2op
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.tests.helper_path_test import *
@@ -58,12 +60,13 @@ class TestGymCompatModule(unittest.TestCase):
         assert dim_act_space == 160
         dim_obs_space = np.sum([np.sum(env_gym.observation_space[el].shape).astype(int)
                                 for el in env_gym.observation_space.spaces])
-        assert dim_obs_space == 432
+        size_th = 434 + 4
+        assert dim_obs_space == size_th, f"Size should be {size_th} but is {dim_obs_space}"
 
         # test that i can do basic stuff there
         obs = env_gym.reset()
         for k in env_gym.observation_space.spaces.keys():
-            assert obs[k] in env_gym.observation_space[k], f"error for {k}"
+            assert obs[k] in env_gym.observation_space[k], f"error for key: {k}"
         act = env_gym.action_space.sample()
         obs2, reward2, done2, info2 = env_gym.step(act)
         assert obs2 in env_gym.observation_space
@@ -455,6 +458,8 @@ class TestGymCompatModule(unittest.TestCase):
         assert np.array_equal(env_gym.observation_space[key].low, low), f"issue for {key}"
         assert np.array_equal(env_gym.observation_space[key].high, high), f"issue for {key}"
 
+        # TODO add tests for the alarm feature and curtailment and storage (if not present already)
+
 
 class TestBoxGymObsSpace(unittest.TestCase):
     def _skip_if_no_gym(self):
@@ -673,7 +678,7 @@ class TestBoxGymActSpace(unittest.TestCase):
             self.env = grid2op.make("educ_case14_storage",
                                     test=True,
                                     action_class=PlayableAction,
-                                    _add_to_name="TestBoxGymObsSpace")
+                                    _add_to_name="TestBoxGymActSpace")
         self.obs_env = self.env.reset()
         self.env_gym = GymEnv(self.env)
 
@@ -689,11 +694,11 @@ class TestBoxGymActSpace(unittest.TestCase):
             self.env_gym.action_space = BoxGymActSpace(self.env.action_space,
                                                        attr_to_keep=kept_attr
                                                        )
+        self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert len(self.env_gym.action_space.sample()) == 124
-        self.env_gym.action_space.seed(0)
         # check that all types
         ok_setbus = False
         ok_change_bus = False
@@ -734,6 +739,7 @@ class TestBoxGymActSpace(unittest.TestCase):
                 self.env_gym.action_space = BoxGymActSpace(self.env.action_space,
                                                            attr_to_keep=kept_attr
                                                            )
+            self.env_gym.action_space.seed(0)
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             assert isinstance(grid2op_act, PlayableAction)
             assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
@@ -772,6 +778,7 @@ class TestBoxGymActSpace(unittest.TestCase):
                 self.env_gym.action_space = BoxGymActSpace(self.env.action_space,
                                                            attr_to_keep=kept_attr
                                                            )
+            self.env_gym.action_space.seed(0)
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             assert isinstance(grid2op_act, PlayableAction)
             assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
@@ -792,6 +799,7 @@ class TestBoxGymActSpace(unittest.TestCase):
             self.env_gym.action_space = BoxGymActSpace(self.env.action_space,
                                                        attr_to_keep=kept_attr
                                                        )
+        self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
@@ -810,6 +818,7 @@ class TestBoxGymActSpace(unittest.TestCase):
             self.env_gym.action_space = BoxGymActSpace(self.env.action_space,
                                                        attr_to_keep=kept_attr
                                                        )
+        self.env_gym.action_space.seed(0)
         act_gym = self.env_gym.action_space.sample()
         assert self.env_gym.action_space._attr_to_keep == kept_attr
         assert act_gym.dtype == dt_int
@@ -821,6 +830,7 @@ class TestBoxGymActSpace(unittest.TestCase):
             self.env_gym.action_space = BoxGymActSpace(self.env.action_space,
                                                        attr_to_keep=kept_attr
                                                        )
+        self.env_gym.action_space.seed(0)
         act_gym = self.env_gym.action_space.sample()
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert act_gym.dtype == dt_float
@@ -921,11 +931,11 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
             self.env_gym.action_space = MultiDiscreteActSpace(self.env.action_space,
                                                               attr_to_keep=kept_attr
                                                               )
+        self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert len(self.env_gym.action_space.sample()) == 124
-        self.env_gym.action_space.seed(0)
         # check that all types
         ok_setbus = False
         ok_change_bus = False
@@ -1050,9 +1060,11 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
                 self.env_gym.action_space = MultiDiscreteActSpace(self.env.action_space,
                                                                   attr_to_keep=kept_attr
                                                                   )
+            assert self.env_gym.action_space._attr_to_keep == kept_attr
             assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
             assert len(self.env_gym.action_space.sample()) == dims[attr_nm], f"wrong size for {attr_nm}"
             self.env_gym.action_space.seed(0)
+            assert len(self.env_gym.action_space.sample()) == dims[attr_nm], f"wrong size for {attr_nm}"
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             assert isinstance(grid2op_act, PlayableAction)
             # check that all types
@@ -1090,13 +1102,13 @@ class TestDiscreteGymActSpace(unittest.TestCase):
             self.env_gym.action_space = DiscreteActSpace(self.env.action_space,
                                                          attr_to_keep=kept_attr
                                                          )
+        self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert isinstance(self.env_gym.action_space.sample(), int)
         assert self.env_gym.action_space.n == 525
 
-        self.env_gym.action_space.seed(0)
         # check that all types
         ok_setbus = False
         ok_change_bus = False
@@ -1119,6 +1131,7 @@ class TestDiscreteGymActSpace(unittest.TestCase):
                                                              attr_to_keep=kept_attr,
                                                              nb_bins={"redispatch": nb_bin}
                                                              )
+            self.env_gym.action_space.seed(0)
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             assert isinstance(grid2op_act, PlayableAction)
             assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
@@ -1166,7 +1179,7 @@ class TestDiscreteGymActSpace(unittest.TestCase):
                 raise RuntimeError(f"Some property of the actions are not modified for attr {attr_nm}")
 
 
-class TestGOObsInRange(unittest.TestCase):
+class TestAllGymActSpaceWithAlarm(unittest.TestCase):
     def _skip_if_no_gym(self):
         if not GYM_AVAIL:
             self.skipTest("Gym is not available")
@@ -1174,6 +1187,157 @@ class TestGOObsInRange(unittest.TestCase):
     def setUp(self) -> None:
         self._skip_if_no_gym()
 
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"),
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name="TestAllGymActSpaceWithAlarm")
+        self.obs_env = self.env.reset()
+        self.env_gym = GymEnv(self.env)
+
+    def test_supported_keys_box(self):
+        """test all the attribute of the action can be modified when the action is converted to a float"""
+        all_attr = {"set_line_status": 59,
+                    "change_line_status": 59,
+                    "set_bus": 177,
+                    "change_bus": 177,
+                    "redispatch": 22,
+                    "set_storage": 0,
+                    "curtail": 22,
+                    "curtail_mw": 22,
+                    "raise_alarm": 3}
+        func_check = {
+            "set_line_status": lambda act: np.any(act.line_set_status != 0) and ~np.all(act.line_set_status != 0),
+            "change_line_status": lambda act: np.any(act.line_change_status) and ~np.all(act.line_change_status),
+            "set_bus": lambda act: np.any(act.set_bus != 0.) and ~np.all(act.set_bus != 0.),
+            "change_bus": lambda act: np.any(act.change_bus) and ~np.all(act.change_bus),
+            "redispatch": lambda act: np.any(act.redispatch != 0.),
+            "set_storage": lambda act: np.any(act.set_storage != 0.),
+            "curtail": lambda act: np.any(act.curtail != 1.0),
+            "curtail_mw": lambda act: np.any(act.curtail != 1.0),
+            "raise_alarm": lambda act: np.any(act.raise_alarm) and ~np.all(act.raise_alarm)
+        }
+
+        for attr_nm in sorted(all_attr.keys()):
+            kept_attr = [attr_nm]
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                self.env_gym.action_space = BoxGymActSpace(self.env.action_space,
+                                                           attr_to_keep=kept_attr
+                                                           )
+            self.env_gym.action_space.seed(0)
+            gym_act = self.env_gym.action_space.sample()
+            grid2op_act = self.env_gym.action_space.from_gym(gym_act)
+            assert isinstance(grid2op_act, PlayableAction)
+            assert self.env_gym.action_space._attr_to_keep == kept_attr
+            assert len(self.env_gym.action_space.sample()) == all_attr[attr_nm], f"wrong size for {attr_nm}"
+            # check that all types
+            ok_ = func_check[attr_nm](grid2op_act)
+            if not ok_ and attr_nm != "set_storage":
+                # NB for "set_storage" as there are no storage unit on this grid, then this test is doomed to fail
+                # this is why i don't perform it in this case
+                raise RuntimeError(f"Some property of the actions are not modified for attr {attr_nm}")
+
+    def test_supported_keys_multidiscrete(self):
+        """test that i can modify every action with the keys"""
+        dims = {
+            "set_line_status": 59,
+            "change_line_status": 59,
+            "set_bus": 177,
+            "change_bus": 177,
+            "redispatch": 22,
+            "curtail": 22,
+            "curtail_mw": 22,
+            "set_storage": 0,
+            "raise_alarm": 3
+        }
+
+        func_check = {
+            "set_line_status": lambda act: np.any(act.line_set_status != 0) and ~np.all(act.line_set_status != 0),
+            "change_line_status": lambda act: np.any(act.line_change_status) and ~np.all(act.line_change_status),
+            "set_bus": lambda act: np.any(act.set_bus != 0.) and ~np.all(act.set_bus != 0.),
+            "change_bus": lambda act: np.any(act.change_bus) and ~np.all(act.change_bus),
+            "redispatch": lambda act: np.any(act.redispatch != 0.),
+            "set_storage": lambda act: np.any(act.set_storage != 0.),
+            "curtail": lambda act: np.any(act.curtail != 1.0),
+            "curtail_mw": lambda act: np.any(act.curtail != 1.0),
+            "raise_alarm": lambda act: np.any(act.raise_alarm) and ~np.all(act.raise_alarm)
+        }
+
+        for attr_nm in sorted(dims.keys()):
+            kept_attr = [attr_nm]
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                self.env_gym.action_space = MultiDiscreteActSpace(self.env.action_space,
+                                                                  attr_to_keep=kept_attr
+                                                                  )
+            assert self.env_gym.action_space._attr_to_keep == kept_attr
+            self.env_gym.action_space.seed(0)
+            assert len(self.env_gym.action_space.sample()) == dims[attr_nm], f"wrong size for {attr_nm}"
+            grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
+            assert isinstance(grid2op_act, PlayableAction)
+            # check that all types
+            ok_ = func_check[attr_nm](grid2op_act)
+            if not ok_ and attr_nm != "set_storage":
+                # NB for "set_storage" as there are no storage unit on this grid, then this test is doomed to fail
+                # this is why i don't perform it in this case
+                raise RuntimeError(f"Some property of the actions are not modified for attr {attr_nm}")
+
+    def test_supported_keys_discrete(self):
+        """test that i can modify every action with the keys"""
+        dims = {
+            "set_line_status": 5*59+1,
+            "change_line_status": 59+1,
+            # "set_bus": 5*177,  # already tested on the case 14 and takes a lot to compute !
+            # "change_bus": 255,  # already tested on the case 14 and takes a lot to compute !
+            "redispatch": 121,
+            "curtail": 85,
+            "curtail_mw": 121,
+            "set_storage": 1,
+            "raise_alarm": 4
+        }
+
+        func_check = {
+            "set_line_status": lambda act: np.any(act.line_set_status != 0) and ~np.all(act.line_set_status != 0),
+            "change_line_status": lambda act: np.any(act.line_change_status) and ~np.all(act.line_change_status),
+            "set_bus": lambda act: np.any(act.set_bus != 0.) and ~np.all(act.set_bus != 0.),
+            "change_bus": lambda act: np.any(act.change_bus) and ~np.all(act.change_bus),
+            "redispatch": lambda act: np.any(act.redispatch != 0.),
+            "set_storage": lambda act: np.any(act.set_storage != 0.),
+            "curtail": lambda act: np.any(act.curtail != 1.0),
+            "curtail_mw": lambda act: np.any(act.curtail != 1.0),
+            "raise_alarm": lambda act: np.any(act.raise_alarm) and ~np.all(act.raise_alarm)
+        }
+        for attr_nm in sorted(dims.keys()):
+            kept_attr = [attr_nm]
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                self.env_gym.action_space = DiscreteActSpace(self.env.action_space,
+                                                             attr_to_keep=kept_attr
+                                                             )
+            assert self.env_gym.action_space._attr_to_keep == kept_attr
+            assert self.env_gym.action_space.n == dims[attr_nm], f"wrong size for {attr_nm}, should be {dims[attr_nm]} " \
+                                                                 f"but is {self.env_gym.action_space.n}"
+            self.env_gym.action_space.seed(1)  # with seed 0 it does not work
+            act_gym = self.env_gym.action_space.sample()
+            grid2op_act = self.env_gym.action_space.from_gym(act_gym)
+            assert isinstance(grid2op_act, PlayableAction)
+            # check that all types
+            ok_ = func_check[attr_nm](grid2op_act)
+            if not ok_ and attr_nm != "set_storage":
+                # NB for "set_storage" as there are no storage unit on this grid, then this test is doomed to fail
+                # this is why i don't perform it in this case
+                raise RuntimeError(f"Some property of the actions are not modified for attr {attr_nm}")
+
+
+class TestGOObsInRange(unittest.TestCase):
+    def _skip_if_no_gym(self):
+        if not GYM_AVAIL:
+            self.skipTest("Gym is not available")
+
+    def setUp(self) -> None:
+        self._skip_if_no_gym()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("educ_case14_storage",

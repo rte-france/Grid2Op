@@ -16,6 +16,7 @@ __all__ = [
     "RewardHelper",
     "BaseReward",
     "EpisodeDurationReward",
+    "AlarmReward",
     # TODO it would be better to have a specific package for this, but in the mean time i put it here
     "L2RPNSandBoxScore"
 ]
@@ -38,6 +39,7 @@ from grid2op.Reward.RewardHelper import RewardHelper
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.Reward.L2RPNSandBoxScore import L2RPNSandBoxScore
 from grid2op.Reward.EpisodeDurationReward import EpisodeDurationReward
+from grid2op.Reward.AlarmReward import AlarmReward
 
 import warnings
 

@@ -4,6 +4,7 @@ Change Log
 [TODO]
 --------------------
 - [???] add multi agent
+- [???] make observation read only / immutable for all its properties (and not just for `prod_p`)
 - [???] better logging
 - [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
   stuff to break)
@@ -22,7 +23,48 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.5.2] - 2021-xx-yy
+[1.6.0] - 2021-06-yy
+--------------------
+- [BREAKING] (but transparent for everyone): the `disc_lines` attribute is now part of the environment, and is also
+  containing integer (representing the "order" on which the lines are disconnected due to protections) rather
+  than just boolean.
+- [BREAKING] now the observation stores the information related to shunts by default. This means old logs computed with
+  the runner might not work with this new version.
+- [BREAKING] the "Runner.py" file has been renamed, following pep convention "runner.py". You should rename your
+  import `from grid2op.Runner.Runner import Runner` to `from grid2op.Runner.runner import Runner`
+  (**NB** we higly recommend importing the `Runner` like `from grid2op.Runner import Runner` though !)
+- [FIXED]: the L2RPN_2020 score has been updated to reflect the score used during these competitions (there was an
+  error between `DoNothingAgent` and `RecoPowerlineAgent`)
+  [see `Issue#228 <https://github.com/rte-france/Grid2Op/issues/228>`_ ]
+- [FIXED]: some bugs in the `action_space.get_all_unitary_redispatch` and `action_space.get_all_unitary_curtail`
+- [FIXED]: some bugs in the `GreedyAgent` and `TopologyGreedy`
+- [FIXED]: `Issue#220 <https://github.com/rte-france/Grid2Op/issues/220>`_ `flow_bus_matrix` did not took into
+  account disconnected powerlines, leading to impossibility to compute this matrix in some cases.
+- [FIXED]: `Issue#223 <https://github.com/rte-france/Grid2Op/issues/223>`_ : now able to plot a grid even
+  if there is nothing controllable in grid2op present in it.
+- [FIXED]: an issue where the parameters would not be completely saved when saved in json format (alarm feature was
+  absent) (related to `Issue#224 <https://github.com/rte-france/Grid2Op/issues/224>`_ )
+- [FIXED]: an error caused by the observation non being copied when a game over occurred that caused some issue in
+  some cases (related to `Issue#226 <https://github.com/rte-france/Grid2Op/issues/226>`_ )
+- [FIXED]: a bug in the opponent space where the "`previous_fail`" kwargs was not updated properly and send wrongly
+  to the opponent
+- [FIXED]: a bug in the geometric opponent when it did attack that failed.
+- [FIXED]: `Issue#229 <https://github.com/rte-france/Grid2Op/issues/229>`_ typo in the  `AlarmReward` class when reset.
+- [ADDED] support for the "alarm operator" / "attention budget" feature
+- [ADDED] retrieval of the `max_step` (ie the maximum number of step that can be performed for the current episode)
+  in the observation
+- [ADDED] some handy argument in the `action_space.get_all_unitary_redispatch` and
+  `action_space.get_all_unitary_curtail` (see doc)
+- [IMPROVED] prevent the use of the same instance of a backend in different environments
+- [IMPROVED] `Issue#217 <https://github.com/rte-france/Grid2Op/issues/217>`_ : no more errors when trying to
+  load a grid with unsupported elements (eg. 3w trafos or static generators) by PandaPowerBackend
+- [IMPROVED] `Issue#215 <https://github.com/rte-france/Grid2Op/issues/215>`_ : warnings are issued when elements
+  present in pandapower grid will not be modified grid2op side.
+- [IMPROVED] `Issue#214 <https://github.com/rte-france/Grid2Op/issues/214>`_ : adding the shunt information
+  in the observation documentation.
+- [IMPROVED] documentation to use the `env.change_paramters` function.
+
+[1.5.2] - 2021-05-10
 -----------------------
 - [BREAKING]: allow the opponent to chose the duration of its attack. This breaks the previous "Opponent.attack(...)"
   signature by adding an object in the return value. All code provided with grid2op are compatible with this

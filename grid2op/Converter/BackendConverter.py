@@ -71,8 +71,8 @@ class BackendConverter(Backend):
                  detailed_infos_for_cascading_failures=False):
         Backend.__init__(self, detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
         difcf = detailed_infos_for_cascading_failures
-        self.source_backend = source_backend_class(detailed_infos_for_cascading_failures=difcf)
-        self.target_backend = target_backend_class(detailed_infos_for_cascading_failures=difcf)
+        self.source_backend = source_backend_class(detailed_infos_for_cascading_failures=difcf)   # the one for the order of the elements
+        self.target_backend = target_backend_class(detailed_infos_for_cascading_failures=difcf)  # the one to computes powerflow
         # if the target backend (the one performing the powerflows) needs a different file
         self.target_backend_grid_path = target_backend_grid_path
 
@@ -211,6 +211,9 @@ class BackendConverter(Backend):
                                                 tg2sr=self._shunt_tg2sr,
                                                 sr2tg=self._shunt_sr2tg,
                                                 nm="shunt")
+        else:
+            self.n_shunt = 0
+            self.name_shunt = np.empty(0, dtype=str)
         self.set_thermal_limit(self.target_backend.thermal_limit_a[self._line_tg2sr])
 
     def _get_possible_target_ids(self, id_source, source_2_id_sub, target_2_id_sub, nm):
@@ -300,17 +303,24 @@ class BackendConverter(Backend):
         env_name = type(self).env_name
         type(self.target_backend).set_env_name(env_name)
         type(self.source_backend).set_env_name(env_name)
-        self._init_class_attr(obj=self.source_backend)
 
+        # handle specifc case of shunt data:
+        if not self.target_backend.shunts_data_available:
+            # disable the shunt data in grid2op.
+            self.source_backend.shunts_data_available = False
+            self.source_backend.n_shunt = None
+            self.source_backend.name_shunt = np.empty(0, dtype=str)
+
+        self._init_class_attr(obj=self.source_backend)
         if self.path_redisp is not None:
             # redispatching data were available
             super().load_redispacthing_data(self.path_redisp, name=self.name_redisp)
             self.source_backend.load_redispacthing_data(self.path_redisp, name=self.name_redisp)
-            self.target_backend.load_redispacthing_data(self.path_redisp, name=self.name_redisp)
+            #  self.target_backend.load_redispacthing_data(self.path_redisp, name=self.name_redisp)
         if self.path_storage_data is not None:
             super().load_storage_data(self.path_storage_data, self.name_storage_data)
             self.source_backend.load_storage_data(self.path_redisp, name=self.name_redisp)
-            self.target_backend.load_storage_data(self.path_redisp, name=self.name_redisp)
+            #  self.target_backend.load_storage_data(self.path_redisp, name=self.name_redisp)
         if self.path_grid_layout is not None:
             # grid layout data were available
             super().load_grid_layout(self.path_grid_layout, self.name_grid_layout)
@@ -318,10 +328,10 @@ class BackendConverter(Backend):
 
         # init the target backend (the one that does the computation and that is initialized)
         self.target_backend.assert_grid_correct()
+
         # initialize the other one, because, well the grid should be seen from both backend
         self.source_backend._init_class_attr(obj=self)
         self.source_backend.assert_grid_correct()
-
         # and this should be called after all the rest
         super().assert_grid_correct()
 
