@@ -140,8 +140,8 @@ class ScoreICAPS2021(ScoreL2RPN2020):
                                                                       )
         # should match underlying_statistics.run_env `dict_kwg["other_rewards"][XXX] = ...`
         # XXX is right now f"{EpisodeStatistics.KEY_SCORE}_{nm}" [this should match the XXX]
-        score_file_to_use = "alarm_cost_scores"
-        real_nm = EpisodeStatistics._nm_score_from_attr_name(score_file_to_use)
+        alarm_score_nm = "alarm_cost_scores"
+        real_nm = EpisodeStatistics._nm_score_from_attr_name(alarm_score_nm)
         key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
 
         alarm_score = float(other_rewards[-1][key_score_file])
