@@ -68,9 +68,11 @@ class ScoreL2RPN2020(object):
 
         The triggering (or not) of the recomputation of the statistics is not perfect for now.
         We recommend you to use always
-        the same seeds and the same parameters when using a given environments.
+        the same seeds (`env_seeds` and `agent_seeds` key word argument of this functions)
+        and the same parameters (`env.parameters`) when using a given environments.
+
         You might need to clean it manually if you change
-        one of theses things by calling :func:`ScoreL2RPN2020.clear_all` .
+        one of theses things by calling :func:`ScoreL2RPN2020.clear_all()` function .
 
     """
 

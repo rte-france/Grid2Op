@@ -28,6 +28,9 @@ class ScoreICAPS2021(ScoreL2RPN2020):
 
     When using it a second time these information are reused.
 
+
+    This scores is the combination of the `ScoreL2RPN2020` score and some extra scores based on the alarm feature.
+
     Examples
     ---------
     This class can be used as follow:
@@ -52,7 +55,26 @@ class ScoreICAPS2021(ScoreL2RPN2020):
 
     Notes
     -------
-    TODO
+    To prevent overfitting, we strongly recommend you to use the :func:`grid2op.Environment.Environment.train_val_split`
+    and use this function on the built validation set only.
+
+    Also note than computing the statistics, and evaluating an agent on a whole dataset of multiple GB can take a
+    really long time and a lot of memory. This fact, again, plea in favor of using this function only on
+    a validation set.
+
+    We also strongly recommend to set the seeds of your agent (agent_seeds)
+    and of the environment (env_seeds) if you want to use this feature. Reproducibility is really important if you
+    want to make progress.
+
+    .. warning::
+
+        The triggering (or not) of the recomputation of the statistics is not perfect for now.
+        We recommend you to use always
+        the same seeds (`env_seeds` and `agent_seeds` key word argument of this functions)
+        and the same parameters (`env.parameters`) when using a given environments.
+
+        You might need to clean it manually if you change
+        one of theses things by calling :func:`ScoreL2RPN2020.clear_all()` function .
 
     """
 
@@ -100,6 +122,9 @@ class ScoreICAPS2021(ScoreL2RPN2020):
         """
         Performs the rescaling of the score given the information stored in the "statistics" of this
         environment.
+
+        This computes the score for a single episode. The loop to compute the score for all the
+        episodes is the same as for l2rpn_2020_scores and is then reused.
         """
 
         # compute the operational score
