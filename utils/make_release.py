@@ -71,7 +71,7 @@ if __name__ == "__main__":
             "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1). "
             "Please modify \"--version\" argument")
 
-    regex_version = "[0-9]+\.[0-9]+\.[0-9]+(.post[0-9]+){0,1}"
+    regex_version = "[0-9]+\.[0-9]+\.[0-9]+(.post[0-9]+){0,1}(.rc[0-9]+){0,1}"
     if re.match("^{}$".format(regex_version), version) is None:
         raise RuntimeError(
             "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1) and not {}. "
@@ -93,6 +93,7 @@ if __name__ == "__main__":
     old_version = re.sub("version=", "", old_version)
     old_version = re.sub("'", "", old_version)
     old_version = re.sub('"', "", old_version)
+    old_version = re.sub("\\.rc[0-9]+", "", old_version)
     if version < old_version:
         raise RuntimeError("You provided the \"new\" version \"{}\" which is older (or equal) to the current version "
                            "found: \"{}\".".format(version, old_version))
