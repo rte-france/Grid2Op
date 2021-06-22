@@ -6,21 +6,22 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import shutil
-import copy
+try:
+    import shutil
+    import copy
 
-import pdb
-import nbformat
-from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
-from grid2op.tests.helper_path_test import *
-import os
-import unittest
-import time
+    import pdb
+    import nbformat
+    from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
+    from grid2op.tests.helper_path_test import *
+    import os
+    import unittest
+    import time
+    import warnings
+    CAN_COMPUTE = None
+except ImportError as exc_:
+    CAN_COMPUTE = exc_
 
-# TODO check these tests, they don't appear to be working
-
-import warnings
-warnings.simplefilter("error")
 NOTEBOOK_PATHS = os.path.abspath(os.path.join(PATH_DATA_TEST, "../../getting_started"))
 VERBOSE_TIMER = False
 
@@ -129,26 +130,36 @@ class TestNotebook(unittest.TestCase):
             self.skipTest("l2rpn baseline is not available")
 
     def test_notebook0_1(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         timer = RAII_Timer("test_notebook0_1")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "00_SmallExample.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook1(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         timer = RAII_Timer("test_notebook1")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "01_Grid2opFramework.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook2(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         timer = RAII_Timer("test_notebook2")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "02_Observation.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook3(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         timer = RAII_Timer("test_notebook3")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "03_Action.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook4(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         self._check_for_baselines()
         raii_ = RAII_tf_log()
         timer = RAII_Timer("test_notebook4")
@@ -156,16 +167,22 @@ class TestNotebook(unittest.TestCase):
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook5(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         timer = RAII_Timer("test_notebook5")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "05_StudyYourAgent.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook6(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         timer = RAII_Timer("test_notebook6")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "06_Redispatching_Curtailment.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook7(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         self._check_for_baselines()
         raii_ = RAII_tf_log()
         timer = RAII_Timer("test_notebook7")
@@ -173,6 +190,9 @@ class TestNotebook(unittest.TestCase):
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook8(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
+
         # display notebook, might not be super usefull to test it in the unit test (saves another 1-2 minutes)
         return
         timer = RAII_Timer("test_notebook8")
@@ -180,22 +200,31 @@ class TestNotebook(unittest.TestCase):
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook9(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         timer = RAII_Timer("test_notebook9")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "09_EnvironmentModifications.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook10(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         timer = RAII_Timer("test_notebook10")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "10_StorageUnits.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook_aub(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
         raii_ = RAII_tf_log()
         timer = RAII_Timer("test_notebook_aub")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "AUB_EECE699_20201103_ReinforcementLearningApplication.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook_ieeebda(self):
+        if CAN_COMPUTE is not None:
+            self.skipTest(f"{CAN_COMPUTE}")
+
         # this test takes 3 mins alone, for a really small benefit, so i skip it for sake of time
         return
         self._check_for_baselines()

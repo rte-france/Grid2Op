@@ -20,16 +20,20 @@ RUN apt-get update && \
     git \
     ssh \
     tar \
-    gzip \
-    ca-certificates
+    gzip
 
 # Retrieve Grid2Op
-RUN git clone https://github.com/BDonnot/Grid2Op
+RUN git clone https://github.com/rte-france/Grid2Op
 
-# Install in edit mode for testing
+# Install Grid2Op
 WORKDIR /Grid2Op
+# Use the latest release
 RUN git pull
-RUN pip3 install -e .[optional]
+RUN git remote update
+RUN git fetch --all --tags
+RUN git checkout "tags/v1.6.0" -b "v1.6.0-branch"
+# Install Dependencies
+RUN pip3 install .[optional,challenge]
 WORKDIR /
 
 # Make port 80 available to the world outside this container
