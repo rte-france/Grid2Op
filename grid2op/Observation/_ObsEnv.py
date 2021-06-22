@@ -457,8 +457,9 @@ class _ObsEnv(BaseEnv):
         res: :class:`grid2op.Observation.Observation`
             The observation available.
         """
-        self.current_obs.update(self, with_forecast=False)
-        res = copy.deepcopy(self.current_obs)
+        if _update_state:
+            self.current_obs.update(self, with_forecast=False)
+        res = self.current_obs.copy()
         return res
 
     def update_grid(self, env):
