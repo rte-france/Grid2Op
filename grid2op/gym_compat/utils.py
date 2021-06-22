@@ -14,7 +14,8 @@ ALL_ATTR = ("set_line_status",
             "change_bus",
             "redispatch",
             "set_storage",
-            "curtail")
+            "curtail",
+            "raise_alarm")
 
 ATTR_DISCRETE = ("set_line_status",
                  "change_line_status",
@@ -23,7 +24,8 @@ ATTR_DISCRETE = ("set_line_status",
                  "sub_set_bus",
                  "sub_change_bus",
                  "one_sub_set",
-                 "one_sub_change")
+                 "one_sub_change",
+                 "raise_alarm")
 
 
 def check_gym_version():

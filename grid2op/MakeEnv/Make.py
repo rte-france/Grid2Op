@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2021, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -33,6 +33,7 @@ TEST_DEV_ENVS = {
     "l2rpn_neurips_2020_track2": DEV_DATASET.format("l2rpn_neurips_2020_track2"),
     "l2rpn_neurips_2020_track1": DEV_DATASET.format("l2rpn_neurips_2020_track1"),
     "l2rpn_case14_sandbox": DEV_DATASET.format("l2rpn_case14_sandbox"),
+    "l2rpn_icaps_2021": DEV_DATASET.format("l2rpn_icaps_2021"),
     # educational files
     "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
     "educ_case14_storage": DEV_DATASET.format("educ_case14_storage"),

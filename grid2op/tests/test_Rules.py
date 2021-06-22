@@ -62,13 +62,14 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                           "prods": {"1_G137.1": 'gen_0_4', "3_G36.31": "gen_2_1", "6_G63.29": "gen_5_2",
                                                     "2_G-56.47": "gen_1_0", "8_G40.43": "gen_7_3"},
                                           }
-
-        self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                               backend=self.adn_backend,
-                               chronics_handler=self.chronics_handler,
-                               parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend,
-                               name="test_rules_env1")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                                   backend=self.adn_backend,
+                                   chronics_handler=self.chronics_handler,
+                                   parameters=self.env_params,
+                                   names_chronics_to_backend=self.names_chronics_to_backend,
+                                   name="test_rules_env1")
 
         self.helper_action = self.env._helper_action_env
 
@@ -563,12 +564,12 @@ class TestSubstationImpactLegality(unittest.TestCase):
 
     def test_setbus_line_no_sub_allowed_is_illegal(self):
         # Set 0 allowed substation changes
-        self.params.MAX_SUB_CHANGED = 0
+        self.env._parameters.MAX_SUB_CHANGED = 0
         # Make a setbus
         LINE_ID = 4
         bus_action = self.env.action_space({
             "set_bus": {
-                "lines_ex_id": [(LINE_ID,2)]
+                "lines_ex_id": [(LINE_ID, 2)]
             }
         })
         # Make sure its illegal
@@ -577,7 +578,7 @@ class TestSubstationImpactLegality(unittest.TestCase):
 
     def test_two_setbus_line_one_sub_allowed_is_illegal(self):
         # Set 1 allowed substation changes
-        self.params.MAX_SUB_CHANGED = 1
+        self.env._parameters.MAX_SUB_CHANGED = 1
         # Make a double setbus
         LINE1_ID = 4
         LINE2_ID = 5
@@ -595,7 +596,7 @@ class TestSubstationImpactLegality(unittest.TestCase):
 
     def test_one_setbus_line_one_sub_allowed_is_legal(self):
         # Set 1 allowed substation changes
-        self.params.MAX_SUB_CHANGED = 1
+        self.env._parameters.MAX_SUB_CHANGED = 1
         # Make a setbus
         LINE1_ID = 4
         bus_action = self.env.action_space({
@@ -611,7 +612,7 @@ class TestSubstationImpactLegality(unittest.TestCase):
 
     def test_two_setbus_line_two_sub_allowed_is_legal(self):
         # Set 2 allowed substation changes
-        self.params.MAX_SUB_CHANGED = 2
+        self.env._parameters.MAX_SUB_CHANGED = 2
         # Make a double setbus
         LINE1_ID = 4
         LINE2_ID = 5
@@ -629,7 +630,7 @@ class TestSubstationImpactLegality(unittest.TestCase):
 
     def test_changebus_line_no_sub_allowed_is_illegal(self):
         # Set 0 allowed substation changes
-        self.params.MAX_SUB_CHANGED = 0
+        self.env._parameters.MAX_SUB_CHANGED = 0
         # Make a changebus
         LINE_ID = 4
         bus_action = self.env.action_space({
@@ -643,7 +644,7 @@ class TestSubstationImpactLegality(unittest.TestCase):
 
     def test_changebus_line_one_sub_allowed_is_legal(self):
         # Set 1 allowed substation changes
-        self.params.MAX_SUB_CHANGED = 1
+        self.env._parameters.MAX_SUB_CHANGED = 1
         # Make a changebus
         LINE_ID = 4
         bus_action = self.env.action_space({
@@ -657,7 +658,7 @@ class TestSubstationImpactLegality(unittest.TestCase):
 
     def test_changebus_two_line_one_sub_allowed_is_illegal(self):
         # Set 1 allowed substation changes
-        self.params.MAX_SUB_CHANGED = 1
+        self.env._parameters.MAX_SUB_CHANGED = 1
         # Make a changebus
         LINE1_ID = 4
         LINE2_ID = 5
@@ -672,7 +673,7 @@ class TestSubstationImpactLegality(unittest.TestCase):
 
     def test_changebus_two_line_two_sub_allowed_is_legal(self):
         # Set 2 allowed substation changes
-        self.params.MAX_SUB_CHANGED = 2
+        self.env._parameters.MAX_SUB_CHANGED = 2
         # Make a changebus
         LINE1_ID = 4
         LINE2_ID = 5

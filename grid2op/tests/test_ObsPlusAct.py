@@ -49,6 +49,7 @@ class BaseHelper:
     def check_all_other_as_if_game_over(self, tested_obs):
         obs = type(self.obs)()
         obs.set_game_over()
+        obs.set_game_over()
         for el in obs._attr_eq:
             if el == "line_status":
                 continue

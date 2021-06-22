@@ -29,8 +29,15 @@ ALL_ATTR_OBS = ("year", "month", "day", "hour_of_day", "minute_of_hour",
                 "time_before_cooldown_sub", "time_next_maintenance",
                 "duration_next_maintenance", "target_dispatch", "actual_dispatch",
                 "storage_charge", "storage_power_target", "storage_power", "curtailment",
-                "curtailment_limit", "thermal_limit"
+                "curtailment_limit", "thermal_limit",
+
+                "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
+                "was_alarm_used_after_game_over"
                 )
+
+# TODO add the alarm stuff
+# TODO add the time step
+# TODO add the is_illegal and co there
 
 
 class BoxGymObsSpace(Box):
@@ -282,6 +289,26 @@ class BoxGymObsSpace(Box):
                               np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
                               (ob_sp.n_line,),
                               dt_float),
+            "is_alarm_illegal": (np.full(shape=(1,), fill_value=False, dtype=dt_bool),
+                                 np.full(shape=(1,), fill_value=True, dtype=dt_bool),
+                                 (1,),
+                                 dt_bool),
+            "time_since_last_alarm": (np.full(shape=(1,), fill_value=-1, dtype=dt_int),
+                                      np.full(shape=(1,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                                      (1,),
+                                      dt_int),
+            "last_alarm": (np.full(shape=(ob_sp.dim_alarms,), fill_value=-1, dtype=dt_int),
+                           np.full(shape=(ob_sp.dim_alarms,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                           (ob_sp.dim_alarms,),
+                           dt_int),
+            "attention_budget": (np.full(shape=(1,), fill_value=-1, dtype=dt_float),
+                                 np.full(shape=(1,), fill_value=np.inf, dtype=dt_float),
+                                 (1,),
+                                 dt_float),
+            "was_alarm_used_after_game_over": (np.full(shape=(1,), fill_value=False, dtype=dt_bool),
+                                               np.full(shape=(1,), fill_value=True, dtype=dt_bool),
+                                               (1,),
+                                               dt_bool),
         }
         self.dict_properties["prod_p"] = self.dict_properties["gen_p"]
         self.dict_properties["prod_q"] = self.dict_properties["gen_q"]

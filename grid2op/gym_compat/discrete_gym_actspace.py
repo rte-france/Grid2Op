@@ -138,7 +138,8 @@ class DiscreteActSpace(Discrete):
             "redispatch": act_sp.get_all_unitary_redispatch,
             "set_storage": act_sp.get_all_unitary_storage,
             "curtail": act_sp.get_all_unitary_curtail,
-            "curtail_mw": act_sp.get_all_unitary_curtail
+            "curtail_mw": act_sp.get_all_unitary_curtail,
+            "raise_alarm": act_sp.get_all_unitary_alarm,
         }
 
         self.converter = None

@@ -16,9 +16,6 @@ PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_mul
 PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
 
 import grid2op
-from grid2op.Chronics import Multifolder
-from grid2op.Reward import L2RPNReward
-from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float

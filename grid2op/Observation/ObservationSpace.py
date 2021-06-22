@@ -94,7 +94,8 @@ class ObservationSpace(SerializableObservationSpace):
         self._backend_obs = env.backend.copy()
         _ObsEnv_class = _ObsEnv.init_grid(type(env.backend), force_module=_ObsEnv.__module__)
         setattr(sys.modules[_ObsEnv.__module__], _ObsEnv_class.__name__, _ObsEnv_class)
-        self.obs_env = _ObsEnv_class(backend_instanciated=self._backend_obs,
+        self.obs_env = _ObsEnv_class(init_grid_path=None,  # don't leak the path of the real grid to the observation space
+                                     backend_instanciated=self._backend_obs,
                                      obsClass=observationClass,  # do not put self.observationClass otherwise it's initialized twice
                                      parameters=self._simulate_parameters,
                                      reward_helper=self.reward_helper,
@@ -106,6 +107,10 @@ class ObservationSpace(SerializableObservationSpace):
                                      helper_action_env=env._helper_action_env,
                                      epsilon_poly=env._epsilon_poly,
                                      tol_poly=env._tol_poly,
+                                     has_attention_budget=env._has_attention_budget,
+                                     attention_budget_cls=env._attention_budget_cls,
+                                     kwargs_attention_budget=env._kwargs_attention_budget,
+                                     max_episode_duration=env.max_episode_duration()
                                      )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
@@ -175,16 +180,17 @@ class ObservationSpace(SerializableObservationSpace):
             self.obs_env.reset_space()
         self.action_helper_env.actionClass.reset_space()
 
-    def __call__(self, env):
+    def __call__(self, env, _update_state=True):
         if self.with_forecast:
             self.obs_env.update_grid(env)
 
         res = self.observationClass(obs_env=self.obs_env,
                                     action_helper=self.action_helper_env)
 
-        # TODO how to make sure that whatever the number of time i call "simulate" i still get the same observations
-        # TODO use self.obs_prng when updating actions
-        res.update(env=env, with_forecast=self.with_forecast)
+        if _update_state:
+            # TODO how to make sure that whatever the number of time i call "simulate" i still get the same observations
+            # TODO use self.obs_prng when updating actions
+            res.update(env=env, with_forecast=self.with_forecast)
         return res
 
     def size_obs(self):
@@ -202,6 +208,12 @@ class ObservationSpace(SerializableObservationSpace):
 
         return an empty observation, for internal use only."""
         return copy.deepcopy(self._empty_obs)
+
+    def reset(self, real_env):
+        """reset the observation space with the new values of the environment"""
+        self.obs_env._reward_helper.reset(real_env)
+        for k, v in self.obs_env.other_rewards.items():
+            v.reset(real_env)
 
     def copy(self):
         """

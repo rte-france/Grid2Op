@@ -8,11 +8,13 @@
 
 import copy
 import numpy as np
+
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import RulesChecker, BaseRules
 from grid2op.Exceptions import Grid2OpException
+from grid2op.operator_attention import LinearAttentionBudget
 
 
 class _ObsCH(ChangeNothing):
@@ -43,6 +45,7 @@ class _ObsEnv(BaseEnv):
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
     def __init__(self,
+                 init_grid_path,
                  backend_instanciated,
                  parameters,
                  reward_helper,
@@ -54,13 +57,22 @@ class _ObsEnv(BaseEnv):
                  helper_action_env,
                  epsilon_poly,
                  tol_poly,
-                 other_rewards={}):
+                 max_episode_duration,
+                 other_rewards={},
+                 has_attention_budget=False,
+                 attention_budget_cls=LinearAttentionBudget,
+                 kwargs_attention_budget={},
+                 ):
         BaseEnv.__init__(self,
+                         init_grid_path,
                          copy.deepcopy(parameters),
                          thermal_limit_a,
                          other_rewards=other_rewards,
                          epsilon_poly=epsilon_poly,
-                         tol_poly=tol_poly)
+                         tol_poly=tol_poly,
+                         has_attention_budget=has_attention_budget,
+                         attention_budget_cls=attention_budget_cls,
+                         kwargs_attention_budget=kwargs_attention_budget)
         self._helper_action_class = helper_action_class
         self._reward_helper = reward_helper
         self._obsClass = None
@@ -75,8 +87,7 @@ class _ObsEnv(BaseEnv):
         self.target_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
         self.actual_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
 
-        self._init_backend(init_grid_path=None,
-                           chronics_handler=_ObsCH(),
+        self._init_backend(chronics_handler=_ObsCH(),
                            backend=backend_instanciated,
                            names_chronics_to_backend=None,
                            actionClass=action_helper.actionClass,
@@ -85,7 +96,7 @@ class _ObsEnv(BaseEnv):
                            legalActClass=legalActClass)
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
 
-        self._load_p, self._load_q, self._load_v =  None, None, None
+        self._load_p, self._load_q, self._load_v = None, None, None
         self._prod_p, self._prod_q, self._prod_v = None, None, None
         self._topo_vect = None
 
@@ -126,12 +137,20 @@ class _ObsEnv(BaseEnv):
         # step count
         self._nb_time_step_init = 0
 
+        # alarm / attention budget
+        self._attention_budget_state_init = None
+
+        self._disc_lines = np.zeros(shape=self.n_line, dtype=dt_int) - 1
+        self._max_episode_duration = max_episode_duration
+
+    def max_episode_duration(self):
+        return self._max_episode_duration
+    
     def _init_myclass(self):
         """this class has already all the powergrid information: it is initialized in the obs space !"""
         pass
 
     def _init_backend(self,
-                      init_grid_path,
                       chronics_handler,
                       backend,
                       names_chronics_to_backend,
@@ -153,7 +172,12 @@ class _ObsEnv(BaseEnv):
         self._legalActClass = legalActClass
         self._action_space = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
+
+        # create the opponent
         self._create_opponent()
+
+        # create the attention budget
+        self._create_attention_budget()
 
         self.current_obs_init = self._obsClass(seed=None,
                                                obs_env=None,
@@ -369,6 +393,10 @@ class _ObsEnv(BaseEnv):
         # current step
         self.nb_time_step = self._nb_time_step_init
 
+        # attention budget
+        if self._has_attention_budget:
+            self._attention_budget.set_state(self._attention_budget_state_init)
+
     def simulate(self, action):
         """
         INTERNAL
@@ -416,7 +444,7 @@ class _ObsEnv(BaseEnv):
         obs, reward, done, info = self.step(action)
         return obs, reward, done, info
 
-    def get_obs(self):
+    def get_obs(self, _update_state=False):
         """
         INTERNAL
 
@@ -498,6 +526,10 @@ class _ObsEnv(BaseEnv):
 
         # current time
         self._nb_time_step_init = env.nb_time_step
+
+        # attention budget
+        if self._has_attention_budget:
+            self._attention_budget_state_init = env._attention_budget.get_state()
 
     def get_current_line_status(self):
         return self._line_status == 1

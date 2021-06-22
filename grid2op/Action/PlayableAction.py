@@ -24,7 +24,8 @@ class PlayableAction(BaseAction):
         "change_bus",
         "redispatch",
         "set_storage",
-        "curtail"
+        "curtail",
+        "raise_alarm"
     }
 
     attr_list_vect = [
@@ -34,7 +35,8 @@ class PlayableAction(BaseAction):
         "_change_bus_vect",
         "_redispatch",
         "_storage_power",
-        "_curtail"
+        "_curtail",
+        "_raise_alarm"
     ]
     attr_list_set = set(attr_list_vect)
     shunt_added = True  # no shunt here
@@ -50,6 +52,7 @@ class PlayableAction(BaseAction):
             "redispatch": self._digest_redispatching,
             "set_storage": self._digest_storage,
             "curtail": self._digest_curtailment,
+            "raise_alarm": self._digest_alarm,
         }
 
     def __call__(self):
@@ -89,7 +92,6 @@ class PlayableAction(BaseAction):
             raise AmbiguousAction("Injections actions are not playable.")
         
         self._check_for_ambiguity()
-        # TODO curtailment
         return {}, \
             self._set_line_status, self._switch_line_status, \
             self._set_topo_vect, self._change_bus_vect,\

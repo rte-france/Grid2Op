@@ -95,7 +95,8 @@ class GymActionSpace(_BaseGymSpaceConverter):
                             "_hazards": "hazards",
                             "_maintenance": "maintenance",
                             "_storage_power": "storage_power",
-                            "_curtail": "curtail"
+                            "_curtail": "curtail",
+                            "_raise_alarm": "raise_alarm"
                             }
     keys_human_2_grid2op = {v: k for k, v in keys_grid2op_2_human.items()}
 
