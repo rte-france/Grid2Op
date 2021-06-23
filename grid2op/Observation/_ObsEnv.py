@@ -444,7 +444,7 @@ class _ObsEnv(BaseEnv):
         obs, reward, done, info = self.step(action)
         return obs, reward, done, info
 
-    def get_obs(self, _update_state=False):
+    def get_obs(self, _update_state=True):
         """
         INTERNAL
 
@@ -457,8 +457,9 @@ class _ObsEnv(BaseEnv):
         res: :class:`grid2op.Observation.Observation`
             The observation available.
         """
-        self.current_obs.update(self, with_forecast=False)
-        res = copy.deepcopy(self.current_obs)
+        if _update_state:
+            self.current_obs.update(self, with_forecast=False)
+        res = self.current_obs.copy()
         return res
 
     def update_grid(self, env):

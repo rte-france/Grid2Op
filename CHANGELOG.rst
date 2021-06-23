@@ -23,7 +23,12 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.6.0] - 2021-06-yy
+[1.6.0] (hotfix) - 2021-06-22
+------------------------------
+- [FIXED] issue `Issue#235 <https://github.com/rte-france/Grid2Op/issues/235>`_ issue when using the "simulate"
+  feature in case of divergence of powerflow.
+
+[1.6.0] - 2021-06-22
 --------------------
 - [BREAKING] (but transparent for everyone): the `disc_lines` attribute is now part of the environment, and is also
   containing integer (representing the "order" on which the lines are disconnected due to protections) rather
