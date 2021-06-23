@@ -78,101 +78,102 @@ if __name__ == "__main__":
             "Please modify \"--version\" argument".format(
                 version))
 
-    # setup.py
-    setup_path = os.path.join(path, "setup.py")
-    if not os.path.exists(setup_path):
-        raise RuntimeError(
-            "script \"update_version\" cannot find the root path of Grid2op. "
-            "Please provide a valid \"--path\" argument.")
-    with open(setup_path, "r") as f:
-        new_setup = f.read()
-    try:
-        old_version = re.search("version='{}'".format(regex_version), new_setup).group(0)
-    except Exception as e:
-        raise RuntimeError("Impossible to find the old version number. Stopping here")
-    old_version = re.sub("version=", "", old_version)
-    old_version = re.sub("'", "", old_version)
-    old_version = re.sub('"', "", old_version)
-    old_version = re.sub("\\.rc[0-9]+", "", old_version)
-    if version < old_version:
-        raise RuntimeError("You provided the \"new\" version \"{}\" which is older (or equal) to the current version "
-                           "found: \"{}\".".format(version, old_version))
+    if False:
+        # setup.py
+        setup_path = os.path.join(path, "setup.py")
+        if not os.path.exists(setup_path):
+            raise RuntimeError(
+                "script \"update_version\" cannot find the root path of Grid2op. "
+                "Please provide a valid \"--path\" argument.")
+        with open(setup_path, "r") as f:
+            new_setup = f.read()
+        try:
+            old_version = re.search("version='{}'".format(regex_version), new_setup).group(0)
+        except Exception as e:
+            raise RuntimeError("Impossible to find the old version number. Stopping here")
+        old_version = re.sub("version=", "", old_version)
+        old_version = re.sub("'", "", old_version)
+        old_version = re.sub('"', "", old_version)
+        old_version = re.sub("\\.rc[0-9]+", "", old_version)
+        if version < old_version:
+            raise RuntimeError("You provided the \"new\" version \"{}\" which is older (or equal) to the current version "
+                               "found: \"{}\".".format(version, old_version))
 
-    new_setup = re.sub("version='{}'".format(regex_version),
-                       "version='{}'".format(version),
-                       new_setup)
-    with open(setup_path, "w") as f:
-        f.write(new_setup)
+        new_setup = re.sub("version='{}'".format(regex_version),
+                           "version='{}'".format(version),
+                           new_setup)
+        with open(setup_path, "w") as f:
+            f.write(new_setup)
 
-    # Stage in git
-    start_subprocess_print(["git", "add", setup_path])
+        # Stage in git
+        start_subprocess_print(["git", "add", setup_path])
 
-    # grid2op/__init__.py
-    grid2op_init = os.path.join(path, "grid2op", "__init__.py")
-    with open(grid2op_init, "r") as f:
-        new_setup = f.read()
-    new_setup = re.sub("__version__ = '{}'".format(regex_version),
-                       "__version__ = '{}'".format(version),
-                       new_setup)
-    with open(grid2op_init, "w") as f:
-        f.write(new_setup)
-    # Stage in git
-    start_subprocess_print(["git", "add", grid2op_init])
+        # grid2op/__init__.py
+        grid2op_init = os.path.join(path, "grid2op", "__init__.py")
+        with open(grid2op_init, "r") as f:
+            new_setup = f.read()
+        new_setup = re.sub("__version__ = '{}'".format(regex_version),
+                           "__version__ = '{}'".format(version),
+                           new_setup)
+        with open(grid2op_init, "w") as f:
+            f.write(new_setup)
+        # Stage in git
+        start_subprocess_print(["git", "add", grid2op_init])
 
-    # docs/conf.py
-    docs_conf = os.path.join(path, "docs", "conf.py")
-    with open(docs_conf, "r") as f:
-        new_setup = f.read()
-    new_setup = re.sub("release = '{}'".format(regex_version),
-                       "release = '{}'".format(version),
-                       new_setup)
-    new_setup = re.sub("version = '[0-9]+\.[0-9]+'",
-                       "version = '{}.{}'".format(maj_, min_),
-                       new_setup)
-    with open(docs_conf, "w") as f:
-        f.write(new_setup)
-    # Stage in git
-    start_subprocess_print(["git", "add", docs_conf])
+        # docs/conf.py
+        docs_conf = os.path.join(path, "docs", "conf.py")
+        with open(docs_conf, "r") as f:
+            new_setup = f.read()
+        new_setup = re.sub("release = '{}'".format(regex_version),
+                           "release = '{}'".format(version),
+                           new_setup)
+        new_setup = re.sub("version = '[0-9]+\.[0-9]+'",
+                           "version = '{}.{}'".format(maj_, min_),
+                           new_setup)
+        with open(docs_conf, "w") as f:
+            f.write(new_setup)
+        # Stage in git
+        start_subprocess_print(["git", "add", docs_conf])
 
-    # Dockerfile
-    template_dockerfile = os.path.join(path, "utils", "templateDockerFile")
-    dockerfile = os.path.join(path, "Dockerfile")
-    with open(template_dockerfile, "r") as f:
-        new_setup = f.read()
-    new_setup = re.sub("__VERSION__",
-                       "v{}".format(version),
-                       new_setup)
-    with open(dockerfile, "w") as f:
-        f.write(new_setup)
+        # Dockerfile
+        template_dockerfile = os.path.join(path, "utils", "templateDockerFile")
+        dockerfile = os.path.join(path, "Dockerfile")
+        with open(template_dockerfile, "r") as f:
+            new_setup = f.read()
+        new_setup = re.sub("__VERSION__",
+                           "v{}".format(version),
+                           new_setup)
+        with open(dockerfile, "w") as f:
+            f.write(new_setup)
 
-    # Stage in git
-    start_subprocess_print(["git", "add", dockerfile])
+        # Stage in git
+        start_subprocess_print(["git", "add", dockerfile])
 
-    # generate some logs, for backward compatibility
-    # NB this generation is part of the test run, so it's safe to re generate the log when each version is released
-    # in the sense that the tests pass ;-)
-    import grid2op
-    from grid2op.Agent import RandomAgent
-    from grid2op.Runner import Runner
-    import warnings
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        PATH_PREVIOUS_RUNNER = os.path.join(path, "grid2op", "data_test", "runner_data")
-        # set the right grid2op version (instead of reloading the stuff, ugly, but working)
-        grid2op.__version__ = version
-        env = grid2op.make("rte_case5_example", test=True)
-        runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
-        runner.run(nb_episode=2,
-                   path_save=os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}"),
-                   pbar=True,
-                   max_iter=100)
-    # Stage in git
-    start_subprocess_print(["git", "add", f'{os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}")}/*'])
+        # generate some logs, for backward compatibility
+        # NB this generation is part of the test run, so it's safe to re generate the log when each version is released
+        # in the sense that the tests pass ;-)
+        import grid2op
+        from grid2op.Agent import RandomAgent
+        from grid2op.Runner import Runner
+        import warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            PATH_PREVIOUS_RUNNER = os.path.join(path, "grid2op", "data_test", "runner_data")
+            # set the right grid2op version (instead of reloading the stuff, ugly, but working)
+            grid2op.__version__ = version
+            env = grid2op.make("rte_case5_example", test=True)
+            runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+            runner.run(nb_episode=2,
+                       path_save=os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}"),
+                       pbar=True,
+                       max_iter=100)
+        # Stage in git
+        start_subprocess_print(["git", "add", f'{os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}")}/*'])
 
-    # Commit
-    start_subprocess_print(["git", "commit", "-m", "Release v{}".format(version)])
-    # Create a new git tag
-    start_subprocess_print(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
+        # Commit
+        start_subprocess_print(["git", "commit", "-m", "Release v{}".format(version)])
+        # Create a new git tag
+        start_subprocess_print(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
 
     # Wait for user to push changes
     pushed = input("Please push changes: 'git push && git push --tags' - then press any key")
