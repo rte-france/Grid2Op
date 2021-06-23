@@ -23,7 +23,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.6.0] (hotfix) - 2021-06-22
+[1.6.0] (hotfix) - 2021-06-23
 ------------------------------
 - [FIXED] issue `Issue#235 <https://github.com/rte-france/Grid2Op/issues/235>`_ issue when using the "simulate"
   feature in case of divergence of powerflow.
