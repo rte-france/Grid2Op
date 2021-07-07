@@ -652,7 +652,8 @@ class TestHashEnv(unittest.TestCase):
             env = make("l2rpn_case14_sandbox", test=True)
         path_ = env.get_path_env()
         hash_this_env = _hash_env(path_)
-        assert hash_this_env.hexdigest() == "45a2be9f1d2b206bba48d1fee5ab2343d22e818a4a66d785b90832d10b3b5ca1856dc99338fc543002cf3bfc701779ec85b9e864dca77f74e82f40d157442cd1"
+        assert hash_this_env.hexdigest() == "45a2be9f1d2b206bba48d1fee5ab2343d22e818a4a66d785b90832d10b3b5ca1856dc99338fc543002cf3bfc701779ec85b9e864dca77f74e82f40d157442cd1", \
+               f"wrong hash digest. It's \n\t{hash_this_env.hexdigest()}"
 
 
 if __name__ == "__main__":
