@@ -144,7 +144,7 @@ def _update_files(env_name=None,
 # TODO make that a method of the environment maybe ?
 def _hash_env(path_local_env,
               hash_=None,
-              blocksize=4096,  # TODO is this correct ?
+              blocksize=64,  # TODO is this correct ?
               ):
     import hashlib  # lazy import
     if hash_ is None:
@@ -168,10 +168,15 @@ def _hash_env(path_local_env,
                     "grid_layout.json",
                     "prods_charac.csv"]:  # list the file we want to hash (we don't hash everything
             full_path_file = os.path.join(path_local_env, fn_)
+            import re
             if os.path.exists(full_path_file):
-                with open(full_path_file, "rb") as f:
-                    for block in iter(lambda: f.read(blocksize), b""):
-                        hash_.update(block)
+                with open(full_path_file, "r", encoding="utf-8") as f:
+                    text_ = f.read()
+                    text_ = re.sub("\s|\n|\r", "", text_)  # this is done to ensure a compatibility between platform
+                    # sometime git replaces the "\r\n" in windows with "\n" on linux / macos and it messes
+                    # up the hash
+                    hash_.update(text_.encode("utf-8"))
+
         # now I hash the chronics
         # but as i don't want to read every chronics (for time purposes) i will only hash the names
         # of all the chronics

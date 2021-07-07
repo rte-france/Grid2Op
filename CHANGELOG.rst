@@ -25,8 +25,12 @@ Change Log
 
 [1.6.1] - 2021-07-xx
 ---------------------
+- [FIXED] a bug in the "env.get_path_env()" in case `env` was a multimix (it returned the path of the current mix
+  instead of the path of the multimix environment)
 - [IMPROVED] now grid2op is able to check if an environment needs to be updated when calling `grid2op.update_env()`
   thanks to the use of registered hash values.
+- [IMPROVED] now grid2op will check if an update is available when an environment is being downloaded for the
+  first time.
 
 [1.6.0] (hotfix) - 2021-06-23
 ------------------------------

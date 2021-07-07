@@ -29,6 +29,14 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert mme.current_obs is not None
         assert mme.current_env is not None
 
+    def test_get_path_env(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        path_mme = mme.get_path_env()
+        for mix in mme:
+            path_mix = mix.get_path_env()
+            assert path_mme != path_mix
+            assert os.path.split(path_mix)[0] == path_mme
+
     def test_create_fail(self):
         with self.assertRaises(EnvError):
             mme = MultiMixEnvironment("/tmp/error")

@@ -116,6 +116,10 @@ def _aux_download(url, dataset_name, path_data, ds_name_dl=None):
     # bug in the AWS file... named ".tar.tar.bz2" ...
     os.remove(output_path)
 
+    # check for update (if any)
+    from grid2op.MakeEnv.UpdateEnv import _update_files
+    _update_files(dataset_name)
+
     print("You may now use the environment \"{}\" with the available data by invoking:\n"
           "\tenv = grid2op.make(\"{}\")"
           "".format(dataset_name, dataset_name))
