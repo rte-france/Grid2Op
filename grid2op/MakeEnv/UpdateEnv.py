@@ -15,6 +15,7 @@ from grid2op.MakeEnv.UserUtils import list_available_local_env
 from grid2op.MakeEnv.Make import _retrieve_github_content
 
 _LIST_REMOTE_URL = "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/updates.json"
+_LIST_REMOTE_ENV_HASH = "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/env_hashes.json"
 
 
 def _write_file(path_local_env, new_config, file_name):
@@ -76,10 +77,26 @@ def _update_file(dict_, env_name, file_name):
                 _write_file(mix_dir, new_config, file_name=file_name)
     else:
         _write_file(path_local_env, new_config, file_name=file_name)
-    print("Successfully updated file \"{}\" for environment \"{}\"".format(file_name, env_name))
+    print("\t Successfully updated file \"{}\" for environment \"{}\"".format(file_name, env_name))
 
 
-def _update_files(env_name=None):
+def _do_env_need_update(env_name, env_hashes):
+    if env_name not in env_hashes:
+        # no hash for this environment is provided, i don't know, so in doubt i need to update it (old behaviour)
+        return True
+    else:
+        # i check if "my" hash is different that the remote hash
+        base_path = grid2op.get_current_local_dir()
+        hash_remote_hex = env_hashes[env_name]
+        hash_local = _hash_env(os.path.join(base_path, env_name))
+        hash_local_hex = hash_local.hexdigest()
+        res = hash_remote_hex != hash_local_hex
+        return res
+
+
+def _update_files(env_name=None,
+                  answer_json=None,
+                  env_hashes=None):
     """
     INTERNAL
 
@@ -95,14 +112,24 @@ def _update_files(env_name=None):
 
     """
     avail_envs = list_available_local_env()
-    if env_name is None:
-        for env_name in avail_envs:
-            _update_files(env_name)
-    else:
-        if env_name in avail_envs:
-            answer_json = _retrieve_github_content(_LIST_REMOTE_URL)
 
-            if env_name in answer_json:
+    if answer_json is None:
+        # optimization to retrieve only once this file
+        answer_json = _retrieve_github_content(_LIST_REMOTE_URL)
+
+    if env_hashes is None:
+        # optimization to retrieve only once this file
+        env_hashes = _retrieve_github_content(_LIST_REMOTE_ENV_HASH)
+
+    if env_name is None:
+        # i update all the files for all the environments
+        for env_name in avail_envs:
+            _update_files(env_name, answer_json=answer_json, env_hashes=env_hashes)
+    else:
+        # i update the files for only an environment
+        if env_name in avail_envs:
+            need_update = _do_env_need_update(env_name, env_hashes)
+            if env_name in answer_json and need_update:
                 dict_main = answer_json[env_name]
                 for k, dict_ in dict_main.items():
                     _update_file(dict_, env_name, file_name=k)
@@ -112,3 +139,43 @@ def _update_files(env_name=None):
         else:
             raise UnknownEnv("Impossible to locate the environment named \"{}\". Have you downlaoded it?"
                              "".format(env_name))
+
+
+# TODO make that a method of the environment maybe ?
+def _hash_env(path_local_env,
+              hash_=None,
+              blocksize=4096,  # TODO is this correct ?
+              ):
+    import hashlib  # lazy import
+    if hash_ is None:
+        # we use this as it is supposedly faster than md5
+        # we don't really care about the "secure" part of it (though it's a nice tool to have)
+        hash_ = hashlib.blake2b()
+    if os.path.exists(os.path.join(path_local_env, ".multimix")):
+        # this is a multi mix, so i need to run through all sub env
+        mixes = sorted(os.listdir(path_local_env))
+        for mix in mixes:
+            mix_dir = os.path.join(path_local_env, mix)
+            if os.path.isdir(mix_dir):
+                hash_ = _hash_env(mix_dir, hash_=hash_, blocksize=blocksize)
+    else:
+        # i am hashing a regular environment
+        # first i hash the config files
+        for fn_ in ["alerts_info.json",
+                    "config.py",
+                    "difficulty_levels.json",
+                    "grid.json",
+                    "grid_layout.json",
+                    "prods_charac.csv"]:  # list the file we want to hash (we don't hash everything
+            full_path_file = os.path.join(path_local_env, fn_)
+            if os.path.exists(full_path_file):
+                with open(full_path_file, "rb") as f:
+                    for block in iter(lambda: f.read(blocksize), b""):
+                        hash_.update(block)
+        # now I hash the chronics
+        # but as i don't want to read every chronics (for time purposes) i will only hash the names
+        # of all the chronics
+        path_chronics = os.path.join(path_local_env, "chronics")
+        for chron_name in sorted(os.listdir(path_chronics)):
+            hash_.update(chron_name.encode("utf-8"))
+    return hash_

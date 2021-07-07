@@ -23,6 +23,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.6.1] - 2021-07-xx
+---------------------
+- [IMPROVED] now grid2op is able to check if an environment needs to be updated when calling `grid2op.update_env()`
+  thanks to the use of registered hash values.
+
 [1.6.0] (hotfix) - 2021-06-23
 ------------------------------
 - [FIXED] issue `Issue#235 <https://github.com/rte-france/Grid2Op/issues/235>`_ issue when using the "simulate"
