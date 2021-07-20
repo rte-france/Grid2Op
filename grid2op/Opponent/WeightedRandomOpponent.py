@@ -164,6 +164,6 @@ class WeightedRandomOpponent(BaseOpponent):
         rho = observation.rho[self._lines_ids][status] / self._rho_normalization[status]
         rho_sum = rho.sum()
         if rho_sum <= 0.:
-            return None
+            return None, 0
         attack = self.space_prng.choice(available_attacks, p=rho / rho_sum)
         return attack, None
