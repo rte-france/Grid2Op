@@ -83,7 +83,6 @@ class SerializableSpace(GridObjects, RandomObject):
 
         GridObjects.__init__(self)
         RandomObject.__init__(self)
-
         self._init_subtype = subtype  # do not use, use to save restore only !!!
         if _init_grid:
             self.subtype = subtype.init_grid(gridobj)

@@ -1532,10 +1532,11 @@ class Backend(GridObjects, ABC):
             # class is already initialized
             # and set up the proper class and everything
             self._init_class_attr()
+
+            # type(self)._INIT_GRID_CLS = orig_type
             # hack due to changing class of imported module in the module itself
             self.__class__ = type(self).init_grid(type(self), force_module=type(self).__module__)
             setattr(sys.modules[type(self).__module__], self.__class__.__name__, self.__class__)
-
             # reset the attribute of the grid2op.Backend.Backend class
             # that can be messed up with depending on the initialization of the backend
             Backend._clear_class_attribute()

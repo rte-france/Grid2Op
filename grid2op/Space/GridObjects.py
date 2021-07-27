@@ -2141,6 +2141,13 @@ class GridObjects:
         cls_attr_as_dict = {}
         GridObjects._make_cls_dict_extended(gridobj, cls_attr_as_dict, as_list=False)
         res_cls = type(name_res, (cls, ), cls_attr_as_dict)
+        if hasattr(cls, "_INIT_GRID_CLS"):
+            # original class is not modified
+            res_cls._INIT_GRID_CLS = cls._INIT_GRID_CLS
+        else:
+            # i am the original class from grid2op
+            res_cls._INIT_GRID_CLS = cls
+
         res_cls._compute_pos_big_topo_cls()
         if res_cls.glop_version != grid2op.__version__:
             res_cls.process_grid2op_compat()
@@ -2900,3 +2907,45 @@ class GridObjects:
             if not np.array_equal(getattr(cls, attr_nm), getattr(other_cls, attr_nm)):
                 return False
         return True
+
+    @staticmethod
+    def init_grid_from_dict_for_pickle(name_res, orig_cls, cls_attr):
+        """
+        This function is used internally for pickle to build the classes of the
+        objects instead of loading them from the module (which is impossible as
+        most classes are defined on the fly in grid2op)
+        """
+
+        # define properly the class
+        res_cls = type(name_res, (orig_cls, ), cls_attr)
+        res_cls._compute_pos_big_topo_cls()
+        res_cls._INIT_GRID_CLS = orig_cls  # don't forget to remember the base class
+        if res_cls.glop_version != grid2op.__version__:
+            res_cls.process_grid2op_compat()
+        # now create an "empty" object (using new)
+        res = res_cls.__new__(res_cls)
+        return res
+
+    # test for pickle
+    def __reduce__(self):
+        cls_attr_as_dict = {}
+        GridObjects._make_cls_dict_extended(type(self), cls_attr_as_dict, as_list=False)
+        if hasattr(self, "__getstate__"):
+            my_state = self.__getstate__()
+        else:
+            my_state = {}
+            for k, v in self.__dict__.items():
+                my_state[k] = copy.copy(v)
+
+        my_cls = type(self)
+        if hasattr(my_cls, "_INIT_GRID_CLS"):
+            # I am a type created when an environment is loaded
+            base_cls = my_cls._INIT_GRID_CLS
+        else:
+            # i am a "raw" type directly coming from grid2op
+            base_cls = my_cls
+        return GridObjects.init_grid_from_dict_for_pickle, \
+               (type(self).__name__,
+                base_cls,
+                cls_attr_as_dict), \
+               my_state

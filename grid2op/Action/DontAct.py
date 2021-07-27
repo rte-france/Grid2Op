@@ -38,8 +38,6 @@ class DontAct(PlayableAction):
 
         """
         PlayableAction.__init__(self)
-        if DontAct.attr_list_set:
-            self._update_value_set()
 
     def update(self, dict_):
         """
