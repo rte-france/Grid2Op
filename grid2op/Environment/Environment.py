@@ -234,9 +234,9 @@ class Environment(BaseEnv):
         # action affecting the grid that will be made by the agent
         bk_type = type(self.backend)  # be careful here: you need to initialize from the class, and not from the object
         self._rewardClass = rewardClass
-        actionClass._add_shunt_data()
-        actionClass._update_value_set()
         self._actionClass = actionClass.init_grid(gridobj=bk_type)
+        self._actionClass._add_shunt_data()
+        self._actionClass._update_value_set()
         self._observationClass = observationClass.init_grid(gridobj=bk_type)
 
         self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type)
@@ -246,8 +246,6 @@ class Environment(BaseEnv):
                                                        actionClass=actionClass,
                                                        legal_action=self._game_rules.legal_action)
         # action that affect the grid made by the environment.
-        CompleteAction._add_shunt_data()
-        CompleteAction._update_value_set()
         self._helper_action_env = self._helper_action_class(gridobj=bk_type,
                                                             actionClass=CompleteAction,
                                                             legal_action=self._game_rules.legal_action)

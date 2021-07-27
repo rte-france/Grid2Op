@@ -2922,7 +2922,6 @@ class GridObjects:
         "filled" with the proper content automatically by python, because i provided the "state" of the
         object in the __reduce__ method.
         """
-
         # check if the class already exists, if so returns it
         if name_res in globals():
             # no need to recreate the class, it already exists
@@ -2931,11 +2930,11 @@ class GridObjects:
             # define properly the class, as it is not found
             res_cls = type(name_res, (orig_cls, ), cls_attr)
             res_cls._INIT_GRID_CLS = orig_cls  # don't forget to remember the base class
-            if hasattr(res_cls, "n_sub") and res_cls.n_sub > 0:
-                # that's a grid2op class iniailized with an environment, I need to initialize it too
-                res_cls._compute_pos_big_topo_cls()
-                if res_cls.glop_version != grid2op.__version__:
-                    res_cls.process_grid2op_compat()
+            # if hasattr(res_cls, "n_sub") and res_cls.n_sub > 0:
+            # that's a grid2op class iniailized with an environment, I need to initialize it too
+            res_cls._compute_pos_big_topo_cls()
+            if res_cls.glop_version != grid2op.__version__:
+                res_cls.process_grid2op_compat()
 
             # add the class in the "globals" for reuse later
             globals()[name_res] = res_cls
