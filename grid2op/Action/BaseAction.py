@@ -409,19 +409,6 @@ class BaseAction(GridObjects):
             self.shunt_q = None
             self.shunt_bus = None
 
-        mycls = type(self)
-        if mycls.shunt_added is False and mycls.shunts_data_available:
-            mycls.shunt_added = True
-
-            mycls.attr_list_vect = copy.deepcopy(mycls.attr_list_vect)
-            mycls.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
-
-            mycls.authorized_keys = copy.deepcopy(mycls.authorized_keys)
-            mycls.authorized_keys.add("shunt")
-            mycls.attr_nan_list_set.add("shunt_p")
-            mycls.attr_nan_list_set.add("shunt_q")
-            mycls._update_value_set()
-
         self._single_act = True
 
         self._raise_alarm = np.full(shape=self.dim_alarms, dtype=dt_bool, fill_value=False)  # TODO
@@ -436,6 +423,20 @@ class BaseAction(GridObjects):
         self._modif_storage = False
         self._modif_curtailment = False
         self._modif_alarm = False
+
+    @classmethod
+    def _add_shunt_data(cls):
+        if cls.shunt_added is False and cls.shunts_data_available:
+            cls.shunt_added = True
+
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+
+            cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
+            cls.authorized_keys.add("shunt")
+            cls.attr_nan_list_set.add("shunt_p")
+            cls.attr_nan_list_set.add("shunt_q")
+            cls._update_value_set()
 
     def alarm_raised(self):
         """

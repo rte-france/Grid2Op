@@ -24,9 +24,6 @@ class RandomLineOpponent(BaseOpponent):
         self._attacks = None
         self._lines_ids = None
 
-        # this is the constructor:
-        # it should have the exact same signature as here
-
     def init(self, partial_env, lines_attacked=[], **kwargs):
         """
         INTERNAL
@@ -67,10 +64,8 @@ class RandomLineOpponent(BaseOpponent):
         # Pre-build attacks actions
         self._attacks = []
         for l_id in self._lines_ids:
-            a = self.action_space({
-                'set_line_status': [(l_id, -1)]
-            })
-            self._attacks.append(a)
+            att = self.action_space({'set_line_status': [(l_id, -1)]})
+            self._attacks.append(att)
         self._attacks = np.array(self._attacks)
 
     def attack(self, observation, agent_action, env_action,

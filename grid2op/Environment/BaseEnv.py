@@ -590,6 +590,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not issubclass(self._opponent_class, BaseOpponent):
             raise EnvError("Impossible to make an opponent with a type that does not inherit from BaseOpponent.")
 
+        self._opponent_action_class._add_shunt_data()
+        self._opponent_action_class._update_value_set()
         self._opponent_action_space = self._helper_action_class(gridobj=type(self.backend),
                                                                 legal_action=AlwaysLegal,
                                                                 actionClass=self._opponent_action_class
@@ -611,6 +613,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._backend_action_class is not None:
             # the class has already been initialized
             return
+        # remember the original grid2op class
+        type(self)._INIT_GRID_CLS = type(self)
+
         bk_type = type(self.backend)  # be careful here: you need to initialize from the class, and not from the object
         # create the proper environment class for this specific environment
         self.__class__ = type(self).init_grid(bk_type)

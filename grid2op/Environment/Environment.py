@@ -235,6 +235,8 @@ class Environment(BaseEnv):
         bk_type = type(self.backend)  # be careful here: you need to initialize from the class, and not from the object
         self._rewardClass = rewardClass
         self._actionClass = actionClass.init_grid(gridobj=bk_type)
+        self._actionClass._add_shunt_data()
+        self._actionClass._update_value_set()
         self._observationClass = observationClass.init_grid(gridobj=bk_type)
 
         self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type)
@@ -285,7 +287,8 @@ class Environment(BaseEnv):
             raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
 
         self._voltage_controler = self._voltagecontrolerClass(gridobj=bk_type,
-                                                              controler_backend=self.backend)
+                                                              controler_backend=self.backend,
+                                                              actionSpace_cls=self._helper_action_class)
 
         # create the opponent
         # At least the 3 following attributes should be set before calling _create_opponent
@@ -837,6 +840,7 @@ class Environment(BaseEnv):
         self._voltage_controler = None
 
         res = copy.deepcopy(self)
+
         res.backend = tmp_backend.copy()
         res._observation_space = tmp_obs_space.copy()
         res.current_obs = obs_tmp.copy()

@@ -83,10 +83,15 @@ class SerializableSpace(GridObjects, RandomObject):
 
         GridObjects.__init__(self)
         RandomObject.__init__(self)
-
         self._init_subtype = subtype  # do not use, use to save restore only !!!
         if _init_grid:
             self.subtype = subtype.init_grid(gridobj)
+            from grid2op.Action import BaseAction  # lazy loading to prevent circular reference
+            if issubclass(self.subtype, BaseAction):
+                # add the shunt data if needed by the action only
+                self.subtype._add_shunt_data()
+            # compute the class attribute "attr_list_set" from "attr_list_vect"
+            self.subtype._update_value_set()
         else:
             self.subtype = subtype
 
