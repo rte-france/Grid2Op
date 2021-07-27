@@ -79,7 +79,7 @@ class ScoreICAPS2021(ScoreL2RPN2020):
     """
 
     NAME_DN = "icaps2021_dn"
-    NAME_DN_NO_OVERWLOW = "icaps2021_no_overflow"
+    # NAME_DN_NO_OVERFLOW = "icaps2021_no_overflow"
     NAME_RP_NO_OVERWLOW = "icaps2021_no_overflow_reco"
 
     def __init__(self,

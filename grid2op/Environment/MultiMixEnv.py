@@ -161,6 +161,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.current_env = None
         self.env_index = None
         self.mix_envs = []
+        self._env_dir = os.path.abspath(envs_dir)
 
         # Special case handling for backend
         # TODO: with backend.copy() instead !
@@ -210,6 +211,16 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.current_env.env_name = multi_env_name
         self.__class__ = self.init_grid(self.current_env)
         self.current_env.env_name = save_env_name
+
+    def get_path_env(self):
+        """
+        Get the path that allows to create this environment.
+
+        It can be used for example in `grid2op.utils.underlying_statistics` to save the information directly inside
+        the environment data.
+
+        """
+        return self._env_dir
 
     @property
     def current_index(self):

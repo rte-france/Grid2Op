@@ -1763,6 +1763,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._sum_curtailment_mw = -self._sum_curtailment_mw_prev
                 self._sum_curtailment_mw_prev = dt_float(0.)
 
+            # case where the action modifies load (TODO maybe make a different env for that...)
+            for inj_key in ["load_p", "prod_p", "load_q"]:
+                # modification of the injections in the action, this erases the actions in the environment
+                if inj_key in action._dict_inj:
+                    if inj_key in self._env_modification._dict_inj:
+                            this_p_load = 1. * self._env_modification._dict_inj[inj_key]
+                            act_modif = action._dict_inj[inj_key]
+                            this_p_load[np.isfinite(act_modif)] = act_modif[np.isfinite(act_modif)]
+                            self._env_modification._dict_inj[inj_key][:] = this_p_load
+                    else:
+                            self._env_modification._dict_inj[inj_key] = 1.0 * action._dict_inj[inj_key]
+                            self._env_modification._modif_inj = True
+
             if self.n_storage > 0:
                 # TODO limit here if the ramps are too low !
                 # TODO in the above case, action should not be implemented !
