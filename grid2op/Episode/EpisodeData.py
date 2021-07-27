@@ -175,15 +175,18 @@ class EpisodeData:
                                          "actions",
                                          check_legit=False,
                                          init_me=_init_collections)
+
         self.observations = CollectionWrapper(observations,
                                               observation_space,
                                               "observations",
                                               init_me=_init_collections)
+
         self.env_actions = CollectionWrapper(env_actions,
                                              helper_action_env,
                                              "env_actions",
                                              check_legit=False,
                                              init_me=_init_collections)
+
         self.attacks = CollectionWrapper(attack,
                                          attack_space,
                                          "attacks",

@@ -64,6 +64,7 @@ class ActionSpace(SerializableActionSpace):
             Class specifying the rules of the game used to check the legality of the actions.
 
         """
+        actionClass._add_shunt_data()
         actionClass._update_value_set()
         SerializableActionSpace.__init__(self, gridobj, actionClass=actionClass)
         self.legal_action = legal_action

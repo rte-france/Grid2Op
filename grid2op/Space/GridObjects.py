@@ -984,6 +984,8 @@ class GridObjects:
 
         """
         if vect.shape[0] != self.size():
+            import pdb
+            pdb.set_trace()
             raise IncorrectNumberOfElements("Incorrect number of elements found while load a GridObjects "
                                             "from a vector. Found {} elements instead of {}"
                                             "".format(vect.shape[0], self.size()))

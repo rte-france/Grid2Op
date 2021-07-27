@@ -434,6 +434,7 @@ class Backend(GridObjects, ABC):
         start_grid = self._grid
         self._grid = None
         res = copy.deepcopy(self)
+        res.__class__ = type(self)  # somehow deepcopy forget the init class... weird
         res._grid = copy.deepcopy(start_grid)
         self._grid = start_grid
         res._is_loaded = False  # i can reload a copy of an environment
@@ -758,9 +759,10 @@ class Backend(GridObjects, ABC):
         :type id_: int
 
         """
-        action = self._complete_action_class()
+        my_cls = type(self)
+        action = my_cls._complete_action_class()
         action.update({"set_line_status": [(id_, -1)]})
-        bk_act = self.my_bk_act_class()
+        bk_act = my_cls.my_bk_act_class()
         bk_act += action
         self.apply_action(bk_act)
 
