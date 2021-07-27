@@ -23,7 +23,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.6.1] - 2021-07-xx
+[1.6.1] - 2021-07-27
 ---------------------
 - [FIXED] a bug in the "env.get_path_env()" in case `env` was a multimix (it returned the path of the current mix
   instead of the path of the multimix environment)
