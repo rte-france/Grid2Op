@@ -102,6 +102,7 @@ class Issue185Tester(unittest.TestCase):
             elif env_name == ENV_WITH_ALARM_NAME:
                 # takes too much time
                 continue
+
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 with grid2op.make(env_name, test=True) as env:

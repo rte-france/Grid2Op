@@ -2132,6 +2132,7 @@ class GridObjects:
         name_res = "{}_{}".format(cls.__name__, gridobj.env_name)
         if gridobj.glop_version != grid2op.__version__:
             name_res += f"_{gridobj.glop_version}"
+
         if name_res in globals():
             if not force:
                 # no need to recreate the class, it already exists
@@ -2144,7 +2145,7 @@ class GridObjects:
         GridObjects._make_cls_dict_extended(gridobj, cls_attr_as_dict, as_list=False)
         res_cls = type(name_res, (cls, ), cls_attr_as_dict)
         if hasattr(cls, "_INIT_GRID_CLS"):
-            # original class is not modified
+            # original class is already from an initialized environment, i keep track of it
             res_cls._INIT_GRID_CLS = cls._INIT_GRID_CLS
         else:
             # i am the original class from grid2op
@@ -2916,20 +2917,39 @@ class GridObjects:
         This function is used internally for pickle to build the classes of the
         objects instead of loading them from the module (which is impossible as
         most classes are defined on the fly in grid2op)
+
+        It is expected to create an object of the correct type. This object will then be
+        "filled" with the proper content automatically by python, because i provided the "state" of the
+        object in the __reduce__ method.
         """
 
-        # define properly the class
-        res_cls = type(name_res, (orig_cls, ), cls_attr)
-        res_cls._compute_pos_big_topo_cls()
-        res_cls._INIT_GRID_CLS = orig_cls  # don't forget to remember the base class
-        if res_cls.glop_version != grid2op.__version__:
-            res_cls.process_grid2op_compat()
+        # check if the class already exists, if so returns it
+        if name_res in globals():
+            # no need to recreate the class, it already exists
+            res_cls = globals()[name_res]
+        else:
+            # define properly the class, as it is not found
+            res_cls = type(name_res, (orig_cls, ), cls_attr)
+            res_cls._INIT_GRID_CLS = orig_cls  # don't forget to remember the base class
+            if hasattr(res_cls, "n_sub") and res_cls.n_sub > 0:
+                # that's a grid2op class iniailized with an environment, I need to initialize it too
+                res_cls._compute_pos_big_topo_cls()
+                if res_cls.glop_version != grid2op.__version__:
+                    res_cls.process_grid2op_compat()
+
+            # add the class in the "globals" for reuse later
+            globals()[name_res] = res_cls
+
         # now create an "empty" object (using new)
         res = res_cls.__new__(res_cls)
         return res
 
     # test for pickle
     def __reduce__(self):
+        """
+        It here to avoid issue with pickle.
+        But the problem is that it's also used by deepcopy... So its implementation is used a lot
+        """
         cls_attr_as_dict = {}
         GridObjects._make_cls_dict_extended(type(self), cls_attr_as_dict, as_list=False)
         if hasattr(self, "__getstate__"):
@@ -2947,7 +2967,5 @@ class GridObjects:
             # i am a "raw" type directly coming from grid2op
             base_cls = my_cls
         return GridObjects.init_grid_from_dict_for_pickle, \
-               (type(self).__name__,
-                base_cls,
-                cls_attr_as_dict), \
+               (type(self).__name__, base_cls, cls_attr_as_dict), \
                my_state

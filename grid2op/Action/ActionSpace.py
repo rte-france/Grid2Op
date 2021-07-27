@@ -36,7 +36,8 @@ class ActionSpace(SerializableActionSpace):
 
     """
     
-    def __init__(self, gridobj,
+    def __init__(self,
+                 gridobj,
                  legal_action,
                  actionClass=BaseAction  # need to be a base grid2op type (and not a type generated on the fly)
                  ):

@@ -842,6 +842,7 @@ class Environment(BaseEnv):
         self._voltage_controler = None
 
         res = copy.deepcopy(self)
+
         res.backend = tmp_backend.copy()
         res._observation_space = tmp_obs_space.copy()
         res.current_obs = obs_tmp.copy()
