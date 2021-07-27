@@ -48,10 +48,10 @@ TEST_DEV_ENVS = {
 _REQUEST_FAIL_EXHAUSTED_ERR = "Impossible to retrieve data at \"{}\".\n" \
                               "If the problem persists, please contact grid2op developers by sending an issue at " \
                               "https://github.com/rte-france/Grid2Op/issues"
-_REQUEST_FAIL_RETRY_ERR = "Failure to get a reponse from the url \"{}\".\n" \
-                          "Retrying.. {} attempt(s) remaining"
+_REQUEST_FAIL_RETRY_ERR = "Failure to get a response from the url \"{}\".\n" \
+                          "Retrying... {} attempt(s) remaining"
 _REQUEST_EXCEPT_RETRY_ERR = "Exception in getting an answer from \"{}\".\n" \
-                            "Retrying.. {} attempt(s) remaining"
+                            "Retrying... {} attempt(s) remaining"
 
 _LIST_REMOTE_URL = "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/datasets.json"
 _LIST_REMOTE_KEY = "download_url"
@@ -60,7 +60,8 @@ _LIST_REMOTE_INVALID_CONTENT_JSON_ERR = "Impossible to retrieve available datase
                                         "Parsing error:\n {}"
 _LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR = "Corrupted json retrieved from github api. " \
                                          "Please wait a few minutes and try again. " \
-                                         "If the error persist, contact grid2op organizers"
+                                         "If the error persist, contact grid2op devs by making an issue at " \
+                                         "\n\thttps://github.com/rte-france/Grid2Op/issues/new/choose"
 _LIST_REMOTE_INVALID_DATASETS_JSON_ERR = "Impossible to retrieve available datasets. " \
                                          "File could not be converted to json. " \
                                          "The error was \n\"{}\""
@@ -110,7 +111,7 @@ def _send_request_retry(url, nb_retry=10, gh_session=None):
         raise
     except KeyboardInterrupt:
         raise
-    except:
+    except Exception as exc_:
         warnings.warn(_REQUEST_EXCEPT_RETRY_ERR.format(url, nb_retry-1))
         time.sleep(1)
         return _send_request_retry(url, nb_retry=nb_retry-1, gh_session=gh_session)
@@ -123,7 +124,7 @@ def _retrieve_github_content(url, is_json=True):
     except Exception as e:
         raise Grid2OpException(_LIST_REMOTE_INVALID_CONTENT_JSON_ERR.format(e))
 
-    if not _LIST_REMOTE_KEY in answer_json:
+    if _LIST_REMOTE_KEY not in answer_json:
         raise Grid2OpException(_LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR)
     time.sleep(1)
     avail_datasets = _send_request_retry(answer_json[_LIST_REMOTE_KEY])
@@ -175,13 +176,13 @@ def _extract_ds_name(dataset_path):
 
     try:
         dataset_path = str(dataset_path)
-    except:
-        raise Grid2OpException(_EXTRACT_DS_NAME_CONVERT_ERR.format(dataset_path))
+    except Exception as exc_:
+        raise Grid2OpException(_EXTRACT_DS_NAME_CONVERT_ERR.format(dataset_path)) from exc_
 
     try:
         dataset_name = os.path.split(dataset_path)[-1]
-    except:
-        raise UnknownEnv(_EXTRACT_DS_NAME_RECO_ERR.format(dataset_path))
+    except Exception as exc_:
+        raise UnknownEnv(_EXTRACT_DS_NAME_RECO_ERR.format(dataset_path)) from exc_
     dataset_name = dataset_name.lower().rstrip().lstrip()
     dataset_name = os.path.splitext(dataset_name)[0]
     return dataset_name

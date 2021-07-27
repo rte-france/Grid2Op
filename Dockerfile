@@ -7,16 +7,20 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 # Use an official Python runtime as a parent image
-FROM python:3.6-stretch
+FROM python:3.8-buster
 
 MAINTAINER Benjamin DONNOT <benjamin.donnot@rte-france.com>
 
 ENV DEBIAN_FRONTEND noninteractive
 
+ARG ls_version
+
+# generic install
 RUN apt-get update && \
     apt-get install -y \
     less \
     apt-transport-https \
+    build-essential \
     git \
     ssh \
     tar \
@@ -31,7 +35,7 @@ WORKDIR /Grid2Op
 RUN git pull
 RUN git remote update
 RUN git fetch --all --tags
-RUN git checkout "tags/v1.6.0" -b "v1.6.0-branch"
+RUN git checkout "tags/v1.6.0.post1" -b "v1.6.0.post1-branch"
 # Install Dependencies
 RUN pip3 install .[optional,challenge]
 WORKDIR /

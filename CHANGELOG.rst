@@ -23,7 +23,24 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.6.0] - 2021-06-yy
+[1.6.1] - 2021-07-xx
+---------------------
+- [FIXED] a bug in the "env.get_path_env()" in case `env` was a multimix (it returned the path of the current mix
+  instead of the path of the multimix environment)
+- [FIXED] a bug in the `backend.get_action_to_set()` and `backend.update_from_obs()` in case of disconnected shunt
+  with backend that supported shunts (values for `p` and `q` were set even if the shunt was disconnected, which
+  could lead to undefined behaviour)
+- [IMPROVED] now grid2op is able to check if an environment needs to be updated when calling `grid2op.update_env()`
+  thanks to the use of registered hash values.
+- [IMPROVED] now grid2op will check if an update is available when an environment is being downloaded for the
+  first time.
+
+[1.6.0] (hotfix) - 2021-06-23
+------------------------------
+- [FIXED] issue `Issue#235 <https://github.com/rte-france/Grid2Op/issues/235>`_ issue when using the "simulate"
+  feature in case of divergence of powerflow.
+
+[1.6.0] - 2021-06-22
 --------------------
 - [BREAKING] (but transparent for everyone): the `disc_lines` attribute is now part of the environment, and is also
   containing integer (representing the "order" on which the lines are disconnected due to protections) rather

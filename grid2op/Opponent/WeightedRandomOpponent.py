@@ -93,6 +93,8 @@ class WeightedRandomOpponent(BaseOpponent):
 
         # Opponent's attack period
         self._attack_period = attack_period
+        if self._attack_period <= 0:
+            raise OpponentError("Opponent attack cooldown need to be > 0")
 
     def reset(self, initial_budget):
         self._next_attack_time = None
@@ -157,13 +159,15 @@ class WeightedRandomOpponent(BaseOpponent):
 
         # If all attackable lines are disconnected, do not attack
         status = observation.line_status[self._lines_ids]
-        if np.all(~status):
+        if not np.sum(status):
             return None, 0
 
         available_attacks = self._attacks[status]
         rho = observation.rho[self._lines_ids][status] / self._rho_normalization[status]
         rho_sum = rho.sum()
         if rho_sum <= 0.:
-            return None
+            # this case can happen if a powerline has a flow of 0.0 but is connected, and it's the only one
+            # that can be attacked... Pretty rare hey !
+            return None, 0
         attack = self.space_prng.choice(available_attacks, p=rho / rho_sum)
         return attack, None
