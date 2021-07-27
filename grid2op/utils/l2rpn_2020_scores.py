@@ -77,8 +77,8 @@ class ScoreL2RPN2020(object):
     """
 
     NAME_DN = "l2rpn_dn"
-    NAME_DN_NO_OVERWLOW = "l2rpn_no_overflow"
-    NAME_RP_NO_OVERWLOW = "l2rpn_no_overflow_reco"
+    # NAME_DN_NO_OVERFLOW = "l2rpn_no_overflow"
+    NAME_RP_NO_OVERFLOW = "l2rpn_no_overflow_reco"
 
     def __init__(self,
                  env,
@@ -110,22 +110,24 @@ class ScoreL2RPN2020(object):
                                               score_names=score_names)
 
         # check if i need to compute that for do nothing without overflow disconnection
-        self.stat_no_overflow = EpisodeStatistics(self.env, self.NAME_DN_NO_OVERWLOW)
         param_no_overflow = copy.deepcopy(env.parameters)
         param_no_overflow.NO_OVERFLOW_DISCONNECTION = True
-        self.env.reset()  # for the parameters to take effect
-        self._recomputed_no_ov = self._init_stat(self.stat_no_overflow,
-                                                 self.NAME_DN_NO_OVERWLOW,
-                                                 computed_scenarios,
-                                                 parameters=param_no_overflow,
-                                                 nb_process_stats=nb_process_stats,
-                                                 score_names=score_names)
+        if False:
+            # deprecated
+            self.stat_no_overflow = EpisodeStatistics(self.env, self.NAME_DN_NO_OVERWLOW)
+            self.env.reset()  # for the parameters to take effect
+            self._recomputed_no_ov = self._init_stat(self.stat_no_overflow,
+                                                     self.NAME_DN_NO_OVERWLOW,
+                                                     computed_scenarios,
+                                                     parameters=param_no_overflow,
+                                                     nb_process_stats=nb_process_stats,
+                                                     score_names=score_names)
 
         # check if i need to compute that for reco powerline without overflow disconnection
-        self.stat_no_overflow_rp = EpisodeStatistics(self.env, self.NAME_RP_NO_OVERWLOW)
+        self.stat_no_overflow_rp = EpisodeStatistics(self.env, self.NAME_RP_NO_OVERFLOW)
         agent_reco = RecoPowerlineAgent(self.env.action_space)
         self._recomputed_no_ov_rp = self._init_stat(self.stat_no_overflow_rp,
-                                                    self.NAME_RP_NO_OVERWLOW,
+                                                    self.NAME_RP_NO_OVERFLOW,
                                                     computed_scenarios,
                                                     parameters=param_no_overflow,
                                                     nb_process_stats=nb_process_stats,
@@ -195,8 +197,8 @@ class ScoreL2RPN2020(object):
         Performs the rescaling of the score given the information stored in the "statistics" of this
         environment.
         """
-        load_p, ids = self.stat_no_overflow.get("load_p")
-        prod_p, _ = self.stat_no_overflow.get("prod_p")
+        # load_p, ids = self.stat_no_overflow.get("load_p")
+        # prod_p, _ = self.stat_no_overflow.get("prod_p")
         load_p_rp, ids_rp = self.stat_no_overflow_rp.get("load_p")
         prod_p_rp, _ = self.stat_no_overflow_rp.get("load_p")
 
@@ -210,14 +212,12 @@ class ScoreL2RPN2020(object):
             key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
 
         scores_dn, ids_dn_sc = self.stat_dn.get(score_file_to_use)
-        scores_no_ov, ids_noov_sc = self.stat_no_overflow.get(score_file_to_use)
+        # scores_no_ov, ids_noov_sc = self.stat_no_overflow.get(score_file_to_use)
         scores_no_ov_rp, ids_noov_sc_rp = self.stat_no_overflow_rp.get(score_file_to_use)
 
         # reshape to have 1 dim array
-        ids = ids.reshape(-1)
+        ids = ids_rp.reshape(-1)
         ids_dn_sc = ids_dn_sc.reshape(-1)
-        ids_noov_sc = ids_noov_sc.reshape(-1)
-        ids_rp = ids_rp.reshape(-1)
         ids_noov_sc_rp = ids_noov_sc_rp.reshape(-1)
 
         # there is a hugly "1" at the end of each scores due to the "game over" (or end of game), so i remove it
@@ -240,7 +240,7 @@ class ScoreL2RPN2020(object):
 
         if self.max_step > 0:
             scores_dn = scores_dn[:self.max_step]
-            scores_no_ov = scores_no_ov[:self.max_step]
+            # scores_no_ov = scores_no_ov[:self.max_step]
             scores_no_ov_rp = scores_no_ov_rp[:self.max_step]
             ep_loads = ep_loads[:self.max_step]
             ep_losses = ep_losses[:self.max_step]
@@ -289,7 +289,7 @@ class ScoreL2RPN2020(object):
 
         Once done, this cannot be undone.
         """
-        self.stat_no_overflow.clear_all()
+        # self.stat_no_overflow.clear_all()
         self.stat_no_overflow_rp.clear_all()
         self.stat_dn.clear_all()
 
@@ -347,7 +347,7 @@ class ScoreL2RPN2020(object):
             print("Start the evaluation of the scores")  # TODO logger
 
         meta_data_dn = self.stat_dn.get_metadata()
-        no_ov_metadata = self.stat_no_overflow.get_metadata()
+        no_ov_metadata = self.stat_no_overflow_rp.get_metadata()
 
         all_scores = []
         ts_survived = []

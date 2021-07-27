@@ -1442,9 +1442,15 @@ class Backend(GridObjects, ABC):
         }}
         if self.shunts_data_available:
             p_s, q_s, sh_v, bus_s = self.shunt_info()
-            p_s *= (self._sh_vnkv / sh_v)**2
-            q_s *= (self._sh_vnkv / sh_v)**2
-            dict_["shunt"] = {"shunt_p": p_s, "shunt_q": q_s, "shunt_bus": bus_s}
+            dict_["shunt"] = {"shunt_bus": bus_s}
+            if np.sum(bus_s >= 1):
+                p_s *= (self._sh_vnkv / sh_v)**2
+                q_s *= (self._sh_vnkv / sh_v)**2
+                p_s[bus_s == -1] = np.NaN
+                q_s[bus_s == -1] = np.NaN
+                dict_["shunt"]["shunt_p"] = p_s
+                dict_["shunt"]["shunt_q"] = q_s
+
         set_me.update(dict_)
         return set_me
 
@@ -1494,12 +1500,18 @@ class Backend(GridObjects, ABC):
             if "_shunt_bus" not in type(obs).attr_list_set:
                 raise BackendError("Impossible to set the backend to the state given by the observation: shunts data "
                                    "are not present in the observation.")
-            mults = (self._sh_vnkv / obs._shunt_v)**2
-            dict_["shunt"] = {"shunt_p": obs._shunt_p * mults,
-                              "shunt_q": obs._shunt_q * mults,
-                              "shunt_bus": obs._shunt_bus}
 
-        act.update(dict_)
+            dict_["shunt"] = {"shunt_bus": obs._shunt_bus}
+            shunt_co = obs._shunt_bus >= 1
+            if np.sum(shunt_co):
+                mults = (self._sh_vnkv / obs._shunt_v) ** 2
+                sh_p = obs._shunt_p * mults
+                sh_q = obs._shunt_q * mults
+                sh_p[~shunt_co] = np.NaN
+                sh_q[~shunt_co] = np.NaN
+                dict_["shunt"]["shunt_p"] = sh_p
+                dict_["shunt"]["shunt_q"] = sh_q
+            act.update(dict_)
         backend_action += act
         self.apply_action(backend_action)
 

@@ -643,5 +643,18 @@ class TestMakeMultiMix(unittest.TestCase):
         assert isinstance(env, MultiMixEnvironment)
 
 
+class TestHashEnv(unittest.TestCase):
+    def test_hash(self):
+        from grid2op.MakeEnv.UpdateEnv import _hash_env
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_case14_sandbox", test=True)
+        path_ = env.get_path_env()
+        hash_this_env = _hash_env(path_)
+        assert hash_this_env.hexdigest() == "35791e669b84c5da16061ab6aaf3f4748d32871a16fd97ebfc7acbf83104dbc00bc7878481fe35e14236f14eb86610700734f756295675dd5d8d0d918cec3770", \
+               f"wrong hash digest. It's \n\t{hash_this_env.hexdigest()}"
+
+
 if __name__ == "__main__":
     unittest.main()
