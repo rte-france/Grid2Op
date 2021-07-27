@@ -323,6 +323,8 @@ grid2op/data_test/l2rpn_neurips_2020_track1_with_alert/_statistics_do_nothing/
 save/
 shorten_env.py
 test_hash_env.py
+test_pickle.py
+test_rllib_vincevaki.py
 
 # profiling files
 **.prof

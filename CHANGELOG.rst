@@ -23,6 +23,12 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.6.2] - 2021-07-27
+---------------------
+- [ADDED] the complete support for pickling grid2op classes. This is a major feature that allows to use grid2op
+  way more easily with multiprocessing and to ensure compatibility with more recent version of some RL package
+  (*eg* ray / rllib). Note that full compatibility with "multiprocessing" and "pickle" is not completely done yet.
+
 [1.6.1] - 2021-07-27
 ---------------------
 - [FIXED] a bug in the "env.get_path_env()" in case `env` was a multimix (it returned the path of the current mix

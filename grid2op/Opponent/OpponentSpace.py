@@ -45,7 +45,9 @@ class OpponentSpace(object):
                  opponent,
                  attack_duration,  # maximum duration of an attack
                  attack_cooldown,  # minimum duration between two consecutive attack
-                 budget_per_timestep=0., action_space=None):
+                 budget_per_timestep=0.,
+                 action_space=None):
+
         if action_space is not None:
             if not isinstance(action_space, compute_budget.action_space):
                 raise OpponentError("BaseAction space provided to build the agent is not a subclass from the"

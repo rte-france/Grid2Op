@@ -1413,9 +1413,11 @@ class TestIADD:
         act1_init = self.aux_get_act(self.action_space_1)
         act1 = copy.deepcopy(act1_init)
         act2 = self.aux_get_act(self.action_space_2)
+        list_2 = copy.deepcopy(act2.attr_list_set)
+        list_1 = copy.deepcopy(act1.attr_list_set)
         with warnings.catch_warnings():
             warnings.filterwarnings("error")
-            if act2.attr_list_set - act1.attr_list_set:
+            if len(list_2 - list_1):
                 # it should raise a warning if i attempt to set an attribute it's not supposed to
                 with self.assertWarns(UserWarning):
                     res = act1 + act2
