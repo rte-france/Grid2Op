@@ -544,6 +544,9 @@ class GridObjects:
     alarms_lines_area = {}  # for each lines of the grid, gives on which area(s) it is  # TODO
     alarms_area_lines = []  # for each area in the grid, gives which powerlines it contains # TODO
 
+    # to save / restore the cls_attr_as_dict
+    cls_attr_as_dict = None
+
     def __init__(self):
         pass
 
@@ -2949,8 +2952,11 @@ class GridObjects:
         It here to avoid issue with pickle.
         But the problem is that it's also used by deepcopy... So its implementation is used a lot
         """
+        # if type(self).cls_attr_as_dict is None:
         cls_attr_as_dict = {}
         GridObjects._make_cls_dict_extended(type(self), cls_attr_as_dict, as_list=False)
+        # type(self).cls_attr_as_dict = cls_attr_as_dict
+
         if hasattr(self, "__getstate__"):
             my_state = self.__getstate__()
         else:
@@ -2968,3 +2974,16 @@ class GridObjects:
         return GridObjects.init_grid_from_dict_for_pickle, \
                (type(self).__name__, base_cls, cls_attr_as_dict), \
                my_state
+
+    # def __copy__(self):
+    #     """
+    #     As `__reduce__` is implemented, it is better to implement that too.
+    #
+    #     In that case it is trivial as a "gridobject" has no member.
+    #     """
+    #     res = type(self)()
+    #     return res
+    #
+    # def __deepcopy__(self, memodict={}):
+    #     res = type(self)()
+    #     return res

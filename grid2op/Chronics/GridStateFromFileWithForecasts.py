@@ -249,8 +249,8 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         if not self._data_already_in_mem:
             try:
                 self._load_next_chunk_in_memory_forecast()
-            except StopIteration as e:
-                raise e
+            except StopIteration as exc_:
+                raise exc_
 
         res = {}
         dict_ = {}

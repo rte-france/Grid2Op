@@ -325,6 +325,8 @@ shorten_env.py
 test_hash_env.py
 test_pickle.py
 test_rllib_vincevaki.py
+read_all_chronics.py
+test_deepcpy.py
 
 # profiling files
 **.prof

@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import copy
 import numpy as np
 
 
@@ -130,3 +131,8 @@ class RandomObject(object):
             # in this case i have specific seed set. So i force the seed to be deterministic.
             self.space_prng.seed(seed=self.seed_used)
         return self.seed_used,
+
+    def _custom_deepcopy_for_copy(self, new_obj):
+        # RandomObject
+        new_obj.space_prng = copy.deepcopy(self.space_prng)
+        new_obj.seed_used = copy.deepcopy(self.seed_used)

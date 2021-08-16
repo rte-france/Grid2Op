@@ -214,6 +214,7 @@ class BackendConverter(Backend):
         else:
             self.n_shunt = 0
             self.name_shunt = np.empty(0, dtype=str)
+        self._thermal_limit_a = 1.0 * self.target_backend.thermal_limit_a
         self.set_thermal_limit(self.target_backend.thermal_limit_a[self._line_tg2sr])
 
     def _get_possible_target_ids(self, id_source, source_2_id_sub, target_2_id_sub, nm):

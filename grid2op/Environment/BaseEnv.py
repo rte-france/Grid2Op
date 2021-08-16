@@ -400,6 +400,181 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._is_alarm_used_in_reward = False
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
 
+    def _custom_deepcopy_for_copy(self, new_obj):
+        RandomObject._custom_deepcopy_for_copy(self, new_obj)
+
+        new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
+        new_obj._DEBUG = self._DEBUG
+        new_obj._parameters = copy.deepcopy(self._parameters)
+        new_obj.with_forecast = self.with_forecast
+
+        # some timers
+        new_obj._time_apply_act = self._time_apply_act
+        new_obj._time_powerflow = self._time_powerflow
+        new_obj._time_extract_obs = self._time_extract_obs
+        new_obj._time_opponent = self._time_opponent
+        new_obj._time_redisp = self._time_redisp
+        new_obj._time_step = self._time_step
+
+        # data relative to interpolation
+        new_obj._epsilon_poly = self._epsilon_poly
+        new_obj._tol_poly = self._tol_poly
+
+        # define logger
+        new_obj.logger = copy.deepcopy(self.logger)  # TODO does that make any sense ?
+
+        # class used for the action spaces
+        new_obj._helper_action_class = self._helper_action_class  #  const
+        new_obj._helper_observation_class = self._helper_observation_class
+
+        # and calendar data
+        new_obj.time_stamp = self.time_stamp
+        new_obj.nb_time_step = self.nb_time_step
+        new_obj.delta_time_seconds = self.delta_time_seconds
+
+        # observation
+        if self.current_obs is not None:
+            new_obj.current_obs = self.current_obs.copy()
+
+        # backend
+        # backend action
+        new_obj._backend_action_class = self._backend_action_class
+        new_obj._backend_action = copy.deepcopy(self._backend_action)
+
+        # specific to Basic Env, do not change
+        new_obj.backend = self.backend.copy()
+        if self._thermal_limit_a is not None:
+            new_obj.backend.set_thermal_limit(self._thermal_limit_a)
+        new_obj._thermal_limit_a = copy.deepcopy(self._thermal_limit_a)
+
+        new_obj.__is_init = self.__is_init
+        new_obj.debug_dispatch = self.debug_dispatch
+
+        new_obj._line_status = copy.deepcopy(self._line_status)
+
+        new_obj._ignore_min_up_down_times = self._ignore_min_up_down_times
+        new_obj._forbid_dispatch_off = self._forbid_dispatch_off
+
+        # type of power flow to play
+        # if True, then it will not disconnect lines above their thermal limits
+        new_obj._no_overflow_disconnection = self._no_overflow_disconnection
+        new_obj._timestep_overflow = copy.deepcopy(self._timestep_overflow)
+        new_obj._nb_timestep_overflow_allowed = copy.deepcopy(self._nb_timestep_overflow_allowed)
+        new_obj._hard_overflow_threshold = self._hard_overflow_threshold
+
+        # store actions "cooldown"
+        new_obj._times_before_line_status_actionable = copy.deepcopy(self._times_before_line_status_actionable)
+        new_obj._max_timestep_line_status_deactivated = self._max_timestep_line_status_deactivated
+        new_obj._times_before_topology_actionable = copy.deepcopy(self._times_before_topology_actionable)
+        new_obj._max_timestep_topology_deactivated = self._max_timestep_topology_deactivated
+        new_obj._nb_ts_reco = self._nb_ts_reco
+
+        # for maintenance operation
+        new_obj._time_next_maintenance = copy.deepcopy(self._time_next_maintenance)
+        new_obj._duration_next_maintenance = copy.deepcopy(self._duration_next_maintenance)
+
+        # hazard (not used outside of this class, information is given in `times_before_line_status_actionable`
+        new_obj._hazard_duration = copy.deepcopy(self._hazard_duration)
+
+        new_obj._env_dc = self._env_dc
+
+        # redispatching data
+        new_obj._target_dispatch = copy.deepcopy(self._target_dispatch)
+        new_obj._actual_dispatch = copy.deepcopy(self._actual_dispatch)
+        new_obj._gen_uptime = copy.deepcopy(self._gen_uptime)
+        new_obj._gen_downtime = copy.deepcopy(self._gen_downtime)
+        new_obj._gen_activeprod_t = copy.deepcopy(self._gen_activeprod_t)
+        new_obj._gen_activeprod_t_redisp = copy.deepcopy(self._gen_activeprod_t_redisp)
+
+        new_obj._disc_lines = copy.deepcopy(self._disc_lines)
+
+        # store environment modifications
+        new_obj._injection = copy.deepcopy(self._injection)
+        new_obj._maintenance = copy.deepcopy(self._maintenance)
+        new_obj._hazards = copy.deepcopy(self._hazards)
+        new_obj._env_modification = copy.deepcopy(self._env_modification)
+
+        # to use the data
+        new_obj.done = self.done
+        new_obj.current_reward = copy.deepcopy(self.current_reward)
+        new_obj.chronics_handler = copy.deepcopy(self.chronics_handler)
+        new_obj._game_rules = copy.deepcopy(self._game_rules)
+        new_obj._helper_action_env = copy.deepcopy(self._helper_action_env)  # TODO cpy
+        new_obj._action_space = copy.deepcopy(self._action_space)  # TODO cpy
+
+        new_obj._rewardClass = self._rewardClass
+        new_obj._actionClass = self._actionClass
+        new_obj._observationClass = self._observationClass
+        new_obj._legalActClass = self._legalActClass
+        new_obj._observation_space = self._observation_space.copy()
+        new_obj._names_chronics_to_backend = self._names_chronics_to_backend
+        new_obj._reward_helper = copy.deepcopy(self._reward_helper)
+
+        # gym compatibility
+        new_obj.reward_range = copy.deepcopy(self.reward_range)
+        new_obj.viewer = copy.deepcopy(self.viewer)
+        new_obj.viewer_fig = copy.deepcopy(self.viewer_fig)
+
+        # other rewards
+        new_obj.other_rewards = copy.deepcopy(self.other_rewards)
+
+        # opponent
+        new_obj._opponent_action_class = self._opponent_action_class  # const
+        new_obj._opponent_class = self._opponent_class  # const
+        new_obj._opponent_init_budget = self._opponent_init_budget
+        new_obj._opponent_attack_duration = self._opponent_attack_duration
+        new_obj._opponent_attack_cooldown = self._opponent_attack_cooldown
+        new_obj._opponent_budget_per_ts = self._opponent_budget_per_ts
+        new_obj._kwargs_opponent = copy.deepcopy(self._kwargs_opponent)
+        new_obj._opponent_budget_class = self._opponent_budget_class  # const
+        new_obj._opponent_action_space = self._opponent_action_space  # const
+        new_obj._compute_opp_budget = copy.deepcopy(self._compute_opp_budget)
+
+        # init the opponent
+        new_obj._opponent = new_obj._opponent_class.__new__(new_obj._opponent_class)
+        self._opponent._custom_deepcopy_for_copy(new_obj._opponent)
+
+        new_obj._oppSpace = OpponentSpace(compute_budget=new_obj._compute_opp_budget,
+                                          init_budget=new_obj._opponent_init_budget,
+                                          attack_duration=new_obj._opponent_attack_duration,
+                                          attack_cooldown=new_obj._opponent_attack_cooldown,
+                                          budget_per_timestep=new_obj._opponent_budget_per_ts,
+                                          opponent=new_obj._opponent
+                                          )
+        new_obj._oppSpace.init_opponent(partial_env=new_obj, **new_obj._kwargs_opponent)
+        new_obj._oppSpace.reset()
+
+        # voltage
+        new_obj._voltagecontrolerClass = self._voltagecontrolerClass
+        new_obj._voltage_controler = self._voltage_controler.copy()
+
+        # to change the parameters
+        new_obj.__new_param = copy.deepcopy(self.__new_param)
+        new_obj.__new_forecast_param = copy.deepcopy(self.__new_forecast_param)
+        new_obj.__new_reward_func = copy.deepcopy(self.__new_reward_func)
+
+        # storage units
+        new_obj._storage_current_charge = copy.deepcopy(self._storage_current_charge)
+        new_obj._storage_previous_charge = copy.deepcopy(self._storage_previous_charge)
+        new_obj._action_storage = copy.deepcopy(self._action_storage)
+        new_obj._amount_storage = copy.deepcopy(self._amount_storage)
+        new_obj._amount_storage_prev = copy.deepcopy(self._amount_storage_prev)
+        new_obj._storage_power = copy.deepcopy(self._storage_power)
+
+        # curtailment
+        new_obj._limit_curtailment = copy.deepcopy(self._limit_curtailment)
+        new_obj._gen_before_curtailment = copy.deepcopy(self._gen_before_curtailment)
+        new_obj._sum_curtailment_mw = copy.deepcopy(self._sum_curtailment_mw)
+        new_obj._sum_curtailment_mw_prev = copy.deepcopy(self._sum_curtailment_mw_prev)
+
+        # attention budget
+        new_obj._has_attention_budget = self._has_attention_budget
+        new_obj._attention_budget = copy.deepcopy(self._has_attention_budget)
+        new_obj._attention_budget_cls = self._attention_budget_cls  # const
+        new_obj._is_alarm_illegal = copy.deepcopy(self._is_alarm_illegal)
+        new_obj._is_alarm_used_in_reward = copy.deepcopy(self._is_alarm_used_in_reward)
+        new_obj._kwargs_attention_budget = copy.deepcopy(self._kwargs_attention_budget)
+
     def get_path_env(self):
         """
         Get the path that allows to create this environment.

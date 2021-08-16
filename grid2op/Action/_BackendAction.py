@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import copy
 import numpy as np
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
@@ -170,6 +171,22 @@ class ValueStore:
         self.changed[:] = ref.changed[index]
         self.values[:] = ref.values[index]
 
+    def __copy__(self):
+        res = type(self)(self.values.shape[0], self.values.dtype.type)
+        res.values[:] = self.values
+        res.changed[:] = self.changed
+        res.last_index = self.last_index
+        res.__size = self.__size
+        return res
+
+    def __deepcopy__(self, memodict={}):
+        res = type(self)(self.values.shape[0], self.values.dtype.type)
+        res.values[:] = self.values
+        res.changed[:] = self.changed
+        res.last_index = self.last_index
+        res.__size = self.__size
+        return res
+
 
 class _BackendAction(GridObjects):
     """
@@ -214,6 +231,64 @@ class _BackendAction(GridObjects):
         self._lines_or_bus = None
         self._lines_ex_bus = None
         self._storage_bus = None
+
+    def __deepcopy__(self, memodict={}):
+        res = type(self)()
+        # last connected registered
+        res.last_topo_registered = copy.deepcopy(self.last_topo_registered)
+        res.current_topo = copy.deepcopy(self.current_topo)
+        res.prod_p = copy.deepcopy(self.prod_p)
+        res.prod_v = copy.deepcopy(self.prod_v)
+        res.load_p = copy.deepcopy(self.load_p)
+        res.load_q = copy.deepcopy(self.load_q)
+        res.storage_power = copy.deepcopy(self.storage_power)
+        res.activated_bus[:] = self.activated_bus
+        res.big_topo_to_subid[:] = self.big_topo_to_subid
+        if self.shunts_data_available:
+            res.shunt_p = copy.deepcopy(self.shunt_p)
+            res.shunt_q = copy.deepcopy(self.shunt_q)
+            res.shunt_bus = copy.deepcopy(self.shunt_bus)
+
+        res._status_or_before[:] = self._status_or_before
+        res._status_ex_before[:] = self._status_ex_before
+        res._status_or[:] = self._status_or
+        res._status_ex[:] = self._status_ex
+
+        res._loads_bus = copy.deepcopy(self._loads_bus)
+        res._gens_bus = copy.deepcopy(self._gens_bus)
+        res._lines_or_bus = copy.deepcopy(self._lines_or_bus)
+        res._lines_ex_bus = copy.deepcopy(self._lines_ex_bus)
+        res._storage_bus = copy.deepcopy(self._storage_bus)
+        return res
+
+    def __copy__(self):
+        res = type(self)()
+        # last connected registered
+        res.last_topo_registered = copy.copy(self.last_topo_registered)
+        res.current_topo = copy.copy(self.current_topo)
+        res.prod_p = copy.copy(self.prod_p)
+        res.prod_v = copy.copy(self.prod_v)
+        res.load_p = copy.copy(self.load_p)
+        res.load_q = copy.copy(self.load_q)
+        res.storage_power = copy.copy(self.storage_power)
+        res.activated_bus[:] = self.activated_bus
+        res.big_topo_to_subid[:] = self.big_topo_to_subid
+        if self.shunts_data_available:
+            res.shunt_p = copy.copy(self.shunt_p)
+            res.shunt_q = copy.copy(self.shunt_q)
+            res.shunt_bus = copy.copy(self.shunt_bus)
+
+        res._status_or_before[:] = self._status_or_before
+        res._status_ex_before[:] = self._status_ex_before
+        res._status_or[:] = self._status_or
+        res._status_ex[:] = self._status_ex
+
+        res._loads_bus = copy.copy(self._loads_bus)
+        res._gens_bus = copy.copy(self._gens_bus)
+        res._lines_or_bus = copy.copy(self._lines_or_bus)
+        res._lines_ex_bus = copy.copy(self._lines_ex_bus)
+        res._storage_bus = copy.copy(self._storage_bus)
+        return res
 
     def reorder(self, no_load, no_gen, no_topo, no_storage, no_shunt):
         """

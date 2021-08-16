@@ -177,6 +177,7 @@ class Environment(BaseEnv):
             warnings.warn(f"No layout have been found for you grid (or the layout provided was corrupted). You will "
                           f"not be able to use the renderer, plot the grid etc. The error was \"{exc_}\"")
         self.backend.is_loaded = True
+        # self.storage_pos_topo_vect = self.backend.
 
         # alarm set up
         self.load_alarm_data()
@@ -260,7 +261,7 @@ class Environment(BaseEnv):
         self.chronics_handler.initialize(self.name_load, self.name_gen,
                                          self.name_line, self.name_sub,
                                          names_chronics_to_backend=names_chronics_to_backend)
-        self.names_chronics_to_backend = names_chronics_to_backend
+        self._names_chronics_to_backend = names_chronics_to_backend
 
         # this needs to be done after the chronics handler: rewards might need information
         # about the chronics to work properly.
@@ -731,7 +732,7 @@ class Environment(BaseEnv):
         self.chronics_handler.next_chronics()
         self.chronics_handler.initialize(self.backend.name_load, self.backend.name_gen,
                                          self.backend.name_line, self.backend.name_sub,
-                                         names_chronics_to_backend=self.names_chronics_to_backend)
+                                         names_chronics_to_backend=self._names_chronics_to_backend)
         self._env_modification = None
         self._reset_maintenance()
         self._reset_redispatching()
@@ -809,6 +810,18 @@ class Environment(BaseEnv):
         # Return the figure in case it needs to be saved/used
         return self.viewer_fig
 
+    def _custom_deepcopy_for_copy(self, new_obj):
+        super()._custom_deepcopy_for_copy(new_obj)
+
+        new_obj.name = self.name
+        new_obj.metadata = copy.deepcopy(self.metadata)
+        new_obj.spec = copy.deepcopy(self.spec)
+
+        new_obj._raw_backend_class = self._raw_backend_class
+        new_obj._compat_glop_version = self._compat_glop_version
+        new_obj._actionClass_orig = self._actionClass_orig
+        new_obj._observationClass_orig = self._observationClass_orig
+
     def copy(self):
         """
         Performs a deep copy of the environment
@@ -827,32 +840,12 @@ class Environment(BaseEnv):
 
 
         """
-        tmp_backend = self.backend
-        self.backend = None
-
-        tmp_obs_space = self._observation_space
-        self._observation_space = None
-
-        obs_tmp = self.current_obs
-        self.current_obs = None
-
-        volt_cont = self._voltage_controler
-        self._voltage_controler = None
-
-        res = copy.deepcopy(self)
-
-        res.backend = tmp_backend.copy()
-        res._observation_space = tmp_obs_space.copy()
-        res.current_obs = obs_tmp.copy()
-        res.current_obs._obs_env = res._observation_space.obs_env  # retrieve the pointer to the proper backend
-        res._voltage_controler = volt_cont.copy()
-
-        if self._thermal_limit_a is not None:
-            res.backend.set_thermal_limit(self._thermal_limit_a)
-        self.backend = tmp_backend
-        self._observation_space = tmp_obs_space
-        self.current_obs = obs_tmp
-        self._voltage_controler = volt_cont
+        # res = copy.deepcopy(self) # painfully slow...
+        # create an empty "me"
+        my_cls = type(self)
+        res = my_cls.__new__(my_cls)
+        # fill its attribute
+        self._custom_deepcopy_for_copy(res)
         return res
 
     def get_kwargs(self, with_backend=True):
@@ -897,7 +890,7 @@ class Environment(BaseEnv):
             res["backend"] = self.backend.copy()
             res["backend"]._is_loaded = False  # i can reload a copy of an environment
         res["parameters"] = copy.deepcopy(self._parameters)
-        res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
+        res["names_chronics_to_backend"] = copy.deepcopy(self._names_chronics_to_backend)
         res["actionClass"] = self._actionClass_orig
         res["observationClass"] = self._observationClass_orig
         res["rewardClass"] = self._rewardClass
@@ -1216,7 +1209,7 @@ class Environment(BaseEnv):
         res["init_grid_path"] = self._init_grid_path
         res["path_chron"] = self.chronics_handler.path
         res["parameters_path"] = self._parameters.to_dict()
-        res["names_chronics_to_backend"] = self.names_chronics_to_backend
+        res["names_chronics_to_backend"] = self._names_chronics_to_backend
         res["actionClass"] = self._actionClass_orig
         res["observationClass"] = self._observationClass_orig
         res["rewardClass"] = self._rewardClass
