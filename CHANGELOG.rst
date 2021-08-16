@@ -23,6 +23,12 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.6.3] - 2021-xx-yy
+--------------------
+- [IMPROVED] the PandaPowerBackend is now able to load a grid with a distributed slack bus. When loaded though, the
+  said grid will be converted to one with a single slack bus (the first slack among the distributed)
+- [IMPROVED] massive speed-ups when copying environment or using `obs.simulate` (sometimes higher than 30x speed up)
+
 [1.6.2] - 2021-07-27
 ---------------------
 - [ADDED] the complete support for pickling grid2op classes. This is a major feature that allows to use grid2op

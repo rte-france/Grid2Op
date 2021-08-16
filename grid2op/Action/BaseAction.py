@@ -772,6 +772,10 @@ class BaseAction(GridObjects):
 
         return True
 
+    def _dont_affect_topology(self):
+        return (not self._modif_set_bus) and (not self._modif_change_bus) and \
+               (not self._modif_set_status) and (not self._modif_change_status)
+
     def get_topological_impact(self, powerline_status=None):
         """
         Gives information about the element being impacted by this action.
@@ -829,6 +833,13 @@ class BaseAction(GridObjects):
 
             print(action)
         """
+        if self._dont_affect_topology():
+            # action is not impacting the topology
+            # so it does not modified anything concerning the topology
+            self._lines_impacted = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
+            self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
+            return self._lines_impacted, self._subs_impacted
+
         if powerline_status is None:
             isnotconnected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
         else:

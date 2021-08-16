@@ -569,7 +569,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # attention budget
         new_obj._has_attention_budget = self._has_attention_budget
-        new_obj._attention_budget = copy.deepcopy(self._has_attention_budget)
+        new_obj._attention_budget = copy.deepcopy(self._attention_budget)
         new_obj._attention_budget_cls = self._attention_budget_cls  # const
         new_obj._is_alarm_illegal = copy.deepcopy(self._is_alarm_illegal)
         new_obj._is_alarm_used_in_reward = copy.deepcopy(self._is_alarm_used_in_reward)

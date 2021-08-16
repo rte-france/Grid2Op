@@ -310,25 +310,33 @@ class PandaPowerBackend(Backend):
             # there are not defined slack bus on the data, i need to hack it up a little bit
             pd2ppc = self._grid._pd2ppc_lookups["bus"]  # pd2ppc[pd_id] = ppc_id
             ppc2pd = np.argsort(pd2ppc)  # ppc2pd[ppc_id] = pd_id
-            for i, el in enumerate(self._grid._ppc['gen'][:, 0]):
+            for gen_id_pp, el in enumerate(self._grid._ppc['gen'][:, 0]):
                 if int(el) not in self._grid._pd2ppc_lookups["bus"][self._grid.gen["bus"].values]:
                     if bus_gen_added is not None:
-                        raise RuntimeError("Impossible to recognize the powergrid")
+                        # TODO handle better when distributed slack bus
+                        # raise RuntimeError("Impossible to recognize the powergrid")
+                        warnings.warn("Your grid has a distributed slack bus. Just so you know, it is not"
+                                      "fully supported at the moment. (it will be converted to a single slack bus)")
+
                     bus_gen_added = ppc2pd[int(el)]
-                    i_ref = i
-                    break
-            self._iref_slack = i_ref
-            self._id_bus_added = self._grid.gen.shape[0]
-            # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
-            pp.create_gen(self._grid, bus_gen_added,
-                          p_mw=self._grid._ppc['gen'][i_ref, 1],
-                          vm_pu=self._grid._ppc['gen'][i_ref, 5],
-                          min_p_mw=self._grid._ppc['gen'][i_ref, 9],
-                          max_p_mw=self._grid._ppc['gen'][i_ref, 8],
-                          max_q_mvar=self._grid._ppc['gen'][i_ref, 3],
-                          min_q_mvar=self._grid._ppc['gen'][i_ref, 4],
-                          slack=True,
-                          controllable=True)
+                    # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
+                    id_added = pp.create_gen(self._grid,
+                                             bus_gen_added,
+                                             p_mw=self._grid._ppc['gen'][gen_id_pp, 1],
+                                             vm_pu=self._grid._ppc['gen'][gen_id_pp, 5],
+                                             min_p_mw=self._grid._ppc['gen'][gen_id_pp, 9],
+                                             max_p_mw=self._grid._ppc['gen'][gen_id_pp, 8],
+                                             max_q_mvar=self._grid._ppc['gen'][gen_id_pp, 3],
+                                             min_q_mvar=self._grid._ppc['gen'][gen_id_pp, 4],
+                                             slack=i_ref is None,
+                                             controllable=True)
+
+                    if i_ref is None:
+                        i_ref = gen_id_pp
+                        self._iref_slack = i_ref
+                        self._id_bus_added = id_added  # self._grid.gen.shape[0]
+                        # TODO here i force the distributed slack bus too, by removing the other from the ext_grid...
+                        self._grid.ext_grid = self._grid.ext_grid.iloc[:1]
         else:
             self.slack_id = np.where(self._grid.gen["slack"])[0]
 

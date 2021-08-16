@@ -253,7 +253,8 @@ class ObservationSpace(SerializableObservationSpace):
         # performs the copy
         # res = copy.deepcopy(self)  # painfully slow...
         # create an empty "me"
-        res = ObservationSpace.__new__(ObservationSpace)
+        my_cls = type(self)
+        res = my_cls.__new__(my_cls)
         self._custom_deepcopy_for_copy(res)
 
         res._backend_obs = backend
