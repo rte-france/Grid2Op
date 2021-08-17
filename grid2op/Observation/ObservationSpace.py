@@ -110,7 +110,8 @@ class ObservationSpace(SerializableObservationSpace):
                                      has_attention_budget=env._has_attention_budget,
                                      attention_budget_cls=env._attention_budget_cls,
                                      kwargs_attention_budget=env._kwargs_attention_budget,
-                                     max_episode_duration=env.max_episode_duration()
+                                     max_episode_duration=env.max_episode_duration(),
+                                     _complete_action_cls=env._complete_action_cls,
                                      )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)

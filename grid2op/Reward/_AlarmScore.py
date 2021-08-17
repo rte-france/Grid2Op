@@ -13,6 +13,7 @@ from grid2op.Reward import AlarmReward
 from grid2op.dtypes import dt_float
 import copy
 
+
 class _AlarmScore(AlarmReward):
     """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -33,6 +34,7 @@ class _AlarmScore(AlarmReward):
     - if no alarm has been raised, then -2.0 is return
     - points for pointing to the right zones are computed based on the lines disconnected either in a short window
     before game over or otherwise at the time of game over
+
     Examples
     ---------
     You can use this reward in any environment with:
@@ -56,19 +58,19 @@ class _AlarmScore(AlarmReward):
         # required if you want to design a custom reward taking into account the
         # alarm feature
         self.reward_min = dt_float(-2.)
-        #we keep other parameters values from AlarmReward as is
 
         self.mult_for_right_zone = 1.5
         self.window_disconnection = 4
 
         self.disc_lines_all_before_cascade = []
+        self.n_line = None
 
     def initialize(self, env):
         if not env._has_attention_budget:
             raise Grid2OpException("Impossible to use the \"AlarmReward\" with an environment for which this feature "
                                    "is disabled. Please make sure \"env._has_attention_budget\" is set to ``True`` or "
                                    "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`")
-        self.n_line=env.n_line
+        self.n_line = env.n_line
         self.reset(env)
 
     def reset(self, env):
@@ -86,20 +88,23 @@ class _AlarmScore(AlarmReward):
         :return:
         """
 
-        disc_lines_to_consider_for_score = np.zeros(self.n_line,dtype=bool)
+        disc_lines_to_consider_for_score = np.zeros(self.n_line, dtype=bool)
 
         nb_obs = len(self.disc_lines_all_before_cascade)
 
         for t in range(nb_obs - self.window_disconnection, nb_obs):
-            disc_lines_to_consider_for_score[self.disc_lines_all_before_cascade[t] >= 0]=True
+            try:
+                disc_lines_to_consider_for_score[self.disc_lines_all_before_cascade[t] >= 0] = True
+            except IndexError as exc_:
+                raise exc_
 
-        if (np.sum(disc_lines_to_consider_for_score) == 0):
-            disc_lines_to_consider_for_score = disc_lines_at_cascading_time==0
+        if np.sum(disc_lines_to_consider_for_score) == 0:
+            disc_lines_to_consider_for_score = disc_lines_at_cascading_time == 0
 
-        #if we are there, it is because we have identified before that the failure is due to disconnected powerlines
+        # if we are there, it is because we have identified before that the failure is due to disconnected powerlines
         assert(np.any(disc_lines_to_consider_for_score))
 
-        #we transform the vector so that diconnected lines have a zero, to be coherent with env._disc_lines
+        # we transform the vector so that diconnected lines have a zero, to be coherent with env._disc_lines
         return 1-disc_lines_to_consider_for_score
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):

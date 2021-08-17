@@ -90,6 +90,7 @@ class Environment(BaseEnv):
                  has_attention_budget=False,
                  _raw_backend_class=None,
                  _compat_glop_version=None,
+                 _read_from_local_dir=True,  # TODO runner and all here !
                  ):
         BaseEnv.__init__(self,
                          init_grid_path=init_grid_path,
@@ -116,6 +117,7 @@ class Environment(BaseEnv):
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name...")
         self.name = name
+        self._read_from_local_dir = _read_from_local_dir
 
         # for gym compatibility (initialized below)
         # self.action_space = None
@@ -166,6 +168,11 @@ class Environment(BaseEnv):
         if self.backend.is_loaded:
             raise EnvError("Impossible to use the same backend twice. Please create your environment with a "
                            "new backend instance.")
+
+        if self._read_from_local_dir:
+            # test to support pickle conveniently
+            self.backend._PATH_ENV = self.get_path_env()
+
         # all the above should be done in this exact order, otherwise some weird behaviour might occur
         # this is due to the class attribute
         self.backend.set_env_name(self.name)
@@ -177,7 +184,6 @@ class Environment(BaseEnv):
             warnings.warn(f"No layout have been found for you grid (or the layout provided was corrupted). You will "
                           f"not be able to use the renderer, plot the grid etc. The error was \"{exc_}\"")
         self.backend.is_loaded = True
-        # self.storage_pos_topo_vect = self.backend.
 
         # alarm set up
         self.load_alarm_data()
@@ -814,6 +820,7 @@ class Environment(BaseEnv):
         super()._custom_deepcopy_for_copy(new_obj)
 
         new_obj.name = self.name
+        new_obj._read_from_local_dir = self._read_from_local_dir
         new_obj.metadata = copy.deepcopy(self.metadata)
         new_obj.spec = copy.deepcopy(self.spec)
 
@@ -821,6 +828,7 @@ class Environment(BaseEnv):
         new_obj._compat_glop_version = self._compat_glop_version
         new_obj._actionClass_orig = self._actionClass_orig
         new_obj._observationClass_orig = self._observationClass_orig
+
 
     def copy(self):
         """
@@ -916,6 +924,7 @@ class Environment(BaseEnv):
         res["attention_budget_cls"] = self._attention_budget_cls
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
+        res["_read_from_local_dir"] = self._read_from_local_dir
         return res
 
     def _chronics_folder_name(self):
@@ -1243,4 +1252,5 @@ class Environment(BaseEnv):
         res["attention_budget_cls"] = self._attention_budget_cls
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
+        res["_read_from_local_dir"] = self._read_from_local_dir
         return res

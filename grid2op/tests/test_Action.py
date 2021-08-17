@@ -94,6 +94,7 @@ def _get_action_grid_class():
 
     GridObjects._topo_vect_to_sub = np.repeat(np.arange(GridObjects.n_sub), repeats=GridObjects.sub_info)
     GridObjects.glop_version = grid2op.__version__
+    GridObjects._PATH_ENV = None
 
     json_ = {
         'glop_version': grid2op.__version__,
@@ -165,6 +166,7 @@ def _get_action_grid_class():
         "alarms_area_names": [],
         "alarms_lines_area": {},
         "alarms_area_lines": [],
+        "_PATH_ENV": None
     }
     GridObjects.shunts_data_available = False
     my_cls = GridObjects.init_grid(GridObjects, force=True)

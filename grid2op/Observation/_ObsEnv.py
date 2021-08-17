@@ -49,7 +49,7 @@ class _ObsEnv(BaseEnv):
                  backend_instanciated,
                  parameters,
                  reward_helper,
-                 obsClass,
+                 obsClass,  # not initialized :-/
                  action_helper,
                  thermal_limit_a,
                  legalActClass,
@@ -62,6 +62,7 @@ class _ObsEnv(BaseEnv):
                  has_attention_budget=False,
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
+                 _complete_action_cls=None,
                  ):
         BaseEnv.__init__(self,
                          init_grid_path,
@@ -73,8 +74,8 @@ class _ObsEnv(BaseEnv):
                          has_attention_budget=has_attention_budget,
                          attention_budget_cls=attention_budget_cls,
                          kwargs_attention_budget=kwargs_attention_budget)
-        self._helper_action_class = helper_action_class
         self._reward_helper = reward_helper
+        self._helper_action_class = helper_action_class
 
         # initialize the observation space
         self._obsClass = None
@@ -95,6 +96,16 @@ class _ObsEnv(BaseEnv):
                            observationClass=obsClass,
                            rewardClass=None,
                            legalActClass=legalActClass)
+
+        ####
+        # to be able to save and import (using env.generate_classes) correctly
+        self._actionClass = action_helper.subtype
+        self._observationClass = _complete_action_cls  # not used anyway
+        self._complete_action_cls = _complete_action_cls
+        self._action_space = action_helper  # obs env and env share the same action space
+        self._observation_space = action_helper  # not used here, so it's definitely a hack !
+        ####
+
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
 
         self._load_p, self._load_q, self._load_v = None, None, None
@@ -171,7 +182,7 @@ class _ObsEnv(BaseEnv):
                     type(legalActClass)))
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._legalActClass = legalActClass
-        self._action_space = self._do_nothing
+        # self._action_space = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
 
         # create the opponent
