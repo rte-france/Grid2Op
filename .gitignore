@@ -331,7 +331,7 @@ test_cls_str_generate.py
 test_import_gen_cls_str.py
 test_rllib_vincevaki2.py
 test_cls_str_import.py
-
+bug_icaps_2021
 
 # profiling files
 **.prof
