@@ -301,7 +301,7 @@ def make(dataset="rte_case14_realistic",
         return make_from_path_fn(dataset_path=dataset,
                                  _add_to_name=_add_to_name_tmp,
                                  _compat_glop_version=_compat_glop_version_tmp,
-                                 experimental_read_from_local_dir=experimental_read_from_local_dir
+                                 experimental_read_from_local_dir=experimental_read_from_local_dir,
                                  **kwargs)
 
     # Not a path: get the dataset name and cache path
