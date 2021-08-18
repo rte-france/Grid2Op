@@ -194,11 +194,10 @@ class TestActionBase(ABC):
         self.gridobj = GridObjects_cls()
         self.n_line = self.gridobj.n_line
 
-        self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
-        # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
+        self.ActionSpaceClass = ActionSpace.init_grid(GridObjects_cls)
         act_cls = self._action_setup()
-        act_cls = act_cls.init_grid(self.gridobj)
-        self.helper_action = self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
+        self.helper_action = self.ActionSpaceClass(GridObjects_cls,
+                                                   legal_action=self.game_rules.legal_action,
                                                    actionClass=act_cls)
         self.helper_action.seed(42)
         # save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
@@ -800,7 +799,7 @@ class TestActionBase(ABC):
         """test from vect also work with storage action"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            action1 = self.helper_action({"storage_power": [(0, -7.42)]})
+            action1 = self.helper_action({"set_storage": [(0, -7.42)]})
         action2 = self.helper_action({})
 
         vect_act1 = action1.to_vect()
