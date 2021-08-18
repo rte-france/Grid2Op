@@ -75,9 +75,10 @@ class _ObsEnv(BaseEnv):
                          kwargs_attention_budget=kwargs_attention_budget)
         self._helper_action_class = helper_action_class
         self._reward_helper = reward_helper
-        self._obsClass = None
-        self._obsClass = obsClass.init_grid(type(backend_instanciated))
 
+        # initialize the observation space
+        self._obsClass = None
+        
         self.gen_activeprod_t_init = np.zeros(self.n_gen, dtype=dt_float)
         self.gen_activeprod_t_redisp_init = np.zeros(self.n_gen, dtype=dt_float)
         self.times_before_line_status_actionable_init = np.zeros(self.n_line, dtype=dt_int)
@@ -91,7 +92,7 @@ class _ObsEnv(BaseEnv):
                            backend=backend_instanciated,
                            names_chronics_to_backend=None,
                            actionClass=action_helper.actionClass,
-                           observationClass=self._obsClass,
+                           observationClass=obsClass,
                            rewardClass=None,
                            legalActClass=legalActClass)
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
@@ -155,7 +156,7 @@ class _ObsEnv(BaseEnv):
                       backend,
                       names_chronics_to_backend,
                       actionClass,
-                      observationClass,
+                      observationClass,  # base grid2op type
                       rewardClass,
                       legalActClass):
         self._env_dc = self.parameters.ENV_DC
@@ -178,7 +179,8 @@ class _ObsEnv(BaseEnv):
 
         # create the attention budget
         self._create_attention_budget()
-
+        self._obsClass = observationClass.init_grid(type(self.backend))
+        self._obsClass._INIT_GRID_CLS = observationClass
         self.current_obs_init = self._obsClass(seed=None,
                                                obs_env=None,
                                                action_helper=None)

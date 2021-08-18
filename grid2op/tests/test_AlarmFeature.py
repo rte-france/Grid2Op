@@ -15,7 +15,7 @@ from grid2op.tests.helper_path_test import *
 
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op import make
-from grid2op.Reward import RedispReward
+from grid2op.Reward import RedispReward, _AlarmScore
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Runner import Runner
 from grid2op.Environment import Environment
@@ -435,6 +435,35 @@ class TestAlarmFeature(unittest.TestCase):
         assert obs.attention_budget == 3
         obs, reward, done, info = env2.step(env2.action_space())
         assert obs.attention_budget == 3 + 1. / (12. * 8.)
+
+    def test_simulate(self):
+        """issue reported during icaps 2021"""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_icaps_2021", test=True, reward_class=_AlarmScore)
+        env.set_thermal_limit([ 20 ,  70  ,  36.049267 ,  43.361996 , 407.20905  ,
+        42.96296  ,  23.125486 ,   7.005345 ,  61.224003 ,  18.283638 ,
+        20.992632 ,  89.384026 , 117.01148  ,  62.883495 ,  44.568665 ,
+        29.756845 ,  14.604381 ,  28.99635  , 124.59952  , 124.59952  ,
+        38.46957  ,  48.00529  , 112.23501  , 139.56854  ,  57.25149  ,
+        35.785202 ,  31.468952 ,  98.922386 ,  97.78254  ,  10.58541  ,
+         7.2501163,  34.89438  ,  66.21333  ,  89.454895 ,  40.088715 ,
+        59.50673  ,  54.07072  ,  47.005745 ,  49.29639  ,  60.19898  ,
+        98.318146 , 110.93459  , 178.60854  ,  48.504723 ,   9.022086 ,
+       197.42432  , 174.3434   , 295.6653   , 149.95523  , 149.95523  ,
+        50.128273 ,  31.93147  ,  74.32939  ,  54.26264  ,  41.730865 ,
+       238.96637  , 197.42432  , 113.98372  , 413.98587  ])
+        _ = env.reset()
+        # it crashed
+        obs, *_ = env.step(env.action_space())
+        obs, *_ = env.step(env.action_space())
+        alarm_act = env.action_space()
+        alarm_act.raise_alarm = [0]
+        obs, reward, done, info = env.step(alarm_act)
+        assert not done
+        # next step there is a game over due to
+        sim_obs, sim_r, sim_done, sim_info = obs.simulate(env.action_space())
+        assert sim_done
 
 
 if __name__ == "__main__":

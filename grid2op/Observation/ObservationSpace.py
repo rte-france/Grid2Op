@@ -74,7 +74,6 @@ class ObservationSpace(SerializableObservationSpace):
             actionClass = CompleteAction
 
         SerializableObservationSpace.__init__(self, gridobj, observationClass=observationClass)
-
         self.with_forecast = with_forecast
         self._simulate_parameters = copy.deepcopy(env.parameters)
 
@@ -90,9 +89,10 @@ class ObservationSpace(SerializableObservationSpace):
 
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
 
-        # TODO here: have another backend maybe
+        # TODO here: have another backend class maybe
         self._backend_obs = env.backend.copy()
         _ObsEnv_class = _ObsEnv.init_grid(type(env.backend), force_module=_ObsEnv.__module__)
+        _ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
         setattr(sys.modules[_ObsEnv.__module__], _ObsEnv_class.__name__, _ObsEnv_class)
         self.obs_env = _ObsEnv_class(init_grid_path=None,  # don't leak the path of the real grid to the observation space
                                      backend_instanciated=self._backend_obs,

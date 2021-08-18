@@ -21,13 +21,17 @@ class TestLoadingVoltageControl(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case5_example", test=True) as env:
-                volt_cont = ControlVoltageFromFile(controler_backend=env.backend, gridobj=env.backend)
+                volt_cont = ControlVoltageFromFile(controler_backend=env.backend,
+                                                   gridobj=env.backend,
+                                                   actionSpace_cls=env._helper_action_class)
 
     def test_copy(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case5_example", test=True) as env:
-                volt_cont = ControlVoltageFromFile(controler_backend=env.backend, gridobj=env.backend)
+                volt_cont = ControlVoltageFromFile(controler_backend=env.backend,
+                                                   gridobj=env.backend,
+                                                   actionSpace_cls=env._helper_action_class)
 
                 res = volt_cont.copy()
                 assert isinstance(res, ControlVoltageFromFile)

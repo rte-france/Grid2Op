@@ -194,11 +194,10 @@ class TestActionBase(ABC):
         self.gridobj = GridObjects_cls()
         self.n_line = self.gridobj.n_line
 
-        self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
-        # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
+        self.ActionSpaceClass = ActionSpace.init_grid(GridObjects_cls)
         act_cls = self._action_setup()
-        act_cls = act_cls.init_grid(self.gridobj)
-        self.helper_action = self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
+        self.helper_action = self.ActionSpaceClass(GridObjects_cls,
+                                                   legal_action=self.game_rules.legal_action,
                                                    actionClass=act_cls)
         self.helper_action.seed(42)
         # save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
@@ -800,7 +799,7 @@ class TestActionBase(ABC):
         """test from vect also work with storage action"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            action1 = self.helper_action({"storage_power": [(0, -7.42)]})
+            action1 = self.helper_action({"set_storage": [(0, -7.42)]})
         action2 = self.helper_action({})
 
         vect_act1 = action1.to_vect()
@@ -1413,9 +1412,11 @@ class TestIADD:
         act1_init = self.aux_get_act(self.action_space_1)
         act1 = copy.deepcopy(act1_init)
         act2 = self.aux_get_act(self.action_space_2)
+        list_2 = copy.deepcopy(act2.attr_list_set)
+        list_1 = copy.deepcopy(act1.attr_list_set)
         with warnings.catch_warnings():
             warnings.filterwarnings("error")
-            if act2.attr_list_set - act1.attr_list_set:
+            if len(list_2 - list_1):
                 # it should raise a warning if i attempt to set an attribute it's not supposed to
                 with self.assertWarns(UserWarning):
                     res = act1 + act2
