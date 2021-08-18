@@ -1452,7 +1452,6 @@ class Backend(GridObjects, ABC):
                 q_s[bus_s == -1] = np.NaN
                 dict_["shunt"]["shunt_p"] = p_s
                 dict_["shunt"]["shunt_q"] = q_s
-
         set_me.update(dict_)
         return set_me
 
@@ -1547,6 +1546,8 @@ class Backend(GridObjects, ABC):
         my_cls = type(self)
         my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls)
         my_cls._complete_action_class = CompleteAction.init_grid(my_cls)
+        my_cls._complete_action_class._add_shunt_data()
+        my_cls._complete_action_class._update_value_set()
         my_cls.assert_grid_correct_cls()
 
     def assert_grid_correct_after_powerflow(self):
