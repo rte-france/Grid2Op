@@ -78,7 +78,7 @@ if __name__ == "__main__":
             "Please modify \"--version\" argument".format(
                 version))
 
-    if False:
+    if True:
         # setup.py
         setup_path = os.path.join(path, "setup.py")
         if not os.path.exists(setup_path):
