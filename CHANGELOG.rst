@@ -23,6 +23,15 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.6.3] - 2021-xx-yy
+--------------------
+- [IMPROVED] the PandaPowerBackend is now able to load a grid with a distributed slack bus. When loaded though, the
+  said grid will be converted to one with a single slack bus (the first slack among the distributed)
+- [IMPROVED] massive speed-ups when copying environment or using `obs.simulate` (sometimes higher than 30x speed up)
+- [IMPROVED] **experimental** compatibility with different frameworks thanks to the possibility to serialize, as text
+  files the class created "on the fly" (should solve most of the "pickle" error). See `env.generate_classes()`
+  for an example usage. Every feedback is appreciated.
+
 [1.6.2] (hotfix) - 2021-08-18
 -----------------------------
 - [FIXED] an issue when using `obs.simulate` with `_AlarmScore` (major bug)

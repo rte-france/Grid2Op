@@ -123,3 +123,9 @@ class BaseOpponent(RandomObject):
 
         """
         pass
+
+    def _custom_deepcopy_for_copy(self, new_obj):
+        super()._custom_deepcopy_for_copy(new_obj)
+        new_obj.action_space = self.action_space  # const
+        new_obj._do_nothing = new_obj.action_space()
+        new_obj.set_state(self.get_state())

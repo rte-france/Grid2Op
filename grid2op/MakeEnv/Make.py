@@ -194,10 +194,15 @@ def _aux_is_multimix(dataset_path):
     return False
 
 
-def _aux_make_multimix(dataset_path, test=False, _add_to_name="", _compat_glop_version=None, **kwargs):
+def _aux_make_multimix(dataset_path,
+                       test=False,
+                       experimental_read_from_local_dir=False,
+                       _add_to_name="",
+                       _compat_glop_version=None, **kwargs):
     # Local import to prevent imports loop
     from grid2op.Environment import MultiMixEnvironment
     return MultiMixEnvironment(dataset_path,
+                               experimental_read_from_local_dir=experimental_read_from_local_dir,
                                _test=test,
                                _add_to_name=_add_to_name,
                                _compat_glop_version=_compat_glop_version,
@@ -206,6 +211,7 @@ def _aux_make_multimix(dataset_path, test=False, _add_to_name="", _compat_glop_v
 
 def make(dataset="rte_case14_realistic",
          test=False,
+         experimental_read_from_local_dir=False,
          _add_to_name="",
          _compat_glop_version=None,
          **kwargs):
@@ -285,13 +291,17 @@ def make(dataset="rte_case14_realistic",
             make_from_path_fn = _aux_make_multimix
         elif _aux_is_multimix(dataset) and test_tmp:
             def make_from_path_fn_(*args, **kwargs):
-                return _aux_make_multimix(*args, test=True, **kwargs)
+                return _aux_make_multimix(*args,
+                                          test=True,
+                                          experimental_read_from_local_dir=experimental_read_from_local_dir,
+                                          **kwargs)
 
             make_from_path_fn = make_from_path_fn_
 
         return make_from_path_fn(dataset_path=dataset,
                                  _add_to_name=_add_to_name_tmp,
                                  _compat_glop_version=_compat_glop_version_tmp,
+                                 experimental_read_from_local_dir=experimental_read_from_local_dir,
                                  **kwargs)
 
     # Not a path: get the dataset name and cache path
@@ -319,13 +329,16 @@ def make(dataset="rte_case14_realistic",
         return make_from_path_fn(dataset_path=ds_path,
                                  _add_to_name=_add_to_name,
                                  _compat_glop_version=_compat_glop_version,
+                                 experimental_read_from_local_dir=experimental_read_from_local_dir,
                                  **kwargs)
 
     # Env directory is present in the DEFAULT_PATH_DATA
     if os.path.exists(real_ds_path):
         if _aux_is_multimix(real_ds_path):
             make_from_path_fn = _aux_make_multimix
-        return make_from_path_fn(real_ds_path, **kwargs)
+        return make_from_path_fn(real_ds_path,
+                                 experimental_read_from_local_dir=experimental_read_from_local_dir,
+                                 **kwargs)
 
     # Env needs to be downloaded
     warnings.warn(_MAKE_FIRST_TIME_WARN.format(dataset_name))
@@ -336,4 +349,6 @@ def make(dataset="rte_case14_realistic",
     # Check if multimix from path
     if _aux_is_multimix(real_ds_path):
         make_from_path_fn = _aux_make_multimix
-    return make_from_path_fn(dataset_path=real_ds_path, **kwargs)
+    return make_from_path_fn(dataset_path=real_ds_path,
+                             experimental_read_from_local_dir=experimental_read_from_local_dir,
+                             **kwargs)

@@ -110,7 +110,8 @@ class ObservationSpace(SerializableObservationSpace):
                                      has_attention_budget=env._has_attention_budget,
                                      attention_budget_cls=env._attention_budget_cls,
                                      kwargs_attention_budget=env._kwargs_attention_budget,
-                                     max_episode_duration=env.max_episode_duration()
+                                     max_episode_duration=env.max_episode_duration(),
+                                     _complete_action_cls=env._complete_action_cls,
                                      )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
@@ -143,7 +144,7 @@ class ObservationSpace(SerializableObservationSpace):
 
         Examples
         ---------
-        If you want to deactive the reward in the simulate function, you can do as following:
+        If you want to deactivate the reward in the simulate function, you can do as following:
 
         .. code-block:: python
 
@@ -215,6 +216,25 @@ class ObservationSpace(SerializableObservationSpace):
         for k, v in self.obs_env.other_rewards.items():
             v.reset(real_env)
 
+    def _custom_deepcopy_for_copy(self, new_obj):
+        """implements a faster "res = copy.deepcopy(self)" to use 
+        in "self.copy"
+        Do not use it anywhere else...
+        """
+        # TODO clean that after it is working... (ie make this method per class...)
+        # fill the super classes
+        super()._custom_deepcopy_for_copy(new_obj)
+
+        # now fill my class
+        new_obj.with_forecast = self.with_forecast
+        new_obj._simulate_parameters = copy.deepcopy(self._simulate_parameters)
+        new_obj._reward_func = copy.deepcopy(self._reward_func)
+        new_obj.action_helper_env = self.action_helper_env  # const
+        new_obj.reward_helper = copy.deepcopy(self.reward_helper)
+        new_obj._backend_obs = self._backend_obs  # ptr to a backend for simulate
+        new_obj.obs_env = self.obs_env
+        new_obj._update_env_time = self._update_env_time
+
     def copy(self):
         """
         INTERNAL
@@ -232,10 +252,15 @@ class ObservationSpace(SerializableObservationSpace):
         self.obs_env = None
 
         # performs the copy
-        res = copy.deepcopy(self)
-        res._backend_obs = backend.copy()
+        # res = copy.deepcopy(self)  # painfully slow...
+        # create an empty "me"
+        my_cls = type(self)
+        res = my_cls.__new__(my_cls)
+        self._custom_deepcopy_for_copy(res)
+
+        res._backend_obs = backend
         res._empty_obs = obs_.copy()
-        res.obs_env = obs_env.copy()
+        res.obs_env = obs_env  # .copy()  # this is shallow copied: it's a point to an observation env, which is unique
 
         # assign back the results
         self._backend_obs = backend
