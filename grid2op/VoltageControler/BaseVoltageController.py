@@ -40,7 +40,6 @@ class BaseVoltageController(RandomObject, ABC):
         self.action_space = actionSpace_cls(gridobj=gridobj,
                                             actionClass=VoltageOnlyAction,
                                             legal_action=legal_act)
-        self.backend = controler_backend.copy()
 
     def _custom_deepcopy_for_copy(self, new_obj):
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
@@ -49,7 +48,6 @@ class BaseVoltageController(RandomObject, ABC):
         new_obj.action_space = new_obj._actionSpace_cls(gridobj=self._actionSpace_cls,
                                                         actionClass=VoltageOnlyAction,
                                                         legal_action=legal_act)
-        new_obj.backend = self.backend.copy()
 
     def copy(self):
         """

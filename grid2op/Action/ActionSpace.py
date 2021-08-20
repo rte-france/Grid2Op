@@ -7,8 +7,8 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import copy
 
-from grid2op.Exceptions import *
 from grid2op.Action.BaseAction import BaseAction
 from grid2op.Action.SerializableActionSpace import SerializableActionSpace
 
@@ -152,3 +152,32 @@ class ActionSpace(SerializableActionSpace):
             return True, None
         is_legal, reason = self.legal_action(action, env)
         return is_legal, reason
+
+    def _custom_deepcopy_for_copy(self, new_obj):
+        """implements a faster "res = copy.deepcopy(self)" to use
+        in "self.copy"
+        Do not use it anywhere else...
+        """
+        # TODO clean that after it is working... (ie make this method per class...)
+        # fill the super classes
+        super()._custom_deepcopy_for_copy(new_obj)
+
+        # now fill my class
+        new_obj.legal_action = copy.deepcopy(self.legal_action)
+
+    def copy(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Perform a deep copy of the Observation space.
+
+        """
+        # performs the copy
+        # res = copy.deepcopy(self)  # painfully slow...
+        # create an empty "me"
+        my_cls = type(self)
+        res = my_cls.__new__(my_cls)
+        self._custom_deepcopy_for_copy(res)
+        return res

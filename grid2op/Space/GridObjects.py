@@ -2988,7 +2988,7 @@ class GridObjects:
         res = res_cls.__new__(res_cls)
         return res
 
-    # used for pickle
+    # used for pickle and for deep copy
     def __reduce__(self):
         """
         It here to avoid issue with pickle.

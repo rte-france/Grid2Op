@@ -424,6 +424,10 @@ class BaseAction(GridObjects):
         self._modif_curtailment = False
         self._modif_alarm = False
 
+    def copy(self):
+        # sometimes this method is used...
+        return self.__deepcopy__()
+
     def __copy__(self):
         res = type(self)()
 

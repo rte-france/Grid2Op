@@ -513,8 +513,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj.current_reward = copy.deepcopy(self.current_reward)
         new_obj.chronics_handler = copy.deepcopy(self.chronics_handler)
         new_obj._game_rules = copy.deepcopy(self._game_rules)
-        new_obj._helper_action_env = copy.deepcopy(self._helper_action_env)  # TODO cpy
-        new_obj._action_space = copy.deepcopy(self._action_space)  # TODO cpy
+        new_obj._helper_action_env = self._helper_action_env.copy()
+        new_obj._helper_action_env.legal_action = new_obj._game_rules.legal_action
+        new_obj._action_space = self._action_space.copy()
+        new_obj._action_space.legal_action = new_obj._game_rules.legal_action
 
         new_obj._rewardClass = self._rewardClass
         new_obj._actionClass = self._actionClass
@@ -540,9 +542,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._opponent_attack_cooldown = self._opponent_attack_cooldown
         new_obj._opponent_budget_per_ts = self._opponent_budget_per_ts
         new_obj._kwargs_opponent = copy.deepcopy(self._kwargs_opponent)
-        new_obj._opponent_budget_class = self._opponent_budget_class  # const
+        new_obj._opponent_budget_class = copy.deepcopy(self._opponent_budget_class)  # const
         new_obj._opponent_action_space = self._opponent_action_space  # const
-        new_obj._compute_opp_budget = copy.deepcopy(self._compute_opp_budget)
+        new_obj._compute_opp_budget = self._opponent_budget_class(self._opponent_action_space)
 
         # init the opponent
         new_obj._opponent = new_obj._opponent_class.__new__(new_obj._opponent_class)
@@ -2098,12 +2100,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     if self._max_timestep_topology_deactivated > 0:
                         self._times_before_topology_actionable[self._times_before_topology_actionable > 0] -= 1
                         self._times_before_topology_actionable[aff_subs] = self._max_timestep_topology_deactivated
-                    # build the observation (it's a different one at each step, we cannot reuse the same one)
-                    self.current_obs = self.get_obs()
-                    # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
-                    # TODO is non zero and disconnected, this should be ok.
-
-                    self._time_extract_obs += time.time() - beg_res
 
                     # extract production active value at this time step (should be independent of action class)
                     self._gen_activeprod_t[:], *_ = self.backend.generators_info()
@@ -2113,7 +2109,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     self._gen_activeprod_t_redisp[:] = new_p + self._actual_dispatch
 
                     # set the line status
-                    self._line_status[:] = self.current_obs.line_status
+                    self._line_status[:] = copy.deepcopy(self.backend.get_line_status())
+
+                    # finally, build the observation (it's a different one at each step, we cannot reuse the same one)
+                    # THIS SHOULD BE DONE AFTER EVERYTHING IS INITIALIZED !
+                    self.current_obs = self.get_obs()
+                    # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
+                    # TODO is non zero and disconnected, this should be ok.
+
+                    self._time_extract_obs += time.time() - beg_res
 
                     has_error = False
             except Grid2OpException as exc_:

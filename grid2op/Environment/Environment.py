@@ -490,6 +490,7 @@ class Environment(BaseEnv):
             # I create an environment
             env = grid2op.make("rte_case5_example", test=True)
             env.set_chunk_size(100)
+            env.reset()  # otherwise chunk size has no effect !
             # and now data will be read from the hard drive 100 time steps per 100 time steps
             # instead of the whole episode at once.
 
@@ -828,7 +829,6 @@ class Environment(BaseEnv):
         new_obj._compat_glop_version = self._compat_glop_version
         new_obj._actionClass_orig = self._actionClass_orig
         new_obj._observationClass_orig = self._observationClass_orig
-
 
     def copy(self):
         """

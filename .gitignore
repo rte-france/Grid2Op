@@ -332,6 +332,10 @@ test_import_gen_cls_str.py
 test_rllib_vincevaki2.py
 test_cls_str_import.py
 bug_icaps_2021
+test_parallel_grid2op_bug
+test_grid2op_legalact
+parallel_grid2op2.tgz
+parallel_grid2op_example.tgz
 
 # profiling files
 **.prof

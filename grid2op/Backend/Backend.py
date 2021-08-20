@@ -1431,6 +1431,9 @@ class Backend(GridObjects, ABC):
         """
         line_status = self._aux_get_line_status_to_set(self.get_line_status())
         topo_vect = self.get_topo_vect()
+        if np.all(topo_vect == -1):
+            raise RuntimeError("The get_action_to_set should not be used after a divergence of the powerflow")
+
         prod_p, _, prod_v = self.generators_info()
         load_p, load_q, _ = self.loads_info()
         set_me = self._complete_action_class()
