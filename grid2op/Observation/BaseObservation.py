@@ -357,10 +357,7 @@ class BaseObservation(GridObjects):
         self.current_step = 0
         self.max_step = np.iinfo(dt_int).max
 
-    def __copy__(self):
-        res = type(self)(obs_env=self._obs_env,
-                         action_helper=self.action_helper)
-
+    def _aux_copy(self, other):
         attr_simple = ["max_step", "current_step", "support_theta", "day_of_week",
                        "minute_of_hour", "hour_of_day", "day", "month", "year"]
 
@@ -382,16 +379,27 @@ class BaseObservation(GridObjects):
             attr_vect += ["_shunt_bus", "_shunt_v", "_shunt_q", "_shunt_p"]
 
         for attr_nm in attr_simple:
-            setattr(res, attr_nm, getattr(self, attr_nm))
+            setattr(other, attr_nm, getattr(self, attr_nm))
 
         for attr_nm in attr_vect:
-            getattr(res, attr_nm)[:] = getattr(self, attr_nm)
+            getattr(other, attr_nm)[:] = getattr(self, attr_nm)
+
+    def __copy__(self):
+        res = type(self)(obs_env=self._obs_env,
+                         action_helper=self.action_helper)
+
+        # copy regular attributes
+        self._aux_copy(other=res)
 
         # just copy
-        res._connectivity_matrix_ = self._connectivity_matrix_
-        res._bus_connectivity_matrix_ = self._bus_connectivity_matrix_
-        res._dictionnarized = self._dictionnarized
-        res._vectorized = self._vectorized
+        res._connectivity_matrix_ = copy.copy(self._connectivity_matrix_)
+        res._bus_connectivity_matrix_ = copy.copy(self._bus_connectivity_matrix_)
+        res._dictionnarized = copy.copy(self._dictionnarized)
+        res._vectorized = copy.copy(self._vectorized)
+
+        # handles the forecasts here
+        res._forecasted_grid_act = copy.copy(self._forecasted_grid_act)
+        res._forecasted_inj = copy.copy(self._forecasted_inj)
 
         return res
 
@@ -399,31 +407,8 @@ class BaseObservation(GridObjects):
         res = type(self)(obs_env=self._obs_env,
                          action_helper=self.action_helper)
 
-        attr_simple = ["max_step", "current_step", "support_theta", "day_of_week",
-                       "minute_of_hour", "hour_of_day", "day", "month", "year"]
-
-        attr_vect = ["storage_theta", "gen_theta", "load_theta", "theta_ex", "theta_or", "curtailment_limit",
-                     "curtailment", "gen_p_before_curtail", "_thermal_limit", "is_alarm_illegal",
-                     "time_since_last_alarm", "last_alarm", "attention_budget", "was_alarm_used_after_game_over",
-                     "storage_power", "storage_power_target", "storage_charge",
-                     "actual_dispatch", "target_dispatch",
-                     "duration_next_maintenance", "time_next_maintenance",
-                     "time_before_cooldown_sub", "time_before_cooldown_line",
-                     "rho", "a_ex", "v_ex", "q_ex", "p_ex",
-                     "a_or", "v_or", "q_or", "p_or",
-                     "load_p", "load_q", "load_v",
-                     "gen_p", "gen_q", "gen_v",
-                     "topo_vect", "line_status", "timestep_overflow"
-                     ]
-
-        if self.shunts_data_available:
-            attr_vect += ["_shunt_bus", "_shunt_v", "_shunt_q", "_shunt_p"]
-
-        for attr_nm in attr_simple:
-            setattr(res, attr_nm, getattr(self, attr_nm))
-
-        for attr_nm in attr_vect:
-            getattr(res, attr_nm)[:] = getattr(self, attr_nm)
+        # copy regular attributes
+        self._aux_copy(other=res)
 
         # just deepcopy
         res._connectivity_matrix_ = copy.deepcopy(self._connectivity_matrix_, memodict)
