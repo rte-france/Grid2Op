@@ -11,7 +11,7 @@ from grid2op.Rules.PreventReconnection import PreventReconnection
 from grid2op.Rules.PreventDiscoStorageModif import PreventDiscoStorageModif
 
 
-class DefaultRules(LookParam, PreventReconnection):
+class DefaultRules(LookParam, PreventDiscoStorageModif, PreventReconnection):
     """
     This subclass combine both :class:`LookParam` and :class:`PreventReconnection`.
     An action is declared legal if and only if:
@@ -21,7 +21,6 @@ class DefaultRules(LookParam, PreventReconnection):
       - It doesn't attempt to act on more substations that what is stated in the actual game _parameters
         :class:`grid2op.Parameters`
       - It doesn't attempt to modify the power produce by a turned off storage unit
-
 
     """
     def __call__(self, action, env):

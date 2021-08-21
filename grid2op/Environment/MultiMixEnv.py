@@ -152,6 +152,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     """
     def __init__(self,
                  envs_dir,
+                 experimental_read_from_local_dir=False,
                  _add_to_name="",  # internal, for test only, do not use !
                  _compat_glop_version=None,  # internal, for test only, do not use !
                  _test=False,
@@ -186,12 +187,14 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                                _add_to_name=_add_to_name,
                                _compat_glop_version=_compat_glop_version,
                                test=_test,
+                               experimental_read_from_local_dir=experimental_read_from_local_dir,
                                **kwargs)
                 else:
                     env = make(env_path,
                                _add_to_name=_add_to_name,
                                _compat_glop_version=_compat_glop_version,
                                test=_test,
+                               experimental_read_from_local_dir=experimental_read_from_local_dir,
                                **kwargs)
                 self.mix_envs.append(env)
         except Exception as exc_:

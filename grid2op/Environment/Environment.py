@@ -90,6 +90,7 @@ class Environment(BaseEnv):
                  has_attention_budget=False,
                  _raw_backend_class=None,
                  _compat_glop_version=None,
+                 _read_from_local_dir=True,  # TODO runner and all here !
                  ):
         BaseEnv.__init__(self,
                          init_grid_path=init_grid_path,
@@ -116,6 +117,7 @@ class Environment(BaseEnv):
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name...")
         self.name = name
+        self._read_from_local_dir = _read_from_local_dir
 
         # for gym compatibility (initialized below)
         # self.action_space = None
@@ -166,6 +168,11 @@ class Environment(BaseEnv):
         if self.backend.is_loaded:
             raise EnvError("Impossible to use the same backend twice. Please create your environment with a "
                            "new backend instance.")
+
+        if self._read_from_local_dir:
+            # test to support pickle conveniently
+            self.backend._PATH_ENV = self.get_path_env()
+
         # all the above should be done in this exact order, otherwise some weird behaviour might occur
         # this is due to the class attribute
         self.backend.set_env_name(self.name)
@@ -260,7 +267,7 @@ class Environment(BaseEnv):
         self.chronics_handler.initialize(self.name_load, self.name_gen,
                                          self.name_line, self.name_sub,
                                          names_chronics_to_backend=names_chronics_to_backend)
-        self.names_chronics_to_backend = names_chronics_to_backend
+        self._names_chronics_to_backend = names_chronics_to_backend
 
         # this needs to be done after the chronics handler: rewards might need information
         # about the chronics to work properly.
@@ -483,6 +490,7 @@ class Environment(BaseEnv):
             # I create an environment
             env = grid2op.make("rte_case5_example", test=True)
             env.set_chunk_size(100)
+            env.reset()  # otherwise chunk size has no effect !
             # and now data will be read from the hard drive 100 time steps per 100 time steps
             # instead of the whole episode at once.
 
@@ -731,7 +739,7 @@ class Environment(BaseEnv):
         self.chronics_handler.next_chronics()
         self.chronics_handler.initialize(self.backend.name_load, self.backend.name_gen,
                                          self.backend.name_line, self.backend.name_sub,
-                                         names_chronics_to_backend=self.names_chronics_to_backend)
+                                         names_chronics_to_backend=self._names_chronics_to_backend)
         self._env_modification = None
         self._reset_maintenance()
         self._reset_redispatching()
@@ -809,6 +817,19 @@ class Environment(BaseEnv):
         # Return the figure in case it needs to be saved/used
         return self.viewer_fig
 
+    def _custom_deepcopy_for_copy(self, new_obj):
+        super()._custom_deepcopy_for_copy(new_obj)
+
+        new_obj.name = self.name
+        new_obj._read_from_local_dir = self._read_from_local_dir
+        new_obj.metadata = copy.deepcopy(self.metadata)
+        new_obj.spec = copy.deepcopy(self.spec)
+
+        new_obj._raw_backend_class = self._raw_backend_class
+        new_obj._compat_glop_version = self._compat_glop_version
+        new_obj._actionClass_orig = self._actionClass_orig
+        new_obj._observationClass_orig = self._observationClass_orig
+
     def copy(self):
         """
         Performs a deep copy of the environment
@@ -827,32 +848,12 @@ class Environment(BaseEnv):
 
 
         """
-        tmp_backend = self.backend
-        self.backend = None
-
-        tmp_obs_space = self._observation_space
-        self._observation_space = None
-
-        obs_tmp = self.current_obs
-        self.current_obs = None
-
-        volt_cont = self._voltage_controler
-        self._voltage_controler = None
-
-        res = copy.deepcopy(self)
-
-        res.backend = tmp_backend.copy()
-        res._observation_space = tmp_obs_space.copy()
-        res.current_obs = obs_tmp.copy()
-        res.current_obs._obs_env = res._observation_space.obs_env  # retrieve the pointer to the proper backend
-        res._voltage_controler = volt_cont.copy()
-
-        if self._thermal_limit_a is not None:
-            res.backend.set_thermal_limit(self._thermal_limit_a)
-        self.backend = tmp_backend
-        self._observation_space = tmp_obs_space
-        self.current_obs = obs_tmp
-        self._voltage_controler = volt_cont
+        # res = copy.deepcopy(self) # painfully slow...
+        # create an empty "me"
+        my_cls = type(self)
+        res = my_cls.__new__(my_cls)
+        # fill its attribute
+        self._custom_deepcopy_for_copy(res)
         return res
 
     def get_kwargs(self, with_backend=True):
@@ -897,7 +898,7 @@ class Environment(BaseEnv):
             res["backend"] = self.backend.copy()
             res["backend"]._is_loaded = False  # i can reload a copy of an environment
         res["parameters"] = copy.deepcopy(self._parameters)
-        res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
+        res["names_chronics_to_backend"] = copy.deepcopy(self._names_chronics_to_backend)
         res["actionClass"] = self._actionClass_orig
         res["observationClass"] = self._observationClass_orig
         res["rewardClass"] = self._rewardClass
@@ -923,6 +924,7 @@ class Environment(BaseEnv):
         res["attention_budget_cls"] = self._attention_budget_cls
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
+        res["_read_from_local_dir"] = self._read_from_local_dir
         return res
 
     def _chronics_folder_name(self):
@@ -1216,7 +1218,7 @@ class Environment(BaseEnv):
         res["init_grid_path"] = self._init_grid_path
         res["path_chron"] = self.chronics_handler.path
         res["parameters_path"] = self._parameters.to_dict()
-        res["names_chronics_to_backend"] = self.names_chronics_to_backend
+        res["names_chronics_to_backend"] = self._names_chronics_to_backend
         res["actionClass"] = self._actionClass_orig
         res["observationClass"] = self._observationClass_orig
         res["rewardClass"] = self._rewardClass
@@ -1250,4 +1252,5 @@ class Environment(BaseEnv):
         res["attention_budget_cls"] = self._attention_budget_cls
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
+        res["_read_from_local_dir"] = self._read_from_local_dir
         return res

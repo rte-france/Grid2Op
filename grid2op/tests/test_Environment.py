@@ -309,7 +309,7 @@ class TestOtherReward(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
-                                other_rewards={"test": L2RPNReward})
+                            other_rewards={"test": L2RPNReward})
 
     def tearDown(self):
         self.env.close()
@@ -400,13 +400,14 @@ class TestResetOk(unittest.TestCase):
         simobs, simr, simdone, siminfo = obs.simulate(self.env.action_space())
         assert np.all(simobs.topo_vect == 1)
 
-    def test_reset_after_blackout_withdetailed_info(self):
+    def test_reset_after_blackout_withdetailed_info(self, env=None):
         backend = self.make_backend(detailed_infos_for_cascading_failures=True)
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
-                       other_rewards={"test": L2RPNReward},
-                       backend=backend)
+        if env is None:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
+                           other_rewards={"test": L2RPNReward},
+                           backend=backend)
 
         # make the grid in bad shape
         act = env.action_space({"set_bus": {"substations_id": [(2, [1, 2, 1, 2])]}})

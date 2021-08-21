@@ -85,8 +85,8 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_creation_with_backend_are_not_shared(self):
         class DummyBackend2(PandaPowerBackend):
-            def __init__(self):
-                super().__init__()
+            def __init__(self, detailed_infos_for_cascading_failures=False):
+                super().__init__(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
                 self.calls = 0
 
             def dummy(self):
@@ -152,8 +152,8 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_reset_with_backend(self):
         class DummyBackend3(PandaPowerBackend):
-            def __init__(self):
-                super().__init__()
+            def __init__(self, detailed_infos_for_cascading_failures=False):
+                super().__init__(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
                 self._dummy = -1
 
             def reset(self, grid_path=None, grid_filename=None):

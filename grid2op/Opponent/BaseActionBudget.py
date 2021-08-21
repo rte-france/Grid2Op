@@ -16,7 +16,7 @@ class BaseActionBudget:
 
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-    This is the base class representing the action bugdet.
+    This is the base class representing the action budget.
     It makes sure the opponent uses the correct type of "action", and  compute the bugdet associated to it.
 
     """
