@@ -1431,6 +1431,9 @@ class Backend(GridObjects, ABC):
         """
         line_status = self._aux_get_line_status_to_set(self.get_line_status())
         topo_vect = self.get_topo_vect()
+        if np.all(topo_vect == -1):
+            raise RuntimeError("The get_action_to_set should not be used after a divergence of the powerflow")
+
         prod_p, _, prod_v = self.generators_info()
         load_p, load_q, _ = self.loads_info()
         set_me = self._complete_action_class()
@@ -1534,7 +1537,6 @@ class Backend(GridObjects, ABC):
             # and set up the proper class and everything
             self._init_class_attr()
 
-            # type(self)._INIT_GRID_CLS = orig_type
             # hack due to changing class of imported module in the module itself
             self.__class__ = type(self).init_grid(type(self), force_module=type(self).__module__)
             setattr(sys.modules[type(self).__module__], self.__class__.__name__, self.__class__)

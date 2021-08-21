@@ -310,25 +310,33 @@ class PandaPowerBackend(Backend):
             # there are not defined slack bus on the data, i need to hack it up a little bit
             pd2ppc = self._grid._pd2ppc_lookups["bus"]  # pd2ppc[pd_id] = ppc_id
             ppc2pd = np.argsort(pd2ppc)  # ppc2pd[ppc_id] = pd_id
-            for i, el in enumerate(self._grid._ppc['gen'][:, 0]):
+            for gen_id_pp, el in enumerate(self._grid._ppc['gen'][:, 0]):
                 if int(el) not in self._grid._pd2ppc_lookups["bus"][self._grid.gen["bus"].values]:
                     if bus_gen_added is not None:
-                        raise RuntimeError("Impossible to recognize the powergrid")
+                        # TODO handle better when distributed slack bus
+                        # raise RuntimeError("Impossible to recognize the powergrid")
+                        warnings.warn("Your grid has a distributed slack bus. Just so you know, it is not"
+                                      "fully supported at the moment. (it will be converted to a single slack bus)")
+
                     bus_gen_added = ppc2pd[int(el)]
-                    i_ref = i
-                    break
-            self._iref_slack = i_ref
-            self._id_bus_added = self._grid.gen.shape[0]
-            # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
-            pp.create_gen(self._grid, bus_gen_added,
-                          p_mw=self._grid._ppc['gen'][i_ref, 1],
-                          vm_pu=self._grid._ppc['gen'][i_ref, 5],
-                          min_p_mw=self._grid._ppc['gen'][i_ref, 9],
-                          max_p_mw=self._grid._ppc['gen'][i_ref, 8],
-                          max_q_mvar=self._grid._ppc['gen'][i_ref, 3],
-                          min_q_mvar=self._grid._ppc['gen'][i_ref, 4],
-                          slack=True,
-                          controllable=True)
+                    # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
+                    id_added = pp.create_gen(self._grid,
+                                             bus_gen_added,
+                                             p_mw=self._grid._ppc['gen'][gen_id_pp, 1],
+                                             vm_pu=self._grid._ppc['gen'][gen_id_pp, 5],
+                                             min_p_mw=self._grid._ppc['gen'][gen_id_pp, 9],
+                                             max_p_mw=self._grid._ppc['gen'][gen_id_pp, 8],
+                                             max_q_mvar=self._grid._ppc['gen'][gen_id_pp, 3],
+                                             min_q_mvar=self._grid._ppc['gen'][gen_id_pp, 4],
+                                             slack=i_ref is None,
+                                             controllable=True)
+
+                    if i_ref is None:
+                        i_ref = gen_id_pp
+                        self._iref_slack = i_ref
+                        self._id_bus_added = id_added  # self._grid.gen.shape[0]
+                        # TODO here i force the distributed slack bus too, by removing the other from the ext_grid...
+                        self._grid.ext_grid = self._grid.ext_grid.iloc[:1]
         else:
             self.slack_id = np.where(self._grid.gen["slack"])[0]
 
@@ -924,7 +932,91 @@ class PandaPowerBackend(Backend):
         Performs a deep copy of the power :attr:`_grid`.
         As pandapower is pure python, the deep copy operator is perfectly suited for the task.
         """
-        res = copy.deepcopy(self)
+        # res = copy.deepcopy(self)  # this was really slow...
+        res = type(self)(detailed_infos_for_cascading_failures=self.detailed_infos_for_cascading_failures)
+
+        # copy from base class (backend)
+        res._grid = copy.deepcopy(self._grid)
+        res.thermal_limit_a = copy.deepcopy(self.thermal_limit_a)
+        res._sh_vnkv = copy.deepcopy(self._sh_vnkv)
+        res.comp_time = self.comp_time
+        res.can_output_theta = self.can_output_theta
+        res._is_loaded = self._is_loaded
+
+        # copy all attributes from myself
+        res.prod_pu_to_kv = copy.deepcopy(self.prod_pu_to_kv)
+        res.load_pu_to_kv = copy.deepcopy(self.load_pu_to_kv)
+        res.lines_or_pu_to_kv = copy.deepcopy(self.lines_or_pu_to_kv)
+        res.lines_ex_pu_to_kv = copy.deepcopy(self.lines_ex_pu_to_kv)
+        res.storage_pu_to_kv = copy.deepcopy(self.storage_pu_to_kv)
+
+        res.p_or = copy.deepcopy(self.p_or)
+        res.q_or = copy.deepcopy(self.q_or)
+        res.v_or = copy.deepcopy(self.v_or)
+        res.a_or = copy.deepcopy(self.a_or)
+        res.p_ex = copy.deepcopy(self.p_ex)
+        res.q_ex = copy.deepcopy(self.q_ex)
+        res.v_ex = copy.deepcopy(self.v_ex)
+        res.a_ex = copy.deepcopy(self.a_ex)
+
+        res.load_p = copy.deepcopy(self.load_p)
+        res.load_q = copy.deepcopy(self.load_q)
+        res.load_v = copy.deepcopy(self.load_v)
+
+        res.storage_p = copy.deepcopy(self.storage_p)
+        res.storage_q = copy.deepcopy(self.storage_q)
+        res.storage_v = copy.deepcopy(self.storage_v)
+
+        res.prod_p = copy.deepcopy(self.prod_p)
+        res.prod_q = copy.deepcopy(self.prod_q)
+        res.prod_v = copy.deepcopy(self.prod_v)
+        res.line_status = copy.deepcopy(self.line_status)
+
+        res._pf_init = self._pf_init
+        res._nb_bus_before = self._nb_bus_before
+
+        res.thermal_limit_a = copy.deepcopy(self.thermal_limit_a)
+
+        res._iref_slack = self._iref_slack
+        res._id_bus_added = self._id_bus_added
+        res._fact_mult_gen = copy.deepcopy(self._fact_mult_gen)
+        res._what_object_where = copy.deepcopy(self._fact_mult_gen)
+        res._number_true_line = self._number_true_line
+        res._corresp_name_fun = copy.deepcopy(self._corresp_name_fun)
+        # res._get_vector_inj = copy.deepcopy(self._get_vector_inj)  # ptr to functions member
+        res.dim_topo = self.dim_topo
+        # self._vars_action = BaseAction.attr_list_vect  # init from class, so should be good
+        # self._vars_action_set = BaseAction.attr_list_vect  # init from class, so should be good
+        res.cst_1 = self.cst_1
+        res._topo_vect = copy.deepcopy(self._topo_vect)
+        res.slack_id = self.slack_id
+
+        # function to rstore some information
+        res.__nb_bus_before = self.__nb_bus_before  # number of substation in the powergrid
+        res.__nb_powerline = self.__nb_powerline  # number of powerline (real powerline, not transformer)
+        res._init_bus_load = copy.deepcopy(self._init_bus_load)
+        res._init_bus_gen = copy.deepcopy(self._init_bus_gen)
+        res._init_bus_lor = copy.deepcopy(self._init_bus_lor)
+        res._init_bus_lex = copy.deepcopy(self._init_bus_lex)
+        res._get_vector_inj = copy.deepcopy(self._get_vector_inj)
+        res._big_topo_to_obj = copy.deepcopy(self._big_topo_to_obj)
+        res._big_topo_to_backend = copy.deepcopy(self._big_topo_to_backend)
+        res.__pp_backend_initial_state = self.__pp_backend_initial_state  # initial state to facilitate the "reset"
+
+        # Mapping some fun to apply bus updates
+        # self._type_to_bus_set =  ...   # function ptr to function member
+
+        res.tol = self.tol  # this is NOT the pandapower tolerance !!!! this is used to check if a storage unit
+        # produce / absorbs anything
+
+        # TODO storage doc (in grid2op rst) of the backend
+        res.can_output_theta = self.can_output_theta  # I support the voltage angle
+        res.theta_or = copy.deepcopy(self.theta_or)
+        res.theta_ex = copy.deepcopy(self.theta_ex)
+        res.load_theta = copy.deepcopy(self.load_theta)
+        res.gen_theta = copy.deepcopy(self.gen_theta)
+        res.storage_theta = copy.deepcopy(self.storage_theta)
+
         return res
 
     def close(self):

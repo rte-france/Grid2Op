@@ -34,7 +34,7 @@ class PreventDiscoStorageModif(BaseRules):
         power_modif_disco = (np.isfinite(storage_power[storage_disco])) & (storage_power[storage_disco] != 0.)
         not_set_status = storage_set_bus[storage_disco] <= 0
         not_change_status = ~storage_change_bus[storage_disco]
-        if np.any(power_modif_disco & not_set_status & not_change_status) :
+        if np.any(power_modif_disco & not_set_status & not_change_status):
             tmp_ = power_modif_disco & not_set_status & not_change_status
             return False, IllegalAction(f"Attempt to modify the power produced / absorbed by a storage unit "
                                         f"without reconnecting it (check storage with id {np.where(tmp_)[0]}.")

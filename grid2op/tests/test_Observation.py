@@ -110,6 +110,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                       "alarms_area_names": [],
                       "alarms_lines_area": {},
                       "alarms_area_lines": [],
+                      "_PATH_ENV": None
                       }
 
         self.json_ref = {'year': [2019], 'month': [1], 'day': [6], 'hour_of_day': [0], 'minute_of_hour': [0],

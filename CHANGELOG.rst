@@ -3,6 +3,12 @@ Change Log
 
 [TODO]
 --------------------
+- [???] use "backend.get_action_to_set()" in simulate
+- [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
+- [???] add the storage power in the backend.get_action_to_set()"
+- [???] add a "_cst_" or something in the `const` member of all the class
+- [???] in deepcopy of env, make tests that the "pointers" are properly propagated in the attributes (for example
+  `envcpy._game_rules.legal_action` should not be copied when building `envcpy._helper_action_env`)
 - [???] add multi agent
 - [???] make observation read only / immutable for all its properties (and not just for `prod_p`)
 - [???] better logging
@@ -12,7 +18,7 @@ Change Log
 - [???] model delay in observations
 - [???] model delay in action
 - [???] Code and test the "load from disk" method
-- [???] Make the redispatching data independant from the time step (eg instead of "in MW / step" have it in "MW / h"
+- [???] Make the redispatching data independent from the time step (eg instead of "in MW / step" have it in "MW / h"
   and have grid2op convert it to MW / step
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
@@ -22,6 +28,19 @@ Change Log
   it in parallel and transfer the resulting data.
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
+
+[1.6.3] - 2021-08-21
+--------------------
+- [FIXED] a bug that allowed to use wrongly the function `backend.get_action_to_set()` even when the backend
+  has diverged (which should not be possible)
+- [FIXED] a bug leading to non correct consideration of the status of powerlines right after the activation
+  of some protections (see `Issue#245 <https://github.com/rte-france/Grid2Op/issues/245>`_ )
+- [IMPROVED] the PandaPowerBackend is now able to load a grid with a distributed slack bus. When loaded though, the
+  said grid will be converted to one with a single slack bus (the first slack among the distributed)
+- [IMPROVED] massive speed-ups when copying environment or using `obs.simulate` (sometimes higher than 30x speed up)
+- [IMPROVED] **experimental** compatibility with different frameworks thanks to the possibility to serialize, as text
+  files the class created "on the fly" (should solve most of the "pickle" error). See `env.generate_classes()`
+  for an example usage. Every feedback is appreciated.
 
 [1.6.2] (hotfix) - 2021-08-18
 -----------------------------
