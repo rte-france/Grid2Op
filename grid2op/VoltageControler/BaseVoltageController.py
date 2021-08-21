@@ -36,10 +36,18 @@ class BaseVoltageController(RandomObject, ABC):
         """
         RandomObject.__init__(self)
         legal_act = AlwaysLegal()
+        self._actionSpace_cls = actionSpace_cls
         self.action_space = actionSpace_cls(gridobj=gridobj,
                                             actionClass=VoltageOnlyAction,
                                             legal_action=legal_act)
-        self.backend = controler_backend.copy()
+
+    def _custom_deepcopy_for_copy(self, new_obj):
+        RandomObject._custom_deepcopy_for_copy(self, new_obj)
+        new_obj._actionSpace_cls = self._actionSpace_cls
+        legal_act = AlwaysLegal()
+        new_obj.action_space = new_obj._actionSpace_cls(gridobj=self._actionSpace_cls,
+                                                        actionClass=VoltageOnlyAction,
+                                                        legal_action=legal_act)
 
     def copy(self):
         """
@@ -49,11 +57,8 @@ class BaseVoltageController(RandomObject, ABC):
 
         Make a (deep) copy of this instance.
         """
-        backend_tmp = self.backend
-        self.backend = None
-        res = copy.deepcopy(self)
-        res.backend = backend_tmp.copy()
-        self.backend = backend_tmp
+        res = type(self).__new__(type(self))
+        self._custom_deepcopy_for_copy(res)
         return res
 
     def attach_layout(self, grid_layout):

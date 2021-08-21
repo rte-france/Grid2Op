@@ -252,7 +252,10 @@ class Runner(object):
                  with_forecast=True,
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget=None,
-                 has_attention_budget=False):
+                 has_attention_budget=False,
+                 # experimental: whether to read from local dir or generate the classes on the fly:
+                 _read_from_local_dir=False
+                 ):
         """
         Initialize the Runner.
 
@@ -420,6 +423,8 @@ class Runner(object):
                                "and both are None.")
         self.agentInstance = agentInstance
 
+        self._read_from_local_dir = _read_from_local_dir
+
         self.logger = ConsoleLog(
             DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
 
@@ -527,7 +532,8 @@ class Runner(object):
                                 attention_budget_cls=self._attention_budget_cls,
                                 kwargs_attention_budget=self._kwargs_attention_budget,
                                 has_attention_budget=self._has_attention_budget,
-                                _raw_backend_class=self.backendClass
+                                _raw_backend_class=self.backendClass,
+                                _read_from_local_dir=self._read_from_local_dir
                                 )
 
         if self.thermal_limit_a is not None:

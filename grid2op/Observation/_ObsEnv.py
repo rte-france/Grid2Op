@@ -49,7 +49,7 @@ class _ObsEnv(BaseEnv):
                  backend_instanciated,
                  parameters,
                  reward_helper,
-                 obsClass,
+                 obsClass,  # not initialized :-/
                  action_helper,
                  thermal_limit_a,
                  legalActClass,
@@ -62,6 +62,7 @@ class _ObsEnv(BaseEnv):
                  has_attention_budget=False,
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
+                 _complete_action_cls=None,
                  ):
         BaseEnv.__init__(self,
                          init_grid_path,
@@ -73,8 +74,8 @@ class _ObsEnv(BaseEnv):
                          has_attention_budget=has_attention_budget,
                          attention_budget_cls=attention_budget_cls,
                          kwargs_attention_budget=kwargs_attention_budget)
-        self._helper_action_class = helper_action_class
         self._reward_helper = reward_helper
+        self._helper_action_class = helper_action_class
 
         # initialize the observation space
         self._obsClass = None
@@ -88,6 +89,12 @@ class _ObsEnv(BaseEnv):
         self.target_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
         self.actual_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
 
+        # line status (inherited from BaseEnv)
+        self._line_status = np.full(self.n_line, dtype=dt_bool, fill_value=True)
+        # line status (for this usage)
+        self._line_status_me = np.ones(shape=self.n_line, dtype=dt_int)  # this is "line status" but encode in +1 / -1
+        self._line_status_orig = np.ones(shape=self.n_line, dtype=dt_int)
+
         self._init_backend(chronics_handler=_ObsCH(),
                            backend=backend_instanciated,
                            names_chronics_to_backend=None,
@@ -95,14 +102,23 @@ class _ObsEnv(BaseEnv):
                            observationClass=obsClass,
                            rewardClass=None,
                            legalActClass=legalActClass)
+
+        ####
+        # to be able to save and import (using env.generate_classes) correctly
+        self._actionClass = action_helper.subtype
+        self._observationClass = _complete_action_cls  # not used anyway
+        self._complete_action_cls = _complete_action_cls
+        self._action_space = action_helper  # obs env and env share the same action space
+        self._observation_space = action_helper  # not used here, so it's definitely a hack !
+        ####
+
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
 
         self._load_p, self._load_q, self._load_v = None, None, None
         self._prod_p, self._prod_q, self._prod_v = None, None, None
         self._topo_vect = None
 
-        # convert line status to -1 / 1 instead of false / true
-        self._line_status = None
+        # other stuff
         self.is_init = False
         self._helper_action_env = helper_action_env
         self.env_modification = self._helper_action_env()
@@ -171,7 +187,7 @@ class _ObsEnv(BaseEnv):
                     type(legalActClass)))
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._legalActClass = legalActClass
-        self._action_space = self._do_nothing
+        # self._action_space = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
 
         # create the opponent
@@ -187,7 +203,6 @@ class _ObsEnv(BaseEnv):
         self.current_obs = self.current_obs_init
 
         # backend has loaded everything
-        self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
         self._hazard_duration = np.zeros(shape=self.n_line, dtype=dt_int)
 
     def _do_nothing(self, x):
@@ -275,13 +290,13 @@ class _ObsEnv(BaseEnv):
         # update the action that set the grid to the real value
         still_in_maintenance, reconnected, first_ts_maintenance = self._update_vector_with_timestep(time_step)
         if np.any(first_ts_maintenance):
-            set_status = np.array(self._line_status, dtype=dt_int)
+            set_status = np.array(self._line_status_me, dtype=dt_int)
             set_status[first_ts_maintenance] = -1
             topo_vect = np.array(self._topo_vect, dtype=dt_int)
             topo_vect[self.line_or_pos_topo_vect[first_ts_maintenance]] = -1
             topo_vect[self.line_ex_pos_topo_vect[first_ts_maintenance]] = -1
         else:
-            set_status = self._line_status
+            set_status = self._line_status_me
             topo_vect = self._topo_vect
 
         self._backend_action_set += self._helper_action_env({"set_line_status": set_status,
@@ -395,6 +410,10 @@ class _ObsEnv(BaseEnv):
         # current step
         self.nb_time_step = self._nb_time_step_init
 
+        # line status
+        self._line_status[:] = self._line_status_orig == 1
+        self._line_status_me[:] = 1 * self._line_status_orig
+
         # attention budget
         if self._has_attention_budget:
             self._attention_budget.set_state(self._attention_budget_state_init)
@@ -487,9 +506,9 @@ class _ObsEnv(BaseEnv):
         self._topo_vect = real_backend.get_topo_vect()
 
         # convert line status to -1 / 1 instead of false / true
-        self._line_status = env.get_current_line_status().astype(dt_int)   # real_backend.get_line_status().astype(dt_int)  # false -> 0 true -> 1
-        self._line_status *= 2  # false -> 0 true -> 2
-        self._line_status -= 1  # false -> -1; true -> 1
+        self._line_status_orig[:] = env.get_current_line_status().astype(dt_int)  # false -> 0 true -> 1
+        self._line_status_orig *= 2  # false -> 0 true -> 2
+        self._line_status_orig -= 1  # false -> -1; true -> 1
         self.is_init = False
 
         # Make a copy of env state for simulation

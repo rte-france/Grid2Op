@@ -424,6 +424,61 @@ class BaseAction(GridObjects):
         self._modif_curtailment = False
         self._modif_alarm = False
 
+    def copy(self):
+        # sometimes this method is used...
+        return self.__deepcopy__()
+
+    def _aux_copy(self, other):
+        attr_simple = ["_modif_inj", "_modif_set_bus",
+                       "_modif_change_bus", "_modif_set_status",
+                       "_modif_change_status", "_modif_redispatch", "_modif_storage",
+                       "_modif_curtailment", "_modif_alarm", "_single_act"]
+
+        attr_vect = ["_set_line_status", "_switch_line_status", "_set_topo_vect",
+                     "_change_bus_vect", "_hazards", "_maintenance", "_redispatch",
+                     "_storage_power", "_curtail"]
+
+        if self.shunts_data_available:
+            attr_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+
+        for attr_nm in attr_simple:
+            setattr(other, attr_nm, getattr(self, attr_nm))
+
+        for attr_nm in attr_vect:
+            getattr(other, attr_nm)[:] = getattr(self, attr_nm)
+
+    def __copy__(self):
+        res = type(self)()
+
+        self._aux_copy(other=res)
+
+        # handle dict_inj
+        for k, el in self._dict_inj.items():
+            res._dict_inj[k] = copy.copy(el)
+
+        # just copy
+        res._vectorized = self._vectorized
+        res._lines_impacted = self._lines_impacted
+        res._subs_impacted = self._subs_impacted
+
+        return res
+
+    def __deepcopy__(self, memodict={}):
+        res = type(self)()
+
+        self._aux_copy(other=res)
+
+        # handle dict_inj
+        for k, el in self._dict_inj.items():
+            res._dict_inj[k] = copy.deepcopy(el, memodict)
+
+        # just copy
+        res._vectorized = copy.deepcopy(self._vectorized, memodict)
+        res._lines_impacted = copy.deepcopy(self._lines_impacted, memodict)
+        res._subs_impacted = copy.deepcopy(self._subs_impacted, memodict)
+
+        return res
+
     @classmethod
     def _add_shunt_data(cls):
         if cls.shunt_added is False and cls.shunts_data_available:
@@ -708,6 +763,10 @@ class BaseAction(GridObjects):
 
         return True
 
+    def _dont_affect_topology(self):
+        return (not self._modif_set_bus) and (not self._modif_change_bus) and \
+               (not self._modif_set_status) and (not self._modif_change_status)
+
     def get_topological_impact(self, powerline_status=None):
         """
         Gives information about the element being impacted by this action.
@@ -765,6 +824,13 @@ class BaseAction(GridObjects):
 
             print(action)
         """
+        if self._dont_affect_topology():
+            # action is not impacting the topology
+            # so it does not modified anything concerning the topology
+            self._lines_impacted = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
+            self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
+            return self._lines_impacted, self._subs_impacted
+
         if powerline_status is None:
             isnotconnected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
         else:

@@ -117,6 +117,20 @@ class SerializableSpace(GridObjects, RandomObject):
             self._to_extract_vect[attr] = (beg_, end_, dtype_)
             beg_ += size
 
+    def _custom_deepcopy_for_copy(self, new_obj):
+        RandomObject._custom_deepcopy_for_copy(self, new_obj)
+
+        # SerializableSpace
+        new_obj._init_subtype = self._init_subtype  # const too
+        new_obj.subtype = self.subtype
+        new_obj._template_obj = self._template_obj.copy()
+        new_obj.n = self.n
+        new_obj.global_vars = copy.deepcopy(self.global_vars)
+        new_obj.shape = copy.deepcopy(self.shape)
+        new_obj.dtype = copy.deepcopy(self.dtype)
+        new_obj.attr_list_vect = copy.deepcopy(self.attr_list_vect)
+        new_obj._to_extract_vect = copy.deepcopy(self._to_extract_vect)
+
     @staticmethod
     def from_dict(dict_):
         """

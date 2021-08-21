@@ -1120,3 +1120,9 @@ class SerializableActionSpace(SerializableSpace):
                 res.append(action)
 
         return res
+
+    def _custom_deepcopy_for_copy(self, new_obj):
+        super()._custom_deepcopy_for_copy(new_obj)
+        # SerializableObservationSpace
+        new_obj.actionClass = self.subtype
+        new_obj._template_act = self.actionClass()

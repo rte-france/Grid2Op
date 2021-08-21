@@ -14,6 +14,7 @@ from grid2op.Reward import AlarmReward
 from grid2op.dtypes import dt_float
 
 
+
 class _AlarmScore(AlarmReward):
     """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -34,6 +35,7 @@ class _AlarmScore(AlarmReward):
     - if no alarm has been raised, then -2.0 is return
     - points for pointing to the right zones are computed based on the lines disconnected either in a short window
     before game over or otherwise at the time of game over
+
     Examples
     ---------
     You can use this reward in any environment with:
@@ -96,7 +98,6 @@ class _AlarmScore(AlarmReward):
         disc_lines_to_consider_for_score = np.zeros(self.n_line, dtype=bool)
 
         nb_obs = len(self.disc_lines_all_before_cascade)
-
         for step in range(nb_obs - self.window_disconnection, nb_obs):
             disc_lines_to_consider_for_score[self.disc_lines_all_before_cascade[step] >= 0] = True
 

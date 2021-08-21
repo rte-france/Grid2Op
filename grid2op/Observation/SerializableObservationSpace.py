@@ -42,6 +42,12 @@ class SerializableObservationSpace(SerializableSpace):
         self.observationClass = self.subtype
         self._empty_obs = self._template_obj
 
+    def _custom_deepcopy_for_copy(self, new_obj):
+        super()._custom_deepcopy_for_copy(new_obj)
+        # SerializableObservationSpace
+        new_obj.observationClass = self.observationClass  # const
+        new_obj._empty_obs = self._template_obj  # const
+
     @staticmethod
     def from_dict(dict_):
         """

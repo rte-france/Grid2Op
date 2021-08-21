@@ -262,22 +262,18 @@ class BaseObservation(GridObjects):
         GridObjects.__init__(self)
 
         self.action_helper = action_helper
-
-        # time stamp information
-        self.year = 1970
-        self.month = 0
-        self.day = 0
-        self.hour_of_day = 0
-        self.minute_of_hour = 0
-        self.day_of_week = 0
-
-        # for non deterministic observation that would not use default np.random module
-        self.seed = None
-
         # handles the forecasts here
         self._forecasted_grid_act = {}
         self._forecasted_inj = []
         self._obs_env = obs_env
+
+        # calendar data
+        self.year = dt_int(1970)
+        self.month = dt_int(0)
+        self.day = dt_int(0)
+        self.hour_of_day = dt_int(0)
+        self.minute_of_hour = dt_int(0)
+        self.day_of_week = dt_int(0)
 
         self.timestep_overflow = np.empty(shape=(self.n_line,), dtype=dt_int)
 
@@ -313,14 +309,6 @@ class BaseObservation(GridObjects):
         self.time_before_cooldown_sub = np.empty(shape=self.n_sub, dtype=dt_int)
         self.time_next_maintenance = 1 * self.time_before_cooldown_line
         self.duration_next_maintenance = 1 * self.time_before_cooldown_line
-
-        # calendar data
-        self.year = dt_int(1970)
-        self.month = dt_int(0)
-        self.day = dt_int(0)
-        self.hour_of_day = dt_int(0)
-        self.minute_of_hour = dt_int(0)
-        self.day_of_week = dt_int(0)
 
         # redispatching
         self.target_dispatch = np.empty(shape=self.n_gen, dtype=dt_float)
@@ -368,6 +356,71 @@ class BaseObservation(GridObjects):
         # counter
         self.current_step = 0
         self.max_step = np.iinfo(dt_int).max
+
+    def _aux_copy(self, other):
+        attr_simple = ["max_step", "current_step", "support_theta", "day_of_week",
+                       "minute_of_hour", "hour_of_day", "day", "month", "year"]
+
+        attr_vect = ["storage_theta", "gen_theta", "load_theta", "theta_ex", "theta_or", "curtailment_limit",
+                     "curtailment", "gen_p_before_curtail", "_thermal_limit", "is_alarm_illegal",
+                     "time_since_last_alarm", "last_alarm", "attention_budget", "was_alarm_used_after_game_over",
+                     "storage_power", "storage_power_target", "storage_charge",
+                     "actual_dispatch", "target_dispatch",
+                     "duration_next_maintenance", "time_next_maintenance",
+                     "time_before_cooldown_sub", "time_before_cooldown_line",
+                     "rho", "a_ex", "v_ex", "q_ex", "p_ex",
+                     "a_or", "v_or", "q_or", "p_or",
+                     "load_p", "load_q", "load_v",
+                     "gen_p", "gen_q", "gen_v",
+                     "topo_vect", "line_status", "timestep_overflow"
+                     ]
+
+        if self.shunts_data_available:
+            attr_vect += ["_shunt_bus", "_shunt_v", "_shunt_q", "_shunt_p"]
+
+        for attr_nm in attr_simple:
+            setattr(other, attr_nm, getattr(self, attr_nm))
+
+        for attr_nm in attr_vect:
+            getattr(other, attr_nm)[:] = getattr(self, attr_nm)
+
+    def __copy__(self):
+        res = type(self)(obs_env=self._obs_env,
+                         action_helper=self.action_helper)
+
+        # copy regular attributes
+        self._aux_copy(other=res)
+
+        # just copy
+        res._connectivity_matrix_ = copy.copy(self._connectivity_matrix_)
+        res._bus_connectivity_matrix_ = copy.copy(self._bus_connectivity_matrix_)
+        res._dictionnarized = copy.copy(self._dictionnarized)
+        res._vectorized = copy.copy(self._vectorized)
+
+        # handles the forecasts here
+        res._forecasted_grid_act = copy.copy(self._forecasted_grid_act)
+        res._forecasted_inj = copy.copy(self._forecasted_inj)
+
+        return res
+
+    def __deepcopy__(self, memodict={}):
+        res = type(self)(obs_env=self._obs_env,
+                         action_helper=self.action_helper)
+
+        # copy regular attributes
+        self._aux_copy(other=res)
+
+        # just deepcopy
+        res._connectivity_matrix_ = copy.deepcopy(self._connectivity_matrix_, memodict)
+        res._bus_connectivity_matrix_ = copy.deepcopy(self._bus_connectivity_matrix_, memodict)
+        res._dictionnarized = copy.deepcopy(self._dictionnarized, memodict)
+        res._vectorized = copy.deepcopy(self._vectorized, memodict)
+
+        # handles the forecasts here
+        res._forecasted_grid_act = copy.deepcopy(self._forecasted_grid_act, memodict)
+        res._forecasted_inj = copy.deepcopy(self._forecasted_inj, memodict)
+
+        return res
 
     def state_of(self,
                  _sentinel=None,
@@ -730,7 +783,7 @@ class BaseObservation(GridObjects):
         self.load_theta[:] = np.NaN
         self.gen_theta[:] = np.NaN
         self.storage_theta[:] = np.NaN
-        
+
         # alarm feature
         self.is_alarm_illegal[:] = False
         self.time_since_last_alarm[:] = -1
@@ -1844,9 +1897,17 @@ class BaseObservation(GridObjects):
         """
         obs_env = self._obs_env
         self._obs_env = None  # _obs_env is a pointer, it is not held by this !
+
+        action_helper = self.action_helper
+        self.action_helper = None
+
         res = copy.deepcopy(self)
+
         self._obs_env = obs_env
         res._obs_env = obs_env
+
+        self.action_helper = action_helper
+        res.action_helper = action_helper
         return res
 
     @property
