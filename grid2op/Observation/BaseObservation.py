@@ -5,10 +5,10 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import copy
 import datetime
 import warnings
-from scipy.sparse import csr_matrix
 import networkx
 import numpy as np
 from abc import abstractmethod
@@ -354,8 +354,8 @@ class BaseObservation(GridObjects):
         self.storage_theta = np.empty(shape=self.n_storage, dtype=dt_float)
 
         # counter
-        self.current_step = 0
-        self.max_step = np.iinfo(dt_int).max
+        self.current_step = dt_int(0)
+        self.max_step = dt_int(np.iinfo(dt_int).max)
 
     def _aux_copy(self, other):
         attr_simple = ["max_step", "current_step", "support_theta", "day_of_week",
@@ -804,6 +804,9 @@ class BaseObservation(GridObjects):
         self.attention_budget[:] = 0
         self.was_alarm_used_after_game_over[:] = False
 
+        self.current_step = dt_int(0)
+        self.max_step = dt_int(np.iinfo(dt_int).max)
+
     def set_game_over(self, env=None):
         """
         Set the observation to the "game over" state:
@@ -937,9 +940,10 @@ class BaseObservation(GridObjects):
         Test the equality of two observations.
 
         2 actions are said to be identical if the have the same impact on the powergrid. This is unlrelated to their
-        respective class. For example, if an BaseAction is of class :class:`BaseAction` and doesn't act on the _injection, it
-        can be equal to a an BaseAction of derived class :class:`TopologyAction` (if the topological modification are the
-        same of course).
+        respective class. For example, if an BaseAction is of class :class:`BaseAction` and doesn't act on the
+        _injection, it
+        can be equal to a an BaseAction of derived class :class:`TopologyAction` (if the topological modification
+        are the same of course).
 
         This implies that the attributes :attr:`BaseAction.authorized_keys` is not checked in this method.
 
@@ -961,7 +965,6 @@ class BaseObservation(GridObjects):
         Returns
         -------
         ``True`` if the action are equal, ``False`` otherwise.
-
         """
 
         if self.year != other.year:
@@ -1605,9 +1608,9 @@ class BaseObservation(GridObjects):
         .. danger::
             **IMPORTANT NOTE** the "origin" and "extremity" of the networkx graph is not necessarily the same as the one
             in grid2op. The "origin" side will always be the nodes with the lowest id. For example, if an edges connects
-            the bus 6 to the bus 8, then the "origin" of this powerline is bus 6 (**eg** the active power injected at node
-            6 from this edge will be *p_or*) and the "extremity" side is bus 8 (**eg** the active power injectioned at
-            node 8 from this edge will be *p_ex*).
+            the bus 6 to the bus 8, then the "origin" of this powerline is bus 6 (**eg** the active power
+            injected at node 6 from this edge will be *p_or*) and the "extremity" side is bus 8
+            (**eg** the active power injected at node 8 from this edge will be *p_ex*).
 
         .. note::
             The graph returned by this function is "frozen" to prevent its modification. If you really want to modify

@@ -55,7 +55,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
     This is due to the "approximation" when some redispatching is performed (the precision of the
     algorithm that computes the actual dispatch from the information it receives) and also because
     sometimes the losses of the grid are really different that the one anticipated in the "chronics" (yes
-    env.gen_pmin and env.gen_pmax are not always ensured in grid2op)
+    `env.gen_pmin` and `env.gen_pmax` are not always ensured in grid2op)
 
     """
     def __init__(self, env, dict_variables=None):
