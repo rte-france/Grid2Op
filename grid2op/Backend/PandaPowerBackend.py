@@ -1177,6 +1177,8 @@ class PandaPowerBackend(Backend):
         shunt_bus = self._grid.shunt["bus"].values < self.__nb_bus_before
         shunt_bus = 1 * shunt_bus
         shunt_bus = shunt_bus.astype(dt_int)
+        shunt_v[~self._grid.shunt["in_service"].values] = -1.0
+        shunt_bus[~self._grid.shunt["in_service"].values] = -1
         return shunt_p, shunt_q, shunt_v, shunt_bus
 
     def storages_info(self):
