@@ -129,6 +129,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                                    observation_space.shape,
                                    observation_space.dtype):
             if sh == 0:
+                # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
                 continue
             my_type = None
             shape = (sh,)

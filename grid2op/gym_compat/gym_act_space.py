@@ -134,7 +134,6 @@ class GymActionSpace(_BaseGymSpaceConverter):
                                       dict_variables=dict_variables)
             dict_ = self._fix_dict_keys(dict_)
             self.__is_converter = False
-
         _BaseGymSpaceConverter.__init__(self, dict_, dict_variables)
 
     def reencode_space(self, key, fun):
@@ -200,6 +199,9 @@ class GymActionSpace(_BaseGymSpaceConverter):
         for attr_nm, sh, dt in zip(action_space.attr_list_vect,
                                    action_space.shape,
                                    action_space.dtype):
+            if sh == 0:
+                # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
+                continue
             my_type = None
             shape = (sh,)
             if attr_nm in dict_variables:

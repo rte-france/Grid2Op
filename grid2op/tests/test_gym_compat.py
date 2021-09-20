@@ -53,6 +53,13 @@ class TestGymCompatModule(unittest.TestCase):
     def tearDown(self) -> None:
         self.env.close()
 
+    def test_print_with_no_storage(self):
+        self.env = grid2op.make("l2rpn_icaps_2021",
+                                test=True,
+                                _add_to_name="TestGymCompatModule")
+        env_gym = GymEnv(self.env)
+        res_ = env_gym.action_space.__str__()  # this crashed
+
     def test_convert_togym(self):
         """test i can create the env"""
         env_gym = GymEnv(self.env)
