@@ -798,9 +798,9 @@ class GridObjects:
 
         """
         # TODO optimization for action or observation, to reduce json size, for example using the see `to_json`
-
+        all_keys = self.attr_list_vect + self.attr_list_json
         for key, array_ in dict_.items():
-            if key not in self.attr_list_vect + self.attr_list_json:
+            if key not in all_keys:
                 raise AmbiguousAction(f"Impossible to recognize the key \"{key}\"")
             my_attr = self.__getattribute__(key)
             if isinstance(my_attr, np.ndarray):

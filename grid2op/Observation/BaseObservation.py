@@ -699,6 +699,19 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
+        if cls.glop_version < "1.6.4" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # "current_step", "max_step" were added in grid2Op 1.6.4
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
+            for el in ["max_step", "current_step"]:
+                try:
+                    cls.attr_list_vect.remove(el)
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
+                    pass
+            cls.attr_list_set = set(cls.attr_list_vect)
+
     def reset(self):
         """
         INTERNAL

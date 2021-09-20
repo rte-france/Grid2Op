@@ -55,7 +55,8 @@ class Multifolder(GridValue):
                  time_interval=timedelta(minutes=5),
                  start_datetime=datetime(year=2019, month=1, day=1),
                  gridvalueClass=GridStateFromFile,
-                 sep=";", max_iter=-1,
+                 sep=";",
+                 max_iter=-1,
                  chunk_size=None):
         GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, chunk_size=chunk_size,
                            start_datetime=start_datetime)

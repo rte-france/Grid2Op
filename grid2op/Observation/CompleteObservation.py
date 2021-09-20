@@ -123,6 +123,7 @@ class CompleteObservation(BaseObservation):
         "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
         "was_alarm_used_after_game_over",
         "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",  # starting from grid2op version 1.6.0
+        "current_step", "max_step"  # starting from grid2op version 1.6.4
     ]
     attr_list_json = ["_thermal_limit",
                       "support_theta",

@@ -29,6 +29,10 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.6.4] - 2021-xx-yy
+---------------------
+- [ADDED] serialization of `current_iter` and `max_iter` in the observation.
+
 [1.6.3] - 2021-xx-yy
 --------------------
 - [FIXED] a bug that allowed to use wrongly the function `backend.get_action_to_set()` even when the backend
