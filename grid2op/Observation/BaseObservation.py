@@ -248,7 +248,6 @@ class BaseObservation(GridObjects):
                 # attention budget
                 "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
                 "was_alarm_used_after_game_over",
-
                 ]
 
     attr_list_vect = None
@@ -879,12 +878,12 @@ class BaseObservation(GridObjects):
             self._shunt_bus[:] = -1
 
         # set an old date
-        self.year = 1970
-        self.month = 1
-        self.day = 1
-        self.hour_of_day = 0
-        self.minute_of_hour = 0
-        self.day_of_week = 1
+        # self.year = 1970
+        # self.month = 1
+        # self.day = 1
+        # self.hour_of_day = 0
+        # self.minute_of_hour = 0
+        # self.day_of_week = 1
 
         if self.support_theta:
             # by convention, I say it's 0 if the grid is in total blackout
@@ -1002,8 +1001,6 @@ class BaseObservation(GridObjects):
         """
         same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
-            import pdb
-            pdb.set_trace()
             raise RuntimeError("Cannot compare to observation not coming from the same powergrid.")
         tmp_obs_env = self._obs_env
         self._obs_env = None  # keep aside the backend
@@ -2188,6 +2185,10 @@ class BaseObservation(GridObjects):
             self._dictionnarized["last_alarm"] = copy.deepcopy(self.last_alarm)
             self._dictionnarized["attention_budget"] = self.attention_budget[0]
             self._dictionnarized["was_alarm_used_after_game_over"] = self.was_alarm_used_after_game_over[0]
+
+            # current_step / max step
+            self._dictionnarized["current_step"] = self.current_step
+            self._dictionnarized["max_step"] = self.max_step
 
         return self._dictionnarized
 

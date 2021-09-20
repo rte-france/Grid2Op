@@ -31,6 +31,8 @@ Change Log
 
 [1.6.4] - 2021-xx-yy
 ---------------------
+- [FIXED] a bug where the shunt had a voltage when disconnected using pandapower backend
+- [FIXED] a bug preventing to print the action space if some "part" of it had no size (empty action space)
 - [ADDED] serialization of `current_iter` and `max_iter` in the observation.
 
 [1.6.3] - 2021-xx-yy

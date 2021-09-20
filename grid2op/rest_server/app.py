@@ -7,21 +7,70 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import os
+import typing as t
+import warnings
+
 from flask import Flask
 from flask import make_response, jsonify
 from flask import request
-from flask_wtf.csrf import CSRFProtect
 from collections.abc import Iterable
 
 from grid2op.rest_server.env_cache import EnvCache
 import argparse
 
+try:
+    import ujson
+    from flask.json import JSONEncoder, JSONDecoder
 
-ENV_CACHE = EnvCache()
+    # define the encoder
+    class CustomJSONEncoder(JSONEncoder):
+        def default(self, obj):
+            try:
+                return ujson.dumps(obj)
+            except TypeError:
+                return JSONEncoder.default(self, obj)
+
+    # define the decoder
+    class CustomJSONDecoder(JSONDecoder):
+        def dump(self, obj: t.Any, fp: t.IO[str], app: t.Optional["Flask"] = None, **kwargs: t.Any) -> None:
+            try:
+                return ujson.dump(obj=obj, fp=fp)
+            except TypeError:
+                return CustomJSONDecoder.dump(self, obj, fp, app, **kwargs)
+
+        def dumps(self, obj: t.Any, app: t.Optional["Flask"] = None, **kwargs: t.Any) -> str:
+            try:
+                return ujson.dumps(obj=obj)
+            except TypeError:
+                return CustomJSONDecoder.dumps(self, obj, app, **kwargs)
+
+        def loads(self, s: str, app: t.Optional["Flask"] = None, **kwargs: t.Any) -> t.Any:
+            try:
+                return ujson.loads(s)
+            except TypeError:
+                return CustomJSONDecoder.loads(self, s, app, **kwargs)
+
+        def load(self, fp: t.IO[str], app: t.Optional["Flask"] = None, **kwargs: t.Any) -> t.Any:
+            try:
+                return ujson.load(fp=fp)
+            except TypeError:
+                return CustomJSONDecoder.load(self, fp, app, **kwargs)
+
+    UJSON_AS_JSON = True
+except ImportError as exc:
+    warnings.warn("ujson not available, expect some degraded performance")
+    UJSON_AS_JSON = False
+
+ENV_CACHE = EnvCache(UJSON_AS_JSON)
 
 app = Flask(__name__)
+if UJSON_AS_JSON:
+    app.json_encoder = CustomJSONEncoder
+    app.json_decoder = CustomJSONDecoder
+
 # TODO for improved security, not sure it's needed
 if False:
+    from flask_wtf.csrf import CSRFProtect
     csrf = CSRFProtect()
     csrf.init_app(app)
     # set the env variable this way before starting : `set WTF_CSRF_SECRET_KEY=...`
@@ -32,7 +81,9 @@ if False:
 @app.route('/')
 def index():
     return "Welcome to grid2op. This small server lets you use grid2op as an web service to use some grid2op " \
-           "features for example in different computer languages. See the documentation for more information."
+           "features for example in different computer languages. See the documentation for more information." \
+           "(work in progress)" \
+           "(alpha mode at the moment)"
 
 
 @app.route('/make/<env_name>')

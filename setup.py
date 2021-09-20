@@ -71,7 +71,8 @@ pkgs = {
         ],
         "api": [
             "flask",
-            "flask_wtf"
+            "flask_wtf",
+            "ujson"
         ]
     }
 }
