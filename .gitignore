@@ -338,6 +338,7 @@ parallel_grid2op2.tgz
 parallel_grid2op_example.tgz
 Idontcare.json
 test_json_gamover.py
+test_other_reward.py
 
 # profiling files
 **.prof

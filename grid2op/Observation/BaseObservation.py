@@ -268,8 +268,8 @@ class BaseObservation(GridObjects):
 
         # calendar data
         self.year = dt_int(1970)
-        self.month = dt_int(0)
-        self.day = dt_int(0)
+        self.month = dt_int(1)
+        self.day = dt_int(1)
         self.hour_of_day = dt_int(0)
         self.minute_of_hour = dt_int(0)
         self.day_of_week = dt_int(0)
@@ -877,13 +877,22 @@ class BaseObservation(GridObjects):
             self._shunt_v[:] = 0.
             self._shunt_bus[:] = -1
 
-        # set an old date
-        # self.year = 1970
-        # self.month = 1
-        # self.day = 1
-        # self.hour_of_day = 0
-        # self.minute_of_hour = 0
-        # self.day_of_week = 1
+        if env is None:
+            # set an old date (as i don't know anything about the env)
+            self.year = 1970
+            self.month = 1
+            self.day = 1
+            self.hour_of_day = 0
+            self.minute_of_hour = 0
+            self.day_of_week = 1
+        else:
+            # retrieve the date from the environment
+            self.year = dt_int(env.time_stamp.year)
+            self.month = dt_int(env.time_stamp.month)
+            self.day = dt_int(env.time_stamp.day)
+            self.hour_of_day = dt_int(env.time_stamp.hour)
+            self.minute_of_hour = dt_int(env.time_stamp.minute)
+            self.day_of_week = dt_int(env.time_stamp.weekday())
 
         if self.support_theta:
             # by convention, I say it's 0 if the grid is in total blackout
