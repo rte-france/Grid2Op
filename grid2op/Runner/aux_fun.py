@@ -73,9 +73,8 @@ def _aux_run_one_episode(env,
     time_act = 0.
     cum_reward = dt_float(0.0)
 
-    # reset the environment
-    env.chronics_handler.tell_id(indx-1)
-    # the "-1" above is because the environment will be reset. So it will increase id of 1.
+    # set the environment to use the proper chronic
+    env.set_id(indx)
 
     # set the seed
     if env_seed is not None:

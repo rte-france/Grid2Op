@@ -902,6 +902,10 @@ class BaseObservation(GridObjects):
             self.gen_theta[:] = 0.
             self.storage_theta[:] = 0.
 
+        # counter
+        self.current_step = dt_int(env.nb_time_step)
+        self.max_step = dt_int(env.max_episode_duration())
+
         # stuff related to alarm
         self.is_alarm_illegal[:] = False
         self.time_since_last_alarm[:] = -1

@@ -321,7 +321,7 @@ class Multifolder(GridValue):
         """
         return self.data.forecasts()
 
-    def tell_id(self, id_num):
+    def tell_id(self, id_num, previous=False):
         """
         This tells this chronics to load for the next episode.
         By default, if id_num is greater than the number of episode, it is equivalent at restarting from the first
@@ -329,15 +329,33 @@ class Multifolder(GridValue):
 
         Parameters
         ----------
-        id_num: ``int``
+        id_num: ``int`` | ``str``
             Id of the chronics to load.
 
-        Returns
-        -------
-
+        previous:
+            Do you want to set to the previous value of this one or not (note that in general you want to set to
+            the previous value, as calling this function as an impact only after `env.reset()` is called)
         """
-        self._prev_cache_id = id_num
-        self._prev_cache_id %= len(self._order)
+        if isinstance(id_num, str):
+            # new accepted behaviour starting 1.6.4
+            found = False
+            for internal_id_, number in enumerate(self._order):
+                if self.subpaths[number] == id_num:
+                    self._prev_cache_id = internal_id_
+                    found = True
+
+            if not found:
+                raise ChronicsError(f"Impossible to find the chronics with id \"{id_num}\". The call to "
+                                    f"`env.chronics_handler.tell_id(...)` cannot be performed.")
+        else:
+            # default behaviour prior to 1.6.4
+            self._prev_cache_id = id_num
+            self._prev_cache_id %= len(self._order)
+
+        if previous:
+            self._prev_cache_id -= 1
+            self._prev_cache_id %= len(self._order)
+
 
     def get_id(self) -> str:
         """

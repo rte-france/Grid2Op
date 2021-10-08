@@ -37,7 +37,10 @@ Change Log
 - [ADDED] the possibility to use the runner only on certain episode id
   (see `runner.run(..., episode_id=[xxx, yyy, ...])`)
 - [IMPROVED] right time stamp is now set in the observation after the game over.
+- [IMPROVED] correct current number of steps when the observation is set to a game over state.
 - [IMPROVED] documentation to clearly state that the action_class should not be modified.
+- [IMPROVED] possibility to tell which chronics to use with the result of `env.chronics_handler.get_id()` (this is also
+  compatible in the runner)
 
 [1.6.3] - 2021-xx-yy
 --------------------

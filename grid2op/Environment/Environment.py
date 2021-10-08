@@ -589,6 +589,11 @@ class Environment(BaseEnv):
                     obs, reward, done, info = env.step(act)
 
         """
+        if isinstance(id_, str):
+            # new in grid2op 1.6.4
+            self.chronics_handler.tell_id(id_, previous=True)
+            return
+
         try:
             id_ = int(id_)
         except Exception as exc_:

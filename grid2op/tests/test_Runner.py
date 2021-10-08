@@ -138,6 +138,26 @@ class TestRunner(HelperTests):
         assert res_2[0][1] == '2'
         assert res_2[1][1] == '1'
 
+    def test_2episodes_with_id_str(self):
+        env = self.runner.init_env()
+        subpaths = env.chronics_handler.subpaths
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res_1 = self.runner.run(nb_episode=2,
+                                    episode_id=[subpaths[0], subpaths[1]],
+                                    max_iter=self.max_iter)
+        assert len(res_1) == 2
+        assert res_1[0][1] == '1'
+        assert res_1[1][1] == '2'
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res_2 = self.runner.run(nb_episode=2,
+                                    episode_id=[subpaths[1], subpaths[0]],
+                                    max_iter=self.max_iter)
+        assert len(res_2) == 2
+        assert res_2[0][1] == '2'
+        assert res_2[1][1] == '1'
+
     def test_2episode_2process_detailed(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

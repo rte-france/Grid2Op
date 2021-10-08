@@ -1086,6 +1086,21 @@ class TestMultiFolder(HelperTests):
         obs = self.env.reset()
         assert self.env.chronics_handler.get_id() == self.chronics_paths[1]
 
+    def test_set_id_str(self):
+        self.env.set_id(0)
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+
+        self.env.set_id(self.chronics_paths[1])
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[1]
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+
+        with self.assertRaises(ChronicsError):
+            self.env.set_id("toto")
+
+
     def test_reset(self):
         assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
         self.env.chronics_handler.real_data.reset()
