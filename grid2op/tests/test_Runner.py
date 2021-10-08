@@ -81,7 +81,7 @@ class TestRunner(HelperTests):
     def test_one_process_par(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            res = _aux_one_process_parrallel(self.runner, [0], 0, None, None, self.max_iter)
+            res = _aux_one_process_parrallel(self.runner, [0], 0, env_seeds=None, agent_seeds=None, max_iter=self.max_iter)
         assert len(res) == 1
         _, el1, el2, el3, el4 = res[0]
         assert el1 == "1"
@@ -99,6 +99,44 @@ class TestRunner(HelperTests):
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
             assert np.abs(cum_reward - self.real_reward) <= self.tol_one
+
+    def test_2episode_2process_with_id(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res_1 = self.runner._run_parrallel(nb_episode=2,
+                                               nb_process=2,
+                                               episode_id=[0, 1],
+                                               max_iter=self.max_iter)
+        assert len(res_1) == 2
+        assert res_1[0][1] == '1'
+        assert res_1[1][1] == '2'
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res_2 = self.runner._run_parrallel(nb_episode=2,
+                                               nb_process=2,
+                                               episode_id=[1, 0],
+                                               max_iter=self.max_iter)
+        assert len(res_2) == 2
+        assert res_2[0][1] == '2'
+        assert res_2[1][1] == '1'
+
+    def test_2episodes_with_id(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res_1 = self.runner.run(nb_episode=2,
+                                    episode_id=[0, 1],
+                                    max_iter=self.max_iter)
+        assert len(res_1) == 2
+        assert res_1[0][1] == '1'
+        assert res_1[1][1] == '2'
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res_2 = self.runner.run(nb_episode=2,
+                                    episode_id=[1, 0],
+                                    max_iter=self.max_iter)
+        assert len(res_2) == 2
+        assert res_2[0][1] == '2'
+        assert res_2[1][1] == '1'
 
     def test_2episode_2process_detailed(self):
         with warnings.catch_warnings():

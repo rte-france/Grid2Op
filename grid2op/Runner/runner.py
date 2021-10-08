@@ -581,6 +581,7 @@ class Runner(object):
                         env_seed=None,
                         max_iter=None,
                         agent_seed=None,
+                        episode_id=None,
                         detailed_output=False):
         """
         INTERNAL
@@ -630,6 +631,7 @@ class Runner(object):
                         env_seeds=None,
                         agent_seeds=None,
                         max_iter=None,
+                        episode_id=None,
                         add_detailed_output=False):
         """
         INTERNAL
@@ -662,6 +664,12 @@ class Runner(object):
         env_seeds: ``list``
             An iterable of the seed used for the experiments. By default ``None``, no seeds are set. If provided,
             its size should match ``nb_episode``.
+
+        episode_id: ``list``
+            For each of the nb_episdeo you want to compute, it specifies the id of the chronix that will be used.
+            By default ``None``, no seeds are set. If provided,
+            its size should match ``nb_episode``.
+
         add_detailed_output: see Runner.run method
 
         Returns
@@ -688,9 +696,12 @@ class Runner(object):
                 agt_seed = None
                 if agent_seeds is not None:
                     agt_seed = agent_seeds[i]
+                ep_id = i  # if no "episode_id" is provided i used the i th one
+                if episode_id is not None:
+                    ep_id = episode_id[i]  # otherwise i use the provided one
                 name_chron, cum_reward, nb_time_step, episode_data = \
                     self.run_one_episode(path_save=path_save,
-                                         indx=i,
+                                         indx=ep_id,
                                          pbar=next_pbar[0],
                                          env_seed=env_seed,
                                          agent_seed=agt_seed,
@@ -705,7 +716,14 @@ class Runner(object):
                 pbar_.update(1)
         return res
 
-    def _run_parrallel(self, nb_episode, nb_process=1, path_save=None, env_seeds=None, agent_seeds=None, max_iter=None,
+    def _run_parrallel(self,
+                       nb_episode,
+                       nb_process=1,
+                       path_save=None,
+                       env_seeds=None,
+                       agent_seeds=None,
+                       max_iter=None,
+                       episode_id=None,
                        add_detailed_output=False):
         """
         INTERNAL
@@ -745,6 +763,7 @@ class Runner(object):
             An iterable that contains the seed used for the environment. By default ``None`` means no seeds are set.
             If provided, its size should match the ``nb_episode``. The agent will be seeded at the beginning of each
             scenario BEFORE calling `agent.reset()`.
+
         add_detailed_output: see Runner.run method
 
         Returns
@@ -774,8 +793,11 @@ class Runner(object):
             self.logger.warn("Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
             return self._run_sequential(nb_episode,
                                         path_save=path_save,
+                                        pbar=pbar,
                                         env_seeds=env_seeds,
+                                        max_iter=max_iter,
                                         agent_seeds=agent_seeds,
+                                        episode_id=episode_id,
                                         add_detailed_output=add_detailed_output)
         else:
             self._clean_up()
@@ -783,15 +805,18 @@ class Runner(object):
             nb_process = int(nb_process)
             process_ids = [[] for i in range(nb_process)]
             for i in range(nb_episode):
-                process_ids[i % nb_process].append(i)
+                if episode_id is None:
+                    process_ids[i % nb_process].append(i)
+                else:
+                    process_ids[i % nb_process].append(episode_id[i])
 
             if env_seeds is None:
-                seeds_res = [None for _ in range(nb_process)]
+                seeds_env_res = [None for _ in range(nb_process)]
             else:
                 # split the seeds according to the process
-                seeds_res = [[] for i in range(nb_process)]
+                seeds_env_res = [[] for i in range(nb_process)]
                 for i in range(nb_episode):
-                    seeds_res[i % nb_process].append(env_seeds[i])
+                    seeds_env_res[i % nb_process].append(env_seeds[i])
 
             if agent_seeds is None:
                 seeds_agt_res = [None for _ in range(nb_process)]
@@ -803,14 +828,15 @@ class Runner(object):
 
             res = []
             if _IS_LINUX:
-               lists = [(self, pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
+               lists = [(self, pn, i, path_save, seeds_env_res[i], seeds_agt_res[i],
+                         max_iter, add_detailed_output)
                          for i, pn in enumerate(process_ids)]
             else:
-                lists = [(Runner(**self._get_params()), pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
+                lists = [(Runner(**self._get_params()), pn, i, path_save, seeds_env_res[i], seeds_agt_res[i],
+                          max_iter, add_detailed_output)
                          for i, pn in enumerate(process_ids)]
             with Pool(nb_process) as p:
-                tmp = p.starmap(_aux_one_process_parrallel,
-                                lists)
+                tmp = p.starmap(_aux_one_process_parrallel, lists)
             for el in tmp:
                 res += el
         return res
@@ -860,8 +886,16 @@ class Runner(object):
         """
         pass
 
-    def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None,
-            agent_seeds=None, add_detailed_output=False):
+    def run(self,
+            nb_episode,
+            nb_process=1,
+            path_save=None,
+            max_iter=None,
+            pbar=False,
+            env_seeds=None,
+            agent_seeds=None,
+            episode_id=None,
+            add_detailed_output=False):
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner._run_sequential` if "nb_process" is
         1 or :func:`Runner._run_parrallel` if nb_process >= 2.
@@ -902,6 +936,11 @@ class Runner(object):
             An iterable that contains the seed used for the environment. By default ``None`` means no seeds are set.
             If provided, its size should match the ``nb_episode``. The agent will be seeded at the beginning of each
             scenario BEFORE calling `agent.reset()`.
+
+        episode_id: ``list``
+            For each of the nb_episdeo you want to compute, it specifies the id of the chronix that will be used.
+            By default ``None``, no seeds are set. If provided,
+            its size should match ``nb_episode``.
 
         add_detailed_output: ``bool``
             A flag to add an :class:`EpisodeData` object to the results, containing a lot of information about the run
@@ -977,6 +1016,11 @@ class Runner(object):
                 raise RuntimeError("You want to compute \"{}\" run(s) but provide only \"{}\" different seeds (agent)."
                                    "".format(nb_episode, len(agent_seeds)))
 
+        if episode_id is not None:
+            if len(episode_id) != nb_episode:
+                raise RuntimeError("You want to compute \"{}\" run(s) but provide only \"{}\" different ids."
+                                   "".format(nb_episode, len(episode_id)))
+
         if max_iter is not None:
             max_iter = int(max_iter)
 
@@ -989,21 +1033,36 @@ class Runner(object):
                 self.__used = True
                 if nb_process == 1:
                     self.logger.info("Sequential runner used.")
-                    res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
-                                               env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds,
+                    res = self._run_sequential(nb_episode,
+                                               path_save=path_save,
+                                               pbar=pbar,
+                                               env_seeds=env_seeds,
+                                               max_iter=max_iter,
+                                               agent_seeds=agent_seeds,
+                                               episode_id=episode_id,
                                                add_detailed_output=add_detailed_output)
                 else:
                     if add_detailed_output and (_IS_WINDOWS or _IS_MACOS):
                         self.logger.warn("Parallel run are not fully supported on windows or macos when "
                                          "\"add_detailed_output\" is True. So we decided "
                                          "to fully deactivate them.")
-                        res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
-                                                   env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds,
+                        res = self._run_sequential(nb_episode,
+                                                   path_save=path_save,
+                                                   pbar=pbar,
+                                                   env_seeds=env_seeds,
+                                                   max_iter=max_iter,
+                                                   agent_seeds=agent_seeds,
+                                                   episode_id=episode_id,
                                                    add_detailed_output=add_detailed_output)
                     else:
                         self.logger.info("Parallel runner used.")
-                        res = self._run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save,
-                                                  env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds,
+                        res = self._run_parrallel(nb_episode,
+                                                  nb_process=nb_process,
+                                                  path_save=path_save,
+                                                  env_seeds=env_seeds,
+                                                  max_iter=max_iter,
+                                                  agent_seeds=agent_seeds,
+                                                  episode_id=episode_id,
                                                   add_detailed_output=add_detailed_output)
             finally:
                 self._clean_up()
