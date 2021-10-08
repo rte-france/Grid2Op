@@ -903,8 +903,9 @@ class BaseObservation(GridObjects):
             self.storage_theta[:] = 0.
 
         # counter
-        self.current_step = dt_int(env.nb_time_step)
-        self.max_step = dt_int(env.max_episode_duration())
+        if env is not None:
+            self.current_step = dt_int(env.nb_time_step)
+            self.max_step = dt_int(env.max_episode_duration())
 
         # stuff related to alarm
         self.is_alarm_illegal[:] = False
