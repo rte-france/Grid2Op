@@ -41,6 +41,7 @@ Change Log
 - [IMPROVED] documentation to clearly state that the action_class should not be modified.
 - [IMPROVED] possibility to tell which chronics to use with the result of `env.chronics_handler.get_id()` (this is also
   compatible in the runner)
+- [ADDED] a funciton that returns if an action has any change to modify the grid see `act.can_affect_something()`
 
 [1.6.3] - 2021-xx-yy
 --------------------
