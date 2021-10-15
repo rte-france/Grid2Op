@@ -43,7 +43,7 @@ Change Log
   compatible in the runner)
 - [ADDED] a funciton that returns if an action has any change to modify the grid see `act.can_affect_something()`
 
-[1.6.3] - 2021-xx-yy
+[1.6.3] - 2021-08-21
 --------------------
 - [FIXED] a bug that allowed to use wrongly the function `backend.get_action_to_set()` even when the backend
   has diverged (which should not be possible)
