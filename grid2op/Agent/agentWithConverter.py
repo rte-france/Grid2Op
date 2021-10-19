@@ -10,7 +10,7 @@ from abc import abstractmethod
 
 from grid2op.Converter import Converter
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Agent.BaseAgent import BaseAgent
+from grid2op.Agent.baseAgent import BaseAgent
 
 
 class AgentWithConverter(BaseAgent):

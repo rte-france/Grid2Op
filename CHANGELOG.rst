@@ -31,17 +31,22 @@ Change Log
 
 [1.6.4] - 2021-xx-yy
 ---------------------
+- [BREAKING] the name of the python file for the "agent" module are now lowercase (complient with PEP). If you
+  did things like `from grid2op.Agent.BaseAgent import BaseAgent` you need to change it like
+  `from grid2op.Agent.baseAgent import BaseAgent` or even better, and this is the preferred way to include
+  them: `from grid2op.Agent import BaseAgent` It should not affect lots of code.
 - [FIXED] a bug where the shunt had a voltage when disconnected using pandapower backend
 - [FIXED] a bug preventing to print the action space if some "part" of it had no size (empty action space)
 - [ADDED] serialization of `current_iter` and `max_iter` in the observation.
 - [ADDED] the possibility to use the runner only on certain episode id
   (see `runner.run(..., episode_id=[xxx, yyy, ...])`)
+- [ADDED] a function that returns if an action has any change to modify the grid see `act.can_affect_something()`
+- [ADDED] a ttype of agent that performs predefined actions from a given list
 - [IMPROVED] right time stamp is now set in the observation after the game over.
 - [IMPROVED] correct current number of steps when the observation is set to a game over state.
 - [IMPROVED] documentation to clearly state that the action_class should not be modified.
 - [IMPROVED] possibility to tell which chronics to use with the result of `env.chronics_handler.get_id()` (this is also
   compatible in the runner)
-- [ADDED] a funciton that returns if an action has any change to modify the grid see `act.can_affect_something()`
 
 [1.6.3] - 2021-08-21
 --------------------

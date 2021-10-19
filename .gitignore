@@ -339,6 +339,9 @@ parallel_grid2op_example.tgz
 Idontcare.json
 test_json_gamover.py
 test_other_reward.py
+find_dc_coeff.py
+test_hash_windows_linux.py
+test_n1_reward.py
 
 # profiling files
 **.prof
