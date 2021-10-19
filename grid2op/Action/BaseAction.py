@@ -476,7 +476,6 @@ class BaseAction(GridObjects):
         res._vectorized = copy.deepcopy(self._vectorized, memodict)
         res._lines_impacted = copy.deepcopy(self._lines_impacted, memodict)
         res._subs_impacted = copy.deepcopy(self._subs_impacted, memodict)
-        res._subs_impacted = copy.deepcopy(self._subs_impacted, memodict)
 
         return res
 
