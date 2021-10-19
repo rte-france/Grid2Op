@@ -37,6 +37,7 @@ Change Log
   them: `from grid2op.Agent import BaseAgent` It should not affect lots of code.
 - [FIXED] a bug where the shunt had a voltage when disconnected using pandapower backend
 - [FIXED] a bug preventing to print the action space if some "part" of it had no size (empty action space)
+- [FIXED] a bug preventing to copy an action properly (especially for the alarm)
 - [ADDED] serialization of `current_iter` and `max_iter` in the observation.
 - [ADDED] the possibility to use the runner only on certain episode id
   (see `runner.run(..., episode_id=[xxx, yyy, ...])`)

@@ -436,7 +436,7 @@ class BaseAction(GridObjects):
 
         attr_vect = ["_set_line_status", "_switch_line_status", "_set_topo_vect",
                      "_change_bus_vect", "_hazards", "_maintenance", "_redispatch",
-                     "_storage_power", "_curtail"]
+                     "_storage_power", "_curtail", "_raise_alarm"]
 
         if self.shunts_data_available:
             attr_vect += ["shunt_p", "shunt_q", "shunt_bus"]
@@ -475,6 +475,7 @@ class BaseAction(GridObjects):
         # just copy
         res._vectorized = copy.deepcopy(self._vectorized, memodict)
         res._lines_impacted = copy.deepcopy(self._lines_impacted, memodict)
+        res._subs_impacted = copy.deepcopy(self._subs_impacted, memodict)
         res._subs_impacted = copy.deepcopy(self._subs_impacted, memodict)
 
         return res
