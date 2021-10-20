@@ -233,9 +233,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  has_attention_budget=False,
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
+                 logger=None,
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
+
+        if logger is None:
+            import logging
+            self.logger = logging.getLogger(__name__)
+            self.logger.disabled = True
+        else:
+            self.logger = logger.getChild("grid2op_BaseEnv")
 
         if init_grid_path is not None:
             self._init_grid_path = os.path.abspath(init_grid_path)

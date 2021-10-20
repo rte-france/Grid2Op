@@ -30,9 +30,26 @@ class RemoteEnv(Process):
     :class:`grid2op.Observation.BaseObservation` are forwarded to the agent.
 
     """
-    def __init__(self, env_params, remote, parent_remote, seed, name=None,
-                 return_info=True, _obs_to_vect=True):
+    def __init__(self,
+                 env_params,
+                 p_id,
+                 remote,
+                 parent_remote,
+                 seed,
+                 logger=None,
+                 name=None,
+                 return_info=True,
+                 _obs_to_vect=True):
         Process.__init__(self, group=None, target=None, name=name)
+
+        if logger is None:
+            import logging
+            self.logger = logging.getLogger(__name__)
+            self.logger.disabled = True
+        else:
+            self.logger = logger.getChild(f"grid2op_RemoteEnv_{p_id}")
+
+        self.p_id = p_id
         self.backend = None
         self.env = None
         self.env_params = env_params
@@ -69,7 +86,8 @@ class RemoteEnv(Process):
         with warnings.catch_warnings():
             # warnings have bee already sent in the main process, no need to resend them
             warnings.filterwarnings("ignore")
-            self.env = Environment(**self.env_params, backend=self.backend)
+            self.env = Environment(**self.env_params, backend=self.backend, logger=self.logger)
+
         env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
         self.all_seeds = self.env.seed(env_seed)
         self.env.chronics_handler.shuffle(shuffler=lambda x: x[self.space_prng.choice(len(x), size=len(x),
@@ -239,7 +257,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         Whether to return the information dictionary or not (might speed up computation)
 
     """
-    def __init__(self, envs, obs_as_class=True, return_info=True):
+    def __init__(self, envs, obs_as_class=True, return_info=True, logger=None):
         GridObjects.__init__(self)
         for env in envs:
             if not isinstance(env, Environment):
@@ -253,11 +271,14 @@ class BaseMultiProcessEnvironment(GridObjects):
 
         env_params = [sub_env.get_kwargs(with_backend=False) for sub_env in envs]
         self._ps = [RemoteEnv(env_params=env_,
+                              p_id=i,
                               remote=work_remote,
                               parent_remote=remote,
                               name="{}_{}".format(envs[i].name, i),
                               return_info=return_info,
-                              seed=envs[i].space_prng.randint(max_int))
+                              seed=envs[i].space_prng.randint(max_int),
+                              logger=logger.getChild("BaseMultiProcessEnvironment") if logger is not None else None
+                              )
                     for i, (work_remote, remote, env_) in enumerate(zip(_work_remotes, _remotes, env_params))]
 
         # on windows, this has to be created after

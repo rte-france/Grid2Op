@@ -43,6 +43,7 @@ Change Log
   (see `runner.run(..., episode_id=[xxx, yyy, ...])`)
 - [ADDED] a function that returns if an action has any change to modify the grid see `act.can_affect_something()`
 - [ADDED] a ttype of agent that performs predefined actions from a given list
+- [ADDED] basic support for logging in environment and runner (more coming soon)
 - [IMPROVED] right time stamp is now set in the observation after the game over.
 - [IMPROVED] correct current number of steps when the observation is set to a game over state.
 - [IMPROVED] documentation to clearly state that the action_class should not be modified.

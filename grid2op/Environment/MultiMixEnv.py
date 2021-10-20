@@ -152,6 +152,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     """
     def __init__(self,
                  envs_dir,
+                 logger=None,
                  experimental_read_from_local_dir=False,
                  _add_to_name="",  # internal, for test only, do not use !
                  _compat_glop_version=None,  # internal, for test only, do not use !
@@ -180,6 +181,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 env_path = os.path.join(envs_dir, env_dir)            
                 if not os.path.isdir(env_path):
                     continue
+                this_logger = logger.getChild(f"MultiMixEnvironment_{env_dir}") if logger is not None else None
                 # Special case for backend
                 if backendClass is not None:
                     env = make(env_path,
@@ -187,6 +189,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                                _add_to_name=_add_to_name,
                                _compat_glop_version=_compat_glop_version,
                                test=_test,
+                               logger=this_logger,
                                experimental_read_from_local_dir=experimental_read_from_local_dir,
                                **kwargs)
                 else:
@@ -194,6 +197,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                                _add_to_name=_add_to_name,
                                _compat_glop_version=_compat_glop_version,
                                test=_test,
+                               logger=this_logger,
                                experimental_read_from_local_dir=experimental_read_from_local_dir,
                                **kwargs)
                 self.mix_envs.append(env)

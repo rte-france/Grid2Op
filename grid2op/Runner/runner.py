@@ -253,6 +253,7 @@ class Runner(object):
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget=None,
                  has_attention_budget=False,
+                 logger=None,
                  # experimental: whether to read from local dir or generate the classes on the fly:
                  _read_from_local_dir=False
                  ):
@@ -427,6 +428,15 @@ class Runner(object):
 
         self.logger = ConsoleLog(
             DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
+        if logger is None:
+            import logging
+            self.logger = logging.getLogger(__name__)
+            if verbose:
+                self.logger.setLevel("debug")
+            else:
+                self.logger.disabled = True
+        else:
+            self.logger = logger.getChild("grid2op_Runner")
 
         # store _parameters
         self.init_grid_path = init_grid_path
@@ -532,6 +542,7 @@ class Runner(object):
                                 attention_budget_cls=self._attention_budget_cls,
                                 kwargs_attention_budget=self._kwargs_attention_budget,
                                 has_attention_budget=self._has_attention_budget,
+                                logger=self.logger,
                                 _raw_backend_class=self.backendClass,
                                 _read_from_local_dir=self._read_from_local_dir
                                 )
@@ -793,7 +804,6 @@ class Runner(object):
             self.logger.warn("Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
             return self._run_sequential(nb_episode,
                                         path_save=path_save,
-                                        pbar=pbar,
                                         env_seeds=env_seeds,
                                         max_iter=max_iter,
                                         agent_seeds=agent_seeds,

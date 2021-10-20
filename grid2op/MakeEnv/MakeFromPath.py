@@ -101,6 +101,7 @@ def _check_path(path, info):
 
 
 def make_from_dataset_path(dataset_path="/",
+                           logger=None,
                            experimental_read_from_local_dir=False,
                            _add_to_name="",
                            _compat_glop_version=None,
@@ -125,6 +126,9 @@ def make_from_dataset_path(dataset_path="/",
 
     dataset_path: ``str``
         Path to the dataset folder
+
+    logger:
+        Something to pass to grid2op environment to be used as logger.
 
     param: ``grid2op.Parameters.Parameters``, optional
         Type of parameters used for the Environment. Parameters defines how the powergrid problem is cast into an
@@ -584,6 +588,7 @@ def make_from_dataset_path(dataset_path="/",
                       has_attention_budget=has_attention_budget,
                       attention_budget_cls=attention_budget_class,
                       kwargs_attention_budget=kwargs_attention_budget,
+                      logger=logger,
                       _compat_glop_version=_compat_glop_version,
                       _read_from_local_dir=experimental_read_from_local_dir,
                       )

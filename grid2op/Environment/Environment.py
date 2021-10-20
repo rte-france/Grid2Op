@@ -88,6 +88,7 @@ class Environment(BaseEnv):
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
                  has_attention_budget=False,
+                 logger=None,
                  _raw_backend_class=None,
                  _compat_glop_version=None,
                  _read_from_local_dir=True,  # TODO runner and all here !
@@ -112,6 +113,7 @@ class Environment(BaseEnv):
                          has_attention_budget=has_attention_budget,
                          attention_budget_cls=attention_budget_cls,
                          kwargs_attention_budget=kwargs_attention_budget,
+                         logger=logger.getChild("grid2op_Environment") if logger is not None else None,
                          )
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
@@ -930,6 +932,8 @@ class Environment(BaseEnv):
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
+
+        res["logger"] = self.logger
         return res
 
     def _chronics_folder_name(self):
@@ -1258,4 +1262,5 @@ class Environment(BaseEnv):
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
+        res["logger"] = self.logger
         return res
