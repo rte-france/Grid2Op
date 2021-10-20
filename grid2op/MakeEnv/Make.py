@@ -328,7 +328,9 @@ def make(dataset="rte_case14_realistic",
         # Check if multimix from path
         if _aux_is_multimix(ds_path):
             def make_from_path_fn_(*args, **kwargs):
-                return _aux_make_multimix(*args, test=True, logger=logger, **kwargs)
+                if "logger" not in kwargs:
+                    kwargs["logger"] = logger  # foward the logger if not present already
+                return _aux_make_multimix(*args, test=True, **kwargs)
 
             make_from_path_fn = make_from_path_fn_
 

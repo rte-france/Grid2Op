@@ -86,6 +86,9 @@ class RemoteEnv(Process):
         with warnings.catch_warnings():
             # warnings have bee already sent in the main process, no need to resend them
             warnings.filterwarnings("ignore")
+            if "logger" in self.env_params:
+                # disable the logger of the environment, to force the use of this one
+                del self.env_params["logger"]
             self.env = Environment(**self.env_params, backend=self.backend, logger=self.logger)
 
         env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
