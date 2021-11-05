@@ -342,6 +342,8 @@ test_other_reward.py
 find_dc_coeff.py
 test_hash_windows_linux.py
 test_n1_reward.py
+test_copy_env_close.py
+!grid2op/tests/test_copy_env_close.py
 
 # profiling files
 **.prof

@@ -274,11 +274,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._epsilon_poly = dt_float(epsilon_poly)
         self._tol_poly = dt_float(tol_poly)
 
-        # define logger
-        self.logger = None
-
-        # the voltage controler
-
         # class used for the action spaces
         self._helper_action_class = None
         self._helper_observation_class = None
@@ -425,6 +420,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
 
     def _custom_deepcopy_for_copy(self, new_obj):
+        if self.__closed:
+            raise RuntimeError("Impossible to make a copy of a closed environment !")
+            
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
 
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
@@ -472,6 +470,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._thermal_limit_a = copy.deepcopy(self._thermal_limit_a)
 
         new_obj.__is_init = self.__is_init
+        new_obj.__closed = self.__closed
         new_obj.debug_dispatch = self.debug_dispatch
 
         new_obj._line_status = copy.deepcopy(self._line_status)
@@ -532,7 +531,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._actionClass = self._actionClass
         new_obj._observationClass = self._observationClass
         new_obj._legalActClass = self._legalActClass
-        new_obj._observation_space = self._observation_space.copy()
+        new_obj._observation_space = self._observation_space.copy(copy_backend=True)
         new_obj._names_chronics_to_backend = self._names_chronics_to_backend
         new_obj._reward_helper = copy.deepcopy(self._reward_helper)
 
@@ -2288,6 +2287,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.backend is not None:
             self.backend.close()
+        del self.backend
+        self.backend = None
 
         if self.observation_space is not None:
             # do not forget to close the backend of the observation (used for simulate)
@@ -2302,14 +2303,48 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._oppSpace.close()
 
         if self._helper_action_env is not None:
+            # close the action helper
             self._helper_action_env.close()
 
         if self.action_space is not None:
+            # close the action space if needed
             self.action_space.close()
+
+        if self._reward_helper is not None:
+            # close the reward if needed
+            self._reward_helper.close()
 
         self.backend = None
         self.__is_init = False
         self.__closed = True
+
+        # clean all the attributes
+        for attr_nm in ["logger", "_init_grid_path", "_DEBUG", "_complete_action_cls",
+                        "_parameters", "with_forecast", "_time_apply_act", "_time_powerflow",
+                        "_time_extract_obs", "_time_opponent", "_time_redisp", "_time_step",
+                        "_epsilon_poly", "_helper_action_class", "_helper_observation_class", "time_stamp",
+                        "nb_time_step", "delta_time_seconds", "current_obs", "_line_status",
+                        "_ignore_min_up_down_times", "_forbid_dispatch_off", "_no_overflow_disconnection",
+                        "_timestep_overflow", "_nb_timestep_overflow_allowed", "_hard_overflow_threshold",
+                        "_times_before_line_status_actionable", "_max_timestep_line_status_deactivated",
+                        "_times_before_topology_actionable", "_nb_ts_reco", "_time_next_maintenance",
+                        "_duration_next_maintenance", "_hazard_duration", "_env_dc", "_target_dispatch",
+                        "_actual_dispatch", "_gen_uptime", "_gen_downtime", "_gen_activeprod_t", "_gen_activeprod_t_redisp",
+                        "_thermal_limit_a", "_disc_lines", "_injection", "_maintenance", "_hazards", "_env_modification",
+                        "done", "current_reward", "_helper_action_env", "chronics_handler", "_game_rules", "_action_space",
+                        "_rewardClass", "_actionClass", "_observationClass", "_legalActClass", "_observation_space",
+                        "_names_chronics_to_backend", "_reward_helper", "reward_range", "viewer", "viewer_fig",
+                        "other_rewards", "_opponent_action_class", "_opponent_class", "_opponent_init_budget", "_opponent_attack_duration",
+                        "_opponent_attack_cooldown", "_opponent_budget_per_ts", "_kwargs_opponent", "_opponent_budget_class",
+                        "_opponent_action_space", "_compute_opp_budget", "_opponent", "_oppSpace", "_voltagecontrolerClass",
+                        "_voltage_controler", "_backend_action_class", "_backend_action", "backend", "debug_dispatch",
+                        # "__new_param", "__new_forecast_param", "__new_reward_func",
+                        "_storage_current_charge", "_storage_previous_charge", "_action_storage", "_amount_storage", "_amount_storage_prev",
+                        "_storage_power", "_limit_curtailment", "_gen_before_curtailment", "_sum_curtailment_mw", "_sum_curtailment_mw_prev",
+                        "_has_attention_budget", "_attention_budget", "_attention_budget_cls", "_is_alarm_illegal",
+                        "_is_alarm_used_in_reward", "_kwargs_attention_budget"]:
+            delattr(self, attr_nm)
+            setattr(self, attr_nm, None)
 
     def attach_layout(self, grid_layout):
         """

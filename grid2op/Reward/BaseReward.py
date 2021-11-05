@@ -239,3 +239,7 @@ class BaseReward(ABC):
         yield ("name", self.__class__.__name__)
         yield ("reward_min", float(self.reward_min))
         yield ("reward_max", float(self.reward_max))
+    
+    def close(self):
+        """overide this for certain reward that might need specific behaviour"""
+        pass

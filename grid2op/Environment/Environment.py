@@ -189,7 +189,6 @@ class Environment(BaseEnv):
 
         # alarm set up
         self.load_alarm_data()
-
         # to force the initialization of the backend to the proper type
         self.backend.assert_grid_correct()
         self._handle_compat_glop_version()
@@ -852,7 +851,6 @@ class Environment(BaseEnv):
             import grid2op
             env = grid2op.make()
             cpy_of_env = env.copy()
-
 
         """
         # res = copy.deepcopy(self) # painfully slow...
