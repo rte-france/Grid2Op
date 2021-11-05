@@ -246,7 +246,6 @@ Grid2op is currently tested on windows, linux and macos.
 
 The unit tests includes testing, on linux machines the correct integration of grid2op with:
 
-- python 3.6
 - python 3.7
 - python 3.8
 - python 3.9

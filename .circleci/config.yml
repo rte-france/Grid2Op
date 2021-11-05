@@ -76,6 +76,12 @@ jobs:
                    pip install -U "numpy>=1.20,<1.21"
                    pip install -U .[test]
                    grid2op.testinstall
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   pip install -U "numpy>=1.21,<1.22"
+                   pip install -U .[test]
+                   grid2op.testinstall
     install38:
         executor: python38
         steps:
@@ -101,6 +107,13 @@ jobs:
                    pip install -U "numpy>=1.20,<1.21"
                    pip install -U .[test]
                    grid2op.testinstall
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   pip install -U "numpy>=1.21,<1.22"
+                   pip install -U .[test]
+                   grid2op.testinstall
+                   
     install39:
         executor: python39
         steps:
@@ -117,6 +130,12 @@ jobs:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.20,<1.21"
+                   pip install -U .[test]
+                   grid2op.testinstall
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   pip install -U "numpy>=1.21,<1.22"
                    pip install -U .[test]
                    grid2op.testinstall
     install310:
@@ -142,4 +161,3 @@ workflows:
           - install37
           - install38
           - install39
-          - install310
