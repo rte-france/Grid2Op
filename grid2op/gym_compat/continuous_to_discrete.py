@@ -111,4 +111,7 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
         mask = 1 - mask
         res = np.sum(mask, axis=0)
         res[self._ignored] = 0
-        return res
+        return res    
+             
+    def close(self):
+        pass

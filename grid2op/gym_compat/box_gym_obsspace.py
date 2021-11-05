@@ -468,4 +468,7 @@ class BoxGymObsSpace(Box):
                 raise RuntimeError(f"Unknown attribute \"{attr_nm}\".")
             res[prev:where_to_put] = tmp
             prev = where_to_put
-        return res
+        return res   
+         
+    def close(self):
+        pass

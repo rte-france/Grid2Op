@@ -69,6 +69,8 @@ class GymEnv(gym.Env):
             self.init_env.close()
         del self.init_env
         self.init_env = None
+        self.action_space.close()
+        self.observation_space.close()
 
     def seed(self, seed=None):
         self.init_env.seed(seed)
@@ -77,5 +79,3 @@ class GymEnv(gym.Env):
     def __del__(self):
         # delete possible dangling reference
         self.close()
-        self.action_space.close()
-        self.observation_space.close()
