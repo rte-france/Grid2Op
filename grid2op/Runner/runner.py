@@ -11,6 +11,9 @@ import warnings
 import copy
 from multiprocessing import Pool
 
+from numpy.lib.arraysetops import isin
+from scipy.sparse.sputils import isintlike
+
 from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import UsedRunnerError, Grid2OpException, EnvError
 from grid2op.Observation import CompleteObservation, BaseObservation
@@ -347,15 +350,15 @@ class Runner(object):
             raise RuntimeError("Impossible to create a runner without an observation class derived from "
                                "grid2op.BaseObservation. Please modify \"observationClass\" parameter.")
         self.observationClass = observationClass
-        if not isinstance(rewardClass, type):
-            raise Grid2OpException(
-                "Parameter \"rewardClass\" used to build the Runner should be a type (a class) and not an object "
-                "(an instance of a class). It is currently \"{}\"".format(
-                    type(rewardClass)))
+        if isinstance(rewardClass, type):
+            if not issubclass(rewardClass, BaseReward):
+                raise RuntimeError("Impossible to create a runner without an observation class derived from "
+                                "grid2op.BaseReward. Please modify \"rewardClass\" parameter.")
+        else:
+            if not isinstance(rewardClass, BaseReward):
+                raise RuntimeError("Impossible to create a runner without an observation class derived from "
+                                   "grid2op.BaseReward. Please modify \"rewardClass\" parameter.")
 
-        if not issubclass(rewardClass, BaseReward):
-            raise RuntimeError("Impossible to create a runner without an observation class derived from "
-                               "grid2op.BaseReward. Please modify \"rewardClass\" parameter.")
         self.rewardClass = rewardClass
 
         if not isinstance(gridStateclass, type):

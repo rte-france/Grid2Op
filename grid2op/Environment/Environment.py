@@ -154,13 +154,17 @@ class Environment(BaseEnv):
         Create a proper and valid environment.
         """
 
-        if not isinstance(rewardClass, type):
-            raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should be a type (a class) "
-                                   "and not an object (an instance of a class). "
-                                   "It is currently \"{}\"".format(type(rewardClass)))
-        if not issubclass(rewardClass, BaseReward):
-            raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
-                                   "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
+        if isinstance(rewardClass, type):
+            # raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should be a type (a class) "
+            #                        "and not an object (an instance of a class). "
+            #                        "It is currently \"{}\"".format(type(rewardClass)))
+            if not issubclass(rewardClass, BaseReward):
+                raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
+                                       "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
+        else:
+            if not isinstance(rewardClass, BaseReward):
+                raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
+                                       "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
 
         # backend
         if not isinstance(backend, Backend):
@@ -1228,7 +1232,7 @@ class Environment(BaseEnv):
         res["names_chronics_to_backend"] = self._names_chronics_to_backend
         res["actionClass"] = self._actionClass_orig
         res["observationClass"] = self._observationClass_orig
-        res["rewardClass"] = self._rewardClass
+        res["rewardClass"] = copy.deepcopy(self._rewardClass)
         res["legalActClass"] = self._legalActClass
         res["envClass"] = Environment
         res["gridStateclass"] = self.chronics_handler.chronicsClass

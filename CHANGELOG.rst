@@ -46,6 +46,8 @@ Change Log
 - [ADDED] a function that returns if an action has any change to modify the grid see `act.can_affect_something()`
 - [ADDED] a ttype of agent that performs predefined actions from a given list
 - [ADDED] basic support for logging in environment and runner (more coming soon)
+- [ADDED] possibility to make an environment with an implementation of a reward, instead of relying on a reward class.
+- [ADDED] a possible implementation of a N-1 reward
 - [IMPROVED] right time stamp is now set in the observation after the game over.
 - [IMPROVED] correct current number of steps when the observation is set to a game over state.
 - [IMPROVED] documentation to clearly state that the action_class should not be modified.

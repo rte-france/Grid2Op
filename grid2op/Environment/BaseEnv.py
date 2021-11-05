@@ -354,9 +354,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # other rewards
         self.other_rewards = {}
         for k, v in other_rewards.items():
-            if not issubclass(v, BaseReward):
-                raise Grid2OpException("All values of \"rewards\" key word argument should be classes that inherit "
-                                       "from \"grid2op.BaseReward\"")
+            if isinstance(v, type):
+                if not issubclass(v, BaseReward):
+                    raise Grid2OpException("All values of \"rewards\" key word argument should be classes that inherit "
+                                        "from \"grid2op.BaseReward\"")
+            else:
+                if not isinstance(v, BaseReward):
+                    raise Grid2OpException("All values of \"rewards\" key word argument should be classes that inherit "
+                                           "from \"grid2op.BaseReward\"")
+
             if not isinstance(k, str):
                 raise Grid2OpException("All keys of \"rewards\" should be of string type.")
             self.other_rewards[k] = RewardHelper(v)
@@ -2313,6 +2319,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._reward_helper is not None:
             # close the reward if needed
             self._reward_helper.close()
+
+        for el, rew in self.other_rewards.items():
+            # close the "other rewards"
+            rew.close()
 
         self.backend = None
         self.__is_init = False

@@ -14,6 +14,8 @@ import pdb
 import warnings
 import numbers
 from abc import ABC, abstractmethod
+
+import grid2op
 from grid2op.tests.helper_path_test import *
 from grid2op.Reward import *
 from grid2op.MakeEnv import make
@@ -238,6 +240,33 @@ class TestEpisodeDurationReward(unittest.TestCase):
         assert env.nb_time_step == 575
         assert reward == 1.
 
+
+class TestN1Reward(unittest.TestCase):
+    def test_ok(self):
+        L_ID = 2
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True)
+
+        obs = env.reset()
+        obs, reward, *_ = env.step(env.action_space())
+        obs_n1, *_ = obs.simulate(env.action_space({"set_line_status": [(L_ID, -1)]}), time_step=0)
+
+        assert abs(reward - obs_n1.rho.max()) <= 1e-5, "the correct reward has not been computed"
+        env.close()
+
+        L_IDS = [0, 1]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox",
+                                other_rewards={f"line_{l_id}": N1Reward(l_id=l_id)  for l_id in L_IDS},
+                                test=True
+                                )
+        obs, reward, done, info = env.step(env.action_space())
+        for l_id in L_IDS:
+            obs_n1, *_ = obs.simulate(env.action_space({"set_line_status": [(l_id, -1)]}), time_step=0)
+            assert abs(info["rewards"][f"line_{l_id}"] - obs_n1.rho.max()) <= 1e-5, f"the correct reward has not been computed for line {l_id}"
+        env.close()
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,7 +17,7 @@ PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
 
 import grid2op
 from grid2op.Chronics import Multifolder
-from grid2op.Reward import L2RPNReward
+from grid2op.Reward import L2RPNReward, N1Reward
 from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make
 from grid2op.Runner.aux_fun import _aux_one_process_parrallel
@@ -374,6 +374,21 @@ class TestRunner(HelperTests):
             assert 'curtailment' in CompleteObservation.attr_list_vect, f"error after the legacy version " \
                                                                         f"{grid2op_version}"
 
+    def test_reward_as_object(self):
+        L_ID = 2
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True)
+        runner = Runner(**env.get_params_for_runner())
+        runner.run(nb_episode=1, max_iter=10)
+
+
+        env = grid2op.make("l2rpn_case14_sandbox",
+                            other_rewards={f"line_{l_id}": N1Reward(l_id=l_id)  for l_id in [0, 1]}
+                            )
+        runner = Runner(**env.get_params_for_runner())
+        runner.run(nb_episode=1, max_iter=10)
+        
 
 if __name__ == "__main__":
     unittest.main()

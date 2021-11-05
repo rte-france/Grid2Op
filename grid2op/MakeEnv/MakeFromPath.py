@@ -380,10 +380,11 @@ def make_from_dataset_path(dataset_path="/",
     reward_class_cfg = L2RPNReward
     if "reward_class" in config_data and config_data["reward_class"] is not None:
         reward_class_cfg = config_data["reward_class"]
+        
     ## Setup the reward the agent will receive
     reward_class = _get_default_aux("reward_class", kwargs, defaultClass=reward_class_cfg,
                                     defaultClassApp=BaseReward, msg_error=ERR_MSG_KWARGS["reward_class"],
-                                    isclass=True)
+                                    isclass=None)
 
     # Get default BaseAction class
     action_class_cfg = BaseAction

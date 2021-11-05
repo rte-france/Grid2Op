@@ -100,4 +100,4 @@ class CombinedReward(BaseReward):
     
     def close(self):
         for key, reward in self.rewards.items():
-            reward.close()
+            reward["instance"].close()
