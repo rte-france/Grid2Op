@@ -381,13 +381,18 @@ class TestRunner(HelperTests):
             env = make("l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True)
         runner = Runner(**env.get_params_for_runner())
         runner.run(nb_episode=1, max_iter=10)
+        env.close()
 
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox",
+                                other_rewards={f"line_{l_id}": N1Reward(l_id=l_id)  for l_id in [0, 1]},
+                                test=True
+                                )
 
-        env = grid2op.make("l2rpn_case14_sandbox",
-                            other_rewards={f"line_{l_id}": N1Reward(l_id=l_id)  for l_id in [0, 1]}
-                            )
         runner = Runner(**env.get_params_for_runner())
         runner.run(nb_episode=1, max_iter=10)
+        env.close()
         
 
 if __name__ == "__main__":

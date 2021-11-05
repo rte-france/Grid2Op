@@ -164,7 +164,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.env_index = None
         self.mix_envs = []
         self._env_dir = os.path.abspath(envs_dir)
-
+        self.__closed = False
         # Special case handling for backend
         # TODO: with backend.copy() instead !
         backendClass = None
@@ -227,6 +227,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         the environment data.
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         return self._env_dir
 
     @property
@@ -282,6 +284,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             yield mix.name, mix
 
     def copy(self):
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         mix_envs = self.mix_envs
         self.mix_envs = None
         current_env = self.current_env
@@ -317,6 +321,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             mix2_env.name = mm_env["mix_2"]
             assert mix2_env == "mix_2"
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         # Search for key
         for mix in self.mix_envs:
             if mix.name == key:
@@ -326,6 +332,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         raise KeyError
     
     def reset(self, random=False):
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         if random:
             self.env_index = self.space_prng.randint(len(self.mix_envs))
         else:
@@ -352,6 +360,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             for all environments, and each environment ``tuple`` seeds
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         try:
             seed = np.array(seed).astype(dt_int)
         except Exception as e:
@@ -369,18 +379,26 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         return seeds
 
     def set_chunk_size(self, new_chunk_size):
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for mix in self.mix_envs:
             mix.set_chunk_size(new_chunk_size)
 
     def set_id(self, id_):
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for mix in self.mix_envs:
             mix.set_id(id_)
 
     def deactivate_forecast(self):
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for mix in self.mix_envs:
             mix.deactivate_forecast()
 
     def reactivate_forecast(self):
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for mix in self.mix_envs:
             mix.reactivate_forecast()
 
@@ -389,6 +407,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         Set the thermal limit effectively.
         Will propagate to all underlying mixes
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for mix in self.mix_envs:
             mix.set_thermal_limit(thermal_limit)
 
@@ -409,9 +429,20 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         return False
 
     def close(self):
+        if self.__closed:
+            return
+
         for mix in self.mix_envs:
             mix.close()
+        self.__closed = True
 
     def attach_layout(self, grid_layout):
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for mix in self.mix_envs:
             mix.attach_layout(grid_layout)
+
+    def __del__(self):
+        """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
+        if not self.__closed:
+            self.close()

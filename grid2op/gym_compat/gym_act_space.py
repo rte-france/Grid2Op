@@ -330,3 +330,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
                                            converter=self.keys_human_2_grid2op
                                            )
         return gym_action
+
+    def close(self):
+        if hasattr(self, "_init_env"):
+            self._init_env = None   # this doesn't own the environment

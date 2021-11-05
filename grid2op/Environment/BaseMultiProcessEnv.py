@@ -262,6 +262,7 @@ class BaseMultiProcessEnvironment(GridObjects):
     """
     def __init__(self, envs, obs_as_class=True, return_info=True, logger=None):
         GridObjects.__init__(self)
+        self.__closed = False
         for env in envs:
             if not isinstance(env, Environment):
                 raise MultiEnvException("You provided environment of type \"{}\" which is not supported."
@@ -416,6 +417,8 @@ class BaseMultiProcessEnvironment(GridObjects):
             # CAREFULLL in this case, obs1 is NOT obs1_tmp but is really
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         if len(actions) != self.nb_env:
             raise MultiEnvException("Incorrect number of actions provided. You provided {} actions, but the "
                                     "MultiEnvironment counts {} different environment."
@@ -444,6 +447,8 @@ class BaseMultiProcessEnvironment(GridObjects):
             an :class:`grid2op.Observation.BaseObservation`.
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
             remote.send(('r', None))
         res = [remote.recv() for e, remote in enumerate(self._remotes)]
@@ -455,8 +460,12 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         Close all the environments and all the processes.
         """
+        if self.__closed:
+            return
+
         for remote in self._remotes:
             remote.send(('c', None))
+        self.__closed = True
 
     def set_chunk_size(self, new_chunk_size):
         """
@@ -471,6 +480,8 @@ class BaseMultiProcessEnvironment(GridObjects):
             The new chunk size (positive integer)
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         try:
             new_chunk_size = int(new_chunk_size)
         except Exception as e:
@@ -491,6 +502,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         The problem this method aims at solving is the following: most of grid2op environments starts a Monday at
         00:00. This method will "fast forward" an environment for a random number of timestep between 0 and ``ff_max``
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         try:
             ff_max = int(ff_max)
         except Exception as exc_:
@@ -503,6 +516,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         Get the seeds used to initialize each sub environments.
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
             remote.send(('seed', None))
         res = [remote.recv() for remote in self._remotes]
@@ -512,6 +527,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         Get the parameters of each sub environments
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
             remote.send(('params', None))
         res = [remote.recv() for remote in self._remotes]
@@ -519,6 +536,8 @@ class BaseMultiProcessEnvironment(GridObjects):
 
     def get_obs(self):
         """implement the get_obs function that is "broken" if you use the __getattr__"""
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
             remote.send(('o', None))
         res = [self.envs[e].observation_space.from_vect(remote.recv()) for e, remote in enumerate(self._remotes)]
@@ -571,6 +590,8 @@ class BaseMultiProcessEnvironment(GridObjects):
             sim_obss, sim_rs, sim_ds, sim_is = multi_env.simulate(actions)
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         if len(actions) != self.nb_env:
             raise MultiEnvException("Incorrect number of actions provided. You provided {} actions, but the "
                                     "MultiEnvironment counts {} different environment."
@@ -605,6 +626,8 @@ class BaseMultiProcessEnvironment(GridObjects):
             The value of the given attribute for each sub env. Again, use with care.
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         res = True
         for sub_env in self.envs:
             if not hasattr(sub_env, name):
@@ -621,6 +644,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         Get the computation time (only of the step part, corresponds to sub_env.comp_time) of each sub environments
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
             remote.send(('comp_time', None))
         res = [remote.recv() for remote in self._remotes]
@@ -630,6 +655,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         Get the computation time (corresponding to sub_env.backend.comp_time) of each sub environments
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
             remote.send(('powerflow_time', None))
         res = [remote.recv() for remote in self._remotes]
@@ -639,6 +666,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         Get the computation time (corresponding to sub_env._time_step) of each sub environments
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
             remote.send(('step_time', None))
         res = [remote.recv() for remote in self._remotes]
@@ -654,6 +683,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         --------
         TODO usage example
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         if callable(filter_funs):
             filter_funs = [filter_funs for _ in range(self.nb_env)]
         if len(filter_funs) != self.nb_env:
@@ -678,6 +709,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         --------
         TODO usage example
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         if isinstance(id_, int):
             id_ = [id_ for _ in range(self.nb_env)]
         if len(id_) != self.nb_env:
@@ -691,6 +724,10 @@ class BaseMultiProcessEnvironment(GridObjects):
         res = [remote.recv() for remote in self._remotes]
         return res
 
+    def __del__(self):
+        """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
+        if not self.__closed:
+            self.close()
 
 if __name__ == "__main__":
     from tqdm import tqdm

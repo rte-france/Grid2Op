@@ -274,3 +274,6 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                                  grid2op_observation,
                                  dtypes={k: self.spaces[k].dtype for k in self.spaces}
                                  )
+    def close(self):
+        if hasattr(self, "_init_env"):
+            self._init_env = None   # this doesn't own the environment

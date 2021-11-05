@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from os import initgroups
 import gym
 from grid2op.gym_compat.gym_obs_space import GymObservationSpace
 from grid2op.gym_compat.gym_act_space import GymActionSpace
@@ -64,8 +65,17 @@ class GymEnv(gym.Env):
         self.init_env.render(mode=mode)
 
     def close(self):
-        self.init_env.close()
+        if self.init_env is None:
+            self.init_env.close()
+        del self.init_env
+        self.init_env = None
 
     def seed(self, seed=None):
         self.init_env.seed(seed)
         # TODO seed also env space and observation space
+
+    def __del__(self):
+        # delete possible dangling reference
+        self.close()
+        self.action_space.close()
+        self.observation_space.close()

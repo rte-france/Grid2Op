@@ -17,6 +17,9 @@ executors:
     python39:
         docker:
             - image: python:3.9-slim-buster
+    python310:
+        docker:
+            - image: python:3.10-slim-buster
 
 jobs:
     test:
@@ -116,6 +119,18 @@ jobs:
                    pip install -U "numpy>=1.20,<1.21"
                    pip install -U .[test]
                    grid2op.testinstall
+    install310:
+        executor: python310
+        steps:
+            - checkout
+            - run: python -m pip install virtualenv
+            - run: python -m virtualenv venv_test
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   pip install -U "numpy>=1.20,<1.21"
+                   pip install -U .[test]
+                   grid2op.testinstall
 
 workflows:
     version: 2.1
@@ -124,7 +139,7 @@ workflows:
           - test
     install:
         jobs:
-          - install36
           - install37
           - install38
           - install39
+          - install310

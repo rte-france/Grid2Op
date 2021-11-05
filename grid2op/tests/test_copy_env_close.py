@@ -23,13 +23,35 @@ from pandapower.auxiliary import pandapowerNet
 
 
 class TestDanglingRef(unittest.TestCase):
+    def _clean_envs(self):
+        for obj_ in gc.get_objects():
+            if isinstance(obj_, grid2op.Environment.BaseEnv) or \
+                isinstance(obj_, grid2op.Environment.BaseMultiProcessEnvironment) or \
+                isinstance(obj_, grid2op.Environment.MultiMixEnvironment) or \
+                isinstance(obj_, grid2op.Observation.BaseObservation):
+                del obj_
+
+    def setUp(self) -> None:
+        # make sure that there is no "dangling" reference to any environment
+        current_len = len(gc.get_objects()) + 1
+        while len(gc.get_objects()) != current_len:
+            self._clean_envs()
+            current_len = len(gc.get_objects())
+            gc.collect()
+        gc.collect()
+        
     def test_dangling_reference(self):
+        nb_env_init = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)])
+        nb_backend_init = len([o for o in gc.get_objects() if isinstance(o, Backend)])
+        nb_ppnet_init = len([o for o in gc.get_objects() if isinstance(o, pandapowerNet)])
+
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make('l2rpn_case14_sandbox', test=True)
-        nb_env_before = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)])
-        nb_backend_before = len([o for o in gc.get_objects() if isinstance(o, Backend)])
-        nb_ppnet_before = len([o for o in gc.get_objects() if isinstance(o, pandapowerNet)])
+        nb_env_before = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)]) - nb_env_init
+        nb_backend_before = len([o for o in gc.get_objects() if isinstance(o, Backend)]) - nb_backend_init
+        nb_ppnet_before = len([o for o in gc.get_objects() if isinstance(o, pandapowerNet)]) - nb_ppnet_init
+
         assert nb_env_before == 2, f"there should be 2 environments, but we found {nb_env_before}"
         assert nb_backend_before == 2, f"there should be 2 backends, but we found {nb_backend_before}"
         assert nb_ppnet_before == 4, f"there should be 4 pp networks, but we found {nb_ppnet_before}"
@@ -38,31 +60,31 @@ class TestDanglingRef(unittest.TestCase):
 
         # make a copy
         env_cpy = env.copy()
-        nb_env_after = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)])
-        nb_backend_after = len([o for o in gc.get_objects() if isinstance(o, Backend)])
-        nb_ppnet_after = len([o for o in gc.get_objects() if isinstance(o, pandapowerNet)])
+        nb_env_after = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)]) - nb_env_init
+        nb_backend_after = len([o for o in gc.get_objects() if isinstance(o, Backend)]) - nb_backend_init
+        nb_ppnet_after = len([o for o in gc.get_objects() if isinstance(o, pandapowerNet)]) - nb_ppnet_init
         assert nb_env_after == 4, f"there should be 4 environments after copy, but we found {nb_env_after}"
         assert nb_backend_after == 4, f"there should be 4 backend after copy, but we found {nb_backend_after}"
         assert nb_ppnet_after == 8, f"there should be 8 pp networks after copy, but we found {nb_ppnet_after}"
 
         # reset the copied environment
         obs_cpy = env_cpy.reset()
-        nb_env_after_reset = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)])
-        nb_backend_after_reset = len([o for o in gc.get_objects() if isinstance(o, Backend)])
+        nb_env_after_reset = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)]) - nb_env_init
+        nb_backend_after_reset = len([o for o in gc.get_objects() if isinstance(o, Backend)]) - nb_backend_init
         assert nb_env_after_reset == 4, f"there should be 4 environments after reset, but we found {nb_env_after_reset}"
         assert nb_backend_after_reset == 4, f"there should be 4 backends after reset, but we found {nb_backend_after_reset}"
 
         # call step (on the copied env)
         obs_cpy, reward, done, info = env_cpy.step(env_cpy.action_space())
-        nb_env_after_step = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)])
-        nb_backend_after_step = len([o for o in gc.get_objects() if isinstance(o, Backend)])
+        nb_env_after_step = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)]) - nb_env_init
+        nb_backend_after_step = len([o for o in gc.get_objects() if isinstance(o, Backend)]) - nb_backend_init
         assert nb_env_after_step == 4, f"there should be 4 environments after step, but we found {nb_env_after_step}"
         assert nb_backend_after_step == 4, f"there should be 4 backends after step, but we found {nb_backend_after_step}"
 
         # call steps on init env
         obs, reward, done, info = env.step(env_cpy.action_space())
-        nb_env_after_step = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)])
-        nb_backend_after_step = len([o for o in gc.get_objects() if isinstance(o, Backend)])
+        nb_env_after_step = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)]) - nb_env_init
+        nb_backend_after_step = len([o for o in gc.get_objects() if isinstance(o, Backend)]) - nb_backend_init
         assert nb_env_after_step == 4, f"there should be 4 environments after step, but we found {nb_env_after_step}"
         assert nb_backend_after_step == 4, f"there should be 4 backends after step, but we found {nb_backend_after_step}"
 
@@ -71,9 +93,9 @@ class TestDanglingRef(unittest.TestCase):
         del env
         gc.collect()
 
-        nb_env_after_close = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)])
-        nb_backend_after_close = len([o for o in gc.get_objects() if isinstance(o, Backend)])
-        nb_ppnet_after_close = len([o for o in gc.get_objects() if isinstance(o, pandapowerNet)])
+        nb_env_after_close = len([o for o in gc.get_objects() if isinstance(o, grid2op.Environment.BaseEnv)]) - nb_env_init
+        nb_backend_after_close = len([o for o in gc.get_objects() if isinstance(o, Backend)]) - nb_backend_init
+        nb_ppnet_after_close = len([o for o in gc.get_objects() if isinstance(o, pandapowerNet)]) - nb_ppnet_init
 
         assert nb_env_after_close == 3, f"there should be 3 environments after close, but we found {nb_env_after_close}"
         # the "obs_env" of the observation cannot be collected, as it's used on the observation...
