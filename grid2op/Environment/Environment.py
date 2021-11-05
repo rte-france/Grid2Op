@@ -88,6 +88,7 @@ class Environment(BaseEnv):
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
                  has_attention_budget=False,
+                 logger=None,
                  _raw_backend_class=None,
                  _compat_glop_version=None,
                  _read_from_local_dir=True,  # TODO runner and all here !
@@ -112,6 +113,7 @@ class Environment(BaseEnv):
                          has_attention_budget=has_attention_budget,
                          attention_budget_cls=attention_budget_cls,
                          kwargs_attention_budget=kwargs_attention_budget,
+                         logger=logger.getChild("grid2op_Environment") if logger is not None else None,
                          )
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
@@ -152,13 +154,17 @@ class Environment(BaseEnv):
         Create a proper and valid environment.
         """
 
-        if not isinstance(rewardClass, type):
-            raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should be a type (a class) "
-                                   "and not an object (an instance of a class). "
-                                   "It is currently \"{}\"".format(type(rewardClass)))
-        if not issubclass(rewardClass, BaseReward):
-            raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
-                                   "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
+        if isinstance(rewardClass, type):
+            # raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should be a type (a class) "
+            #                        "and not an object (an instance of a class). "
+            #                        "It is currently \"{}\"".format(type(rewardClass)))
+            if not issubclass(rewardClass, BaseReward):
+                raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
+                                       "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
+        else:
+            if not isinstance(rewardClass, BaseReward):
+                raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
+                                       "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
 
         # backend
         if not isinstance(backend, Backend):
@@ -187,7 +193,6 @@ class Environment(BaseEnv):
 
         # alarm set up
         self.load_alarm_data()
-
         # to force the initialization of the backend to the proper type
         self.backend.assert_grid_correct()
         self._handle_compat_glop_version()
@@ -589,6 +594,11 @@ class Environment(BaseEnv):
                     obs, reward, done, info = env.step(act)
 
         """
+        if isinstance(id_, str):
+            # new in grid2op 1.6.4
+            self.chronics_handler.tell_id(id_, previous=True)
+            return
+
         try:
             id_ = int(id_)
         except Exception as exc_:
@@ -846,7 +856,6 @@ class Environment(BaseEnv):
             env = grid2op.make()
             cpy_of_env = env.copy()
 
-
         """
         # res = copy.deepcopy(self) # painfully slow...
         # create an empty "me"
@@ -925,6 +934,8 @@ class Environment(BaseEnv):
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
+
+        res["logger"] = self.logger
         return res
 
     def _chronics_folder_name(self):
@@ -1221,7 +1232,7 @@ class Environment(BaseEnv):
         res["names_chronics_to_backend"] = self._names_chronics_to_backend
         res["actionClass"] = self._actionClass_orig
         res["observationClass"] = self._observationClass_orig
-        res["rewardClass"] = self._rewardClass
+        res["rewardClass"] = copy.deepcopy(self._rewardClass)
         res["legalActClass"] = self._legalActClass
         res["envClass"] = Environment
         res["gridStateclass"] = self.chronics_handler.chronicsClass
@@ -1253,4 +1264,5 @@ class Environment(BaseEnv):
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
+        res["logger"] = self.logger
         return res

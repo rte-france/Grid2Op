@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.Converter import ToVect
-from grid2op.Agent.AgentWithConverter import AgentWithConverter
+from grid2op.Agent.agentWithConverter import AgentWithConverter
 
 
 class MLAgent(AgentWithConverter):

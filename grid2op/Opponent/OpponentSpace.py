@@ -220,3 +220,7 @@ class OpponentSpace(object):
         if attack is None:
             attack_duration = 0
         return attack, attack_duration
+
+    def close(self):
+        """if this has a reference to a backend, you need to close it for grid2op to work properly. Do not forget to do it."""
+        pass

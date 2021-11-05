@@ -233,4 +233,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
         for i, space_key in enumerate(sorted(self.spaces.keys())):
             sub_seed = self.np_random.randint(max_)
             sub_seeds.append(self.spaces[space_key].seed(sub_seed))
-        return sub_seeds
+        return sub_seeds     
+            
+    def close(self):
+        pass

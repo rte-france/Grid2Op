@@ -565,7 +565,7 @@ class GridValue(RandomObject, ABC):
         """
         pass
 
-    def tell_id(self, id_num):
+    def tell_id(self, id_num, previous=False):
         """
         Tell the backend to use one folder for the chronics in particular. This method is mainly use when the GridValue
         object can deal with many folder. In this case, this method is used by the :class:`grid2op.Runner` to indicate
@@ -577,6 +577,9 @@ class GridValue(RandomObject, ABC):
 
         By default it does nothing.
 
+        .. note::
+
+            As of grid2op 1.6.4, this function now accepts the return value of `self.get_id()`.
         """
         warnings.warn("Class {} doesn't handle different input folder. \"tell_id\" method has no impact."
                       "".format(type(self).__name__))

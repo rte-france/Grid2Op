@@ -127,3 +127,7 @@ class RewardHelper:
                                    f"NB `reward_func` should be either an object of type `BaseReward` (or "
                                    f"one of its derivative) "
                                    f"or a class that inherit from `BaseReward`")
+
+    def close(self):
+        """clsoe the reward helper (in case there are specific behaviour for certain rewards"""
+        self.template_reward.close()

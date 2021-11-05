@@ -73,9 +73,12 @@ class SingleEnvMultiProcess(BaseMultiProcessEnvironment):
         env.close()
 
     """
-    def __init__(self, env, nb_env, obs_as_class=True, return_info=True):
+    def __init__(self, env, nb_env, obs_as_class=True, return_info=True, logger=None):
         envs = [env for _ in range(nb_env)]
-        super().__init__(envs, obs_as_class=obs_as_class, return_info=return_info)
+        super().__init__(envs,
+                         obs_as_class=obs_as_class,
+                         return_info=return_info,
+                         logger=logger.getChild("SingleEnvMultiProcess") if logger is not None else None)
 
 
 if __name__ == "__main__":
@@ -120,4 +123,3 @@ if __name__ == "__main__":
     env.close()
     print("total_reward mluti_env: {}".format(total_reward))
     print("total_reward single env: {}".format(total_reward_single))
-

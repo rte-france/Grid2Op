@@ -9,7 +9,7 @@
 import numpy as np
 
 from grid2op.dtypes import dt_bool
-from grid2op.Agent.GreedyAgent import GreedyAgent
+from grid2op.Agent.greedyAgent import GreedyAgent
 
 
 class PowerLineSwitch(GreedyAgent):

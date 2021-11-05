@@ -23,7 +23,7 @@ except ImportError as exc_:
     CAN_COMPUTE = exc_
 
 NOTEBOOK_PATHS = os.path.abspath(os.path.join(PATH_DATA_TEST, "../../getting_started"))
-VERBOSE_TIMER = False
+VERBOSE_TIMER = True
 
 
 def delete_all(folder):
@@ -139,6 +139,7 @@ class TestNotebook(unittest.TestCase):
     def test_notebook1(self):
         if CAN_COMPUTE is not None:
             self.skipTest(f"{CAN_COMPUTE}")
+        return  # takes 80s and is useless i think, as it tests only basics things
         timer = RAII_Timer("test_notebook1")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "01_Grid2opFramework.ipynb")
         self._aux_funct_notebook(notebook_filename)
@@ -193,7 +194,7 @@ class TestNotebook(unittest.TestCase):
         if CAN_COMPUTE is not None:
             self.skipTest(f"{CAN_COMPUTE}")
 
-        # display notebook, might not be super usefull to test it in the unit test (saves another 1-2 minutes)
+        # display notebook, might not be super useful to test it in the unit test (saves another 1-2 minutes)
         return
         timer = RAII_Timer("test_notebook8")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "08_PlottingCapabilities.ipynb")
@@ -202,6 +203,7 @@ class TestNotebook(unittest.TestCase):
     def test_notebook9(self):
         if CAN_COMPUTE is not None:
             self.skipTest(f"{CAN_COMPUTE}")
+        return  # test the opponent and the maintenance, not much there but takes 80s so... not a lot to do
         timer = RAII_Timer("test_notebook9")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "09_EnvironmentModifications.ipynb")
         self._aux_funct_notebook(notebook_filename)

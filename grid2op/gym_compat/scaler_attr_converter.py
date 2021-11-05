@@ -72,3 +72,6 @@ class ScalerAttrConverter(BaseGymAttrConverter):
     def unscale(self, vect):
         tmp = vect * self._divide + self._substract
         return tmp
+    
+    def close(self):
+        pass

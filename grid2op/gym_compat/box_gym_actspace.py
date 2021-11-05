@@ -389,3 +389,6 @@ class BoxGymActSpace(Box):
                 raise RuntimeError(f"Unknown attribute \"{attr_nm}\".")
             prev = where_to_put
         return res
+    
+    def close(self):
+        pass

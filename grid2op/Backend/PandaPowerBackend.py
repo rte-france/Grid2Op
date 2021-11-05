@@ -164,7 +164,7 @@ class PandaPowerBackend(Backend):
         self._get_vector_inj = None
         self._big_topo_to_obj = None
         self._big_topo_to_backend = None
-        self.__pp_backend_initial_state = None  # initial state to facilitate the "reset"
+        self.__pp_backend_initial_grid = None  # initial state to facilitate the "reset"
 
         # Mapping some fun to apply bus updates
         self._type_to_bus_set = [
@@ -261,9 +261,7 @@ class PandaPowerBackend(Backend):
         and deep_copy it to itself instead of calling load_grid again
         """
         # Assign the content of itself as saved at the end of load_grid
-        # This overide all the attributes with the attributes from the copy in __pp_backend_initial_state
-        # self.__dict__.update(copy.deepcopy(self.__pp_backend_initial_state).__dict__)
-        self._grid = copy.deepcopy(self.__pp_backend_initial_state._grid)
+        self._grid = copy.deepcopy(self.__pp_backend_initial_grid)
         self._reset_all_nan()
         self._topo_vect[:] = self._get_topo_vect()
         self.comp_time = 0.
@@ -599,9 +597,8 @@ class PandaPowerBackend(Backend):
         # produce / absorbs anything
 
         # Create a deep copy of itself in the initial state
-        pp_backend_initial_state = copy.deepcopy(self)
         # Store it under super private attribute
-        self.__pp_backend_initial_state = pp_backend_initial_state
+        self.__pp_backend_initial_grid = copy.deepcopy(self._grid)  # will be initialized in the "assert_grid_correct"
 
     def storage_deact_for_backward_comaptibility(self):
         self._init_private_attrs()
@@ -897,6 +894,16 @@ class PandaPowerBackend(Backend):
             msg = exc_.__str__()
             return False, DivergingPowerFlow(f"powerflow diverged with error :\"{msg}\"")
 
+    def assert_grid_correct(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is done as it should be by the Environment
+        """
+        super().assert_grid_correct()
+
     def _reset_all_nan(self):
         self.p_or[:] = np.NaN
         self.q_or[:] = np.NaN
@@ -1001,7 +1008,7 @@ class PandaPowerBackend(Backend):
         res._get_vector_inj = copy.deepcopy(self._get_vector_inj)
         res._big_topo_to_obj = copy.deepcopy(self._big_topo_to_obj)
         res._big_topo_to_backend = copy.deepcopy(self._big_topo_to_backend)
-        res.__pp_backend_initial_state = self.__pp_backend_initial_state  # initial state to facilitate the "reset"
+        res.__pp_backend_initial_grid = copy.deepcopy(self.__pp_backend_initial_grid)
 
         # Mapping some fun to apply bus updates
         # self._type_to_bus_set =  ...   # function ptr to function member
@@ -1030,6 +1037,8 @@ class PandaPowerBackend(Backend):
         """
         del self._grid
         self._grid = None
+        del self.__pp_backend_initial_grid
+        self.__pp_backend_initial_grid = None
 
     def save_file(self, full_path):
         """
@@ -1177,6 +1186,8 @@ class PandaPowerBackend(Backend):
         shunt_bus = self._grid.shunt["bus"].values < self.__nb_bus_before
         shunt_bus = 1 * shunt_bus
         shunt_bus = shunt_bus.astype(dt_int)
+        shunt_v[~self._grid.shunt["in_service"].values] = -1.0
+        shunt_bus[~self._grid.shunt["in_service"].values] = -1
         return shunt_p, shunt_q, shunt_v, shunt_bus
 
     def storages_info(self):

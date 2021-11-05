@@ -181,3 +181,14 @@ class ActionSpace(SerializableActionSpace):
         res = my_cls.__new__(my_cls)
         self._custom_deepcopy_for_copy(res)
         return res
+
+    def close(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Make sure all references to possible backends are closed. This is not used here in general but might be for some specific cases.
+
+        """
+        pass

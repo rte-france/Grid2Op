@@ -104,20 +104,20 @@ class TestL2RPNSCORE(HelperTests):
             with make("rte_case5_example", test=True) as env:
                 scores = ScoreL2RPN2020(env, nb_scenario=4, verbose=0, max_step=50)
 
-            # the statistics have been properly computed
-            assert os.path.exists(os.path.join(env.get_path_env(),
-                                               EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
-            assert os.path.exists(os.path.join(env.get_path_env(),
-                                               EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
+                # the statistics have been properly computed
+                assert os.path.exists(os.path.join(env.get_path_env(),
+                                                EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
+                assert os.path.exists(os.path.join(env.get_path_env(),
+                                                EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
 
-            # delete them
-            scores.clear_all()
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
-            # assert not os.path.exists(os.path.join(env.get_path_env(),
-            #                                       EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
+                # delete them
+                scores.clear_all()
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
+                # assert not os.path.exists(os.path.join(env.get_path_env(),
+                #                                       EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
 
     def test_donothing_0(self):
         """test that do nothing has a score of 0.00"""
@@ -136,14 +136,14 @@ class TestL2RPNSCORE(HelperTests):
                 my_scores, *_ = scores.get(my_agent)
                 assert np.max(np.abs(my_scores)) <= self.tol_one
 
-            # delete them
-            scores.clear_all()
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
-            # assert not os.path.exists(os.path.join(env.get_path_env(),
-            #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
+                # delete them
+                scores.clear_all()
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
+                # assert not os.path.exists(os.path.join(env.get_path_env(),
+                #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
 
     def test_modif_max_step_decrease(self):
         """
@@ -172,14 +172,14 @@ class TestL2RPNSCORE(HelperTests):
                 my_scores2, *_ = scores2.get(my_agent)
                 assert np.max(np.abs(my_scores2)) <= self.tol_one, "error for the second do nothing"
 
-            # delete them
-            scores.clear_all()
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
-            # assert not os.path.exists(os.path.join(env.get_path_env(),
-            #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
+                # delete them
+                scores.clear_all()
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
+                # assert not os.path.exists(os.path.join(env.get_path_env(),
+                #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
 
     def test_modif_max_step_increase(self):
         """test that i can modify the max step (and that if I increase it it does trigger a recomputation)"""
@@ -202,14 +202,14 @@ class TestL2RPNSCORE(HelperTests):
                 assert scores2._recomputed_dn
                 assert scores2._recomputed_no_ov_rp
 
-            # delete them
-            scores.clear_all()
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
-            # assert not os.path.exists(os.path.join(env.get_path_env(),
-            #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
+                # delete them
+                scores.clear_all()
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
+                # assert not os.path.exists(os.path.join(env.get_path_env(),
+                #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
 
     def test_modif_nb_scenario(self):
         """
@@ -239,15 +239,14 @@ class TestL2RPNSCORE(HelperTests):
                 assert not scores2._recomputed_dn
                 assert not scores2._recomputed_no_ov_rp
 
-            # delete them
-            # delete them
-            scores.clear_all()
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
-            # assert not os.path.exists(os.path.join(env.get_path_env(),
-            #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
+                # delete them
+                scores.clear_all()
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
+                # assert not os.path.exists(os.path.join(env.get_path_env(),
+                #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
 
     def test_reco_noov_80(self):
         """test that do nothing has a score of 80.0 if it is run with "no overflow disconnection" """
@@ -279,15 +278,14 @@ class TestL2RPNSCORE(HelperTests):
                 my_scores, *_ = scores2.get(my_agent)
                 assert np.max(np.abs(np.array(my_scores) - 80.0)) <= self.tol_one
 
-            # delete them
-            # delete them
-            scores.clear_all()
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
-            # assert not os.path.exists(os.path.join(env.get_path_env(),
-            #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
+                # delete them
+                scores.clear_all()
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
+                # assert not os.path.exists(os.path.join(env.get_path_env(),
+                #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
 
 
 class TestICAPSSCORE(HelperTests):
@@ -312,20 +310,20 @@ class TestICAPSSCORE(HelperTests):
                     assert np.abs(alarm_score - 100.) <= self.tol_one, f"wrong score for the alarm: " \
                                                                        f"{alarm_score} vs 100."
 
-            # the statistics have been properly computed
-            assert os.path.exists(os.path.join(env.get_path_env(),
-                                               EpisodeStatistics.get_name_dir(ScoreICAPS2021.NAME_DN)))
-            assert os.path.exists(os.path.join(env.get_path_env(),
-                                               EpisodeStatistics.get_name_dir(ScoreICAPS2021.NAME_RP_NO_OVERFLOW)))
+                # the statistics have been properly computed
+                assert os.path.exists(os.path.join(env.get_path_env(),
+                                                EpisodeStatistics.get_name_dir(ScoreICAPS2021.NAME_DN)))
+                assert os.path.exists(os.path.join(env.get_path_env(),
+                                                EpisodeStatistics.get_name_dir(ScoreICAPS2021.NAME_RP_NO_OVERFLOW)))
 
-            # delete them
-            scores.clear_all()
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
-            # assert not os.path.exists(os.path.join(env.get_path_env(),
-            #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
-            assert not os.path.exists(os.path.join(env.get_path_env(),
-                                                   EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
+                # delete them
+                scores.clear_all()
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN)))
+                # assert not os.path.exists(os.path.join(env.get_path_env(),
+                #                                        EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_DN_NO_OVERWLOW)))
+                assert not os.path.exists(os.path.join(env.get_path_env(),
+                                                    EpisodeStatistics.get_name_dir(ScoreL2RPN2020.NAME_RP_NO_OVERFLOW)))
 
 
 if __name__ == "__main__":

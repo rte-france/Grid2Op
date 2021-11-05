@@ -148,6 +148,12 @@ context of the L2RPN competition, we don't recommend to modify them.
 More information about the "customization" of the environment, especially to optimize the I/O or to manipulate
 which data you interact with are available in the :ref:`environment-module` module (:ref:`environment-module-usage` section).
 
+
+.. warning:: Don't modify the action class
+
+    We do not recommend to modify the keyword arguments starting with \*, and especially the action_class.
+
+
 Detailed Documentation by class
 --------------------------------
 

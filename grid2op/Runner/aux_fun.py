@@ -22,9 +22,9 @@ def _aux_one_process_parrallel(runner,
                                process_id,
                                path_save=None,
                                env_seeds=None,
+                               agent_seeds=None,
                                max_iter=None,
-                               add_detailed_output=False,
-                               agent_seeds=None):
+                               add_detailed_output=False):
     """this is out of the runner, otherwise it does not work on windows / macos """
     chronics_handler = ChronicsHandler(chronicsClass=runner.gridStateclass,
                                        path=runner.path_chron,
@@ -32,7 +32,9 @@ def _aux_one_process_parrallel(runner,
     parameters = copy.deepcopy(runner.parameters)
     nb_episode_this_process = len(episode_this_process)
     res = [(None, None, None) for _ in range(nb_episode_this_process)]
-    for i, p_id in enumerate(episode_this_process):
+    for i, ep_id in enumerate(episode_this_process):
+        # `ep_id`: grid2op id of the episode i want to play
+        # `i`: my id of the episode played (0, 1, ... episode_this_process)
         env, agent = runner._new_env(chronics_handler=chronics_handler,
                                      parameters=parameters)
         try:
@@ -43,7 +45,7 @@ def _aux_one_process_parrallel(runner,
             if agent_seeds is not None:
                 agt_seed = agent_seeds[i]
             name_chron, cum_reward, nb_time_step, episode_data = _aux_run_one_episode(
-                env, agent, runner.logger, p_id, path_save, env_seed=env_seed, max_iter=max_iter, agent_seed=agt_seed,
+                env, agent, runner.logger, ep_id, path_save, env_seed=env_seed, max_iter=max_iter, agent_seed=agt_seed,
                 detailed_output=add_detailed_output)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
@@ -56,16 +58,23 @@ def _aux_one_process_parrallel(runner,
     return res
 
 
-def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
-                         pbar=False, env_seed=None, agent_seed=None, max_iter=None, detailed_output=False):
+def _aux_run_one_episode(env,
+                         agent,
+                         logger,
+                         indx,
+                         path_save=None,
+                         pbar=False,
+                         env_seed=None,
+                         agent_seed=None,
+                         max_iter=None,
+                         detailed_output=False):
     done = False
     time_step = int(0)
     time_act = 0.
     cum_reward = dt_float(0.0)
 
-    # reset the environment
-    env.chronics_handler.tell_id(indx-1)
-    # the "-1" above is because the environment will be reset. So it will increase id of 1.
+    # set the environment to use the proper chronic
+    env.set_id(indx)
 
     # set the seed
     if env_seed is not None:
