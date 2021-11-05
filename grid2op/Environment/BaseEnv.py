@@ -252,6 +252,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         self._DEBUG = False
         self._complete_action_cls = None
+        self.__closed = False  # by default the environment is not closed
+
         # specific to power system
         if not isinstance(parameters, Parameters):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
@@ -903,6 +905,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         Reset the base environment (set the appropriate variables to correct initialization).
         It is (and must be) overloaded in other :class:`grid2op.Environment`
         """
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+
         self.__is_init = True
         # current = None is an indicator that this is the first step of the environment
         # so don't change the setting of current_obs = None unless you are willing to change that
@@ -987,6 +992,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         For a full control on the seed mechanism it is more than advised to reset it after it has been seeded.
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+
         try:
             seed = np.array(seed).astype(dt_int)
         except Exception as exc_:
@@ -1665,6 +1673,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # obs2 and obs are identical.
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+        if not self.__is_init:
+            raise EnvError("This environment is not initialized. You cannot retrieve its observation.")
         res = self._observation_space(env=self, _update_state=_update_state)
         return res
 
@@ -1876,6 +1888,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         """
 
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+            
         if not self.__is_init:
             raise Grid2OpException("Impossible to make a step with a non initialized backend. Have you called "
                                    "\"env.reset()\" after the last game over ?")
@@ -2273,8 +2288,28 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.backend is not None:
             self.backend.close()
+
+        if self.observation_space is not None:
+            # do not forget to close the backend of the observation (used for simulate)
+            self.observation_space.close()
+        
+        if self._voltage_controler is not None:
+            # in case there is a backend in the voltage controler
+            self._voltage_controler.close()
+        
+        if self._oppSpace is not None:
+            # in case there is a backend in the opponent space
+            self._oppSpace.close()
+
+        if self._helper_action_env is not None:
+            self._helper_action_env.close()
+
+        if self.action_space is not None:
+            self.action_space.close()
+
         self.backend = None
         self.__is_init = False
+        self.__closed = True
 
     def attach_layout(self, grid_layout):
         """

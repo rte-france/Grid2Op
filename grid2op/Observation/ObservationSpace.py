@@ -268,3 +268,7 @@ class ObservationSpace(SerializableObservationSpace):
         self.obs_env = obs_env
 
         return res
+
+    def close(self):
+        if self.obs_env is not None:
+            self.obs_env.close()
