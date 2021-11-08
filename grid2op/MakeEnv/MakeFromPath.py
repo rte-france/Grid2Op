@@ -101,6 +101,7 @@ def _check_path(path, info):
 
 
 def make_from_dataset_path(dataset_path="/",
+                           logger=None,
                            experimental_read_from_local_dir=False,
                            _add_to_name="",
                            _compat_glop_version=None,
@@ -125,6 +126,9 @@ def make_from_dataset_path(dataset_path="/",
 
     dataset_path: ``str``
         Path to the dataset folder
+
+    logger:
+        Something to pass to grid2op environment to be used as logger.
 
     param: ``grid2op.Parameters.Parameters``, optional
         Type of parameters used for the Environment. Parameters defines how the powergrid problem is cast into an
@@ -376,10 +380,11 @@ def make_from_dataset_path(dataset_path="/",
     reward_class_cfg = L2RPNReward
     if "reward_class" in config_data and config_data["reward_class"] is not None:
         reward_class_cfg = config_data["reward_class"]
+        
     ## Setup the reward the agent will receive
     reward_class = _get_default_aux("reward_class", kwargs, defaultClass=reward_class_cfg,
                                     defaultClassApp=BaseReward, msg_error=ERR_MSG_KWARGS["reward_class"],
-                                    isclass=True)
+                                    isclass=None)
 
     # Get default BaseAction class
     action_class_cfg = BaseAction
@@ -584,6 +589,7 @@ def make_from_dataset_path(dataset_path="/",
                       has_attention_budget=has_attention_budget,
                       attention_budget_cls=attention_budget_class,
                       kwargs_attention_budget=kwargs_attention_budget,
+                      logger=logger,
                       _compat_glop_version=_compat_glop_version,
                       _read_from_local_dir=experimental_read_from_local_dir,
                       )

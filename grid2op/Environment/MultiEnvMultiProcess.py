@@ -56,7 +56,7 @@ class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
         observations = multi_env.reset()
 
     """
-    def __init__(self, envs, nb_envs):
+    def __init__(self, envs, nb_envs, obs_as_class=True, return_info=True, logger=None):
         try:
             nb_envs = np.array(nb_envs)
             nb_envs = nb_envs.astype(dt_int)
@@ -78,7 +78,10 @@ class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
         all_envs = []
         for e, n in enumerate(nb_envs):
             all_envs += [envs[e] for _ in range(n)]
-        super().__init__(all_envs)
+        super().__init__(all_envs,
+                         obs_as_class=obs_as_class,
+                         return_info=return_info,
+                         logger=logger.getChild("MultiEnvMultiProcess") if logger is not None else None)
 
 
 if __name__ == "__main__":
@@ -86,7 +89,7 @@ if __name__ == "__main__":
     from grid2op import make
     from grid2op.Agent import DoNothingAgent
 
-    nb_env = [2,2,1,1,2]  # change that to adapt to your system
+    nb_env = [2, 2, 1, 1, 2]  # change that to adapt to your system
     NB_STEP = 100  # number of step for each environment
 
     env = make()

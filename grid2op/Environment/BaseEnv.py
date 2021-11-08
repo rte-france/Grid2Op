@@ -233,9 +233,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  has_attention_budget=False,
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
+                 logger=None,
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
+
+        if logger is None:
+            import logging
+            self.logger = logging.getLogger(__name__)
+            self.logger.disabled = True
+        else:
+            self.logger = logger.getChild("grid2op_BaseEnv")
 
         if init_grid_path is not None:
             self._init_grid_path = os.path.abspath(init_grid_path)
@@ -244,6 +252,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         self._DEBUG = False
         self._complete_action_cls = None
+        self.__closed = False  # by default the environment is not closed
+
         # specific to power system
         if not isinstance(parameters, Parameters):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
@@ -263,11 +273,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # data relative to interpolation
         self._epsilon_poly = dt_float(epsilon_poly)
         self._tol_poly = dt_float(tol_poly)
-
-        # define logger
-        self.logger = None
-
-        # the voltage controler
 
         # class used for the action spaces
         self._helper_action_class = None
@@ -349,9 +354,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # other rewards
         self.other_rewards = {}
         for k, v in other_rewards.items():
-            if not issubclass(v, BaseReward):
-                raise Grid2OpException("All values of \"rewards\" key word argument should be classes that inherit "
-                                       "from \"grid2op.BaseReward\"")
+            if isinstance(v, type):
+                if not issubclass(v, BaseReward):
+                    raise Grid2OpException("All values of \"rewards\" key word argument should be classes that inherit "
+                                        "from \"grid2op.BaseReward\"")
+            else:
+                if not isinstance(v, BaseReward):
+                    raise Grid2OpException("All values of \"rewards\" key word argument should be classes that inherit "
+                                           "from \"grid2op.BaseReward\"")
+
             if not isinstance(k, str):
                 raise Grid2OpException("All keys of \"rewards\" should be of string type.")
             self.other_rewards[k] = RewardHelper(v)
@@ -415,6 +426,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
 
     def _custom_deepcopy_for_copy(self, new_obj):
+        if self.__closed:
+            raise RuntimeError("Impossible to make a copy of a closed environment !")
+            
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
 
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
@@ -433,6 +447,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # data relative to interpolation
         new_obj._epsilon_poly = self._epsilon_poly
         new_obj._tol_poly = self._tol_poly
+
+        #
+        new_obj._complete_action_cls = copy.deepcopy(self._complete_action_cls)
 
         # define logger
         new_obj.logger = copy.deepcopy(self.logger)  # TODO does that make any sense ?
@@ -462,6 +479,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._thermal_limit_a = copy.deepcopy(self._thermal_limit_a)
 
         new_obj.__is_init = self.__is_init
+        new_obj.__closed = self.__closed
         new_obj.debug_dispatch = self.debug_dispatch
 
         new_obj._line_status = copy.deepcopy(self._line_status)
@@ -522,7 +540,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._actionClass = self._actionClass
         new_obj._observationClass = self._observationClass
         new_obj._legalActClass = self._legalActClass
-        new_obj._observation_space = self._observation_space.copy()
+        new_obj._observation_space = self._observation_space.copy(copy_backend=True)
         new_obj._names_chronics_to_backend = self._names_chronics_to_backend
         new_obj._reward_helper = copy.deepcopy(self._reward_helper)
 
@@ -599,6 +617,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         the environment data.
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot get its path.")
         return os.path.split(self._init_grid_path)[0]
 
     def load_alarm_data(self):
@@ -715,6 +735,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             env.parameters.NO_OVERFLOW_DISCONNECTION  # -> True
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot change its parameters.")
         if not isinstance(new_parameters, Parameters):
             raise EnvError("The new parameters \"new_parameters\" should be an instance of "
                            "grid2op.Parameters.Parameters.")
@@ -737,6 +759,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             The new parameters you want the environment to get.
 
         """
+
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot change its parameters (for the forecast / simulate).")
+
         if not isinstance(new_parameters, Parameters):
             raise EnvError("The new parameters \"new_parameters\" should be an instance of "
                            "grid2op.Parameters.Parameters.")
@@ -895,6 +921,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         Reset the base environment (set the appropriate variables to correct initialization).
         It is (and must be) overloaded in other :class:`grid2op.Environment`
         """
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+
         self.__is_init = True
         # current = None is an indicator that this is the first step of the environment
         # so don't change the setting of current_obs = None unless you are willing to change that
@@ -979,6 +1008,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         For a full control on the seed mechanism it is more than advised to reset it after it has been seeded.
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+
         try:
             seed = np.array(seed).astype(dt_int)
         except Exception as exc_:
@@ -1050,6 +1082,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # obs.simulate(do_nothing_action)  # DO NOT RUN IT RAISES AN ERROR
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
+
         if self._observation_space is not None:
             self._observation_space.with_forecast = False
         self.with_forecast = False
@@ -1090,6 +1125,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             simobs, sim_r, sim_d, sim_info = obs.simulate(do_nothing_action)
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         if self._observation_space is not None:
             self._observation_space.with_forecast = True
         self.with_forecast = True
@@ -1144,6 +1181,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         the name of the powerline and the values the thermal limits.
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         if not self.__is_init:
             raise Grid2OpException("Impossible to set the thermal limit to a non initialized Environment")
         if isinstance(thermal_limit, dict):
@@ -1657,6 +1696,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # obs2 and obs are identical.
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+        if not self.__is_init:
+            raise EnvError("This environment is not initialized. You cannot retrieve its observation.")
         res = self._observation_space(env=self, _update_state=_update_state)
         return res
 
@@ -1679,6 +1722,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             thermal_limits = env.get_thermal_limit()
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         return 1.0 * self._thermal_limit_a
 
     def _withdraw_storage_losses(self):
@@ -1868,6 +1913,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         """
 
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+            
         if not self.__is_init:
             raise Grid2OpException("Impossible to make a step with a non initialized backend. Have you called "
                                    "\"env.reset()\" after the last game over ?")
@@ -2181,6 +2229,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Returns the instance of the object that is used to compute the reward.
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         return self._reward_helper.template_reward
 
     def _is_done(self, has_error, is_done):
@@ -2258,6 +2308,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         return False
 
     def close(self):
+        """close an environment: this will attempt to free as much memory as possible.
+        Note that after an environment is closed, you will not be able to use anymore.
+        
+        Any attempt to use a closed environment might result in non deterministic behaviour.
+        """
+        if self.__closed:
+            raise EnvError("This environment is closed already, you cannot close it a second time.")
+
         # todo there might be some side effect
         if self.viewer is not None:
             self.viewer = None
@@ -2265,8 +2323,68 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.backend is not None:
             self.backend.close()
+        del self.backend
+        self.backend = None
+
+        if self.observation_space is not None:
+            # do not forget to close the backend of the observation (used for simulate)
+            self.observation_space.close()
+        
+        if self._voltage_controler is not None:
+            # in case there is a backend in the voltage controler
+            self._voltage_controler.close()
+        
+        if self._oppSpace is not None:
+            # in case there is a backend in the opponent space
+            self._oppSpace.close()
+
+        if self._helper_action_env is not None:
+            # close the action helper
+            self._helper_action_env.close()
+
+        if self.action_space is not None:
+            # close the action space if needed
+            self.action_space.close()
+
+        if self._reward_helper is not None:
+            # close the reward if needed
+            self._reward_helper.close()
+
+        for el, rew in self.other_rewards.items():
+            # close the "other rewards"
+            rew.close()
+
         self.backend = None
         self.__is_init = False
+        self.__closed = True
+
+        # clean all the attributes
+        for attr_nm in ["logger", "_init_grid_path", "_DEBUG", "_complete_action_cls",
+                        "_parameters", "with_forecast", "_time_apply_act", "_time_powerflow",
+                        "_time_extract_obs", "_time_opponent", "_time_redisp", "_time_step",
+                        "_epsilon_poly", "_helper_action_class", "_helper_observation_class", "time_stamp",
+                        "nb_time_step", "delta_time_seconds", "current_obs", "_line_status",
+                        "_ignore_min_up_down_times", "_forbid_dispatch_off", "_no_overflow_disconnection",
+                        "_timestep_overflow", "_nb_timestep_overflow_allowed", "_hard_overflow_threshold",
+                        "_times_before_line_status_actionable", "_max_timestep_line_status_deactivated",
+                        "_times_before_topology_actionable", "_nb_ts_reco", "_time_next_maintenance",
+                        "_duration_next_maintenance", "_hazard_duration", "_env_dc", "_target_dispatch",
+                        "_actual_dispatch", "_gen_uptime", "_gen_downtime", "_gen_activeprod_t", "_gen_activeprod_t_redisp",
+                        "_thermal_limit_a", "_disc_lines", "_injection", "_maintenance", "_hazards", "_env_modification",
+                        "done", "current_reward", "_helper_action_env", "chronics_handler", "_game_rules", "_action_space",
+                        "_rewardClass", "_actionClass", "_observationClass", "_legalActClass", "_observation_space",
+                        "_names_chronics_to_backend", "_reward_helper", "reward_range", "viewer", "viewer_fig",
+                        "other_rewards", "_opponent_action_class", "_opponent_class", "_opponent_init_budget", "_opponent_attack_duration",
+                        "_opponent_attack_cooldown", "_opponent_budget_per_ts", "_kwargs_opponent", "_opponent_budget_class",
+                        "_opponent_action_space", "_compute_opp_budget", "_opponent", "_oppSpace", "_voltagecontrolerClass",
+                        "_voltage_controler", "_backend_action_class", "_backend_action", "backend", "debug_dispatch",
+                        # "__new_param", "__new_forecast_param", "__new_reward_func",
+                        "_storage_current_charge", "_storage_previous_charge", "_action_storage", "_amount_storage", "_amount_storage_prev",
+                        "_storage_power", "_limit_curtailment", "_gen_before_curtailment", "_sum_curtailment_mw", "_sum_curtailment_mw_prev",
+                        "_has_attention_budget", "_attention_budget", "_attention_budget_cls", "_is_alarm_illegal",
+                        "_is_alarm_used_in_reward", "_kwargs_attention_budget"]:
+            delattr(self, attr_nm)
+            setattr(self, attr_nm, None)
 
     def attach_layout(self, grid_layout):
         """
@@ -2296,6 +2414,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             env.attach_layout(layout)
 
         """
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         if isinstance(grid_layout, dict):
             pass
         elif isinstance(grid_layout, list):
@@ -2376,6 +2496,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         check the state of the environment after the call to this method if you use it (see the "Examples" paragaph)
 
         """
+
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         nb_timestep = int(nb_timestep)
 
         # Go to the timestep requested minus one
@@ -2424,6 +2547,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` to change the parameter of the environment
         used by `simulate`.
         """
+
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
+
         return copy.deepcopy(self._parameters)
 
     @parameters.setter
@@ -2445,6 +2572,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         This only affects the environment AFTER `env.reset()` has been called.
 
         """
+
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         is_ok = isinstance(new_reward_func, BaseReward) or issubclass(new_reward_func, BaseReward)
         if not is_ok:
             raise EnvError(f"Impossible to change the reward function with type {type(new_reward_func)}. "
@@ -2527,6 +2657,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Again, if you customize your environment (see above for more information) you'll have to redo this step !
         """
+
+        if self.__closed:
+            return
+
         # create the folder
         if _guard is not None:
             raise RuntimeError("use `env.generate_classes()` with no arguments !")
@@ -2575,3 +2709,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         _init_txt += "\n"
         with open(os.path.join(sys_path, "__init__.py"), mode, encoding="utf-8") as f:
             f.write(_init_txt)
+
+    def __del__(self):
+        """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
+        if not self.__closed:
+            self.close()

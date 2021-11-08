@@ -6,6 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
+import os
+
 import requests
 import time
 import grid2op
@@ -17,11 +19,17 @@ import warnings
 import subprocess
 import sys
 
+try:
+    import ujson
+    requests.models.complexjson = ujson
+except ImportError as exc_:
+    warnings.warn("usjon is not installed. You could potentially get huge benefit if installing it")
+
 ERROR_NO_200 = "error due to not receiving 200 status"
 
 NB_SUB_ENV = 4
 ENV_NAME = "l2rpn_neurips_2020_track2_small"
-SYNCH = False
+SYNCH = True
 NB_step = 300
 
 
@@ -35,12 +43,16 @@ class MultiEnvServer:
                  address="http://127.0.0.1"):
         warnings.warn("This is an alpha feature and has absolutely not interest at the moment. Do not use unless "
                       "you want to improve this feature yourself (-:")
+        self.my_procs = []
         for port in ports:
-            subprocess.Popen([sys.executable, "/home/benjamin/Documents/grid2op_dev/grid2op/rest_server/app.py",
-                              "--port", f"{port}"],
-                             stdout=subprocess.DEVNULL,  # TODO logger
-                             stderr=subprocess.DEVNULL  # TODO logger
-                             )
+            p_ = subprocess.Popen([sys.executable, "/home/benjamin/Documents/grid2op_dev/grid2op/rest_server/app.py",
+                                   "--port", f"{port}"],
+                                  env=os.environ,
+                                  # stdout=subprocess.DEVNULL,  # TODO logger
+                                  # stderr=subprocess.DEVNULL  # TODO logger
+                                  )
+            self.my_procs.append(p_)
+
         self.nb_env = len(ports)
         self.ports = ports
         self.address = address
@@ -69,6 +81,8 @@ class MultiEnvServer:
         for url in self.li_urls:
             resp = self.session.get(f"{url}/make/{self.env_name}")
             answs.append(resp)
+        import pdb
+        pdb.set_trace()
         assert np.all(np.array([el.status_code for el in answs]) == 200), ERROR_NO_200
         answ_json = [el.json() for el in answs]
         return answ_json
@@ -114,12 +128,21 @@ class MultiEnvServer:
         done = [el["done"] for el in answ_json]
         return obss, rewards, done, info
 
+    def close(self):
+        """close all the opened port"""
+        for p_ in self.my_procs:
+            p_.terminate()
+            p_.kill()
+
 
 if __name__ == "__main__":
     multi_env = MultiEnvServer()
-    beg = time.time()
-    for _ in tqdm(range(NB_step)):
-        obs, reward, done, info = multi_env.step([multi_env.action_space() for _ in range(multi_env.nb_env)])
-    end = time.time()
+    try:
+        beg = time.time()
+        for _ in tqdm(range(NB_step)):
+            obs, reward, done, info = multi_env.step([multi_env.action_space() for _ in range(multi_env.nb_env)])
+        end = time.time()
+    finally:
+        multi_env.close()
     print(f"Using {'synchronous' if SYNCH else 'asyncio'}, it took {end-beg:.2f}s to make {NB_step} steps "
           f"on {ENV_NAME} using {len(PORTS)} sub environment(s).")

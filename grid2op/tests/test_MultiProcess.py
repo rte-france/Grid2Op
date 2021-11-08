@@ -28,20 +28,20 @@ class TestBaseMultiProcessEnvironment(unittest.TestCase):
                 envs = [env for _ in range(nb_env)]
                 multi_envs = BaseMultiProcessEnvironment(envs)
 
-        obss, rewards, dones, infos = multi_envs.step([env.action_space() for _ in range(multi_envs.nb_env)])
-        for ob in obss:
-            assert isinstance(ob, CompleteObservation)
+                obss, rewards, dones, infos = multi_envs.step([env.action_space() for _ in range(multi_envs.nb_env)])
+                for ob in obss:
+                    assert isinstance(ob, CompleteObservation)
 
-        obss = multi_envs.reset()
-        for ob in obss:
-            assert isinstance(ob, CompleteObservation)
+                obss = multi_envs.reset()
+                for ob in obss:
+                    assert isinstance(ob, CompleteObservation)
 
-        # test some actions will not throw errors
-        multi_envs.set_ff(7*288)
-        multi_envs.set_chunk_size(128)
-        obss = multi_envs.reset()
-        seeds = multi_envs.get_seeds()
-        multi_envs.close()
+                # test some actions will not throw errors
+                multi_envs.set_ff(7*288)
+                multi_envs.set_chunk_size(128)
+                obss = multi_envs.reset()
+                seeds = multi_envs.get_seeds()
+                multi_envs.close()
 
     def test_seeding(self):
         nb_env = 2
@@ -89,20 +89,20 @@ class TestSingleEnvMultiProcess(unittest.TestCase):
             with make("rte_case5_example", test=True) as env:
                 multi_envs = SingleEnvMultiProcess(env=env, nb_env=nb_env)
 
-        obss, rewards, dones, infos = multi_envs.step([env.action_space() for _ in range(multi_envs.nb_env)])
-        for ob in obss:
-            assert isinstance(ob, CompleteObservation)
+                obss, rewards, dones, infos = multi_envs.step([env.action_space() for _ in range(multi_envs.nb_env)])
+                for ob in obss:
+                    assert isinstance(ob, CompleteObservation)
 
-        obss = multi_envs.reset()
-        for ob in obss:
-            assert isinstance(ob, CompleteObservation)
+                obss = multi_envs.reset()
+                for ob in obss:
+                    assert isinstance(ob, CompleteObservation)
 
-        # test some actions will not throw errors
-        multi_envs.set_ff(7*288)
-        multi_envs.set_chunk_size(128)
-        obss = multi_envs.reset()
-        seeds = multi_envs.get_seeds()
-        multi_envs.close()
+                # test some actions will not throw errors
+                multi_envs.set_ff(7*288)
+                multi_envs.set_chunk_size(128)
+                obss = multi_envs.reset()
+                seeds = multi_envs.get_seeds()
+                multi_envs.close()
 
     def test_seeding(self):
         nb_env = 2
@@ -132,20 +132,20 @@ class TestMultiEnvMultiProcess(unittest.TestCase):
                 envs = [env for _ in range(len(nb_envs))]
                 multi_envs = MultiEnvMultiProcess(envs, nb_envs)
 
-        obss, rewards, dones, infos = multi_envs.step([env.action_space() for _ in range(multi_envs.nb_env)])
-        for ob in obss:
-            assert isinstance(ob, CompleteObservation)
+                obss, rewards, dones, infos = multi_envs.step([env.action_space() for _ in range(multi_envs.nb_env)])
+                for ob in obss:
+                    assert isinstance(ob, CompleteObservation)
 
-        obss = multi_envs.reset()
-        for ob in obss:
-            assert isinstance(ob, CompleteObservation)
+                obss = multi_envs.reset()
+                for ob in obss:
+                    assert isinstance(ob, CompleteObservation)
 
-        # test some actions will not throw errors
-        multi_envs.set_ff(7*288)
-        multi_envs.set_chunk_size(128)
-        obss = multi_envs.reset()
-        seeds = multi_envs.get_seeds()
-        multi_envs.close()
+                # test some actions will not throw errors
+                multi_envs.set_ff(7*288)
+                multi_envs.set_chunk_size(128)
+                obss = multi_envs.reset()
+                seeds = multi_envs.get_seeds()
+                multi_envs.close()
 
     def test_seeding(self):
         nb_envs = [1, 1]

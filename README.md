@@ -33,9 +33,10 @@ Official documentation: the official documentation is available at
     *   [2 BaseAction Grid Manipulation](getting_started/2_Action_GridManipulation.ipynb)
     *   [3 Training An BaseAgent](getting_started/3_TrainingAnAgent.ipynb)
     *   [4 Study Your BaseAgent](getting_started/4_StudyYourAgent.ipynb)
-*   [4 Documentation](#documentation)
-*   [5 Test and known issues](#tests-and-known-issues)
-*   [6 License information](#license-information)
+*   [4_Citing](#Citing)
+*   [5 Documentation](#documentation)
+*   [6 Test and known issues](#tests-and-known-issues)
+*   [7 License information](#license-information)
 
 # Installation
 ## Requirements:
@@ -189,6 +190,20 @@ anything with the help of mybinder:
 
 Or thanks to google colab (all links are provided near the notebook description)
 
+# Citing
+
+If you use this package in one of your work, please cite:
+```
+@misc{grid2op,
+    author = {B. Donnot},
+    title = {{Grid2op- A testbed platform to model sequential decision making in power systems. }},
+    year = {2020},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    howpublished = {\url{https://GitHub.com/rte-france/grid2op}},
+}
+```
+
 # Documentation
 
 The official documentation is available at 
@@ -231,7 +246,6 @@ Grid2op is currently tested on windows, linux and macos.
 
 The unit tests includes testing, on linux machines the correct integration of grid2op with:
 
-- python 3.6
 - python 3.7
 - python 3.8
 - python 3.9

@@ -198,7 +198,9 @@ def _aux_make_multimix(dataset_path,
                        test=False,
                        experimental_read_from_local_dir=False,
                        _add_to_name="",
-                       _compat_glop_version=None, **kwargs):
+                       _compat_glop_version=None,
+                       logger=None,
+                       **kwargs):
     # Local import to prevent imports loop
     from grid2op.Environment import MultiMixEnvironment
     return MultiMixEnvironment(dataset_path,
@@ -206,11 +208,13 @@ def _aux_make_multimix(dataset_path,
                                _test=test,
                                _add_to_name=_add_to_name,
                                _compat_glop_version=_compat_glop_version,
+                               logger=logger,
                                **kwargs)
 
 
 def make(dataset="rte_case14_realistic",
          test=False,
+         logger=None,
          experimental_read_from_local_dir=False,
          _add_to_name="",
          _compat_glop_version=None,
@@ -293,12 +297,14 @@ def make(dataset="rte_case14_realistic",
             def make_from_path_fn_(*args, **kwargs):
                 return _aux_make_multimix(*args,
                                           test=True,
+                                          logger=logger,
                                           experimental_read_from_local_dir=experimental_read_from_local_dir,
                                           **kwargs)
 
             make_from_path_fn = make_from_path_fn_
 
         return make_from_path_fn(dataset_path=dataset,
+                                 logger=logger,
                                  _add_to_name=_add_to_name_tmp,
                                  _compat_glop_version=_compat_glop_version_tmp,
                                  experimental_read_from_local_dir=experimental_read_from_local_dir,
@@ -322,11 +328,14 @@ def make(dataset="rte_case14_realistic",
         # Check if multimix from path
         if _aux_is_multimix(ds_path):
             def make_from_path_fn_(*args, **kwargs):
+                if "logger" not in kwargs:
+                    kwargs["logger"] = logger  # foward the logger if not present already
                 return _aux_make_multimix(*args, test=True, **kwargs)
 
             make_from_path_fn = make_from_path_fn_
 
         return make_from_path_fn(dataset_path=ds_path,
+                                 logger=logger,
                                  _add_to_name=_add_to_name,
                                  _compat_glop_version=_compat_glop_version,
                                  experimental_read_from_local_dir=experimental_read_from_local_dir,
@@ -337,6 +346,7 @@ def make(dataset="rte_case14_realistic",
         if _aux_is_multimix(real_ds_path):
             make_from_path_fn = _aux_make_multimix
         return make_from_path_fn(real_ds_path,
+                                 logger=logger,
                                  experimental_read_from_local_dir=experimental_read_from_local_dir,
                                  **kwargs)
 
@@ -350,5 +360,6 @@ def make(dataset="rte_case14_realistic",
     if _aux_is_multimix(real_ds_path):
         make_from_path_fn = _aux_make_multimix
     return make_from_path_fn(dataset_path=real_ds_path,
+                             logger=logger,
                              experimental_read_from_local_dir=experimental_read_from_local_dir,
                              **kwargs)

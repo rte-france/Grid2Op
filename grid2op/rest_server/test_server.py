@@ -7,7 +7,15 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import copy
+import warnings
 import requests
+
+try:
+    import ujson
+    requests.models.complexjson = ujson
+except ImportError as exc_:
+    warnings.warn("usjon is not installed. You could potentially get huge benefit if installing it")
+
 import time
 import numpy as np
 from tqdm import tqdm
@@ -17,10 +25,11 @@ from grid2op.MakeEnv import make
 try:
     from lightsim2grid import LightSimBackend
     bkclass = LightSimBackend
-    raise ImportError()
+    # raise ImportError()
 except ImportError as exc_:
     from grid2op.Backend import PandaPowerBackend
     bkclass = PandaPowerBackend
+    warnings.warn("lightsim2grid is not installed. You could potentially get huge benefit if installing it")
     pass
 
 URL = " http://127.0.0.1:5000"
@@ -104,7 +113,15 @@ if __name__ == "__main__":
     reic_obs.from_json(reic_obs_json)
     are_same = reic_obs == real_obs
     obs_diff, attr_diff = reic_obs.where_different(real_obs)
-    assert are_same, "obs received and obs computed are not the same"
+    for el in attr_diff:
+        if np.max(np.abs(getattr(obs_diff, el))) > 1e-4:
+            tmp_ = np.max(np.abs(getattr(obs_diff, el)))
+            import pdb
+            pdb.set_trace()
+            raise RuntimeError(f"ERROR: after reset, attribute {el} is not the same (max={tmp_:.6f})")
+    if not are_same:
+        warnings.warn("obs received and obs computed are not the exactly the same "
+                      "(but equal up to some small value (1e-4))")
 
     print("Test \"set_id\"")
     resp_set_id = client.post(f"{URL}/set_id/{env_name}/{id_env}", json={"id": 0})
@@ -222,11 +239,11 @@ if __name__ == "__main__":
         raise RuntimeError("close not working: response is not 200")
     resp_close_json = resp_close.json()
     if "env_name" not in resp_close_json:
-        raise RuntimeError("close not working: thermal_limit is not in response")
+        raise RuntimeError("close not working: env_name is not in response")
     # TODO test all methods fails (get_thermal_limit apparently work...)
 
     print("Test \"perfs\"")
-    print("Time on a local env:")
+    print(f"Time on a local env: (using {bkclass.__name__})")
     env_perf = make(env_name, backend=bkclass())
     env_perf.reset()
     env_perf.seed(seed_used)
@@ -249,18 +266,25 @@ if __name__ == "__main__":
     id_env_perf = resp_make_perf.json()["id"]
     _ = client.post(f"{URL}/seed/{env_name}/{id_env_perf}", json={"seed": seed_used})
     _ = client.get(f"{URL}/reset/{env_name}/{id_env_perf}")
-    time_for_step_api = 0
-    time_for_all_api = 0
+    time_for_step_api = 0.
+    time_for_all_api = 0.
+    time_convert = 0.
+    time_get_json = 0.
     nb_step_api = 0
     with tqdm(desc="remote env") as pbar:
         while True:
             act = real_env.action_space()
             beg_step = time.time()
-            resp_step = client.post(f"{URL}/step/{env_name}/{id_env_perf}", json={"action": act.to_json()})
-            time_for_step_api += time.time() - beg_step
+            act_as_json = act.to_json()
+            resp_step = client.post(f"{URL}/step/{env_name}/{id_env_perf}", json={"action": act_as_json})
+            after_step = time.time()
+            time_for_step_api += after_step - beg_step
             resp_step_json = resp_step.json()
+            time_get_json += time.time() - after_step
             reic_obs_json = resp_step_json["obs"]
+            beg_convert = time.time()
             obs.from_json(reic_obs_json)
+            time_convert += time.time() - beg_convert
             time_for_all_api += time.time() - beg_step
             if resp_step_json["done"]:
                 break
@@ -272,5 +296,7 @@ if __name__ == "__main__":
     print(f"\tNumber of step for api env {nb_step_api}")
     print(f"\tTime to compute all, for the normal env: {time_for_step:.2f}s")
     print(f"\tTime to compute all, for the api env: {time_for_all_api:.2f}s")
-    print(f"\tTime to do the step, for the api env: {time_for_step_api:.2f}s")
+    print(f"\t\tTime to do the step, for the api env: {time_for_step_api:.2f}s")
+    print(f"\t\tTime to get the json from the http request: {time_get_json:.2f}s")
+    print(f"\t\tTime to convert from json: {time_convert:.2f}s")
     print(f"\tSpeed up (for normal env): {time_for_all_api/time_for_step:.2f}")

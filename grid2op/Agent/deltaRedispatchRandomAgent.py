@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-from grid2op.Agent import BaseAgent
+from grid2op.Agent.baseAgent import BaseAgent
 
 
 class DeltaRedispatchRandomAgent(BaseAgent):

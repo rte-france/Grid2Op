@@ -15,7 +15,7 @@ from grid2op.tests.helper_path_test import *
 import grid2op
 from grid2op.Exceptions import *
 from grid2op.MakeEnv import make
-from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent, RecoPowerlineAgent
+from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent, RecoPowerlineAgent, FromActionsListAgent
 from grid2op.Parameters import Parameters
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
@@ -245,6 +245,72 @@ class TestRecoPowerlineAgent(HelperTests):
                 assert "connected_id" in ddict4["set_line_status"]
                 assert ddict4["set_line_status"]["nb_connected"] == 1
                 assert ddict4["set_line_status"]["connected_id"][0] == 2
+
+
+class TestFromList(HelperTests):
+    def test_agentfromlist_empty(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        param.NB_TIMESTEP_COOLDOWN_LINE = 3
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("rte_case5_example", test=True, param=param) as env:
+                agent = FromActionsListAgent(env.action_space, action_list=[])
+                obs = env.reset()
+
+                # should do nothing
+                act = agent.act(obs, 0., False)
+                obs, reward, done, info = env.step(act)
+                assert act.can_affect_something() is False
+
+                act = agent.act(obs, 0., False)
+                obs, reward, done, info = env.step(act)
+                assert act.can_affect_something() is False
+
+    def test_agentfromlist(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        param.NB_TIMESTEP_COOLDOWN_LINE = 3
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("rte_case5_example", test=True, param=param) as env:
+                agent = FromActionsListAgent(env.action_space,
+                                             action_list=[env.action_space({"set_line_status": [(0, +1)]})])
+                obs = env.reset()
+
+                # should do nothing
+                act = agent.act(obs, 0., False)
+                obs, reward, done, info = env.step(act)
+                assert act == env.action_space({"set_line_status": [(0, +1)]})
+
+                act = agent.act(obs, 0., False)
+                obs, reward, done, info = env.step(act)
+                assert act.can_affect_something() is False
+
+    def test_agentfromlist_creation_fails(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        param.NB_TIMESTEP_COOLDOWN_LINE = 3
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("rte_case5_example", test=True, param=param) as env:
+                with self.assertRaises(AgentError):
+                    # action_list should be an iterable
+                    agent = FromActionsListAgent(env.action_space, action_list=1)
+                with self.assertRaises(AgentError):
+                    # action_list should contain only actions
+                    agent = FromActionsListAgent(env.action_space, action_list=[1])
+
+                with grid2op.make("l2rpn_case14_sandbox", test=True, param=param) as env2:
+                    with self.assertRaises(AgentError):
+                        # action_list should contain only actions from a compatible environment
+                        agent = FromActionsListAgent(env.action_space,
+                                                     action_list=[env2.action_space({"set_line_status": [(0, +1)]})])
+
+                with grid2op.make("rte_case5_example", test=True, param=param, _add_to_name="toto") as env3:
+                    # this should work because it's the same underlying grid
+                    agent = FromActionsListAgent(env.action_space,
+                                                 action_list=[env3.action_space({"set_line_status": [(0, +1)]})])
 
 
 if __name__ == "__main__":

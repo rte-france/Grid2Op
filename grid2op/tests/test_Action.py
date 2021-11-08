@@ -1774,5 +1774,72 @@ class TestTopologicalImpact(unittest.TestCase):
         assert lines_impacted[l_id]
 
 
+class TestDeepCopy(unittest.TestCase):
+    def test_alarm(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("l2rpn_icaps_2021", test=True) as env:
+                act = env.action_space()
+                act.raise_alarm = [0]
+
+                cpy = copy.deepcopy(act)
+                assert cpy == act
+                assert np.all(cpy.raise_alarm == [True, False, False])
+
+    def test_redisp(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("l2rpn_icaps_2021", test=True) as env:
+                act = env.action_space()
+                act.redispatch = [(0, -1.0)]
+
+                cpy = copy.deepcopy(act)
+                assert cpy == act
+                assert cpy.redispatch[0] == -1.
+
+    def test_storage(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("educ_case14_storage", test=True) as env:
+                act = env.action_space()
+                act.storage_p = [(0, -1.0)]
+
+                cpy = copy.deepcopy(act)
+                assert cpy == act
+                assert cpy.storage_p[0] == -1.
+
+    def test_topo(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("l2rpn_case14_sandbox", test=True) as env:
+                # set line status
+                act = env.action_space()
+                act.set_line_status = [(0, -1)]
+                cpy = copy.deepcopy(act)
+                assert cpy == act
+                assert cpy.set_line_status[0] == -1
+
+                # change line status
+                act = env.action_space()
+                act.change_line_status = [0]
+                cpy = copy.deepcopy(act)
+                assert cpy == act
+                assert cpy.change_line_status[0]
+
+                # set_bus
+                act = env.action_space()
+                act.set_bus = [(0, 1), (1, 2), (2, 1)]
+                cpy = copy.deepcopy(act)
+                assert cpy == act
+                assert np.all(cpy.set_bus[:3] == [1, 2, 1])
+
+                # change_bus
+                act = env.action_space()
+                act.change_bus = [0, 1, 2]
+                cpy = copy.deepcopy(act)
+                assert cpy == act
+                assert np.all(cpy.change_bus[:3] == [True, True, True])
+
+
 if __name__ == "__main__":
     unittest.main()

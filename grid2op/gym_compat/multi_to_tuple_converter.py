@@ -98,3 +98,6 @@ class MultiToTupleConverter(BaseGymAttrConverter):
     def g2op_to_gym(self, g2op_object):
         tmp = self.previous_fun(g2op_object)  # TODO
         return tuple(tmp.astype(dt_int))
+        
+    def close(self):
+        pass

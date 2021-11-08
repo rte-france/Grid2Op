@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numbers
+from tarfile import ENCODING
 
 from grid2op.Exceptions import *
 
@@ -78,7 +79,43 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
     # first seek for the parameter in the kwargs, and check it's valid
     if name in kwargs:
         res = kwargs[name]
-        if isclass is False:
+        if isclass is None:
+            # I don't know whether it's an object or a class
+            error_msg_here = None
+            res = None
+            try:
+                # I try to build it as an object
+                res = _get_default_aux(name,
+                                       kwargs=kwargs,
+                                       defaultClassApp=defaultClassApp,
+                                       _sentinel=_sentinel,
+                                       msg_error=msg_error,
+                                       defaultinstance=defaultinstance,
+                                       defaultClass=defaultClass,
+                                       build_kwargs=build_kwargs,
+                                       isclass=False
+                                       )
+            except EnvError as exc1_:
+                # I try to build it as a class
+                try:
+                    res = _get_default_aux(name,
+                                           kwargs=kwargs,
+                                           defaultClassApp=defaultClassApp,
+                                           _sentinel=_sentinel,
+                                           msg_error=msg_error,
+                                           defaultinstance=defaultinstance,
+                                           defaultClass=defaultClass,
+                                           build_kwargs=build_kwargs,
+                                           isclass=True
+                                           )
+                except EnvError as exc2_:
+                    # both fails !
+                    error_msg_here = f"{exc1_} AND {exc2_}"
+
+            if error_msg_here is not None:
+                raise EnvError(error_msg_here)
+
+        elif isclass is False:
             # i must create an instance of a class. I check whether it's a instance.
             if not isinstance(res, defaultClassApp):
                 if issubclass(defaultClassApp, numbers.Number):
@@ -92,13 +129,17 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                 else:
                     # if there is any error, i raise the error message
                     raise EnvError(msg_error)
-        else:
+        elif isclass is True:
+            # so it should be a class
             if not isinstance(res, type):
                 raise EnvError("Parameter \"{}\" should be a type and not an instance. It means that you provided an "
                                "object instead of the class to build it.".format(name))
             # I must create a class, i check whether it's a subclass
             if not issubclass(res, defaultClassApp):
                 raise EnvError(msg_error)
+        else:
+            raise EnvError("Impossible to use the \"_get_default_aux\" function with \"isclass\" kwargs being different "
+                           "from None, True and False")
 
     if res is None:
         # build the default parameter if not found

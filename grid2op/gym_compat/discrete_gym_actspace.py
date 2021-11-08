@@ -189,4 +189,7 @@ class DiscreteActSpace(Discrete):
 
         """
         res = self.converter.all_actions[int(gym_act)]
-        return res
+        return res      
+           
+    def close(self):
+        pass

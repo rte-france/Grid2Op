@@ -55,7 +55,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
     This is due to the "approximation" when some redispatching is performed (the precision of the
     algorithm that computes the actual dispatch from the information it receives) and also because
     sometimes the losses of the grid are really different that the one anticipated in the "chronics" (yes
-    env.gen_pmin and env.gen_pmax are not always ensured in grid2op)
+    `env.gen_pmin` and `env.gen_pmax` are not always ensured in grid2op)
 
     """
     def __init__(self, env, dict_variables=None):
@@ -129,6 +129,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                                    observation_space.shape,
                                    observation_space.dtype):
             if sh == 0:
+                # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
                 continue
             my_type = None
             shape = (sh,)
@@ -273,3 +274,6 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                                  grid2op_observation,
                                  dtypes={k: self.spaces[k].dtype for k in self.spaces}
                                  )
+    def close(self):
+        if hasattr(self, "_init_env"):
+            self._init_env = None   # this doesn't own the environment

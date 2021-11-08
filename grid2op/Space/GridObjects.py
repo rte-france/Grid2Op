@@ -766,10 +766,11 @@ class GridObjects:
                 self._vectorized = np.array([], dtype=dt_float)
         return self._vectorized
 
-    def to_json(self):
+    def to_json(self, convert=True):
         """
         Convert this instance of GridObjects to a dictionary that can be json serialized.
 
+        convert: do you convert the numpy types to standard python list (might take lots of time)
         TODO doc and example
         """
 
@@ -782,12 +783,15 @@ class GridObjects:
         res = {}
         for attr_nm in self.attr_list_vect + self.attr_list_json:
             res[attr_nm] = self._get_array_from_attr_name(attr_nm)
-        self._convert_to_json(res)
+        if convert:
+            self._convert_to_json(res)  # TODO !
         return res
 
     def from_json(self, dict_):
         """
-        TODO doc and example
+        This transform an gridobject (typically an action or an observation) serialized in json format
+        to the corresponding grid2op action / observation (subclass of grid2op.Action.BaseAction
+        or grid2op.Observation.BaseObservation)
 
         Parameters
         ----------
@@ -798,11 +802,11 @@ class GridObjects:
 
         """
         # TODO optimization for action or observation, to reduce json size, for example using the see `to_json`
-
+        all_keys = self.attr_list_vect + self.attr_list_json
         for key, array_ in dict_.items():
-            if key not in self.attr_list_vect + self.attr_list_json:
+            if key not in all_keys:
                 raise AmbiguousAction(f"Impossible to recognize the key \"{key}\"")
-            my_attr = self.__getattribute__(key)
+            my_attr = getattr(self, key)
             if isinstance(my_attr, np.ndarray):
                 # the regular instance is an array, so i just need to assign the right values to it
                 my_attr[:] = array_
@@ -810,7 +814,7 @@ class GridObjects:
                 # normal values is a scalar. So i need to convert the array received as a scalar, and
                 # convert it to the proper type
                 type_ = type(my_attr)
-                self.__setattr__(key, type_(array_[0]))
+                setattr(self, key, type_(array_[0]))
 
     def _convert_to_json(self, dict_):
         for attr_nm in self.attr_list_vect + self.attr_list_json:

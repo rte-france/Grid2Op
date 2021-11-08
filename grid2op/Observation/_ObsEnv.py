@@ -555,3 +555,22 @@ class _ObsEnv(BaseEnv):
 
     def get_current_line_status(self):
         return self._line_status == 1
+    
+    def close(self):
+        """close this environment, once and for all"""
+        super().close()
+        
+                # clean all the attributes
+        for attr_nm in ["_obsClass", "gen_activeprod_t_init", "gen_activeprod_t_redisp_init",
+                        "times_before_line_status_actionable_init", "times_before_topology_actionable_init",
+                        "time_next_maintenance_init", "duration_next_maintenance_init", "target_dispatch_init",
+                        "_line_status", "_line_status_me", "_line_status_orig", "_load_p", "_load_q",
+                        "_load_v", "_prod_p", "_prod_q", "_prod_v", "_topo_vect",
+                        "opp_space_state", "opp_state", "_storage_current_charge_init", "_storage_previous_charge_init",
+                        "_action_storage_init", "_amount_storage_init", "_amount_storage_prev_init", "_storage_power_init",
+                        "_storage_current_charge_init", "_storage_previous_charge_init", 
+                        "_limit_curtailment_init", "_gen_before_curtailment_init", "_sum_curtailment_mw_init",
+                        "_sum_curtailment_mw_prev_init", "_nb_time_step_init", "_attention_budget_state_init",
+                        "_max_episode_duration"]:
+            delattr(self, attr_nm)
+            setattr(self, attr_nm, None)
