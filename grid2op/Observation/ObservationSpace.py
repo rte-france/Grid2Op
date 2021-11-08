@@ -235,7 +235,7 @@ class ObservationSpace(SerializableObservationSpace):
         new_obj.obs_env = self.obs_env
         new_obj._update_env_time = self._update_env_time
 
-    def copy(self):
+    def copy(self, copy_backend=False):
         """
         INTERNAL
 
@@ -258,9 +258,15 @@ class ObservationSpace(SerializableObservationSpace):
         res = my_cls.__new__(my_cls)
         self._custom_deepcopy_for_copy(res)
 
-        res._backend_obs = backend
-        res._empty_obs = obs_.copy()
-        res.obs_env = obs_env  # .copy()  # this is shallow copied: it's a point to an observation env, which is unique
+        if not copy_backend:
+            res._backend_obs = backend
+            res._empty_obs = obs_.copy()
+            res.obs_env = obs_env
+        else:
+            res.obs_env = obs_env.copy()
+            res._backend_obs = res.obs_env.backend
+            res._empty_obs = obs_.copy()
+            res._empty_obs._obs_env = res.obs_env
 
         # assign back the results
         self._backend_obs = backend
@@ -268,3 +274,10 @@ class ObservationSpace(SerializableObservationSpace):
         self.obs_env = obs_env
 
         return res
+
+    def close(self):
+        if self.obs_env is not None:
+            self.obs_env.close()
+            
+        del self.obs_env
+        self.obs_env = None

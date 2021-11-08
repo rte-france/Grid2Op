@@ -21,6 +21,12 @@ except ImportError as excq_:
 
 
 class EnvCache(object):
+    """
+    TODO this is not implemented yet (at least the "cache" part)
+
+    We should have a flag that when an environment is computing, it returns an "error" to indicate that on the person
+    who makes the call (for now i'm pretty sure the current implementation will not work in asynch mode).
+    """
     ENV_NOT_FOUND = 0
     ENV_ID_NOT_FOUND = 1
     INVALID_ACTION = 2
@@ -33,8 +39,10 @@ class EnvCache(object):
     ERROR_ENV_FAST_FORWARD = 9
     ERROR_ENV_PATH = 10
 
-    def __init__(self):
+    def __init__(self, ujson_as_json):
         self.all_env = {}
+        self.ujson_as_json = ujson_as_json  # do i use the faster "ujson" library to parse json
+        self._convert_json = not self.ujson_as_json
 
     def insert_env(self, env_name):
         """
@@ -55,7 +63,7 @@ class EnvCache(object):
             self.all_env[env_name].append(env)
         id_ = len(self.all_env[env_name]) - 1
         obs = env.reset()
-        return id_, obs.to_json(), None
+        return id_, obs.to_json(convert=self._convert_json), None
 
     def step(self, env_name, env_id, action_as_json):
         """
@@ -79,7 +87,10 @@ class EnvCache(object):
         except Exception as exc_:
             msg_ = f"impossible to make a step on the give environment with error\n{exc_}"
             return res_env, (self.INVALID_STEP, msg_)
-        return (obs.to_json(), float(reward), bool(done), self._aux_info_to_json(info)), (None, None)
+        return (obs.to_json(convert=self._convert_json),
+                float(reward),
+                bool(done),
+                self._aux_info_to_json(info)), (None, None)
 
     def seed(self, env_name, env_id, seed):
         """
@@ -110,7 +121,7 @@ class EnvCache(object):
             msg_ = f"Impossible to reset the environment with error {exc_}"
             return None, (self.ERROR_ENV_RESET, msg_)
 
-        return obs.to_json(), (None, None)
+        return obs.to_json(convert=self._convert_json), (None, None)
 
     def set_id(self, env_name, env_id, chron_id):
         """

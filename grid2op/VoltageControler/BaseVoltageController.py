@@ -127,3 +127,9 @@ class BaseVoltageController(RandomObject, ABC):
 
         """
         pass
+
+    def close(self):
+        """If you require some "backend" to control the voltages, then you need to implement this 
+        (and also some specific things for the copy) to have it working correctly
+        """
+        pass

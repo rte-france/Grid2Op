@@ -404,4 +404,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
             else:
                 raise RuntimeError(f"Unknown attribute \"{attr_nm}\".")
             prev = where_to_put
-        return res
+        return res   
+        
+    def close(self):
+        pass

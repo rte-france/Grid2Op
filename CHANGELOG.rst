@@ -29,6 +29,33 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.6.4] - 2021-11-08
+---------------------
+- [BREAKING] the name of the python file for the "agent" module are now lowercase (complient with PEP). If you
+  did things like `from grid2op.Agent.BaseAgent import BaseAgent` you need to change it like
+  `from grid2op.Agent.baseAgent import BaseAgent` or even better, and this is the preferred way to include
+  them: `from grid2op.Agent import BaseAgent` It should not affect lots of code.
+- [FIXED] a bug where the shunt had a voltage when disconnected using pandapower backend
+- [FIXED] a bug preventing to print the action space if some "part" of it had no size (empty action space)
+- [FIXED] a bug preventing to copy an action properly (especially for the alarm)
+- [FIXED] a bug that did not "close" the backend of the observation space when the environment was `closed`. This 
+  might be related to `Issue#245 <https://github.com/rte-france/Grid2Op/issues/255>`_
+- [ADDED] serialization of `current_iter` and `max_iter` in the observation.
+- [ADDED] the possibility to use the runner only on certain episode id
+  (see `runner.run(..., episode_id=[xxx, yyy, ...])`)
+- [ADDED] a function that returns if an action has any change to modify the grid see `act.can_affect_something()`
+- [ADDED] a ttype of agent that performs predefined actions from a given list
+- [ADDED] basic support for logging in environment and runner (more coming soon)
+- [ADDED] possibility to make an environment with an implementation of a reward, instead of relying on a reward class.
+- [ADDED] a possible implementation of a N-1 reward
+- [IMPROVED] right time stamp is now set in the observation after the game over.
+- [IMPROVED] correct current number of steps when the observation is set to a game over state.
+- [IMPROVED] documentation to clearly state that the action_class should not be modified.
+- [IMPROVED] possibility to tell which chronics to use with the result of `env.chronics_handler.get_id()` (this is also
+  compatible in the runner)
+- [IMPROVED] it is no more possible to call "env.reset()" or "env.step()" after an environment has been closed: a clean error
+  is raised in this case.
+
 [1.6.3] - 2021-08-21
 --------------------
 - [FIXED] a bug that allowed to use wrongly the function `backend.get_action_to_set()` even when the backend

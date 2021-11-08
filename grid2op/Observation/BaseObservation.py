@@ -5,10 +5,10 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import copy
 import datetime
 import warnings
-from scipy.sparse import csr_matrix
 import networkx
 import numpy as np
 from abc import abstractmethod
@@ -248,7 +248,6 @@ class BaseObservation(GridObjects):
                 # attention budget
                 "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
                 "was_alarm_used_after_game_over",
-
                 ]
 
     attr_list_vect = None
@@ -269,8 +268,8 @@ class BaseObservation(GridObjects):
 
         # calendar data
         self.year = dt_int(1970)
-        self.month = dt_int(0)
-        self.day = dt_int(0)
+        self.month = dt_int(1)
+        self.day = dt_int(1)
         self.hour_of_day = dt_int(0)
         self.minute_of_hour = dt_int(0)
         self.day_of_week = dt_int(0)
@@ -354,8 +353,8 @@ class BaseObservation(GridObjects):
         self.storage_theta = np.empty(shape=self.n_storage, dtype=dt_float)
 
         # counter
-        self.current_step = 0
-        self.max_step = np.iinfo(dt_int).max
+        self.current_step = dt_int(0)
+        self.max_step = dt_int(np.iinfo(dt_int).max)
 
     def _aux_copy(self, other):
         attr_simple = ["max_step", "current_step", "support_theta", "day_of_week",
@@ -699,6 +698,19 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
+        if cls.glop_version < "1.6.4" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # "current_step", "max_step" were added in grid2Op 1.6.4
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
+            for el in ["max_step", "current_step"]:
+                try:
+                    cls.attr_list_vect.remove(el)
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
+                    pass
+            cls.attr_list_set = set(cls.attr_list_vect)
+
     def reset(self):
         """
         INTERNAL
@@ -791,6 +803,9 @@ class BaseObservation(GridObjects):
         self.attention_budget[:] = 0
         self.was_alarm_used_after_game_over[:] = False
 
+        self.current_step = dt_int(0)
+        self.max_step = dt_int(np.iinfo(dt_int).max)
+
     def set_game_over(self, env=None):
         """
         Set the observation to the "game over" state:
@@ -862,13 +877,22 @@ class BaseObservation(GridObjects):
             self._shunt_v[:] = 0.
             self._shunt_bus[:] = -1
 
-        # set an old date
-        self.year = 1970
-        self.month = 1
-        self.day = 1
-        self.hour_of_day = 0
-        self.minute_of_hour = 0
-        self.day_of_week = 1
+        if env is None:
+            # set an old date (as i don't know anything about the env)
+            self.year = 1970
+            self.month = 1
+            self.day = 1
+            self.hour_of_day = 0
+            self.minute_of_hour = 0
+            self.day_of_week = 1
+        else:
+            # retrieve the date from the environment
+            self.year = dt_int(env.time_stamp.year)
+            self.month = dt_int(env.time_stamp.month)
+            self.day = dt_int(env.time_stamp.day)
+            self.hour_of_day = dt_int(env.time_stamp.hour)
+            self.minute_of_hour = dt_int(env.time_stamp.minute)
+            self.day_of_week = dt_int(env.time_stamp.weekday())
 
         if self.support_theta:
             # by convention, I say it's 0 if the grid is in total blackout
@@ -877,6 +901,11 @@ class BaseObservation(GridObjects):
             self.load_theta[:] = 0.
             self.gen_theta[:] = 0.
             self.storage_theta[:] = 0.
+
+        # counter
+        if env is not None:
+            self.current_step = dt_int(env.nb_time_step)
+            self.max_step = dt_int(env.max_episode_duration())
 
         # stuff related to alarm
         self.is_alarm_illegal[:] = False
@@ -924,9 +953,10 @@ class BaseObservation(GridObjects):
         Test the equality of two observations.
 
         2 actions are said to be identical if the have the same impact on the powergrid. This is unlrelated to their
-        respective class. For example, if an BaseAction is of class :class:`BaseAction` and doesn't act on the _injection, it
-        can be equal to a an BaseAction of derived class :class:`TopologyAction` (if the topological modification are the
-        same of course).
+        respective class. For example, if an BaseAction is of class :class:`BaseAction` and doesn't act on the
+        _injection, it
+        can be equal to a an BaseAction of derived class :class:`TopologyAction` (if the topological modification
+        are the same of course).
 
         This implies that the attributes :attr:`BaseAction.authorized_keys` is not checked in this method.
 
@@ -948,7 +978,6 @@ class BaseObservation(GridObjects):
         Returns
         -------
         ``True`` if the action are equal, ``False`` otherwise.
-
         """
 
         if self.year != other.year:
@@ -986,8 +1015,6 @@ class BaseObservation(GridObjects):
         """
         same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
-            import pdb
-            pdb.set_trace()
             raise RuntimeError("Cannot compare to observation not coming from the same powergrid.")
         tmp_obs_env = self._obs_env
         self._obs_env = None  # keep aside the backend
@@ -1592,9 +1619,9 @@ class BaseObservation(GridObjects):
         .. danger::
             **IMPORTANT NOTE** the "origin" and "extremity" of the networkx graph is not necessarily the same as the one
             in grid2op. The "origin" side will always be the nodes with the lowest id. For example, if an edges connects
-            the bus 6 to the bus 8, then the "origin" of this powerline is bus 6 (**eg** the active power injected at node
-            6 from this edge will be *p_or*) and the "extremity" side is bus 8 (**eg** the active power injectioned at
-            node 8 from this edge will be *p_ex*).
+            the bus 6 to the bus 8, then the "origin" of this powerline is bus 6 (**eg** the active power
+            injected at node 6 from this edge will be *p_or*) and the "extremity" side is bus 8
+            (**eg** the active power injected at node 8 from this edge will be *p_ex*).
 
         .. note::
             The graph returned by this function is "frozen" to prevent its modification. If you really want to modify
@@ -2172,6 +2199,10 @@ class BaseObservation(GridObjects):
             self._dictionnarized["last_alarm"] = copy.deepcopy(self.last_alarm)
             self._dictionnarized["attention_budget"] = self.attention_budget[0]
             self._dictionnarized["was_alarm_used_after_game_over"] = self.was_alarm_used_after_game_over[0]
+
+            # current_step / max step
+            self._dictionnarized["current_step"] = self.current_step
+            self._dictionnarized["max_step"] = self.max_step
 
         return self._dictionnarized
 

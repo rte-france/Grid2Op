@@ -73,3 +73,6 @@ class CombinedScaledReward(CombinedReward):
         # Scale to range
         res = np.interp(ws, [self._sum_min, self._sum_max], [self.reward_min, self.reward_max])
         return dt_float(res)
+
+    def close(self):
+        super().close()

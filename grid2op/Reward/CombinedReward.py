@@ -97,3 +97,7 @@ class CombinedReward(BaseReward):
             res += dt_float(r) * w
         # Return total sum
         return res
+    
+    def close(self):
+        for key, reward in self.rewards.items():
+            reward["instance"].close()

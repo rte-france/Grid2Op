@@ -436,7 +436,7 @@ class BaseAction(GridObjects):
 
         attr_vect = ["_set_line_status", "_switch_line_status", "_set_topo_vect",
                      "_change_bus_vect", "_hazards", "_maintenance", "_redispatch",
-                     "_storage_power", "_curtail"]
+                     "_storage_power", "_curtail", "_raise_alarm"]
 
         if self.shunts_data_available:
             attr_vect += ["shunt_p", "shunt_q", "shunt_bus"]
@@ -546,6 +546,24 @@ class BaseAction(GridObjects):
         self._modif_storage = False
         self._modif_curtailment = False
         self._modif_alarm = False
+
+    def can_affect_something(self):
+        """
+        This functions returns True if the current action has any chance to change the grid.
+
+        Notes
+        -----
+        This does not say however if the action will indeed modify something somewhere !
+        """
+        return (self._modif_inj or
+                self._modif_set_bus or
+                self._modif_change_bus or
+                self._modif_set_status or
+                self._modif_change_status or
+                self._modif_redispatch or
+                self._modif_storage or
+                self._modif_curtailment or
+                self._modif_alarm)
 
     def _get_array_from_attr_name(self, attr_name):
         if hasattr(self, attr_name):
