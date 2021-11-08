@@ -29,7 +29,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.6.4] - 2021-11-yy
+[1.6.4] - 2021-11-08
 ---------------------
 - [BREAKING] the name of the python file for the "agent" module are now lowercase (complient with PEP). If you
   did things like `from grid2op.Agent.BaseAgent import BaseAgent` you need to change it like
