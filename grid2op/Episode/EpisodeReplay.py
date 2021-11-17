@@ -132,7 +132,7 @@ class EpisodeReplay(object):
             if end_step > 0 and step >= end_step:
                 break
             # Get a timestamp for current frame
-            start_time = time.time()
+            start_time = time.perf_counter()
 
             # Render the observation
             fig = plot_runner.plot_obs(observation=obs,
@@ -153,7 +153,7 @@ class EpisodeReplay(object):
                 frames.append(plot_runner.convert_figure_to_numpy_HWC(figure))
 
             # Get the timestamp after frame is rendered
-            end_time = time.time()
+            end_time = time.perf_counter()
             delta_time = end_time - start_time
 
             # Cap fps for display mode

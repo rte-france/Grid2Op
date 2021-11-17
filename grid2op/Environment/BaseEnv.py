@@ -1941,9 +1941,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.nb_time_step += 1
         self._disc_lines[:] = -1
 
-        beg_step = time.time()
+        beg_step = time.perf_counter()
         try:
-            beg_ = time.time()
+            beg_ = time.perf_counter()
 
             is_legal, reason = self._game_rules(action=action, env=self)
             if not is_legal:
@@ -2030,7 +2030,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 gen_up_before = self._gen_activeprod_t > 0.
 
                 # compute the redispatching and the new productions active setpoint
-                beg__redisp = time.time()
+                beg__redisp = time.perf_counter()
                 already_modified_gen = self._get_already_modified_gen(action)
                 valid_disp, except_tmp, info_ = self._prepare_redisp(action, new_p, already_modified_gen)
 
@@ -2070,7 +2070,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     is_illegal_reco = True
                     action = self._action_space({})
                     except_.append(except_tmp)
-                self._time_redisp += time.time() - beg__redisp
+                self._time_redisp += time.perf_counter() - beg__redisp
 
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
@@ -2092,7 +2092,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # have the opponent here
             # TODO code the opponent part here and split more the timings! here "opponent time" is
             # TODO included in time_apply_act
-            tick = time.time()
+            tick = time.perf_counter()
             attack, attack_duration = self._oppSpace.attack(observation=self.current_obs,
                                                             agent_action=action,
                                                             env_action=self._env_modification)
@@ -2106,18 +2106,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._times_before_topology_actionable[subs_attacked] = \
                                 np.maximum(attack_duration, self._times_before_topology_actionable[subs_attacked])
                 self._backend_action += attack
-            self._time_opponent += time.time() - tick
+            self._time_opponent += time.perf_counter() - tick
             self.backend.apply_action(self._backend_action)
 
-            self._time_apply_act += time.time() - beg_
+            self._time_apply_act += time.perf_counter() - beg_
             try:
                 # compute the next _grid state
-                beg_pf = time.time()
+                beg_pf = time.perf_counter()
                 disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self._env_dc)
                 self._disc_lines[:] = disc_lines
-                self._time_powerflow += time.time() - beg_pf
+                self._time_powerflow += time.perf_counter() - beg_pf
                 if conv_ is None:
-                    beg_res = time.time()
+                    beg_res = time.perf_counter()
                     self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                     overflow_lines = self.backend.get_line_overflow()
                     # save the current topology as "last" topology (for connected powerlines)
@@ -2165,7 +2165,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
                     # TODO is non zero and disconnected, this should be ok.
 
-                    self._time_extract_obs += time.time() - beg_res
+                    self._time_extract_obs += time.perf_counter() - beg_res
 
                     has_error = False
             except Grid2OpException as exc_:
@@ -2176,7 +2176,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         except StopIteration:
             # episode is over
             is_done = True
-        end_step = time.time()
+        end_step = time.perf_counter()
         self._time_step += end_step - beg_step
         self._backend_action.reset()
         if conv_ is not None:
