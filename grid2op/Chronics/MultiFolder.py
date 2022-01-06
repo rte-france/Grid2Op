@@ -91,6 +91,16 @@ class Multifolder(GridValue):
         self._prev_cache_id = 0
         self._order = None
 
+    def available_chronics(self):
+        """return the list of available chronics.
+        
+        Examples
+        --------
+
+        # TODO
+        """
+        return self.subpaths[self._order]
+        
     def _default_filter(self, x):
         """
         default filter used at the initialization. It keeps only the first data encountered.

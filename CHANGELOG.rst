@@ -35,7 +35,9 @@ Change Log
 [1.6.5] - 2022-xx-yy
 ---------------------
 - [ADDED] possibility to "env.set_id" by giving only the folder of the chronics and not the whole path.
-
+- [ADDED] function "env.chronics_handler.available_chronics()" to return the list of available chronics
+  for a given environment
+  
 [1.6.4] - 2021-11-08
 ---------------------
 - [BREAKING] the name of the python file for the "agent" module are now lowercase (complient with PEP). If you
