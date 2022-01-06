@@ -10,6 +10,7 @@ import pdb
 import warnings
 import pandas as pd
 import tempfile
+import re
 from grid2op.tests.helper_path_test import *
 
 from grid2op.dtypes import dt_int, dt_float
@@ -1160,6 +1161,79 @@ class TestMultiFolder(HelperTests):
         assert id_ == 0
         assert np.all(env.chronics_handler.real_data._order == [2*i for i in range(10)])
 
+    def test_set_id_int(self):
+        """test the env.set_id method when used with int"""
+        chronics_class = self.get_multifolder_class()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+            
+        if issubclass(chronics_class, MultifolderWithCache):
+            env.chronics_handler.set_filter(lambda x: re.match(".*(01|04|05|07|09).*", x) is not None)
+            env.chronics_handler.reset()
+
+        env.set_id(1)
+        env.reset()
+        id_str = os.path.split(env.chronics_handler.get_id())[-1]
+        if not issubclass(chronics_class, MultifolderWithCache):
+            assert id_str == "01"
+        else:
+            assert id_str == "04"
+
+        env.set_id(4)
+        env.reset()
+        id_str = os.path.split(env.chronics_handler.get_id())[-1]
+        if not issubclass(chronics_class, MultifolderWithCache):
+            assert id_str == "04"
+        else:
+            assert id_str == "09"
+
+    def test_set_id_full_path(self):
+        """test the env.set_id method when used with full path"""
+        chronics_class = self.get_multifolder_class()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+        if issubclass(chronics_class, MultifolderWithCache):
+            env.chronics_handler.set_filter(lambda x: re.match(".*(01|04|05).*", x) is not None)
+            env.chronics_handler.reset()
+        base_path = os.path.split(env.chronics_handler.get_id())[0]
+        env.set_id(os.path.join(base_path, "01"))
+        env.reset()
+        assert env.chronics_handler.get_id() == os.path.join(base_path, "01")
+        env.set_id(os.path.join(base_path, "04"))
+        env.reset()
+        assert env.chronics_handler.get_id() == os.path.join(base_path, "04")
+
+        with self.assertRaises(ChronicsError):
+            env.set_id(os.path.join(base_path, "31"))
+        if issubclass(chronics_class, MultifolderWithCache):
+            with self.assertRaises(ChronicsError):
+                env.set_id(os.path.join(base_path, "00"))
+
+    def test_set_id_chron_dir(self):
+        """test the env.set_id method when used with only folder name in the chronics"""
+        chronics_class = self.get_multifolder_class()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+        if issubclass(chronics_class, MultifolderWithCache):
+            env.chronics_handler.set_filter(lambda x: re.match(".*(01|04|05).*", x) is not None)
+            env.chronics_handler.reset()
+        base_path = os.path.split(env.chronics_handler.get_id())[0]
+
+        env.set_id("01")
+        env.reset()
+        assert env.chronics_handler.get_id() == os.path.join(base_path, "01")
+        env.set_id("04")
+        env.reset()
+        assert env.chronics_handler.get_id() == os.path.join(base_path, "04")
+
+        with self.assertRaises(ChronicsError):
+            env.set_id("31")
+        if issubclass(chronics_class, MultifolderWithCache):
+            with self.assertRaises(ChronicsError):
+                env.set_id("00")
 
 class TestMultiFolderWithCache(TestMultiFolder):
     def get_multifolder_class(self):
@@ -1196,7 +1270,6 @@ class TestDeactivateMaintenance(HelperTests):
                 obs = env.reset()
                 # all maintenance are deactivated
                 assert np.all(obs.time_next_maintenance == -1)
-
 
 if __name__ == "__main__":
     unittest.main()

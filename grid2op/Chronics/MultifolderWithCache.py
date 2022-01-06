@@ -46,7 +46,7 @@ class MultifolderWithCache(Multifolder):
         # assign a filter, use only chronics that have "december" in their name
         env.chronics_handler.real_data.set_filter(lambda x: re.match(".*december.*", x) is not None)
         # create the cache
-        env.chronics_handler.real_data.reset_cache()
+        env.chronics_handler.reset()
 
         # and now you can use it as you would do any gym environment:
         my_agent = ...

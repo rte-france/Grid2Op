@@ -3,10 +3,13 @@ Change Log
 
 [TODO]
 --------------------
+- [???] serialize the action as json to store them in a "grid2op version" independant way
+- [???] example (and test) on how to corrupt the observation for the agent (without corrupting the environment)
+- [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
 - [???] add the storage power in the backend.get_action_to_set()"
-- [???] add a "_cst_" or something in the `const` member of all the class
+- [???] add a "_cst_" or something in the `const` member of all the classes
 - [???] in deepcopy of env, make tests that the "pointers" are properly propagated in the attributes (for example
   `envcpy._game_rules.legal_action` should not be copied when building `envcpy._helper_action_env`)
 - [???] add multi agent
@@ -28,6 +31,10 @@ Change Log
   it in parallel and transfer the resulting data.
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
+
+[1.6.5] - 2022-xx-yy
+---------------------
+- [ADDED] possibility to "env.set_id" by giving only the folder of the chronics and not the whole path.
 
 [1.6.4] - 2021-11-08
 ---------------------

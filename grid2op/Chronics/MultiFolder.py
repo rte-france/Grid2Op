@@ -336,11 +336,14 @@ class Multifolder(GridValue):
             Do you want to set to the previous value of this one or not (note that in general you want to set to
             the previous value, as calling this function as an impact only after `env.reset()` is called)
         """
+        import pdb
         if isinstance(id_num, str):
             # new accepted behaviour starting 1.6.4
+            # new in version 1.6.5: you only need to specify the chronics folder id and not the full path
             found = False
             for internal_id_, number in enumerate(self._order):
-                if self.subpaths[number] == id_num:
+                if self.subpaths[number] == id_num or \
+                   os.path.join(self.path,id_num) == self.subpaths[number]:
                     self._prev_cache_id = internal_id_
                     found = True
 
