@@ -320,8 +320,8 @@ class BackendConverter(Backend):
             #  self.target_backend.load_redispacthing_data(self.path_redisp, name=self.name_redisp)
         if self.path_storage_data is not None:
             super().load_storage_data(self.path_storage_data, self.name_storage_data)
-            self.source_backend.load_storage_data(self.path_redisp, name=self.name_redisp)
-            #  self.target_backend.load_storage_data(self.path_redisp, name=self.name_redisp)
+            self.source_backend.load_storage_data(self.path_storage_data, name=self.name_storage_data)
+            self.target_backend.load_storage_data(self.path_storage_data, name=self.name_storage_data)
         if self.path_grid_layout is not None:
             # grid layout data were available
             super().load_grid_layout(self.path_grid_layout, self.name_grid_layout)
@@ -453,6 +453,11 @@ class BackendConverter(Backend):
         p_, q_, v_, a_ = self.target_backend.lines_ex_info()
         return self.cst1*p_[self._line_tg2sr], self.cst1*q_[self._line_tg2sr], \
                self.cst1*v_[self._line_tg2sr], self.cst1*a_[self._line_tg2sr]
+
+    def storages_info(self):
+        p_, q_, v_ = self.target_backend.storages_info()
+        return self.cst1*p_[self._storage_sr2tg], self.cst1*q_[self._storage_sr2tg], \
+               self.cst1*v_[self._storage_sr2tg]
 
     def shunt_info(self):
         if self._shunt_tg2sr is not None:

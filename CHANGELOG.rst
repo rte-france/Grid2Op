@@ -3,12 +3,11 @@ Change Log
 
 [TODO]
 --------------------
-- [???] serialize the action as json to store them in a "grid2op version" independant way
+- [???] serialize the action as json store them in a "grid2op version" independant way
 - [???] example (and test) on how to corrupt the observation for the agent (without corrupting the environment)
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
-- [???] add the storage power in the backend.get_action_to_set()"
 - [???] add a "_cst_" or something in the `const` member of all the classes
 - [???] in deepcopy of env, make tests that the "pointers" are properly propagated in the attributes (for example
   `envcpy._game_rules.legal_action` should not be copied when building `envcpy._helper_action_env`)
@@ -36,6 +35,7 @@ Change Log
 ---------------------
 - [FIXED] an issue when copying the environment with the opponent (see issue https://github.com/rte-france/Grid2Op/issues/274)
 - [FIXED] a bug leading to the wrong "backend.get_action_to_set()" when there were storage units on the grid. 
+- [FIXED] a bug in the "BackendConverter" when there are storage units on the grid
 - [ADDED] possibility to "env.set_id" by giving only the folder of the chronics and not the whole path.
 - [ADDED] function "env.chronics_handler.available_chronics()" to return the list of available chronics
   for a given environment
