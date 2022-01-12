@@ -100,7 +100,12 @@ class PandaPowerBackendDefault(PandaPowerBackend):
         for bus_id in self._grid.load["bus"].values:
             res[self.load_pos_topo_vect[i]] = 1 if bus_id == self.load_to_subid[i] else 2
             i += 1
-
+            
+        # do not forget storage units !
+        i = 0
+        for bus_id in self._grid.storage["bus"].values:
+            res[self.storage_pos_topo_vect[i]] = 1 if bus_id == self.storage_to_subid[i] else 2
+            i += 1
         return res
 
 

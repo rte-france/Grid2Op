@@ -1433,7 +1433,6 @@ class Backend(GridObjects, ABC):
         topo_vect = self.get_topo_vect()
         if np.all(topo_vect == -1):
             raise RuntimeError("The get_action_to_set should not be used after a divergence of the powerflow")
-
         prod_p, _, prod_v = self.generators_info()
         load_p, load_q, _ = self.loads_info()
         set_me = self._complete_action_class()
