@@ -543,6 +543,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._observationClass = self._observationClass
         new_obj._legalActClass = self._legalActClass
         new_obj._observation_space = self._observation_space.copy(copy_backend=True)
+        new_obj._observation_space._legal_action = new_obj._game_rules.legal_action  # TODO this does not respect SOLID principles at all !
         new_obj._names_chronics_to_backend = self._names_chronics_to_backend
         new_obj._reward_helper = copy.deepcopy(self._reward_helper)
 
@@ -2319,13 +2320,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise EnvError("This environment is closed already, you cannot close it a second time.")
 
         # todo there might be some side effect
-        if self.viewer is not None:
+        if hasattr(self, "viewer") and self.viewer is not None:
             self.viewer = None
             self.viewer_fig = None
 
         if hasattr(self, "backend") and self.backend is not None:
             self.backend.close()
-        del self.backend
+            del self.backend
         self.backend = None
 
         if hasattr(self, "observation_space") and self.observation_space is not None:

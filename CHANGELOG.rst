@@ -35,12 +35,14 @@ Change Log
 ---------------------
 - [FIXED] an issue when copying the environment with the opponent (see issue https://github.com/rte-france/Grid2Op/issues/274)
 - [FIXED] a bug leading to the wrong "backend.get_action_to_set()" when there were storage units on the grid. 
-- [FIXED] a bug in the "BackendConverter" when there are storage units on the grid
+- [FIXED] a bug in the "BackendConverter" when there are storage  on the grid
 - [ADDED] possibility to "env.set_id" by giving only the folder of the chronics and not the whole path.
 - [ADDED] function "env.chronics_handler.available_chronics()" to return the list of available chronics
   for a given environment
+- [ADDED] possibility, through the Parameters class, to limit the number of possible calls to `obs.simulate(...)` 
+  see `param.MAX_SIMULATE_PER_STEP` and `param.MAX_SIMULATE_PER_EPISODE`
 - [IMPROVED] observation now raises Grid2OpException instead of RuntimeError
-  
+
 [1.6.4] - 2021-11-08
 ---------------------
 - [BREAKING] the name of the python file for the "agent" module are now lowercase (complient with PEP). If you

@@ -39,6 +39,8 @@ __all__ = [
     "NonFiniteElement",
     "DivergingPowerFlow",
     "NoForecastAvailable",
+    "SimulateUsedTooMuchThisStep",
+    "SimulateUsedTooMuchThisEpisode",
     "ChronicsError",
     "ChronicsNotFoundError",
     "InsufficientData",
@@ -95,6 +97,8 @@ from grid2op.Exceptions.AmbiguousActionExceptions import NonFiniteElement
 from grid2op.Exceptions.PowerflowExceptions import DivergingPowerFlow
 
 from grid2op.Exceptions.ObservationExceptions import NoForecastAvailable
+from grid2op.Exceptions.ObservationExceptions import SimulateUsedTooMuchThisStep
+from grid2op.Exceptions.ObservationExceptions import SimulateUsedTooMuchThisEpisode
 
 from grid2op.Exceptions.ChronicsExceptions import ChronicsError
 from grid2op.Exceptions.ChronicsExceptions import ChronicsNotFoundError
