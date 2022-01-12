@@ -1445,6 +1445,7 @@ class Backend(GridObjects, ABC):
                      "load_p": load_p,
                      "load_q": load_q,
         }}
+
         if self.shunts_data_available:
             p_s, q_s, sh_v, bus_s = self.shunt_info()
             dict_["shunt"] = {"shunt_bus": bus_s}
@@ -1455,6 +1456,11 @@ class Backend(GridObjects, ABC):
                 q_s[bus_s == -1] = np.NaN
                 dict_["shunt"]["shunt_p"] = p_s
                 dict_["shunt"]["shunt_q"] = q_s
+        
+        if self.n_storage > 0:
+            sto_p, *_ = self.storages_info()
+            dict_["set_storage"] = 1.0 * sto_p
+
         set_me.update(dict_)
         return set_me
 
