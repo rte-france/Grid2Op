@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import copy
 import numpy as np
 
 from grid2op.dtypes import dt_int
@@ -295,3 +296,19 @@ class GeometricOpponent(BaseOpponent):
         self._attack_waiting_times = 1 * _attack_waiting_times
         self._attack_durations = 1 * _attack_durations
         self._number_of_attacks = 1 * _number_of_attacks
+
+    def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
+        super()._custom_deepcopy_for_copy(new_obj, dict_)
+        if dict_ is None:
+            dict_ = {}
+
+        new_obj._attacks = copy.deepcopy(self._attacks)
+        new_obj._lines_ids = copy.deepcopy(self._lines_ids)
+        new_obj._next_attack_time = copy.deepcopy(self._next_attack_time)
+        new_obj._attack_hazard_rate = copy.deepcopy(self._attack_hazard_rate)
+        new_obj._recovery_minimum_duration = copy.deepcopy(self._recovery_minimum_duration)
+        new_obj._recovery_rate = copy.deepcopy(self._recovery_rate)
+        new_obj._pmax_pmin_ratio = copy.deepcopy(self._pmax_pmin_ratio)
+        new_obj._attack_counter = copy.deepcopy(self._attack_counter)
+        new_obj._episode_max_time = copy.deepcopy(self._episode_max_time)
+        new_obj._env = dict_["partial_env"]  # I need to keep a pointer to the environment for computing the maximum length of the episode

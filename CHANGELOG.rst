@@ -34,9 +34,11 @@ Change Log
 
 [1.6.5] - 2022-xx-yy
 ---------------------
+- [FIXED] an issue when copying the environment with the opponent (see issue https://github.com/rte-france/Grid2Op/issues/274)
 - [ADDED] possibility to "env.set_id" by giving only the folder of the chronics and not the whole path.
 - [ADDED] function "env.chronics_handler.available_chronics()" to return the list of available chronics
   for a given environment
+- [IMPROVED] observation now raises Grid2OpException instead of RuntimeError
   
 [1.6.4] - 2021-11-08
 ---------------------

@@ -425,11 +425,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._is_alarm_used_in_reward = False
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
 
-    def _custom_deepcopy_for_copy(self, new_obj):
+    def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
         if self.__closed:
             raise RuntimeError("Impossible to make a copy of a closed environment !")
             
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
+        if dict_ is None:
+            dict_ = {}
 
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
         new_obj._DEBUG = self._DEBUG
@@ -566,7 +568,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # init the opponent
         new_obj._opponent = new_obj._opponent_class.__new__(new_obj._opponent_class)
-        self._opponent._custom_deepcopy_for_copy(new_obj._opponent)
+        self._opponent._custom_deepcopy_for_copy(new_obj._opponent, {"partial_env": new_obj, **new_obj._kwargs_opponent})
 
         new_obj._oppSpace = OpponentSpace(compute_budget=new_obj._compute_opp_budget,
                                           init_budget=new_obj._opponent_init_budget,
@@ -575,8 +577,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                           budget_per_timestep=new_obj._opponent_budget_per_ts,
                                           opponent=new_obj._opponent
                                           )
-        new_obj._oppSpace.init_opponent(partial_env=new_obj, **new_obj._kwargs_opponent)
-        new_obj._oppSpace.reset()
+        state_me, state_opp = self._oppSpace._get_state()
+        new_obj._oppSpace._set_state(state_me)
 
         # voltage
         new_obj._voltagecontrolerClass = self._voltagecontrolerClass
@@ -1019,8 +1021,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # example from gym
         # self.np_random, seed = seeding.np_random(seed)
         # inspiration from @ https://github.com/openai/gym/tree/master/gym/utils
-
-        super().seed(seed)
+        seed_init = seed
+        super().seed(seed_init)
         seed_chron = None
         seed_obs = None
         seed_action_space = None
@@ -1046,7 +1048,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._opponent is not None:
             seed = self.space_prng.randint(max_int)
             seed_opponent = self._opponent.seed(seed)
-        return seed, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent
+        return seed_init, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent
 
     def deactivate_forecast(self):
         """
@@ -2321,38 +2323,39 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.viewer = None
             self.viewer_fig = None
 
-        if self.backend is not None:
+        if hasattr(self, "backend") and self.backend is not None:
             self.backend.close()
         del self.backend
         self.backend = None
 
-        if self.observation_space is not None:
+        if hasattr(self, "observation_space") and self.observation_space is not None:
             # do not forget to close the backend of the observation (used for simulate)
             self.observation_space.close()
         
-        if self._voltage_controler is not None:
+        if hasattr(self, "_voltage_controler") and self._voltage_controler is not None:
             # in case there is a backend in the voltage controler
             self._voltage_controler.close()
         
-        if self._oppSpace is not None:
+        if hasattr(self, "_oppSpace") and self._oppSpace is not None:
             # in case there is a backend in the opponent space
             self._oppSpace.close()
 
-        if self._helper_action_env is not None:
+        if hasattr(self, "_helper_action_env") and self._helper_action_env is not None:
             # close the action helper
             self._helper_action_env.close()
 
-        if self.action_space is not None:
+        if hasattr(self, "action_space") and self.action_space is not None:
             # close the action space if needed
             self.action_space.close()
 
-        if self._reward_helper is not None:
+        if hasattr(self, "_reward_helper") and self._reward_helper is not None:
             # close the reward if needed
             self._reward_helper.close()
 
-        for el, rew in self.other_rewards.items():
-            # close the "other rewards"
-            rew.close()
+        if hasattr(self, "other_rewards"):
+            for el, rew in self.other_rewards.items():
+                # close the "other rewards"
+                rew.close()
 
         self.backend = None
         self.__is_init = False
@@ -2383,7 +2386,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         "_storage_power", "_limit_curtailment", "_gen_before_curtailment", "_sum_curtailment_mw", "_sum_curtailment_mw_prev",
                         "_has_attention_budget", "_attention_budget", "_attention_budget_cls", "_is_alarm_illegal",
                         "_is_alarm_used_in_reward", "_kwargs_attention_budget"]:
-            delattr(self, attr_nm)
+            if hasattr(self, attr_nm):
+                delattr(self, attr_nm)
             setattr(self, attr_nm, None)
 
     def attach_layout(self, grid_layout):

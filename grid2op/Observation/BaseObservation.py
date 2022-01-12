@@ -14,7 +14,7 @@ import numpy as np
 from abc import abstractmethod
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Exceptions import *
+from grid2op.Exceptions import Grid2OpException, NoForecastAvailable, EnvError
 from grid2op.Space import GridObjects
 from scipy.sparse import csr_matrix
 
@@ -1015,7 +1015,7 @@ class BaseObservation(GridObjects):
         """
         same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
-            raise RuntimeError("Cannot compare to observation not coming from the same powergrid.")
+            raise Grid2OpException("Cannot compare to observation not coming from the same powergrid.")
         tmp_obs_env = self._obs_env
         self._obs_env = None  # keep aside the backend
         res = copy.deepcopy(self)
