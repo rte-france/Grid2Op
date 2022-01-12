@@ -40,7 +40,8 @@ Change Log
 - [ADDED] function "env.chronics_handler.available_chronics()" to return the list of available chronics
   for a given environment
 - [ADDED] possibility, through the Parameters class, to limit the number of possible calls to `obs.simulate(...)` 
-  see `param.MAX_SIMULATE_PER_STEP` and `param.MAX_SIMULATE_PER_EPISODE`
+  see `param.MAX_SIMULATE_PER_STEP` and `param.MAX_SIMULATE_PER_EPISODE` (see issue https://github.com/rte-france/Grid2Op/issues/273)
+]
 - [IMPROVED] observation now raises Grid2OpException instead of RuntimeError
 
 [1.6.4] - 2021-11-08

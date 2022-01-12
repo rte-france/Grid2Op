@@ -456,7 +456,7 @@ class GridValue(RandomObject, ABC):
             The current timestamp for which the modifications have been generated.
 
         dict_: ``dict``
-            Always empty, indicating i do nothing.
+            Always empty, indicating i do nothing (for this case)
 
         maintenance_time: ``numpy.ndarray``, dtype:``int``
             Information about the next planned maintenance. See :attr:`GridValue.maintenance_time` for more information.

@@ -41,7 +41,8 @@ class ChangeNothing(GridValue):
         from grid2op.Chronics import ChangeNothing
 
         env_name = ...
-        env = grid2op.make(env_name, data_feeding_kwargs={"gridvalueClass": ChangeNothing})
+        # env = grid2op.make(env_name, data_feeding_kwargs={"gridvalueClass": ChangeNothing})
+        env = grid2op.make(env_name, chronics_class=ChangeNothing)
 
     It can also be used with the "blank" environment:
 
