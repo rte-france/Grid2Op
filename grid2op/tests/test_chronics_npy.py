@@ -194,6 +194,35 @@ class TestNPYChronics(unittest.TestCase):
             obs_cpy, *_ = env_cpy.step(env.action_space())
             assert np.all(self.prod_p[1 + ts, :-1] == obs_cpy.gen_p[:-1]), f"error at iteration {ts}"
         
+    def test_forecast(self):
+        load_p_f = 1.0 * self.env_ref.chronics_handler.real_data.data.load_p_forecast
+        load_q_f = 1.0 * self.env_ref.chronics_handler.real_data.data.load_q_forecast
+        prod_p_f = 1.0 * self.env_ref.chronics_handler.real_data.data.prod_p_forecast
+        prod_v_f = 1.0 * self.env_ref.chronics_handler.real_data.data.prod_v_forecast
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               chronics_class=FromNPY,
+                               data_feeding_kwargs={"i_start": 0,
+                                                    "i_end": 10,  # excluded
+                                                    "load_p": self.load_p,
+                                                    "load_q": self.load_q,
+                                                    "prod_p": self.prod_p,
+                                                    "prod_v": self.prod_v,
+                                                    "load_p_forecast": load_p_f,
+                                                    "load_q_forecast": load_q_f,
+                                                    "prod_p_forecast": prod_p_f,
+                                                    "prod_v_forecast": prod_v_f,
+                                                    }
+                               )
+            
+        for ts in range(10):
+            obs, *_ = env.step(env.action_space())
+            assert np.all(self.prod_p[1 + ts, :-1] == obs.gen_p[:-1]), f"error at iteration {ts}"
+            sim_obs, *_ = obs.simulate(env.action_space())
+            assert np.all(prod_p_f[1 + ts, :-1] == sim_obs.gen_p[:-1]), f"error at iteration {ts}"
+            assert sim_obs.time == obs.time + 5
+        
     # TODO test maintenance
     # TODO test hazards
     # TODO test forecasts

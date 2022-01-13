@@ -122,6 +122,21 @@ class FromNPY(GridValue):
             for line_id in range(self.n_line):
                 self.hazard_duration[:, line_id] = self.get_hazard_duration_1d(self.hazards[:, line_id])
 
+        self._forecasts = None
+        if load_p_forecast is not None:
+            assert load_q_forecast is not None
+            assert prod_p_forecast is not None
+            self._forecasts = FromNPY(load_p=load_p_forecast,
+                                      load_q=load_q_forecast,
+                                      prod_p=prod_p_forecast,
+                                      prod_v=prod_v_forecast,
+                                      load_p_forecast=None,
+                                      load_q_forecast=None,
+                                      prod_p_forecast=None,
+                                      prod_v_forecast=None,
+                                      i_start=i_start,
+                                      i_end=i_end
+                                      )
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
@@ -132,6 +147,12 @@ class FromNPY(GridValue):
         else:
             assert len(order_backend_lines) == self.n_line
 
+        if self._forecasts is not None:
+            self._forecasts.initialize(order_backend_loads,
+                                       order_backend_prods,
+                                       order_backend_lines,
+                                       order_backend_subs,
+                                       names_chronics_to_backend)
         self.maintenance_time_nomaint = np.zeros(shape=(self.n_line, ), dtype=dt_int) - 1
         self.maintenance_duration_nomaint = np.zeros(shape=(self.n_line, ), dtype=dt_int)
         self.hazard_duration_nohaz = np.zeros(shape=(self.n_line, ), dtype=dt_int)
@@ -209,6 +230,7 @@ class FromNPY(GridValue):
         return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration, prod_v
 
     def check_validity(self, backend: Optional["grid2op.Backend.Backend.Backend"]) -> None:
+        # TODO raise the proper errors from ChronicsError here rather than AssertError
         assert self.load_p.shape[0] == self.load_q.shape[0]
         assert self.load_p.shape[0] == self.prod_p.shape[0]
         if self.prod_v is not None:
@@ -222,7 +244,19 @@ class FromNPY(GridValue):
             assert self.n_line == self.maintenance_duration.shape[1]
         if self.maintenance_time is not None:
             assert self.n_line == self.maintenance_time.shape[1]
-
+        
+        # TODO forecast
+        if self._forecasts is not None:
+            assert self._forecasts.n_line == self.n_line
+            assert self._forecasts.n_gen == self.n_gen
+            assert self._forecasts.n_load == self.n_load
+            assert self.load_p.shape[0] == self._forecasts.load_p.shape[0]
+            assert self.load_q.shape[0] == self._forecasts.load_q.shape[0]
+            assert self.prod_p.shape[0] == self._forecasts.prod_p.shape[0]
+            if self.prod_v is not None and self._forecasts.prod_v is not None:
+                assert self.prod_v.shape[0] == self._forecasts.prod_v.shape[0]
+            self._forecasts.check_validity(backend=backend)
+            
     def next_chronics(self):
         # restart the chronics: read it again !
         self.current_datetime = self.start_datetime
@@ -272,8 +306,11 @@ class FromNPY(GridValue):
         return res
 
     def forecasts(self):
-        # TODO
-        return []
+        if self._forecasts is None:
+            return []
+        self._forecasts.current_index = self.current_index - 1
+        dt, dict_, *rest = self._forecasts.load_next()
+        return [(self.current_datetime + self.time_interval, dict_)]
 
     def change_chronics(self,
                         new_load_p: np.ndarray = None,
