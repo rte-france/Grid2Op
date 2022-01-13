@@ -17,7 +17,7 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import IncorrectNumberOfElements, ChronicsError, ChronicsNotFoundError
 from grid2op.Exceptions import IncorrectNumberOfLoads, IncorrectNumberOfGenerators, IncorrectNumberOfLines
 from grid2op.Exceptions import EnvError, InsufficientData
-from grid2op.Chronics.GridValue import GridValue
+from grid2op.Chronics.gridValue import GridValue
 
 
 class GridStateFromFile(GridValue):

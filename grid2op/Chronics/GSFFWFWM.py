@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Chronics.GridStateFromFileWithForecasts import GridStateFromFileWithForecasts
+from grid2op.Chronics.gridStateFromFileWithForecasts import GridStateFromFileWithForecasts
 
 
 class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecasts):

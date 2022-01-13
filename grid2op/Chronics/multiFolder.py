@@ -14,8 +14,8 @@ from datetime import timedelta, datetime
 
 from grid2op.dtypes import dt_int
 from grid2op.Exceptions import *
-from grid2op.Chronics.GridValue import GridValue
-from grid2op.Chronics.GridStateFromFile import GridStateFromFile
+from grid2op.Chronics.gridValue import GridValue
+from grid2op.Chronics.gridStateFromFile import GridStateFromFile
 
 
 class Multifolder(GridValue):

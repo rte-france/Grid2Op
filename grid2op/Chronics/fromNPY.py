@@ -8,16 +8,18 @@
 
 import os
 import copy
+from typing import Optional, Union
 import numpy as np
 import pandas as pd
 import warnings
 from datetime import datetime, timedelta
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import IncorrectNumberOfElements, ChronicsError, ChronicsNotFoundError
 from grid2op.Exceptions import IncorrectNumberOfLoads, IncorrectNumberOfGenerators, IncorrectNumberOfLines
 from grid2op.Exceptions import EnvError, InsufficientData
-from grid2op.Chronics.GridValue import GridValue
+from grid2op.Chronics.gridValue import GridValue
 
 
 class FromNPY(GridValue):
@@ -41,44 +43,52 @@ class FromNPY(GridValue):
 
         env_name = ...
         env = grid2op.make(env_name, chronics_class=FromNPY, data_feeding_kwargs={"i_start": 5, "i_end": 18})
+        
+    Attributes
+    ----------
+    
     """
     def __init__(self,
-                 load_p,
-                 load_q,
-                 prod_p,
-                 prod_v,  # TODO make prod_v optional
-                 hazards=None,
-                 maintenance=None,
-                 load_p_forecast=None,  # TODO forecasts !!
-                 load_q_forecast=None,
-                 prod_p_forecast=None,
-                 prod_v_forecast=None,
-                 time_interval=timedelta(minutes=5),
-                 max_iter=-1,
-                 start_datetime=datetime(year=2019, month=1, day=1),
-                 chunk_size=None,
-                 i_start=0,
-                 i_end=None,  # excluded, as always in python
+                 load_p : np.ndarray,
+                 load_q : np.ndarray,
+                 prod_p : np.ndarray,
+                 prod_v : Optional[np.ndarray]=None,
+                 hazards : Optional[np.ndarray]=None,
+                 maintenance : Optional[np.ndarray]=None,
+                 load_p_forecast : Optional[np.ndarray]=None,  # TODO forecasts !!
+                 load_q_forecast : Optional[np.ndarray]=None,
+                 prod_p_forecast : Optional[np.ndarray]=None,
+                 prod_v_forecast : Optional[np.ndarray]=None,
+                 time_interval: timedelta=timedelta(minutes=5),
+                 max_iter: int=-1,
+                 start_datetime: datetime=datetime(year=2019, month=1, day=1),
+                 chunk_size: Optional[int]=None,
+                 i_start: int=0,
+                 i_end: Optional[int]=None,  # excluded, as always in python
                  **kwargs):
         GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime,
                            chunk_size=chunk_size)
-        self._i_start = i_start
-        self._i_end = i_end
-        self.n_gen = prod_p.shape[1]
-        self.n_load = load_p.shape[1]
-        self.n_line = None
+        self._i_start : int = i_start
+        self.n_gen : int = prod_p.shape[1]
+        self.n_load : int = load_p.shape[1]
+        self.n_line : Union[int, None] = None
 
-        assert load_p.shape[0] == load_q.shape[0]
-        assert load_p.shape[0] == prod_p.shape[0]
-        assert load_p.shape[0] == prod_v.shape[0]
-
-        self.load_p = 1.0 * load_p
-        self.load_q = 1.0 * load_q
-        self.prod_p = 1.0 * prod_p
-        self.prod_v = 1.0 * prod_v
-
-        if self._i_end is None:
-            self._i_end = load_p.shape[0]
+        self.load_p : np.ndarray = 1.0 * load_p
+        self.load_q : np.ndarray = 1.0 * load_q
+        self.prod_p : np.ndarray = 1.0 * prod_p
+        
+        self.prod_v = None
+        if prod_v is not None:
+            self.prod_v = 1.0 * prod_v
+        
+        self.__new_load_p : Optional[np.ndarray] = None
+        self.__new_prod_p : Optional[np.ndarray] = None
+        self.__new_prod_v : Optional[np.ndarray] = None
+        self.__new_load_q : Optional[np.ndarray] = None
+        
+        if i_end is None:
+            i_end = load_p.shape[0]
+        self._i_end : int = i_end
 
         self.has_maintenance = False
         self.maintenance = None
@@ -119,9 +129,6 @@ class FromNPY(GridValue):
         assert len(order_backend_loads) == self.n_load
         if self.n_line is None:
             self.n_line = len(order_backend_lines)
-            self.maintenance_time = np.zeros(shape=(self.n_line, ), dtype=dt_int) - 1
-            self.maintenance_duration = np.zeros(shape=(self.n_line, ), dtype=dt_int)
-            self.hazard_duration = np.zeros(shape=(self.n_line, ), dtype=dt_int)
         else:
             assert len(order_backend_lines) == self.n_line
 
@@ -149,7 +156,6 @@ class FromNPY(GridValue):
             dict_["prod_p"] = 1.0 * self.prod_p[self.current_index, :]
         if self.prod_v is not None:
             prod_v = 1.0 * self.prod_v[self.current_index, :]
-            # dict_["prod_v"] = prod_v
         if dict_:
             res["injection"] = dict_
 
@@ -161,29 +167,56 @@ class FromNPY(GridValue):
         self.current_datetime += self.time_interval
         self.curr_iter += 1
 
-        if self.maintenance_time is not None and self.has_maintenance:
+        if self.maintenance_time is not None and self.maintenance_duration is not None and self.has_maintenance:
             maintenance_time = dt_int(1 * self.maintenance_time[self.current_index, :])
             maintenance_duration = dt_int(1 * self.maintenance_duration[self.current_index, :])
         else:
-            maintenance_time = np.full(self.n_line, fill_value=-1, dtype=dt_int)
-            maintenance_duration = np.full(self.n_line, fill_value=0, dtype=dt_int)
+            maintenance_time = self.maintenance_time_nomaint
+            maintenance_duration = self.maintenance_duration_nomaint
 
         if self.hazard_duration is not None and self.has_hazards:
             hazard_duration = 1 * self.hazard_duration[self.current_index, :]
         else:
-            hazard_duration = np.full(self.n_line, fill_value=-1, dtype=dt_int)
+            hazard_duration = self.hazard_duration_nohaz
 
         return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration, prod_v
 
-    def check_validity(self, backend):
-        return True
+    def check_validity(self, backend: Optional["grid2op.Backend.Backend.Backend"]) -> None:
+        assert self.load_p.shape[0] == self.load_q.shape[0]
+        assert self.load_p.shape[0] == self.prod_p.shape[0]
+        if self.prod_v is not None:
+            assert self.load_p.shape[0] == self.prod_v.shape[0]
+        
+        if self.hazards is not None:
+            assert self.hazards.shape[1] == self.n_line
+        if self.maintenance is not None:
+            assert self.maintenance.shape[1] == self.n_line
+        if self.maintenance_duration is not None:
+            assert self.n_line == self.maintenance_duration.shape[1]
+        if self.maintenance_time is not None:
+            assert self.n_line == self.maintenance_time.shape[1]
 
     def next_chronics(self):
         # restart the chronics: read it again !
         self.current_datetime = self.start_datetime
         self.curr_iter = 0
         self.current_index = self._i_start
+        
+        if self.__new_load_p is not None:
+            self.load_p = self.__new_load_p
+            self.__new_load_p = None
+        if self.__new_load_q is not None:
+            self.load_q = self.__new_load_q
+            self.__new_load_q = None
+        if self.__new_prod_p is not None:
+            self.prod_p = self.__new_prod_p
+            self.__new_prod_p = None
+        if self.__new_prod_v is not None:
+            self.prod_v = self.__new_prod_v
+            self.__new_prod_v = None
 
+        self.check_validity(backend=None)
+        
     def done(self):
         """
         INTERNAL
@@ -214,3 +247,40 @@ class FromNPY(GridValue):
     def forecasts(self):
         # TODO
         return []
+
+    def change_chronics(self,
+                        new_load_p: np.ndarray = None,
+                        new_load_q: np.ndarray = None, 
+                        new_prod_p: np.ndarray = None,
+                        new_prod_v: np.ndarray = None):
+        """
+        Allows to change the data used by this class.
+        
+        .. warning::
+            This has an effect only after "env.reset" has been called !
+
+
+        Args:
+            new_load_p (np.ndarray, optional): change the load_p. Defaults to None (= do not change).
+            new_load_q (np.ndarray, optional): change the load_q. Defaults to None (= do not change).
+            new_prod_p (np.ndarray, optional): change the prod_p. Defaults to None (= do not change).
+            new_prod_v (np.ndarray, optional): change the prod_v. Defaults to None (= do not change).
+            
+        Examples
+        ---------
+        
+        .. code-block:: python
+        
+            import grid2op
+            
+            TODO
+        """
+        if new_load_p is not None:
+            self.__new_load_p = 1.0 * new_load_p
+        if new_load_q is not None:
+            self.__new_load_q = 1.0 * new_load_q
+        if new_prod_p is not None:
+            self.__new_prod_p = 1.0 * new_prod_p
+        if new_prod_v is not None:
+            self.__new_prod_v = 1.0 * new_prod_v
+        

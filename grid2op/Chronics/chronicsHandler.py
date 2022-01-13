@@ -13,8 +13,8 @@ from datetime import timedelta
 from grid2op.dtypes import dt_int
 from grid2op.Exceptions import Grid2OpException, ChronicsError
 from grid2op.Space import RandomObject
-from grid2op.Chronics.GridValue import GridValue
-from grid2op.Chronics.ChangeNothing import ChangeNothing
+from grid2op.Chronics.gridValue import GridValue
+from grid2op.Chronics.changeNothing import ChangeNothing
 
 
 class ChronicsHandler(RandomObject):
