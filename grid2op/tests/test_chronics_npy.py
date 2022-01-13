@@ -109,6 +109,26 @@ class TestNPYChronics(unittest.TestCase):
         with self.assertRaises(Grid2OpException):
             env.step(env.action_space())  # raises a Grid2OpException because the env is done
 
+    def test_runner(self):
+        max_step = 10
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               chronics_class=FromNPY,
+                               data_feeding_kwargs={"i_start": 0,
+                                                    "i_end": 10,  # excluded
+                                                    "load_p": self.load_p[:max_step,:],
+                                                    "load_q": self.load_q[:max_step,:],
+                                                    "prod_p": self.prod_p[:max_step,:],
+                                                    "prod_v": self.prod_v[:max_step,:]}
+            )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")  # silence the UserWarning: Class FromNPY doesn't handle different input folder. "tell_id" method has no impact.
+                                               # warnings.warn("Class {} doesn't handle different input folder. \"tell_id\" method has no impact."
+            runner = Runner(**env.get_params_for_runner())
+            res = runner.run(nb_episode=1)
+            assert res[0][3] == 10  # number of time step selected
+        
     def test_change_chronics(self):
         """test i can change the chronics"""
         with warnings.catch_warnings():
@@ -137,12 +157,46 @@ class TestNPYChronics(unittest.TestCase):
         for ts in range(10):
             obs, *_ = env.step(env.action_space())
             assert np.all(prod_p[1 + ts, :-1] == obs.gen_p[:-1]), f"error at iteration {ts}"
-    # TODO test runner
+            
+    def test_with_env_copy(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               chronics_class=FromNPY,
+                               data_feeding_kwargs={"i_start": 0,
+                                                    "i_end": 10,  # excluded
+                                                    "load_p": self.load_p,
+                                                    "load_q": self.load_q,
+                                                    "prod_p": self.prod_p,
+                                                    "prod_v": self.prod_v}
+                               )
+        env_cpy = env.copy()
+        for ts in range(10):
+            obs, *_ = env.step(env.action_space())
+            assert np.all(self.prod_p[1 + ts, :-1] == obs.gen_p[:-1]), f"error at iteration {ts}"
+        for ts in range(10):
+            obs_cpy, *_ = env_cpy.step(env.action_space())
+            assert np.all(self.prod_p[1 + ts, :-1] == obs_cpy.gen_p[:-1]), f"error at iteration {ts}"
+            
+        self.env_ref.reset()
+
+        load_p = 1.0 * self.env_ref.chronics_handler.real_data.data.load_p
+        load_q = 1.0 * self.env_ref.chronics_handler.real_data.data.load_q
+        prod_p = 1.0 * self.env_ref.chronics_handler.real_data.data.prod_p
+        prod_v = 1.0 * self.env_ref.chronics_handler.real_data.data.prod_v
+        env.chronics_handler.real_data.change_chronics(load_p, load_q, prod_p, prod_v)
+        env.reset()
+        env_cpy.reset()
+        for ts in range(10):
+            obs, *_ = env.step(env.action_space())
+            assert np.all(prod_p[1 + ts, :-1] == obs.gen_p[:-1]), f"error at iteration {ts}"
+        for ts in range(10):
+            obs_cpy, *_ = env_cpy.step(env.action_space())
+            assert np.all(self.prod_p[1 + ts, :-1] == obs_cpy.gen_p[:-1]), f"error at iteration {ts}"
+        
     # TODO test maintenance
     # TODO test hazards
     # TODO test forecasts
-
-    # TODO test when env copied too !
     
 if __name__ == "__main__":
     unittest.main()

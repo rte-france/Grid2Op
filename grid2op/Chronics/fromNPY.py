@@ -139,6 +139,33 @@ class FromNPY(GridValue):
         self.curr_iter = 0
         self.current_index = self._i_start - 1
 
+    def get_id(self) -> str:
+        """
+        To return a unique ID of the chronics, we use a hash function (black2b), but it outputs a name too big.
+        So we hash it again with md5 to get a reasonable length id (32 characters)
+
+        Returns:
+            str:  the hash of the arrays (load_p, load_q, etc.) in the chronics
+        """
+        import hashlib
+        # get the "long hash" from blake2b
+        hash_ = hashlib.blake2b()  # should be faster than md5 ! (and safer, but we only care about speed here)
+        hash_.update(self.load_p.tobytes())
+        hash_.update(self.load_q.tobytes())
+        hash_.update(self.prod_p.tobytes())
+        if self.prod_v is not None:
+            hash_.update(self.prod_v.tobytes())
+        if self.maintenance is not None:
+            hash_.update(self.maintenance.tobytes())
+        if self.hazards is not None:
+            hash_.update(self.hazards.tobytes())
+        # TODO forecast !
+        
+        # now shorten it with md5
+        long_hash_byte = hash_.digest()
+        short_hash = hashlib.md5(long_hash_byte)
+        return short_hash.hexdigest()
+    
     def load_next(self):
         self.current_index += 1
 
