@@ -33,23 +33,28 @@ Change Log
 
 [1.6.5] - 2022-xx-yy
 ---------------------
+- [BREAKING] the name of the python files for the "CHronics" module are now lowercase (complient with PEP). If you
+  did things like `from grid2op.Chronics.ChangeNothing import ChangeNothing` you need to change it like
+  `from grid2op.Chronics.changeNothing import ChangeNothing` or even better, and this is the preferred way to include
+  them: `from grid2op.Chronics import ChangeNothing`. It should not affect lots of code (more refactoring of the kind
+  are to be expected in following versions).
 - [FIXED] an issue when copying the environment with the opponent (see issue https://github.com/rte-france/Grid2Op/issues/274)
 - [FIXED] a bug leading to the wrong "backend.get_action_to_set()" when there were storage units on the grid. 
 - [FIXED] a bug in the "BackendConverter" when there are storage  on the grid
 - [ADDED] possibility to "env.set_id" by giving only the folder of the chronics and not the whole path.
 - [ADDED] function "env.chronics_handler.available_chronics()" to return the list of available chronics
   for a given environment
-- [ADDED] possibility, through the Parameters class, to limit the number of possible calls to `obs.simulate(...)` 
+- [ADDED] possibility, through the `Parameters` class, to limit the number of possible calls to `obs.simulate(...)` 
   see `param.MAX_SIMULATE_PER_STEP` and `param.MAX_SIMULATE_PER_EPISODE` (see issue https://github.com/rte-france/Grid2Op/issues/273)
 - [ADDED] a class to generate a "Chronics" readable by grid2op from numpy arrays (see ihttps://github.com/rte-france/Grid2Op/issues/271)
-- [IMPROVED] observation now raises Grid2OpException instead of RuntimeError
+- [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
 
 [1.6.4] - 2021-11-08
 ---------------------
-- [BREAKING] the name of the python file for the "agent" module are now lowercase (complient with PEP). If you
+- [BREAKING] the name of the python files for the "agent" module are now lowercase (complient with PEP). If you
   did things like `from grid2op.Agent.BaseAgent import BaseAgent` you need to change it like
   `from grid2op.Agent.baseAgent import BaseAgent` or even better, and this is the preferred way to include
-  them: `from grid2op.Agent import BaseAgent` It should not affect lots of code.
+  them: `from grid2op.Agent import BaseAgent`. It should not affect lots of code.
 - [FIXED] a bug where the shunt had a voltage when disconnected using pandapower backend
 - [FIXED] a bug preventing to print the action space if some "part" of it had no size (empty action space)
 - [FIXED] a bug preventing to copy an action properly (especially for the alarm)

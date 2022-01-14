@@ -6,18 +6,15 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import copy
+from typing import Optional, Union
 import numpy as np
-import pandas as pd
-import warnings
+import hashlib
 from datetime import datetime, timedelta
 
-from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Exceptions import IncorrectNumberOfElements, ChronicsError, ChronicsNotFoundError
-from grid2op.Exceptions import IncorrectNumberOfLoads, IncorrectNumberOfGenerators, IncorrectNumberOfLines
-from grid2op.Exceptions import EnvError, InsufficientData
-from grid2op.Chronics.GridValue import GridValue
+import grid2op
+from grid2op.dtypes import dt_int
+from grid2op.Chronics.gridValue import GridValue
+from grid2op.Exceptions import ChronicsError
 
 
 class FromNPY(GridValue):
@@ -29,6 +26,10 @@ class FromNPY(GridValue):
     .. warnings::
         It assume the order of the elements are consistent with the powergrid backend ! It will not attempt to reorder the columns of the dataset
 
+    TODO implement methods to change the loads / production "based on simulation" (online sampling instead of only reading data)
+    TODO implement the possibility to simulate maintenance / hazards "on the fly"
+    TODO implement hazards !
+
     Examples
     --------
 
@@ -39,46 +40,55 @@ class FromNPY(GridValue):
         import grid2op
         from grid2op.Chronics import FromNPY
 
+        TODO
         env_name = ...
         env = grid2op.make(env_name, chronics_class=FromNPY, data_feeding_kwargs={"i_start": 5, "i_end": 18})
+        
+    Attributes
+    ----------
+    
     """
     def __init__(self,
-                 load_p,
-                 load_q,
-                 prod_p,
-                 prod_v,  # TODO make prod_v optional
-                 hazards=None,
-                 maintenance=None,
-                 load_p_forecast=None,  # TODO forecasts !!
-                 load_q_forecast=None,
-                 prod_p_forecast=None,
-                 prod_v_forecast=None,
-                 time_interval=timedelta(minutes=5),
-                 max_iter=-1,
-                 start_datetime=datetime(year=2019, month=1, day=1),
-                 chunk_size=None,
-                 i_start=0,
-                 i_end=None,  # excluded, as always in python
+                 load_p : np.ndarray,
+                 load_q : np.ndarray,
+                 prod_p : np.ndarray,
+                 prod_v : Optional[np.ndarray]=None,
+                 hazards : Optional[np.ndarray]=None,
+                 maintenance : Optional[np.ndarray]=None,
+                 load_p_forecast : Optional[np.ndarray]=None,  # TODO forecasts !!
+                 load_q_forecast : Optional[np.ndarray]=None,
+                 prod_p_forecast : Optional[np.ndarray]=None,
+                 prod_v_forecast : Optional[np.ndarray]=None,
+                 time_interval: timedelta=timedelta(minutes=5),
+                 max_iter: int=-1,
+                 start_datetime: datetime=datetime(year=2019, month=1, day=1),
+                 chunk_size: Optional[int]=None,
+                 i_start: int=0,
+                 i_end: Optional[int]=None,  # excluded, as always in python
                  **kwargs):
         GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime,
                            chunk_size=chunk_size)
-        self._i_start = i_start
-        self._i_end = i_end
-        self.n_gen = prod_p.shape[1]
-        self.n_load = load_p.shape[1]
-        self.n_line = None
+        self._i_start : int = i_start
+        self.n_gen : int = prod_p.shape[1]
+        self.n_load : int = load_p.shape[1]
+        self.n_line : Union[int, None] = None
 
-        assert load_p.shape[0] == load_q.shape[0]
-        assert load_p.shape[0] == prod_p.shape[0]
-        assert load_p.shape[0] == prod_v.shape[0]
-
-        self.load_p = 1.0 * load_p
-        self.load_q = 1.0 * load_q
-        self.prod_p = 1.0 * prod_p
-        self.prod_v = 1.0 * prod_v
-
-        if self._i_end is None:
-            self._i_end = load_p.shape[0]
+        self.load_p : np.ndarray = 1.0 * load_p
+        self.load_q : np.ndarray = 1.0 * load_q
+        self.prod_p : np.ndarray = 1.0 * prod_p
+        
+        self.prod_v = None
+        if prod_v is not None:
+            self.prod_v = 1.0 * prod_v
+        
+        self.__new_load_p : Optional[np.ndarray] = None
+        self.__new_prod_p : Optional[np.ndarray] = None
+        self.__new_prod_v : Optional[np.ndarray] = None
+        self.__new_load_q : Optional[np.ndarray] = None
+        
+        if i_end is None:
+            i_end = load_p.shape[0]
+        self._i_end : int = i_end
 
         self.has_maintenance = False
         self.maintenance = None
@@ -100,6 +110,8 @@ class FromNPY(GridValue):
         self.hazards = None
         self.hazard_duration = None
         if hazards is not None:
+            raise ChronicsError("This feature is not available at the moment. Fill a github issue at "
+                                "https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=")
             self.has_hazards = True
             if self.n_line is None:
                 self.n_line = hazards.shape[1]
@@ -112,6 +124,25 @@ class FromNPY(GridValue):
             for line_id in range(self.n_line):
                 self.hazard_duration[:, line_id] = self.get_hazard_duration_1d(self.hazards[:, line_id])
 
+        self._forecasts = None
+        if load_p_forecast is not None:
+            assert load_q_forecast is not None
+            assert prod_p_forecast is not None
+            self._forecasts = FromNPY(load_p=load_p_forecast,
+                                      load_q=load_q_forecast,
+                                      prod_p=prod_p_forecast,
+                                      prod_v=prod_v_forecast,
+                                      load_p_forecast=None,
+                                      load_q_forecast=None,
+                                      prod_p_forecast=None,
+                                      prod_v_forecast=None,
+                                      i_start=i_start,
+                                      i_end=i_end
+                                     )
+        elif load_q_forecast is not None:
+            raise ChronicsError("if load_q_forecast is not None, then load_p_forecast should not be None")
+        elif prod_p_forecast is not None:
+            raise ChronicsError("if prod_p_forecast is not None, then load_p_forecast should not be None")
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
@@ -119,12 +150,15 @@ class FromNPY(GridValue):
         assert len(order_backend_loads) == self.n_load
         if self.n_line is None:
             self.n_line = len(order_backend_lines)
-            self.maintenance_time = np.zeros(shape=(self.n_line, ), dtype=dt_int) - 1
-            self.maintenance_duration = np.zeros(shape=(self.n_line, ), dtype=dt_int)
-            self.hazard_duration = np.zeros(shape=(self.n_line, ), dtype=dt_int)
         else:
             assert len(order_backend_lines) == self.n_line
 
+        if self._forecasts is not None:
+            self._forecasts.initialize(order_backend_loads,
+                                       order_backend_prods,
+                                       order_backend_lines,
+                                       order_backend_subs,
+                                       names_chronics_to_backend)
         self.maintenance_time_nomaint = np.zeros(shape=(self.n_line, ), dtype=dt_int) - 1
         self.maintenance_duration_nomaint = np.zeros(shape=(self.n_line, ), dtype=dt_int)
         self.hazard_duration_nohaz = np.zeros(shape=(self.n_line, ), dtype=dt_int)
@@ -132,6 +166,37 @@ class FromNPY(GridValue):
         self.curr_iter = 0
         self.current_index = self._i_start - 1
 
+    def _get_long_hash(self, hash_: hashlib.blake2b = None):
+        # get the "long hash" from blake2b
+        if hash_ is None:
+            hash_ = hashlib.blake2b()  # should be faster than md5 ! (and safer, but we only care about speed here)
+        hash_.update(self.load_p.tobytes())
+        hash_.update(self.load_q.tobytes())
+        hash_.update(self.prod_p.tobytes())
+        if self.prod_v is not None:
+            hash_.update(self.prod_v.tobytes())
+        if self.maintenance is not None:
+            hash_.update(self.maintenance.tobytes())
+        if self.hazards is not None:
+            hash_.update(self.hazards.tobytes())
+
+        if self._forecasts:
+            self._forecasts._get_long_hash(hash_)
+        return hash_.digest()
+
+    def get_id(self) -> str:
+        """
+        To return a unique ID of the chronics, we use a hash function (black2b), but it outputs a name too big (64 characters or so).
+        So we hash it again with md5 to get a reasonable length id (32 characters)
+
+        Returns:
+            str:  the hash of the arrays (load_p, load_q, etc.) in the chronics
+        """
+        long_hash_byte = self._get_long_hash()
+        # now shorten it with md5
+        short_hash = hashlib.md5(long_hash_byte)
+        return short_hash.hexdigest()
+    
     def load_next(self):
         self.current_index += 1
 
@@ -149,7 +214,6 @@ class FromNPY(GridValue):
             dict_["prod_p"] = 1.0 * self.prod_p[self.current_index, :]
         if self.prod_v is not None:
             prod_v = 1.0 * self.prod_v[self.current_index, :]
-            # dict_["prod_v"] = prod_v
         if dict_:
             res["injection"] = dict_
 
@@ -161,29 +225,72 @@ class FromNPY(GridValue):
         self.current_datetime += self.time_interval
         self.curr_iter += 1
 
-        if self.maintenance_time is not None and self.has_maintenance:
+        if self.maintenance_time is not None and self.maintenance_duration is not None and self.has_maintenance:
             maintenance_time = dt_int(1 * self.maintenance_time[self.current_index, :])
             maintenance_duration = dt_int(1 * self.maintenance_duration[self.current_index, :])
         else:
-            maintenance_time = np.full(self.n_line, fill_value=-1, dtype=dt_int)
-            maintenance_duration = np.full(self.n_line, fill_value=0, dtype=dt_int)
+            maintenance_time = self.maintenance_time_nomaint
+            maintenance_duration = self.maintenance_duration_nomaint
 
         if self.hazard_duration is not None and self.has_hazards:
             hazard_duration = 1 * self.hazard_duration[self.current_index, :]
         else:
-            hazard_duration = np.full(self.n_line, fill_value=-1, dtype=dt_int)
+            hazard_duration = self.hazard_duration_nohaz
 
         return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration, prod_v
 
-    def check_validity(self, backend):
-        return True
-
+    def check_validity(self, backend: Optional["grid2op.Backend.backend.Backend"]) -> None:
+        # TODO raise the proper errors from ChronicsError here rather than AssertError
+        assert self.load_p.shape[0] == self.load_q.shape[0]
+        assert self.load_p.shape[0] == self.prod_p.shape[0]
+        if self.prod_v is not None:
+            assert self.load_p.shape[0] == self.prod_v.shape[0]
+        
+        if self.hazards is not None:
+            assert self.hazards.shape[1] == self.n_line
+        if self.maintenance is not None:
+            assert self.maintenance.shape[1] == self.n_line
+        if self.maintenance_duration is not None:
+            assert self.n_line == self.maintenance_duration.shape[1]
+        if self.maintenance_time is not None:
+            assert self.n_line == self.maintenance_time.shape[1]
+        
+        # TODO forecast
+        if self._forecasts is not None:
+            assert self._forecasts.n_line == self.n_line
+            assert self._forecasts.n_gen == self.n_gen
+            assert self._forecasts.n_load == self.n_load
+            assert self.load_p.shape[0] == self._forecasts.load_p.shape[0]
+            assert self.load_q.shape[0] == self._forecasts.load_q.shape[0]
+            assert self.prod_p.shape[0] == self._forecasts.prod_p.shape[0]
+            if self.prod_v is not None and self._forecasts.prod_v is not None:
+                assert self.prod_v.shape[0] == self._forecasts.prod_v.shape[0]
+            self._forecasts.check_validity(backend=backend)
+            
     def next_chronics(self):
         # restart the chronics: read it again !
         self.current_datetime = self.start_datetime
         self.curr_iter = 0
         self.current_index = self._i_start
+        
+        if self.__new_load_p is not None:
+            self.load_p = self.__new_load_p
+            self.__new_load_p = None
+        if self.__new_load_q is not None:
+            self.load_q = self.__new_load_q
+            self.__new_load_q = None
+        if self.__new_prod_p is not None:
+            self.prod_p = self.__new_prod_p
+            self.__new_prod_p = None
+        if self.__new_prod_v is not None:
+            self.prod_v = self.__new_prod_v
+            self.__new_prod_v = None
 
+        if self._forecasts is not None:
+            # update the forecast
+            self._forecasts.next_chronics()
+        self.check_validity(backend=None)
+        
     def done(self):
         """
         INTERNAL
@@ -212,5 +319,80 @@ class FromNPY(GridValue):
         return res
 
     def forecasts(self):
-        # TODO
-        return []
+        if self._forecasts is None:
+            return []
+        self._forecasts.current_index = self.current_index - 1
+        dt, dict_, *rest = self._forecasts.load_next()
+        return [(self.current_datetime + self.time_interval, dict_)]
+
+    def change_chronics(self,
+                        new_load_p: np.ndarray = None,
+                        new_load_q: np.ndarray = None, 
+                        new_prod_p: np.ndarray = None,
+                        new_prod_v: np.ndarray = None):
+        """
+        Allows to change the data used by this class.
+        
+        .. warning::
+            This has an effect only after "env.reset" has been called !
+
+
+        Args:
+            new_load_p (np.ndarray, optional): change the load_p. Defaults to None (= do not change).
+            new_load_q (np.ndarray, optional): change the load_q. Defaults to None (= do not change).
+            new_prod_p (np.ndarray, optional): change the prod_p. Defaults to None (= do not change).
+            new_prod_v (np.ndarray, optional): change the prod_v. Defaults to None (= do not change).
+            
+        Examples
+        ---------
+        
+        .. code-block:: python
+        
+            import grid2op
+            
+            TODO
+        """
+        if new_load_p is not None:
+            self.__new_load_p = 1.0 * new_load_p
+        if new_load_q is not None:
+            self.__new_load_q = 1.0 * new_load_q
+        if new_prod_p is not None:
+            self.__new_prod_p = 1.0 * new_prod_p
+        if new_prod_v is not None:
+            self.__new_prod_v = 1.0 * new_prod_v
+
+    def change_forecasts(self,
+                         new_load_p: np.ndarray = None,
+                         new_load_q: np.ndarray = None, 
+                         new_prod_p: np.ndarray = None,
+                         new_prod_v: np.ndarray = None):
+        """
+        Allows to change the data used by this class.
+        
+        .. warning::
+            This has an effect only after "env.reset" has been called !
+
+
+        Args:
+            new_load_p (np.ndarray, optional): change the load_p. Defaults to None (= do not change).
+            new_load_q (np.ndarray, optional): change the load_q. Defaults to None (= do not change).
+            new_prod_p (np.ndarray, optional): change the prod_p. Defaults to None (= do not change).
+            new_prod_v (np.ndarray, optional): change the prod_v. Defaults to None (= do not change).
+            
+        Examples
+        ---------
+        
+        .. code-block:: python
+        
+            import grid2op
+            
+            TODO
+        """
+        if self._forecasts is None:
+            raise ChronicsError("You cannot change the forecast for this chronics are there are no forecasts enabled")
+        self._forecasts.change_chronics(new_load_p=new_load_p, new_load_q=new_load_q, new_prod_p=new_prod_p, new_prod_v=new_prod_v)
+    
+    def max_timestep(self):
+        if self.max_iter >= 0:
+            return min(self.max_iter, self.load_p.shape[0], self._i_end)
+        return min(self.load_p.shape[0], self._i_end)
