@@ -49,6 +49,8 @@ Change Log
 - [ADDED] a class to generate a "Chronics" readable by grid2op from numpy arrays (see https://github.com/rte-france/Grid2Op/issues/271)
 - [ADDED] an attribute `delta_time` in the observation that tells the time (in minutes) between two consecutive steps.
 - [ADDED] a method of the action space to show a list of actions to get back to the original topology (see https://github.com/rte-france/Grid2Op/issues/275)
+  `env.action_space.get_back_to_ref_state(obs)`
+- [ADDED] a method of the action to store it in a grid2op independant fashion (using json and dictionaries), see `act.as_serializable_dict()`
 - [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
 
 [1.6.4] - 2021-11-08
