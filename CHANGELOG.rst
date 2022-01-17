@@ -46,7 +46,9 @@ Change Log
   for a given environment
 - [ADDED] possibility, through the `Parameters` class, to limit the number of possible calls to `obs.simulate(...)` 
   see `param.MAX_SIMULATE_PER_STEP` and `param.MAX_SIMULATE_PER_EPISODE` (see issue https://github.com/rte-france/Grid2Op/issues/273)
-- [ADDED] a class to generate a "Chronics" readable by grid2op from numpy arrays (see ihttps://github.com/rte-france/Grid2Op/issues/271)
+- [ADDED] a class to generate a "Chronics" readable by grid2op from numpy arrays (see https://github.com/rte-france/Grid2Op/issues/271)
+- [ADDED] an attribute `delta_time` in the observation that tells the time (in minutes) between two consecutive steps.
+- [ADDED] a method of the action space to show a list of actions to get back to the original topology (see https://github.com/rte-france/Grid2Op/issues/275)
 - [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
 
 [1.6.4] - 2021-11-08

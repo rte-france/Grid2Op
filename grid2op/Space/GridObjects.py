@@ -3165,7 +3165,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     _PATH_ENV = {_PATH_ENV_str}
     _INIT_GRID_CLS = {cls._INIT_GRID_CLS.__name__}
 
-    SUB_COL = 1
+    SUB_COL = 0
     LOA_COL = 1
     GEN_COL = 2
     LOR_COL = 3

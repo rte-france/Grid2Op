@@ -3919,7 +3919,7 @@ class BaseAction(GridObjects):
         Examples
         --------
 
-        To retrieve the impact of the action on the storage unit, you can do:
+        To retrieve the impact of the action on the generator unit, you can do:
 
         .. code-block:: python
 
@@ -3949,7 +3949,7 @@ class BaseAction(GridObjects):
             # method 3: provide a list of the units you want to modify
             act.redispatch = [(1, 2.5), (0, -1.3)]
 
-            # method 4: change the storage unit by their name with a dictionary
+            # method 4: change the generators by their name with a dictionary
             act.redispatch = {"gen_1_0": 2.0}
 
         .. note:: The "rule of thumb" to perform redispatching is to provide always
