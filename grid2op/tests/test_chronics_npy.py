@@ -109,7 +109,7 @@ class TestNPYChronics(unittest.TestCase):
                                                     "prod_p": self.prod_p[:max_step,:],
                                                     "prod_v": self.prod_v[:max_step,:]}
                                )
-        assert env.chronics_handler.real_data.load_p.shape[0] == max_step
+        assert env.chronics_handler.real_data._load_p.shape[0] == max_step
         for ts in range(max_step - 1):  # -1 because one ts is "burnt" for the initialization
             obs, reward, done, info = env.step(env.action_space())
             assert np.all(self.prod_p[1 + ts, :-1] == obs.gen_p[:-1]), f"error at iteration {ts}"
@@ -119,6 +119,64 @@ class TestNPYChronics(unittest.TestCase):
         assert obs.max_step == max_step
         with self.assertRaises(Grid2OpException):
             env.step(env.action_space())  # raises a Grid2OpException because the env is done
+        env.close()
+
+    def test_change_iend(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               chronics_class=FromNPY,
+                               data_feeding_kwargs={"load_p": self.load_p,
+                                                    "load_q": self.load_q,
+                                                    "prod_p": self.prod_p,
+                                                    "prod_v": self.prod_v}
+            )
+        assert env.chronics_handler.real_data._i_end ==  self.load_p.shape[0]
+        env.chronics_handler.real_data.change_i_end(15)
+        env.reset()
+        assert env.chronics_handler.real_data._i_end == 15
+        env.reset()
+        assert env.chronics_handler.real_data._i_end == 15
+        env.chronics_handler.real_data.change_i_end(25)
+        assert env.chronics_handler.real_data._i_end == 15
+        env.reset()
+        assert env.chronics_handler.real_data._i_end == 25
+        env.chronics_handler.real_data.change_i_end(None)  # reset default value
+        env.reset()
+        assert env.chronics_handler.real_data._i_end == self.load_p.shape[0]
+
+        # now make sure it recomputes the maximum even if i change the size of the input arrays
+        env.chronics_handler.real_data.change_chronics(self.load_p[:10], self.load_q[:10], self.prod_p[:10], self.prod_v[:10])
+        env.reset()
+        assert env.chronics_handler.real_data._i_end == 10
+        env.chronics_handler.real_data.change_chronics(self.load_p, self.load_q, self.prod_p, self.prod_v)
+        env.reset()
+        assert env.chronics_handler.real_data._i_end == self.load_p.shape[0]
+        env.close()
+
+    def test_change_istart(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               chronics_class=FromNPY,
+                               data_feeding_kwargs={"load_p": self.load_p,
+                                                    "load_q": self.load_q,
+                                                    "prod_p": self.prod_p,
+                                                    "prod_v": self.prod_v}
+            )
+        assert env.chronics_handler.real_data._i_start ==  0
+        env.chronics_handler.real_data.change_i_start(5)
+        env.reset()
+        assert env.chronics_handler.real_data._i_start == 5
+        env.reset()
+        assert env.chronics_handler.real_data._i_start == 5
+        env.chronics_handler.real_data.change_i_start(10)
+        assert env.chronics_handler.real_data._i_start == 5
+        env.reset()
+        assert env.chronics_handler.real_data._i_start == 10
+        env.chronics_handler.real_data.change_i_start(None)  # reset default value
+        env.reset()
+        assert env.chronics_handler.real_data._i_start == 0
         env.close()
 
     def test_runner(self):
