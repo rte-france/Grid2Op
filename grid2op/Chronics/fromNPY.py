@@ -173,17 +173,17 @@ class FromNPY(GridValue):
         if hazards is not None:
             raise ChronicsError("This feature is not available at the moment. Fill a github issue at "
                                 "https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=")
-            self.has_hazards = True
-            if self.n_line is None:
-                self.n_line = hazards.shape[1]
-            else:
-                assert self.n_line == hazards.shape[1]
-            assert load_p.shape[0] == hazards.shape[0]
+            # self.has_hazards = True
+            # if self.n_line is None:
+            #     self.n_line = hazards.shape[1]
+            # else:
+            #     assert self.n_line == hazards.shape[1]
+            # assert load_p.shape[0] == hazards.shape[0]
 
-            self.hazards = hazards  # TODO copy !
-            self.hazard_duration = np.zeros(shape=(self.hazards.shape[0], self.n_line), dtype=dt_int)
-            for line_id in range(self.n_line):
-                self.hazard_duration[:, line_id] = self.get_hazard_duration_1d(self.hazards[:, line_id])
+            # self.hazards = hazards  # TODO copy !
+            # self.hazard_duration = np.zeros(shape=(self.hazards.shape[0], self.n_line), dtype=dt_int)
+            # for line_id in range(self.n_line):
+            #     self.hazard_duration[:, line_id] = self.get_hazard_duration_1d(self.hazards[:, line_id])
 
         self._forecasts = None
         if load_p_forecast is not None:
