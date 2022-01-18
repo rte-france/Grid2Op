@@ -8,6 +8,7 @@
 
 import tempfile
 import warnings
+import grid2op
 from grid2op.tests.helper_path_test import *
 from grid2op.Chronics import ChangeNothing
 from grid2op.Opponent import BaseOpponent, RandomLineOpponent, WeightedRandomOpponent, GeometricOpponent
@@ -1524,7 +1525,6 @@ class TestGeometricOpponent(unittest.TestCase):
                 # opponent should attack at this exact step
                 obs, reward, done, info = env.step(dn)
                 assert info["opponent_attack_line"] is not None
-
 
 if __name__ == "__main__":
     unittest.main()

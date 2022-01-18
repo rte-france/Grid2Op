@@ -9,9 +9,9 @@
 import sys
 import copy
 
-from grid2op.Observation.SerializableObservationSpace import SerializableObservationSpace
+from grid2op.Observation.serializableObservationSpace import SerializableObservationSpace
 from grid2op.Reward import RewardHelper
-from grid2op.Observation.CompleteObservation import CompleteObservation
+from grid2op.Observation.completeObservation import CompleteObservation
 from grid2op.Observation._ObsEnv import _ObsEnv
 
 
@@ -76,6 +76,8 @@ class ObservationSpace(SerializableObservationSpace):
         SerializableObservationSpace.__init__(self, gridobj, observationClass=observationClass)
         self.with_forecast = with_forecast
         self._simulate_parameters = copy.deepcopy(env.parameters)
+        self._legal_action = env._game_rules.legal_action
+        self._env_param  = copy.deepcopy(env.parameters)
 
         if rewardClass is None:
             self._reward_func = env._reward_helper.template_reward
@@ -112,12 +114,40 @@ class ObservationSpace(SerializableObservationSpace):
                                      kwargs_attention_budget=env._kwargs_attention_budget,
                                      max_episode_duration=env.max_episode_duration(),
                                      _complete_action_cls=env._complete_action_cls,
+                                     _ptr_orig_obs_space=self,
                                      )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
 
         self._empty_obs = self._template_obj
         self._update_env_time = 0.
+        self.__nb_simulate_called_this_step = 0
+        self.__nb_simulate_called_this_episode = 0
+
+    def simulate_called(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Tells this class that the "obs.simulate" function has been called.
+        """
+        self.__nb_simulate_called_this_step += 1
+        self.__nb_simulate_called_this_episode += 1
+
+    @property
+    def nb_simulate_called_this_episode(self):
+        return self.__nb_simulate_called_this_episode
+
+    @property
+    def nb_simulate_called_this_step(self):
+        return self.__nb_simulate_called_this_step
+
+    def can_use_simulate(self) -> bool:
+        """
+        This checks on the rules if the agent has not made too many calls to "obs.simulate" this step
+        """
+        return self._legal_action.can_use_simulate(self.__nb_simulate_called_this_step, self.__nb_simulate_called_this_episode, self._env_param)
 
     def _change_parameters(self, new_param):
         """
@@ -187,7 +217,7 @@ class ObservationSpace(SerializableObservationSpace):
 
         res = self.observationClass(obs_env=self.obs_env,
                                     action_helper=self.action_helper_env)
-
+        self.__nb_simulate_called_this_step = 0
         if _update_state:
             # TODO how to make sure that whatever the number of time i call "simulate" i still get the same observations
             # TODO use self.obs_prng when updating actions
@@ -207,14 +237,18 @@ class ObservationSpace(SerializableObservationSpace):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        return an empty observation, for internal use only."""
+        return an empty observation, for internal use only.
+        """
         return copy.deepcopy(self._empty_obs)
 
     def reset(self, real_env):
         """reset the observation space with the new values of the environment"""
         self.obs_env._reward_helper.reset(real_env)
+        self.__nb_simulate_called_this_step = 0
+        self.__nb_simulate_called_this_episode = 0
         for k, v in self.obs_env.other_rewards.items():
             v.reset(real_env)
+        self._env_param  = copy.deepcopy(real_env.parameters)
 
     def _custom_deepcopy_for_copy(self, new_obj):
         """implements a faster "res = copy.deepcopy(self)" to use 
@@ -232,9 +266,12 @@ class ObservationSpace(SerializableObservationSpace):
         new_obj.action_helper_env = self.action_helper_env  # const
         new_obj.reward_helper = copy.deepcopy(self.reward_helper)
         new_obj._backend_obs = self._backend_obs  # ptr to a backend for simulate
-        new_obj.obs_env = self.obs_env
+        new_obj.obs_env = self.obs_env  # it is None anyway !
         new_obj._update_env_time = self._update_env_time
-
+        new_obj.__nb_simulate_called_this_step = self.__nb_simulate_called_this_step
+        new_obj.__nb_simulate_called_this_episode = self.__nb_simulate_called_this_episode
+        new_obj._env_param  = copy.deepcopy(self._env_param)
+        
     def copy(self, copy_backend=False):
         """
         INTERNAL
@@ -264,6 +301,7 @@ class ObservationSpace(SerializableObservationSpace):
             res.obs_env = obs_env
         else:
             res.obs_env = obs_env.copy()
+            res.obs_env._ptr_orig_obs_space = res
             res._backend_obs = res.obs_env.backend
             res._empty_obs = obs_.copy()
             res._empty_obs._obs_env = res.obs_env

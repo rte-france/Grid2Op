@@ -44,3 +44,12 @@ class BaseRules(ABC):
             The cause of the illegal part of the action (should be a grid2op exception)
         """
         pass
+
+    def can_use_simulate(self, nb_simulate_call_step, nb_simulate_call_episode, param):
+        """
+        This function can be overriden.
+
+        It is expected to return either SimulateUsedTooMuchThisStep or SimulateUsedTooMuchThisEpisode if the number of calls to `obs.simulate`
+        is too high in total or for the given step
+        """
+        return None

@@ -49,6 +49,7 @@
 .. _attention_budget: ./observation.html#grid2op.Observation.BaseObservation.attention_budget
 .. _max_step: ./observation.html#grid2op.Observation.BaseObservation.max_step
 .. _current_step: ./observation.html#grid2op.Observation.BaseObservation.current_step
+.. _delta_time: ./observation.html#grid2op.Observation.BaseObservation.delta_time
 
 .. _observation_module:
 
@@ -131,6 +132,7 @@ Name(s)                                                                         
 `last_alarm`_                                                                    int        `dim_alarms`_
 `attention_budget`_                                                              int        1
 `max_step`_ , `current_step`_                                                    int        1
+`delta_time`_                                                                    float      1
 =============================================================================    ========= ============
 
 (*NB* for concision, if a coma ("*,*") is present in the "Name(s)" part of the column, it means multiple attributes

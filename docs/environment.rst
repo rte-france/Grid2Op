@@ -550,11 +550,12 @@ This can be done with:
 
     # extract 1% of the "chronics" to be used in the validation environment. The other 99% will
     # be used for test
-    nm_env_train, nm_env_val = env.train_val_split_random(pct_val=1.)
+    nm_env_train, nm_env_val, nm_env_test = env.train_val_split_random(pct_val=1., pct_test=1.)
 
     # and now you can use the training set only to train your agent:
     print(f"The name of the training environment is \\"{nm_env_train}\\"")
     print(f"The name of the validation environment is \\"{nm_env_val}\\"")
+    print(f"The name of the test environment is \\"{nm_env_test}\\"")
     env_train = grid2op.make(nm_env_train)
 
 You can then use, in the above case:
@@ -577,66 +578,8 @@ And then, at time of validation:
     env_val = grid2op.make(env_name+"_val") # to only use the "validation chronics"
     # do whatever you want with env_val
 
-
-As of now, grid2op do not support "from the API" the possibility to split with convenient
-names a environment a second times. If you want to do a "train / validation / test" split we recommend you to:
-
-1. make a training / test split (see below)
-2. split again the training set into training / validation (see below)
-3. you will have locally an environment named "trainval" on your computer. This directory will not weight
-   more than a few kilobytes.
-
-The example, not really convenient at the moment, please find a feature request if that is a problem for
-you:
-
-.. code-block:: python
-
-    import grid2op
-    import os
-
-    env_name = "l2rpn_case14_sandbox"  # or any other...
-    env = grid2op.make(env_name)
-
-    # retrieve the names of the chronics:
-    full_path_data = env.chronics_handler.subpaths
-    chron_names = [os.path.split(el)[-1] for el in full_path_data]
-
-    # splitting into training / test, keeping the "last" 10 chronics to the test set
-    nm_env_trainval, nm_env_test = env.train_val_split(val_scen_id=chron_names[-10:],
-                                                       add_for_val="test",
-                                                       add_for_train="trainval")
-
-    # now splitting again the training set into training and validation, keeping the last 10 chronics
-    # of this environment for validation
-    env_trainval = grid2op.make(nm_env_trainval)  # create the "trainval" environment
-    full_path_data = env_trainval.chronics_handler.subpaths
-    chron_names = [os.path.split(el)[-1] for el in full_path_data]
-    nm_env_train, nm_env_val = env_trainval.train_val_split(val_scen_id=chron_names[-10:],
-                                                            remove_from_name="_trainval$")
-
-And later on, you can do, if you followed the names above:
-
-.. code-block:: python
-
-    import grid2op
-    import os
-
-    env_name = "l2rpn_case14_sandbox"  # or any other...
-    env_train = grid2op.make(env_name+"_train")
-    env_val = grid2op.make(env_name+"_val")
+    # and of course
     env_test = grid2op.make(env_name+"_test")
-
-And you can also, if you want, delete the folder "l2rpn_case14_sandbox_trainval" from your machine:
-
-.. code-block:: python
-
-    import grid2op
-    import os
-
-    env_name = "l2rpn_case14_sandbox"  # or any other...
-    env_trainval = grid2op.make(env_name+"_trainval")
-    print(f"You can safely delete, if you want, the folder: \n\t\"{env_trainval.get_path_env()}\" \nnow useless.")
-
 
 Customization
 -------------

@@ -92,6 +92,7 @@ class Environment(BaseEnv):
                  _raw_backend_class=None,
                  _compat_glop_version=None,
                  _read_from_local_dir=True,  # TODO runner and all here !
+                 _is_test=False
                  ):
         BaseEnv.__init__(self,
                          init_grid_path=init_grid_path,
@@ -114,6 +115,7 @@ class Environment(BaseEnv):
                          attention_budget_cls=attention_budget_cls,
                          kwargs_attention_budget=kwargs_attention_budget,
                          logger=logger.getChild("grid2op_Environment") if logger is not None else None,
+                         _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
                          )
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
@@ -155,9 +157,6 @@ class Environment(BaseEnv):
         """
 
         if isinstance(rewardClass, type):
-            # raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should be a type (a class) "
-            #                        "and not an object (an instance of a class). "
-            #                        "It is currently \"{}\"".format(type(rewardClass)))
             if not issubclass(rewardClass, BaseReward):
                 raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
                                        "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
@@ -234,14 +233,13 @@ class Environment(BaseEnv):
                     type(actionClass)))
 
         if not isinstance(observationClass, type):
-            raise Grid2OpException("Parameter \"actionClass\" used to build the Environment should be a type (a class) "
-                                   "and not an object (an instance of a class). "
-                                   "It is currently \"{}\"".format(type(legalActClass)))
+            raise Grid2OpException(f"Parameter \"observationClass\" used to build the Environment should be a type (a class) "
+                                   f"and not an object (an instance of a class). "
+                                   f"It is currently : {observationClass} (type \"{type(observationClass)}\")")
         if not issubclass(observationClass, BaseObservation):
             raise Grid2OpException(
-                "Parameter \"observationClass\" used to build the Environment should derived form the "
-                "grid2op.BaseObservation class, type provided is \"{}\"".format(
-                    type(observationClass)))
+                f"Parameter \"observationClass\" used to build the Environment should derived form the "
+                f"grid2op.BaseObservation class, type provided is \"{type(observationClass)}\"")
 
         # action affecting the grid that will be made by the agent
         bk_type = type(self.backend)  # be careful here: you need to initialize from the class, and not from the object
@@ -764,7 +762,6 @@ class Environment(BaseEnv):
 
         # reset the opponent
         self._oppSpace.reset()
-
         # reset, if need, reward and other rewards
         self._reward_helper.reset(self)
         for extra_reward in self.other_rewards.values():
@@ -945,7 +942,10 @@ class Environment(BaseEnv):
                         val_scen_id,
                         add_for_train="train",
                         add_for_val="val",
-                        remove_from_name=None):
+                        add_for_test=None,
+                        test_scen_id=None,
+                        remove_from_name=None,
+                        deep_copy=False):
         """
         This function is used as :func:`Environment.train_val_split_random`.
 
@@ -956,6 +956,13 @@ class Environment(BaseEnv):
         ----------
         val_scen_id: ``list``
             List of the scenario names that will be placed in the validation set
+        
+        test_scen_id: ``list``
+
+            .. versionadded:: 2.6.5
+
+            List of the scenario names that will be placed in the test set (only used
+            if add_for_test is not None - and mandatory in this case)
 
         add_for_train: ``str``
             See :func:`Environment.train_val_split_random` for more information
@@ -963,7 +970,19 @@ class Environment(BaseEnv):
         add_for_val: ``str``
             See :func:`Environment.train_val_split_random` for more information
 
+        add_for_test: ``str``
+
+            .. versionadded:: 2.6.5
+            
+            See :func:`Environment.train_val_split_random` for more information
+
         remove_from_name: ``str``
+            See :func:`Environment.train_val_split_random` for more information
+
+        deep_copy: ``bool``
+
+            .. versionadded:: 2.6.5
+           
             See :func:`Environment.train_val_split_random` for more information
 
         Returns
@@ -974,12 +993,75 @@ class Environment(BaseEnv):
         nm_val: ``str``
             See :func:`Environment.train_val_split_random` for more information
 
+        nm_test: ``str``, optionnal
+
+            .. versionadded:: 2.6.5
+
+            See :func:`Environment.train_val_split_random` for more information
+
         Examples
         --------
 
         A full example on a training / validation / test split with explicit specification of which
         chronics goes in which scenarios is:
+        
+        .. code-block:: python
 
+            import grid2op
+            import os
+
+            env_name = "l2rpn_case14_sandbox"  # or any other...
+            env = grid2op.make(env_name)
+
+            # retrieve the names of the chronics:
+            full_path_data = env.chronics_handler.subpaths
+            chron_names = [os.path.split(el)[-1] for el in full_path_data]
+
+
+            # splitting into training / test, keeping the "last" 10 chronics to the test set
+            nm_env_train, m_env_val, nm_env_test = env.train_val_split(test_scen_id=chron_names[-10:],  # last 10 in test set
+                                                                       add_for_test="test",
+                                                                       val_scen_id=chron_names[-20:-10],  # last 20 to last 10 in val test
+                                                                       )
+
+            env_train = grid2op.make(env_name+"_train")
+            env_val = grid2op.make(env_name+"_val")
+            env_test = grid2op.make(env_name+"_test")
+
+        For a more simple example, with less parametrization and with random assignment (recommended),
+        please refer to the help of :func:`Environment.train_val_split_random`
+
+        **NB** read the "Notes" of this section for possible "unexpected" behaviour of the code snippet above.
+
+        On Some windows based platform, if you don't have an admin account nor a
+        "developer" account (see https://docs.python.org/3/library/os.html#os.symlink)
+        you might need to do:
+
+        .. code-block:: python
+
+            import grid2op
+            import os
+
+            env_name = "l2rpn_case14_sandbox"  # or any other...
+            env = grid2op.make(env_name)
+
+            # retrieve the names of the chronics:
+            full_path_data = env.chronics_handler.subpaths
+            chron_names = [os.path.split(el)[-1] for el in full_path_data]
+
+
+            # splitting into training / test, keeping the "last" 10 chronics to the test set
+            nm_env_train, m_env_val, nm_env_test = env.train_val_split(test_scen_id=chron_names[-10:],  # last 10 in test set
+                                                                       add_for_test="test",
+                                                                       val_scen_id=chron_names[-20:-10],  # last 20 to last 10 in val test
+                                                                       deep_copy=True)
+
+        .. warning::
+            The above code will use much more memory on your hard drive than the version using symbolic links.
+            It will also be significantly slower !
+
+        As an "historical curiosity", this is what you needed to do in grid2op version < 1.6.5:
+        
         .. code-block:: python
 
             import grid2op
@@ -1006,14 +1088,9 @@ class Environment(BaseEnv):
                                                                     remove_from_name="_trainval$")
 
             # and now you can use the following code to load the environments:
-            env_train = grid2op.make(nm_env+"_train")
-            env_val = grid2op.make(nm_env+"_val")
-            env_test = grid2op.make(nm_env+"_test")
-
-        For a more simple example, with less parametrization and with random assignment (recommended),
-        please refer to the help of :func:`Environment.train_val_split_random`
-
-        **NB** read the "Notes" of this section for possible "unexpected" behaviour of the code snippet above.
+            env_train = grid2op.make(env_name+"_train")
+            env_val = grid2op.make(env_name+"_val")
+            env_test = grid2op.make(env_name+"_test")
 
         Notes
         ------
@@ -1036,7 +1113,17 @@ class Environment(BaseEnv):
         if re.match(self.REGEX_SPLIT, add_for_val) is None:
             raise EnvError(f"The suffixes you can use for validation data (add_for_val)"
                            f"should match the regex \"{self.REGEX_SPLIT}\"")
+        if add_for_test is not None:
+            if re.match(self.REGEX_SPLIT, add_for_test) is None:
+                raise EnvError(f"The suffixes you can use for test data (add_for_test)"
+                               f"should match the regex \"{self.REGEX_SPLIT}\"")
 
+        if add_for_test is None and test_scen_id is not None:
+            raise EnvError(f"add_for_test is None and test_scen_id is not None.")
+        
+        if add_for_test is not None and test_scen_id is None:
+            raise EnvError(f"add_for_test is not None and test_scen_id is None.")
+        
         from grid2op.Chronics import MultifolderWithCache, Multifolder
         if not isinstance(self.chronics_handler.real_data, (MultifolderWithCache, Multifolder)):
             raise EnvError("It does not make sense to split a environment between training / validation "
@@ -1050,12 +1137,20 @@ class Environment(BaseEnv):
                 raise EnvError("The suffixes you can remove from the name of the environment (remove_from_name)"
                                "should match the regex \"^[a-zA-Z0-9^$_]*$\"")
             my_name = re.sub(remove_from_name, "", my_name)
-
         nm_train = f'{my_name}_{add_for_train}'
         path_train = os.path.join(path_train[0], nm_train)
+
         path_val = os.path.split(my_path)
         nm_val = f'{my_name}_{add_for_val}'
         path_val = os.path.join(path_val[0], nm_val)
+
+        nm_test = None
+        path_test = None
+        if add_for_test is not None:
+            path_test = os.path.split(my_path)
+            nm_test = f'{my_name}_{add_for_test}'
+            path_test = os.path.join(path_test[0], nm_test)
+
         chronics_dir = self._chronics_folder_name()
 
         # create the folder
@@ -1071,39 +1166,73 @@ class Environment(BaseEnv):
                                f"continue either delete the folder \"{path_train}\" or name your training environment "
                                f" differently "
                                f"using the \"add_for_train\" keyword argument of this function.")
+        
+        if nm_test is not None and os.path.exists(path_test):
+            raise RuntimeError(f"Impossible to create the test environment that should have the name "
+                               f"\"{nm_test}\" because an environment is already named this way. If you want to "
+                               f"continue either delete the folder \"{path_test}\" or name your test environment "
+                               f" differently "
+                               f"using the \"add_for_test\" keyword argument of this function.")
+        
         os.mkdir(path_val)
         os.mkdir(path_train)
+        if nm_test is not None:
+            os.mkdir(path_test)
 
         # assign which chronics goes where
         chronics_path = os.path.join(my_path, chronics_dir)
         all_chron = sorted(os.listdir(chronics_path))
         to_val = set(val_scen_id)
 
-        # copy the files
+        if nm_test is not None:
+            to_test = set(test_scen_id)
+
+        if deep_copy:
+            import shutil
+            copy_file_fun = shutil.copy2
+            copy_dir_fun = shutil.copytree
+        else:
+            copy_file_fun = os.symlink
+            copy_dir_fun = os.symlink
+        
+        # "copy" the files
         for el in os.listdir(my_path):
             tmp_path = os.path.join(my_path, el)
             if os.path.isfile(tmp_path):
                 # this is a regular env file
-                os.symlink(tmp_path, os.path.join(path_train, el))
-                os.symlink(tmp_path, os.path.join(path_val, el))
+                copy_file_fun(tmp_path, os.path.join(path_train, el))
+                copy_file_fun(tmp_path, os.path.join(path_val, el))
+                if nm_test is not None:
+                    copy_file_fun(tmp_path, os.path.join(path_test, el))
             elif os.path.isdir(tmp_path):
                 if el == chronics_dir:
                     # this is the chronics folder
                     os.mkdir(os.path.join(path_train, chronics_dir))
                     os.mkdir(os.path.join(path_val, chronics_dir))
+                    if nm_test is not None:
+                        os.mkdir(os.path.join(path_test, chronics_dir))
                     for chron_name in all_chron:
                         tmp_path_chron = os.path.join(tmp_path, chron_name)
                         if chron_name in to_val:
-                            os.symlink(tmp_path_chron, os.path.join(path_val, chronics_dir, chron_name))
+                            copy_dir_fun(tmp_path_chron, os.path.join(path_val, chronics_dir, chron_name))
+                        elif chron_name in to_test:
+                            copy_dir_fun(tmp_path_chron, os.path.join(path_test, chronics_dir, chron_name))
                         else:
-                            os.symlink(tmp_path_chron, os.path.join(path_train, chronics_dir, chron_name))
-        return nm_train, nm_val
+                            copy_dir_fun(tmp_path_chron, os.path.join(path_train, chronics_dir, chron_name))
+        if add_for_test is None:
+            res = nm_train, nm_val
+        else:
+            res = nm_train, nm_val, nm_test
+        return res
 
     def train_val_split_random(self,
                                pct_val=10.,
                                add_for_train="train",
                                add_for_val="val",
-                               remove_from_name=None):
+                               add_for_test=None,
+                               pct_test=None,
+                               remove_from_name=None,
+                               deep_copy=False):
         """
         By default a grid2op environment contains multiple "scenarios" containing values for all the producers
         and consumers representing multiple days. In a "game like" environment, you can think of the scenarios as
@@ -1140,10 +1269,50 @@ class Environment(BaseEnv):
             Suffix that will be added to the name of the environment for the validation set. We don't recommend to
             modify the default value ("val")
 
+        add_for_test: ``str``, (optional)
+
+            .. versionadded:: 2.6.5
+
+            Suffix that will be added to the name of the environment for the test set. By default, 
+            it only splits into training and validation, so this is ignored. We recommend
+            to assign it to "test" if you want to split into training / validation and test.
+            If it is set, then the `pct_test` must also be set.
+
+        pct_test: ``float``, (optional)
+
+            .. versionadded:: 2.6.5
+
+            Percentage of chronics that will go to the test set.
+            For 10% of the chronics, set it to 10. and NOT to 0.1.
+            (If you set it, you need to set the `add_for_test` argument.)
+
         remove_from_name: ``str``
             If you "split" an environment multiple times, this allows you to keep "short" names (for example
             you will be able to call `grid2op.make(env_name+"_train")` instead of
             `grid2op.make(env_name+"_train_train")`)
+
+        deep_copy: ``bool``
+
+            .. versionadded:: 2.6.5
+           
+            A function to specify to "copy" the elements of the original
+            environment to the created one. By default it will save as
+            much memory as possible using symbolic links (rather than performing
+            copies). By default it does use symbolic links (`deep_copy=False`).
+
+            .. note::
+                If set to ``True`` the new environment will take much more space
+                on the hard drive, and the execution of this function will
+                be much slower !
+
+            .. warning::
+                On windows based system, you will most likely run into issues
+                if you don't set this parameters.
+                Indeed, Windows does not link symbolink links 
+                (https://docs.python.org/3/library/os.html#os.symlink).
+                In this case, you can use the ``deep_copy=True`` and
+                it will work fine (examples in the function 
+                :func:`Environment.train_val_split`)
 
         Returns
         -------
@@ -1152,6 +1321,13 @@ class Environment(BaseEnv):
 
         nm_val: ``str``
             Complete name of the "validation" environment
+
+        nm_test: ``str``, optionnal
+
+            .. versionadded:: 2.6.5
+            
+            Complete name of the "test" environment. It is only returned if 
+            `add_for_test` and `pct_test` are not `None`.
 
         Examples
         --------
@@ -1181,10 +1357,34 @@ class Environment(BaseEnv):
             env_name_train = "l2rpn_case14_sandbox_train"  # depending on the option you passed above
             env_train = grid2op.make(env_name_train)
 
+        .. versionadded:: 2.6.5
+            Possibility to create a training, validation AND test set.
+        
+        If you have grid2op version >= 1.6.5, you can also use the following:
+
+        .. code-block:: python
+
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"  # or any other...
+            env = grid2op.make(env_name)
+
+            # extract 1% of the "chronics" to be used in the validation environment. The other 99% will
+            # be used for test
+            nm_env_train, nm_env_val, nm_env_test = env.train_val_split_random(pct_val=1., pct_test=1.)
+
+            # and now you can use the training set only to train your agent:
+            print(f"The name of the training environment is \\"{nm_env_train}\\"")
+            print(f"The name of the validation environment is \\"{nm_env_val}\\"")
+            print(f"The name of the test environment is \\"{nm_env_test}\\"")
+            env_train = grid2op.make(nm_env_train)
+
+        .. warning::
+            In this case this function returns 3 elements and not 2 !
+            
         Notes
         -----
         This function will fail if an environment already exists with one of the name that would be given
-        to the training environment or the validation environment.
+        to the training environment or the validation environment (or test environment).
 
         """
         if re.match(self.REGEX_SPLIT, add_for_train) is None:
@@ -1194,14 +1394,32 @@ class Environment(BaseEnv):
             raise EnvError("The suffixes you can use for validation data (add_for_val)"
                            "should match the regex \"{self.REGEX_SPLIT}\"")
 
+        if add_for_test is None and pct_test is not None:
+            raise EnvError(f"add_for_test is None and pct_test is not None.")
+        
+        if add_for_test is not None and pct_test is None:
+            raise EnvError(f"add_for_test is not None and pct_test is None.")
+        
+
         my_path = self.get_path_env()
         chronics_path = os.path.join(my_path, self._chronics_folder_name())
         all_chron = sorted(os.listdir(chronics_path))
-        to_val = self.space_prng.choice(all_chron, int(len(all_chron) * pct_val * 0.01))
+        nb_init = len(all_chron)
+        to_val = self.space_prng.choice(all_chron, int(nb_init * pct_val * 0.01), replace=False)
+        
+        test_scen_id = None
+        if pct_test is not None:
+            all_chron = set(all_chron) - set(to_val)
+            all_chron = list(all_chron)
+            test_scen_id = self.space_prng.choice(all_chron, int(nb_init * pct_test * 0.01), replace=False)
+        
         return self.train_val_split(to_val,
                                     add_for_train=add_for_train,
                                     add_for_val=add_for_val,
-                                    remove_from_name=remove_from_name)
+                                    remove_from_name=remove_from_name,
+                                    add_for_test=add_for_test,
+                                    test_scen_id=test_scen_id,
+                                    deep_copy=deep_copy)
 
     def get_params_for_runner(self):
         """
@@ -1265,4 +1483,5 @@ class Environment(BaseEnv):
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
         res["logger"] = self.logger
+        res["_is_test"] = self._is_test  # TODO not implemented !!
         return res

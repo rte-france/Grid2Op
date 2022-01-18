@@ -63,6 +63,7 @@ class _ObsEnv(BaseEnv):
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
                  _complete_action_cls=None,
+                 _ptr_orig_obs_space=None
                  ):
         BaseEnv.__init__(self,
                          init_grid_path,
@@ -110,6 +111,7 @@ class _ObsEnv(BaseEnv):
         self._complete_action_cls = _complete_action_cls
         self._action_space = action_helper  # obs env and env share the same action space
         self._observation_space = action_helper  # not used here, so it's definitely a hack !
+        self._ptr_orig_obs_space = _ptr_orig_obs_space
         ####
 
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
@@ -461,6 +463,10 @@ class _ObsEnv(BaseEnv):
                 - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
+        self._ptr_orig_obs_space.simulate_called()
+        maybe_exc = self._ptr_orig_obs_space.can_use_simulate()
+        if maybe_exc is not None:
+            raise maybe_exc
         self._reset_to_orig_state()
         obs, reward, done, info = self.step(action)
         return obs, reward, done, info
@@ -571,6 +577,6 @@ class _ObsEnv(BaseEnv):
                         "_storage_current_charge_init", "_storage_previous_charge_init", 
                         "_limit_curtailment_init", "_gen_before_curtailment_init", "_sum_curtailment_mw_init",
                         "_sum_curtailment_mw_prev_init", "_nb_time_step_init", "_attention_budget_state_init",
-                        "_max_episode_duration"]:
+                        "_max_episode_duration", "_ptr_orig_obs_space"]:
             delattr(self, attr_nm)
             setattr(self, attr_nm, None)

@@ -11,6 +11,8 @@ import numpy as np
 import copy
 import math
 
+from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
+
 
 def layout_obs_sub_only(obs, scale=1000.0):
     n_sub = obs.n_sub
@@ -51,7 +53,7 @@ def layout_obs_sub_only(obs, scale=1000.0):
     return improved_layout
 
 
-def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
+def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False, parallel_spacing=3.0):
     # Create a graph of substations vertices
     G = nx.Graph()
 

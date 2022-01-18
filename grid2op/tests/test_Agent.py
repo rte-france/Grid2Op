@@ -46,7 +46,7 @@ class TestAgent(HelperTests):
     def _aux_test_agent(self, agent, i_max=30):
         done = False
         i = 0
-        beg_ = time.time()
+        beg_ = time.perf_counter()
         cum_reward = dt_float(0.0)
         obs = self.env.get_obs()
         reward = 0.
@@ -54,10 +54,10 @@ class TestAgent(HelperTests):
         all_acts = []
         while not done:
             # print("_______________")
-            beg__ = time.time()
+            beg__ = time.perf_counter()
             act = agent.act(obs, reward, done)
             all_acts.append(act)
-            end__ = time.time()
+            end__ = time.perf_counter()
             obs, reward, done, info = self.env.step(act)  # should load the first time stamp
             time_act += end__ - beg__
             cum_reward += reward
@@ -65,7 +65,7 @@ class TestAgent(HelperTests):
             if i > i_max:
                 break
 
-        end_ = time.time()
+        end_ = time.perf_counter()
         if DEBUG:
             li_text = ["Env: {:.2f}s",
                        "\t - apply act {:.2f}s",

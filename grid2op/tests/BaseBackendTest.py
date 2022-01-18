@@ -978,6 +978,20 @@ class BaseTestTopoAction(MakeBackend):
             except AssertionError as exc_:
                 raise AssertionError("Error for shunt: {}".format(exc_))
 
+    def test_get_action_to_set_storage(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("educ_case14_storage", test=True, backend=self.make_backend(), _add_to_name="test_gats_storage")
+            env2 = make("educ_case14_storage", test=True, backend=self.make_backend(), _add_to_name="test_gats_storage")
+        obs, *_ = env.step(env.action_space({"set_storage": [-1.0, 1.0]}))
+        act = env.backend.get_action_to_set()
+
+        bk_act2 = env2.backend.my_bk_act_class()
+        bk_act2 += act
+        env2.backend.apply_action(bk_act2)
+        env2.backend.runpf()
+        assert np.all(env2.backend.storages_info()[0] == env.backend.storages_info()[0])
+
     def _aux_test_back_orig_2(self, obs, prod_p, load_p, p_or, sh_q):
         self.backend.update_from_obs(obs)
         self._aux_aux_check_if_matches(prod_p, load_p, p_or, sh_q)

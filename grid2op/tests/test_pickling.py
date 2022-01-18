@@ -26,8 +26,13 @@ with warnings.catch_warnings():
 
 class TestMultiProc(unittest.TestCase):
     @staticmethod
-    def f(glop_stuff):
-        return glop_stuff.action_space.sample()
+    def f(env_gym):
+        return env_gym.action_space.sample()
+
+    @staticmethod
+    def g(env_gym):
+        act = env_gym.action_space.sample()
+        return env_gym.step(act)[0]
 
     def test_basic(self):
         with warnings.catch_warnings():
@@ -71,6 +76,9 @@ class TestMultiProc(unittest.TestCase):
         env_gym2 = copy.deepcopy(env_gym)
         with ctx.Pool(2) as p:
             p.map(TestMultiProc.f, [env_gym1, env_gym2])
+            
+        with ctx.Pool(2) as p:
+            p.map(TestMultiProc.g, [env_gym1, env_gym2])
 
 
 if __name__ == '__main__':

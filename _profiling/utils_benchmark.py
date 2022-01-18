@@ -189,7 +189,7 @@ def run_env(env, max_ts, agent):
     reward = env.reward_range[0]
     nb_ts = 0
     prev_act = None
-    beg_ = time.time()
+    beg_ = time.perf_counter()
     with tqdm(total=nb_rows) as pbar:
         while not done:
             act = agent.act(obs, reward, done)
@@ -206,7 +206,7 @@ def run_env(env, max_ts, agent):
             prev_act = act
             # if done:
             #     print(act)
-    end_ = time.time()
+    end_ = time.perf_counter()
     total_time = end_ - beg_
     return nb_ts, total_time, aor, gen_p, gen_q
 
@@ -222,7 +222,7 @@ def run_env_with_reset(env, max_ts, agent, seed=None):
     done = False
     reward = env.reward_range[0]
     nb_ts = 0
-    beg_ = time.time()
+    beg_ = time.perf_counter()
     reset_count = 0
     with tqdm(total=nb_rows) as pbar:
         while not done:
@@ -242,7 +242,7 @@ def run_env_with_reset(env, max_ts, agent, seed=None):
                 obs = env.reset()
                 reset_count += 1
                 done = False
-    end_ = time.time()
+    end_ = time.perf_counter()
     total_time = end_ - beg_
     return nb_ts, total_time, aor, gen_p, gen_q, reset_count
 

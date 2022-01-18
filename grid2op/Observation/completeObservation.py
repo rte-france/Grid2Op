@@ -9,7 +9,7 @@
 import numpy as np
 
 from grid2op.dtypes import dt_int, dt_float
-from grid2op.Observation.BaseObservation import BaseObservation
+from grid2op.Observation.baseObservation import BaseObservation
 
 
 class CompleteObservation(BaseObservation):
@@ -123,11 +123,16 @@ class CompleteObservation(BaseObservation):
         "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
         "was_alarm_used_after_game_over",
         "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",  # starting from grid2op version 1.6.0
-        "current_step", "max_step"  # starting from grid2op version 1.6.4
+        "current_step", "max_step",  # starting from grid2op version 1.6.4
+        "delta_time"  # starting grid2op version 1.6.5
     ]
     attr_list_json = ["_thermal_limit",
                       "support_theta",
-                      "theta_or", "theta_ex", "load_theta", "gen_theta", "storage_theta"]
+                      "theta_or",
+                      "theta_ex",
+                      "load_theta",
+                      "gen_theta",
+                      "storage_theta"]
     attr_list_set = set(attr_list_vect)
 
     def __init__(self,
@@ -235,3 +240,5 @@ class CompleteObservation(BaseObservation):
                 self.time_since_last_alarm[:] = -1
             self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
             self.attention_budget[:] = env._attention_budget.current_budget
+            
+        self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.)

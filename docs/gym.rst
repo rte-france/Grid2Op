@@ -103,6 +103,7 @@ For example, an observation space will look like:
 - "v_ex": Box(`env.n_line`,)  [type: float, low: 0, high: inf]
 - "v_or": Box(`env.n_line`,)  [type: flaot, low: 0, high: inf]
 - "year": Discrete(2100)
+- "delta_time": Box(0.0, inf, (1,), float32)
 
 Each keys correspond to an attribute of the observation. In this example `"line_status": MultiBinary(20)`
 represents the attribute `obs.line_status` which is a boolean vector (for each powerline
@@ -319,6 +320,8 @@ Reinforcement learning frameworks
 *********************************
 
 TODO
+
+Any contribution is welcome here
 
 Other frameworks
 **********************

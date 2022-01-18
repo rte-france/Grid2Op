@@ -10,6 +10,7 @@ import numpy as np
 
 from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
+from grid2op.Exceptions.Grid2OpException import Grid2OpException
 from grid2op.dtypes import dt_float, dt_int
 
 
@@ -53,12 +54,10 @@ class IdToAct(Converter):
     Actions corresponding to all topologies are also used by default. See
     :func:`grid2op.BaseAction.ActionSpace.get_all_unitary_topologies_set` for more information.
 
-
     In this converter:
 
     - `encoded_act` are positive integer, representing the index of the actions.
     - `transformed_obs` are regular observations.
-
 
     **NB** The number of actions in this converter can be especially big. For example, if a substation counts N elements
     there are roughly 2^(N-1) possible actions in this substation. This means if there are a single substation with
@@ -126,7 +125,14 @@ class IdToAct(Converter):
                 Whether you want to include the "redispatch" in your action space
                 (in case the original action space allows it)
 
-
+            curtail: ``bool``
+                Whether you want to include the "curtailment" in your action space
+                (in case the original action space allows it)
+            
+            storage: ``bool``
+                Whether you want to include the "storage unit" in your action space
+                (in case the original action space allows it)
+                
         Examples
         --------
         Here is an example of a code that will: make a converter by selecting some action. Save it, and then restore
@@ -241,15 +247,20 @@ class IdToAct(Converter):
             # assign the action to my actions
             possible_act = all_actions[0]
             if isinstance(possible_act, BaseAction):
+                # list of grid2op action
                 self.all_actions = np.array(all_actions)
+            elif isinstance(possible_act, dict):
+                # list of dictionnary (obtained with `act.as_serializable_dict()`)
+                self.all_actions = np.array([self.__call__(el) for el in all_actions])
             else:
+                # should be an array !
                 try:
                     self.all_actions = np.array([self.__call__() for _ in all_actions])
                     for i, el in enumerate(all_actions):
                         self.all_actions[i].from_vect(el)
-                except Exception as e:
-                    raise RuntimeError("Impossible to convert the data provided in \"all_actions\" into valid "
-                                       "grid2op action. The error was:\n{}".format(e))
+                except Exception as exc_:
+                    raise Grid2OpException("Impossible to convert the data provided in \"all_actions\" into valid "
+                                           "grid2op action. The error was:\n{}".format(e)) from exc_
         else:
             raise RuntimeError("Impossible to load the action provided.")
         self.n = len(self.all_actions)

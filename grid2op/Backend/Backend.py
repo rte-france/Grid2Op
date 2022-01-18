@@ -1433,7 +1433,6 @@ class Backend(GridObjects, ABC):
         topo_vect = self.get_topo_vect()
         if np.all(topo_vect == -1):
             raise RuntimeError("The get_action_to_set should not be used after a divergence of the powerflow")
-
         prod_p, _, prod_v = self.generators_info()
         load_p, load_q, _ = self.loads_info()
         set_me = self._complete_action_class()
@@ -1445,6 +1444,7 @@ class Backend(GridObjects, ABC):
                      "load_p": load_p,
                      "load_q": load_q,
         }}
+
         if self.shunts_data_available:
             p_s, q_s, sh_v, bus_s = self.shunt_info()
             dict_["shunt"] = {"shunt_bus": bus_s}
@@ -1455,6 +1455,11 @@ class Backend(GridObjects, ABC):
                 q_s[bus_s == -1] = np.NaN
                 dict_["shunt"]["shunt_p"] = p_s
                 dict_["shunt"]["shunt_q"] = q_s
+        
+        if self.n_storage > 0:
+            sto_p, *_ = self.storages_info()
+            dict_["set_storage"] = 1.0 * sto_p
+
         set_me.update(dict_)
         return set_me
 

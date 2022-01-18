@@ -295,19 +295,22 @@ def make(dataset="rte_case14_realistic",
             make_from_path_fn = _aux_make_multimix
         elif _aux_is_multimix(dataset) and test_tmp:
             def make_from_path_fn_(*args, **kwargs):
+                if not "logger" in kwargs:
+                    kwargs["logger"] =  logger
+                if not "experimental_read_from_local_dir" in kwargs:
+                    kwargs["experimental_read_from_local_dir"] =  experimental_read_from_local_dir
                 return _aux_make_multimix(*args,
                                           test=True,
-                                          logger=logger,
-                                          experimental_read_from_local_dir=experimental_read_from_local_dir,
                                           **kwargs)
 
             make_from_path_fn = make_from_path_fn_
-
+        if not "logger" in kwargs:
+            kwargs["logger"] =  logger
+        if not "experimental_read_from_local_dir" in kwargs:
+            kwargs["experimental_read_from_local_dir"] =  experimental_read_from_local_dir
         return make_from_path_fn(dataset_path=dataset,
-                                 logger=logger,
                                  _add_to_name=_add_to_name_tmp,
                                  _compat_glop_version=_compat_glop_version_tmp,
-                                 experimental_read_from_local_dir=experimental_read_from_local_dir,
                                  **kwargs)
 
     # Not a path: get the dataset name and cache path

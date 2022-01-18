@@ -104,9 +104,10 @@ class OpponentSpace(object):
         state_opp = self.opponent.get_state()
         return state_me, state_opp
 
-    def _set_state(self, my_state, opp_state):
-        # used for simulate
-        self.opponent.set_state(opp_state)
+    def _set_state(self, my_state, opp_state=None):
+        # used for simulate (and for deep copy)
+        if opp_state is not None:
+            self.opponent.set_state(opp_state)
         budget, previous_fails, current_attack_duration, current_attack_cooldown, last_attack = my_state
         self.budget = budget
         self.previous_fails = previous_fails

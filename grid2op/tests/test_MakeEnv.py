@@ -638,7 +638,7 @@ class TestMakeMultiMix(unittest.TestCase):
     def test_create_from_path(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(PATH_DATA_MULTIMIX)
+            env = make(PATH_DATA_MULTIMIX, test=True)
         assert env != None
         assert isinstance(env, MultiMixEnvironment)
 

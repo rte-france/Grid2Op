@@ -105,7 +105,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                       "storage_loss": [],
                       'storage_charging_efficiency': [],
                       'storage_discharging_efficiency': [],
-                      '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation',
+                      '_init_subtype': 'grid2op.Observation.completeObservation.CompleteObservation',
                       "dim_alarms": 0,
                       "alarms_area_names": [],
                       "alarms_lines_area": {},
@@ -229,6 +229,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                          "was_alarm_used_after_game_over": [False],
                          "current_step": [0],
                          "max_step": [8064],
+                         "delta_time": [5.]
                          }
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
@@ -247,7 +248,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                 # shunts
                                 dt_float, dt_float, dt_float, dt_int,
                                 # steps
-                                dt_int, dt_int
+                                dt_int, dt_int,
+                                # delta_time
+                                dt_float
                                 ],
                                dtype=object)
 
@@ -257,8 +260,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                 20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
                                 5, 5, 0, 0, 0, 5, 5, 5, 1, 1, 0, 1, 1,
                                 1, 1, 1, 1,
-                                1, 1])
-        self.size_obs = 429 + 4 + 4 + 2
+                                1, 1, 1])
+        self.size_obs = 429 + 4 + 4 + 2 + 1
 
     def tearDown(self):
         self.env.close()
@@ -707,7 +710,6 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert vect.shape[0] == obs.size()
         obs2.reset()
         obs2.from_vect(vect)
-
         assert np.all(obs.dtype() == self.dtypes)
         assert np.all(obs.shape() == self.shapes)
 

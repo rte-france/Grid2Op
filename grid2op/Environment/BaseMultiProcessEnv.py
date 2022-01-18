@@ -140,7 +140,7 @@ class RemoteEnv(Process):
                 self.remote.send((self.env.observation_space, self.env.action_space))
             elif cmd == 's':
                 # perform a step
-                beg_ = time.time()
+                beg_ = time.perf_counter()
                 if data is None:
                     data = self.env.action_space()
                 else:
@@ -157,7 +157,7 @@ class RemoteEnv(Process):
 
                 if not self.return_info:
                     info = None
-                end_ = time.time()
+                end_ = time.perf_counter()
                 self._comp_time += end_ - beg_
                 self.remote.send((res_obs, reward, done, info))
             elif cmd == 'r':

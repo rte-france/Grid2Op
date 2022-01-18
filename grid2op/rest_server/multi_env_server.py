@@ -138,10 +138,10 @@ class MultiEnvServer:
 if __name__ == "__main__":
     multi_env = MultiEnvServer()
     try:
-        beg = time.time()
+        beg = time.perf_counter()
         for _ in tqdm(range(NB_step)):
             obs, reward, done, info = multi_env.step([multi_env.action_space() for _ in range(multi_env.nb_env)])
-        end = time.time()
+        end = time.perf_counter()
     finally:
         multi_env.close()
     print(f"Using {'synchronous' if SYNCH else 'asyncio'}, it took {end-beg:.2f}s to make {NB_step} steps "
