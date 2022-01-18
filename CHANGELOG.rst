@@ -3,7 +3,6 @@ Change Log
 
 [TODO]
 --------------------
-- [???] serialize the action as json store them in a "grid2op version" independant way
 - [???] example (and test) on how to corrupt the observation for the agent (without corrupting the environment)
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate

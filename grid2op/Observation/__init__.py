@@ -11,13 +11,13 @@ __all__ = [
     "_ObsEnv",
     # real export
     "CompleteObservation",
-    "NoisyObservation",
+    # "NoisyObservation",
     "BaseObservation",
     "ObservationSpace"
 ]
 
 from grid2op.Observation.completeObservation import CompleteObservation
-from grid2op.Observation.noisyObservation import NoisyObservation
+# from grid2op.Observation.noisyObservation import NoisyObservation
 from grid2op.Observation._ObsEnv import _ObsEnv
 from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Observation.observationSpace import ObservationSpace

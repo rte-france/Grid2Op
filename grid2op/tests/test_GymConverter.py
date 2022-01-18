@@ -378,7 +378,6 @@ class TestDiscreteActSpace(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             act_space = DiscreteActSpace(self.glop_env.action_space)
-        pdb.set_trace()
         assert act_space.n == 690, f"{act_space.n = } instead of {690}"
   
     def test_create_from_list(self):
