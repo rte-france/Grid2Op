@@ -50,9 +50,11 @@ Change Log
   see `param.MAX_SIMULATE_PER_STEP` and `param.MAX_SIMULATE_PER_EPISODE` (see issue https://github.com/rte-france/Grid2Op/issues/273)
 - [ADDED] a class to generate a "Chronics" readable by grid2op from numpy arrays (see https://github.com/rte-france/Grid2Op/issues/271)
 - [ADDED] an attribute `delta_time` in the observation that tells the time (in minutes) between two consecutive steps.
-- [ADDED] a method of the action space to show a list of actions to get back to the original topology (see https://github.com/rte-france/Grid2Op/issues/275)
+- [ADDED] a method of the action space to show a list of actions to get back to the original topology 
+  (see https://github.com/rte-france/Grid2Op/issues/275)
   `env.action_space.get_back_to_ref_state(obs)`
 - [ADDED] a method of the action to store it in a grid2op independant fashion (using json and dictionaries), see `act.as_serializable_dict()`
+- [ADDED] possibility to generate a gym `DiscreteActSpace` from a given list of actions (see https://github.com/rte-france/Grid2Op/issues/277)
 - [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
 - [IMRPOVED] docs (and notebooks) for the "split_train_val" https://github.com/rte-france/Grid2Op/issues/269
 - [IMRPOVED] the "split_train_val" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276
