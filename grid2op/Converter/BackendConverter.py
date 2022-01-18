@@ -46,10 +46,10 @@ class BackendConverter(Backend):
             import grid2op
             from grid2op.Converter import BackendConverter
             from grid2op.Backend import PandaPowerBackend
-            from lightsim2grid.LightSimBackend import LightSimBackend
+            from lightsim2grid import LightSimBackend
             backend = BackendConverter(source_backend_class=PandaPowerBackend,
-                                   target_backend_class=LightSimBackend,
-                                   target_backend_grid_path=None)
+                                       target_backend_class=LightSimBackend,
+                                       target_backend_grid_path=None)
 
             # and now your environment behaves as if PandaPowerBackend did the computation (same load order, same
             generator order etc.) but real computation are made with LightSimBackend.
@@ -534,5 +534,4 @@ class BackendConverter(Backend):
         # env has the powerline stored in the order of the source backend, but i need
         # to have them stored in the order of the target backend for such function
         pass
-
     # TODO update_from_obs too, maybe ?

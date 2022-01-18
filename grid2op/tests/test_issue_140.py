@@ -46,7 +46,7 @@ class Issue140Tester(unittest.TestCase):
         })
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make(env_name, param=param)
+            env = grid2op.make(env_name, param=param,)
         ts_per_chronics = 2016
 
         seed = 725

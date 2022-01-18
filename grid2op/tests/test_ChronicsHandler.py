@@ -631,7 +631,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), test=True, param=param) as env:
                 env.seed(123456)  # for reproducible tests !
                 obs = env.reset()
                 #get input data, to check they were correctly applied in
@@ -672,7 +672,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), test=True,
                       param=param) as env:
                 env.seed(0)
                 envLines = env.name_line
@@ -712,7 +712,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_2"),
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_2"), test=True,
                       param=param) as env:
                 env.seed(0)
                 # input data
@@ -739,7 +739,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"),
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"), test=True,
                       param=param) as env:
                 env.seed(0)
                 # get input data, to check they were correctly applied in
@@ -760,7 +760,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), test=True, param=param) as env:
                 env.seed(0)
                 env.set_id(0)
                 obs = env.reset()
@@ -812,7 +812,7 @@ class TestCFFWFWM(HelperTests):
                 assert np.all(maintenance_0_0 == maintenance_0_1)
 
                 # make sure i can reload the environment
-                env2 = make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
+                env2 = make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), test=True,
                             param=param,
                             data_feeding_kwargs={"gridvalueClass": GridStateFromFileWithForecasts},
                             chronics_path=chronics_outdir3)
@@ -827,7 +827,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), test=True, param=param) as env:
                 nb_scenario = 10
                 nb_maintenance = np.zeros((nb_scenario, env.n_line), dtype=dt_float)
                 nb_maintenance1 = np.zeros((nb_scenario, env.n_line), dtype=dt_float)
@@ -848,7 +848,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"),
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"), test=True, 
                       param=param) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -867,7 +867,7 @@ class TestWithCache(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"),
+            with make(os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"), test=True, 
                       param=param,
                       chronics_class=MultifolderWithCache) as env:
                 env.seed(123456)  # for reproducible tests !
@@ -892,7 +892,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"), test=True, 
                       test=True,
                       param=param) as env:
                 l_id = 11
@@ -949,7 +949,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"), test=True, 
                       test=True,
                       param=param,
                       gamerules_class=AlwaysLegal) as env:
