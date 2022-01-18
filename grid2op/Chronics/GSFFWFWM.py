@@ -62,7 +62,6 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
            self.daily_proba_per_month_maintenance is None or \
            self.line_to_maintenance is None or \
            self.max_daily_number_per_month_maintenance is None:
-            print(self.maintenance_starting_hour, self.maintenance_ending_hour, self.daily_proba_per_month_maintenance, self.line_to_maintenance, self.max_daily_number_per_month_maintenance)
             # initialize the parameters from the json
             with open(os.path.join(self.path, "maintenance_meta.json"), "r", encoding="utf-8") as f:
                 dict_ = json.load(f)
@@ -77,9 +76,6 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
             self.daily_proba_per_month_maintenance = dict_["daily_proba_per_month_maintenance"]
 
             self.max_daily_number_per_month_maintenance = dict_["max_daily_number_per_month_maintenance"]
-            print("from json")
-        else:
-            print("from memory")
         super().initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                            names_chronics_to_backend)
 

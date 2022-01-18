@@ -270,7 +270,8 @@ class ObservationSpace(SerializableObservationSpace):
         new_obj._update_env_time = self._update_env_time
         new_obj.__nb_simulate_called_this_step = self.__nb_simulate_called_this_step
         new_obj.__nb_simulate_called_this_episode = self.__nb_simulate_called_this_episode
-
+        new_obj._env_param  = copy.deepcopy(self._env_param)
+        
     def copy(self, copy_backend=False):
         """
         INTERNAL

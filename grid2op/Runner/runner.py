@@ -258,7 +258,8 @@ class Runner(object):
                  has_attention_budget=False,
                  logger=None,
                  # experimental: whether to read from local dir or generate the classes on the fly:
-                 _read_from_local_dir=False
+                 _read_from_local_dir=False,
+                 _is_test=False  # TODO not implemented !!
                  ):
         """
         Initialize the Runner.

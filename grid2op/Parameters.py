@@ -167,6 +167,14 @@ class Parameters:
         # do i take into account the storage loss in the step function
         self.ACTIVATE_STORAGE_LOSS = True
 
+        # alarms
+        self.ALARM_BEST_TIME = 12
+        self.ALARM_WINDOW_SIZE = 12
+
+        # number of simulate
+        self.MAX_SIMULATE_PER_STEP = dt_int(-1)
+        self.MAX_SIMULATE_PER_EPISODE = dt_int(-1)
+
         if parameters_path is not None:
             if os.path.isfile(parameters_path):
                 self.init_from_json(parameters_path)
@@ -174,11 +182,6 @@ class Parameters:
                 warn_msg = "Parameters: the file {} is not found. Continuing with default parameters."
                 warnings.warn(warn_msg.format(parameters_path))
 
-        self.ALARM_BEST_TIME = 12
-        self.ALARM_WINDOW_SIZE = 12
-
-        self.MAX_SIMULATE_PER_STEP = dt_int(-1)
-        self.MAX_SIMULATE_PER_EPISODE = dt_int(-1)
 
     @staticmethod
     def _isok_txt(arg):
@@ -272,20 +275,21 @@ class Parameters:
         if "ALARM_WINDOW_SIZE" in dict_:
             self.ALARM_WINDOW_SIZE = dt_int(dict_["ALARM_WINDOW_SIZE"])
 
-        authorized_keys = set(self.__dict__.keys())
-        authorized_keys = authorized_keys | {'NB_TIMESTEP_POWERFLOW_ALLOWED',
-                                             'NB_TIMESTEP_TOPOLOGY_REMODIF',
-                                             "NB_TIMESTEP_LINE_STATUS_REMODIF"}
-        ignored_keys = dict_.keys() - authorized_keys
-        if len(ignored_keys):
-            warnings.warn("Parameters: The _parameters \"{}\" used to build the Grid2Op.Parameters "
-                          "class are not recognized and will be ignored.".format(ignored_keys))
-
         if "MAX_SIMULATE_PER_STEP" in dict_:
             self.MAX_SIMULATE_PER_STEP = dt_int(dict_["MAX_SIMULATE_PER_STEP"])
 
         if "MAX_SIMULATE_PER_EPISODE" in dict_:
             self.MAX_SIMULATE_PER_EPISODE = dt_int(dict_["MAX_SIMULATE_PER_EPISODE"])
+
+        authorized_keys = set(self.__dict__.keys())
+        authorized_keys = authorized_keys | {'NB_TIMESTEP_POWERFLOW_ALLOWED',
+                                             'NB_TIMESTEP_TOPOLOGY_REMODIF',
+                                             "NB_TIMESTEP_LINE_STATUS_REMODIF"}
+
+        ignored_keys = dict_.keys() - authorized_keys
+        if len(ignored_keys):
+            warnings.warn("Parameters: The _parameters \"{}\" used to build the Grid2Op.Parameters "
+                          "class are not recognized and will be ignored.".format(ignored_keys))
 
     def to_dict(self):
         """

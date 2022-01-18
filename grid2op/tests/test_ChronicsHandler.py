@@ -893,8 +893,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"), test=True, 
-                      test=True,
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"), test=True,
                       param=param) as env:
                 l_id = 11
                 obs = env.reset()
@@ -950,8 +949,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"), test=True, 
-                      test=True,
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"), test=True,
                       param=param,
                       gamerules_class=AlwaysLegal) as env:
                 l_id = 11

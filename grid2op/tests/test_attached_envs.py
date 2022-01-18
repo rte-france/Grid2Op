@@ -49,8 +49,8 @@ class TestL2RPNNEURIPS2020_Track1(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 1332 + 4 + 24 + 2, f"obs space size is {self.env.observation_space.n}," \
-                                                                  f"should be {1332 + 4 + 24}"
+        assert self.env.observation_space.n == 1332 + 4 + 24 + 2 + 1, f"obs space size is {self.env.observation_space.n}," \
+                                                                      f"should be {1332 + 4 + 24 + 2 + 1}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -91,9 +91,9 @@ class TestL2RPNICAPS2021(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 1332 + 4 + 24 + 3 + 2, f"obs space size is " \
+        assert self.env.observation_space.n == 1332 + 4 + 24 + 3 + 2 +1, f"obs space size is " \
                                                                       f"{self.env.observation_space.n}," \
-                                                                      f"should be {1363}"
+                                                                      f"should be {1366}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -132,8 +132,8 @@ class TestL2RPNNEURIPS2020_Track2(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 4054 + 4 + 56 + 2, f"obs space size is {self.env.observation_space.n}," \
-                                                                  f"should be {4054 + 4 + 56}"
+        assert self.env.observation_space.n == 4054 + 4 + 56 + 2 + 1, f"obs space size is {self.env.observation_space.n}," \
+                                                                      f"should be {4117}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -172,8 +172,8 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 438 + 4 + 4 + 2, f"obs space size is {self.env.observation_space.n}," \
-                                                                f"should be {438 + 4 + 4}"
+        assert self.env.observation_space.n == 438 + 4 + 4 + 2 + 1, f"obs space size is {self.env.observation_space.n}," \
+                                                                    f"should be {438 + 4 + 4 + 2 + 1}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -212,8 +212,8 @@ class TestEDUC_CASE14_REDISP(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 438 + 4 + 4 + 2, f"obs space size is {self.env.observation_space.n}," \
-                                                                f"should be {438 + 4 + 4}"
+        assert self.env.observation_space.n == 438 + 4 + 4 + 2 + 1, f"obs space size is {self.env.observation_space.n}," \
+                                                                    f"should be {438 + 4 + 4 + 3}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -252,8 +252,8 @@ class TestEDUC_STORAGE(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 446 + 4 + 4 + 2, f"obs space size is {self.env.observation_space.n}," \
-                                                                f"should be {446 + 4 + 4}"
+        assert self.env.observation_space.n == 446 + 4 + 4 + 2 + 1, f"obs space size is {self.env.observation_space.n}," \
+                                                                    f"should be {446 + 4 + 4 + 3}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""

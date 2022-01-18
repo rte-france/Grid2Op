@@ -233,11 +233,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  has_attention_budget=False,
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
-                 logger=None,
+                 logger=None,  
+                 _is_test=False,  # TODO not implemented !!
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
-
+        self._is_test = _is_test
         if logger is None:
             import logging
             self.logger = logging.getLogger(__name__)

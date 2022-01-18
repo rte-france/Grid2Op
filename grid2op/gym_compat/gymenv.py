@@ -64,12 +64,16 @@ class GymEnv(gym.Env):
         self.init_env.render(mode=mode)
 
     def close(self):
-        if self.init_env is None:
+        if hasattr(self, "init_env") and self.init_env is None:
             self.init_env.close()
-        del self.init_env
+            del self.init_env
         self.init_env = None
-        self.action_space.close()
-        self.observation_space.close()
+        if hasattr(self, "action_space") and self.action_space is not None:
+            self.action_space.close()
+        self.action_space = None
+        if hasattr(self, "observation_space") and self.observation_space is not None:
+            self.observation_space.close()
+        self.observation_space = None
 
     def seed(self, seed=None):
         self.init_env.seed(seed)

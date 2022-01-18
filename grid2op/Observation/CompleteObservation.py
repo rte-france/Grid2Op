@@ -237,4 +237,4 @@ class CompleteObservation(BaseObservation):
             self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
             self.attention_budget[:] = env._attention_budget.current_budget
             
-        self.delta_time = env.delta_time_seconds / 60
+        self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.)

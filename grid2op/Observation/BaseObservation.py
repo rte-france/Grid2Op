@@ -358,7 +358,7 @@ class BaseObservation(GridObjects):
         # counter
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)
-        self.delta_time = 5.
+        self.delta_time = dt_float(5.)
 
     def _aux_copy(self, other):
         attr_simple = ["max_step", "current_step", "support_theta", "day_of_week",
@@ -822,7 +822,7 @@ class BaseObservation(GridObjects):
 
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)
-        self.delta_time = 5
+        self.delta_time = dt_float(5.)
 
     def set_game_over(self, env=None):
         """

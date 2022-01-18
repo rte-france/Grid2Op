@@ -42,7 +42,7 @@ class TestAlarmFeature(unittest.TestCase):
         self.env.close()
 
     def test_create_ok(self):
-        """test that the stuff is created with the right parameters"""
+        """TestAlarmFeature.test_create_ok test that the stuff is created with the right parameters"""
         assert self.env._has_attention_budget
         assert self.env._attention_budget is not None
         assert isinstance(self.env._attention_budget, LinearAttentionBudget)
@@ -65,9 +65,8 @@ class TestAlarmFeature(unittest.TestCase):
         with make(self.env_nm, test=True,
                   kwargs_attention_budget={"max_budget": 15,
                                            "budget_per_ts": 1,
-                                           "alarm_cost": 12,
-                                           "init_budget": 0},
-                  test=True) as env:
+                                           "init_budget": 0,
+                                           "alarm_cost": 12}) as env:
             assert env._has_attention_budget
             assert env._attention_budget is not None
             assert isinstance(env._attention_budget, LinearAttentionBudget)

@@ -932,7 +932,7 @@ class GridObjects:
         TODO doc : documentation and example
         """
         tmp = getattr(self, attr_nm)
-        if isinstance(tmp, (dt_bool, dt_int, dt_float)):
+        if isinstance(tmp, (dt_bool, dt_int, dt_float, float, int, bool)):
             if isinstance(vect, np.ndarray):
                 setattr(self, attr_nm, vect[0])
             else:
@@ -2998,6 +2998,8 @@ class GridObjects:
         It here to avoid issue with pickle.
         But the problem is that it's also used by deepcopy... So its implementation is used a lot
         """
+        # TODO this is not really a convenient use of that i'm sure !
+        # Try to see if it can be better
         cls_attr_as_dict = {}
         GridObjects._make_cls_dict_extended(type(self), cls_attr_as_dict, as_list=False)
         if hasattr(self, "__getstate__"):
@@ -3005,7 +3007,7 @@ class GridObjects:
         else:
             my_state = {}
             for k, v in self.__dict__.items():
-                my_state[k] = copy.copy(v)
+                my_state[k] = v  # copy.copy(v)
 
         my_cls = type(self)
         if hasattr(my_cls, "_INIT_GRID_CLS"):

@@ -27,7 +27,7 @@ class TestNPYChronics(unittest.TestCase):
         self.env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_ref = grid2op.make(self.env_name)
+            self.env_ref = grid2op.make(self.env_name, test=True)
 
         self.load_p = 1.0 * self.env_ref.chronics_handler.real_data.data.load_p
         self.load_q = 1.0 * self.env_ref.chronics_handler.real_data.data.load_q
@@ -43,6 +43,7 @@ class TestNPYChronics(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.env_name,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"i_start": 0,
                                                     "i_end": 18,  # excluded
                                                     "load_p": self.load_p,
@@ -75,6 +76,7 @@ class TestNPYChronics(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.env_name,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"i_start": LAG,
                                                     "i_end": END,
                                                     "load_p": self.load_p,
@@ -102,6 +104,7 @@ class TestNPYChronics(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.env_name,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"i_start": 0,
                                                     "i_end": 10,  # excluded
                                                     "load_p": self.load_p[:max_step,:],
@@ -126,6 +129,7 @@ class TestNPYChronics(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.env_name,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"load_p": self.load_p,
                                                     "load_q": self.load_q,
                                                     "prod_p": self.prod_p,
@@ -159,6 +163,7 @@ class TestNPYChronics(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.env_name,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"load_p": self.load_p,
                                                     "load_q": self.load_q,
                                                     "prod_p": self.prod_p,
@@ -185,6 +190,7 @@ class TestNPYChronics(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.env_name,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"i_start": 0,
                                                     "i_end": 10,  # excluded
                                                     "load_p": self.load_p[:max_step,:],
@@ -206,6 +212,7 @@ class TestNPYChronics(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.env_name,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"i_start": 0,
                                                     "i_end": 18,  # excluded
                                                     "load_p": self.load_p,
@@ -235,6 +242,7 @@ class TestNPYChronics(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.env_name,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"i_start": 0,
                                                     "i_end": 10,  # excluded
                                                     "load_p": self.load_p,
@@ -276,6 +284,7 @@ class TestNPYChronics(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.env_name,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"i_start": 0,
                                                     "i_end": 10,  # excluded
                                                     "load_p": self.load_p,
@@ -306,6 +315,7 @@ class TestNPYChronics(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.env_name,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"i_start": 0,
                                                     "i_end": 10,  # excluded
                                                     "load_p": self.load_p,
@@ -348,8 +358,8 @@ class TestNPYChronicsWithHazards(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_ref = grid2op.make(env_path,
-                                    test=True,
-                                    param=param)
+                                   test=True,
+                                   param=param)
         env_ref.chronics_handler.real_data.data.maintenance_starting_hour = 1
         env_ref.chronics_handler.real_data.data.maintenance_ending_hour = 2
         env_ref.seed(0) # 1 -> 108
@@ -367,6 +377,7 @@ class TestNPYChronicsWithHazards(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(env_path,
                                chronics_class=FromNPY,
+                               test=True,
                                data_feeding_kwargs={"i_start": 0,
                                                     "i_end": 10,  # excluded
                                                     "load_p": load_p,

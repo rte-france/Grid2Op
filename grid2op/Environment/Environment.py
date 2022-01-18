@@ -92,6 +92,7 @@ class Environment(BaseEnv):
                  _raw_backend_class=None,
                  _compat_glop_version=None,
                  _read_from_local_dir=True,  # TODO runner and all here !
+                 _is_test=False
                  ):
         BaseEnv.__init__(self,
                          init_grid_path=init_grid_path,
@@ -114,6 +115,7 @@ class Environment(BaseEnv):
                          attention_budget_cls=attention_budget_cls,
                          kwargs_attention_budget=kwargs_attention_budget,
                          logger=logger.getChild("grid2op_Environment") if logger is not None else None,
+                         _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
                          )
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
@@ -1264,4 +1266,5 @@ class Environment(BaseEnv):
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
         res["logger"] = self.logger
+        res["_is_test"] = self._is_test  # TODO not implemented !!
         return res
