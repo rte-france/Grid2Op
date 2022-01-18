@@ -2544,7 +2544,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     @property
     def parameters(self):
         """
-        return a deepcopy of the parameters used by the environment
+        Return a deepcopy of the parameters used by the environment
 
         It is a deepcopy, so modifying it will have absolutely no effect.
 

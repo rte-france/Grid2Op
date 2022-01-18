@@ -27,7 +27,7 @@ class FromNPY(GridValue):
     It is then much more flexible in its usage than the defaults chronics. But it is also much more error prone. For example, it does not check
     the order of the loads / generators that you provide.
 
-    .. warnings::
+    .. warning::
         It assume the order of the elements are consistent with the powergrid backend ! It will not attempt to reorder the columns of the dataset
 
     .. note::
@@ -96,6 +96,14 @@ class FromNPY(GridValue):
         env.chronics_handler.real_data.change_chronics(new_load_p, new_load_q, new_prod_p, new_prod_v)
         obs = env.reset()  # mandatory if you want the change to be taken into account
         # obs.load_p is new_load_p[5]  (or rather load_p[env.chronics_handler.real_data._i_start])
+
+    .. seealso::
+        More usage examples in:
+
+        - :func:`FromNPY.change_chronics`
+        - :func:`FromNPY.change_forecasts`
+        - :func:`FromNPY.change_i_start`
+        - :func:`FromNPY.change_i_end`
 
     Attributes
     ----------
@@ -531,6 +539,36 @@ class FromNPY(GridValue):
 
             It has only an affect after "env.reset()" is called.
 
+        Examples
+        --------
+        
+        .. code-block:: python
+        
+            import grid2op
+            from grid2op.Chronics import FromNPY
+            # create an environment as in this class description (in short: )
+            
+            load_p = ...  # find somehow a suitable "load_p" array: rows represent time, columns the individual load
+            load_q = ...
+            prod_p = ...
+            prod_v = ...
+
+            # now create an environment with these chronics:
+            env = grid2op.make(env_name,
+                               chronics_class=FromNPY,
+                               data_feeding_kwargs={"load_p": load_p,
+                                                    "load_q": load_q,
+                                                    "prod_p": prod_p,
+                                                    "prod_v": prod_v}
+                               )
+            obs = env.reset()  # obs.load_p is load_p[0] (or rather load_p[env.chronics_handler.real_data._i_start])
+            
+            env.chronics_handler.real_data.change_i_start(10)
+            obs = env.reset()  # obs.load_p is load_p[10] 
+            # indeed `env.chronics_handler.real_data._i_start` has been changed to 10.
+
+            # to undo all changes (and use the defaults) you can:
+            # env.chronics_handler.real_data.change_i_start(None)
         """
         if new_i_start is not None:
             self.__new_istart = int(new_i_start)
@@ -546,6 +584,37 @@ class FromNPY(GridValue):
 
             It has only an affect after "env.reset()" is called.
 
+        Examples
+        --------
+        
+        .. code-block:: python
+        
+            import grid2op
+            from grid2op.Chronics import FromNPY
+            # create an environment as in this class description (in short: )
+            
+            load_p = ...  # find somehow a suitable "load_p" array: rows represent time, columns the individual load
+            load_q = ...
+            prod_p = ...
+            prod_v = ...
+
+            # now create an environment with these chronics:
+            env = grid2op.make(env_name,
+                               chronics_class=FromNPY,
+                               data_feeding_kwargs={"load_p": load_p,
+                                                    "load_q": load_q,
+                                                    "prod_p": prod_p,
+                                                    "prod_v": prod_v}
+                               )
+            obs = env.reset()
+            
+            env.chronics_handler.real_data.change_i_end(150)
+            obs = env.reset()
+            # indeed `env.chronics_handler.real_data._i_end` has been changed to 10.
+            # scenario lenght will be at best 150 !
+
+            # to undo all changes (and use the defaults) you can:
+            # env.chronics_handler.real_data.change_i_end(None)
         """
         if new_i_end is not None:
             self.__new_iend = int(new_i_end)

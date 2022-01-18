@@ -54,7 +54,9 @@ Change Log
   `env.action_space.get_back_to_ref_state(obs)`
 - [ADDED] a method of the action to store it in a grid2op independant fashion (using json and dictionaries), see `act.as_serializable_dict()`
 - [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
-
+- [IMRPOVED] docs (and notebooks) for the "split_train_val" https://github.com/rte-france/Grid2Op/issues/269
+- [IMRPOVED] the "split_train_val" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276
+  
 [1.6.4] - 2021-11-08
 ---------------------
 - [BREAKING] the name of the python files for the "agent" module are now lowercase (complient with PEP). If you
