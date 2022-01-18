@@ -165,10 +165,10 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                 cp.enable()
             import pandapower as pp
             nb_powerflow = 5000
-            beg_ = time.time()
+            beg_ = time.perf_counter()
             for i in range(nb_powerflow):
                 pp.runpp(self.backend._grid)
-            end_ = time.time()
+            end_ = time.perf_counter()
             print("Time to compute {} powerflows: {:.2f}".format(nb_powerflow, end_-beg_))
             if PROFILE_CODE:
                 cp.disable()
@@ -228,14 +228,14 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         if PROFILE_CODE:
             cp = cProfile.Profile()
             cp.enable()
-        beg_ = time.time()
+        beg_ = time.perf_counter()
         cum_reward = dt_float(0.0)
         do_nothing = self.env.action_space({})
         while not done:
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
             cum_reward += reward
             i += 1
-        end_ = time.time()
+        end_ = time.perf_counter()
         if DEBUG:
             msg_ = "\nEnv: {:.2f}s\n\t - apply act {:.2f}s\n\t - run pf: {:.2f}s\n" \
                    "\t - env update + observation: {:.2f}s\nTotal time: {:.2f}\nCumulative reward: {:1f}"

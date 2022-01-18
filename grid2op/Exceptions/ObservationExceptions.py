@@ -20,3 +20,28 @@ class NoForecastAvailable(Grid2OpException):
     In that case it is not possible to use the :func:`grid2op.Observation.BaseObservation.forecasts` method.
     """
     pass
+
+class SimulateUsedTooMuch(Grid2OpException):
+    pass
+
+class SimulateUsedTooMuchThisStep(SimulateUsedTooMuch):
+    """
+    This exception is raised by the :class:`grid2op.Observation.BaseObservation` when using "obs.simulate(...)". 
+
+    It is raised when the total number of calls to `obs.simulate(...)` exceeds the maximum number of allowed 
+    calls to it, for a given step.
+
+    You can do more "obs.simulate" if you call "env.step".
+    """
+    pass
+
+class SimulateUsedTooMuchThisEpisode(SimulateUsedTooMuch):
+    """
+    This exception is raised by the :class:`grid2op.Observation.BaseObservation` when using "obs.simulate(...)". 
+
+    It is raised when the total number of calls to `obs.simulate(...)` exceeds the maximum number of allowed 
+    calls to it for this episode.
+
+    The only way to use "obs.simulate(...)" again is to call "env.reset(...)"
+    """
+    pass

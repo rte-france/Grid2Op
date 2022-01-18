@@ -3,10 +3,12 @@ Change Log
 
 [TODO]
 --------------------
+- [???] serialize the action as json store them in a "grid2op version" independant way
+- [???] example (and test) on how to corrupt the observation for the agent (without corrupting the environment)
+- [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
-- [???] add the storage power in the backend.get_action_to_set()"
-- [???] add a "_cst_" or something in the `const` member of all the class
+- [???] add a "_cst_" or something in the `const` member of all the classes
 - [???] in deepcopy of env, make tests that the "pointers" are properly propagated in the attributes (for example
   `envcpy._game_rules.legal_action` should not be copied when building `envcpy._helper_action_env`)
 - [???] add multi agent
@@ -29,12 +31,34 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.6.5] - 2022-xx-yy
+---------------------
+- [BREAKING] the name of the python files for the "CHronics" module are now lowercase (complient with PEP). If you
+  did things like `from grid2op.Chronics.ChangeNothing import ChangeNothing` you need to change it like
+  `from grid2op.Chronics.changeNothing import ChangeNothing` or even better, and this is the preferred way to include
+  them: `from grid2op.Chronics import ChangeNothing`. It should not affect lots of code (more refactoring of the kind
+  are to be expected in following versions).
+- [FIXED] an issue when copying the environment with the opponent (see issue https://github.com/rte-france/Grid2Op/issues/274)
+- [FIXED] a bug leading to the wrong "backend.get_action_to_set()" when there were storage units on the grid. 
+- [FIXED] a bug in the "BackendConverter" when there are storage  on the grid
+- [ADDED] possibility to "env.set_id" by giving only the folder of the chronics and not the whole path.
+- [ADDED] function "env.chronics_handler.available_chronics()" to return the list of available chronics
+  for a given environment
+- [ADDED] possibility, through the `Parameters` class, to limit the number of possible calls to `obs.simulate(...)` 
+  see `param.MAX_SIMULATE_PER_STEP` and `param.MAX_SIMULATE_PER_EPISODE` (see issue https://github.com/rte-france/Grid2Op/issues/273)
+- [ADDED] a class to generate a "Chronics" readable by grid2op from numpy arrays (see https://github.com/rte-france/Grid2Op/issues/271)
+- [ADDED] an attribute `delta_time` in the observation that tells the time (in minutes) between two consecutive steps.
+- [ADDED] a method of the action space to show a list of actions to get back to the original topology (see https://github.com/rte-france/Grid2Op/issues/275)
+  `env.action_space.get_back_to_ref_state(obs)`
+- [ADDED] a method of the action to store it in a grid2op independant fashion (using json and dictionaries), see `act.as_serializable_dict()`
+- [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
+
 [1.6.4] - 2021-11-08
 ---------------------
-- [BREAKING] the name of the python file for the "agent" module are now lowercase (complient with PEP). If you
+- [BREAKING] the name of the python files for the "agent" module are now lowercase (complient with PEP). If you
   did things like `from grid2op.Agent.BaseAgent import BaseAgent` you need to change it like
   `from grid2op.Agent.baseAgent import BaseAgent` or even better, and this is the preferred way to include
-  them: `from grid2op.Agent import BaseAgent` It should not affect lots of code.
+  them: `from grid2op.Agent import BaseAgent`. It should not affect lots of code.
 - [FIXED] a bug where the shunt had a voltage when disconnected using pandapower backend
 - [FIXED] a bug preventing to print the action space if some "part" of it had no size (empty action space)
 - [FIXED] a bug preventing to copy an action properly (especially for the alarm)

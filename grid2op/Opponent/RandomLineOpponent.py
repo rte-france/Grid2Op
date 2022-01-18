@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import warnings
 import numpy as np
+import copy
 
 from grid2op.Opponent import BaseOpponent
 from grid2op.Exceptions import OpponentError
@@ -123,3 +124,11 @@ class RandomLineOpponent(BaseOpponent):
         # Pick a line among the connected lines
         attack = self.space_prng.choice(self._attacks[status])
         return attack, None
+
+    def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
+        super()._custom_deepcopy_for_copy(new_obj, dict_)
+        if dict_ is None:
+            dict_ = {}
+
+        new_obj._attacks = copy.deepcopy(self._attacks)
+        new_obj._lines_ids = copy.deepcopy(self._lines_ids)

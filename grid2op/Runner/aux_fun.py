@@ -153,7 +153,7 @@ def _aux_run_one_episode(env,
                           other_rewards=[])
     episode.set_parameters(env)
 
-    beg_ = time.time()
+    beg_ = time.perf_counter()
 
     reward = float(env.reward_range[0])
     done = False
@@ -161,9 +161,9 @@ def _aux_run_one_episode(env,
     next_pbar = [False]
     with _aux_make_progress_bar(pbar, nb_timestep_max, next_pbar) as pbar_:
         while not done:
-            beg__ = time.time()
+            beg__ = time.perf_counter()
             act = agent.act(obs, reward, done)
-            end__ = time.time()
+            end__ = time.perf_counter()
             time_act += end__ - beg__
 
             obs, reward, done, info = env.step(act)  # should load the first time stamp
@@ -179,7 +179,7 @@ def _aux_run_one_episode(env,
                                act, obs, opp_attack,
                                info)
 
-        end_ = time.time()
+        end_ = time.perf_counter()
     episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
 
     li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",

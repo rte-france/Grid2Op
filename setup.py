@@ -73,7 +73,8 @@ pkgs = {
             "flask",
             "flask_wtf",
             "ujson"
-        ]
+        ],
+        "plot": ["imageio"]
     }
 }
 

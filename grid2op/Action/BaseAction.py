@@ -479,6 +479,75 @@ class BaseAction(GridObjects):
 
         return res
 
+    def as_serializable_dict(self):
+        """
+        This method returns an action as a dictionnary, that can be serialized using the "json" module.
+
+        It can be used to store the action into a grid2op indepependant format (the default action serialization, for speed, writes actions to numpy array.
+        The size of these arrays can change depending on grid2op versions, especially if some different types of actions are implemented).
+
+        Once you have these dictionnary, you can use them to build back the action from the action space.
+
+        Examples
+        ---------
+
+        It can be used like:
+
+        .. code-block:: python
+
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"  # or anything else
+            env = grid2op.make(env_name)
+
+            act = env.action_space(...)
+
+            dict_ = act.as_serializable_dict()  # you can save this dict with the json library
+            act2 = env.action_space(dict_)
+            act == act2
+
+        """
+        res = {}
+        # bool elements
+        if self._modif_alarm:
+            res["raise_alarm"] = [int(id_) for id_, val in enumerate(self._raise_alarm) if val ]
+        if self._modif_change_bus:
+            res["change_bus"] = [int(id_) for id_, val in enumerate(self._change_bus_vect) if val ]
+        if self._modif_change_status:
+            res["change_line_status"] = [int(id_) for id_, val in enumerate(self._switch_line_status) if val ]
+        # int elements
+        if self._modif_set_bus:
+            res["set_bus"] = [(int(id_), int(val)) for id_, val in enumerate(self._set_topo_vect) if val != 0 ]
+        if self._modif_set_status:
+            res["set_line_status"] = [(int(id_), int(val)) for id_, val in enumerate(self._set_line_status) if val != 0 ]
+        # float elements
+        if self._modif_redispatch:
+            res["redispatch"] = [(int(id_), float(val)) for id_, val in enumerate(self._redispatch) if val != 0.]
+        if self._modif_storage:
+            res["set_storage"] = [(int(id_), float(val)) for id_, val in enumerate(self._storage_power) if val != 0.]
+        if self._modif_curtailment:
+            res["curtail"] = [(int(id_), float(val)) for id_, val in enumerate(self._curtail) if val != -1]
+
+        # more advanced options
+        if self._modif_inj:
+            res["injection"] = {}
+            for ky in ["prod_p", "prod_v", "load_p", "load_q"]:
+                if ky in self._dict_inj:
+                    res["injection"][ky] = [float(val) for val in self._dict_inj[ky]]
+            if not res["injection"]:
+                del res["injection"]
+
+        if type(self).shunts_data_available:
+                res["shunt"] = {}
+                if np.any(np.isfinite(self.shunt_p)):
+                    res["shunt"]["shunt_p"] = [(int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_p)]
+                if np.any(np.isfinite(self.shunt_q)):
+                    res["shunt"]["shunt_q"] = [(int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_q)]
+                if np.any(self.shunt_bus != 0):
+                    res["shunt"]["shunt_bus"] = [(int(sh_id), int(val)) for sh_id, val in enumerate(self.shunt_bus) if val != 0]
+                if not res["shunt"]:
+                    del res["shunt"]
+        return res
+
     @classmethod
     def _add_shunt_data(cls):
         if cls.shunt_added is False and cls.shunts_data_available:
@@ -1080,7 +1149,7 @@ class BaseAction(GridObjects):
         me_change[other_set != 0 & me_change] = False
 
         # i set, but the other change, set to the opposite
-        inverted_set = other_change & (me_set != 0)
+        inverted_set = other_change & (me_set > 0)
         # so change +1 becomes +2 and +2 becomes +1
         me_set[inverted_set] -= 1  # 1 becomes 0 and 2 becomes 1
         me_set[inverted_set] *= -1  # 1 is 0 and 2 becomes -1
@@ -1244,7 +1313,6 @@ class BaseAction(GridObjects):
                     warn = "The key {} is not recognized by BaseAction when trying to modify the shunt.".format(k)
                     warn += " Recognized keys are {}".format(sorted(key_shunt_reco))
                     warnings.warn(warn)
-
             for key_n, vect_self in zip(["shunt_bus", "shunt_p", "shunt_q", "set_bus"],
                                         [self.shunt_bus, self.shunt_p, self.shunt_q, self.shunt_bus]):
                 if key_n in ddict_:
@@ -1261,7 +1329,6 @@ class BaseAction(GridObjects):
                                 raise AmbiguousAction("Invalid shunt id {}. Shunt id should be less than the number "
                                                       "of shunt {}".format(sh_id, self.n_shunt))
                             vect_self[sh_id] = new_bus
-
                     elif tmp is None:
                         pass
                     else:
@@ -1277,6 +1344,7 @@ class BaseAction(GridObjects):
                 for k in tmp_d:
                     if k in self.attr_list_set:
                         self._dict_inj[k] = np.array(tmp_d[k]).astype(dt_float)
+                        # TODO check the size based on the input data !
                     else:
                         warn = "The key {} is not recognized by BaseAction when trying to modify the injections." \
                                "".format(k)
@@ -3919,7 +3987,7 @@ class BaseAction(GridObjects):
         Examples
         --------
 
-        To retrieve the impact of the action on the storage unit, you can do:
+        To retrieve the impact of the action on the generator unit, you can do:
 
         .. code-block:: python
 
@@ -3949,7 +4017,7 @@ class BaseAction(GridObjects):
             # method 3: provide a list of the units you want to modify
             act.redispatch = [(1, 2.5), (0, -1.3)]
 
-            # method 4: change the storage unit by their name with a dictionary
+            # method 4: change the generators by their name with a dictionary
             act.redispatch = {"gen_1_0": 2.0}
 
         .. note:: The "rule of thumb" to perform redispatching is to provide always

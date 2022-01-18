@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Chronics.GridStateFromFileWithForecasts import GridStateFromFileWithForecasts
+from grid2op.Chronics.gridStateFromFileWithForecasts import GridStateFromFileWithForecasts
 
 
 class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecasts):
@@ -41,6 +41,14 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
 
     """
 
+    def __init__(self, path, sep=";", time_interval=timedelta(minutes=5), max_iter=-1, chunk_size=None):
+        super().__init__(path=path, sep=sep, time_interval=time_interval, max_iter=max_iter, chunk_size=chunk_size)
+        self.maintenance_starting_hour = None
+        self.maintenance_ending_hour = None
+        self.daily_proba_per_month_maintenance = None
+        self.max_daily_number_per_month_maintenance = None
+        self.line_to_maintenance = None
+
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
 
@@ -49,27 +57,38 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         # properties of maintenance
         # self.maintenance_duration= 8*(self.time_interval.total_seconds()*60*60)#8h, 9am to 5pm
         # 8h furation, 9am to 5pm
-        with open(os.path.join(self.path, "maintenance_meta.json"), "r", encoding="utf-8") as f:
-            dict_ = json.load(f)
+        if self.maintenance_starting_hour is None or \
+           self.maintenance_ending_hour is None or \
+           self.daily_proba_per_month_maintenance is None or \
+           self.line_to_maintenance is None or \
+           self.max_daily_number_per_month_maintenance is None:
+            print(self.maintenance_starting_hour, self.maintenance_ending_hour, self.daily_proba_per_month_maintenance, self.line_to_maintenance, self.max_daily_number_per_month_maintenance)
+            # initialize the parameters from the json
+            with open(os.path.join(self.path, "maintenance_meta.json"), "r", encoding="utf-8") as f:
+                dict_ = json.load(f)
 
-        self.maintenance_starting_hour = dict_["maintenance_starting_hour"]
-        # self.maintenance_duration= 8*(self.time_interval.total_seconds()*60*60) # not used for now, could be used later
-        self.maintenance_ending_hour = dict_["maintenance_ending_hour"]
+            self.maintenance_starting_hour = dict_["maintenance_starting_hour"]
+            # self.maintenance_duration= 8*(self.time_interval.total_seconds()*60*60) # not used for now, could be used later
+            self.maintenance_ending_hour = dict_["maintenance_ending_hour"]
 
-        self.line_to_maintenance = set(dict_["line_to_maintenance"])
+            self.line_to_maintenance = set(dict_["line_to_maintenance"])
 
-        # frequencies of maintenance
-        self.daily_proba_per_month_maintenance = dict_["daily_proba_per_month_maintenance"]
+            # frequencies of maintenance
+            self.daily_proba_per_month_maintenance = dict_["daily_proba_per_month_maintenance"]
 
-        self.max_daily_number_per_month_maintenance = dict_["max_daily_number_per_month_maintenance"]
-
+            self.max_daily_number_per_month_maintenance = dict_["max_daily_number_per_month_maintenance"]
+            print("from json")
+        else:
+            print("from memory")
         super().initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                            names_chronics_to_backend)
 
     def _init_attrs(self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None):
         super()._init_attrs(load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=None)
         # ignore the maitenance but keep hazards
+        self._sample_maintenance()
 
+    def _sample_maintenance(self):
         ########
         # new method to introduce generated maintenance
         self.maintenance = self._generate_maintenance()  #

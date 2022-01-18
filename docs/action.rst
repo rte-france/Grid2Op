@@ -359,6 +359,8 @@ An action can be incorrect because of two main factors:
 
 Ambiguous or Illegal, the action will be replaced by a "do nothing" without any other incidents on the game.
 
+.. _action_powerline_status:
+
 Note on powerline status
 ------------------------
 As of grid2op version 1.2.0, we attempted to clean and rationalize the API concerning the change of

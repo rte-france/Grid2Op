@@ -764,7 +764,6 @@ class Environment(BaseEnv):
 
         # reset the opponent
         self._oppSpace.reset()
-
         # reset, if need, reward and other rewards
         self._reward_helper.reset(self)
         for extra_reward in self.other_rewards.values():

@@ -14,7 +14,7 @@ import numpy as np
 from abc import abstractmethod
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Exceptions import *
+from grid2op.Exceptions import Grid2OpException, NoForecastAvailable, EnvError
 from grid2op.Space import GridObjects
 from scipy.sparse import csr_matrix
 
@@ -195,6 +195,9 @@ class BaseObservation(GridObjects):
     max_step: ``int``
         Maximum number of steps possible for this episode
 
+    delta_time: ``float``
+        Time (in minutes) between the last step and the current step (usually constant in an episode, even in an environment)
+
     is_alarm_illegal: ``bool``
         whether the last alarm has been illegal (due to budget constraint). It can only be ``True`` if an alarm
         was raised by the agent on the previous step. Otherwise it is always ``False``
@@ -355,10 +358,11 @@ class BaseObservation(GridObjects):
         # counter
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)
+        self.delta_time = 5.
 
     def _aux_copy(self, other):
         attr_simple = ["max_step", "current_step", "support_theta", "day_of_week",
-                       "minute_of_hour", "hour_of_day", "day", "month", "year"]
+                       "minute_of_hour", "hour_of_day", "day", "month", "year", "delta_time"]
 
         attr_vect = ["storage_theta", "gen_theta", "load_theta", "theta_ex", "theta_or", "curtailment_limit",
                      "curtailment", "gen_p_before_curtail", "_thermal_limit", "is_alarm_illegal",
@@ -711,6 +715,19 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
+        if cls.glop_version < "1.6.5" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # "current_step", "max_step" were added in grid2Op 1.6.5
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
+            for el in ["delta_time"]:
+                try:
+                    cls.attr_list_vect.remove(el)
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
+                    pass
+            cls.attr_list_set = set(cls.attr_list_vect)
+
     def reset(self):
         """
         INTERNAL
@@ -805,6 +822,7 @@ class BaseObservation(GridObjects):
 
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)
+        self.delta_time = 5
 
     def set_game_over(self, env=None):
         """
@@ -1015,7 +1033,7 @@ class BaseObservation(GridObjects):
         """
         same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
-            raise RuntimeError("Cannot compare to observation not coming from the same powergrid.")
+            raise Grid2OpException("Cannot compare to observation not coming from the same powergrid.")
         tmp_obs_env = self._obs_env
         self._obs_env = None  # keep aside the backend
         res = copy.deepcopy(self)

@@ -19,7 +19,7 @@ import numpy as np
 
 from grid2op.Action import BaseAction
 from grid2op.Exceptions import AmbiguousAction, IncorrectNumberOfElements
-from grid2op.Chronics.ReadPypowNetData import ReadPypowNetData  # imported by another module
+from grid2op.Chronics.readPypowNetData import ReadPypowNetData  # imported by another module
 
 file_dir = Path(__file__).parent.absolute()
 grid2op_root = file_dir.parent.absolute()

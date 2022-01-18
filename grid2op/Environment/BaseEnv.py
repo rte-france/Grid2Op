@@ -425,11 +425,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._is_alarm_used_in_reward = False
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
 
-    def _custom_deepcopy_for_copy(self, new_obj):
+    def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
         if self.__closed:
             raise RuntimeError("Impossible to make a copy of a closed environment !")
             
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
+        if dict_ is None:
+            dict_ = {}
 
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
         new_obj._DEBUG = self._DEBUG
@@ -541,6 +543,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._observationClass = self._observationClass
         new_obj._legalActClass = self._legalActClass
         new_obj._observation_space = self._observation_space.copy(copy_backend=True)
+        new_obj._observation_space._legal_action = new_obj._game_rules.legal_action  # TODO this does not respect SOLID principles at all !
         new_obj._names_chronics_to_backend = self._names_chronics_to_backend
         new_obj._reward_helper = copy.deepcopy(self._reward_helper)
 
@@ -566,7 +569,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # init the opponent
         new_obj._opponent = new_obj._opponent_class.__new__(new_obj._opponent_class)
-        self._opponent._custom_deepcopy_for_copy(new_obj._opponent)
+        self._opponent._custom_deepcopy_for_copy(new_obj._opponent, {"partial_env": new_obj, **new_obj._kwargs_opponent})
 
         new_obj._oppSpace = OpponentSpace(compute_budget=new_obj._compute_opp_budget,
                                           init_budget=new_obj._opponent_init_budget,
@@ -575,8 +578,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                           budget_per_timestep=new_obj._opponent_budget_per_ts,
                                           opponent=new_obj._opponent
                                           )
-        new_obj._oppSpace.init_opponent(partial_env=new_obj, **new_obj._kwargs_opponent)
-        new_obj._oppSpace.reset()
+        state_me, state_opp = self._oppSpace._get_state()
+        new_obj._oppSpace._set_state(state_me)
 
         # voltage
         new_obj._voltagecontrolerClass = self._voltagecontrolerClass
@@ -1019,8 +1022,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # example from gym
         # self.np_random, seed = seeding.np_random(seed)
         # inspiration from @ https://github.com/openai/gym/tree/master/gym/utils
-
-        super().seed(seed)
+        seed_init = seed
+        super().seed(seed_init)
         seed_chron = None
         seed_obs = None
         seed_action_space = None
@@ -1046,7 +1049,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._opponent is not None:
             seed = self.space_prng.randint(max_int)
             seed_opponent = self._opponent.seed(seed)
-        return seed, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent
+        return seed_init, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent
 
     def deactivate_forecast(self):
         """
@@ -1941,9 +1944,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.nb_time_step += 1
         self._disc_lines[:] = -1
 
-        beg_step = time.time()
+        beg_step = time.perf_counter()
         try:
-            beg_ = time.time()
+            beg_ = time.perf_counter()
 
             is_legal, reason = self._game_rules(action=action, env=self)
             if not is_legal:
@@ -2030,7 +2033,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 gen_up_before = self._gen_activeprod_t > 0.
 
                 # compute the redispatching and the new productions active setpoint
-                beg__redisp = time.time()
+                beg__redisp = time.perf_counter()
                 already_modified_gen = self._get_already_modified_gen(action)
                 valid_disp, except_tmp, info_ = self._prepare_redisp(action, new_p, already_modified_gen)
 
@@ -2070,7 +2073,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     is_illegal_reco = True
                     action = self._action_space({})
                     except_.append(except_tmp)
-                self._time_redisp += time.time() - beg__redisp
+                self._time_redisp += time.perf_counter() - beg__redisp
 
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
@@ -2092,7 +2095,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # have the opponent here
             # TODO code the opponent part here and split more the timings! here "opponent time" is
             # TODO included in time_apply_act
-            tick = time.time()
+            tick = time.perf_counter()
             attack, attack_duration = self._oppSpace.attack(observation=self.current_obs,
                                                             agent_action=action,
                                                             env_action=self._env_modification)
@@ -2106,18 +2109,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._times_before_topology_actionable[subs_attacked] = \
                                 np.maximum(attack_duration, self._times_before_topology_actionable[subs_attacked])
                 self._backend_action += attack
-            self._time_opponent += time.time() - tick
+            self._time_opponent += time.perf_counter() - tick
             self.backend.apply_action(self._backend_action)
 
-            self._time_apply_act += time.time() - beg_
+            self._time_apply_act += time.perf_counter() - beg_
             try:
                 # compute the next _grid state
-                beg_pf = time.time()
+                beg_pf = time.perf_counter()
                 disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self._env_dc)
                 self._disc_lines[:] = disc_lines
-                self._time_powerflow += time.time() - beg_pf
+                self._time_powerflow += time.perf_counter() - beg_pf
                 if conv_ is None:
-                    beg_res = time.time()
+                    beg_res = time.perf_counter()
                     self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                     overflow_lines = self.backend.get_line_overflow()
                     # save the current topology as "last" topology (for connected powerlines)
@@ -2165,7 +2168,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
                     # TODO is non zero and disconnected, this should be ok.
 
-                    self._time_extract_obs += time.time() - beg_res
+                    self._time_extract_obs += time.perf_counter() - beg_res
 
                     has_error = False
             except Grid2OpException as exc_:
@@ -2176,7 +2179,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         except StopIteration:
             # episode is over
             is_done = True
-        end_step = time.time()
+        end_step = time.perf_counter()
         self._time_step += end_step - beg_step
         self._backend_action.reset()
         if conv_ is not None:
@@ -2317,42 +2320,43 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise EnvError("This environment is closed already, you cannot close it a second time.")
 
         # todo there might be some side effect
-        if self.viewer is not None:
+        if hasattr(self, "viewer") and self.viewer is not None:
             self.viewer = None
             self.viewer_fig = None
 
-        if self.backend is not None:
+        if hasattr(self, "backend") and self.backend is not None:
             self.backend.close()
-        del self.backend
+            del self.backend
         self.backend = None
 
-        if self.observation_space is not None:
+        if hasattr(self, "observation_space") and self.observation_space is not None:
             # do not forget to close the backend of the observation (used for simulate)
             self.observation_space.close()
         
-        if self._voltage_controler is not None:
+        if hasattr(self, "_voltage_controler") and self._voltage_controler is not None:
             # in case there is a backend in the voltage controler
             self._voltage_controler.close()
         
-        if self._oppSpace is not None:
+        if hasattr(self, "_oppSpace") and self._oppSpace is not None:
             # in case there is a backend in the opponent space
             self._oppSpace.close()
 
-        if self._helper_action_env is not None:
+        if hasattr(self, "_helper_action_env") and self._helper_action_env is not None:
             # close the action helper
             self._helper_action_env.close()
 
-        if self.action_space is not None:
+        if hasattr(self, "action_space") and self.action_space is not None:
             # close the action space if needed
             self.action_space.close()
 
-        if self._reward_helper is not None:
+        if hasattr(self, "_reward_helper") and self._reward_helper is not None:
             # close the reward if needed
             self._reward_helper.close()
 
-        for el, rew in self.other_rewards.items():
-            # close the "other rewards"
-            rew.close()
+        if hasattr(self, "other_rewards"):
+            for el, rew in self.other_rewards.items():
+                # close the "other rewards"
+                rew.close()
 
         self.backend = None
         self.__is_init = False
@@ -2383,7 +2387,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         "_storage_power", "_limit_curtailment", "_gen_before_curtailment", "_sum_curtailment_mw", "_sum_curtailment_mw_prev",
                         "_has_attention_budget", "_attention_budget", "_attention_budget_cls", "_is_alarm_illegal",
                         "_is_alarm_used_in_reward", "_kwargs_attention_budget"]:
-            delattr(self, attr_nm)
+            if hasattr(self, attr_nm):
+                delattr(self, attr_nm)
             setattr(self, attr_nm, None)
 
     def attach_layout(self, grid_layout):

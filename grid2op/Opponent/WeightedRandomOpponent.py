@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import warnings
 import numpy as np
+import copy
 
 from grid2op.Opponent import BaseOpponent
 from grid2op.Exceptions import OpponentError
@@ -171,3 +172,14 @@ class WeightedRandomOpponent(BaseOpponent):
             return None, 0
         attack = self.space_prng.choice(available_attacks, p=rho / rho_sum)
         return attack, None
+
+    def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
+        super()._custom_deepcopy_for_copy(new_obj, dict_)
+        if dict_ is None:
+            dict_ = {}
+
+        new_obj._attacks = copy.deepcopy(self._attacks)
+        new_obj._lines_ids = copy.deepcopy(self._lines_ids)
+        new_obj._next_attack_time = copy.deepcopy(self._next_attack_time)
+        new_obj._attack_period = copy.deepcopy(self._attack_period)
+        new_obj._rho_normalization = copy.deepcopy(self._rho_normalization)

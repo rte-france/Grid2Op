@@ -431,13 +431,13 @@ class PlotPyGame(BasePlot):
         # The game is not paused anymore (or never has been), I can render the next surface
 
         if self.time_last is not None and self._deactivate_display is False:
-            tmp = time.time()  # in second
+            tmp = time.perf_counter()  # in second
             if tmp - self.time_last < self.timestep_duration_seconds:
                 nb_sec_wait = int(1000 * (self.timestep_duration_seconds - (tmp - self.time_last)))
                 pygame.time.wait(nb_sec_wait)  # it's in ms
-            self.time_last = time.time()
+            self.time_last = time.perf_counter()
         else:
-            self.time_last = time.time()
+            self.time_last = time.perf_counter()
         self.screen.fill(self.background_color)
 
         if done is not None:
