@@ -41,6 +41,8 @@ Change Log
 - [FIXED] an issue when copying the environment with the opponent (see issue https://github.com/rte-france/Grid2Op/issues/274)
 - [FIXED] a bug leading to the wrong "backend.get_action_to_set()" when there were storage units on the grid. 
 - [FIXED] a bug in the "BackendConverter" when there are storage  on the grid
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/265
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/261
 - [ADDED] possibility to "env.set_id" by giving only the folder of the chronics and not the whole path.
 - [ADDED] function "env.chronics_handler.available_chronics()" to return the list of available chronics
   for a given environment
