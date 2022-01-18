@@ -105,7 +105,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                       "storage_loss": [],
                       'storage_charging_efficiency': [],
                       'storage_discharging_efficiency': [],
-                      '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation',
+                      '_init_subtype': 'grid2op.Observation.completeObservation.CompleteObservation',
                       "dim_alarms": 0,
                       "alarms_area_names": [],
                       "alarms_lines_area": {},
