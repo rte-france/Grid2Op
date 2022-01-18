@@ -157,9 +157,6 @@ class Environment(BaseEnv):
         """
 
         if isinstance(rewardClass, type):
-            # raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should be a type (a class) "
-            #                        "and not an object (an instance of a class). "
-            #                        "It is currently \"{}\"".format(type(rewardClass)))
             if not issubclass(rewardClass, BaseReward):
                 raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
                                        "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
@@ -236,14 +233,13 @@ class Environment(BaseEnv):
                     type(actionClass)))
 
         if not isinstance(observationClass, type):
-            raise Grid2OpException("Parameter \"actionClass\" used to build the Environment should be a type (a class) "
-                                   "and not an object (an instance of a class). "
-                                   "It is currently \"{}\"".format(type(legalActClass)))
+            raise Grid2OpException(f"Parameter \"observationClass\" used to build the Environment should be a type (a class) "
+                                   f"and not an object (an instance of a class). "
+                                   f"It is currently : {observationClass} (type \"{type(observationClass)}\")")
         if not issubclass(observationClass, BaseObservation):
             raise Grid2OpException(
-                "Parameter \"observationClass\" used to build the Environment should derived form the "
-                "grid2op.BaseObservation class, type provided is \"{}\"".format(
-                    type(observationClass)))
+                f"Parameter \"observationClass\" used to build the Environment should derived form the "
+                f"grid2op.BaseObservation class, type provided is \"{type(observationClass)}\"")
 
         # action affecting the grid that will be made by the agent
         bk_type = type(self.backend)  # be careful here: you need to initialize from the class, and not from the object

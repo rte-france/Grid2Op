@@ -110,6 +110,16 @@ class DiscreteActSpace(Discrete):
         gym_env.observation_space = DiscreteActSpace(env.observation_space,
                                                      action_list=action_list)
 
+    .. note::
+        This last version is much (much) safer and reproducible. Indeed, the
+        actions usable by your agent will be the same (and in the same order)
+        regardless of the grid2op version.
+
+        It might not be consistent (between different grid2op versions)
+        if the actions are built from scratch (for example, depending on the
+        grid2op version other types of actions can be made, such as curtailment,
+        or actions on storage units).
+        
     """
     def __init__(self,
                  grid2op_action_space,

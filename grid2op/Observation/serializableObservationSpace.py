@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.Space import SerializableSpace
-from grid2op.Observation.CompleteObservation import CompleteObservation
+from grid2op.Observation.completeObservation import CompleteObservation
 
 
 class SerializableObservationSpace(SerializableSpace):

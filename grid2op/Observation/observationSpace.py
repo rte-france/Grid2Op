@@ -9,9 +9,9 @@
 import sys
 import copy
 
-from grid2op.Observation.SerializableObservationSpace import SerializableObservationSpace
+from grid2op.Observation.serializableObservationSpace import SerializableObservationSpace
 from grid2op.Reward import RewardHelper
-from grid2op.Observation.CompleteObservation import CompleteObservation
+from grid2op.Observation.completeObservation import CompleteObservation
 from grid2op.Observation._ObsEnv import _ObsEnv
 
 

@@ -10,13 +10,13 @@ import copy
 import datetime
 import warnings
 import networkx
-import numpy as np
 from abc import abstractmethod
+import numpy as np
+from scipy.sparse import csr_matrix
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import Grid2OpException, NoForecastAvailable, EnvError
 from grid2op.Space import GridObjects
-from scipy.sparse import csr_matrix
 
 # TODO have a method that could do "forecast" by giving the _injection by the agent,
 # TODO if he wants to make custom forecasts

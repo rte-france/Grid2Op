@@ -33,10 +33,12 @@ Change Log
 
 [1.6.5] - 2022-xx-yy
 ---------------------
-- [BREAKING] the name of the python files for the "CHronics" module are now lowercase (complient with PEP). If you
+- [BREAKING] the name of the python files for the "Chronics" module are now lowercase (complient with PEP). If you
   did things like `from grid2op.Chronics.ChangeNothing import ChangeNothing` you need to change it like
   `from grid2op.Chronics.changeNothing import ChangeNothing` or even better, and this is the preferred way to include
   them: `from grid2op.Chronics import ChangeNothing`. It should not affect lots of code (more refactoring of the kind
+  are to be expected in following versions).
+- [BREAKING] same as above for the "Observation" module. It should not affect lots of code (more refactoring of the kind
   are to be expected in following versions).
 - [FIXED] an issue when copying the environment with the opponent (see issue https://github.com/rte-france/Grid2Op/issues/274)
 - [FIXED] a bug leading to the wrong "backend.get_action_to_set()" when there were storage units on the grid. 

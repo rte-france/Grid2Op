@@ -1334,7 +1334,7 @@ class SerializableActionSpace(SerializableSpace):
         TODO
 
         """
-        from grid2op.Observation.BaseObservation import BaseObservation
+        from grid2op.Observation.baseObservation import BaseObservation
         if not isinstance(obs, BaseObservation):
             raise AmbiguousAction("You need to provide a grid2op Observation for this function to work correctly.")
         res = {}

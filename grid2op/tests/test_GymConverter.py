@@ -375,9 +375,11 @@ class TestDiscreteActSpace(unittest.TestCase):
     def test_create(self):
         gym_env = GymEnv(self.glop_env)
         act_space = gym_env.action_space
-        
-        act_space = DiscreteActSpace(self.glop_env.action_space)
-        assert act_space.n == 523
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            act_space = DiscreteActSpace(self.glop_env.action_space)
+        pdb.set_trace()
+        assert act_space.n == 690, f"{act_space.n = } instead of {690}"
   
     def test_create_from_list(self):
         path_input = os.path.join(PATH_DATA_TEST, self.filenamedict)
@@ -388,7 +390,7 @@ class TestDiscreteActSpace(unittest.TestCase):
         
         act_space = DiscreteActSpace(self.glop_env.action_space,
                                      action_list=action_list)
-        assert act_space.n == 255
+        assert act_space.n == 255, f"{act_space.n = } instead of {255}"
 
 if __name__ == "__main__":
     unittest.main()

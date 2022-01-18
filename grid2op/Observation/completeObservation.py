@@ -9,7 +9,7 @@
 import numpy as np
 
 from grid2op.dtypes import dt_int, dt_float
-from grid2op.Observation.BaseObservation import BaseObservation
+from grid2op.Observation.baseObservation import BaseObservation
 
 
 class CompleteObservation(BaseObservation):
@@ -128,7 +128,11 @@ class CompleteObservation(BaseObservation):
     ]
     attr_list_json = ["_thermal_limit",
                       "support_theta",
-                      "theta_or", "theta_ex", "load_theta", "gen_theta", "storage_theta"]
+                      "theta_or",
+                      "theta_ex",
+                      "load_theta",
+                      "gen_theta",
+                      "storage_theta"]
     attr_list_set = set(attr_list_vect)
 
     def __init__(self,
