@@ -38,8 +38,14 @@ class Issue235Tester(unittest.TestCase):
             # from lightsim2grid import LightSimBackend
             # backend=LightSimBackend(),
             self.env = grid2op.make(env_nm, test=True, observation_class=Issue235TesterObs)
-            self.env.seed(0)
-            self.env.reset()
+        
+        # now set the right observation class for the simulate action
+        hack_obs_cls = Issue235TesterObs.init_grid(type(self.env))
+        self.env._observation_space.obs_env.current_obs = hack_obs_cls()
+        self.env._observation_space.obs_env.current_obs_init = hack_obs_cls()
+        # now do regular gri2op stuff
+        self.env.seed(0)
+        self.env.reset()
 
     def test_diverging_action(self):
         final_dict = {'generators_id': [(19, 1)],
@@ -49,5 +55,6 @@ class Issue235Tester(unittest.TestCase):
         action = self.env.action_space({"set_bus": final_dict})
         obs = self.env.reset()
         simobs, simr, simd, siminfo = obs.simulate(action, time_step=0)
+        assert simd
         assert np.all(simobs.gen_p == 0.)
         assert not simobs._is_updated

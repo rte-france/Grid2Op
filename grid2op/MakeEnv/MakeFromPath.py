@@ -217,6 +217,16 @@ def make_from_dataset_path(dataset_path="/",
         be more complicated for other type of custom observations but should be
         deep copiable.
 
+        Each observation will be initialized (by the observation_space) with:
+
+        .. code-block:: python
+        
+            obs = observation_class(obs_env=self.obs_env,
+                                    action_helper=self.action_helper_env,
+                                    random_prng=self.space_prng,
+                                    **kwargs_observation  # <- this kwargs is used here
+                                   )
+
     _add_to_name:
         Internal, used for test only. Do not attempt to modify under any circumstances.
 

@@ -198,3 +198,6 @@ class TestNoisyDiffParams(TestNoisy):
 
 # TODO next: have a powerflow there to compute the outcome of the state 
 # after the modification
+       
+if __name__ == "__main__":
+    unittest.main()
