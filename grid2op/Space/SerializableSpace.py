@@ -171,15 +171,28 @@ class SerializableSpace(GridObjects, RandomObject):
         if actionClass_li[-1] in globals():
             subtype = globals()[actionClass_li[-1]]
         else:
+            try:
+                exec("from {} import {}".format(".".join(actionClass_li[:-1]), actionClass_li[-1]))
+            except ModuleNotFoundError as exc_:
+                # prior to grid2op 1.6.5 the Observation module was grid2op.Observation.completeObservation.CompleteObservation
+                # after its grid2op.Observation.completeObservation.CompleteObservation
+                # so I try here to make the python file lower case in order to import
+                # the class correctly
+                if len(actionClass_li) > 2:
+                    test_str = actionClass_li[2]
+                    actionClass_li[2] = test_str[0].lower() + test_str[1:]
+                    exec("from {} import {}".format(".".join(actionClass_li[:-1]), actionClass_li[-1]))
+                else:
+                    raise exc_
+                    
             # TODO make something better and recursive here
-            exec("from {} import {}".format(".".join(actionClass_li[:-1]), actionClass_li[-1]))
             try:
                 subtype = eval(actionClass_li[-1])
             except NameError:
                 if len(actionClass_li) > 1:
                     try:
                         subtype = eval(".".join(actionClass_li[1:]))
-                    except:
+                    except Exception as exc_:
                         msg_err_ = "Impossible to find the module \"{}\" to load back the space (ERROR 1). " \
                                    "Try \"from {} import {}\""
                         raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]),
@@ -192,7 +205,7 @@ class SerializableSpace(GridObjects, RandomObject):
             except AttributeError:
                 try:
                     subtype = eval(actionClass_li[-1])
-                except:
+                except Exception as exc_:
                     if len(actionClass_li) > 1:
                         msg_err_ = "Impossible to find the class named \"{}\" to load back the space (ERROR 3)" \
                                    "(module is found but not the class in it) Please import it via " \

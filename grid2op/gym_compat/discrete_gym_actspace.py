@@ -10,7 +10,7 @@ import copy
 import warnings
 from gym.spaces import Discrete
 
-
+from grid2op.Exceptions import Grid2OpException
 from grid2op.Action import ActionSpace
 from grid2op.Converter import IdToAct
 
@@ -44,9 +44,8 @@ class DiscreteActSpace(Discrete):
 
         gym_env1.action_space = MultiDiscreteActSpace(env.action_space,
                                                       attr_to_keep=['redispatch', "curtail", "one_sub_set"])
-        gym_env2.action_space = MultiDiscreteActSpace(env.action_space,
-                                                      attr_to_keep=['redispatch', "curtail", "set_bus"])
-
+        gym_env2.action_space = DiscreteActSpace(env.action_space,
+                                                 attr_to_keep=['redispatch', "curtail", "set_bus"])
 
     Then at each step, `gym_env1` will allow to perform a redispatching action (on any number of generators),
     a curtailment
@@ -75,7 +74,7 @@ class DiscreteActSpace(Discrete):
         env_name = ...
         env = grid2op.make(env_name)
 
-        from grid2op.gym_compat import GymEnv, MultiDiscreteActSpace, DiscreteActSpace
+        from grid2op.gym_compat import GymEnv, DiscreteActSpace
         gym_env = GymEnv(env)
 
         gym_env.observation_space = DiscreteActSpace(env.observation_space,
@@ -94,17 +93,46 @@ class DiscreteActSpace(Discrete):
     - "curtail"
     - "curtail_mw" (same effect as "curtail")
 
+    If you do not want (each time) to build all the actions from the action space, but would rather
+    save the actions you find the most interesting and then reload them, you can, for example:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.gym_compat import GymEnv, DiscreteActSpace
+        env_name = ...
+        env = grid2op.make(env_name)
+
+        gym_env = GymEnv(env)
+        action_list = ... # a list of action, that can be processed by
+        # IdToAct.init_converter (all_actions): see 
+        # https://grid2op.readthedocs.io/en/latest/converter.html#grid2op.Converter.IdToAct.init_converter
+        gym_env.observation_space = DiscreteActSpace(env.observation_space,
+                                                     action_list=action_list)
+
+    .. note::
+    
+        This last version is much (much) safer and reproducible. Indeed, the
+        actions usable by your agent will be the same (and in the same order)
+        regardless of the grid2op version.
+
+        It might not be consistent (between different grid2op versions)
+        if the actions are built from scratch (for example, depending on the
+        grid2op version other types of actions can be made, such as curtailment,
+        or actions on storage units).
+
     """
     def __init__(self,
                  grid2op_action_space,
                  attr_to_keep=ALL_ATTR,
                  nb_bins=None,
+                 action_list=None,
                  ):
 
         if not isinstance(grid2op_action_space, ActionSpace):
-            raise RuntimeError(f"Impossible to create a BoxGymActSpace without providing a "
-                               f"grid2op action_space. You provided {type(grid2op_action_space)}"
-                               f"as the \"grid2op_action_space\" attribute.")
+            raise Grid2OpException(f"Impossible to create a BoxGymActSpace without providing a "
+                                   f"grid2op action_space. You provided {type(grid2op_action_space)}"
+                                   f"as the \"grid2op_action_space\" attribute.")
 
         if nb_bins is None:
             nb_bins = {"redispatch": 7, "set_storage": 7, "curtail": 7}
@@ -117,9 +145,13 @@ class DiscreteActSpace(Discrete):
             # i do not do that if the user specified specific attributes to keep. This is his responsibility in
             # in this case
             attr_to_keep = {el for el in attr_to_keep if grid2op_action_space.supports_type(el)}
-
+        else:
+            if action_list is not None:
+                raise Grid2OpException("Impossible to specify a list of attributes "
+                                       "to keep (argument attr_to_keep) AND a list of "
+                                       "action to use (argument action_list).")
         for el in attr_to_keep:
-            if el not in ATTR_DISCRETE:
+            if el not in ATTR_DISCRETE and action_list is None:
                 warnings.warn(f"The class \"DiscreteActSpace\" should mainly be used to consider only discrete "
                               f"actions (eg. set_line_status, set_bus or change_bus). Though it is possible to use "
                               f"\"{el}\" when building it, be aware that this continuous action will be treated "
@@ -142,9 +174,14 @@ class DiscreteActSpace(Discrete):
             "raise_alarm": act_sp.get_all_unitary_alarm,
         }
 
-        self.converter = None
-        n_act = self._get_info()
-        
+        if action_list is None:
+            self.converter = None
+            n_act = self._get_info()
+        else:
+            self.converter = IdToAct(self.action_space)
+            self.converter.init_converter(all_actions=action_list)
+            n_act = self.converter.n
+
         # initialize the base container
         Discrete.__init__(self, n=n_act)
 

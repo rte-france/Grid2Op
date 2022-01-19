@@ -46,10 +46,10 @@ class BackendConverter(Backend):
             import grid2op
             from grid2op.Converter import BackendConverter
             from grid2op.Backend import PandaPowerBackend
-            from lightsim2grid.LightSimBackend import LightSimBackend
+            from lightsim2grid import LightSimBackend
             backend = BackendConverter(source_backend_class=PandaPowerBackend,
-                                   target_backend_class=LightSimBackend,
-                                   target_backend_grid_path=None)
+                                       target_backend_class=LightSimBackend,
+                                       target_backend_grid_path=None)
 
             # and now your environment behaves as if PandaPowerBackend did the computation (same load order, same
             generator order etc.) but real computation are made with LightSimBackend.
@@ -320,8 +320,8 @@ class BackendConverter(Backend):
             #  self.target_backend.load_redispacthing_data(self.path_redisp, name=self.name_redisp)
         if self.path_storage_data is not None:
             super().load_storage_data(self.path_storage_data, self.name_storage_data)
-            self.source_backend.load_storage_data(self.path_redisp, name=self.name_redisp)
-            #  self.target_backend.load_storage_data(self.path_redisp, name=self.name_redisp)
+            self.source_backend.load_storage_data(self.path_storage_data, name=self.name_storage_data)
+            self.target_backend.load_storage_data(self.path_storage_data, name=self.name_storage_data)
         if self.path_grid_layout is not None:
             # grid layout data were available
             super().load_grid_layout(self.path_grid_layout, self.name_grid_layout)
@@ -454,6 +454,11 @@ class BackendConverter(Backend):
         return self.cst1*p_[self._line_tg2sr], self.cst1*q_[self._line_tg2sr], \
                self.cst1*v_[self._line_tg2sr], self.cst1*a_[self._line_tg2sr]
 
+    def storages_info(self):
+        p_, q_, v_ = self.target_backend.storages_info()
+        return self.cst1*p_[self._storage_sr2tg], self.cst1*q_[self._storage_sr2tg], \
+               self.cst1*v_[self._storage_sr2tg]
+
     def shunt_info(self):
         if self._shunt_tg2sr is not None:
             # shunts are supported by both source and target backend
@@ -534,5 +539,4 @@ class BackendConverter(Backend):
         # env has the powerline stored in the order of the source backend, but i need
         # to have them stored in the order of the target backend for such function
         pass
-
     # TODO update_from_obs too, maybe ?

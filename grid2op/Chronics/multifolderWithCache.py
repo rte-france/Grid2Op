@@ -9,8 +9,8 @@ import numpy as np
 from datetime import timedelta, datetime
 
 from grid2op.dtypes import dt_int
-from grid2op.Chronics.MultiFolder import Multifolder
-from grid2op.Chronics.GridStateFromFile import GridStateFromFile
+from grid2op.Chronics.multiFolder import Multifolder
+from grid2op.Chronics.gridStateFromFile import GridStateFromFile
 
 
 class MultifolderWithCache(Multifolder):
@@ -46,7 +46,7 @@ class MultifolderWithCache(Multifolder):
         # assign a filter, use only chronics that have "december" in their name
         env.chronics_handler.real_data.set_filter(lambda x: re.match(".*december.*", x) is not None)
         # create the cache
-        env.chronics_handler.real_data.reset_cache()
+        env.chronics_handler.reset()
 
         # and now you can use it as you would do any gym environment:
         my_agent = ...

@@ -54,11 +54,14 @@ class TestGymCompatModule(unittest.TestCase):
         self.env.close()
 
     def test_print_with_no_storage(self):
-        self.env = grid2op.make("l2rpn_icaps_2021",
-                                test=True,
-                                _add_to_name="TestGymCompatModule")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("l2rpn_icaps_2021",
+                                    test=True,
+                                    _add_to_name="TestGymCompatModule")
         env_gym = GymEnv(self.env)
-        res_ = env_gym.action_space.__str__()  # this crashed
+        str_ = env_gym.action_space.__str__()  # this crashed
+        str_ = env_gym.observation_space.__str__()
 
     def test_convert_togym(self):
         """test i can create the env"""
@@ -67,7 +70,7 @@ class TestGymCompatModule(unittest.TestCase):
         assert dim_act_space == 160
         dim_obs_space = np.sum([np.sum(env_gym.observation_space[el].shape).astype(int)
                                 for el in env_gym.observation_space.spaces])
-        size_th = 434 + 4 + 2
+        size_th = 434 + 4 + 2 + 1
         assert dim_obs_space == size_th, f"Size should be {size_th} but is {dim_obs_space}"
 
         # test that i can do basic stuff there

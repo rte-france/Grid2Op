@@ -257,8 +257,10 @@ class Runner(object):
                  kwargs_attention_budget=None,
                  has_attention_budget=False,
                  logger=None,
+                 kwargs_observation=None,
                  # experimental: whether to read from local dir or generate the classes on the fly:
-                 _read_from_local_dir=False
+                 _read_from_local_dir=False,
+                 _is_test=False  # TODO not implemented !!
                  ):
         """
         Initialize the Runner.
@@ -506,6 +508,11 @@ class Runner(object):
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
         self._has_attention_budget = has_attention_budget
 
+        # custom observation building
+        if kwargs_observation is None:
+            kwargs_observation = {}
+        self._kwargs_observation = copy.deepcopy(kwargs_observation)
+
         # otherwise on windows / macos it sometimes fail in the runner in multi process
         # on linux like OS i prefer to generate all the proper classes accordingly
         if _IS_LINUX:
@@ -546,6 +553,7 @@ class Runner(object):
                                 kwargs_attention_budget=self._kwargs_attention_budget,
                                 has_attention_budget=self._has_attention_budget,
                                 logger=self.logger,
+                                kwargs_observation=self._kwargs_observation,
                                 _raw_backend_class=self.backendClass,
                                 _read_from_local_dir=self._read_from_local_dir
                                 )
@@ -885,6 +893,7 @@ class Runner(object):
                "opponent_kwargs": copy.deepcopy(self.opponent_kwargs),
                "grid_layout": copy.deepcopy(self.grid_layout),
                "with_forecast": self.with_forecast
+               # TODO kwargs_observation here ! (but require kwargs_observation to be json serializable)
         }
         return res
 

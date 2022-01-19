@@ -6,8 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import warnings
 import numpy as np
 import itertools
+from typing import Dict, List
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import AmbiguousAction, Grid2OpException
@@ -154,9 +156,9 @@ class SerializableActionSpace(SerializableSpace):
                                                  f"You provided {action_type} which is not supported."
 
         if action_type == "storage_power":
-            return (self.n_storage > 0) and ("storage_power" in self.actionClass.authorized_keys)
+            return (self.n_storage > 0) and ("set_storage" in self.actionClass.authorized_keys)
         elif action_type == "set_storage":
-            return (self.n_storage > 0) and ("storage_power" in self.actionClass.authorized_keys)
+            return (self.n_storage > 0) and ("set_storage" in self.actionClass.authorized_keys)
         elif action_type == "curtail_mw":
             return "curtail" in self.actionClass.authorized_keys
         else:
@@ -1126,3 +1128,226 @@ class SerializableActionSpace(SerializableSpace):
         # SerializableObservationSpace
         new_obj.actionClass = self.subtype
         new_obj._template_act = self.actionClass()
+
+    def _aux_get_back_to_ref_state_curtail(self, res, obs):
+        is_curtailed = obs.curtailment_limit != 1.0
+        if np.any(is_curtailed):
+            res["curtailment"] = []
+            if not self.supports_type("curtail"):
+                warnings.warn("A generator is is curtailed, but you cannot perform curtailment action. Impossible to get back to the original topology.")
+                return
+
+            curtail = np.full(obs.n_gen, fill_value=np.NaN)
+            curtail[is_curtailed] = 1.0
+            act = self.actionClass()
+            act.curtail = curtail
+            res["curtailment"].append(act)
+
+    def _aux_get_back_to_ref_state_line(self, res, obs):
+        disc_lines = ~obs.line_status
+        if np.any(disc_lines):
+            li_disc = np.where(disc_lines)[0]
+            res["powerline"] = []
+            for el in li_disc:
+                act = self.actionClass()
+                if self.supports_type("set_line_status"):
+                    act.set_line_status = [(el, +1)]
+                elif self.supports_type("change_line_status"):
+                    act.change_line_status = [el]
+                else:
+                    warnings.warn("A powerline is disconnected by you cannot reconnect it with your action space. Impossible to get back to the original topology")
+                    break
+                res["powerline"].append(act)
+
+    def _aux_get_back_to_ref_state_sub(self, res, obs):
+        not_on_bus_1 = obs.topo_vect > 1  # disconnected lines are handled above
+        if np.any(not_on_bus_1):
+            res["substation"] = []
+            subs_changed = type(self).grid_objects_types[not_on_bus_1, type(self).SUB_COL]
+            for sub_id in set(subs_changed):
+                nb_el : int = type(self).sub_info[sub_id]
+                act = self.actionClass()
+                if self.supports_type("set_bus"):
+                    act.sub_set_bus = [(sub_id, np.ones(nb_el, dtype=dt_int))]
+                elif self.supports_type("change_bus"):
+                    arr_ = np.full(nb_el, fill_value=False, dtype=dt_bool)
+                    changed = obs.state_of(substation_id=sub_id)["topo_vect"] >= 1
+                    arr_[changed] = True
+                    act.sub_change_bus = [(sub_id, arr_)]
+                else:
+                    warnings.warn("A substation is is not on its original topology (all at bus 1) and your action type does not allow to change it. "
+                                  "Impossible to get back to the original topology.")
+                    break
+                res["substation"].append(act)
+
+    def _aux_get_back_to_ref_state_redisp(self, res, obs, precision=1e-5):
+        # TODO this is ugly, probably slow and could definitely be optimized
+        notredisp_setpoint = obs.target_dispatch != 0.0
+        if np.any(notredisp_setpoint):
+            need_redisp = np.where(notredisp_setpoint)[0]
+            res["redispatching"] = []
+            # combine generators and do not exceed ramps (up or down)
+            rem = np.zeros(self.n_gen, dtype=dt_float)
+            nb_ = np.zeros(self.n_gen, dtype=dt_int)
+            for gen_id in need_redisp:
+                if obs.target_dispatch[gen_id] > 0.:
+                    div_ = obs.target_dispatch[gen_id] / obs.gen_max_ramp_down[gen_id]
+                else:
+                    div_ = -obs.target_dispatch[gen_id] / obs.gen_max_ramp_up[gen_id]
+                div_ = np.round(div_, precision)
+                nb_[gen_id] = int(div_)
+                if div_ != int(div_):
+                    if obs.target_dispatch[gen_id] > 0.:
+                        rem[gen_id] = obs.target_dispatch[gen_id] - obs.gen_max_ramp_down[gen_id] * nb_[gen_id]
+                    else:
+                        rem[gen_id] = - obs.target_dispatch[gen_id] - obs.gen_max_ramp_up[gen_id] * nb_[gen_id]
+                    nb_[gen_id] += 1
+            # now create the proper actions
+            for nb_act in range(np.max(nb_)):
+                act = self.actionClass()
+                if not self.supports_type("redispatch"):
+                    warnings.warn("Some redispatching are set, but you cannot modify it with your action type. Impossible to get back to the original topology.")
+                    break
+                reds = np.zeros(self.n_gen, dtype=dt_float)
+                for gen_id in need_redisp:
+                    if  nb_act >= nb_[gen_id]:
+                        # nothing to add for this generator in this case
+                        continue
+                    if obs.target_dispatch[gen_id] > 0.:
+                        if nb_act < nb_[gen_id] - 1 or (rem[gen_id] == 0. and nb_act == nb_[gen_id] - 1):
+                            reds[gen_id] = - obs.gen_max_ramp_down[gen_id]
+                        else:
+                             reds[gen_id] = - rem[gen_id]
+                    else:
+                        if nb_act < nb_[gen_id] - 1 or (rem[gen_id] == 0. and nb_act == nb_[gen_id] - 1):
+                            reds[gen_id] = obs.gen_max_ramp_up[gen_id]
+                        else:
+                             reds[gen_id] = rem[gen_id]
+
+                act.redispatch = [(gen_id, red_) for gen_id, red_ in zip(need_redisp, reds)]
+                res["redispatching"].append(act)
+
+    def _aux_get_back_to_ref_state_storage(self, res, obs, storage_setpoint, precision=5):
+        # TODO this is ugly, probably slow and could definitely be optimized
+        # TODO refacto with the redispatching
+        notredisp_setpoint = obs.storage_charge / obs.storage_Emax != storage_setpoint
+        delta_time_hour = dt_float(obs.delta_time / 60.)
+        if np.any(notredisp_setpoint):
+            need_ajust = np.where(notredisp_setpoint)[0]
+            res["storage"] = []
+            # combine storage units and do not exceed maximum power
+            rem = np.zeros(self.n_storage, dtype=dt_float)
+            nb_ = np.zeros(self.n_storage, dtype=dt_int)
+            current_state = (obs.storage_charge - storage_setpoint * obs.storage_Emax)
+            for stor_id in need_ajust:
+                if current_state[stor_id] > 0.:
+                    div_ = current_state[stor_id] / (obs.storage_max_p_prod[stor_id] * delta_time_hour)
+                else:
+                    div_ = - current_state[stor_id] / (obs.storage_max_p_absorb[stor_id] * delta_time_hour)
+                div_ = np.round(div_, precision)
+                nb_[stor_id] = int(div_)
+                if div_ != int(div_):
+                    if current_state[stor_id] > 0.:
+                        rem[stor_id] = current_state[stor_id] / delta_time_hour - obs.storage_max_p_prod[stor_id] * nb_[stor_id]
+                    else:
+                        rem[stor_id] = - current_state[stor_id] / delta_time_hour - obs.storage_max_p_absorb[stor_id] * nb_[stor_id]
+                    nb_[stor_id] += 1
+
+            # now create the proper actions
+            for nb_act in range(np.max(nb_)):
+                act = self.actionClass()
+                if not self.supports_type("set_storage"):
+                    warnings.warn("Some storage are modififed, but you cannot modify them with your action type. Impossible to get back to the original topology.")
+                    break
+                reds = np.zeros(self.n_storage, dtype=dt_float)
+                for stor_id in need_ajust:
+                    if  nb_act >= nb_[stor_id]:
+                        # nothing to add in this case
+                        continue
+                    if current_state[stor_id] > 0.:
+                        if nb_act < nb_[stor_id] - 1 or (rem[stor_id] == 0. and nb_act == nb_[stor_id] - 1):
+                            reds[stor_id] = - obs.storage_max_p_prod[stor_id]
+                        else:
+                            reds[stor_id] = - rem[stor_id]
+                    else:
+                        if nb_act < nb_[stor_id] - 1 or (rem[stor_id] == 0. and nb_act == nb_[stor_id] - 1):
+                            reds[stor_id] = obs.storage_max_p_absorb[stor_id]
+                        else:
+                            reds[stor_id] = rem[stor_id]
+
+                act.storage_p = [(stor_id, red_) for stor_id, red_ in zip(need_ajust, reds)]
+                res["storage"].append(act)
+
+    def get_back_to_ref_state(self, obs: "grid2op.Observation.BaseObservation", storage_setpoint=0.5, precision=5) -> Dict[str, List[BaseAction]]:
+        """
+        This function returns the list of unary actions that you can perform in order to get back to the "fully meshed" / "initial" topology.
+
+        Parameters
+        ----------
+        observation:
+            The current observation (the one you want to know actions to set it back ot)
+        Notes
+        -----
+        In this context a "unary" action, is (exclusive or):
+
+        - an action that acts on a single powerline
+        - an action on a single substation
+        - a redispatching action
+        - a storage action
+
+        The list might be relatively long, in the case where lots of actions are needed. Depending on the rules of the game (for example limiting the
+        action on one single substation), in order to get back to this topology, multiple consecutive actions will need to be implemented.
+
+        It is returned as a dictionnary of list. This dictionnary has 4 keys:
+
+        - "powerline" for the list of actions needed to set back the powerlines in a proper state (connected). They can be of type "change_line" or "set_line".
+        - "substation" for the list of actions needed to set back each substation in its initial state (everything connected to bus 1). They can be
+          implemented as "set_bus" or "change_bus"
+        - "redispatching": for the redispatching action (there can be multiple redispatching actions needed because of the ramps of the generator)
+        - "storage": for action on storage units (you might need to perform multiple storage actions because of the maximum power these units can absorb / produce )
+        - "curtailment": for curtailment action (usually at most one such action is needed)
+
+        After receiving these lists, the agent has the choice for the order in which to apply these actions as well as how to best combine them (you can most 
+        of the time combine action of different types in grid2op.)
+
+        .. warning::
+
+            It does not presume anything on the availability of the objects. For examples, this funciton ignores completely the cooldowns on lines and substations.
+
+        .. warning:: 
+
+            For the storage units, it tries to set their current setpoint to `storage_setpoint` % of their storage total capacity. Applying these actions
+            at different times might not fully set back the storage to this capacity in case of storage losses !
+
+        .. warning::
+
+            See section :ref:`action_powerline_status` for note on the powerline status. It might happen that you modify a powerline status using a "set_bus" (ie 
+            tagged as "susbtation" by this function). 
+
+        .. warning::
+
+            It can raise warnings in case it's not possible, with your action space, to get back to the original / fully meshed topology 
+
+        Examples
+        --------
+
+        TODO
+
+        """
+        from grid2op.Observation.baseObservation import BaseObservation
+        if not isinstance(obs, BaseObservation):
+            raise AmbiguousAction("You need to provide a grid2op Observation for this function to work correctly.")
+        res = {}
+        
+        # powerline actions
+        self._aux_get_back_to_ref_state_line(res, obs)
+        # substations
+        self._aux_get_back_to_ref_state_sub(res, obs)
+        # redispatching
+        self._aux_get_back_to_ref_state_redisp(res, obs, precision=precision)
+        # storage
+        self._aux_get_back_to_ref_state_storage(res, obs, storage_setpoint, precision=precision)
+        # curtailment
+        self._aux_get_back_to_ref_state_curtail(res, obs)
+
+        return res

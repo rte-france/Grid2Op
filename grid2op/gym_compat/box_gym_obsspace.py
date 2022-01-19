@@ -309,6 +309,10 @@ class BoxGymObsSpace(Box):
                                                np.full(shape=(1,), fill_value=True, dtype=dt_bool),
                                                (1,),
                                                dt_bool),
+            "delta_time": (np.full(shape=(1,), fill_value=0, dtype=dt_float),
+                           np.full(shape=(1,), fill_value=np.inf, dtype=dt_float),
+                           (1,),
+                           dt_float)
         }
         self.dict_properties["prod_p"] = self.dict_properties["gen_p"]
         self.dict_properties["prod_q"] = self.dict_properties["gen_q"]

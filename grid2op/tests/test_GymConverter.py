@@ -9,7 +9,9 @@
 # TODO test the json part but... https://github.com/openai/gym-http-api/issues/62 or https://github.com/openai/gym/issues/1841
 import tempfile
 import json
+from grid2op.gym_compat.discrete_gym_actspace import DiscreteActSpace
 from grid2op.tests.helper_path_test import *
+from grid2op.Action import PlayableAction
 
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.tests.helper_path_test import *
@@ -358,6 +360,36 @@ class TestWithoutConverterStorage(TestWithoutConverterWCCI):
     def get_env_name(self):
         return "educ_case14_storage"
 
+class TestDiscreteActSpace(unittest.TestCase):
+    def setUp(self) -> None:
+        self.filenamedict = "test_action_json_educ_case14_storage.json"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.glop_env = make("educ_case14_storage",
+                                 test=True,
+                                 action_class=PlayableAction)
+    
+    def tearDown(self) -> None:
+        self.glop_env.close()
+    
+    def test_create(self):
+        gym_env = GymEnv(self.glop_env)
+        act_space = gym_env.action_space
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            act_space = DiscreteActSpace(self.glop_env.action_space)
+        assert act_space.n == 690, f"{act_space.n = } instead of {690}"
+  
+    def test_create_from_list(self):
+        path_input = os.path.join(PATH_DATA_TEST, self.filenamedict)
+        with open(path_input, "r") as f:
+            action_list = json.load(f)
+        gym_env = GymEnv(self.glop_env)
+        act_space = gym_env.action_space
+        
+        act_space = DiscreteActSpace(self.glop_env.action_space,
+                                     action_list=action_list)
+        assert act_space.n == 255, f"{act_space.n = } instead of {255}"
 
 if __name__ == "__main__":
     unittest.main()
