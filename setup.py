@@ -62,7 +62,7 @@ pkgs = {
 }
 
 setup(name='Grid2Op',
-      version='1.6.4',
+      version='1.6.5',
       description='An gym compatible environment to model sequential decision making  for powersystems',
       long_description=long_description,
       long_description_content_type="text/markdown",
