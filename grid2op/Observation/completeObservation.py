@@ -138,107 +138,16 @@ class CompleteObservation(BaseObservation):
     def __init__(self,
                  obs_env=None,
                  action_helper=None,
-                 seed=None):
+                 random_prng=None):
 
         BaseObservation.__init__(self,
                                  obs_env=obs_env,
                                  action_helper=action_helper,
-                                 seed=seed)
+                                 random_prng=random_prng)
         self._dictionnarized = None
 
     def update(self, env, with_forecast=True):
         # reset the matrices
         self._reset_matrices()
         self.reset()
-
-        # counter
-        self.current_step = dt_int(env.nb_time_step)
-        self.max_step = dt_int(env.max_episode_duration())
-
-        # extract the time stamps
-        self.year = dt_int(env.time_stamp.year)
-        self.month = dt_int(env.time_stamp.month)
-        self.day = dt_int(env.time_stamp.day)
-        self.hour_of_day = dt_int(env.time_stamp.hour)
-        self.minute_of_hour = dt_int(env.time_stamp.minute)
-        self.day_of_week = dt_int(env.time_stamp.weekday())
-
-        # get the values related to topology
-        self.timestep_overflow[:] = env._timestep_overflow
-        self.line_status[:] = env.backend.get_line_status()
-        self.topo_vect[:] = env.backend.get_topo_vect()
-
-        # get the values related to continuous values
-        self.gen_p[:], self.gen_q[:], self.gen_v[:] = env.backend.generators_info()
-        self.load_p[:], self.load_q[:], self.load_v[:] = env.backend.loads_info()
-        self.p_or[:], self.q_or[:], self.v_or[:], self.a_or[:] = env.backend.lines_or_info()
-        self.p_ex[:], self.q_ex[:], self.v_ex[:], self.a_ex[:] = env.backend.lines_ex_info()
-
-        # storage units
-        self.storage_charge[:] = env._storage_current_charge
-        self.storage_power_target[:] = env._action_storage
-        self.storage_power[:] = env._storage_power
-
-        # handles forecasts here
-        if with_forecast:
-            inj_action = {}
-            dict_ = {}
-            dict_["load_p"] = dt_float(1.0 * self.load_p)
-            dict_["load_q"] = dt_float(1.0 * self.load_q)
-            dict_["prod_p"] = dt_float(1.0 * self.gen_p)
-            dict_["prod_v"] = dt_float(1.0 * self.gen_v)
-            inj_action["injection"] = dict_
-            # inj_action = self.action_helper(inj_action)
-            timestamp = self.get_time_stamp()
-            self._forecasted_inj = [(timestamp, inj_action)]
-            self._forecasted_inj += env.chronics_handler.forecasts()
-            self._forecasted_grid = [None for _ in self._forecasted_inj]
-
-        self.rho[:] = env.backend.get_relative_flow().astype(dt_float)
-
-        # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line[:] = env._times_before_line_status_actionable
-        self.time_before_cooldown_sub[:] = env._times_before_topology_actionable
-        self.time_next_maintenance[:] = env._time_next_maintenance
-        self.duration_next_maintenance[:] = env._duration_next_maintenance
-
-        # redispatching
-        self.target_dispatch[:] = env._target_dispatch
-        self.actual_dispatch[:] = env._actual_dispatch
-
-        # handle shunts (if avaialble)
-        if self.shunts_data_available:
-            sh_p, sh_q, sh_v, sh_bus = env.backend.shunt_info()
-            self._shunt_p[:] = sh_p
-            self._shunt_q[:] = sh_q
-            self._shunt_v[:] = sh_v
-            self._shunt_bus[:] = sh_bus
-
-        self._thermal_limit[:] = env.get_thermal_limit()
-
-        if self.redispatching_unit_commitment_availble:
-            self.gen_p_before_curtail[:] = env._gen_before_curtailment
-            self.curtailment[:] = (self.gen_p_before_curtail - self.gen_p) / self.gen_pmax
-            self.curtailment[~self.gen_renewable] = 0.
-            self.curtailment_limit[:] = env._limit_curtailment
-            self.curtailment_limit[self.curtailment_limit >= 1.] = 1.0
-        else:
-            self.curtailment[:] = 0.
-            self.gen_p_before_curtail[:] = self.gen_p
-            self.curtailment_limit[:] = 1.0
-
-        if env.backend.can_output_theta:
-            self.support_theta = True  # backend supports the computation of theta
-            self.theta_or[:], self.theta_ex[:], self.load_theta[:], self.gen_theta[:], self.storage_theta[:] = \
-                env.backend.get_theta()
-
-        if self.dim_alarms and env._has_attention_budget:
-            self.is_alarm_illegal[:] = env._is_alarm_illegal
-            if env._attention_budget.time_last_successful_alarm_raised > 0:
-                self.time_since_last_alarm[:] = self.current_step - env._attention_budget.time_last_successful_alarm_raised
-            else:
-                self.time_since_last_alarm[:] = -1
-            self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
-            self.attention_budget[:] = env._attention_budget.current_budget
-            
-        self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.)
+        self._update_obs_complete(env, with_forecast=with_forecast)

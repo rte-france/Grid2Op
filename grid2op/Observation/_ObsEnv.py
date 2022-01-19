@@ -74,7 +74,9 @@ class _ObsEnv(BaseEnv):
                          tol_poly=tol_poly,
                          has_attention_budget=has_attention_budget,
                          attention_budget_cls=attention_budget_cls,
-                         kwargs_attention_budget=kwargs_attention_budget)
+                         kwargs_attention_budget=kwargs_attention_budget,
+                         kwargs_observation=None,
+                         )
         self._reward_helper = reward_helper
         self._helper_action_class = helper_action_class
 
@@ -199,8 +201,7 @@ class _ObsEnv(BaseEnv):
         self._create_attention_budget()
         self._obsClass = observationClass.init_grid(type(self.backend))
         self._obsClass._INIT_GRID_CLS = observationClass
-        self.current_obs_init = self._obsClass(seed=None,
-                                               obs_env=None,
+        self.current_obs_init = self._obsClass(obs_env=None,
                                                action_helper=None)
         self.current_obs = self.current_obs_init
 

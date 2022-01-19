@@ -78,7 +78,10 @@ ERR_MSG_KWARGS = {
                                "(\"kwargs_attention_budget\") should "
                                "be a dictionary.",
     DIFFICULTY_NAME: "Unknown difficulty level {difficulty} for this environment. Authorized difficulties are "
-                     "{difficulties}"
+                     "{difficulties}",
+    "kwargs_observation": "The extra kwargs argument used to properly initialized each observations "
+                          "(\"kwargs_observation\") should "
+                          "be a dictionary.",
 }
 
 NAME_CHRONICS_FOLDER = "chronics"
@@ -208,6 +211,22 @@ def make_from_dataset_path(dataset_path="/",
     opponent_budget_class: ``type``, optional
         defaults: :class:`grid2op.Opponent.UnlimitedBudget`
 
+    kwargs_observation: ``dict``
+        Key words used to initialize the observation. For example, in case of NoisyObservation, 
+        it might be the standar error for each underlying distribution. It might
+        be more complicated for other type of custom observations but should be
+        deep copiable.
+
+        Each observation will be initialized (by the observation_space) with:
+
+        .. code-block:: python
+        
+            obs = observation_class(obs_env=self.obs_env,
+                                    action_helper=self.action_helper_env,
+                                    random_prng=self.space_prng,
+                                    **kwargs_observation  # <- this kwargs is used here
+                                   )
+
     _add_to_name:
         Internal, used for test only. Do not attempt to modify under any circumstances.
 
@@ -215,6 +234,8 @@ def make_from_dataset_path(dataset_path="/",
         Internal, used for test only. Do not attempt to modify under any circumstances.
 
     # TODO update doc with attention budget
+
+
 
     Returns
     -------
@@ -565,6 +586,13 @@ def make_from_dataset_path(dataset_path="/",
                                f"Please remove \"{sys_path}\" and call `env.generate_classes()` where env is an "
                                f"environment created with `experimental_read_from_local_dir=False` (default)")
 
+    # observation key word arguments
+    kwargs_observation = _get_default_aux("kwargs_observation", kwargs,
+                                          defaultClassApp=dict,
+                                          defaultinstance={},
+                                          msg_error=ERR_MSG_KWARGS["kwargs_observation"],
+                                          isclass=False)
+
     # Finally instantiate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
                       chronics_handler=data_feeding,
@@ -592,6 +620,7 @@ def make_from_dataset_path(dataset_path="/",
                       logger=logger,
                       _compat_glop_version=_compat_glop_version,
                       _read_from_local_dir=experimental_read_from_local_dir,
+                      kwargs_observation=kwargs_observation,
                       )
 
     # Update the thermal limit if any

@@ -26,7 +26,10 @@ class SerializableObservationSpace(SerializableSpace):
         An instance of the "*observationClass*" provided used to provide higher level utilities
 
     """
-    def __init__(self, gridobj, observationClass=CompleteObservation, _init_grid=True):
+    def __init__(self,
+                 gridobj,
+                 observationClass=CompleteObservation,
+                 _init_grid=True):
         """
 
         Parameters

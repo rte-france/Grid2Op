@@ -89,6 +89,7 @@ class Environment(BaseEnv):
                  kwargs_attention_budget={},
                  has_attention_budget=False,
                  logger=None,
+                 kwargs_observation=None,
                  _raw_backend_class=None,
                  _compat_glop_version=None,
                  _read_from_local_dir=True,  # TODO runner and all here !
@@ -115,6 +116,7 @@ class Environment(BaseEnv):
                          attention_budget_cls=attention_budget_cls,
                          kwargs_attention_budget=kwargs_attention_budget,
                          logger=logger.getChild("grid2op_Environment") if logger is not None else None,
+                         kwargs_observation=kwargs_observation,
                          _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
                          )
         if name == "unknown":
@@ -279,7 +281,8 @@ class Environment(BaseEnv):
                                                                  observationClass=observationClass,
                                                                  actionClass=actionClass,
                                                                  rewardClass=rewardClass,
-                                                                 env=self)
+                                                                 env=self,
+                                                                 kwargs_observation=self._kwargs_observation)
 
         # test to make sure the backend is consistent with the chronics generator
         self.chronics_handler.check_validity(self.backend)
@@ -769,7 +772,8 @@ class Environment(BaseEnv):
 
         # and reset also the "simulated env" in the observation space
         self._observation_space.reset(self)
-
+        
+        self._last_obs = None  # force the first observation to be generated properly
         return self.get_obs()
 
     def render(self, mode='human'):
@@ -931,7 +935,7 @@ class Environment(BaseEnv):
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
-
+        res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
         res["logger"] = self.logger
         return res
 
@@ -1483,5 +1487,6 @@ class Environment(BaseEnv):
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
         res["logger"] = self.logger
+        res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
         res["_is_test"] = self._is_test  # TODO not implemented !!
         return res

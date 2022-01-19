@@ -171,8 +171,11 @@ class TestLoadingOpp(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 50
+            param = Parameters()
+            param.NO_OVERFLOW_DISCONNECTION = True  # otherwise there's a game over
             with make("rte_case14_realistic",
                       test=True,
+                      param=param,
                       opponent_attack_cooldown=0,  # only for testing
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=0.,
@@ -445,17 +448,8 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 1000
             length = 30
-            expected_attack_order = [
-                4, 12, 14, 3,
-                3, 15, 14, 14,
-                12, 15, 4, 15,
-                13, 12, 14, 12,
-                3, 12, 15, 14,
-                15, 4, 3, 14,
-                12, 13, 4, 15,
-                3, 13
-            ]
-
+            # new attack order in version 1.6.5 because of the new reset method
+            expected_attack_order = [4, 12, 14, 14, 12, 13, 3, 15, 15, 12, 4, 15, 14, 12, 15, 4, 4, 3, 15, 13, 12, 14, 12]
             attack_order = []
             has_disconnected_all = False
             with make("rte_case14_realistic",
@@ -480,8 +474,10 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
 
                     attack = env._oppSpace.last_attack
-                    if attack is None:  # should only happen here if all attackable lines are already disconnected
+                    if attack is None and not done:  # should only happen here if all attackable lines are already disconnected
                         assert np.sum(obs.line_status == False) == 6
+                        continue
+                    elif done:
                         continue
 
                     assert any(attack._set_line_status == -1)
@@ -1031,13 +1027,8 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 1000
             length = 30
-            expected_attack_order = [
-                    4, 3, 14, 15, 12,
-                    4, 3, 15, 12, 13,
-                    12, 4, 3, 13, 14,
-                    12, 3, 3, 4, 15,
-                    13, 14, 12, 4, 3,
-                    15, 13, 14, 4]
+            expected_attack_order = [4, 3, 14, 15, 12, 15, 12, 3, 12, 13, 3, 15, 4, 14, 15, 13, 14, 
+                                     4, 3, 3, 4, 14, 15, 12, 15, 13, 4, 14, 12, 3]
 
             attack_order = []
             has_disconnected_all = False
@@ -1065,7 +1056,7 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
 
                     attack = env._oppSpace.last_attack
-                    if attack is None:
+                    if attack is None and not done:
                         # should only happen here if all attackable lines are already disconnected
                         # OR if there are a game over
                         assert np.sum(obs.line_status == False) == 6 or done
@@ -1075,7 +1066,6 @@ class TestLoadingOpp(unittest.TestCase):
                     attacked_line = np.where(attack._set_line_status == -1)[0][0]
                     if pre_done or not (attack_order and attack_order[-1] == attacked_line):
                         attack_order.append(attacked_line)
-
                 assert attack_order == expected_attack_order
                 assert len(set(attack_order)) == 6
 
@@ -1107,8 +1097,8 @@ class TestLoadingOpp(unittest.TestCase):
                     if done:
                         obs = env.reset()
                     obs, reward, done, info = env.step(env.action_space())
-                assert env._oppSpace.opponent._attack_counter == 56
-                assert env._oppSpace.opponent._attack_continues_counter == 44
+                assert env._oppSpace.opponent._attack_counter == 70
+                assert env._oppSpace.opponent._attack_continues_counter == 30
                 assert env._oppSpace.opponent._attack_counter \
                      + env._oppSpace.opponent._attack_continues_counter \
                        == length
@@ -1196,13 +1186,13 @@ class TestGeometricOpponent(unittest.TestCase):
                 assert lines_impacted[12]
 
                 # now i reset it
-                obs = env.reset()
-                assert np.all(opponent._attack_times == [168])
-                assert np.all(opponent._attack_waiting_times == [168])
-                assert np.all(opponent._attack_durations == [33])
-                assert np.all(opponent._number_of_attacks == 1)
+                obs = env.reset()  # behaviour changed in 1.6.5
+                assert np.all(opponent._attack_times == [189, 250, 351, 446])
+                assert np.all(opponent._attack_waiting_times == [189,  18,  67,  66])
+                assert np.all(opponent._attack_durations == [43, 34, 29, 49])
+                assert np.all(opponent._number_of_attacks == 4)
 
-                for i in range(168):
+                for i in range(189):
                     attack, duration = opponent.attack(obs, None, None, None, None)
                     assert attack is None
                     assert duration is None
@@ -1210,10 +1200,10 @@ class TestGeometricOpponent(unittest.TestCase):
                 # it should do an attack
                 attack, duration = opponent.attack(obs, None, None, None, None)
                 assert attack is not None
-                assert duration == 33
+                assert duration == 43
                 lines_impacted, subs_impacted = attack.get_topological_impact()
                 assert np.sum(lines_impacted) == 1
-                assert lines_impacted[14]
+                assert lines_impacted[13]
 
     def test_does_attack(self):
         init_budget = 500
@@ -1264,10 +1254,10 @@ class TestGeometricOpponent(unittest.TestCase):
                 obs = env.reset()
                 # NOTE this is not the same times as above... Indeed the sequence of prn generated is not the same
                 # (because as opposed to test_does_attack_outsideenv, this time i don't simulate everything)
-                assert np.all(opponent._attack_times == [237, 360])
-                assert np.all(opponent._attack_waiting_times == [237, 82])
-                assert np.all(opponent._attack_durations == [41, 65])
-                assert np.all(opponent._number_of_attacks == 2)
+                assert np.all(opponent._attack_times == [189, 250, 351, 446])  # reset changed in grid2op 1.6.5
+                assert np.all(opponent._attack_waiting_times == [189,  18,  67,  66])
+                assert np.all(opponent._attack_durations == [43, 34, 29, 49])
+                assert np.all(opponent._number_of_attacks == 4)
                 # it should not attack before due time, but i don't simulate everything...
                 for i in range(10):
                     obs, reward, done, info = env.step(env.action_space())
