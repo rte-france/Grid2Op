@@ -45,6 +45,8 @@ Change Log
   are to be expected in following versions).
 - [BREAKING] same as above for the "Observation" module. It should not affect lots of code (more refactoring of the kind
   are to be expected in following versions).
+- [FIXED] a bug for the EpisodeData that did not save the first observation when 
+  "add_detailed_output" was set to ``True`` and the data were not saved on disk.
 - [FIXED] an issue when copying the environment with the opponent (see issue https://github.com/rte-france/Grid2Op/issues/274)
 - [FIXED] a bug leading to the wrong "backend.get_action_to_set()" when there were storage units on the grid. 
 - [FIXED] a bug in the "BackendConverter" when there are storage  on the grid

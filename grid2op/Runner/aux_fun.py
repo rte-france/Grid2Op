@@ -127,7 +127,8 @@ def _aux_run_one_episode(env,
         disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
         attack = np.full((0, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
 
-    if path_save is not None:
+    need_store_first_act = path_save is not None or detailed_output
+    if need_store_first_act:
         # store observation at timestep 0
         if efficient_storing:
             observations[time_step, :] = obs.to_vect()
@@ -151,8 +152,11 @@ def _aux_run_one_episode(env,
                           name=env.chronics_handler.get_name(),
                           force_detail=detailed_output,
                           other_rewards=[])
+    if need_store_first_act:
+        # I need to manually force in the first observation (otherwise it's not computed)
+        episode.observations.objects[0] = episode.observations.helper.from_vect(observations[time_step, :])
     episode.set_parameters(env)
-
+   
     beg_ = time.perf_counter()
 
     reward = float(env.reward_range[0])

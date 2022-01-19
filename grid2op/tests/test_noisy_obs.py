@@ -6,13 +6,17 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from operator import add
 import numpy as np
 import unittest
 import warnings
 import pdb
 
 import grid2op
-from grid2op.Observation.noisyObservation import NoisyObservation
+from grid2op.Runner import Runner
+from grid2op.Observation import CompleteObservation
+from grid2op.Observation import NoisyObservation
+
 
 class TestNoisy(unittest.TestCase):
     def setUp(self) -> None:
@@ -94,9 +98,75 @@ class TestNoisy(unittest.TestCase):
         as_obs = self.env.reset()
         self._obs_equals(obs, as_obs)  # should match the case where I did 3 steps
 
-# TODO test with copy (reproducible res)
+    def test_with_copy(self):
+        env_cpy = self.env.copy()
+
+        obs, *_ = self.env.step(self.env.action_space())
+        obs, *_ = self.env.step(self.env.action_space())
+        obs, *_ = self.env.step(self.env.action_space())
+        obs = self.env.reset()
+        obs_cpy = env_cpy.reset()
+        self._obs_equals(obs_cpy, obs)
+
+        obs, *_ = self.env.step(self.env.action_space())
+        obs_cpy, *_ = env_cpy.step(self.env.action_space())
+        self._obs_equals(obs_cpy, obs)
+
+    def test_simulate(self):
+        sim_o, *_ = self.obs.simulate(self.env.action_space())
+        assert isinstance(sim_o, CompleteObservation)
+
+        # test that it is reproducible
+        self.env.seed(0)
+        self.env.set_id(0)
+        as_ref = self.env.reset()  # should match self.obs
+        sim_o2, *_ = as_ref.simulate(self.env.action_space())
+        self._obs_equals(sim_o2, sim_o)
+
+        # test that it is the same as non stochastic observation
+        # (simulate is based on forecast, not on actual environment state)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("educ_case14_storage",
+                               test=True,
+                               observation_class=CompleteObservation)
+        env.seed(0)
+        env.set_id(0)
+        obs = env.reset()
+        sim_o3, *_ = obs.simulate(self.env.action_space())
+        self._obs_equals(sim_o3, sim_o)
+
+    def test_runner(self):
+        runner = Runner(**self.env.get_params_for_runner())
+        # check it's the same when seed is the same
+        res = runner.run(nb_episode=1,
+                         max_iter=10,
+                         episode_id=[0],
+                         env_seeds=[0],
+                         add_detailed_output=True)
+        res2 = runner.run(nb_episode=1,
+                          max_iter=10,
+                          episode_id=[0],
+                          env_seeds=[0],
+                          add_detailed_output=True)
+        for el in range(10):
+            obs1 = res[0][-1].observations[el]
+            obs2 = res2[0][-1].observations[el]
+            self._obs_equals(obs1, obs2)
+
+        # check it's different when seed is different
+        res3 = runner.run(nb_episode=1,
+                          max_iter=10,
+                          episode_id=[0],
+                          env_seeds=[1],
+                          add_detailed_output=True)
+        for el in range(10):
+            obs1 = res[0][-1].observations[el]
+            obs3 = res3[0][-1].observations[el]
+            with self.assertRaises(AssertionError):
+                self._obs_equals(obs1, obs3)
+
 # TODO: find way to change the std of underlying distributions
-# TODO test that the forecast obs is always of type "CompleteObservation"
 
 # TODO next: have a powerflow there to compute the outcome of the state 
 # after the modification
