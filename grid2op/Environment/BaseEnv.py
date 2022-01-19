@@ -209,6 +209,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Helper that is called to compute the reward at each time step.
 
+    kwargs_observation: ``dict``
+        TODO
+
     # TODO add the units (eg MW, MWh, MW/time step,etc.) in the redispatching related attributes
     """
     ALARM_FILE_NAME = "alerts_info.json"
@@ -234,6 +237,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  attention_budget_cls=LinearAttentionBudget,
                  kwargs_attention_budget={},
                  logger=None,  
+                 kwargs_observation=None,
                  _is_test=False,  # TODO not implemented !!
                  ):
         GridObjects.__init__(self)
@@ -432,6 +436,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # to retrieve previous result (before 1.6.5 the seed of the
         # action space or observation space was not done each reset)
         self._has_just_been_seeded = False
+        if kwargs_observation is not None:
+            self._kwargs_observation = copy.deepcopy(kwargs_observation)
+        else:
+            self._kwargs_observation = {}
 
     def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
         if self.__closed:
@@ -552,6 +560,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._legalActClass = self._legalActClass
         new_obj._observation_space = self._observation_space.copy(copy_backend=True)
         new_obj._observation_space._legal_action = new_obj._game_rules.legal_action  # TODO this does not respect SOLID principles at all !
+        new_obj._kwargs_observation = copy.deepcopy(self._kwargs_observation)
+        new_obj._observation_space._ptr_kwargs_observation = new_obj._kwargs_observation
         new_obj._names_chronics_to_backend = self._names_chronics_to_backend
         new_obj._reward_helper = copy.deepcopy(self._reward_helper)
 

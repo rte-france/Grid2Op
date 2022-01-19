@@ -149,6 +149,8 @@ class TestNoisy(unittest.TestCase):
                           episode_id=[0],
                           env_seeds=[0],
                           add_detailed_output=True)
+
+        self._obs_equals(res[0][-1].observations[0], self.obs)
         for el in range(10):
             obs1 = res[0][-1].observations[el]
             obs2 = res2[0][-1].observations[el]
@@ -166,7 +168,33 @@ class TestNoisy(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 self._obs_equals(obs1, obs3)
 
-# TODO: find way to change the std of underlying distributions
+class TestNoisyDiffParams(TestNoisy):
+    def setUp(self) -> None:
+        kwargs_observation = {"sigma_load_p": 1., "sigma_gen_p": 0.1}
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    observation_class=NoisyObservation,
+                                    kwargs_observation=kwargs_observation)
+        self.env.seed(0)
+        self.env.set_id(0)
+        self.obs = self.env.reset()
+
+    def test_param_working(self):
+        # change the kwargs to make sure it has an impact
+        kwargs_observation = {"sigma_load_p": 0.1, "sigma_gen_p": 1.0}
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("educ_case14_storage",
+                               test=True,
+                               observation_class=NoisyObservation,
+                               kwargs_observation=kwargs_observation)
+        env.seed(0)
+        env.set_id(0)
+        obs = env.reset()
+        with self.assertRaises(AssertionError):
+            self._obs_equals(obs, self.obs)
 
 # TODO next: have a powerflow there to compute the outcome of the state 
 # after the modification

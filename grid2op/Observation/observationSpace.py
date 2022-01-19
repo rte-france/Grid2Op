@@ -60,7 +60,8 @@ class ObservationSpace(SerializableObservationSpace):
                  rewardClass=None,
                  observationClass=CompleteObservation,
                  actionClass=None,
-                 with_forecast=True):
+                 with_forecast=True,
+                 kwargs_observation=None,):
         """
         INTERNAL
 
@@ -123,6 +124,11 @@ class ObservationSpace(SerializableObservationSpace):
         self._update_env_time = 0.
         self.__nb_simulate_called_this_step = 0
         self.__nb_simulate_called_this_episode = 0
+
+        # extra argument to build the observation
+        if kwargs_observation is None:
+            kwargs_observation = {}
+        self._ptr_kwargs_observation = kwargs_observation
 
     def simulate_called(self):
         """
@@ -217,7 +223,8 @@ class ObservationSpace(SerializableObservationSpace):
 
         res = self.observationClass(obs_env=self.obs_env,
                                     action_helper=self.action_helper_env,
-                                    random_prng=self.space_prng)
+                                    random_prng=self.space_prng,
+                                    **self._ptr_kwargs_observation)
         self.__nb_simulate_called_this_step = 0
         if _update_state:
             # TODO how to make sure that whatever the number of time i call "simulate" i still get the same observations
@@ -272,7 +279,11 @@ class ObservationSpace(SerializableObservationSpace):
         new_obj.__nb_simulate_called_this_step = self.__nb_simulate_called_this_step
         new_obj.__nb_simulate_called_this_episode = self.__nb_simulate_called_this_episode
         new_obj._env_param  = copy.deepcopy(self._env_param)
-        
+
+        # as it's a "pointer" it's init from the env when needed here
+        # this is why i don't deep copy it here !
+        new_obj._ptr_kwargs_observation = self._ptr_kwargs_observation  
+
     def copy(self, copy_backend=False):
         """
         INTERNAL

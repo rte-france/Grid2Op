@@ -74,7 +74,9 @@ class _ObsEnv(BaseEnv):
                          tol_poly=tol_poly,
                          has_attention_budget=has_attention_budget,
                          attention_budget_cls=attention_budget_cls,
-                         kwargs_attention_budget=kwargs_attention_budget)
+                         kwargs_attention_budget=kwargs_attention_budget,
+                         kwargs_observation=None,
+                         )
         self._reward_helper = reward_helper
         self._helper_action_class = helper_action_class
 
