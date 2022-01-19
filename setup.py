@@ -27,7 +27,6 @@ pkgs = {
         "pandas>=1.0.3",
         "pandapower>=2.2.2",
         "tqdm>=4.45.0",
-        "pathlib>=1.0.1",
         "networkx>=2.4",
         "requests>=2.23.0"
     ],
@@ -45,22 +44,6 @@ pkgs = {
             "psutil>=5.7.0",
             "gym>=0.17.2",
         ],
-        "challenge": [
-            "numpy==1.18.5",
-            "scipy==1.4.1",
-            "pandas==1.1.0",
-            "pandapower==2.3.0",
-            "tqdm==4.48.2",
-            "pathlib==1.0.1",
-            "networkx==2.4",
-            "requests==2.24.0",
-            "tensorflow==2.3.0",
-            "Keras==2.4.3",
-            "torch==1.6.0",
-            "statsmodels==0.11.1",
-            "scikit-learn==0.23.2",
-            "gym==0.17.2",
-        ],
         "docs": [
             "numpydoc>=0.9.2",
             "sphinx>=2.4.4",
@@ -73,10 +56,10 @@ pkgs = {
             "flask",
             "flask_wtf",
             "ujson"
-        ]
+        ],
+        "plot": ["imageio"]
     }
 }
-
 
 setup(name='Grid2Op',
       version='1.6.4',

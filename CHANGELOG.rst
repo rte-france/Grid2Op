@@ -3,10 +3,10 @@ Change Log
 
 [TODO]
 --------------------
+- [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
-- [???] add the storage power in the backend.get_action_to_set()"
-- [???] add a "_cst_" or something in the `const` member of all the class
+- [???] add a "_cst_" or something in the `const` member of all the classes
 - [???] in deepcopy of env, make tests that the "pointers" are properly propagated in the attributes (for example
   `envcpy._game_rules.legal_action` should not be copied when building `envcpy._helper_action_env`)
 - [???] add multi agent
@@ -29,12 +29,53 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.6.5] - 2022-01-19
+---------------------
+- [BREAKING] the function "env.reset()" now reset the underlying pseudo random number generators
+  of all the environment subclasses (eg. observation space, action space, etc.) This change has been made to
+  ensure reproducibility between episodes: if `env.seed(...)` is called once, then regardless of what happens
+  (basically the number of "env.step()" between calls to "env.reset()")
+  the "env.reset()" will be generated with the same prng (drawn from the environment)
+  This effect the opponent and the chronics (when maintenance are generated "on the fly").
+- [BREAKING] the name of the python files for the "Chronics" module are now lowercase (complient with PEP). If you
+  did things like `from grid2op.Chronics.ChangeNothing import ChangeNothing` you need to change it like
+  `from grid2op.Chronics.changeNothing import ChangeNothing` or even better, and this is the preferred way to include
+  them: `from grid2op.Chronics import ChangeNothing`. It should not affect lots of code (more refactoring of the kind
+  are to be expected in following versions).
+- [BREAKING] same as above for the "Observation" module. It should not affect lots of code (more refactoring of the kind
+  are to be expected in following versions).
+- [FIXED] a bug for the EpisodeData that did not save the first observation when 
+  "add_detailed_output" was set to ``True`` and the data were not saved on disk.
+- [FIXED] an issue when copying the environment with the opponent (see issue https://github.com/rte-france/Grid2Op/issues/274)
+- [FIXED] a bug leading to the wrong "backend.get_action_to_set()" when there were storage units on the grid. 
+- [FIXED] a bug in the "BackendConverter" when there are storage  on the grid
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/265
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/261
+- [ADDED] possibility to "env.set_id" by giving only the folder of the chronics and not the whole path.
+- [ADDED] function "env.chronics_handler.available_chronics()" to return the list of available chronics
+  for a given environment
+- [ADDED] possibility, through the `Parameters` class, to limit the number of possible calls to `obs.simulate(...)` 
+  see `param.MAX_SIMULATE_PER_STEP` and `param.MAX_SIMULATE_PER_EPISODE` (see issue https://github.com/rte-france/Grid2Op/issues/273)
+- [ADDED] a class to generate a "Chronics" readable by grid2op from numpy arrays (see https://github.com/rte-france/Grid2Op/issues/271)
+- [ADDED] an attribute `delta_time` in the observation that tells the time (in minutes) between two consecutive steps.
+- [ADDED] a method of the action space to show a list of actions to get back to the original topology 
+  (see https://github.com/rte-france/Grid2Op/issues/275)
+  `env.action_space.get_back_to_ref_state(obs)`
+- [ADDED] a method of the action to store it in a grid2op independant fashion (using json and dictionaries), see `act.as_serializable_dict()`
+- [ADDED] possibility to generate a gym `DiscreteActSpace` from a given list of actions (see https://github.com/rte-france/Grid2Op/issues/277)
+- [ADDED] a class that output a noisy observation to the agent (see `NoisyObservation`): the agent sees
+  the real values of the environment with some noise, this could used to model inacurate
+  sensors.
+- [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
+- [IMRPOVED] docs (and notebooks) for the "split_train_val" https://github.com/rte-france/Grid2Op/issues/269
+- [IMRPOVED] the "split_train_val" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276
+  
 [1.6.4] - 2021-11-08
 ---------------------
-- [BREAKING] the name of the python file for the "agent" module are now lowercase (complient with PEP). If you
+- [BREAKING] the name of the python files for the "agent" module are now lowercase (complient with PEP). If you
   did things like `from grid2op.Agent.BaseAgent import BaseAgent` you need to change it like
   `from grid2op.Agent.baseAgent import BaseAgent` or even better, and this is the preferred way to include
-  them: `from grid2op.Agent import BaseAgent` It should not affect lots of code.
+  them: `from grid2op.Agent import BaseAgent`. It should not affect lots of code.
 - [FIXED] a bug where the shunt had a voltage when disconnected using pandapower backend
 - [FIXED] a bug preventing to print the action space if some "part" of it had no size (empty action space)
 - [FIXED] a bug preventing to copy an action properly (especially for the alarm)

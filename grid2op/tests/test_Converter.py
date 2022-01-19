@@ -7,6 +7,9 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import os
+import json
+from grid2op.Action.BaseAction import BaseAction
 from grid2op.tests.helper_path_test import *
 
 from grid2op.MakeEnv import make
@@ -47,7 +50,7 @@ class TestConnectivityConverter(HelperTests):
                          3,  3,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  5,  5,  5,  5,  5,
                          5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,
                          5,  5,  5,  5,  5,  5,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8, 12,
-                        12, 12, 12, 12, 12])
+                         12, 12, 12, 12, 12])
 
         assert np.array_equal(converter.subs_ids, res)
         assert len(converter.obj_type) == converter.n
@@ -263,6 +266,7 @@ class TestIdToAct(HelperTests):
                             test=True, param=param,
                             action_class=PlayableAction)
         np.random.seed(0)
+        self.filenamedict = "test_action_json_educ_case14_storage.json"
 
     def tearDown(self):
         self.env.close()
@@ -310,7 +314,15 @@ class TestIdToAct(HelperTests):
             assert converter.n == dims[attr], f"dim for \"{attr}\" should be {dims[attr]} but is " \
                                               f"{converter.n}"
 
-
+    def test_init_from_list_of_dict(self):
+        path_input = os.path.join(PATH_DATA_TEST, self.filenamedict)
+        with open(path_input, "r") as f:
+            list_act = json.load(f)
+        converter = IdToAct(self.env.action_space)
+        converter.init_converter(all_actions=list_act)
+        assert converter.n == 255
+        assert isinstance(converter.all_actions[-1], BaseAction)
+        assert isinstance(converter.all_actions[0], BaseAction)
 
 if __name__ == "__main__":
     unittest.main()

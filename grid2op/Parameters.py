@@ -106,6 +106,12 @@ class Parameters:
         Number of steps for which it's worth it to give an alarm (if an alarm is send outside of the window
         `[ALARM_BEST_TIME - ALARM_WINDOW_SIZE, ALARM_BEST_TIME + ALARM_WINDOW_SIZE]` then it does not grant anything
 
+    MAX_SIMULATE_PER_STEP: ``int``
+        Maximum number of calls to `obs.simuate(...)` allowed per step (reset each "env.step(...)"). Defaults to -1 meaning "as much as you want".
+
+    MAX_SIMULATE_PER_EPISODE: ``int``
+        Maximum number of calls to `obs.simuate(...)` allowed per episode (reset each "env.simulate(...)"). Defaults to -1 meaning "as much as you want".
+
     """
     def __init__(self, parameters_path=None):
         """
@@ -161,6 +167,14 @@ class Parameters:
         # do i take into account the storage loss in the step function
         self.ACTIVATE_STORAGE_LOSS = True
 
+        # alarms
+        self.ALARM_BEST_TIME = 12
+        self.ALARM_WINDOW_SIZE = 12
+
+        # number of simulate
+        self.MAX_SIMULATE_PER_STEP = dt_int(-1)
+        self.MAX_SIMULATE_PER_EPISODE = dt_int(-1)
+
         if parameters_path is not None:
             if os.path.isfile(parameters_path):
                 self.init_from_json(parameters_path)
@@ -168,8 +182,6 @@ class Parameters:
                 warn_msg = "Parameters: the file {} is not found. Continuing with default parameters."
                 warnings.warn(warn_msg.format(parameters_path))
 
-        self.ALARM_BEST_TIME = 12
-        self.ALARM_WINDOW_SIZE = 12
 
     @staticmethod
     def _isok_txt(arg):
@@ -263,10 +275,17 @@ class Parameters:
         if "ALARM_WINDOW_SIZE" in dict_:
             self.ALARM_WINDOW_SIZE = dt_int(dict_["ALARM_WINDOW_SIZE"])
 
+        if "MAX_SIMULATE_PER_STEP" in dict_:
+            self.MAX_SIMULATE_PER_STEP = dt_int(dict_["MAX_SIMULATE_PER_STEP"])
+
+        if "MAX_SIMULATE_PER_EPISODE" in dict_:
+            self.MAX_SIMULATE_PER_EPISODE = dt_int(dict_["MAX_SIMULATE_PER_EPISODE"])
+
         authorized_keys = set(self.__dict__.keys())
         authorized_keys = authorized_keys | {'NB_TIMESTEP_POWERFLOW_ALLOWED',
                                              'NB_TIMESTEP_TOPOLOGY_REMODIF',
                                              "NB_TIMESTEP_LINE_STATUS_REMODIF"}
+
         ignored_keys = dict_.keys() - authorized_keys
         if len(ignored_keys):
             warnings.warn("Parameters: The _parameters \"{}\" used to build the Grid2Op.Parameters "
@@ -299,6 +318,8 @@ class Parameters:
         res["ACTIVATE_STORAGE_LOSS"] = bool(self.ACTIVATE_STORAGE_LOSS)
         res["ALARM_BEST_TIME"] = int(self.ALARM_BEST_TIME)
         res["ALARM_WINDOW_SIZE"] = int(self.ALARM_WINDOW_SIZE)
+        res["MAX_SIMULATE_PER_STEP"] = int(self.MAX_SIMULATE_PER_STEP)
+        res["MAX_SIMULATE_PER_EPISODE"] = int(self.MAX_SIMULATE_PER_EPISODE)
         return res
 
     def init_from_json(self, json_path):
@@ -463,3 +484,19 @@ class Parameters:
             raise RuntimeError("self.ALARM_WINDOW_SIZE should be a positive integer !")
         if self.ALARM_BEST_TIME <= 0:
             raise RuntimeError("self.ALARM_BEST_TIME should be a positive integer !")
+
+        try:
+            self.MAX_SIMULATE_PER_STEP = int(self.MAX_SIMULATE_PER_STEP)  # to raise if numpy array
+            self.MAX_SIMULATE_PER_STEP = dt_int(self.MAX_SIMULATE_PER_STEP)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert MAX_SIMULATE_PER_STEP to int with error \n:\"{exc_}\"")
+        if self.MAX_SIMULATE_PER_STEP <= -2:
+            raise RuntimeError(f"self.MAX_SIMULATE_PER_STEP should be a positive integer or -1, we found {self.MAX_SIMULATE_PER_STEP}")
+
+        try:
+            self.MAX_SIMULATE_PER_EPISODE = int(self.MAX_SIMULATE_PER_EPISODE)  # to raise if numpy array
+            self.MAX_SIMULATE_PER_EPISODE = dt_int(self.MAX_SIMULATE_PER_EPISODE)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert MAX_SIMULATE_PER_EPISODE to int with error \n:\"{exc_}\"")
+        if self.MAX_SIMULATE_PER_EPISODE <= -2:
+            raise RuntimeError(f"self.MAX_SIMULATE_PER_EPISODE should be a positive integer or -1, we found {self.MAX_SIMULATE_PER_EPISODE}")

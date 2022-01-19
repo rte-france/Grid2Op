@@ -30,7 +30,7 @@ class Issue148Tester(unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_SUB = 3
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+            env = grid2op.make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),  test=True,
                                param=param)
 
         ID_MAINT = 11  # in maintenance at the second time step

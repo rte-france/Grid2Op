@@ -96,12 +96,12 @@ class RAII_Timer():
     used for another purpose.
     """
     def __init__(self, str_=""):
-        self._time = time.time()
+        self._time = time.perf_counter()
         self.str_ = str_
 
     def __del__(self):
         if VERBOSE_TIMER:
-            print(f"Execution time for {self.str_}: {time.time() - self._time:.3f} s")
+            print(f"Execution time for {self.str_}: {time.perf_counter() - self._time:.3f} s")
 
 
 class TestNotebook(unittest.TestCase):

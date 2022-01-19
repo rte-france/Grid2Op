@@ -42,7 +42,7 @@ class TestAlarmFeature(unittest.TestCase):
         self.env.close()
 
     def test_create_ok(self):
-        """test that the stuff is created with the right parameters"""
+        """TestAlarmFeature.test_create_ok test that the stuff is created with the right parameters"""
         assert self.env._has_attention_budget
         assert self.env._attention_budget is not None
         assert isinstance(self.env._attention_budget, LinearAttentionBudget)
@@ -54,18 +54,19 @@ class TestAlarmFeature(unittest.TestCase):
         with self.assertRaises(Grid2OpException):
             # it raises because the default reward: AlarmReward can only be used
             # if there is an alarm budget
-            with make(self.env_nm, has_attention_budget=False) as env:
+            with make(self.env_nm, has_attention_budget=False, test=True) as env:
                 assert env._has_attention_budget is False
                 assert env._attention_budget is None
 
-        with make(self.env_nm, has_attention_budget=False, reward_class=RedispReward) as env:
+        with make(self.env_nm, has_attention_budget=False, reward_class=RedispReward, test=True) as env:
             assert env._has_attention_budget is False
             assert env._attention_budget is None
 
-        with make(self.env_nm, kwargs_attention_budget={"max_budget": 15,
-                                                        "budget_per_ts": 1,
-                                                        "alarm_cost": 12,
-                                                        "init_budget": 0}) as env:
+        with make(self.env_nm, test=True,
+                  kwargs_attention_budget={"max_budget": 15,
+                                           "budget_per_ts": 1,
+                                           "init_budget": 0,
+                                           "alarm_cost": 12}) as env:
             assert env._has_attention_budget
             assert env._attention_budget is not None
             assert isinstance(env._attention_budget, LinearAttentionBudget)
@@ -87,7 +88,8 @@ class TestAlarmFeature(unittest.TestCase):
         with make(self.env_nm, kwargs_attention_budget={"max_budget": 5,
                                                         "budget_per_ts": 1,
                                                         "alarm_cost": 12,
-                                                        "init_budget": 0}) as env:
+                                                        "init_budget": 0},
+                   test=True) as env:
             env.step(self.env.action_space())
             assert abs(env._attention_budget._current_budget - 1) <= 1e-6
             env.step(self.env.action_space())

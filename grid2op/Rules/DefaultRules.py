@@ -36,3 +36,6 @@ class DefaultRules(LookParam, PreventDiscoStorageModif, PreventReconnection):
             return False, reason
 
         return PreventReconnection.__call__(self, action, env)
+
+    def can_use_simulate(self, nb_simulate_call_step, nb_simulate_call_episode, param):
+      return LookParam.can_use_simulate(self, nb_simulate_call_step, nb_simulate_call_episode, param)

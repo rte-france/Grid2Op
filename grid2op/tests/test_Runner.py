@@ -172,6 +172,15 @@ class TestRunner(HelperTests):
             for j in range(len(self.all_real_rewards)):
                 assert np.abs(episode_data.rewards[j] - self.all_real_rewards[j]) <= self.tol_one
 
+    def test_add_detailed_output_first_obs(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res = self.runner.run(nb_episode=1,
+                                  nb_process=1,
+                                  max_iter=self.max_iter,
+                                  add_detailed_output=True)
+        assert res[0][-1].observations[0] is not None
+
     def test_multiprocess_windows_no_fail(self):
         """test that i can run multiple times parallel run of the same env (breaks on windows)"""
         nb_episode = 2

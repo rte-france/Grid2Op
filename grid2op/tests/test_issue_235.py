@@ -14,9 +14,9 @@ from grid2op.tests.helper_path_test import *
 from grid2op.Observation import CompleteObservation
 
 
-class Issue224TesterObs(CompleteObservation):
-    def __init__(self, obs_env=None, action_helper=None, seed=None):
-        CompleteObservation.__init__(self, obs_env, action_helper, seed)
+class Issue235TesterObs(CompleteObservation):
+    def __init__(self, obs_env=None, action_helper=None, random_prng=None):
+        CompleteObservation.__init__(self, obs_env, action_helper, random_prng=random_prng)
         self._is_updated = False
 
     def update(self, env, with_forecast=True):
@@ -24,7 +24,7 @@ class Issue224TesterObs(CompleteObservation):
         super().update(env, with_forecast)
 
 
-class Issue224Tester(unittest.TestCase):
+class Issue235Tester(unittest.TestCase):
     """
     This bug was due to the environment that updated the observation even when it diverges.
 
@@ -37,9 +37,15 @@ class Issue224Tester(unittest.TestCase):
             env_nm = 'l2rpn_icaps_2021'
             # from lightsim2grid import LightSimBackend
             # backend=LightSimBackend(),
-            self.env = grid2op.make(env_nm, test=True, observation_class=Issue224TesterObs)
-            self.env.seed(0)
-            self.env.reset()
+            self.env = grid2op.make(env_nm, test=True, observation_class=Issue235TesterObs)
+        
+        # now set the right observation class for the simulate action
+        hack_obs_cls = Issue235TesterObs.init_grid(type(self.env))
+        self.env._observation_space.obs_env.current_obs = hack_obs_cls()
+        self.env._observation_space.obs_env.current_obs_init = hack_obs_cls()
+        # now do regular gri2op stuff
+        self.env.seed(0)
+        self.env.reset()
 
     def test_diverging_action(self):
         final_dict = {'generators_id': [(19, 1)],
@@ -49,5 +55,6 @@ class Issue224Tester(unittest.TestCase):
         action = self.env.action_space({"set_bus": final_dict})
         obs = self.env.reset()
         simobs, simr, simd, siminfo = obs.simulate(action, time_step=0)
+        assert simd
         assert np.all(simobs.gen_p == 0.)
         assert not simobs._is_updated

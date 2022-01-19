@@ -253,9 +253,9 @@ if __name__ == "__main__":
     with tqdm(desc="local env") as pbar:
         while True:
             act = real_env.action_space()
-            beg_step = time.time()
+            beg_step = time.perf_counter()
             obs, reward, done, info = env_perf.step(act)
-            time_for_step += time.time() - beg_step
+            time_for_step += time.perf_counter() - beg_step
             if done:
                 break
             nb_step_local += 1
@@ -274,18 +274,18 @@ if __name__ == "__main__":
     with tqdm(desc="remote env") as pbar:
         while True:
             act = real_env.action_space()
-            beg_step = time.time()
+            beg_step = time.perf_counter()
             act_as_json = act.to_json()
             resp_step = client.post(f"{URL}/step/{env_name}/{id_env_perf}", json={"action": act_as_json})
-            after_step = time.time()
+            after_step = time.perf_counter()
             time_for_step_api += after_step - beg_step
             resp_step_json = resp_step.json()
-            time_get_json += time.time() - after_step
+            time_get_json += time.perf_counter() - after_step
             reic_obs_json = resp_step_json["obs"]
-            beg_convert = time.time()
+            beg_convert = time.perf_counter()
             obs.from_json(reic_obs_json)
-            time_convert += time.time() - beg_convert
-            time_for_all_api += time.time() - beg_step
+            time_convert += time.perf_counter() - beg_convert
+            time_for_all_api += time.perf_counter() - beg_step
             if resp_step_json["done"]:
                 break
             pbar.update(1)

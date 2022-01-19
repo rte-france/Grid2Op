@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-from grid2op.Exceptions import IllegalAction
+from grid2op.Exceptions import IllegalAction, SimulateUsedTooMuchThisStep, SimulateUsedTooMuchThisEpisode
 from grid2op.Rules.BaseRules import BaseRules
 
 
@@ -38,3 +38,11 @@ class LookParam(BaseRules):
             return False, IllegalAction("More than {} substation affected by the action: {}"
                                         "".format(env.parameters.MAX_SUB_CHANGED, ids))
         return True, None
+
+    def can_use_simulate(self, nb_simulate_call_step, nb_simulate_call_episode, param):
+        if param.MAX_SIMULATE_PER_STEP >= 0:
+            if nb_simulate_call_step > param.MAX_SIMULATE_PER_STEP:
+                return  SimulateUsedTooMuchThisStep(f"attempt to use {nb_simulate_call_step} times `obs.simulate(...)` while the maximum allowed for this step is {param.MAX_SIMULATE_PER_STEP}")
+        if param.MAX_SIMULATE_PER_EPISODE >= 0:
+            if nb_simulate_call_episode > param.MAX_SIMULATE_PER_EPISODE:
+                return  SimulateUsedTooMuchThisEpisode(f"attempt to use {nb_simulate_call_episode} times `obs.simulate(...)` while the maximum allowed for this episode is {param.MAX_SIMULATE_PER_EPISODE}")

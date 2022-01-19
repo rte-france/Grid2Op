@@ -150,8 +150,6 @@ class Issue185Tester(unittest.TestCase):
                     if obs not in gym_env.observation_space:
                         for k in obs:
                             if not obs[k] in gym_env.observation_space[k]:
-                                import pdb
-                                pdb.set_trace()
                                 raise RuntimeError(f"Error for key {k} for env {env_name}")
 
 

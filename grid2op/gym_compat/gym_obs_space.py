@@ -227,6 +227,9 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "attention_budget":
                     low = 0.
                     high = np.inf
+                elif attr_nm == "delta_time":
+                    low = 0.
+                    high = np.inf
                 # curtailment, curtailment_limit, gen_p_before_curtail
 
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)

@@ -10,6 +10,7 @@ import pdb
 import warnings
 import pandas as pd
 import tempfile
+import re
 from grid2op.tests.helper_path_test import *
 
 from grid2op.dtypes import dt_int, dt_float
@@ -631,7 +632,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), test=True, param=param) as env:
                 env.seed(123456)  # for reproducible tests !
                 obs = env.reset()
                 #get input data, to check they were correctly applied in
@@ -672,7 +673,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), test=True,
                       param=param) as env:
                 env.seed(0)
                 envLines = env.name_line
@@ -712,7 +713,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_2"),
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_2"), test=True,
                       param=param) as env:
                 env.seed(0)
                 # input data
@@ -739,7 +740,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"),
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"), test=True,
                       param=param) as env:
                 env.seed(0)
                 # get input data, to check they were correctly applied in
@@ -760,7 +761,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), test=True, param=param) as env:
                 env.seed(0)
                 env.set_id(0)
                 obs = env.reset()
@@ -812,7 +813,7 @@ class TestCFFWFWM(HelperTests):
                 assert np.all(maintenance_0_0 == maintenance_0_1)
 
                 # make sure i can reload the environment
-                env2 = make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
+                env2 = make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), test=True,
                             param=param,
                             data_feeding_kwargs={"gridvalueClass": GridStateFromFileWithForecasts},
                             chronics_path=chronics_outdir3)
@@ -827,7 +828,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), test=True, param=param) as env:
                 nb_scenario = 10
                 nb_maintenance = np.zeros((nb_scenario, env.n_line), dtype=dt_float)
                 nb_maintenance1 = np.zeros((nb_scenario, env.n_line), dtype=dt_float)
@@ -848,7 +849,7 @@ class TestCFFWFWM(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"),
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"), test=True, 
                       param=param) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -867,7 +868,7 @@ class TestWithCache(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"),
+            with make(os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"), test=True, 
                       param=param,
                       chronics_class=MultifolderWithCache) as env:
                 env.seed(123456)  # for reproducible tests !
@@ -892,8 +893,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
-                      test=True,
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"), test=True,
                       param=param) as env:
                 l_id = 11
                 obs = env.reset()
@@ -949,8 +949,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
-                      test=True,
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"), test=True,
                       param=param,
                       gamerules_class=AlwaysLegal) as env:
                 l_id = 11
@@ -1160,6 +1159,79 @@ class TestMultiFolder(HelperTests):
         assert id_ == 0
         assert np.all(env.chronics_handler.real_data._order == [2*i for i in range(10)])
 
+    def test_set_id_int(self):
+        """test the env.set_id method when used with int"""
+        chronics_class = self.get_multifolder_class()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+            
+        if issubclass(chronics_class, MultifolderWithCache):
+            env.chronics_handler.set_filter(lambda x: re.match(".*(01|04|05|07|09).*", x) is not None)
+            env.chronics_handler.reset()
+
+        env.set_id(1)
+        env.reset()
+        id_str = os.path.split(env.chronics_handler.get_id())[-1]
+        if not issubclass(chronics_class, MultifolderWithCache):
+            assert id_str == "01"
+        else:
+            assert id_str == "04"
+
+        env.set_id(4)
+        env.reset()
+        id_str = os.path.split(env.chronics_handler.get_id())[-1]
+        if not issubclass(chronics_class, MultifolderWithCache):
+            assert id_str == "04"
+        else:
+            assert id_str == "09"
+
+    def test_set_id_full_path(self):
+        """test the env.set_id method when used with full path"""
+        chronics_class = self.get_multifolder_class()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+        if issubclass(chronics_class, MultifolderWithCache):
+            env.chronics_handler.set_filter(lambda x: re.match(".*(01|04|05).*", x) is not None)
+            env.chronics_handler.reset()
+        base_path = os.path.split(env.chronics_handler.get_id())[0]
+        env.set_id(os.path.join(base_path, "01"))
+        env.reset()
+        assert env.chronics_handler.get_id() == os.path.join(base_path, "01")
+        env.set_id(os.path.join(base_path, "04"))
+        env.reset()
+        assert env.chronics_handler.get_id() == os.path.join(base_path, "04")
+
+        with self.assertRaises(ChronicsError):
+            env.set_id(os.path.join(base_path, "31"))
+        if issubclass(chronics_class, MultifolderWithCache):
+            with self.assertRaises(ChronicsError):
+                env.set_id(os.path.join(base_path, "00"))
+
+    def test_set_id_chron_dir(self):
+        """test the env.set_id method when used with only folder name in the chronics"""
+        chronics_class = self.get_multifolder_class()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+        if issubclass(chronics_class, MultifolderWithCache):
+            env.chronics_handler.set_filter(lambda x: re.match(".*(01|04|05).*", x) is not None)
+            env.chronics_handler.reset()
+        base_path = os.path.split(env.chronics_handler.get_id())[0]
+
+        env.set_id("01")
+        env.reset()
+        assert env.chronics_handler.get_id() == os.path.join(base_path, "01")
+        env.set_id("04")
+        env.reset()
+        assert env.chronics_handler.get_id() == os.path.join(base_path, "04")
+
+        with self.assertRaises(ChronicsError):
+            env.set_id("31")
+        if issubclass(chronics_class, MultifolderWithCache):
+            with self.assertRaises(ChronicsError):
+                env.set_id("00")
 
 class TestMultiFolderWithCache(TestMultiFolder):
     def get_multifolder_class(self):
@@ -1196,7 +1268,6 @@ class TestDeactivateMaintenance(HelperTests):
                 obs = env.reset()
                 # all maintenance are deactivated
                 assert np.all(obs.time_next_maintenance == -1)
-
 
 if __name__ == "__main__":
     unittest.main()
