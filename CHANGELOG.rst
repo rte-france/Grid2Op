@@ -29,7 +29,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.6.5] - 2022-xx-yy
+[1.6.5] - 2022-01-19
 ---------------------
 - [BREAKING] the function "env.reset()" now reset the underlying pseudo random number generators
   of all the environment subclasses (eg. observation space, action space, etc.) This change has been made to
