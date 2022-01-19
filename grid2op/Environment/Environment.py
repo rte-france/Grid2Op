@@ -769,7 +769,8 @@ class Environment(BaseEnv):
 
         # and reset also the "simulated env" in the observation space
         self._observation_space.reset(self)
-
+        
+        self._last_obs = None  # force the first observation to be generated properly
         return self.get_obs()
 
     def render(self, mode='human'):

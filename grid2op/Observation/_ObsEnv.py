@@ -199,8 +199,7 @@ class _ObsEnv(BaseEnv):
         self._create_attention_budget()
         self._obsClass = observationClass.init_grid(type(self.backend))
         self._obsClass._INIT_GRID_CLS = observationClass
-        self.current_obs_init = self._obsClass(seed=None,
-                                               obs_env=None,
+        self.current_obs_init = self._obsClass(obs_env=None,
                                                action_helper=None)
         self.current_obs = self.current_obs_init
 

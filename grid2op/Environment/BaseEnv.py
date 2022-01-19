@@ -426,6 +426,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._is_alarm_used_in_reward = False
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
 
+        # to ensure self.get_obs() has a reproducible behaviour
+        self._last_obs = None
+
+        # to retrieve previous result (before 1.6.5 the seed of the
+        # action space or observation space was not done each reset)
+        self._has_just_been_seeded = False
+
     def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
         if self.__closed:
             raise RuntimeError("Impossible to make a copy of a closed environment !")
@@ -612,6 +619,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._is_alarm_illegal = copy.deepcopy(self._is_alarm_illegal)
         new_obj._is_alarm_used_in_reward = copy.deepcopy(self._is_alarm_used_in_reward)
         new_obj._kwargs_attention_budget = copy.deepcopy(self._kwargs_attention_budget)
+
+        new_obj._last_obs = self._last_obs.copy()
 
     def get_path_env(self):
         """
@@ -946,8 +955,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._observation_space.change_reward(self._reward_helper.template_reward)
             self.__new_reward_func = None
 
+        self._last_obs = None
+
+        # seeds (so that next episode does not depend on what happened in previous episode)
+        if self.seed_used is not None and not self._has_just_been_seeded:
+            self.seed(None, _seed_me=False)
         self._reset_storage()
         self._reset_curtailment()
+        self._has_just_been_seeded = False
 
     def _reset_storage(self):
         """reset storage capacity at the beginning of new environment if needed"""
@@ -968,7 +983,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._sum_curtailment_mw = dt_float(0.)
         self._sum_curtailment_mw_prev = dt_float(0.)
 
-    def seed(self, seed=None):
+    def seed(self, seed=None, _seed_me=True):
         """
         Set the seed of this :class:`Environment` for a better control and to ease reproducible experiments.
 
@@ -976,6 +991,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         ----------
         seed: ``int``
            The seed to set.
+
+        _seed_me: ``bool``
+            Whether to seed this instance or just the other things. Used internally only.
 
         Returns
         ---------
@@ -1015,22 +1033,26 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.__closed:
             raise EnvError("This environment is closed. You cannot use it anymore.")
 
-        try:
-            seed = np.array(seed).astype(dt_int)
-        except Exception as exc_:
-            raise Grid2OpException("Impossible to seed with the seed provided. Make sure it can be converted to a"
-                                   "numpy 64 integer.")
-        # example from gym
-        # self.np_random, seed = seeding.np_random(seed)
-        # inspiration from @ https://github.com/openai/gym/tree/master/gym/utils
-        seed_init = seed
-        super().seed(seed_init)
+
+        seed_init = None
         seed_chron = None
         seed_obs = None
         seed_action_space = None
         seed_env_modif = None
         seed_volt_cont = None
         seed_opponent = None
+        if _seed_me:
+            try:
+                seed = np.array(seed).astype(dt_int)
+            except Exception as exc_:
+                raise Grid2OpException("Impossible to seed with the seed provided. Make sure it can be converted to a"
+                                       "numpy 64 integer.")
+            # example from gym
+            # self.np_random, seed = seeding.np_random(seed)
+            # inspiration from @ https://github.com/openai/gym/tree/master/gym/utils
+            seed_init = seed
+            super().seed(seed_init)
+            
         max_int = np.iinfo(dt_int).max
         if self.chronics_handler is not None:
             seed = self.space_prng.randint(max_int)
@@ -1050,6 +1072,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._opponent is not None:
             seed = self.space_prng.randint(max_int)
             seed_opponent = self._opponent.seed(seed)
+        self._has_just_been_seeded = True
         return seed_init, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent
 
     def deactivate_forecast(self):
@@ -1675,6 +1698,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Return the observations of the current environment made by the :class:`grid2op.BaseAgent.BaseAgent`.
 
+        .. info::
+            this function is called twice when the env is reset, otherwise once per step
+        
         Returns
         -------
         res: :class:`grid2op.Observation.Observation`
@@ -1704,8 +1730,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise EnvError("This environment is closed. You cannot use it anymore.")
         if not self.__is_init:
             raise EnvError("This environment is not initialized. You cannot retrieve its observation.")
-        res = self._observation_space(env=self, _update_state=_update_state)
-        return res
+        if self._last_obs is None:
+            self._last_obs = self._observation_space(env=self, _update_state=_update_state)
+        return self._last_obs.copy()
 
     def get_thermal_limit(self):
         """
@@ -1924,6 +1951,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise Grid2OpException("Impossible to make a step with a non initialized backend. Have you called "
                                    "\"env.reset()\" after the last game over ?")
 
+        self._has_just_been_seeded = False  # I did something after calling "env.seed()" which is
+        # somehow "env.step()" or "env.reset()"
         has_error = True
         is_done = False
         disc_lines = None
@@ -1946,6 +1975,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._disc_lines[:] = -1
 
         beg_step = time.perf_counter()
+        self._last_obs = None
         try:
             beg_ = time.perf_counter()
 
@@ -2168,7 +2198,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     self.current_obs = self.get_obs()
                     # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
                     # TODO is non zero and disconnected, this should be ok.
-
                     self._time_extract_obs += time.perf_counter() - beg_res
 
                     has_error = False
@@ -2253,7 +2282,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._timestep_overflow[:] = 0
         self._nb_timestep_overflow_allowed[:] = self._parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
 
-        self.nb_time_step = 0
+        self.nb_time_step = 0 # to have the first step at 0
         self._hard_overflow_threshold = self._parameters.HARD_OVERFLOW_THRESHOLD
         self._env_dc = self._parameters.ENV_DC
 
@@ -2355,9 +2384,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._reward_helper.close()
 
         if hasattr(self, "other_rewards"):
-            for el, rew in self.other_rewards.items():
+            for el, reward in self.other_rewards.items():
                 # close the "other rewards"
-                rew.close()
+                reward.close()
 
         self.backend = None
         self.__is_init = False

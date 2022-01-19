@@ -9,6 +9,7 @@
 import json
 import tempfile
 import warnings
+import copy
 import pdb
 
 from grid2op.tests.helper_path_test import *
@@ -19,7 +20,7 @@ from grid2op.Exceptions import *
 from grid2op.Observation import ObservationSpace, CompleteObservation
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts
 from grid2op.Rules import RulesChecker, DefaultRules
-from grid2op.Reward import L2RPNReward, CloseToOverflowReward, RedispReward
+from grid2op.Reward import L2RPNReward, CloseToOverflowReward, RedispReward, RewardHelper
 from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import Environment
@@ -1010,13 +1011,14 @@ class TestUpdateEnvironement(unittest.TestCase):
 
 
 class TestSimulateEqualsStep(unittest.TestCase):
-    def _make_forecast_perfect(self):
+    def _make_forecast_perfect(self, env):
         # Set forecasts to actual values so that simulate runs on the same numbers as step
-        self.env.chronics_handler.real_data.data.prod_p_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)
-        self.env.chronics_handler.real_data.data.prod_v_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_v, -1, axis=0)
-        self.env.chronics_handler.real_data.data.load_p_forecast = np.roll(self.env.chronics_handler.real_data.data.load_p, -1, axis=0)
-        self.env.chronics_handler.real_data.data.load_q_forecast = np.roll(self.env.chronics_handler.real_data.data.load_q, -1, axis=0)
-        self.obs, _, _, _ = self.env.step(self.env.action_space({}))
+        env.chronics_handler.real_data.data.prod_p_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)
+        env.chronics_handler.real_data.data.prod_v_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_v, -1, axis=0)
+        env.chronics_handler.real_data.data.load_p_forecast = np.roll(self.env.chronics_handler.real_data.data.load_p, -1, axis=0)
+        env.chronics_handler.real_data.data.load_q_forecast = np.roll(self.env.chronics_handler.real_data.data.load_q, -1, axis=0)
+        obs, _, _, _ = env.step(env.action_space({}))
+        return obs
 
     def setUp(self):
         # Create env
@@ -1024,7 +1026,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = make("rte_case14_realistic", test=True)
 
-        self._make_forecast_perfect()
+        self.obs = self._make_forecast_perfect(self.env)
         self.sim_obs = None
         self.step_obs = None
             
@@ -1145,24 +1147,25 @@ class TestSimulateEqualsStep(unittest.TestCase):
         other_rewards = {"close_overflow": CloseToOverflowReward,
                          "l2rpn": L2RPNReward,
                          "redisp": RedispReward}
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True, other_rewards=other_rewards)
+        env = self.env
+
+        # do as if the environment were created with these rewards !
+        env.observation_space.change_other_rewards(copy.deepcopy(other_rewards))
+        env.other_rewards = {}
+        for k, reward in other_rewards.items():
+            env.other_rewards[k] = RewardHelper(reward)
+            env.other_rewards[k].initialize(env)
 
         # Set forecasts to actual values so that simulate runs on the same numbers as step
-        env.chronics_handler.real_data.data.prod_p_forecast = np.roll(env.chronics_handler.real_data.data.prod_p, -1, axis=0)
-        env.chronics_handler.real_data.data.prod_v_forecast = np.roll(env.chronics_handler.real_data.data.prod_v, -1, axis=0)
-        env.chronics_handler.real_data.data.load_p_forecast = np.roll(env.chronics_handler.real_data.data.load_p, -1, axis=0)
-        env.chronics_handler.real_data.data.load_q_forecast = np.roll(env.chronics_handler.real_data.data.load_q, -1, axis=0)
+        first_obs = self._make_forecast_perfect(env)
 
-        # first_obs = env.reset()  # don't do that otherwise the hack above to have simulate = step will not work!!!
-        first_obs = env.get_obs()
         sim_o, sim_r, sim_d, sim_i = first_obs.simulate(env.action_space())
         for k in other_rewards.keys():
             assert k in sim_i["rewards"]
         obs, reward, done, info = env.step(env.action_space())
         # check rewards are same, this is the case because simulate is in "perfect information"
         assert info["rewards"] == sim_i["rewards"]
+        assert np.all(sim_o.load_p == obs.load_p)
 
         env.observation_space.change_other_rewards({})
         sim_o, sim_r, sim_d, sim_i = obs.simulate(env.action_space())
@@ -1182,6 +1185,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         obs, reward, done, info = env.step(env.action_space())
         # check rewards are same, this is the case because simulate is in "perfect information"
         assert info["rewards"] == sim_i["rewards"]
+        assert np.all(sim_o.load_p == obs.load_p)
 
     def _multi_actions_sample(self):
         actions = []
@@ -1482,7 +1486,7 @@ class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = make("educ_case14_storage", test=True, action_class=PlayableAction)
-        self._make_forecast_perfect()
+        self.obs = self._make_forecast_perfect(self.env)
         self.sim_obs = None
         self.step_obs = None
 

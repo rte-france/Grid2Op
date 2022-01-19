@@ -32,6 +32,12 @@ Change Log
 
 [1.6.5] - 2022-xx-yy
 ---------------------
+- [BREAKING] the function "env.reset()" now reset the underlying pseudo random number generators
+  of all the environment subclasses (eg. observation space, action space, etc.) This change has been made to
+  ensure reproducibility between episodes: if `env.seed(...)` is called once, then regardless of what happens
+  (basically the number of "env.step()" between calls to "env.reset()")
+  the "env.reset()" will be generated with the same prng (drawn from the environment)
+  This effect the opponent and the chronics (when maintenance are generated "on the fly").
 - [BREAKING] the name of the python files for the "Chronics" module are now lowercase (complient with PEP). If you
   did things like `from grid2op.Chronics.ChangeNothing import ChangeNothing` you need to change it like
   `from grid2op.Chronics.changeNothing import ChangeNothing` or even better, and this is the preferred way to include
@@ -56,6 +62,7 @@ Change Log
   `env.action_space.get_back_to_ref_state(obs)`
 - [ADDED] a method of the action to store it in a grid2op independant fashion (using json and dictionaries), see `act.as_serializable_dict()`
 - [ADDED] possibility to generate a gym `DiscreteActSpace` from a given list of actions (see https://github.com/rte-france/Grid2Op/issues/277)
+- [ADDED] a class that output a noisy observation to the agent (see `NoisyObservation`)
 - [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
 - [IMRPOVED] docs (and notebooks) for the "split_train_val" https://github.com/rte-france/Grid2Op/issues/269
 - [IMRPOVED] the "split_train_val" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276

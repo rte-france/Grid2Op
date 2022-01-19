@@ -216,7 +216,8 @@ class ObservationSpace(SerializableObservationSpace):
             self.obs_env.update_grid(env)
 
         res = self.observationClass(obs_env=self.obs_env,
-                                    action_helper=self.action_helper_env)
+                                    action_helper=self.action_helper_env,
+                                    random_prng=self.space_prng)
         self.__nb_simulate_called_this_step = 0
         if _update_state:
             # TODO how to make sure that whatever the number of time i call "simulate" i still get the same observations

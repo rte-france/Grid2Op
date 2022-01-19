@@ -14,9 +14,9 @@ from grid2op.tests.helper_path_test import *
 from grid2op.Observation import CompleteObservation
 
 
-class Issue224TesterObs(CompleteObservation):
-    def __init__(self, obs_env=None, action_helper=None, seed=None):
-        CompleteObservation.__init__(self, obs_env, action_helper, seed)
+class Issue235TesterObs(CompleteObservation):
+    def __init__(self, obs_env=None, action_helper=None, random_prng=None):
+        CompleteObservation.__init__(self, obs_env, action_helper, random_prng=random_prng)
         self._is_updated = False
 
     def update(self, env, with_forecast=True):
@@ -24,7 +24,7 @@ class Issue224TesterObs(CompleteObservation):
         super().update(env, with_forecast)
 
 
-class Issue224Tester(unittest.TestCase):
+class Issue235Tester(unittest.TestCase):
     """
     This bug was due to the environment that updated the observation even when it diverges.
 
@@ -37,7 +37,7 @@ class Issue224Tester(unittest.TestCase):
             env_nm = 'l2rpn_icaps_2021'
             # from lightsim2grid import LightSimBackend
             # backend=LightSimBackend(),
-            self.env = grid2op.make(env_nm, test=True, observation_class=Issue224TesterObs)
+            self.env = grid2op.make(env_nm, test=True, observation_class=Issue235TesterObs)
             self.env.seed(0)
             self.env.reset()
 
