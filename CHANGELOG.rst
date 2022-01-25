@@ -31,6 +31,12 @@ Change Log
 
 [1.6.6] - 2022-xx-yy
 ---------------------
+- [BREAKING] in the "gym_compat" module the curtailment action type has 
+  for dimension the number of dispatchable generators (as opposed to all generators
+  before) this was mandatory to fix issue https://github.com/rte-france/Grid2Op/issues/282
+- [BREAKING] the size of the continuous action space for the redispatching in
+  case of gym compatibility has also been adjusted to be consistent with curtailment.
+  Before it has the size of `env.n_gen` now `np.sum(env.gen_redispatchable)`.
 - [FIXED] a bug in the gymp action space: see issue https://github.com/rte-france/Grid2Op/issues/281
 
 [1.6.5] - 2022-01-19
