@@ -37,7 +37,8 @@ Change Log
 - [BREAKING] the size of the continuous action space for the redispatching in
   case of gym compatibility has also been adjusted to be consistent with curtailment.
   Before it has the size of `env.n_gen` now `np.sum(env.gen_redispatchable)`.
-- [FIXED] a bug in the gymp action space: see issue https://github.com/rte-france/Grid2Op/issues/281
+- [FIXED] a bug in the gym action space: see issue https://github.com/rte-france/Grid2Op/issues/281
+- [FIXED] a bug in the gym box action space: see issue https://github.com/rte-france/Grid2Op/issues/283
 
 [1.6.5] - 2022-01-19
 ---------------------

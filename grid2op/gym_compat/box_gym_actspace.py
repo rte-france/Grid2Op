@@ -126,11 +126,11 @@ class BoxGymActSpace(Box):
                                f"grid2op action_space. You provided {type(grid2op_action_space)}"
                                f"as the \"grid2op_action_space\" attribute.")
         check_gym_version()
-        # if attr_to_keep == ALL_ATTR:
-        #     # by default, i remove all the attributes that are not supported by the action type
-        #     # i do not do that if the user specified specific attributes to keep. This is his responsibility in
-        #     # in this case
-        #     attr_to_keep = {el for el in attr_to_keep if grid2op_action_space.supports_type(el)}
+        if attr_to_keep == ALL_ATTR:
+            # by default, i remove all the attributes that are not supported by the action type
+            # i do not do that if the user specified specific attributes to keep. This is his responsibility in
+            # in this case
+            attr_to_keep = {el for el in attr_to_keep if grid2op_action_space.supports_type(el)}
 
         for el in ATTR_DISCRETE:
             if el in attr_to_keep:
@@ -139,7 +139,6 @@ class BoxGymActSpace(Box):
                               f"\"{el}\" when building it, be aware that this discrete action will be treated "
                               f"as continuous. Consider using the \"MultiDiscreteActSpace\" for these attributes."
                               )
-
         self._attr_to_keep = sorted(attr_to_keep)
 
         act_sp = grid2op_action_space
