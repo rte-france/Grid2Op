@@ -29,6 +29,10 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.6.6] - 2022-xx-yy
+---------------------
+- [FIXED] a bug in the gymp action space: see issue https://github.com/rte-france/Grid2Op/issues/281
+
 [1.6.5] - 2022-01-19
 ---------------------
 - [BREAKING] the function "env.reset()" now reset the underlying pseudo random number generators

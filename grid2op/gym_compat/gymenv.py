@@ -64,7 +64,7 @@ class GymEnv(gym.Env):
         self.init_env.render(mode=mode)
 
     def close(self):
-        if hasattr(self, "init_env") and self.init_env is None:
+        if hasattr(self, "init_env") and self.init_env is not None:
             self.init_env.close()
             del self.init_env
         self.init_env = None

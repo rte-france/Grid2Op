@@ -11,7 +11,7 @@ import grid2op
 import unittest
 import numpy as np
 
-class Issue245Tester(unittest.TestCase):
+class Issue274Tester(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -52,6 +52,3 @@ class Issue245Tester(unittest.TestCase):
             cpy_line_attacked = np.where(info_cpy["opponent_attack_line"])[0]
             assert init_line_attacked == line_attacked, f"wrong line attack at iteration {i}"
             assert init_line_attacked == cpy_line_attacked, f"wrong line attack at iteration {i} for the copy env"
-
-
-    
