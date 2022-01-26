@@ -35,7 +35,6 @@ class Issue282Tester(unittest.TestCase):
         act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         obs, reward, done, info = self.env.step(act)
         assert len(info["exception"]) == 0, f"{info['exception'] = }"
-        print(act)
 
 if __name__ == "__main__":
     unittest.main()

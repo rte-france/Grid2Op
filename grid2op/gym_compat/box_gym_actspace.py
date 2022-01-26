@@ -338,6 +338,11 @@ class BoxGymActSpace(Box):
         -------
 
         """
+        if attr_nm in self._multiply:
+            gym_act_this *= self._multiply[attr_nm]
+        if attr_nm in self._add:
+            gym_act_this += self._add[attr_nm]
+
         if attr_nm == "curtail":
             gym_act_this_ = np.full(self._act_space.n_gen, fill_value=np.NaN, dtype=dt_float)
             gym_act_this_[self._act_space.gen_renewable] = gym_act_this
@@ -351,10 +356,6 @@ class BoxGymActSpace(Box):
             gym_act_this_[self._act_space.gen_redispatchable] = gym_act_this
             gym_act_this = gym_act_this_
 
-        if attr_nm in self._multiply:
-            gym_act_this *= self._multiply[attr_nm]
-        if attr_nm in self._add:
-            gym_act_this += self._add[attr_nm]
         setattr(res, attr_nm, gym_act_this)
         return res
 

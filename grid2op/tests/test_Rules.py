@@ -66,6 +66,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
                                    backend=self.adn_backend,
+                                   init_env_path=os.path.join(self.path_matpower, self.case_file),
                                    chronics_handler=self.chronics_handler,
                                    parameters=self.env_params,
                                    names_chronics_to_backend=self.names_chronics_to_backend,

@@ -209,15 +209,17 @@ class MultiDiscreteActSpace(MultiDiscrete):
                                        f"\"nb_bins\". This attribute is continuous, you have to specify in how "
                                        f"how to convert it to a discrete space. See the documentation "
                                        f"for more information.")
+                nb_redispatch = np.sum(act_sp.gen_redispatchable)
+                nb_renew = np.sum(act_sp.gen_renewable)
                 if el == "redispatch":
-                    self.dict_properties[el] = ([nb_bins[el] if redisp else 1 for redisp in act_sp.gen_redispatchable],
-                                                act_sp.n_gen, self.ATTR_NEEDBINARIZED)
+                    self.dict_properties[el] = ([nb_bins[el] for _ in range(nb_redispatch)],
+                                                 nb_redispatch, self.ATTR_NEEDBINARIZED)
                 elif el == "curtail" or el == "curtail_mw":
-                    self.dict_properties[el] = ([nb_bins[el] if renew else 1 for renew in act_sp.gen_renewable],
-                                                act_sp.n_gen, self.ATTR_NEEDBINARIZED)
+                    self.dict_properties[el] = ([nb_bins[el] for _ in range(nb_renew)],
+                                                nb_renew, self.ATTR_NEEDBINARIZED)
                 elif el == "set_storage":
                     self.dict_properties[el] = ([nb_bins[el] for _ in range(act_sp.n_storage)],
-                                                act_sp.n_gen, self.ATTR_NEEDBINARIZED)
+                                                act_sp.n_storage, self.ATTR_NEEDBINARIZED)
                 else:
                     raise RuntimeError(f"Unknown attribute \"{el}\"")
 
@@ -372,7 +374,16 @@ class MultiDiscreteActSpace(MultiDiscrete):
         if type_ == self.ATTR_NEEDBUILD:
             funct(res, attr_nm, vect)
         else:
-            setattr(res, attr_nm, funct(vect))
+            tmp = funct(vect)
+            if attr_nm == "redispatch":
+                gym_act_this_ = np.full(self._act_space.n_gen, fill_value=np.NaN, dtype=dt_float)
+                gym_act_this_[self._act_space.gen_redispatchable] = tmp
+                tmp = gym_act_this_
+            elif attr_nm == "curtail" or attr_nm == "curtail_mw":
+                gym_act_this_ = np.full(self._act_space.n_gen, fill_value=np.NaN, dtype=dt_float)
+                gym_act_this_[self._act_space.gen_renewable] = tmp
+                tmp = gym_act_this_
+            setattr(res, attr_nm, tmp)
         return res
 
     def from_gym(self, gym_act):

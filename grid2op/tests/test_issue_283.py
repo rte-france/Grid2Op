@@ -23,7 +23,9 @@ class Issue283Tester(unittest.TestCase):
             self.env_gym = GymEnv(self.env)
     
         self.env_gym.action_space.close()
-        self.env_gym.action_space = BoxGymActSpace(self.env.action_space)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env_gym.action_space = BoxGymActSpace(self.env.action_space)
         self.env_gym.seed(0)
 
     def tearDown(self):

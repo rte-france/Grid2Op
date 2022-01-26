@@ -456,6 +456,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             dict_ = {}
 
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
+        new_obj._init_env_path = copy.deepcopy(self._init_env_path)
+        
         new_obj._DEBUG = self._DEBUG
         new_obj._parameters = copy.deepcopy(self._parameters)
         new_obj.with_forecast = self.with_forecast
