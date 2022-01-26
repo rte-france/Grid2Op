@@ -217,6 +217,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     ALARM_FILE_NAME = "alerts_info.json"
 
     def __init__(self,
+                 init_env_path,
                  init_grid_path,
                  parameters,
                  voltagecontrolerClass,
@@ -441,6 +442,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         else:
             self._kwargs_observation = {}
 
+        if init_env_path is not None:
+            self._init_env_path = os.path.abspath(init_env_path)
+        else:
+            self._init_env_path = None
+
     def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
         if self.__closed:
             raise RuntimeError("Impossible to make a copy of a closed environment !")
@@ -644,7 +650,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed, you cannot get its path.")
-        return os.path.split(self._init_grid_path)[0]
+        # return os.path.split(self._init_grid_path)[0]
+        res = self._init_env_path if self._init_env_path is not None else ""
+        return res
 
     def load_alarm_data(self):
         """
@@ -2759,5 +2767,5 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def __del__(self):
         """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
-        if not self.__closed:
+        if hasattr(self, "_BaseEnv__closed") and not self.__closed:
             self.close()

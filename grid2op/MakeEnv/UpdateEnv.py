@@ -85,7 +85,7 @@ def _do_env_need_update(env_name, env_hashes):
         # no hash for this environment is provided, i don't know, so in doubt i need to update it (old behaviour)
         return True
     else:
-        # i check if "my" hash is different that the remote hash
+        # i check if "my" hash is different from the remote hash
         base_path = grid2op.get_current_local_dir()
         hash_remote_hex = env_hashes[env_name]
         hash_local = _hash_env(os.path.join(base_path, env_name))
@@ -133,6 +133,8 @@ def _update_files(env_name=None,
                 dict_main = answer_json[env_name]
                 for k, dict_ in dict_main.items():
                     _update_file(dict_, env_name, file_name=k)
+            elif need_update and env_name not in answer_json:
+                print(f"Environment: \"{env_name}\" is not up to date, but we did not found any files to update. Please write an issue at https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=bug&template=bug_report.md&title=")
             else:
                 # environment is up to date
                 print("Environment \"{}\" is up to date".format(env_name))

@@ -147,8 +147,6 @@ class BoxGymActSpace(Box):
         low_gen = -1.0 * act_sp.gen_max_ramp_down[act_sp.gen_redispatchable]
         high_gen = 1.0 * act_sp.gen_max_ramp_up[act_sp.gen_redispatchable]
         nb_redisp = np.sum(act_sp.gen_redispatchable)
-        # low_gen[~act_sp.gen_redispatchable] = 0.
-        # high_gen[~act_sp.gen_redispatchable] = 0.
         nb_curtail = np.sum(act_sp.gen_renewable)
         curtail = np.full(shape=(nb_curtail,), fill_value=0., dtype=dt_float)
         curtail_mw = np.full(shape=(nb_curtail,), fill_value=0., dtype=dt_float)
