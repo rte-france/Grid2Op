@@ -57,7 +57,8 @@ class Multifolder(GridValue):
                  gridvalueClass=GridStateFromFile,
                  sep=";",
                  max_iter=-1,
-                 chunk_size=None):
+                 chunk_size=None,
+                 filter_func=None):
         GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, chunk_size=chunk_size,
                            start_datetime=start_datetime)
         self.gridvalueClass = gridvalueClass
@@ -87,10 +88,20 @@ class Multifolder(GridValue):
         self._names_chronics_to_backend = None
 
         # improving looping strategy
-        self._filter = self._default_filter
+        if filter_func is None:
+            self._filter = self._default_filter
+        else:
+            if not callable(filter_func):
+                raise ChronicsError("The filtering function you provided ("
+                                    "kwargs: filter_func) is not callable.")
+            self._filter = filter_func
         self._prev_cache_id = 0
         self._order = None
 
+    def get_kwargs(self, dict_):
+        if self._filter != self._default_filter:
+            dict_["filter_func"] = self._filter
+        
     def available_chronics(self):
         """return the list of available chronics.
         

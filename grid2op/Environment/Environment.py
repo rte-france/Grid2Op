@@ -1464,6 +1464,7 @@ class Environment(BaseEnv):
         res["gridStateclass"] = self.chronics_handler.chronicsClass
         res["backendClass"] = self._raw_backend_class
         res["verbose"] = False
+        
         dict_ = copy.deepcopy(self.chronics_handler.kwargs)
         if 'path' in dict_:
             # path is handled elsewhere

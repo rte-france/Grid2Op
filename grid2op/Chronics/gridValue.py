@@ -101,6 +101,13 @@ class GridValue(RandomObject, ABC):
         self.maintenance_duration = None
         self.hazard_duration = None
 
+    def get_kwargs(self, dict_):
+        """
+        Overload this function if you want to pass some data when building 
+        a new instance of this class.
+        """
+        pass
+    
     @abstractmethod
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend):

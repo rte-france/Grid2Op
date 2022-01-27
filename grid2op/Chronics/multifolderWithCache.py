@@ -64,7 +64,8 @@ class MultifolderWithCache(Multifolder):
                  gridvalueClass=GridStateFromFile,
                  sep=";",
                  max_iter=-1,
-                 chunk_size=None):
+                 chunk_size=None,
+                 filter_func=None):
         Multifolder.__init__(self,
                              path=path,
                              time_interval=time_interval,
@@ -72,7 +73,8 @@ class MultifolderWithCache(Multifolder):
                              gridvalueClass=gridvalueClass,
                              sep=sep,
                              max_iter=max_iter,
-                             chunk_size=None)
+                             chunk_size=None,
+                             filter_func=filter_func)
         self._cached_data = None
         self.cache_size = 0
         if not issubclass(self.gridvalueClass, GridStateFromFile):
