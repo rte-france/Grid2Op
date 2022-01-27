@@ -182,3 +182,4 @@ class ChronicsHandler(RandomObject):
             # otherwise there is a recursion depth exceeded in multiprocessing
             # https://github.com/matplotlib/matplotlib/issues/7852/
             return object.__getattr__(self, name)
+        return getattr(self._real_data, name)
