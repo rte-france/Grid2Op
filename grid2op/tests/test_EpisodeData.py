@@ -72,6 +72,7 @@ class TestEpisodeData(unittest.TestCase):
         self.gridStateclass = Multifolder
         self.backendClass = PandaPowerBackend
         self.runner = Runner(init_grid_path=self.init_grid_path,
+                             init_env_path=self.init_grid_path,
                              path_chron=self.path_chron,
                              parameters_path=self.parameters_path,
                              names_chronics_to_backend=self.names_chronics_to_backend,
@@ -127,6 +128,7 @@ class TestEpisodeData(unittest.TestCase):
     def test_collection_wrapper_after_run(self):
         OneChange = OneChangeThenNothing.gen_next({"set_bus": {"lines_or_id": [(1,-1)]}})
         runner = Runner(init_grid_path=self.init_grid_path,
+                        init_env_path=self.init_grid_path,
                         path_chron=self.path_chron,
                         parameters_path=self.parameters_path,
                         names_chronics_to_backend=self.names_chronics_to_backend,

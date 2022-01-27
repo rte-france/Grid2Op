@@ -76,6 +76,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                                   init_env_path=os.path.join(self.path_matpower, self.case_file),
                                    backend=self.backend,
                                    chronics_handler=self.chronics_handler,
                                    parameters=self.env_params,
@@ -90,7 +91,6 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
 
     def test_copy_env(self):
         # first copying method
-
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             cpy = Environment(**self.env.get_kwargs())
@@ -220,6 +220,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
                                    backend=self.get_backend(),
+                                   init_env_path=os.path.join(self.path_matpower, self.case_file),
                                    chronics_handler=self.chronics_handler,
                                    parameters=self.env_params,
                                    rewardClass=L2RPNReward,

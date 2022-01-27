@@ -221,6 +221,7 @@ class Runner(object):
     FORCE_SEQUENTIAL = "GRID2OP_RUNNER_FORCE_SEQUENTIAL"
 
     def __init__(self,
+                 init_env_path: str,
                  init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored
                  name_env="unknown",
@@ -444,6 +445,7 @@ class Runner(object):
             self.logger = logger.getChild("grid2op_Runner")
 
         # store _parameters
+        self.init_env_path = init_env_path
         self.init_grid_path = init_grid_path
         self.names_chronics_to_backend = names_chronics_to_backend
 
@@ -528,7 +530,8 @@ class Runner(object):
     def _new_env(self, chronics_handler, parameters):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            res = self.envClass(init_grid_path=self.init_grid_path,
+            res = self.envClass(init_env_path=self.init_env_path,
+                                init_grid_path=self.init_grid_path,
                                 chronics_handler=chronics_handler,
                                 backend=self.backendClass(),
                                 parameters=parameters,
