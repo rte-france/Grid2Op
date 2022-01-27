@@ -81,7 +81,7 @@ class ChronicsHandler(RandomObject):
             self._real_data.get_kwargs(res)
         return res
 
-    @property.setter
+    @kwargs.setter
     def kwargs(self, new_value):
         raise ChronicsError("Impossible to set the \"kwargs\" attribute")
     
