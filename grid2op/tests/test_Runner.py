@@ -62,6 +62,7 @@ class TestRunner(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")  # silence the warning about missing layout
             self.runner = Runner(init_grid_path=self.init_grid_path,
+                                 init_env_path=self.init_grid_path,
                                  path_chron=self.path_chron,
                                  parameters_path=self.parameters_path,
                                  names_chronics_to_backend=self.names_chronics_to_backend,

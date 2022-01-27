@@ -708,7 +708,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
-        assert len(self.env_gym.action_space.sample()) == 124
+        assert len(self.env_gym.action_space.sample()) == 121
         # check that all types
         ok_setbus = False
         ok_change_bus = False
@@ -727,10 +727,10 @@ class TestBoxGymActSpace(unittest.TestCase):
                     "change_line_status": 20,
                     "set_bus": 59,
                     "change_bus": 59,
-                    "redispatch": 6,
+                    "redispatch": 3,
                     "set_storage": 2,
-                    "curtail": 6,
-                    "curtail_mw": 6}
+                    "curtail": 3,
+                    "curtail_mw": 3}
         func_check = {
             "set_line_status": lambda act: np.any(act.line_set_status != 0),
             "change_line_status": lambda act: np.any(act.line_change_status),
@@ -762,14 +762,15 @@ class TestBoxGymActSpace(unittest.TestCase):
 
     def test_all_attr_modified_when_float(self):
         """test all the attribute of the action can be modified when the action is converted to a float"""
-        all_attr = {"set_line_status": 20 + 6,
-                    "change_line_status": 20 + 6,
-                    "set_bus": 59 + 6,
-                    "change_bus": 59 + 6,
-                    "redispatch": 6 + 6,
-                    "set_storage": 2 + 6,
-                    "curtail": 6 + 6,
-                    "curtail_mw": 6 + 6}
+        redisp_size = 3
+        all_attr = {"set_line_status": 20 + redisp_size,
+                    "change_line_status": 20 + redisp_size,
+                    "set_bus": 59 + redisp_size,
+                    "change_bus": 59 + redisp_size,
+                    "redispatch": redisp_size + redisp_size,
+                    "set_storage": 2 + redisp_size,
+                    "curtail": 3 + redisp_size,
+                    "curtail_mw": 3 + redisp_size}
         func_check = {
             "set_line_status": lambda act: np.any(act.line_set_status != 0) and ~np.all(act.line_set_status != 0),
             "change_line_status": lambda act: np.any(act.line_change_status) and ~np.all(act.line_change_status),
@@ -804,6 +805,7 @@ class TestBoxGymActSpace(unittest.TestCase):
            on non dispatchable
         """
         kept_attr = ["curtail", "redispatch"]
+        self.env_gym.action_space.close()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env_gym.action_space = BoxGymActSpace(self.env.action_space,
@@ -813,12 +815,12 @@ class TestBoxGymActSpace(unittest.TestCase):
         grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
-        assert len(self.env_gym.action_space.sample()) == 12, "wrong size"
+        assert len(self.env_gym.action_space.sample()) == 6, "wrong size"
         self.env_gym.action_space.seed(0)
         for _ in range(10):
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             assert np.all(grid2op_act.redispatch[~grid2op_act.gen_redispatchable] == 0.)
-            assert np.all(grid2op_act.curtail[~grid2op_act.gen_renewable] == 1.)
+            assert np.all(grid2op_act.curtail[~grid2op_act.gen_renewable] == -1.)
 
     def test_can_create_int(self):
         """test that if I use only discrete value, it gives me an array with discrete values"""
@@ -844,7 +846,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         act_gym = self.env_gym.action_space.sample()
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
         assert act_gym.dtype == dt_float
-        assert len(act_gym) == 79 + 6
+        assert len(act_gym) == 79 + 3
 
     def test_scaling(self):
         """test the add and multiply stuff"""
@@ -856,30 +858,30 @@ class TestBoxGymActSpace(unittest.TestCase):
                                                        attr_to_keep=kept_attr
                                                        )
         self.env_gym.action_space.seed(0)
+        gen_redisp = self.env.gen_redispatchable
         act_gym = self.env_gym.action_space.sample()
-        assert np.array_equal(self.env_gym.action_space.low, -self.env.gen_max_ramp_down)
-        assert np.array_equal(self.env_gym.action_space.high, self.env.gen_max_ramp_up)
+        assert np.array_equal(self.env_gym.action_space.low, -self.env.gen_max_ramp_down[gen_redisp])
+        assert np.array_equal(self.env_gym.action_space.high, self.env.gen_max_ramp_up[gen_redisp])
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
-        assert len(act_gym) == 6
+        assert len(act_gym) == 3
         assert np.any(act_gym >= 1.0)
         assert np.any(act_gym <= -1.0)
         grid2op_act = self.env_gym.action_space.from_gym(act_gym)
         assert not grid2op_act.is_ambiguous()[0]
         # second test: just scaling (divide)
+        self.env_gym.action_space.close()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env_gym.action_space = BoxGymActSpace(self.env.action_space,
                                                        attr_to_keep=kept_attr,
-                                                       multiply={"redispatch": self.env.gen_max_ramp_up},
+                                                       multiply={"redispatch": self.env.gen_max_ramp_up[gen_redisp]},
                                                        )
-        assert np.array_equal(self.env_gym.action_space.low[self.env.gen_redispatchable], -np.ones(3))
-        assert np.array_equal(self.env_gym.action_space.high[self.env.gen_redispatchable], np.ones(3))
-        assert np.array_equal(self.env_gym.action_space.low[~self.env.gen_redispatchable], np.zeros(3))
-        assert np.array_equal(self.env_gym.action_space.high[~self.env.gen_redispatchable], np.zeros(3))
         self.env_gym.action_space.seed(0)
+        assert np.array_equal(self.env_gym.action_space.low, -np.ones(3))
+        assert np.array_equal(self.env_gym.action_space.high, np.ones(3))
         act_gym = self.env_gym.action_space.sample()
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
-        assert len(act_gym) == 6
+        assert len(act_gym) == 3
         assert np.all(act_gym <= 1.0)
         assert np.all(act_gym >= -1.0)
         grid2op_act2 = self.env_gym.action_space.from_gym(act_gym)
@@ -887,23 +889,20 @@ class TestBoxGymActSpace(unittest.TestCase):
         assert np.all(np.isclose(grid2op_act.redispatch, grid2op_act2.redispatch))
 
         # third step: center and reduce too
+        self.env_gym.action_space.close()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env_gym.action_space = BoxGymActSpace(self.env.action_space,
                                                        attr_to_keep=kept_attr,
-                                                       multiply={"redispatch": self.env.gen_max_ramp_up},
-                                                       add={"redispatch": self.env.gen_max_ramp_up}
+                                                       multiply={"redispatch": self.env.gen_max_ramp_up[gen_redisp]},
+                                                       add={"redispatch": self.env.gen_max_ramp_up[gen_redisp]}
                                                        )
-        assert np.array_equal(self.env_gym.action_space.low[self.env.gen_redispatchable], -np.ones(3)-1.)
-        assert np.array_equal(self.env_gym.action_space.high[self.env.gen_redispatchable], np.ones(3)-1.)
-        assert np.array_equal(self.env_gym.action_space.low[~self.env.gen_redispatchable],
-                              self.env.gen_max_ramp_up[~self.env.gen_redispatchable])
-        assert np.array_equal(self.env_gym.action_space.high[~self.env.gen_redispatchable],
-                              self.env.gen_max_ramp_up[~self.env.gen_redispatchable])
+        assert np.array_equal(self.env_gym.action_space.low, -np.ones(3)-1.)
+        assert np.array_equal(self.env_gym.action_space.high, np.ones(3)-1.)
         self.env_gym.action_space.seed(0)
         act_gym = self.env_gym.action_space.sample()
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
-        assert len(act_gym) == 6
+        assert len(act_gym) == 3
         assert np.all(act_gym <= 0.)
         assert np.all(act_gym >= -2.0)
         grid2op_act3 = self.env_gym.action_space.from_gym(act_gym)
@@ -936,16 +935,18 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
     def test_can_create(self):
         """test a simple creation"""
         kept_attr = ["set_bus", "change_bus", "redispatch"]
+        del self.env_gym.action_space
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env_gym.action_space = MultiDiscreteActSpace(self.env.action_space,
                                                               attr_to_keep=kept_attr
                                                               )
         self.env_gym.action_space.seed(0)
-        grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
+        gym_act = self.env_gym.action_space.sample()
+        grid2op_act = self.env_gym.action_space.from_gym(gym_act)
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
-        assert len(self.env_gym.action_space.sample()) == 124
+        assert len(self.env_gym.action_space.sample()) == 121
         # check that all types
         ok_setbus = False
         ok_change_bus = False
@@ -972,8 +973,8 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
             grid2op_act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
             assert isinstance(grid2op_act, PlayableAction)
             assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
-            assert len(self.env_gym.action_space.sample()) == 124
-            assert np.all(self.env_gym.action_space.nvec[59:65] == [nb_bin, nb_bin, 1, 1, 1, nb_bin])
+            assert len(self.env_gym.action_space.sample()) == 121
+            assert np.all(self.env_gym.action_space.nvec[59:62] == [nb_bin, nb_bin, nb_bin])
             ok_setbus = False
             ok_change_bus = False
             ok_redisp = False
@@ -1042,9 +1043,9 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
             "sub_change_bus": 14,
             "one_sub_set": 1,
             "one_sub_change": 1,
-            "redispatch": 6,
-            "curtail": 6,
-            "curtail_mw": 6,
+            "redispatch": 3,
+            "curtail": 3,
+            "curtail_mw": 3,
             "set_storage": 2
         }
 
@@ -1212,10 +1213,10 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
                     "change_line_status": 59,
                     "set_bus": 177,
                     "change_bus": 177,
-                    "redispatch": 22,
+                    "redispatch": np.sum(self.env.gen_redispatchable),
                     "set_storage": 0,
-                    "curtail": 22,
-                    "curtail_mw": 22,
+                    "curtail": np.sum(self.env.gen_renewable),
+                    "curtail_mw": np.sum(self.env.gen_renewable),
                     "raise_alarm": 3}
         func_check = {
             "set_line_status": lambda act: np.any(act.line_set_status != 0) and ~np.all(act.line_set_status != 0),
@@ -1256,9 +1257,9 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
             "change_line_status": 59,
             "set_bus": 177,
             "change_bus": 177,
-            "redispatch": 22,
-            "curtail": 22,
-            "curtail_mw": 22,
+            "redispatch": np.sum(self.env.gen_redispatchable),
+            "curtail": np.sum(self.env.gen_renewable),
+            "curtail_mw": np.sum(self.env.gen_renewable),
             "set_storage": 0,
             "raise_alarm": 3
         }
@@ -1270,8 +1271,8 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
             "change_bus": lambda act: np.any(act.change_bus) and ~np.all(act.change_bus),
             "redispatch": lambda act: np.any(act.redispatch != 0.),
             "set_storage": lambda act: np.any(act.set_storage != 0.),
-            "curtail": lambda act: np.any(act.curtail != 1.0),
-            "curtail_mw": lambda act: np.any(act.curtail != 1.0),
+            "curtail": lambda act: np.any(act.curtail != -1.0),
+            "curtail_mw": lambda act: np.any(act.curtail != -1.0),
             "raise_alarm": lambda act: np.any(act.raise_alarm) and ~np.all(act.raise_alarm)
         }
 

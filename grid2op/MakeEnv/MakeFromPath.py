@@ -594,7 +594,8 @@ def make_from_dataset_path(dataset_path="/",
                                           isclass=False)
 
     # Finally instantiate env from config & overrides
-    env = Environment(init_grid_path=grid_path_abs,
+    env = Environment(init_env_path=os.path.abspath(dataset_path),
+                      init_grid_path=grid_path_abs,
                       chronics_handler=data_feeding,
                       backend=backend,
                       parameters=param,

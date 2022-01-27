@@ -139,20 +139,17 @@ class BoxGymActSpace(Box):
                               f"\"{el}\" when building it, be aware that this discrete action will be treated "
                               f"as continuous. Consider using the \"MultiDiscreteActSpace\" for these attributes."
                               )
-
         self._attr_to_keep = sorted(attr_to_keep)
 
         act_sp = grid2op_action_space
         self._act_space = copy.deepcopy(grid2op_action_space)
 
-        low_gen = -1.0 * act_sp.gen_max_ramp_down
-        high_gen = 1.0 * act_sp.gen_max_ramp_up
-        low_gen[~act_sp.gen_redispatchable] = 0.
-        high_gen[~act_sp.gen_redispatchable] = 0.
-        curtail = np.full(shape=(act_sp.n_gen,), fill_value=0., dtype=dt_float)
-        curtail[~act_sp.gen_renewable] = 1.0
-        curtail_mw = np.full(shape=(act_sp.n_gen,), fill_value=0., dtype=dt_float)
-        curtail_mw[~act_sp.gen_renewable] = act_sp.gen_pmax[~act_sp.gen_renewable]
+        low_gen = -1.0 * act_sp.gen_max_ramp_down[act_sp.gen_redispatchable]
+        high_gen = 1.0 * act_sp.gen_max_ramp_up[act_sp.gen_redispatchable]
+        nb_redisp = np.sum(act_sp.gen_redispatchable)
+        nb_curtail = np.sum(act_sp.gen_renewable)
+        curtail = np.full(shape=(nb_curtail,), fill_value=0., dtype=dt_float)
+        curtail_mw = np.full(shape=(nb_curtail,), fill_value=0., dtype=dt_float)
         self.dict_properties = {
             "set_line_status": (np.full(shape=(act_sp.n_line,), fill_value=-1, dtype=dt_int),
                                 np.full(shape=(act_sp.n_line,), fill_value=1, dtype=dt_int),
@@ -172,19 +169,19 @@ class BoxGymActSpace(Box):
                            dt_int),
             "redispatch": (low_gen,
                            high_gen,
-                           (act_sp.n_gen,),
+                           (nb_redisp,),
                            dt_float),
             "set_storage": (-1.0 * act_sp.storage_max_p_prod,
                             1.0 * act_sp.storage_max_p_absorb,
                             (act_sp.n_storage,),
                             dt_float),
             "curtail": (curtail,
-                        np.full(shape=(act_sp.n_gen,), fill_value=1., dtype=dt_float),
-                        (act_sp.n_gen,),
+                        np.full(shape=(nb_curtail,), fill_value=1., dtype=dt_float),
+                        (nb_curtail,),
                         dt_float),
             "curtail_mw": (curtail_mw,
-                           1.0 * act_sp.gen_pmax,
-                           (act_sp.n_gen,),
+                           1.0 * act_sp.gen_pmax[act_sp.gen_renewable],
+                           (nb_curtail,),
                            dt_float),
             "raise_alarm": (np.full(shape=(act_sp.dim_alarms,), fill_value=0, dtype=dt_int),
                             np.full(shape=(act_sp.dim_alarms,), fill_value=1, dtype=dt_int),
@@ -345,6 +342,20 @@ class BoxGymActSpace(Box):
             gym_act_this *= self._multiply[attr_nm]
         if attr_nm in self._add:
             gym_act_this += self._add[attr_nm]
+
+        if attr_nm == "curtail":
+            gym_act_this_ = np.full(self._act_space.n_gen, fill_value=np.NaN, dtype=dt_float)
+            gym_act_this_[self._act_space.gen_renewable] = gym_act_this
+            gym_act_this = gym_act_this_
+        elif attr_nm == "curtail_mw":
+            gym_act_this_ = np.full(self._act_space.n_gen, fill_value=np.NaN, dtype=dt_float)
+            gym_act_this_[self._act_space.gen_renewable] = gym_act_this
+            gym_act_this = gym_act_this_
+        elif attr_nm == "redispatch":
+            gym_act_this_ = np.zeros(self._act_space.n_gen, dtype=dt_float)
+            gym_act_this_[self._act_space.gen_redispatchable] = gym_act_this
+            gym_act_this = gym_act_this_
+
         setattr(res, attr_nm, gym_act_this)
         return res
 

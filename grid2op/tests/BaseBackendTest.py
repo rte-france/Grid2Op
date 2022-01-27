@@ -1135,6 +1135,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
             warnings.filterwarnings("ignore")
             env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
                               backend=self.backend,
+                              init_env_path=os.path.join(self.path_matpower, self.case_file),
                               chronics_handler=self.chronics_handler,
                               parameters=self.env_params,
                               name="test_pp_env1")
@@ -1152,6 +1153,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                              init_env_path=os.path.join(self.path_matpower, case_file),
                               backend=self.backend,
                               chronics_handler=self.chronics_handler,
                               parameters=env_params,
@@ -1183,6 +1185,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
             warnings.filterwarnings("ignore")
             env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                               backend=self.backend,
+                              init_env_path=os.path.join(self.path_matpower, case_file),
                               chronics_handler=self.chronics_handler,
                               parameters=self.env_params,
                               name="test_pp_env3")
@@ -1222,6 +1225,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
             warnings.filterwarnings("ignore")
             env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                               backend=self.backend,
+                              init_env_path=os.path.join(self.path_matpower, case_file),
                               chronics_handler=self.chronics_handler,
                               parameters=env_params,
                               name="test_pp_env4")
@@ -1263,6 +1267,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
             env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                               backend=self.backend,
                               chronics_handler=self.chronics_handler,
+                              init_env_path=os.path.join(self.path_matpower, case_file),
                               parameters=env_params,
                               name="test_pp_env5")
         with warnings.catch_warnings():
@@ -1300,6 +1305,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
             env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                               backend=self.backend,
                               chronics_handler=self.chronics_handler,
+                              init_env_path=os.path.join(self.path_matpower, case_file),
                               parameters=env_params,
                               name="test_pp_env6")
         with warnings.catch_warnings():
@@ -1338,6 +1344,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
             env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                               backend=self.backend,
                               chronics_handler=self.chronics_handler,
+                              init_env_path=os.path.join(self.path_matpower, case_file),
                               parameters=env_params,
                               name="test_pp_env7")
         with warnings.catch_warnings():

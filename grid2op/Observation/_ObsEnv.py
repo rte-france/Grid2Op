@@ -45,6 +45,7 @@ class _ObsEnv(BaseEnv):
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
     def __init__(self,
+                 init_env_path,
                  init_grid_path,
                  backend_instanciated,
                  parameters,
@@ -66,6 +67,7 @@ class _ObsEnv(BaseEnv):
                  _ptr_orig_obs_space=None
                  ):
         BaseEnv.__init__(self,
+                         init_env_path,
                          init_grid_path,
                          copy.deepcopy(parameters),
                          thermal_limit_a,
@@ -579,5 +581,6 @@ class _ObsEnv(BaseEnv):
                         "_limit_curtailment_init", "_gen_before_curtailment_init", "_sum_curtailment_mw_init",
                         "_sum_curtailment_mw_prev_init", "_nb_time_step_init", "_attention_budget_state_init",
                         "_max_episode_duration", "_ptr_orig_obs_space"]:
-            delattr(self, attr_nm)
+            if hasattr(self, attr_nm):
+                delattr(self, attr_nm)
             setattr(self, attr_nm, None)

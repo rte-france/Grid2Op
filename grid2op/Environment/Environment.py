@@ -61,6 +61,7 @@ class Environment(BaseEnv):
     REGEX_SPLIT = r"^[a-zA-Z0-9]*$"
 
     def __init__(self,
+                 init_env_path: str,
                  init_grid_path: str,
                  chronics_handler,
                  backend,
@@ -96,6 +97,7 @@ class Environment(BaseEnv):
                  _is_test=False
                  ):
         BaseEnv.__init__(self,
+                         init_env_path=init_env_path,
                          init_grid_path=init_grid_path,
                          parameters=parameters,
                          thermal_limit_a=thermal_limit_a,
@@ -902,6 +904,7 @@ class Environment(BaseEnv):
 
         """
         res = {}
+        res["init_env_path"] = self._init_env_path
         res["init_grid_path"] = self._init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
@@ -1448,6 +1451,7 @@ class Environment(BaseEnv):
 
         """
         res = {}
+        res["init_env_path"] = self._init_env_path
         res["init_grid_path"] = self._init_grid_path
         res["path_chron"] = self.chronics_handler.path
         res["parameters_path"] = self._parameters.to_dict()
