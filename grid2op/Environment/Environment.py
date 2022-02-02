@@ -1411,15 +1411,17 @@ class Environment(BaseEnv):
         my_path = self.get_path_env()
         chronics_path = os.path.join(my_path, self._chronics_folder_name())
         all_chron = sorted(os.listdir(chronics_path))
+        all_chron = [el for el in all_chron if os.path.isdir(os.path.join(chronics_path, el))]
         nb_init = len(all_chron)
-        to_val = self.space_prng.choice(all_chron, int(nb_init * pct_val * 0.01), replace=False)
+        
+        to_val = self.space_prng.choice(all_chron, size=int(nb_init * pct_val * 0.01), replace=False)
         
         test_scen_id = None
         if pct_test is not None:
             all_chron = set(all_chron) - set(to_val)
             all_chron = list(all_chron)
-            test_scen_id = self.space_prng.choice(all_chron, int(nb_init * pct_test * 0.01), replace=False)
-        
+            test_scen_id = self.space_prng.choice(all_chron, size=int(nb_init * pct_test * 0.01), replace=False)
+
         return self.train_val_split(to_val,
                                     add_for_train=add_for_train,
                                     add_for_val=add_for_val,

@@ -3,6 +3,10 @@ Change Log
 
 [TODO]
 --------------------
+- [???] Create a "Simulator" class that is like a backend but with which
+  you can interact more easily with grid2op actions for example (it should
+  also returns grid2op observations !)
+- [???] add the attributes "gen_margin_up" and "gen_margin_down" in the observations.
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
@@ -40,6 +44,10 @@ Change Log
 - [FIXED] a bug in the gym action space: see issue https://github.com/rte-france/Grid2Op/issues/281
 - [FIXED] a bug in the gym box action space: see issue https://github.com/rte-france/Grid2Op/issues/283
 - [FIXED] a bug when using MultifolderWithCache and Runner (see issue https://github.com/rte-france/Grid2Op/issues/285)
+- [FIXED] a bug in the `env.train_val_split_random` where sometimes some wrong chronics
+  name were sampled.
+- [ADDED] a function `normalize_attr` allowing to easily scale some data for the
+  `BoxGymObsSpace` and `BoxGymActSpace`
 - [IMPROVED] better difference between env_path and grid_path in environments.
 
 [1.6.5] - 2022-01-19
