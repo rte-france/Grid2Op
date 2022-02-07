@@ -75,7 +75,6 @@ def _aux_run_one_episode(env,
 
     # set the environment to use the proper chronic
     env.set_id(indx)
-
     # set the seed
     if env_seed is not None:
         env.seed(env_seed)

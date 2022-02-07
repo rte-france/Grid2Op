@@ -345,6 +345,7 @@ test_n1_reward.py
 test_copy_env_close.py
 !grid2op/tests/test_copy_env_close.py
 grid2op/tests/output_unittest.txt
+test_utils_multiproc.py
 
 # profiling files
 **.prof

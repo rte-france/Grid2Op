@@ -3,6 +3,10 @@ Change Log
 
 [TODO]
 --------------------
+- [???] Create a "Simulator" class that is like a backend but with which
+  you can interact more easily with grid2op actions for example (it should
+  also returns grid2op observations !)
+- [???] add the attributes "gen_margin_up" and "gen_margin_down" in the observations.
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
@@ -39,7 +43,23 @@ Change Log
   Before it has the size of `env.n_gen` now `np.sum(env.gen_redispatchable)`.
 - [FIXED] a bug in the gym action space: see issue https://github.com/rte-france/Grid2Op/issues/281
 - [FIXED] a bug in the gym box action space: see issue https://github.com/rte-france/Grid2Op/issues/283
+- [FIXED] a bug when using `MultifolderWithCache` and `Runner` (see issue https://github.com/rte-france/Grid2Op/issues/285)
+- [FIXED] a bug in the `env.train_val_split_random` where sometimes some wrong chronics
+  name were sampled.
+- [FIXED] the `max` value of the observation space is now 1.3 * pmax to account for the slack bus (it was
+  1.01 of pmax before and was not sufficient in some cases)
+- [FIXED] a proper exception is added to the "except" kwargs of the "info" return argument of `env.step(...)`
+  (previously it was only a string) when redispatching was illegal.
+- [FIXED] a bug in `env.train_val_split_random` when some non chronics files where present in the
+  "chronics" folder of the environment.
+- [ADDED] a function `normalize_attr` allowing to easily scale some data for the
+  `BoxGymObsSpace` and `BoxGymActSpace`
+- [ADDED] support for distributed slack in pandapower (if supported)
+- [ADDED] an attribute `self.infos` for the BaseEnv that contains the "info" return value of `env.step(...)`
+- [ADDED] the possibility to shuffle the chronics of a `GymEnv` (the default behavior is now to shuffle them)
 - [IMPROVED] better difference between env_path and grid_path in environments.
+- [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
+- [IMPROVED] clean the warnings issued by pandas when used with pandapower
 
 [1.6.5] - 2022-01-19
 ---------------------
