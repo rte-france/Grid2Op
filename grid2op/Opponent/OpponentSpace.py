@@ -5,7 +5,7 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
+import os
 import numpy as np
 
 from grid2op.Exceptions import OpponentError
@@ -209,7 +209,7 @@ class OpponentSpace(object):
                 # even if it's "do nothing", it's sill an attack. Too bad if the opponent chose to do nothing.
                 self.current_attack_duration = duration
                 self.current_attack_cooldown += self.attack_cooldown
-
+                
         if not attack_called:
             self.opponent.tell_attack_continues(observation, agent_action, env_action, self.budget)
             self.previous_fails = False
