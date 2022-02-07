@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import copy
 import os
 import numpy as np
 from datetime import timedelta
@@ -58,7 +59,7 @@ class ChronicsHandler(RandomObject):
                                "\"Grid2Op.GridValue\" type and not {}.".format(type(chronicsClass)))
 
         self.chronicsClass = chronicsClass
-        self.kwargs = kwargs
+        self._kwargs = kwargs
         self.max_iter = max_iter
 
         self.path = None
@@ -73,6 +74,17 @@ class ChronicsHandler(RandomObject):
             raise ChronicsError("Impossible to build a chronics of type {} with arguments in "
                                 "{}".format(chronicsClass, self.kwargs)) from exc_
 
+    @property
+    def kwargs(self):
+        res = copy.deepcopy(self._kwargs)
+        if self._real_data is not None:
+            self._real_data.get_kwargs(res)
+        return res
+
+    @kwargs.setter
+    def kwargs(self, new_value):
+        raise ChronicsError("Impossible to set the \"kwargs\" attribute")
+    
     @property
     def real_data(self):
         return self._real_data

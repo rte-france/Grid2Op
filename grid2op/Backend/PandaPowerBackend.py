@@ -104,7 +104,11 @@ class PandaPowerBackend(Backend):
             # and use "env" as any open ai gym environment.
 
     """
-    def __init__(self, detailed_infos_for_cascading_failures=False):
+    def __init__(self,
+                 detailed_infos_for_cascading_failures=False,
+                 ligthsim2grid=False,  # use lightsim2grid as pandapower powerflow solver
+                 dist_slack=False
+                 ):
         Backend.__init__(self, detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
         self.prod_pu_to_kv = None
         self.load_pu_to_kv = None
@@ -186,6 +190,9 @@ class PandaPowerBackend(Backend):
         self.load_theta = None
         self.gen_theta = None
         self.storage_theta = None
+        
+        self._ligthsim2grid = ligthsim2grid
+        self._dist_slack = dist_slack
 
     def _check_for_non_modeled_elements(self):
         """This function check for elements in the pandapower grid that will have no impact on grid2op.
@@ -292,6 +299,7 @@ class PandaPowerBackend(Backend):
         with warnings.catch_warnings():
             # remove deprecationg warnings for old version of pandapower
             warnings.filterwarnings("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=FutureWarning)
             self._grid = pp.from_json(full_path)
 
         self._check_for_non_modeled_elements()
@@ -303,7 +311,16 @@ class PandaPowerBackend(Backend):
         self._id_bus_added = None
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            pp.runpp(self._grid, numba=numba_)
+            pp.runpp(self._grid,
+                     numba=numba_,
+                     lightsim2grid=self._ligthsim2grid,
+                     distributed_slack=self._dist_slack)
+        new_pp_version = False
+        if not "slack_weight" in self._grid.gen:
+            self._grid.gen["slack_weight"] = 1.0
+        else:
+            new_pp_version = True
+            
         if np.all(~self._grid.gen["slack"]):
             # there are not defined slack bus on the data, i need to hack it up a little bit
             pd2ppc = self._grid._pd2ppc_lookups["bus"]  # pd2ppc[pd_id] = ppc_id
@@ -318,17 +335,30 @@ class PandaPowerBackend(Backend):
 
                     bus_gen_added = ppc2pd[int(el)]
                     # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
-                    id_added = pp.create_gen(self._grid,
-                                             bus_gen_added,
-                                             p_mw=self._grid._ppc['gen'][gen_id_pp, 1],
-                                             vm_pu=self._grid._ppc['gen'][gen_id_pp, 5],
-                                             min_p_mw=self._grid._ppc['gen'][gen_id_pp, 9],
-                                             max_p_mw=self._grid._ppc['gen'][gen_id_pp, 8],
-                                             max_q_mvar=self._grid._ppc['gen'][gen_id_pp, 3],
-                                             min_q_mvar=self._grid._ppc['gen'][gen_id_pp, 4],
-                                             slack=i_ref is None,
-                                             controllable=True)
-
+                    if new_pp_version:
+                        id_added = pp.create_gen(self._grid,
+                                                bus_gen_added,
+                                                p_mw=self._grid._ppc['gen'][gen_id_pp, 1],
+                                                vm_pu=self._grid._ppc['gen'][gen_id_pp, 5],
+                                                min_p_mw=self._grid._ppc['gen'][gen_id_pp, 9],
+                                                max_p_mw=self._grid._ppc['gen'][gen_id_pp, 8],
+                                                max_q_mvar=self._grid._ppc['gen'][gen_id_pp, 3],
+                                                min_q_mvar=self._grid._ppc['gen'][gen_id_pp, 4],
+                                                slack=i_ref is None,
+                                                slack_weight=1.0,
+                                                controllable=True)
+                    else:
+                        id_added = pp.create_gen(self._grid,
+                                                bus_gen_added,
+                                                p_mw=self._grid._ppc['gen'][gen_id_pp, 1],
+                                                vm_pu=self._grid._ppc['gen'][gen_id_pp, 5],
+                                                min_p_mw=self._grid._ppc['gen'][gen_id_pp, 9],
+                                                max_p_mw=self._grid._ppc['gen'][gen_id_pp, 8],
+                                                max_q_mvar=self._grid._ppc['gen'][gen_id_pp, 3],
+                                                min_q_mvar=self._grid._ppc['gen'][gen_id_pp, 4],
+                                                slack=i_ref is None,
+                                                controllable=True)
+                        
                     if i_ref is None:
                         i_ref = gen_id_pp
                         self._iref_slack = i_ref
@@ -337,10 +367,14 @@ class PandaPowerBackend(Backend):
                         self._grid.ext_grid = self._grid.ext_grid.iloc[:1]
         else:
             self.slack_id = np.where(self._grid.gen["slack"])[0]
-
+            
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            pp.runpp(self._grid, numba=numba_)
+            pp.runpp(self._grid,
+                     numba=numba_,
+                     lightsim2grid=self._ligthsim2grid,
+                     distributed_slack=self._dist_slack)
+        
         self.__nb_bus_before = self._grid.bus.shape[0]
         self.__nb_powerline = self._grid.line.shape[0]
         self._init_bus_load = self.cst_1 * self._grid.load["bus"].values
@@ -815,7 +849,12 @@ class PandaPowerBackend(Backend):
                     pp.rundcpp(self._grid, check_connectivity=False)
                     self._nb_bus_before = None  # if dc i start normally next time i call an ac powerflow
                 else:
-                    pp.runpp(self._grid, check_connectivity=False, init=self._pf_init, numba=numba_)
+                    pp.runpp(self._grid,
+                             check_connectivity=False,
+                             init=self._pf_init,
+                             numba=numba_,
+                             ligthsim2grid=self._ligthsim2grid,
+                             distributed_slack=self._dist_slack)
 
                 # stores the computation time
                 if "_ppc" in self._grid:

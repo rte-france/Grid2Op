@@ -11,11 +11,8 @@ import warnings
 import copy
 from multiprocessing import Pool
 
-from numpy.lib.arraysetops import isin
-from scipy.sparse.sputils import isintlike
-
 from grid2op.Action import BaseAction, TopologyAction, DontAct
-from grid2op.Exceptions import UsedRunnerError, Grid2OpException, EnvError
+from grid2op.Exceptions import Grid2OpException, EnvError
 from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import FlatReward, BaseReward
 from grid2op.Rules import AlwaysLegal, BaseRules
@@ -524,7 +521,10 @@ class Runner(object):
                 with self.init_env() as env:
                    bk_class = type(env.backend)
                    pass
-
+        
+        # not implemented !
+        self._is_test = _is_test
+        
         self.__used = False
 
     def _new_env(self, chronics_handler, parameters):
@@ -867,6 +867,7 @@ class Runner(object):
 
     def _get_params(self):
         res = {"init_grid_path": self.init_grid_path,
+               "init_env_path": self.init_env_path,
                "path_chron": self.path_chron,  # path where chronics of injections are stored
                "name_env": self.name_env,
                "parameters_path": self.parameters_path,
@@ -895,8 +896,14 @@ class Runner(object):
                "opponent_attack_cooldown": self.opponent_attack_cooldown,
                "opponent_kwargs": copy.deepcopy(self.opponent_kwargs),
                "grid_layout": copy.deepcopy(self.grid_layout),
-               "with_forecast": self.with_forecast
-               # TODO kwargs_observation here ! (but require kwargs_observation to be json serializable)
+               "with_forecast": self.with_forecast,
+               "attention_budget_cls": self._attention_budget_cls,
+               "kwargs_attention_budget": self._kwargs_attention_budget,
+               "has_attention_budget": self._has_attention_budget,
+               "logger": self.logger,
+               "kwargs_observation": self._kwargs_observation,
+               "_read_from_local_dir": self._read_from_local_dir,
+               "_is_test": self._is_test
         }
         return res
 

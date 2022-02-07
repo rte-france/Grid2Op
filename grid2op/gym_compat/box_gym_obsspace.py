@@ -12,10 +12,10 @@ from gym.spaces import Box
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Observation import ObservationSpace
+from grid2op.Exceptions import Grid2OpException
 
 from grid2op.gym_compat.utils import _compute_extra_power_for_losses
 from grid2op.gym_compat.utils import check_gym_version
-# TODO doc
 
 
 ALL_ATTR_OBS = ("year", "month", "day", "hour_of_day", "minute_of_hour",
@@ -30,7 +30,6 @@ ALL_ATTR_OBS = ("year", "month", "day", "hour_of_day", "minute_of_hour",
                 "duration_next_maintenance", "target_dispatch", "actual_dispatch",
                 "storage_charge", "storage_power_target", "storage_power", "curtailment",
                 "curtailment_limit", "thermal_limit",
-
                 "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
                 "was_alarm_used_after_game_over"
                 )
@@ -476,3 +475,48 @@ class BoxGymObsSpace(Box):
          
     def close(self):
         pass
+
+    def normalize_attr(self, attr_nm: str):
+        """
+        This function normalizes the part of the space
+        that corresponds to the attribute `attr_nm`.
+        
+        The normalization consists in having a vector between 0. and 1.
+        It is achieved by dividing by the range (high - low) 
+        and adding the minimum value (low).
+
+        .. note:: 
+            It only affects continuous attribute. No error / warnings are
+            raised if you attempt to use it on a discrete attribute.
+        
+        Parameters
+        ----------
+        attr_nm : str
+            The name of the attribute to normalize
+        """
+        if attr_nm in self._divide or attr_nm in self._subtract:
+            raise Grid2OpException("Cannot normalize an attribute that you already "
+                                   "modified with either `_divide` or `_subtract`.")
+        prev = 0
+        if self.dtype != dt_float:
+            raise Grid2OpException("Cannot normalize an attribute with a observation "
+                                   "space that is not float !")
+        for attr_tmp, where_to_put in zip(self._attr_to_keep, self._dims):
+            if attr_tmp == attr_nm:
+                curr_high = 1.0 * self.high[prev:where_to_put]
+                curr_low = 1.0 * self.low[prev:where_to_put]
+                finite_high = np.isfinite(curr_high)
+                finite_low = np.isfinite(curr_high)
+                both_finite = finite_high & finite_low
+                both_finite &= curr_high > curr_low
+                
+                self._divide[attr_nm] = np.ones(curr_high.shape, dtype=self.dtype)
+                self._subtract[attr_nm] = np.zeros(curr_high.shape, dtype=self.dtype)
+                
+                self._divide[attr_nm][both_finite] = (curr_high[both_finite] - curr_low[both_finite])
+                self._subtract[attr_nm][both_finite] += curr_low[both_finite]
+                
+                self.high[prev:where_to_put][both_finite] = 1.0
+                self.low[prev:where_to_put][both_finite] = 0.
+                break
+            prev = where_to_put

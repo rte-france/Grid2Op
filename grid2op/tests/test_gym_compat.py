@@ -552,7 +552,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                                            attr_to_keep=kept_attr,
                                            divide={"gen_p": self.env.gen_pmax,
                                                    "load_p": self.obs_env.load_p},
-                                           subtract={"gen_p": 90.,
+                                           subtract={"gen_p": 100.,
                                                      "load_p": 100.},
                                            )
         self.env_gym.observation_space = observation_space

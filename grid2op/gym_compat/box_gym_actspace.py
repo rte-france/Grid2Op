@@ -14,6 +14,7 @@ from gym.spaces import Box
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 
+from grid2op.Exceptions import Grid2OpException
 
 # TODO test that it works normally
 # TODO test the casting in dt_int or dt_float depending on the data
@@ -63,14 +64,14 @@ class BoxGymActSpace(Box):
 
     .. code-block:: python
 
-        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+        gym_env.observation_space = BoxGymActSpace(env.observation_space,
                                                    attr_to_keep=['redispatch', "curtail"])
 
     You can also apply some basic transformation to the attribute of the action. This can be done with:
 
     .. code-block:: python
 
-        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+        gym_env.observation_space = BoxGymActSpace(env.observation_space,
                                                    attr_to_keep=['redispatch', "curtail"],
                                                    multiply={"redispatch": env.gen_max_ramp_up},
                                                    add={"redispatch": 0.5 * env.gen_max_ramp_up})
@@ -110,6 +111,7 @@ class BoxGymActSpace(Box):
                 return TheGymAction_ConvertedTo_Grid2op_Action
                 # eg. return np.concatenate((obs.gen_p * 0.1, np.sqrt(obs.load_p))
 
+        gym_env.action_space.close()
         gym_env.action_space = MyCustomActionSpace(whatever, you, wanted)
 
     And you can implement pretty much anything in the "from_gym" function.
@@ -403,3 +405,44 @@ class BoxGymActSpace(Box):
     
     def close(self):
         pass
+
+    def normalize_attr(self, attr_nm: str):
+        """
+        This function normalizes the part of the space
+        that corresponds to the attribute `attr_nm`.
+        
+        The normalization consists in having a vector between 0. and 1.
+        It is achieved by dividing by the range (high - low) 
+        and adding the minimum value (low).
+
+        .. note:: 
+            It only affects continuous attribute. No error / warnings are
+            raised if you attempt to use it on a discrete attribute.
+        
+        Parameters
+        ----------
+        attr_nm : str
+            The name of the attribute to normalize
+        """
+        if attr_nm in self._multiply or attr_nm in self._add:
+            raise Grid2OpException("Cannot normalize an attribute that you already "
+                                   "modified with either `add` or `multiply`.")
+        prev = 0
+        for attr_tmp, where_to_put, dtype in zip(self._attr_to_keep, self._dims, self._dtypes):
+            if attr_tmp == attr_nm and dtype == dt_float:
+                curr_high = 1.0 * self.high[prev:where_to_put]
+                curr_low = 1.0 * self.low[prev:where_to_put]
+                finite_high = np.isfinite(curr_high)
+                finite_low = np.isfinite(curr_high)
+                both_finite = finite_high & finite_low
+                both_finite &= curr_high > curr_low
+                
+                self._multiply[attr_nm] = np.ones(curr_high.shape, dtype=dtype)
+                self._add[attr_nm] = np.zeros(curr_high.shape, dtype=dtype)
+                
+                self._multiply[attr_nm][both_finite] = (curr_high[both_finite] - curr_low[both_finite])
+                self._add[attr_nm][both_finite] += curr_low[both_finite]
+                self.high[prev:where_to_put][both_finite] = 1.0
+                self.low[prev:where_to_put][both_finite] = 0.
+                break
+            prev = where_to_put

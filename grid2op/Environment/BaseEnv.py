@@ -2113,12 +2113,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     is_illegal_redisp = True
                     except_.append(except_tmp)
                     is_done = True
-                    except_.append("Game over due to infeasible redispatching state. "
-                                   "The routine used to compute the \"next state\" has diverged. "
-                                   "This means that there is no way to compute a physically valid generator state "
-                                   "(one that meets all pmin / pmax - ramp min / ramp max with the information "
-                                   "provided. As one of the physical constraints would be violated, this means that "
-                                   "a generator would be damaged in real life. This is a game over.")
+                    except_.append(
+                        InvalidRedispatching("Game over due to infeasible redispatching state. "
+                                             "The routine used to compute the \"next state\" has diverged. "
+                                             "This means that there is no way to compute a physically valid generator state "
+                                             "(one that meets all pmin / pmax - ramp min / ramp max with the information "
+                                             "provided. As one of the physical constraints would be violated, this means that "
+                                             "a generator would be damaged in real life. This is a game over.")
+                        )
 
                 # check the validity of min downtime and max uptime
                 except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
@@ -2236,18 +2238,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._backend_action.reset()
         if conv_ is not None:
             except_.append(conv_)
-        infos = {"disc_lines": self._disc_lines,
-                 "is_illegal": is_illegal,
-                 "is_ambiguous": is_ambiguous,
-                 "is_dispatching_illegal": is_illegal_redisp,
-                 "is_illegal_reco": is_illegal_reco,
-                 "reason_alarm_illegal": reason_alarm_illegal,
-                 "opponent_attack_line": lines_attacked,
-                 "opponent_attack_sub": subs_attacked,
-                 "opponent_attack_duration": attack_duration,
-                 "exception": except_,}
+        self.infos = {"disc_lines": self._disc_lines,
+                      "is_illegal": is_illegal,
+                      "is_ambiguous": is_ambiguous,
+                      "is_dispatching_illegal": is_illegal_redisp,
+                      "is_illegal_reco": is_illegal_reco,
+                      "reason_alarm_illegal": reason_alarm_illegal,
+                      "opponent_attack_line": lines_attacked,
+                      "opponent_attack_sub": subs_attacked,
+                      "opponent_attack_duration": attack_duration,
+                      "exception": except_,}
+        
         if self.backend.detailed_infos_for_cascading_failures:
-            infos["detailed_infos_for_cascading_failures"] = detailed_info
+            self.infos["detailed_infos_for_cascading_failures"] = detailed_info
 
         self.done = self._is_done(has_error, is_done)
         self.current_reward, other_reward = self._get_reward(action,
@@ -2255,7 +2258,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                              self.done,  # is_done
                                                              is_illegal or is_illegal_redisp or is_illegal_reco,
                                                              is_ambiguous)
-        infos["rewards"] = other_reward
+        self.infos["rewards"] = other_reward
         if has_error and self.current_obs is not None:
             # forward to the observation if an alarm is used or not
             if hasattr(self._reward_helper.template_reward, "has_alarm_component"):
@@ -2267,7 +2270,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # TODO documentation on all the possible way to be illegal now
         if self.done:
             self.__is_init = False
-        return self.current_obs, self.current_reward, self.done, infos
+        return self.current_obs, self.current_reward, self.done, self.infos
 
     def _get_reward(self, action, has_error, is_done, is_illegal, is_ambiguous):
         res = self._reward_helper(action, self, has_error, is_done, is_illegal, is_ambiguous)
