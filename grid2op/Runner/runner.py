@@ -897,7 +897,6 @@ class Runner(object):
                "opponent_kwargs": copy.deepcopy(self.opponent_kwargs),
                "grid_layout": copy.deepcopy(self.grid_layout),
                "with_forecast": self.with_forecast,
-               "with_forecast": self.with_forecast,
                "attention_budget_cls": self._attention_budget_cls,
                "kwargs_attention_budget": self._kwargs_attention_budget,
                "has_attention_budget": self._has_attention_budget,
