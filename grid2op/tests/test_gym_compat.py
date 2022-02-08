@@ -49,6 +49,8 @@ class TestGymCompatModule(unittest.TestCase):
             self.env = grid2op.make("l2rpn_case14_sandbox",
                                     test=True,
                                     _add_to_name="TestGymCompatModule")
+        self.env.seed(0)
+        self.env.reset()  # seed part !
 
     def tearDown(self) -> None:
         self.env.close()
@@ -59,6 +61,8 @@ class TestGymCompatModule(unittest.TestCase):
             self.env = grid2op.make("l2rpn_icaps_2021",
                                     test=True,
                                     _add_to_name="TestGymCompatModule")
+        self.env.seed(0)
+        self.env.reset()  # seed part !
         env_gym = GymEnv(self.env)
         str_ = env_gym.action_space.__str__()  # this crashed
         str_ = env_gym.observation_space.__str__()
@@ -246,6 +250,8 @@ class TestGymCompatModule(unittest.TestCase):
             env = grid2op.make("educ_case14_storage",
                                test=True,
                                _add_to_name="TestGymCompatModule")
+        env.seed(0)
+        env.reset()  # seed part !
         env_gym = GymEnv(env)
         assert "a_ex" in env_gym.observation_space.spaces
         assert np.array_equal(env_gym.observation_space["a_ex"].low, np.zeros(shape=(env.n_line, ), ))
@@ -485,6 +491,8 @@ class TestBoxGymObsSpace(unittest.TestCase):
                                     test=True,
                                     action_class=PlayableAction,
                                     _add_to_name="TestBoxGymObsSpace")
+        self.env.seed(0)
+        self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
         self.env_gym = GymEnv(self.env)
 
@@ -689,6 +697,8 @@ class TestBoxGymActSpace(unittest.TestCase):
                                     test=True,
                                     action_class=PlayableAction,
                                     _add_to_name="TestBoxGymActSpace")
+        self.env.seed(0)
+        self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
         self.env_gym = GymEnv(self.env)
 
@@ -925,6 +935,8 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
                                     test=True,
                                     action_class=PlayableAction,
                                     _add_to_name="TestMultiDiscreteGymActSpace")
+        self.env.seed(0)
+        self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
         self.env_gym = GymEnv(self.env)
 
@@ -1098,6 +1110,8 @@ class TestDiscreteGymActSpace(unittest.TestCase):
                                     test=True,
                                     action_class=PlayableAction,
                                     _add_to_name="TestMultiDiscreteGymActSpace")
+        self.env.seed(0)
+        self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
         self.env_gym = GymEnv(self.env)
 
@@ -1204,6 +1218,8 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
                                     test=True,
                                     action_class=PlayableAction,
                                     _add_to_name="TestAllGymActSpaceWithAlarm")
+        self.env.seed(0)
+        self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
         self.env_gym = GymEnv(self.env)
 
@@ -1355,6 +1371,8 @@ class TestGOObsInRange(unittest.TestCase):
                                     test=True,
                                     action_class=PlayableAction,
                                     _add_to_name="TestMultiDiscreteGymActSpace")
+        self.env.seed(0)
+        self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
         self.env_gym = GymEnv(self.env)
 
