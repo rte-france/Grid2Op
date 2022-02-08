@@ -714,9 +714,9 @@ class PandaPowerBackend(Backend):
                 sh_bus1 = np.arange(len(shunt_bus))[shunt_bus.changed & shunt_bus.values == 1]
                 sh_bus2 = np.arange(len(shunt_bus))[shunt_bus.changed & shunt_bus.values == 2]
                 if len(sh_bus1) > 0:
-                    self._grid.shunt["bus"][sh_bus1] = self.shunt_to_subid[sh_bus1]
+                    self._grid.shunt["bus"].iloc[sh_bus1] = self.shunt_to_subid[sh_bus1]
                 if len(sh_bus2) > 0:
-                    self._grid.shunt["bus"][sh_bus2] = self.shunt_to_subid[sh_bus2] + self.__nb_bus_before
+                    self._grid.shunt["bus"].iloc[sh_bus2] = self.shunt_to_subid[sh_bus2] + self.__nb_bus_before
 
         # i made at least a real change, so i implement it in the backend
         for id_el, new_bus in topo__:

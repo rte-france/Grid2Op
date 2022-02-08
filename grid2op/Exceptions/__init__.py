@@ -49,7 +49,8 @@ __all__ = [
     "OpponentError",
     "UsedRunnerError",
     "NotEnoughAttentionBudget",
-    "AgentError"
+    "AgentError",
+    "SimulatorError"
 ]
 
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
@@ -115,3 +116,5 @@ from grid2op.Exceptions.RunnerError import UsedRunnerError
 from grid2op.Exceptions.AttentionBudgetExceptions import NotEnoughAttentionBudget
 
 from grid2op.Exceptions.agentError import AgentError
+
+from grid2op.Exceptions.simulatorExceptions import SimulatorError

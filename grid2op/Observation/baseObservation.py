@@ -2503,6 +2503,40 @@ class BaseObservation(GridObjects):
         """
         return self.curtailment_limit * self.gen_pmax
 
+    def _update_attr_backend(self, backend):
+        """This function updates the attribute of the observation that
+        depends only on the backend.
+
+        Parameters
+        ----------
+        backend :
+            The backend from which to update the observation
+        """
+        
+        self.line_status[:] = backend.get_line_status()
+        self.topo_vect[:] = backend.get_topo_vect()
+        
+        # get the values related to continuous values
+        self.gen_p[:], self.gen_q[:], self.gen_v[:] = backend.generators_info()
+        self.load_p[:], self.load_q[:], self.load_v[:] = backend.loads_info()
+        self.p_or[:], self.q_or[:], self.v_or[:], self.a_or[:] = backend.lines_or_info()
+        self.p_ex[:], self.q_ex[:], self.v_ex[:], self.a_ex[:] = backend.lines_ex_info()
+
+        self.rho[:] = backend.get_relative_flow().astype(dt_float)
+
+        # handle shunts (if avaialble)
+        if self.shunts_data_available:
+            sh_p, sh_q, sh_v, sh_bus = backend.shunt_info()
+            self._shunt_p[:] = sh_p
+            self._shunt_q[:] = sh_q
+            self._shunt_v[:] = sh_v
+            self._shunt_bus[:] = sh_bus
+        
+        if backend.can_output_theta:
+            self.support_theta = True  # backend supports the computation of theta
+            self.theta_or[:], self.theta_ex[:], self.load_theta[:], self.gen_theta[:], self.storage_theta[:] = \
+                backend.get_theta()
+                
     def _update_obs_complete(self, env, with_forecast=True):
         """
         update all the observation attributes as if it was a complete, fully
@@ -2522,15 +2556,10 @@ class BaseObservation(GridObjects):
 
         # get the values related to topology
         self.timestep_overflow[:] = env._timestep_overflow
-        self.line_status[:] = env.backend.get_line_status()
-        self.topo_vect[:] = env.backend.get_topo_vect()
 
-        # get the values related to continuous values
-        self.gen_p[:], self.gen_q[:], self.gen_v[:] = env.backend.generators_info()
-        self.load_p[:], self.load_q[:], self.load_v[:] = env.backend.loads_info()
-        self.p_or[:], self.q_or[:], self.v_or[:], self.a_or[:] = env.backend.lines_or_info()
-        self.p_ex[:], self.q_ex[:], self.v_ex[:], self.a_ex[:] = env.backend.lines_ex_info()
-
+        # attribute that depends only on the backend state
+        self._update_attr_backend(env.backend)
+        
         # storage units
         self.storage_charge[:] = env._storage_current_charge
         self.storage_power_target[:] = env._action_storage
@@ -2551,8 +2580,6 @@ class BaseObservation(GridObjects):
             self._forecasted_inj += env.chronics_handler.forecasts()
             self._forecasted_grid = [None for _ in self._forecasted_inj]
 
-        self.rho[:] = env.backend.get_relative_flow().astype(dt_float)
-
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line[:] = env._times_before_line_status_actionable
         self.time_before_cooldown_sub[:] = env._times_before_topology_actionable
@@ -2562,14 +2589,6 @@ class BaseObservation(GridObjects):
         # redispatching
         self.target_dispatch[:] = env._target_dispatch
         self.actual_dispatch[:] = env._actual_dispatch
-
-        # handle shunts (if avaialble)
-        if self.shunts_data_available:
-            sh_p, sh_q, sh_v, sh_bus = env.backend.shunt_info()
-            self._shunt_p[:] = sh_p
-            self._shunt_q[:] = sh_q
-            self._shunt_v[:] = sh_v
-            self._shunt_bus[:] = sh_bus
 
         self._thermal_limit[:] = env.get_thermal_limit()
 
@@ -2583,11 +2602,6 @@ class BaseObservation(GridObjects):
             self.curtailment[:] = 0.
             self.gen_p_before_curtail[:] = self.gen_p
             self.curtailment_limit[:] = 1.0
-
-        if env.backend.can_output_theta:
-            self.support_theta = True  # backend supports the computation of theta
-            self.theta_or[:], self.theta_ex[:], self.load_theta[:], self.gen_theta[:], self.storage_theta[:] = \
-                env.backend.get_theta()
 
         if self.dim_alarms and env._has_attention_budget:
             self.is_alarm_illegal[:] = env._is_alarm_illegal

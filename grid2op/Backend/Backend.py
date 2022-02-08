@@ -1463,7 +1463,7 @@ class Backend(GridObjects, ABC):
         set_me.update(dict_)
         return set_me
 
-    def update_from_obs(self, obs):
+    def update_from_obs(self, obs, force_update=False):
         """
         Takes an observation as input and update the internal state of `self` to match the state of the backend
         that produced this observation.
@@ -1484,10 +1484,10 @@ class Backend(GridObjects, ABC):
             A complete observation describing the state of the grid you want this backend to be in.
 
         """
-        # lazy loading to prevent circular reference
+        # lazy loading to prevent circular references
         from grid2op.Observation import CompleteObservation
 
-        if not isinstance(obs, CompleteObservation):
+        if (not force_update) and (not isinstance(obs, CompleteObservation)):
             raise BackendError("Impossible to set a backend to a state not represented by a "
                                "\"grid2op.Observation.CompleteObservation\".")
 
