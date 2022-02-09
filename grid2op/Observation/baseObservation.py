@@ -55,6 +55,16 @@ class BaseObservation(GridObjects):
     day_of_week: ``int``
         The current day of the week (monday = 0 and sunday = 6)
 
+    support_theta: ``bool``
+        This flag indicates whether the backend supports the retrieval of the
+        voltage angle. If so (which is the case for most backend) then 
+        some supplementary attributes are available, such as
+        :attr:`BaseObservation.gen_theta`, 
+        :attr:`BaseObservation.load_theta`, 
+        :attr:`BaseObservation.storage_theta`, 
+        :attr:`BaseObservation.theta_or` or  
+        :attr:`BaseObservation.theta_ex` .  
+        
     gen_p: :class:`numpy.ndarray`, dtype:float
         The active production value of each generator (expressed in MW).
         (the old name "prod_p" is still usable)
@@ -67,6 +77,11 @@ class BaseObservation(GridObjects):
         The voltage magnitude of the bus to which each generator is connected (expressed in kV).
         (the old name "prod_v" is still usable)
 
+    gen_theta: :class:`numpy.ndarray`, dtype:float
+        The voltage angle (in degree) of the bus to which each generator is 
+        connected. Only availble if the backend supports the retrieval of 
+        voltage angles (see :attr:`BaseObservation.support_theta`).
+        
     load_p: :class:`numpy.ndarray`, dtype:float
         The active load value of each consumption (expressed in MW).
 
@@ -76,6 +91,11 @@ class BaseObservation(GridObjects):
     load_v: :class:`numpy.ndarray`, dtype:float
         The voltage magnitude of the bus to which each consumption is connected (expressed in kV).
 
+    load_theta: :class:`numpy.ndarray`, dtype:float
+        The voltage angle (in degree) of the bus to which each consumption 
+        is connected. Only availble if the backend supports the retrieval of 
+        voltage angles (see :attr:`BaseObservation.support_theta`).
+
     p_or: :class:`numpy.ndarray`, dtype:float
         The active power flow at the origin end of each powerline (expressed in MW).
 
@@ -84,6 +104,11 @@ class BaseObservation(GridObjects):
 
     v_or: :class:`numpy.ndarray`, dtype:float
         The voltage magnitude at the bus to which the origin end of each powerline is connected (expressed in kV).
+
+    theta_or: :class:`numpy.ndarray`, dtype:float
+        The voltage angle at the bus to which the origin end of each powerline 
+        is connected (expressed in degree). Only availble if the backend supports the retrieval of 
+        voltage angles (see :attr:`BaseObservation.support_theta`).
 
     a_or: :class:`numpy.ndarray`, dtype:float
         The current flow at the origin end of each powerline (expressed in A).
@@ -97,6 +122,11 @@ class BaseObservation(GridObjects):
     v_ex: :class:`numpy.ndarray`, dtype:float
         The voltage magnitude at the bus to which the extremity end of each powerline is connected (expressed in kV).
 
+    theta_ex: :class:`numpy.ndarray`, dtype:float
+        The voltage angle at the bus to which the extremity end of each powerline 
+        is connected (expressed in degree). Only availble if the backend supports the retrieval of 
+        voltage angles (see :attr:`BaseObservation.support_theta`).
+        
     a_ex: :class:`numpy.ndarray`, dtype:float
         The current flow at the extremity end of each powerline (expressed in A).
 
@@ -176,18 +206,29 @@ class BaseObservation(GridObjects):
     storage_power: :class:`numpy.ndarray`, dtype:float
         Give the actual storage production / loads at the given state.
 
+    storage_theta: :class:`numpy.ndarray`, dtype:float
+        The voltage angle (in degree) of the bus to which each storage units 
+        is connected. Only availble if the backend supports the retrieval of 
+        voltage angles (see :attr:`BaseObservation.support_theta`).
+        
     gen_p_before_curtail:  :class:`numpy.ndarray`, dtype:float
         Give the production of renewable generator there would have been
         if no curtailment were applied (**NB** it returns 0.0 for non renewable
         generators that cannot be curtailed)
 
-    curtailment: :class:`numpy.ndarray`, dtype:float
-        Give the actual curtailment setpoint for generator using renewable energy sources (1.0 means no curtailment).
-        This is the results of all curtailment actions applied up to the
-
     curtailment_limit: :class:`numpy.ndarray`, dtype:float
         Limit (in ratio of gen_pmax) imposed on each renewable generator.
 
+    curtailment_mw: :class:`numpy.ndarray`, dtype:float
+        Gives the amount of power curtailed for each generator (it is 0. for all
+        non renewable generators)
+    
+    curtailment: :class:`numpy.ndarray`, dtype:float
+        Give the power curtailed for each generator. It is expressed in 
+        ratio of gen_pmax (so between 0. - meaning no curtailment in effect for this
+        generator - to 1.0 - meaning this generator should have produced pmax, but 
+        a curtailment action limited it to 0.)
+        
     current_step: ``int``
         Current number of step performed up until this observation (NB this is not given in the observation if
         it is transformed into a vector)
@@ -216,6 +257,20 @@ class BaseObservation(GridObjects):
         to the attention budget when there was a game over (can only be set to ``True`` if the observation
         corresponds to a game over, but not necessarily)
 
+    gen_margin_up: :class:`numpy.ndarray`, dtype:float
+        From how much can you increase each generators production between this
+        step and the next.
+        
+        It is always 0. for non renewable generators. For the others it is defined as
+        `np.minimum(type(self).gen_pmax - self.gen_p, self.gen_max_ramp_up)`
+    
+    gen_margin_down: :class:`numpy.ndarray`, dtype:float
+        From how much can you decrease each generators production between this
+        step and the next.
+        
+        It is always 0. for non renewable generators. For the others it is defined as
+        `np.minimum(self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down)`
+        
     _shunt_p: :class:`numpy.ndarray`, dtype:float
         Shunt active value (only available if shunts are available) (in MW)
 
@@ -251,6 +306,8 @@ class BaseObservation(GridObjects):
                 # attention budget
                 "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
                 "was_alarm_used_after_game_over",
+                # gen up / down
+                "gen_margin_up", "gen_margin_down"
                 ]
 
     attr_list_vect = None
@@ -290,6 +347,9 @@ class BaseObservation(GridObjects):
         self.gen_p = np.empty(shape=self.n_gen, dtype=dt_float)
         self.gen_q = np.empty(shape=self.n_gen, dtype=dt_float)
         self.gen_v = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.gen_margin_up = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.gen_margin_down = np.empty(shape=self.n_gen, dtype=dt_float)
+        
         # loads information
         self.load_p = np.empty(shape=self.n_load, dtype=dt_float)
         self.load_q = np.empty(shape=self.n_load, dtype=dt_float)
@@ -376,7 +436,8 @@ class BaseObservation(GridObjects):
                      "a_or", "v_or", "q_or", "p_or",
                      "load_p", "load_q", "load_v",
                      "gen_p", "gen_q", "gen_v",
-                     "topo_vect", "line_status", "timestep_overflow"
+                     "topo_vect", "line_status", "timestep_overflow",
+                     "gen_margin_up", "gen_margin_down"
                      ]
 
         if self.shunts_data_available:
@@ -577,6 +638,8 @@ class BaseObservation(GridObjects):
                    "curtailment": self.curtailment[gen_id],
                    "curtailment_limit": self.curtailment_limit[gen_id],
                    "p_before_curtail": self.gen_p_before_curtail[gen_id],
+                   "margin_up": self.gen_margin_up[gen_id],
+                   "margin_down": self.gen_margin_down[gen_id],
                    }
             if self.support_theta:
                 res["theta"] = self.gen_theta[gen_id]
@@ -729,6 +792,19 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
+        if cls.glop_version < "1.6.6" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # "gen_margin_up", "gen_margin_down" were added in grid2Op 1.6.6
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
+            for el in ["gen_margin_up", "gen_margin_down"]:
+                try:
+                    cls.attr_list_vect.remove(el)
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
+                    pass
+            cls.attr_list_set = set(cls.attr_list_vect)
+            
     def reset(self):
         """
         INTERNAL
@@ -842,6 +918,9 @@ class BaseObservation(GridObjects):
         self.gen_p[:] = 0.
         self.gen_q[:] = 0.
         self.gen_v[:] = 0.
+        self.gen_margin_up[:] = 0.
+        self.gen_margin_down[:] = 0.
+        
         # loads information
         self.load_p[:] = 0.
         self.load_q[:] = 0.
@@ -2524,6 +2603,16 @@ class BaseObservation(GridObjects):
 
         self.rho[:] = backend.get_relative_flow().astype(dt_float)
 
+        # margin up and down
+        if type(self).redispatching_unit_commitment_availble:
+            self.gen_margin_up[:] = np.minimum(type(self).gen_pmax - self.gen_p, self.gen_max_ramp_up)
+            self.gen_margin_up[type(self).gen_renewable] = 0.
+            self.gen_margin_down[:] = np.minimum(self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down)
+            self.gen_margin_down[type(self).gen_renewable] = 0.
+        else:
+            self.gen_margin_up[:] = 0.
+            self.gen_margin_down[:] = 0.
+            
         # handle shunts (if avaialble)
         if self.shunts_data_available:
             sh_p, sh_q, sh_v, sh_bus = backend.shunt_info()

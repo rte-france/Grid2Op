@@ -223,6 +223,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                             183197.6875, 183197.6875, 352.8251647949219, 352.8251647949219,
                                             352.8251647949219, 2721.794189453125, 2721.794189453125],
                          "support_theta": [True],
+                         "gen_margin_up": [5.0, 10.0, 0.0, 0.0, 10.0],
+                         "gen_margin_down": [5.0, 10.0, 0.0, 0.0, 10.0],
                          "is_alarm_illegal": [False],
                          "time_since_last_alarm": [-1],
                          "last_alarm": [],
@@ -251,7 +253,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                 # steps
                                 dt_int, dt_int,
                                 # delta_time
-                                dt_float
+                                dt_float,
+                                # gen margins
+                                dt_float, dt_float
                                 ],
                                dtype=object)
 
@@ -261,8 +265,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                 20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
                                 5, 5, 0, 0, 0, 5, 5, 5, 1, 1, 0, 1, 1,
                                 1, 1, 1, 1,
-                                1, 1, 1])
-        self.size_obs = 429 + 4 + 4 + 2 + 1
+                                1, 1, 1,
+                                5, 5])
+        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10
 
     def tearDown(self):
         self.env.close()
@@ -296,7 +301,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
         obs = self.env.observation_space(self.env)
         assert obs.size() == self.size_obs
 
-    def test_size_action_space(self):
+    def test_size_observation_space(self):
         assert self.env.observation_space.size() == self.size_obs
 
     def aux_test_bus_conn_mat(self, as_csr=False):
@@ -887,6 +892,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
         obs = self.env.observation_space(self.env)
         obs2 = self.env.observation_space(self.env)
         dict_ = obs.to_json()
+        
         # test that the right dictionary is returned
         for k in dict_:
             assert dict_[k] == self.json_ref[k], f"error for key {k} (in dict_): {dict_[k]} vs {self.json_ref[k]} "

@@ -3,10 +3,6 @@ Change Log
 
 [TODO]
 --------------------
-- [???] Create a "Simulator" class that is like a backend but with which
-  you can interact more easily with grid2op actions for example (it should
-  also returns grid2op observations !)
-- [???] add the attributes "gen_margin_up" and "gen_margin_down" in the observations.
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
@@ -58,9 +54,12 @@ Change Log
 - [ADDED] support for distributed slack in pandapower (if supported)
 - [ADDED] an attribute `self.infos` for the BaseEnv that contains the "info" return value of `env.step(...)`
 - [ADDED] the possibility to shuffle the chronics of a `GymEnv` (the default behavior is now to shuffle them)
+- [ADDED] two attribtues for the observation: `obs.gen_margin_up` and `obs.gen_margin_down`
 - [IMPROVED] better difference between env_path and grid_path in environments.
 - [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower
+- [IMPROVED] doc of observation module (some attributes were missing)
+- [IMPROVED] officially drop python 3.6 supports (which could not benefit from all the features)
 
 [1.6.5] - 2022-01-19
 ---------------------

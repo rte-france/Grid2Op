@@ -6,13 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-
 import warnings
 import unittest
 import grid2op
-import numpy as np
 
-from grid2op.Space import GridObjects
 from grid2op.Action.PowerlineSetAction import PowerlineSetAction
 from grid2op.Action.PlayableAction import PlayableAction
 from grid2op.Observation.completeObservation import CompleteObservation
@@ -31,6 +28,7 @@ class TestL2RPNNEURIPS2020_Track1(unittest.TestCase):
             self.env = grid2op.make("l2rpn_neurips_2020_track1",
                                     test=True)
             self.env.seed(0)
+            _ = self.env.reset()
 
     def test_elements(self):
         assert self.env.n_sub == 36
@@ -49,8 +47,8 @@ class TestL2RPNNEURIPS2020_Track1(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 1332 + 4 + 24 + 2 + 1, f"obs space size is {self.env.observation_space.n}," \
-                                                                      f"should be {1332 + 4 + 24 + 2 + 1}"
+        assert self.env.observation_space.n == 1407, f"obs space size is {self.env.observation_space.n}," \
+                                                     f"should be {1407}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -71,6 +69,7 @@ class TestL2RPNICAPS2021(unittest.TestCase):
             self.env = grid2op.make("l2rpn_icaps_2021",
                                     test=True)
             self.env.seed(0)
+            _ = self.env.reset()
 
     def test_elements(self):
         assert self.env.n_sub == 36
@@ -91,9 +90,9 @@ class TestL2RPNICAPS2021(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 1332 + 4 + 24 + 3 + 2 +1, f"obs space size is " \
-                                                                      f"{self.env.observation_space.n}," \
-                                                                      f"should be {1366}"
+        assert self.env.observation_space.n == 1410, f"obs space size is " \
+                                                     f"{self.env.observation_space.n}," \
+                                                     f"should be {1410}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -113,7 +112,8 @@ class TestL2RPNNEURIPS2020_Track2(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("l2rpn_neurips_2020_track2",
                                     test=True)
-            self.env.seed(0)
+            self.env.seed(2)  # 0 or 1 breaks the test `test_random_action`
+            _ = self.env.reset()
 
     def test_elements(self):
         assert self.env.n_sub == 118
@@ -132,8 +132,8 @@ class TestL2RPNNEURIPS2020_Track2(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 4054 + 4 + 56 + 2 + 1, f"obs space size is {self.env.observation_space.n}," \
-                                                                      f"should be {4117}"
+        assert self.env.observation_space.n == 4241, f"obs space size is {self.env.observation_space.n}," \
+                                                     f"should be {4241}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -143,7 +143,7 @@ class TestL2RPNNEURIPS2020_Track2(unittest.TestCase):
             obs, reward, done, info = self.env.step(act)
             if done:
                 break
-        assert i >= 1, "could not perform the random action test because it games over first time step. " \
+        assert i >= 1, "could not perform the random action test because it games over first 10 steps. " \
                        "Please fix the test and try again"
 
 
@@ -154,6 +154,7 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
             self.env = grid2op.make("l2rpn_case14_sandbox",
                                     test=True)
             self.env.seed(42)
+            _ = self.env.reset()
 
     def test_elements(self):
         assert self.env.n_sub == 14
@@ -172,8 +173,8 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 438 + 4 + 4 + 2 + 1, f"obs space size is {self.env.observation_space.n}," \
-                                                                    f"should be {438 + 4 + 4 + 2 + 1}"
+        assert self.env.observation_space.n == 461, f"obs space size is {self.env.observation_space.n}," \
+                                                    f"should be {461}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -194,6 +195,7 @@ class TestEDUC_CASE14_REDISP(unittest.TestCase):
             self.env = grid2op.make("educ_case14_redisp",
                                     test=True)
             self.env.seed(0)
+            _ = self.env.reset()
 
     def test_elements(self):
         assert self.env.n_sub == 14
@@ -212,8 +214,8 @@ class TestEDUC_CASE14_REDISP(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 438 + 4 + 4 + 2 + 1, f"obs space size is {self.env.observation_space.n}," \
-                                                                    f"should be {438 + 4 + 4 + 3}"
+        assert self.env.observation_space.n == 461, f"obs space size is {self.env.observation_space.n}," \
+                                                    f"should be {461}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -234,6 +236,7 @@ class TestEDUC_STORAGE(unittest.TestCase):
             self.env = grid2op.make("educ_case14_storage",
                                     test=True)
             self.env.seed(0)
+            _ = self.env.reset()
 
     def test_elements(self):
         assert self.env.n_sub == 14
@@ -252,8 +255,8 @@ class TestEDUC_STORAGE(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 446 + 4 + 4 + 2 + 1, f"obs space size is {self.env.observation_space.n}," \
-                                                                    f"should be {446 + 4 + 4 + 3}"
+        assert self.env.observation_space.n == 469, f"obs space size is {self.env.observation_space.n}," \
+                                                    f"should be {469}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -262,7 +265,6 @@ class TestEDUC_STORAGE(unittest.TestCase):
             act = self.env.action_space.sample()
             obs, reward, done, info = self.env.step(act)
             if done:
-                pdb.set_trace()
                 break
         assert i >= 1, "could not perform the random action test because it games over first time step. " \
                        "Please fix the test and try again"

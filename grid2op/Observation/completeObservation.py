@@ -6,9 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import numpy as np
-
-from grid2op.dtypes import dt_int, dt_float
 from grid2op.Observation.baseObservation import BaseObservation
 
 
@@ -124,7 +121,8 @@ class CompleteObservation(BaseObservation):
         "was_alarm_used_after_game_over",
         "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",  # starting from grid2op version 1.6.0
         "current_step", "max_step",  # starting from grid2op version 1.6.4
-        "delta_time"  # starting grid2op version 1.6.5
+        "delta_time",  # starting grid2op version 1.6.5
+        "gen_margin_up", "gen_margin_down",  # starting grid2op version 1.6.6
     ]
     attr_list_json = ["_thermal_limit",
                       "support_theta",
