@@ -162,16 +162,18 @@ class Simulator(object):
             coeffs_quads = weights[gen_in_target] * quad_
             coeffs_quads_const = coeffs_quads.sum()
             coeffs_quads_const /= scale_objective  # scaling the function
+            coeffs_quads_const += 0.01 * np.sum(actual_dispatchable**2 * weights)
             return coeffs_quads_const
 
         def jac(actual_dispatchable):
             res_jac = 1.0 * tmp_zeros
             res_jac[0, gen_in_target] = 2.0 * weights[gen_in_target] * (actual_dispatchable[gen_in_target] - target_dispatch_redisp[gen_in_target])
             res_jac /= scale_objective  # scaling the function
+            res_jac += 0.02 * actual_dispatchable * weights
             return res_jac
         
-        mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable))
-        equality_const = LinearConstraint(mat_sum_0_no_turn_on,
+        mat_sum_ok = np.ones((1, nb_dispatchable))
+        equality_const = LinearConstraint(mat_sum_ok,
                                           sum_target - self._tol_redisp,
                                           sum_target + self._tol_redisp)
         
@@ -209,7 +211,18 @@ class Simulator(object):
             return res.x
         else:
             return None
-            
+    
+    def _amount_curtailed(self, act, new_gen_p):
+        curt_vect = 1.0 * act.curtail
+        curt_vect[curt_vect == -1.] = 1.
+        limit_curtail = curt_vect* act.gen_pmax
+        curtailed = np.maximum(new_gen_p - limit_curtail, 0.)
+        curtailed[~act.gen_renewable] = 0.
+        amount_curtail = np.sum(curtailed)
+        new_gen_p_after_curtail = 1.0 * new_gen_p
+        new_gen_p_after_curtail -= curtailed
+        return new_gen_p_after_curtail, amount_curtail
+        
     def _fix_redisp_curtailment_storage(self, act, new_gen_p):
         """This function emulates the "frequency control" of the 
         environment.
@@ -220,21 +233,23 @@ class Simulator(object):
         It is a very rough simplification of what happens in the environment.
         """
         
-        sum_target = 0. # TODO !
-        new_vect_redisp = (act.redispatch != 0.) & (self.current_obs.target_dispatch == 0.)
+        if new_gen_p is None:
+            new_gen_p = 1.0 * self.current_obs.gen_p
+        new_gen_p_after_curtail, amount_curtail = self._amount_curtailed(act, new_gen_p)
+        sum_target =  amount_curtail # TODO !
+        
         target_dispatch = self.current_obs.target_dispatch + act.redispatch
         # if previous setpoint was say -2 and at this step I redispatch of
         # say + 4 then the real setpoint should be +2 (and not +4)
+        new_vect_redisp = (act.redispatch != 0.) & (self.current_obs.target_dispatch == 0.)
         target_dispatch[new_vect_redisp] += self.current_obs.actual_dispatch[new_vect_redisp]
-            
-        if (np.sum(target_dispatch) - sum_target) >= self._tol_redisp:
-            if new_gen_p is None:
-                new_gen_p = 1.0 * self.current_obs.gen_p
-            adjust = self._adjust_controlable_gen(new_gen_p, target_dispatch, sum_target)
+        
+        if abs(np.sum(target_dispatch) - sum_target) >= self._tol_redisp:
+            adjust = self._adjust_controlable_gen(new_gen_p_after_curtail, target_dispatch, sum_target)
             if adjust is None:
                 return True, None, None, None
             else:
-                return True, new_gen_p, target_dispatch, adjust
+                return True, new_gen_p_after_curtail, target_dispatch, adjust
         return False, None, None, None
         
     def predict(self,
