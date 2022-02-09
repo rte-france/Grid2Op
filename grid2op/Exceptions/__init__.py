@@ -38,6 +38,7 @@ __all__ = [
     "AmbiguousAction",
     "NonFiniteElement",
     "DivergingPowerFlow",
+    "BaseObservationError",
     "NoForecastAvailable",
     "SimulateUsedTooMuchThisStep",
     "SimulateUsedTooMuchThisEpisode",
@@ -97,6 +98,7 @@ from grid2op.Exceptions.AmbiguousActionExceptions import NonFiniteElement
 
 from grid2op.Exceptions.PowerflowExceptions import DivergingPowerFlow
 
+from grid2op.Exceptions.ObservationExceptions import BaseObservationError
 from grid2op.Exceptions.ObservationExceptions import NoForecastAvailable
 from grid2op.Exceptions.ObservationExceptions import SimulateUsedTooMuchThisStep
 from grid2op.Exceptions.ObservationExceptions import SimulateUsedTooMuchThisEpisode

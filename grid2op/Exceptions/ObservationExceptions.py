@@ -8,6 +8,11 @@
 
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
 
+class BaseObservationError(Grid2OpException):
+    """
+    Generic type of exceptions raised by the observation
+    """
+    pass
 
 # BaseObservation
 # Functionality not implemented by the observation

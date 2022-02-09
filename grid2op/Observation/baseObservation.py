@@ -15,7 +15,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Exceptions import Grid2OpException, NoForecastAvailable, EnvError
+from grid2op.Exceptions import Grid2OpException, NoForecastAvailable, EnvError, BaseObservationError
 from grid2op.Space import GridObjects
 
 # TODO have a method that could do "forecast" by giving the _injection by the agent,
@@ -2702,3 +2702,27 @@ class BaseObservation(GridObjects):
             self.attention_budget[:] = env._attention_budget.current_budget
             
         self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.)
+
+    def get_simulator(self) -> "Simulator":
+        """This function allows to retrieve a valid and properly initialized "Simulator"
+        
+        A :class:`grid2op.simulator.Simulator` can be used to simulate the impact of
+        multiple consecutive actions, without taking into account any
+        kind of rules.
+    
+        It can also be use with forecast of the productions / consumption to 
+        predict whether or not a given state is "robust" to variation of the
+        injections for example.
+        
+        You can find more information about simulator on the dedicated page of the
+        documentation.
+        """
+        from grid2op.simulator import Simulator  # lazy import to prevent circular references
+        # BaseObservation is only used for typing in the simulator...
+        if self._obs_env is None:
+            raise BaseObservationError("Impossible to build a simulator is the "
+                                       "observation space does not support it. "
+                                      )
+        res = Simulator(backend=self._obs_env.backend)
+        res.set_state(self)
+        return res

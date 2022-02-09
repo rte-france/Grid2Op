@@ -815,15 +815,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             except TypeError as exc_:
                 raise EnvError("Impossible to create the attention budget with the provided argument. Please "
                                "change the content of the argument \"kwargs_attention_budget\".") from exc_
-        # TODO: in step
-        # TODO in reset
-        # TODO in simulate (make sure to reset the budget properly)
-
-        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in make
-        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in runner
-        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in get_kwargs
-        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in get_params_for_runner
-        # TODO  attention_budget_cls and kwargs_attention_budget and _has_attention_budget in config.py
 
     def _create_opponent(self):
         if not self.__is_init:
@@ -1054,7 +1045,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed. You cannot use it anymore.")
-
 
         seed_init = None
         seed_chron = None
@@ -1475,7 +1465,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             init_sum = np.sum(x0)
             denom_adjust = np.sum(1. / weights[can_adjust])
             if denom_adjust <= 1e-2:
-                # i don't want to divide by something to cloose to 0.
+                # i don't want to divide by something too cloose to 0.
                 denom_adjust = 1.0
             x0[can_adjust] = - init_sum / (weights[can_adjust] * denom_adjust)
 
@@ -1486,7 +1476,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             coeffs_quads_const = coeffs_quads.sum()
             coeffs_quads_const /= scale_objective  # scaling the function
             return coeffs_quads_const
-
+        
         def jac(actual_dispatchable):
             res_jac = 1.0 * tmp_zeros
             res_jac[0, already_modified_gen_me] = 2.0 * weights[already_modified_gen_me] * \
