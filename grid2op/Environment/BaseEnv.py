@@ -32,8 +32,8 @@ from grid2op.Action._BackendAction import _BackendAction
 # TODO put in a separate class the redispatching function
 
 DETAILED_REDISP_ERR_MSG = "\nThis is an attempt to explain why the dispatch did not succeed and caused a game over.\n" \
-                          "To compensate the {increase} of loads (and / or {decrease} of " \
-                          "renewable energy), " \
+                          "To compensate the {increase} of loads and / or {decrease} of " \
+                          "renewable energy (due to naturl causes but also through curtailment) and / or variation in the storage units, " \
                           "the generators should {increase} their total production of {sum_move:.2f}MW (in total).\n" \
                           "But, if you take into account the generator constraints ({pmax} and {max_ramp_up}) you " \
                           "can have at most {avail_up_sum:.2f}MW.\n" \
@@ -1315,7 +1315,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if np.all(redisp_act_orig == 0.) and np.all(self._target_dispatch == 0.) and np.all(self._actual_dispatch == 0.):
             return valid, except_, info_
-
         # check that everything is consistent with pmin, pmax:
         if np.any(self._target_dispatch > self.gen_pmax - self.gen_pmin):
             # action is invalid, the target redispatching would be above pmax for at least a generator
@@ -1356,7 +1355,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _make_redisp(self, already_modified_gen, new_p):
         """this computes the redispaching vector, taking into account the storage units"""
         except_ = None
-        info_ = []
         valid = True
         mismatch = self._actual_dispatch - self._target_dispatch
         mismatch = np.abs(mismatch)
@@ -1366,7 +1364,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
            np.abs(self._sum_curtailment_mw) >= self._tol_poly:
             except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
             valid = except_ is None
-        return valid, except_, info_
+        return valid, except_
 
     def _compute_dispatch_vect(self, already_modified_gen, new_p):
         except_ = None
@@ -1374,7 +1372,39 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # these are the generators that will be adjusted for redispatching
         gen_participating = (new_p > 0.) | (self._actual_dispatch != 0.) | (self._target_dispatch != self._actual_dispatch)
         gen_participating[~self.gen_redispatchable] = False
+        incr_in_chronics = new_p - (self._gen_activeprod_t_redisp - self._actual_dispatch)
 
+        # check if the constraints are violated
+        ## total available "juice" to go down (incl ramp and pmin / pmax)
+        p_min_down = self.gen_pmin[gen_participating] - self._gen_activeprod_t_redisp[gen_participating]
+        avail_down = np.maximum(p_min_down, -self.gen_max_ramp_down[gen_participating])
+        ## total available "juice" to go up (incl. ramp and pmin / pmax)
+        p_max_up = self.gen_pmax[gen_participating] - self._gen_activeprod_t_redisp[gen_participating]
+        avail_up = np.minimum(p_max_up, self.gen_max_ramp_up[gen_participating])
+        except_ = self._detect_infeasible_dispatch(incr_in_chronics[gen_participating], avail_down, avail_up)
+        if except_ is not None:
+            # try to force the turn on of turned off generators (if parameters allow it)
+            if self._parameters.IGNORE_MIN_UP_DOWN_TIME and self._parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF:
+                gen_participating_tmp = self.gen_redispatchable
+                p_min_down_tmp = self.gen_pmin[gen_participating_tmp] - self._gen_activeprod_t_redisp[gen_participating_tmp]
+                avail_down_tmp = np.maximum(p_min_down_tmp, -self.gen_max_ramp_down[gen_participating_tmp])
+                p_max_up_tmp = self.gen_pmax[gen_participating_tmp] - self._gen_activeprod_t_redisp[gen_participating_tmp]
+                avail_up_tmp = np.minimum(p_max_up_tmp, self.gen_max_ramp_up[gen_participating_tmp])
+                except_tmp = self._detect_infeasible_dispatch(incr_in_chronics[gen_participating_tmp], avail_down_tmp, avail_up_tmp)
+                if except_tmp is None:
+                    # I can "save" the situation by turning on all generators, I do it
+                    # TODO logger here
+                    gen_participating = gen_participating_tmp
+                    p_min_down = p_min_down_tmp
+                    avail_down = avail_down_tmp
+                    p_max_up = p_max_up_tmp
+                    avail_up = avail_up_tmp
+                    except_ = None
+                else:
+                    return except_tmp
+            else:
+                return except_
+        
         # define the objective value
         target_vals = self._target_dispatch[gen_participating] - self._actual_dispatch[gen_participating]
         already_modified_gen_me = already_modified_gen[gen_participating]
@@ -1413,7 +1443,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float) + self._amount_storage - self._sum_curtailment_mw
         # gen increase in the chronics
         new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
-        incr_in_chronics = new_p - (self._gen_activeprod_t_redisp - self._actual_dispatch)
 
         # minimum value available for disp
         ## first limit delta because of pmin
@@ -1444,17 +1473,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         ineq_const = LinearConstraint(mat_pmin_max_ramps,
                                       (min_disp - added) / scale_x,
                                       (max_disp + added) / scale_x)
-
-        # check if the constraints are violated
-        ## total available "juice" to go down (incl ramp and pmin / pmax)
-        p_min_down = self.gen_pmin[gen_participating] - self._gen_activeprod_t_redisp[gen_participating]
-        avail_down = np.maximum(p_min_down, -self.gen_max_ramp_down[gen_participating])
-        ## total available "juice" to go up (incl. ramp and pmin / pmax)
-        p_max_up = self.gen_pmax[gen_participating] - self._gen_activeprod_t_redisp[gen_participating]
-        avail_up = np.minimum(p_max_up, self.gen_max_ramp_up[gen_participating])
-        except_ = self._detect_infeasible_dispatch(incr_in_chronics[gen_participating], avail_down, avail_up)
-        if except_ is not None:
-            return except_
 
         # choose a good initial point (close to the solution)
         # the idea here is to chose a initial point that would be close to the
@@ -1521,7 +1539,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _detect_infeasible_dispatch(self, incr_in_chronics, avail_down, avail_up):
         """This function is an attempt to give more detailed log by detecting infeasible dispatch"""
         except_ = None
-        sum_move = np.sum(incr_in_chronics)
+        sum_move = np.sum(incr_in_chronics) + self._amount_storage - self._sum_curtailment_mw
         avail_down_sum = np.sum(avail_down)
         avail_up_sum = np.sum(avail_up)
         gen_setpoint = self._gen_activeprod_t_redisp[self.gen_redispatchable]
@@ -2027,15 +2045,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._gen_before_curtailment[self.gen_renewable] = new_p[self.gen_renewable]
             if self.redispatching_unit_commitment_availble and \
                     (action._modif_curtailment or np.any(self._limit_curtailment != 1.)):
-                # TODO limit here if the ramps are too low !
-                # TODO in the above case, action should not be implemented !
-                # max_total_down, max_total_up = self._compute_max_ramp_this_step(new_p)
                 curtailment_act = 1.0 * action._curtail
                 ind_curtailed_in_act = (curtailment_act != -1.) & self.gen_renewable
                 self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
                 gen_curtailed = self._limit_curtailment != 1.  # curtailed either right now, or in a previous action
                 max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
-                # self._gen_before_curtailment[self.gen_renewable] = new_p[self.gen_renewable]
                 new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
 
                 tmp_sum_curtailment_mw = dt_float(np.sum(new_p[gen_curtailed]) -
@@ -2043,7 +2057,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._sum_curtailment_mw = tmp_sum_curtailment_mw - self._sum_curtailment_mw_prev
                 self._sum_curtailment_mw_prev = tmp_sum_curtailment_mw
 
-                # TODO curtailment: modify the env to include curtailment
                 if "prod_p" in self._env_modification._dict_inj:
                     self._env_modification._dict_inj["prod_p"][:] = new_p
                 else:
@@ -2096,7 +2109,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         self._withdraw_storage_losses()
                         # end storage
 
-                valid_disp, except_tmp, info_ = self._make_redisp(already_modified_gen, new_p)
+                valid_disp, except_tmp = self._make_redisp(already_modified_gen, new_p)
                 if not valid_disp or except_tmp is not None:
                     # game over case (divergence of the scipy routine to compute redispatching)
                     action = self._action_space({})

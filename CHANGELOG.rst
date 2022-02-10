@@ -49,6 +49,9 @@ Change Log
   (previously it was only a string) when redispatching was illegal.
 - [FIXED] a bug in `env.train_val_split_random` when some non chronics files where present in the
   "chronics" folder of the environment.
+- [FIXED] an error in the redispatching: in some cases, the environment detected that the redispatching was infeasible when it
+  was not and in some others it did not detect when it while it was infeasible. This was mainly the case
+  when curtailment and storage units were heavily modified.
 - [ADDED] a function `normalize_attr` allowing to easily scale some data for the
   `BoxGymObsSpace` and `BoxGymActSpace`
 - [ADDED] support for distributed slack in pandapower (if supported)
@@ -60,6 +63,9 @@ Change Log
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower
 - [IMPROVED] doc of observation module (some attributes were missing)
 - [IMPROVED] officially drop python 3.6 supports (which could not benefit from all the features)
+- [IMPROVED] when the curtailment / storage is too "strong" at a given step, the environment will now allow 
+  every controllable turned-on generators to mitigate it. This should increase the possibility to act on the
+  curtailment and storage units without "breaking" the environment. 
 
 [1.6.5] - 2022-01-19
 ---------------------

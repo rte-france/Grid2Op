@@ -82,6 +82,19 @@ class Parameters:
         Whether or not to ignore the attributes `gen_min_uptime` and `gen_min_downtime`. Basically setting this
         parameter to ``True``
 
+    LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION: ``bool``
+        If set to ``True`` (NOT the default) the environment will automatically limit the curtailment / storage actions that otherwise
+        would lead to infeasible state. 
+        
+        For example the maximum ramp up of generator at a given step is 100 MW / step ( 
+        ie you can increase the production of these generators of maximum 100 MW at this step) but if you cumul the storage
+        action and the curtailment action, you ask + 110 MW at this step (for example you curtail 100MW of renewables).
+        
+        In this example, if param.LIMIT_INFEASIBLE_CURTAILMENT_ACTION is ``False`` (default) this is a game over. If it's ``True``
+        then the curtailment action is limited so that it does not exceed 100 MW. 
+        
+        Setting it to ``True`` might help the learning of agent using redispatching.
+        
     INIT_STORAGE_CAPACITY: ``float``
         Between 0. and 1. Specify, at the beginning of each episode, what is the storage capacity of each storage unit.
         The storage capacity will be expressed as fraction of storage_Emax. For example, if `INIT_STORAGE_CAPACITY` is
@@ -156,12 +169,16 @@ class Parameters:
 
         # ignore the min_uptime and downtime for the generators: allow them to be connected / disconnected
         # at will
-        self.IGNORE_MIN_UP_DOWN_TIME = True
+        self.IGNORE_MIN_UP_DOWN_TIME = False
 
         # allow dispatch on turned off generator (if ``True`` you can actually dispatch a turned on geenrator)
         self.ALLOW_DISPATCH_GEN_SWITCH_OFF = True
 
-        # storage capacity (NOT in pct)
+        # if a curtailment action is "too strong" it will limit it to the "maximum feasible" 
+        # not to break the whole system
+        self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+
+        # storage capacity (NOT in pct so 0.5 = 50%)
         self.INIT_STORAGE_CAPACITY = 0.5
 
         # do i take into account the storage loss in the step function
@@ -219,9 +236,10 @@ class Parameters:
 
         if "IGNORE_MIN_UP_DOWN_TIME" in dict_:
             self.IGNORE_MIN_UP_DOWN_TIME = Parameters._isok_txt(dict_["IGNORE_MIN_UP_DOWN_TIME"])
-
         if "ALLOW_DISPATCH_GEN_SWITCH_OFF" in dict_:
             self.ALLOW_DISPATCH_GEN_SWITCH_OFF = Parameters._isok_txt(dict_["ALLOW_DISPATCH_GEN_SWITCH_OFF"])
+        if "LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION" in dict_:
+            self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = Parameters._isok_txt(dict_["LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION"])
 
         if "NB_TIMESTEP_POWERFLOW_ALLOWED" in dict_:
             self.NB_TIMESTEP_OVERFLOW_ALLOWED = dt_int(dict_["NB_TIMESTEP_POWERFLOW_ALLOWED"])
@@ -305,6 +323,7 @@ class Parameters:
         res["NO_OVERFLOW_DISCONNECTION"] = bool(self.NO_OVERFLOW_DISCONNECTION)
         res["IGNORE_MIN_UP_DOWN_TIME"] = bool(self.IGNORE_MIN_UP_DOWN_TIME)
         res["ALLOW_DISPATCH_GEN_SWITCH_OFF"] = bool(self.ALLOW_DISPATCH_GEN_SWITCH_OFF)
+        res["LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION"] = bool(self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION)
         res["NB_TIMESTEP_OVERFLOW_ALLOWED"] = int(self.NB_TIMESTEP_OVERFLOW_ALLOWED)
         res["NB_TIMESTEP_RECONNECTION"] = int(self.NB_TIMESTEP_RECONNECTION)
         res["HARD_OVERFLOW_THRESHOLD"] = float(self.HARD_OVERFLOW_THRESHOLD)
@@ -452,6 +471,12 @@ class Parameters:
             self.ALLOW_DISPATCH_GEN_SWITCH_OFF = dt_bool(self.ALLOW_DISPATCH_GEN_SWITCH_OFF)
         except Exception as exc_:
             raise RuntimeError(f"Impossible to convert ALLOW_DISPATCH_GEN_SWITCH_OFF to bool with error \n:\"{exc_}\"")
+        try:
+            if not isinstance(self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION, (bool, dt_bool)):
+                raise RuntimeError("LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION should be a boolean")
+            self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = dt_bool(self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION to bool with error \n:\"{exc_}\"")
 
         try:
             self.INIT_STORAGE_CAPACITY = float(self.INIT_STORAGE_CAPACITY)  # to raise if numpy array
