@@ -169,14 +169,14 @@ class Parameters:
 
         # ignore the min_uptime and downtime for the generators: allow them to be connected / disconnected
         # at will
-        self.IGNORE_MIN_UP_DOWN_TIME = False
+        self.IGNORE_MIN_UP_DOWN_TIME = True
 
         # allow dispatch on turned off generator (if ``True`` you can actually dispatch a turned on geenrator)
         self.ALLOW_DISPATCH_GEN_SWITCH_OFF = True
 
         # if a curtailment action is "too strong" it will limit it to the "maximum feasible" 
         # not to break the whole system
-        self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+        self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = False
 
         # storage capacity (NOT in pct so 0.5 = 50%)
         self.INIT_STORAGE_CAPACITY = 0.5

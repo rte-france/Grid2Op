@@ -422,6 +422,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_before_curtailment = None
         self._sum_curtailment_mw = None
         self._sum_curtailment_mw_prev = None
+        self._limited_before = 0.  # TODO curt
 
         # attention budget
         self._has_attention_budget = has_attention_budget
@@ -995,6 +996,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_before_curtailment[:] = 0.
         self._sum_curtailment_mw = dt_float(0.)
         self._sum_curtailment_mw_prev = dt_float(0.)
+        self._limited_before = dt_float(0.)
 
     def seed(self, seed=None, _seed_me=True):
         """
@@ -2039,8 +2041,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._env_modification, prod_v_chronics = self._update_actions()
             self._env_modification._single_act = False  # because it absorbs all redispatching actions
             new_p = self._get_new_prod_setpoint(action)
-            max_total_down, max_total_up = None, None
-
+            new_p_th = 1.0 * new_p
+            
             # curtailment
             self._gen_before_curtailment[self.gen_renewable] = new_p[self.gen_renewable]
             if self.redispatching_unit_commitment_availble and \
@@ -2065,19 +2067,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             else:
                 self._sum_curtailment_mw = -self._sum_curtailment_mw_prev
                 self._sum_curtailment_mw_prev = dt_float(0.)
-
-            # case where the action modifies load (TODO maybe make a different env for that...)
-            for inj_key in ["load_p", "prod_p", "load_q"]:
-                # modification of the injections in the action, this erases the actions in the environment
-                if inj_key in action._dict_inj:
-                    if inj_key in self._env_modification._dict_inj:
-                            this_p_load = 1. * self._env_modification._dict_inj[inj_key]
-                            act_modif = action._dict_inj[inj_key]
-                            this_p_load[np.isfinite(act_modif)] = act_modif[np.isfinite(act_modif)]
-                            self._env_modification._dict_inj[inj_key][:] = this_p_load
-                    else:
-                            self._env_modification._dict_inj[inj_key] = 1.0 * action._dict_inj[inj_key]
-                            self._env_modification._modif_inj = True
 
             if self.n_storage > 0:
                 # TODO limit here if the ramps are too low !
@@ -2108,7 +2097,78 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         # and NOT absorbed by the generators either
                         self._withdraw_storage_losses()
                         # end storage
-
+                        
+                if self.redispatching_unit_commitment_availble and self._parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION:
+                    # limit the curtailment / storage in case of infeasible redispatching
+                    gen_redisp = self.gen_redispatchable
+                    
+                    normal_increase = new_p - (self._gen_activeprod_t_redisp - self._actual_dispatch)
+                    normal_increase = normal_increase[gen_redisp]
+                    p_min_down = self.gen_pmin[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
+                    avail_down = np.maximum(p_min_down, -self.gen_max_ramp_down[gen_redisp])
+                    p_max_up = self.gen_pmax[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
+                    avail_up = np.minimum(p_max_up, self.gen_max_ramp_up[gen_redisp])
+                    
+                    sum_move = np.sum(normal_increase) + self._amount_storage - self._sum_curtailment_mw
+                    total_storage_curtail = self._amount_storage - self._sum_curtailment_mw
+                    
+                    if abs(total_storage_curtail) >= self._tol_poly:
+                        # if there is an impact on the curtailment / storage (otherwise I cannot fix anything)
+                        too_much = 0.
+                        if sum_move > np.sum(avail_up):
+                            # I need to "curtail" less
+                            too_much = dt_float(sum_move - np.sum(avail_up) + self._tol_poly)
+                        # elif sum_move < np.sum(avail_down):
+                        #     # TODO
+                        #     pass
+                        elif np.abs(self._limited_before) >= self._tol_poly:
+                            # adjust the mess I did before by not curtailing enough
+                            max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
+                            new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
+                
+                            if self._limited_before > 0.:
+                                too_much = - min(np.sum(avail_up), self._limited_before)
+                                print(f"{np.sum(avail_up) = }")
+                                print(f"{too_much = }")
+                            else:
+                                # TODO !!!
+                                pass
+                        
+                        if too_much != 0.:  
+                            total_curtailment = - self._sum_curtailment_mw / total_storage_curtail * too_much
+                            total_storage = self._amount_storage / total_storage_curtail * too_much  # TODO !!!
+                            # fix curtailment
+                            self._sum_curtailment_mw += too_much
+                            self._sum_curtailment_mw_prev += too_much
+                            self._limited_before += too_much
+                            # self._sum_curtailment_mw_prev = self._sum_curtailment_mw  # TODO !!!
+                            curtailed = new_p_th - new_p
+                            curtailed[~self.gen_renewable] = 0.
+                            curtailed *= total_curtailment / curtailed.sum()
+                            if too_much < 0.:
+                                pass
+                                import pdb
+                                pdb.set_trace()
+                            new_p[self.gen_renewable] += curtailed[self.gen_renewable]
+                            if "prod_p" in self._env_modification._dict_inj:
+                                self._env_modification._dict_inj["prod_p"][:] = new_p
+                            else:
+                                self._env_modification._dict_inj["prod_p"] = 1.0 * new_p
+                                self._env_modification._modif_inj = True
+                                    
+                # case where the action modifies load (TODO maybe make a different env for that...)
+                for inj_key in ["load_p", "prod_p", "load_q"]:
+                    # modification of the injections in the action, this erases the actions in the environment
+                    if inj_key in action._dict_inj:
+                        if inj_key in self._env_modification._dict_inj:
+                                this_p_load = 1. * self._env_modification._dict_inj[inj_key]
+                                act_modif = action._dict_inj[inj_key]
+                                this_p_load[np.isfinite(act_modif)] = act_modif[np.isfinite(act_modif)]
+                                self._env_modification._dict_inj[inj_key][:] = this_p_load
+                        else:
+                                self._env_modification._dict_inj[inj_key] = 1.0 * action._dict_inj[inj_key]
+                                self._env_modification._modif_inj = True    
+                    
                 valid_disp, except_tmp = self._make_redisp(already_modified_gen, new_p)
                 if not valid_disp or except_tmp is not None:
                     # game over case (divergence of the scipy routine to compute redispatching)
@@ -2231,7 +2291,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             except Grid2OpException as exc_:
                 except_.append(exc_)
                 if self.logger is not None:
-                    self.logger.error("Impossible to compute next _grid state with error \"{}\"".format(exc_))
+                    self.logger.error("Impossible to compute next grid state with error \"{}\"".format(exc_))
 
         except StopIteration:
             # episode is over
