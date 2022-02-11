@@ -234,6 +234,7 @@ class TestExtremeCurtail(unittest.TestCase):
         # now the setpoint is reached, let's increase "at once" (it is possible without violating anything)
         obs2, reward, done, info = self.env.step(self.all_one)
         assert not done
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
         assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         assert np.all(obs2.gen_p_before_curtail[self.env.gen_renewable] == obs2.gen_p[self.env.gen_renewable])
         self._aux_test_gen(obs1, obs2)
@@ -260,8 +261,8 @@ class TestExtremeCurtail(unittest.TestCase):
         # now the setpoint is reached, let's increase "at once" (it should break a limit => curtailment will be limited)
         obs3, reward, done, info = self.env.step(self.all_one)
         assert not done
-        # self._aux_test_gen(obs2, obs3)
-        # assert np.all(obs3.gen_p_before_curtail[self.env.gen_renewable] > obs3.gen_p[self.env.gen_renewable])
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         obs4, reward, done, info = self.env.step(self.all_one)
         assert not done
         self._aux_test_gen(obs3, obs4)

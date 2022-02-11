@@ -2126,6 +2126,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                             # I need to limit storage unit (not enough ramps down available)
                             too_much = dt_float(sum_move - np.sum(avail_down) - self._tol_poly)
                             self._limited_before = too_much
+                            # TODO: fix new_p !!!
                         elif np.abs(self._limited_before) >= self._tol_poly:
                             # adjust the "mess" I did before by not curtailing enough
                             max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
