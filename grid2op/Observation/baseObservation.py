@@ -217,7 +217,18 @@ class BaseObservation(GridObjects):
         generators that cannot be curtailed)
 
     curtailment_limit: :class:`numpy.ndarray`, dtype:float
-        Limit (in ratio of gen_pmax) imposed on each renewable generator.
+        Limit (in ratio of gen_pmax) imposed on each renewable generator as set by the agent
+        
+        It is always 1. if no curtailment actions is acting on the generator.
+
+    curtailment_limit_effective: :class:`numpy.ndarray`, dtype:float
+        Limit (in ratio of gen_pmax) imposed on each renewable generator effectively imposed by the environment.
+        
+        It matches :attr:`BaseObservation.curtailment_limit` if `param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION`
+        is ``False`` (default) otherwise the environment is able to limit the curtailment actions if too much
+        power would be needed to compensate the "loss" of generation due to renewables.
+        
+        It is always 1. if no curtailment actions is acting on the generator.
 
     curtailment_mw: :class:`numpy.ndarray`, dtype:float
         Gives the amount of power curtailed for each generator (it is 0. for all
@@ -227,7 +238,7 @@ class BaseObservation(GridObjects):
         Give the power curtailed for each generator. It is expressed in 
         ratio of gen_pmax (so between 0. - meaning no curtailment in effect for this
         generator - to 1.0 - meaning this generator should have produced pmax, but 
-        a curtailment action limited it to 0.)
+        a curtailment action limits it to 0.)
         
     current_step: ``int``
         Current number of step performed up until this observation (NB this is not given in the observation if
@@ -302,7 +313,7 @@ class BaseObservation(GridObjects):
                 # storage
                 "storage_charge", "storage_power_target", "storage_power",
                 # curtailment
-                "gen_p_before_curtail", "curtailment", "curtailment_limit",
+                "gen_p_before_curtail", "curtailment", "curtailment_limit", "curtailment_limit_effective"
                 # attention budget
                 "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
                 "was_alarm_used_after_game_over",
@@ -407,6 +418,7 @@ class BaseObservation(GridObjects):
         self.gen_p_before_curtail = np.empty(shape=self.n_gen, dtype=dt_float)
         self.curtailment = np.empty(shape=self.n_gen, dtype=dt_float)
         self.curtailment_limit = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.curtailment_limit_effective = np.empty(shape=self.n_gen, dtype=dt_float)
 
         # the "theta" (voltage angle, in degree)
         self.support_theta = False
@@ -437,7 +449,7 @@ class BaseObservation(GridObjects):
                      "load_p", "load_q", "load_v",
                      "gen_p", "gen_q", "gen_v",
                      "topo_vect", "line_status", "timestep_overflow",
-                     "gen_margin_up", "gen_margin_down"
+                     "gen_margin_up", "gen_margin_down", "curtailment_limit_effective"
                      ]
 
         if self.shunts_data_available:
@@ -637,6 +649,7 @@ class BaseObservation(GridObjects):
                    "actual_dispatch": self.target_dispatch[gen_id],
                    "curtailment": self.curtailment[gen_id],
                    "curtailment_limit": self.curtailment_limit[gen_id],
+                   "curtailment_limit_effective": self.curtailment_limit_effective[gen_id],
                    "p_before_curtail": self.gen_p_before_curtail[gen_id],
                    "margin_up": self.gen_margin_up[gen_id],
                    "margin_down": self.gen_margin_down[gen_id],
@@ -797,7 +810,7 @@ class BaseObservation(GridObjects):
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
 
-            for el in ["gen_margin_up", "gen_margin_down"]:
+            for el in ["gen_margin_up", "gen_margin_down", "curtailment_limit_effective"]:
                 try:
                     cls.attr_list_vect.remove(el)
                 except ValueError as exc_:
@@ -958,6 +971,7 @@ class BaseObservation(GridObjects):
         # curtailment
         self.curtailment[:] = 0.
         self.curtailment_limit[:] = 1.
+        self.curtailment_limit_effective[:] = 1.
         self.gen_p_before_curtail[:] = 0.
 
         # cooldown
@@ -2290,6 +2304,7 @@ class BaseObservation(GridObjects):
             self._dictionnarized["gen_p_before_curtail"] = 1.0 * self.gen_p_before_curtail
             self._dictionnarized["curtailment"] = 1.0 * self.curtailment
             self._dictionnarized["curtailment_limit"] = 1.0 * self.curtailment_limit
+            self._dictionnarized["curtailment_limit_effective"] = 1.0 * self.curtailmentcurtailment_limit_effective_limit
 
             # alarm / attention budget
             self._dictionnarized["is_alarm_illegal"] = self.is_alarm_illegal[0]
@@ -2687,10 +2702,14 @@ class BaseObservation(GridObjects):
             self.curtailment[~self.gen_renewable] = 0.
             self.curtailment_limit[:] = env._limit_curtailment
             self.curtailment_limit[self.curtailment_limit >= 1.] = 1.0
+            gen_curtailed = self.gen_renewable & (self.curtailment_limit != 1)
+            self.curtailment_limit_effective[gen_curtailed] = self.gen_p[gen_curtailed] / self.gen_pmax[gen_curtailed]
+            self.curtailment_limit_effective[~gen_curtailed] = 1.
         else:
             self.curtailment[:] = 0.
             self.gen_p_before_curtail[:] = self.gen_p
             self.curtailment_limit[:] = 1.0
+            self.curtailment_limit_effective[:] = 1.0
 
         if self.dim_alarms and env._has_attention_budget:
             self.is_alarm_illegal[:] = env._is_alarm_illegal
