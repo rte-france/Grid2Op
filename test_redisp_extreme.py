@@ -40,6 +40,22 @@ class TestExtremeCurtail(unittest.TestCase):
         self.all_zero = self.env.action_space({"curtail": [(el, 0.0) for el in np.where(self.env.gen_renewable)[0]]})
         self.all_one = self.env.action_space({"curtail": [(el, 1.0) for el in np.where(self.env.gen_renewable)[0]]})
 
+    def _aux_test_gen(self, obsbefore, obsafter, tol=1e-4):
+        assert np.all(obsbefore.gen_p <= obsbefore.gen_pmax + tol)
+        assert np.all(obsbefore.gen_p >= obsbefore.gen_pmin - tol)
+        assert np.all(obsafter.gen_p <= obsafter.gen_pmax + tol)
+        assert np.all(obsafter.gen_p >= obsafter.gen_pmin - tol)
+        dispatchable = obsbefore.gen_redispatchable
+        dispatchable[-1] = False  # we remove the slack... !
+        assert np.all((obsafter.gen_p[dispatchable] - obsbefore.gen_p[dispatchable]) <= obsbefore.gen_max_ramp_up[dispatchable] + tol)
+        assert np.all((obsafter.gen_p[dispatchable] - obsbefore.gen_p[dispatchable]) >= -obsbefore.gen_max_ramp_down[dispatchable] - tol)
+        
+        # check the slack does not violate too much the constraints (this would indicate an error in the 
+        # amount of power that needs to be redispatched)
+        slack = -1
+        assert (obsafter.gen_p[slack] - obsbefore.gen_p[slack]) <= obsbefore.gen_max_ramp_up[slack] + 1
+        assert (obsafter.gen_p[slack] - obsbefore.gen_p[slack]) >= -obsbefore.gen_max_ramp_down[slack] - 1
+        
     def test_curtail_ok(self):
         """test that the env can automatically turn on all generators to prevent issues if curtailment is too strong
         new in grid2Op version 1.6.6"""
@@ -47,9 +63,10 @@ class TestExtremeCurtail(unittest.TestCase):
         self.env.set_id(0)
         obs = self.env.reset()
         act = self.curtail_ok
-        obs, reward, done, info = self.env.step(act)
+        obs1, reward, done, info = self.env.step(act)
         assert not done
-        assert np.any(obs.gen_p[obs.gen_redispatchable] == 0.)
+        assert np.any(obs1.gen_p[obs.gen_redispatchable] == 0.)
+        self._aux_test_gen(obs, obs1)
         
     def test_fix_curtail(self):
         """test that the env can automatically turn on all generators to prevent issues if curtailment is too strong
@@ -58,9 +75,10 @@ class TestExtremeCurtail(unittest.TestCase):
         self.env.set_id(0)
         obs = self.env.reset()
         act = self.curtail_ok_if_all_on
-        obs, reward, done, info = self.env.step(act)
+        obs1, reward, done, info = self.env.step(act)
         assert not done
-        assert np.all(obs.gen_p[obs.gen_redispatchable] > 0.)
+        assert np.all(obs1.gen_p[obs.gen_redispatchable] > 0.)
+        self._aux_test_gen(obs, obs1)
         
     def test_curtail_fail(self):
         """test that the env fails if the parameters is set to LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = False"
@@ -83,12 +101,13 @@ class TestExtremeCurtail(unittest.TestCase):
         self.env.set_id(0)
         obs = self.env.reset()
         act = self.curtail_ko
-        obs, reward, done, info = self.env.step(act)
+        obs1, reward, done, info = self.env.step(act)
         assert not done
-        assert np.all(obs.gen_p[obs.gen_redispatchable] > 0.)
+        assert np.all(obs1.gen_p[obs1.gen_redispatchable] > 0.)
         # the curtailment should be limited (so higher that originally)
-        gen_part = self.env.gen_renewable & (obs.gen_p > 0.)
-        assert np.all(obs.gen_p[gen_part] / obs.gen_pmax[gen_part] > act.curtail[gen_part])
+        gen_part = self.env.gen_renewable & (obs1.gen_p > 0.)
+        assert np.all(obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part] > act.curtail[gen_part])
+        self._aux_test_gen(obs, obs1)
         
     def test_set_back_to_normal(self):
         """test that the curtailment setpoint, once enough time has passed is achieved"""
@@ -101,12 +120,13 @@ class TestExtremeCurtail(unittest.TestCase):
         act = self.curtail_ko
         
         # first action would break the grid, it is limited
-        obs, reward, done, info = self.env.step(act)
+        obs0, reward, done, info = self.env.step(act)
         assert not done
-        gen_part = self.env.gen_renewable & (obs.gen_p > 0.)
-        assert np.all(obs.gen_p[gen_part] / obs.gen_pmax[gen_part] > act.curtail[gen_part])
-        assert np.all(obs.gen_p >= 0.)
-        assert np.all(obs.gen_p_before_curtail == self.obs1_ref.gen_p_before_curtail)
+        gen_part = self.env.gen_renewable & (obs0.gen_p > 0.)
+        assert np.all(obs0.gen_p[gen_part] / obs0.gen_pmax[gen_part] > act.curtail[gen_part])
+        assert np.all(obs0.gen_p >= 0.)
+        assert np.all(obs0.gen_p_before_curtail[self.env.gen_renewable] == self.obs1_ref.gen_p[self.env.gen_renewable])
+        self._aux_test_gen(obs, obs0)
         
         # next step = the action can be completely made, it does it
         obs1, reward, done, info = self.env.step(self.env.action_space())
@@ -114,7 +134,8 @@ class TestExtremeCurtail(unittest.TestCase):
         gen_part = self.env.gen_renewable & (obs1.gen_p > 0.)
         assert np.all(obs1.gen_p >= 0.)
         assert np.all(obs1.curtailment_limit[gen_part] == obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part])
-        assert np.all(obs1.gen_p_before_curtail == self.obs2_ref.gen_p_before_curtail)
+        assert np.all(obs1.gen_p_before_curtail[self.env.gen_renewable] == self.obs2_ref.gen_p[self.env.gen_renewable])
+        self._aux_test_gen(obs0, obs1)
         
         # make sure it stays at the sepoint
         obs2, reward, done, info = self.env.step(self.env.action_space())
@@ -122,9 +143,8 @@ class TestExtremeCurtail(unittest.TestCase):
         gen_part = self.env.gen_renewable & (obs2.gen_p > 0.)
         assert np.all(obs2.gen_p >= 0.)
         assert np.all(obs2.curtailment_limit[gen_part] == obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part])
-        assert np.all(obs2.gen_p_before_curtail == self.obs3_ref.gen_p_before_curtail)
-        
-        # TODO compare with the ref observations !
+        assert np.all(obs2.gen_p_before_curtail[self.env.gen_renewable] == self.obs3_ref.gen_p[self.env.gen_renewable])
+        self._aux_test_gen(obs1, obs2)
         
     def test_set_back_to_normal_2(self):
         """test that the curtailment setpoint, once enough time has passed is achieved
@@ -138,11 +158,12 @@ class TestExtremeCurtail(unittest.TestCase):
         act = self.all_zero
         
         # first action would break the grid, it is limited
-        obs, reward, done, info = self.env.step(act)
+        obs0, reward, done, info = self.env.step(act)
         assert not done, "env should not have diverge at first acction"
-        gen_part = self.env.gen_renewable & (obs.gen_p > 0.)
-        assert np.all(obs.gen_p[gen_part] / obs.gen_pmax[gen_part] > act.curtail[gen_part])
-        assert np.all(obs.gen_p_before_curtail == self.obs1_ref.gen_p_before_curtail)
+        gen_part = self.env.gen_renewable & (obs0.gen_p > 0.)
+        assert np.all(obs0.gen_p[gen_part] / obs0.gen_pmax[gen_part] > act.curtail[gen_part])
+        assert np.all(obs0.gen_p_before_curtail[self.env.gen_renewable] == self.obs1_ref.gen_p[self.env.gen_renewable])
+        self._aux_test_gen(obs, obs0)
         
         # next step = we got close to the setpoint, but still not there yet
         obs1, reward, done, info = self.env.step(self.env.action_space())
@@ -152,7 +173,8 @@ class TestExtremeCurtail(unittest.TestCase):
         # I am still not at the setpoint
         gen_part = self.env.gen_renewable & (obs1.gen_p > 0.)
         assert np.all(obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part] > act.curtail[gen_part])
-        assert np.all(obs1.gen_p_before_curtail == self.obs2_ref.gen_p_before_curtail)
+        assert np.all(obs1.gen_p_before_curtail[self.env.gen_renewable] == self.obs2_ref.gen_p[self.env.gen_renewable])
+        self._aux_test_gen(obs0, obs1)
         
         # next step = the action can be completely made, it does it
         obs2, reward, done, info = self.env.step(self.env.action_space())
@@ -161,7 +183,8 @@ class TestExtremeCurtail(unittest.TestCase):
         assert np.all(obs2.gen_p >= 0.)
         assert np.all(obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part] < obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part])
         assert np.all(obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part] == act.curtail[gen_part])
-        assert np.all(obs2.gen_p_before_curtail == self.obs3_ref.gen_p_before_curtail)
+        assert np.all(obs2.gen_p_before_curtail[self.env.gen_renewable] == self.obs3_ref.gen_p[self.env.gen_renewable])
+        self._aux_test_gen(obs1, obs2)
         
         # make sure it stays at the sepoint
         obs3, reward, done, info = self.env.step(self.env.action_space())
@@ -169,10 +192,11 @@ class TestExtremeCurtail(unittest.TestCase):
         gen_part = self.env.gen_renewable & (obs3.gen_p > 0.)
         assert np.all(obs3.gen_p >= 0.)
         assert np.all(obs3.curtailment_limit[gen_part] == obs3.gen_p[gen_part] / obs3.gen_pmax[gen_part])
-        assert np.all(obs3.gen_p_before_curtail == self.obs4_ref.gen_p_before_curtail)
+        assert np.all(obs3.gen_p_before_curtail[self.env.gen_renewable] == self.obs4_ref.gen_p[self.env.gen_renewable])
+        self._aux_test_gen(obs2, obs3)
         
     def test_down_then_up(self):
-        """test that i can curtail down to the setpoint, then up again to "do nothing"
+        """test that i can curtail down to the setpoint, then up again until the curtailment is canceled
         """
         param = self.env.parameters
         param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
@@ -181,36 +205,46 @@ class TestExtremeCurtail(unittest.TestCase):
         self.env.set_id(0)
         obs = self.env.reset()
         act = self.curtail_ko
-        obs, reward, done, info = self.env.step(act)
+        # we first do as in test_set_back_to_normal
+        obs0, reward, done, info = self.env.step(act)
         assert not done
         obs1, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
         
+        # now the setpoint is reached, let's increase "at once" (it is possible without violating anything)
+        obs2, reward, done, info = self.env.step(self.all_one)
+        assert not done
+        assert np.all(obs2.gen_p_before_curtail[self.env.gen_renewable] == obs2.gen_p[self.env.gen_renewable])
+        self._aux_test_gen(obs1, obs2)
+        
+    def test_down_then_up_2(self):
+        """test that i can curtail down to the setpoint, then up again until the curtailment is canceled
+        but for a more complex case
+        """
+        param = self.env.parameters
+        param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+        self.env.change_parameters(param)
+        self.env.seed(0)
+        self.env.set_id(0)
+        obs = self.env.reset()
+        act = self.all_zero
+        # we first do as in test_set_back_to_normal_2
+        obs0, reward, done, info = self.env.step(act)
+        assert not done
+        obs1, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        obs2, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        
+        # now the setpoint is reached, let's increase "at once" (it should break a limit => curtailment will be limited)
+        obs3, reward, done, info = self.env.step(self.all_one)
+        assert not done
+        # self._aux_test_gen(obs2, obs3)
+        # assert np.all(obs3.gen_p_before_curtail[self.env.gen_renewable] > obs3.gen_p[self.env.gen_renewable])
+        obs4, reward, done, info = self.env.step(self.all_one)
+        assert not done
+        self._aux_test_gen(obs3, obs4)
         
         
 if __name__ == "__main__":
     unittest.main()
-    
-# # print(info["exception"])
-
-# # first test: continue to decrease
-# param = Parameters()
-# param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
-# env.change_parameters(param)
-# env.set_id(0)
-# obs = env.reset()
-# act = env.action_space({"curtail": [(el, 0.16) for el in np.where(env.gen_renewable)[0]]})
-# obs0, reward, done, info = env.step(act)
-# assert not done
-# print("doing nothing 1")
-# obs1, reward, done, info = env.step(env.action_space())
-# assert not done
-# print("doing nothing 2")
-# obs2, reward, done, info = env.step(env.action_space())
-# assert not done
-# gen_part = env.gen_renewable & (obs2.gen_p > 0.)
-# assert np.all(obs2.curtailment_limit[gen_part] == obs2.curtailment[gen_part])
-
-
-# # second test: decrease rapidly (too much), then increase
-
-# # TODO : next : symmetric! !

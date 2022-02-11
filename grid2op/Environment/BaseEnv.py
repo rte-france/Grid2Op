@@ -2124,7 +2124,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                             self._limited_before = too_much
                         elif sum_move < np.sum(avail_down):
                             # I need to limit storage unit (not enough ramps down available)
-                            raise RuntimeError("You should not have end up here yet")
+                            too_much = dt_float(sum_move - np.sum(avail_down) - self._tol_poly)
+                            self._limited_before = too_much
                         elif np.abs(self._limited_before) >= self._tol_poly:
                             # adjust the "mess" I did before by not curtailing enough
                             max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
@@ -2142,9 +2143,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                             self._sum_curtailment_mw += too_much
                             self._sum_curtailment_mw_prev += too_much
                             curtailed = new_p_th - new_p
-                            curtailed[~self.gen_renewable] = 0.
-                            curtailed *= total_curtailment / curtailed.sum()
-                            new_p[self.gen_renewable] += curtailed[self.gen_renewable]
+                            if curtailed.sum() > 0.:
+                                curtailed[~self.gen_renewable] = 0.
+                                curtailed *= total_curtailment / curtailed.sum()
+                                new_p[self.gen_renewable] += curtailed[self.gen_renewable]
                             update_env_act = True
                             
                             # fix storage
