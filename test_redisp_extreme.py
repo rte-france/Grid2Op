@@ -65,6 +65,8 @@ class TestExtremeCurtail(unittest.TestCase):
         act = self.curtail_ok
         obs1, reward, done, info = self.env.step(act)
         assert not done
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         assert np.any(obs1.gen_p[obs.gen_redispatchable] == 0.)
         self._aux_test_gen(obs, obs1)
         
@@ -77,6 +79,8 @@ class TestExtremeCurtail(unittest.TestCase):
         act = self.curtail_ok_if_all_on
         obs1, reward, done, info = self.env.step(act)
         assert not done
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         assert np.all(obs1.gen_p[obs.gen_redispatchable] > 0.)
         self._aux_test_gen(obs, obs1)
         
@@ -103,6 +107,8 @@ class TestExtremeCurtail(unittest.TestCase):
         act = self.curtail_ko
         obs1, reward, done, info = self.env.step(act)
         assert not done
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         assert np.all(obs1.gen_p[obs1.gen_redispatchable] > 0.)
         # the curtailment should be limited (so higher that originally)
         gen_part = self.env.gen_renewable & (obs1.gen_p > 0.)
@@ -122,6 +128,8 @@ class TestExtremeCurtail(unittest.TestCase):
         # first action would break the grid, it is limited
         obs0, reward, done, info = self.env.step(act)
         assert not done
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs0.gen_p > 0.)
         assert np.all(obs0.gen_p[gen_part] / obs0.gen_pmax[gen_part] > act.curtail[gen_part])
         assert np.all(obs0.gen_p >= 0.)
@@ -131,6 +139,8 @@ class TestExtremeCurtail(unittest.TestCase):
         # next step = the action can be completely made, it does it
         obs1, reward, done, info = self.env.step(self.env.action_space())
         assert not done
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs1.gen_p > 0.)
         assert np.all(obs1.gen_p >= 0.)
         assert np.all(obs1.curtailment_limit[gen_part] == obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part])
@@ -140,6 +150,8 @@ class TestExtremeCurtail(unittest.TestCase):
         # make sure it stays at the sepoint
         obs2, reward, done, info = self.env.step(self.env.action_space())
         assert not done
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs2.gen_p > 0.)
         assert np.all(obs2.gen_p >= 0.)
         assert np.all(obs2.curtailment_limit[gen_part] == obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part])
@@ -160,6 +172,8 @@ class TestExtremeCurtail(unittest.TestCase):
         # first action would break the grid, it is limited
         obs0, reward, done, info = self.env.step(act)
         assert not done, "env should not have diverge at first acction"
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs0.gen_p > 0.)
         assert np.all(obs0.gen_p[gen_part] / obs0.gen_pmax[gen_part] > act.curtail[gen_part])
         assert np.all(obs0.gen_p_before_curtail[self.env.gen_renewable] == self.obs1_ref.gen_p[self.env.gen_renewable])
@@ -168,6 +182,8 @@ class TestExtremeCurtail(unittest.TestCase):
         # next step = we got close to the setpoint, but still not there yet
         obs1, reward, done, info = self.env.step(self.env.action_space())
         assert not done, "env should not have diverge after first do nothing"
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         # I got close to the setpoint
         assert np.all(obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part] < obs.gen_p[gen_part] / obs.gen_pmax[gen_part])
         # I am still not at the setpoint
@@ -179,6 +195,8 @@ class TestExtremeCurtail(unittest.TestCase):
         # next step = the action can be completely made, it does it
         obs2, reward, done, info = self.env.step(self.env.action_space())
         assert not done, "env should not have diverge after second do nothing"
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs2.gen_p > 0.)
         assert np.all(obs2.gen_p >= 0.)
         assert np.all(obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part] < obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part])
@@ -189,6 +207,8 @@ class TestExtremeCurtail(unittest.TestCase):
         # make sure it stays at the sepoint
         obs3, reward, done, info = self.env.step(self.env.action_space())
         assert not done,  "env should not have diverge after third do nothing"
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs3.gen_p > 0.)
         assert np.all(obs3.gen_p >= 0.)
         assert np.all(obs3.curtailment_limit[gen_part] == obs3.gen_p[gen_part] / obs3.gen_pmax[gen_part])
@@ -214,6 +234,7 @@ class TestExtremeCurtail(unittest.TestCase):
         # now the setpoint is reached, let's increase "at once" (it is possible without violating anything)
         obs2, reward, done, info = self.env.step(self.all_one)
         assert not done
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         assert np.all(obs2.gen_p_before_curtail[self.env.gen_renewable] == obs2.gen_p[self.env.gen_renewable])
         self._aux_test_gen(obs1, obs2)
         
