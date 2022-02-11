@@ -38,6 +38,7 @@ class TestExtremeCurtail(unittest.TestCase):
         self.curtail_ok_if_all_on = self.env.action_space({"curtail": [(el, 0.32) for el in np.where(self.env.gen_renewable)[0]]})
         self.curtail_ko = self.env.action_space({"curtail": [(el, 0.16) for el in np.where(self.env.gen_renewable)[0]]})
         self.all_zero = self.env.action_space({"curtail": [(el, 0.0) for el in np.where(self.env.gen_renewable)[0]]})
+        self.all_one = self.env.action_space({"curtail": [(el, 1.0) for el in np.where(self.env.gen_renewable)[0]]})
 
     def test_curtail_ok(self):
         """test that the env can automatically turn on all generators to prevent issues if curtailment is too strong
@@ -98,14 +99,30 @@ class TestExtremeCurtail(unittest.TestCase):
         self.env.set_id(0)
         obs = self.env.reset()
         act = self.curtail_ko
+        
+        # first action would break the grid, it is limited
         obs, reward, done, info = self.env.step(act)
         assert not done
         gen_part = self.env.gen_renewable & (obs.gen_p > 0.)
         assert np.all(obs.gen_p[gen_part] / obs.gen_pmax[gen_part] > act.curtail[gen_part])
+        assert np.all(obs.gen_p >= 0.)
+        assert np.all(obs.gen_p_before_curtail == self.obs1_ref.gen_p_before_curtail)
+        
+        # next step = the action can be completely made, it does it
         obs1, reward, done, info = self.env.step(self.env.action_space())
         assert not done
         gen_part = self.env.gen_renewable & (obs1.gen_p > 0.)
+        assert np.all(obs1.gen_p >= 0.)
         assert np.all(obs1.curtailment_limit[gen_part] == obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part])
+        assert np.all(obs1.gen_p_before_curtail == self.obs2_ref.gen_p_before_curtail)
+        
+        # make sure it stays at the sepoint
+        obs2, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        gen_part = self.env.gen_renewable & (obs2.gen_p > 0.)
+        assert np.all(obs2.gen_p >= 0.)
+        assert np.all(obs2.curtailment_limit[gen_part] == obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part])
+        assert np.all(obs2.gen_p_before_curtail == self.obs3_ref.gen_p_before_curtail)
         
         # TODO compare with the ref observations !
         
@@ -119,18 +136,56 @@ class TestExtremeCurtail(unittest.TestCase):
         self.env.set_id(0)
         obs = self.env.reset()
         act = self.all_zero
-        print("first act")
+        
+        # first action would break the grid, it is limited
         obs, reward, done, info = self.env.step(act)
         assert not done, "env should not have diverge at first acction"
-        print("second act (do nothing)")
+        gen_part = self.env.gen_renewable & (obs.gen_p > 0.)
+        assert np.all(obs.gen_p[gen_part] / obs.gen_pmax[gen_part] > act.curtail[gen_part])
+        assert np.all(obs.gen_p_before_curtail == self.obs1_ref.gen_p_before_curtail)
+        
+        # next step = we got close to the setpoint, but still not there yet
         obs1, reward, done, info = self.env.step(self.env.action_space())
-        pdb.set_trace()
-        info["exception"]
         assert not done, "env should not have diverge after first do nothing"
-        # gen_part = self.env.gen_renewable & (obs.gen_p > 0.)
-        # assert np.all(obs.gen_p[gen_part] / obs.gen_pmax[gen_part] > act.curtail[gen_part])
-        # gen_part = self.env.gen_renewable & (obs1.gen_p > 0.)
-        # assert np.all(obs1.curtailment_limit[gen_part] == obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part])
+        # I got close to the setpoint
+        assert np.all(obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part] < obs.gen_p[gen_part] / obs.gen_pmax[gen_part])
+        # I am still not at the setpoint
+        gen_part = self.env.gen_renewable & (obs1.gen_p > 0.)
+        assert np.all(obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part] > act.curtail[gen_part])
+        assert np.all(obs1.gen_p_before_curtail == self.obs2_ref.gen_p_before_curtail)
+        
+        # next step = the action can be completely made, it does it
+        obs2, reward, done, info = self.env.step(self.env.action_space())
+        assert not done, "env should not have diverge after second do nothing"
+        gen_part = self.env.gen_renewable & (obs2.gen_p > 0.)
+        assert np.all(obs2.gen_p >= 0.)
+        assert np.all(obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part] < obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part])
+        assert np.all(obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part] == act.curtail[gen_part])
+        assert np.all(obs2.gen_p_before_curtail == self.obs3_ref.gen_p_before_curtail)
+        
+        # make sure it stays at the sepoint
+        obs3, reward, done, info = self.env.step(self.env.action_space())
+        assert not done,  "env should not have diverge after third do nothing"
+        gen_part = self.env.gen_renewable & (obs3.gen_p > 0.)
+        assert np.all(obs3.gen_p >= 0.)
+        assert np.all(obs3.curtailment_limit[gen_part] == obs3.gen_p[gen_part] / obs3.gen_pmax[gen_part])
+        assert np.all(obs3.gen_p_before_curtail == self.obs4_ref.gen_p_before_curtail)
+        
+    def test_down_then_up(self):
+        """test that i can curtail down to the setpoint, then up again to "do nothing"
+        """
+        param = self.env.parameters
+        param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+        self.env.change_parameters(param)
+        self.env.seed(0)
+        self.env.set_id(0)
+        obs = self.env.reset()
+        act = self.curtail_ko
+        obs, reward, done, info = self.env.step(act)
+        assert not done
+        obs1, reward, done, info = self.env.step(self.env.action_space())
+        
+        
         
 if __name__ == "__main__":
     unittest.main()

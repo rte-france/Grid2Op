@@ -630,6 +630,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._gen_before_curtailment = copy.deepcopy(self._gen_before_curtailment)
         new_obj._sum_curtailment_mw = copy.deepcopy(self._sum_curtailment_mw)
         new_obj._sum_curtailment_mw_prev = copy.deepcopy(self._sum_curtailment_mw_prev)
+        new_obj._limited_before = copy.deepcopy(self._limited_before)
 
         # attention budget
         new_obj._has_attention_budget = self._has_attention_budget
@@ -2118,37 +2119,36 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         # if there is an impact on the curtailment / storage (otherwise I cannot fix anything)
                         too_much = 0.
                         if sum_move > np.sum(avail_up):
-                            # I need to "curtail" less
+                            # I need to limit curtailment (not enough ramps up available)
                             too_much = dt_float(sum_move - np.sum(avail_up) + self._tol_poly)
-                            self._limited_before += too_much
-                        # elif sum_move < np.sum(avail_down):
-                        #     # TODO
-                        #     pass
+                            self._limited_before = too_much
+                        elif sum_move < np.sum(avail_down):
+                            # I need to limit storage unit (not enough ramps down available)
+                            raise RuntimeError("You should not have end up here yet")
                         elif np.abs(self._limited_before) >= self._tol_poly:
                             # adjust the "mess" I did before by not curtailing enough
                             max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
                             update_env_act = True
-                            if self._limited_before > 0.:
-                                too_much = - min(np.sum(avail_up) - self._tol_poly, self._limited_before)
-                                self._limited_before += too_much
-                                too_much = self._limited_before
-                                print(f"{too_much = }")
-                            else:
-                                # TODO !!!
-                                pass
+                            too_much = min(np.sum(avail_up) - self._tol_poly, self._limited_before)
+                            self._limited_before -= too_much
+                            too_much = self._limited_before
                         
+                        # if abs(self._limited_before) > self._tol_poly:
                         if abs(too_much) > self._tol_poly:
                             total_curtailment = - self._sum_curtailment_mw / total_storage_curtail * too_much
                             total_storage = self._amount_storage / total_storage_curtail * too_much  # TODO !!!
+                            
                             # fix curtailment
                             self._sum_curtailment_mw += too_much
-                            self._sum_curtailment_mw_prev -= too_much
+                            self._sum_curtailment_mw_prev += too_much
                             curtailed = new_p_th - new_p
                             curtailed[~self.gen_renewable] = 0.
                             curtailed *= total_curtailment / curtailed.sum()
                             new_p[self.gen_renewable] += curtailed[self.gen_renewable]
                             update_env_act = True
-                            # self._limit_curtailment_before = new_p / self.gen_pmax
+                            
+                            # fix storage
+                            # TODO
                             
                         if update_env_act:
                             if "prod_p" in self._env_modification._dict_inj:
@@ -2156,7 +2156,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                             else:
                                 self._env_modification._dict_inj["prod_p"] = 1.0 * new_p
                                 self._env_modification._modif_inj = True
-                            print(f"\tin env: {new_p[self.gen_renewable] / self.gen_pmax[self.gen_renewable]}")   
                 #####################################################################################
                       
                 # case where the action modifies load (TODO maybe make a different env for that...)
@@ -2507,7 +2506,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         "_storage_current_charge", "_storage_previous_charge", "_action_storage", "_amount_storage", "_amount_storage_prev",
                         "_storage_power", "_limit_curtailment", "_gen_before_curtailment", "_sum_curtailment_mw", "_sum_curtailment_mw_prev",
                         "_has_attention_budget", "_attentiong_budget", "_attention_budget_cls", "_is_alarm_illegal",
-                        "_is_alarm_used_in_reward", "_kwargs_attention_budget"]:
+                        "_is_alarm_used_in_reward", "_kwargs_attention_budget",
+                        "_limited_before"]:
             if hasattr(self, attr_nm):
                 delattr(self, attr_nm)
             setattr(self, attr_nm, None)
