@@ -10,11 +10,13 @@ import time
 import copy
 import os
 import json
+from typing import Tuple
 
 import numpy as np
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
 from abc import ABC, abstractmethod
+from grid2op.Observation.baseObservation import BaseObservation
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects, RandomObject
@@ -419,6 +421,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # curtailment
         self._limit_curtailment = None
+        self._limit_curtailment_prev = None
         self._gen_before_curtailment = None
         self._sum_curtailment_mw = None
         self._sum_curtailment_mw_prev = None
@@ -627,6 +630,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # curtailment
         new_obj._limit_curtailment = copy.deepcopy(self._limit_curtailment)
+        new_obj._limit_curtailment_prev = copy.deepcopy(self._limit_curtailment_prev)
         new_obj._gen_before_curtailment = copy.deepcopy(self._gen_before_curtailment)
         new_obj._sum_curtailment_mw = copy.deepcopy(self._sum_curtailment_mw)
         new_obj._sum_curtailment_mw_prev = copy.deepcopy(self._sum_curtailment_mw_prev)
@@ -913,6 +917,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # curtailment
         self._limit_curtailment = np.ones(self.n_gen, dtype=dt_float)  # in ratio of pmax
+        self._limit_curtailment_prev = np.ones(self.n_gen, dtype=dt_float)  # in ratio of pmax
         self._gen_before_curtailment = np.zeros(self.n_gen, dtype=dt_float)  # in MW
         self._sum_curtailment_mw = dt_float(0.)
         self._sum_curtailment_mw_prev = dt_float(0.)
@@ -994,6 +999,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _reset_curtailment(self):
         self._limit_curtailment[self.gen_renewable] = 1.0
+        self._limit_curtailment_prev[self.gen_renewable] = 1.0
         self._gen_before_curtailment[:] = 0.
         self._sum_curtailment_mw = dt_float(0.)
         self._sum_curtailment_mw_prev = dt_float(0.)
@@ -1889,8 +1895,49 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         max_total_up = np.sum(th_max - new_p[self.gen_redispatchable])
         max_total_down = np.sum(th_min - new_p[self.gen_redispatchable])  # TODO is that it ?
         return max_total_down, max_total_up
+    
+    def _aux_update_curtail_env_act(self, new_p):
+        if "prod_p" in self._env_modification._dict_inj:
+            self._env_modification._dict_inj["prod_p"][:] = new_p
+        else:
+            self._env_modification._dict_inj["prod_p"] = 1.0 * new_p
+            self._env_modification._modif_inj = True
+    
+    def _aux_update_curtailment_act(self, action):
+        curtailment_act = 1.0 * action._curtail
+        ind_curtailed_in_act = (curtailment_act != -1.) & self.gen_renewable
+        self._limit_curtailment_prev[:] = self._limit_curtailment
+        self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
+    
+    def _aux_compute_new_p_curtailment(self, new_p, curtailment_vect):
+        """modifies the new_p argument !!!!"""
+        gen_curtailed = curtailment_vect != 1.  # curtailed either right now, or in a previous action
+        max_action = self.gen_pmax[gen_curtailed] * curtailment_vect[gen_curtailed]
+        new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
+        return gen_curtailed
+    
+    def _aux_handle_curtailment_without_limit(self, action, new_p):
+        """modifies the new_p argument !!!! (but not the action)"""
+        if self.redispatching_unit_commitment_availble and \
+                    (action._modif_curtailment or np.any(self._limit_curtailment != 1.)):
+            self._aux_update_curtailment_act(action)
+            
+            gen_curtailed = self._aux_compute_new_p_curtailment(new_p, self._limit_curtailment)
 
-    def step(self, action):
+            tmp_sum_curtailment_mw = dt_float(np.sum(new_p[gen_curtailed]) -
+                                                np.sum(self._gen_before_curtailment[gen_curtailed]))
+            
+            self._sum_curtailment_mw = tmp_sum_curtailment_mw - self._sum_curtailment_mw_prev
+            self._sum_curtailment_mw_prev = tmp_sum_curtailment_mw
+            self._aux_update_curtail_env_act(new_p)
+        else:
+            self._sum_curtailment_mw = -self._sum_curtailment_mw_prev
+            self._sum_curtailment_mw_prev = dt_float(0.)
+            gen_curtailed =  self._limit_curtailment != 1.
+            
+        return gen_curtailed
+            
+    def step(self, action: BaseAction) -> Tuple[BaseObservation, float, bool, dict]:
         """
         Run one timestep of the environment's dynamics. When end of
         episode is reached, you are responsible for calling `reset()`
@@ -2050,29 +2097,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                      
             # curtailment
             self._gen_before_curtailment[self.gen_renewable] = new_p[self.gen_renewable]
-            if self.redispatching_unit_commitment_availble and \
-                    (action._modif_curtailment or np.any(self._limit_curtailment != 1.)):
-                curtailment_act = 1.0 * action._curtail
-                ind_curtailed_in_act = (curtailment_act != -1.) & self.gen_renewable
-                self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
-                gen_curtailed = self._limit_curtailment != 1.  # curtailed either right now, or in a previous action
-                max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
-                new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
-
-                tmp_sum_curtailment_mw = dt_float(np.sum(new_p[gen_curtailed]) -
-                                                  np.sum(self._gen_before_curtailment[gen_curtailed]))
-                
-                self._sum_curtailment_mw = tmp_sum_curtailment_mw - self._sum_curtailment_mw_prev
-                self._sum_curtailment_mw_prev = tmp_sum_curtailment_mw
-
-                if "prod_p" in self._env_modification._dict_inj:
-                    self._env_modification._dict_inj["prod_p"][:] = new_p
-                else:
-                    self._env_modification._dict_inj["prod_p"] = 1.0 * new_p
-                    self._env_modification._modif_inj = True
-            else:
-                self._sum_curtailment_mw = -self._sum_curtailment_mw_prev
-                self._sum_curtailment_mw_prev = dt_float(0.)
+            gen_curtailed = self._aux_handle_curtailment_without_limit(action, new_p)
                 
             beg__redisp = time.perf_counter()
             if self.redispatching_unit_commitment_availble or self.n_storage > 0.:
@@ -2126,7 +2151,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                             # I need to limit storage unit (not enough ramps down available)
                             too_much = dt_float(sum_move - np.sum(avail_down) - self._tol_poly)
                             self._limited_before = too_much
-                            # TODO: fix new_p !!!
                         elif np.abs(self._limited_before) >= self._tol_poly:
                             # adjust the "mess" I did before by not curtailing enough
                             max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
@@ -2143,22 +2167,35 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                             # fix curtailment
                             self._sum_curtailment_mw += too_much
                             self._sum_curtailment_mw_prev += too_much
-                            curtailed = new_p_th - new_p
-                            if curtailed.sum() > 0.:
-                                curtailed[~self.gen_renewable] = 0.
-                                curtailed *= total_curtailment / curtailed.sum()
-                                new_p[self.gen_renewable] += curtailed[self.gen_renewable]
                             update_env_act = True
-                            
-                            # fix storage
-                            # TODO
-                            
-                        if update_env_act:
-                            if "prod_p" in self._env_modification._dict_inj:
-                                self._env_modification._dict_inj["prod_p"][:] = new_p
+                            if too_much > self._tol_poly:
+                                # in this case, the curtailment is too strong, I need to make it less strong
+                                curtailed = new_p_th - new_p
+                                if curtailed.sum() > 0.:
+                                    curtailed[~self.gen_renewable] = 0.
+                                    curtailed *= total_curtailment / curtailed.sum()
+                                    new_p[self.gen_renewable] += curtailed[self.gen_renewable]
+                                # fix storage
+                                # TODO
                             else:
-                                self._env_modification._dict_inj["prod_p"] = 1.0 * new_p
-                                self._env_modification._modif_inj = True
+                                # in this case, the curtailment is too low, this can happen, for example when there is a
+                                # "strong" curtailment but afterwards you ask to set everything to 1. (so no curtailment)
+                                # I cannot reuse the previous case (too_much > self._tol_poly) because the
+                                # curtailment is already computed there...
+                                new_p_with_previous_curtailment = 1. * new_p_th
+                                gen_curtailed = self._aux_compute_new_p_curtailment(new_p_with_previous_curtailment, self._limit_curtailment_prev)
+                                curtailed = new_p_th - new_p_with_previous_curtailment
+                                if curtailed.sum() > 0.:
+                                    curtailed[~self.gen_renewable] = 0.
+                                    curtailed *= total_curtailment / curtailed.sum()
+                                    new_p[self.gen_renewable] += curtailed[self.gen_renewable]
+                                    
+                                # fix storage
+                                # TODO
+
+                        if update_env_act:
+                            self._aux_update_curtail_env_act(new_p)
+                            
                 #####################################################################################
                       
                 # case where the action modifies load (TODO maybe make a different env for that...)
@@ -2507,7 +2544,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         "_voltage_controler", "_backend_action_class", "_backend_action", "backend", "debug_dispatch",
                         # "__new_param", "__new_forecast_param", "__new_reward_func",
                         "_storage_current_charge", "_storage_previous_charge", "_action_storage", "_amount_storage", "_amount_storage_prev",
-                        "_storage_power", "_limit_curtailment", "_gen_before_curtailment", "_sum_curtailment_mw", "_sum_curtailment_mw_prev",
+                        "_storage_power", "_limit_curtailment", "_limit_curtailment_prev",
+                        "_gen_before_curtailment", "_sum_curtailment_mw", "_sum_curtailment_mw_prev",
                         "_has_attention_budget", "_attentiong_budget", "_attention_budget_cls", "_is_alarm_illegal",
                         "_is_alarm_used_in_reward", "_kwargs_attention_budget",
                         "_limited_before"]:
