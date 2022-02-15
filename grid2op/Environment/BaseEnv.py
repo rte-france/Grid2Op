@@ -1829,6 +1829,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._storage_current_charge[storage_act] += this_act_stor * coeff_p_to_E * eff_
             self._action_storage[storage_act] += action_storage_power[storage_act]
             self._storage_power[storage_act] = this_act_stor
+            
         if modif:
             # indx when there is too much energy on the battery
             indx_too_high = self._storage_current_charge > self.storage_Emax
@@ -2171,12 +2172,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                             if too_much > self._tol_poly:
                                 # in this case, the curtailment is too strong, I need to make it less strong
                                 curtailed = new_p_th - new_p
-                                if curtailed.sum() > 0.:
-                                    curtailed[~self.gen_renewable] = 0.
-                                    curtailed *= total_curtailment / curtailed.sum()
-                                    new_p[self.gen_renewable] += curtailed[self.gen_renewable]
-                                # fix storage
-                                # TODO
                             else:
                                 # in this case, the curtailment is too low, this can happen, for example when there is a
                                 # "strong" curtailment but afterwards you ask to set everything to 1. (so no curtailment)
@@ -2185,17 +2180,20 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                 new_p_with_previous_curtailment = 1. * new_p_th
                                 gen_curtailed = self._aux_compute_new_p_curtailment(new_p_with_previous_curtailment, self._limit_curtailment_prev)
                                 curtailed = new_p_th - new_p_with_previous_curtailment
-                                if curtailed.sum() > 0.:
-                                    curtailed[~self.gen_renewable] = 0.
-                                    curtailed *= total_curtailment / curtailed.sum()
-                                    new_p[self.gen_renewable] += curtailed[self.gen_renewable]
-                                    
-                                # fix storage
-                                # TODO
+                                
+                            curt_sum = curtailed.sum()
+                            if abs(curt_sum) > self._tol_poly:
+                                curtailed[~self.gen_renewable] = 0.
+                                curtailed *= total_curtailment / curt_sum
+                                new_p[self.gen_renewable] += curtailed[self.gen_renewable]
+                            # fix storage
+                            # TODO
 
                         if update_env_act:
                             self._aux_update_curtail_env_act(new_p)
-                            
+                if hasattr(self, "_debug"):
+                    import pdb
+                    pdb.set_trace()      
                 #####################################################################################
                       
                 # case where the action modifies load (TODO maybe make a different env for that...)

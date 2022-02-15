@@ -12,7 +12,6 @@ import copy
 from grid2op.Observation.serializableObservationSpace import SerializableObservationSpace
 from grid2op.Reward import RewardHelper
 from grid2op.Observation.completeObservation import CompleteObservation
-from grid2op.Observation._ObsEnv import _ObsEnv
 
 
 class ObservationSpace(SerializableObservationSpace):
@@ -70,6 +69,8 @@ class ObservationSpace(SerializableObservationSpace):
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
         """
 
+        from grid2op.Environment._ObsEnv import _ObsEnv  # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
+        
         if actionClass is None:
             from grid2op.Action import CompleteAction
             actionClass = CompleteAction

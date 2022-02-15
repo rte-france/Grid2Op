@@ -94,7 +94,7 @@ class Parameters:
         then the curtailment action is limited so that it does not exceed 100 MW. 
         
         Setting it to ``True`` might help the learning of agent using redispatching.
-        
+    
     INIT_STORAGE_CAPACITY: ``float``
         Between 0. and 1. Specify, at the beginning of each episode, what is the storage capacity of each storage unit.
         The storage capacity will be expressed as fraction of storage_Emax. For example, if `INIT_STORAGE_CAPACITY` is
@@ -177,7 +177,7 @@ class Parameters:
         # if a curtailment action is "too strong" it will limit it to the "maximum feasible" 
         # not to break the whole system
         self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = False
-
+        
         # storage capacity (NOT in pct so 0.5 = 50%)
         self.INIT_STORAGE_CAPACITY = 0.5
 

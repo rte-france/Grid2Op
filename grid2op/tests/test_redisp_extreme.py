@@ -5,23 +5,39 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import warnings
+import os
 import numpy as np
 import grid2op
+from grid2op.tests.helper_path_test import *
 from grid2op.Parameters import Parameters
 import unittest
-
 
 import pdb
 
 
 class TestExtremeCurtail(unittest.TestCase):
     def setUp(self) -> None:
-        self.env_name = "l2rpn_icaps_2021_small"
+        self.env_name = os.path.join(PATH_DATA_TEST, "l2rpn_icaps_2021_small_test")
+        # path = os.path.join(self.env_name, "chronics", "Scenario_april_000")
+        # import pandas as pd
+        # el = "load_p"
+        # for el in ["load_p", "load_q", "prod_p", "prod_v",
+        #            "load_p_forecasted", "load_q_forecasted",
+        #            "prod_p_forecasted", "prod_v_forecasted"]:
+        #     path_ = os.path.join(path, f"{el}.csv.bz2")
+        #     dt_ = pd.read_csv(path_, sep=";")
+        #     dt_ = dt_.iloc[:10]
+        #     dt_.to_csv(path_, sep=";", header=True, index=False)
+        
+        # self.env_name = "l2rpn_icaps_2021_small" # os.path.join(PATH_DATA_TEST, "l2rpn_icaps_2021_small_test")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_name,
-                                    data_feeding_kwargs={"max_iter": 10})
+                                    test=True,
+                                    # data_feeding_kwargs={"max_iter": 10}
+                                    )
 
         # retrieve the reference values, without curtailment
         self.env.seed(0)
@@ -31,7 +47,8 @@ class TestExtremeCurtail(unittest.TestCase):
         self.obs2_ref , *_ = self.env.step(self.env.action_space())
         self.obs3_ref , *_ = self.env.step(self.env.action_space())
         self.obs4_ref , *_ = self.env.step(self.env.action_space())
-        self.gen_th = [self.obs_ref.gen_p, self.obs1_ref.gen_p, self.obs2_ref.gen_p, self.obs3_ref.gen_p]
+        self.obs5_ref , *_ = self.env.step(self.env.action_space())
+        self.obs6_ref , *_ = self.env.step(self.env.action_space())
         
         self.curtail_ok = self.env.action_space({"curtail": [(el, 0.64) for el in np.where(self.env.gen_renewable)[0]]})
         self.curtail_ok_if_all_on = self.env.action_space({"curtail": [(el, 0.32) for el in np.where(self.env.gen_renewable)[0]]})
@@ -39,7 +56,8 @@ class TestExtremeCurtail(unittest.TestCase):
         self.all_zero = self.env.action_space({"curtail": [(el, 0.0) for el in np.where(self.env.gen_renewable)[0]]})
         self.all_one = self.env.action_space({"curtail": [(el, 1.0) for el in np.where(self.env.gen_renewable)[0]]})
 
-    def _aux_test_gen(self, obsbefore, obsafter, tol=1e-4):
+    @staticmethod
+    def _aux_test_gen(obsbefore, obsafter, tol=1e-4):
         assert np.all(obsbefore.gen_p <= obsbefore.gen_pmax + tol)
         assert np.all(obsbefore.gen_p >= obsbefore.gen_pmin - tol)
         assert np.all(obsafter.gen_p <= obsafter.gen_pmax + tol)
@@ -55,6 +73,17 @@ class TestExtremeCurtail(unittest.TestCase):
         slack_variation = (obsafter.gen_p[slack] - obsbefore.gen_p[slack])
         assert slack_variation <= obsbefore.gen_max_ramp_up[slack] + 1, f"{slack_variation = :.2f} above the ramp up"
         assert slack_variation >= -obsbefore.gen_max_ramp_down[slack] - 1, f"{slack_variation = :.2f} below the ramp down"
+    
+    @staticmethod
+    def _aux_compare_with_ref(env, obs, obs_ref, tol=1e-4):
+        slack_id = -1
+        # slack does not absorb too much
+        assert np.all(np.abs(env._gen_activeprod_t_redisp[:slack_id] - obs.gen_p[:slack_id]) <= tol)
+        # power for each generator is the same (when curtailment taken into account)
+        assert np.all(np.abs(obs.gen_p[:slack_id] + obs.curtailment_mw[:slack_id] - obs.actual_dispatch[:slack_id] - obs_ref.gen_p[:slack_id]) <= tol)
+        # check the slack
+        assert abs(obs.gen_p[slack_id] - obs.actual_dispatch[slack_id] -  obs_ref.gen_p[slack_id]) <= 1.
+        
         
     def test_curtail_ok(self):
         """test that the env can automatically turn on all generators to prevent issues if curtailment is too strong
@@ -69,15 +98,6 @@ class TestExtremeCurtail(unittest.TestCase):
         assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         assert np.any(obs1.gen_p[obs.gen_redispatchable] == 0.)
         self._aux_test_gen(obs, obs1)
-    
-    def _aux_compare_with_ref(self, env, obs, obs_ref, tol=1e-4):
-        slack_id = -1
-        # slack does not absorb too much
-        assert np.all(np.abs(env._gen_activeprod_t_redisp[:slack_id] - obs.gen_p[:slack_id]) <= tol)
-        # power for each generator is the same (when curtailment taken into account)
-        assert np.all(np.abs(obs.gen_p[:slack_id] + obs.curtailment_mw[:slack_id] - obs.actual_dispatch[:slack_id] - obs_ref.gen_p[:slack_id]) <= tol)
-        # check the slack
-        assert abs(obs.gen_p[slack_id] - obs.actual_dispatch[slack_id] -  obs_ref.gen_p[slack_id]) <= 1.
         
     def test_fix_curtail(self):
         """test that the env can automatically turn on all generators to prevent issues if curtailment is too strong
@@ -143,7 +163,7 @@ class TestExtremeCurtail(unittest.TestCase):
         assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs0.gen_p > 0.)
         assert np.all(obs0.gen_p[gen_part] / obs0.gen_pmax[gen_part] > act.curtail[gen_part])
-        assert np.all(obs0.gen_p >= 0.)
+        assert np.all(obs0.gen_p >= -self.env._tol_poly)
         assert np.all(obs0.gen_p_before_curtail[self.env.gen_renewable] == self.obs1_ref.gen_p[self.env.gen_renewable])
         self._aux_test_gen(obs, obs0)
         self._aux_compare_with_ref(self.env, obs0, self.obs1_ref)
@@ -154,7 +174,7 @@ class TestExtremeCurtail(unittest.TestCase):
         # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
         assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs1.gen_p > 0.)
-        assert np.all(obs1.gen_p >= 0.)
+        assert np.all(obs1.gen_p >= -self.env._tol_poly)
         assert np.all(obs1.curtailment_limit[gen_part] == obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part])
         assert np.all(obs1.gen_p_before_curtail[self.env.gen_renewable] == self.obs2_ref.gen_p[self.env.gen_renewable])
         self._aux_test_gen(obs0, obs1)
@@ -166,7 +186,7 @@ class TestExtremeCurtail(unittest.TestCase):
         # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
         assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs2.gen_p > 0.)
-        assert np.all(obs2.gen_p >= 0.)
+        assert np.all(obs2.gen_p >= -self.env._tol_poly)
         assert np.all(obs2.curtailment_limit[gen_part] == obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part])
         assert np.all(obs2.gen_p_before_curtail[self.env.gen_renewable] == self.obs3_ref.gen_p[self.env.gen_renewable])
         self._aux_test_gen(obs1, obs2)
@@ -214,7 +234,7 @@ class TestExtremeCurtail(unittest.TestCase):
         # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
         assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs2.gen_p > 0.)
-        assert np.all(obs2.gen_p >= 0.)
+        assert np.all(obs2.gen_p >= -self.env._tol_poly)
         assert np.all(obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part] < obs1.gen_p[gen_part] / obs1.gen_pmax[gen_part])
         assert np.all(obs2.gen_p[gen_part] / obs2.gen_pmax[gen_part] == act.curtail[gen_part])
         assert np.all(obs2.gen_p_before_curtail[self.env.gen_renewable] == self.obs3_ref.gen_p[self.env.gen_renewable])
@@ -227,7 +247,7 @@ class TestExtremeCurtail(unittest.TestCase):
         # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
         assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
         gen_part = self.env.gen_renewable & (obs3.gen_p > 0.)
-        assert np.all(obs3.gen_p >= 0.)
+        assert np.all(obs3.gen_p >= -self.env._tol_poly)
         assert np.all(obs3.curtailment_limit[gen_part] == obs3.gen_p[gen_part] / obs3.gen_pmax[gen_part])
         assert np.all(obs3.gen_p_before_curtail[self.env.gen_renewable] == self.obs4_ref.gen_p[self.env.gen_renewable])
         self._aux_test_gen(obs2, obs3)
@@ -264,11 +284,11 @@ class TestExtremeCurtail(unittest.TestCase):
         assert not done
         # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
         assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
-        assert np.all(obs2.gen_p >= 0.)
-        assert np.all(obs2.gen_p[self.env.gen_renewable] >= obs1.gen_p[self.env.gen_renewable])
+        assert np.all(obs3.gen_p >= -self.env._tol_poly)
+        assert np.all(obs3.gen_p[self.env.gen_renewable] >= obs2.gen_p[self.env.gen_renewable])
         self._aux_test_gen(obs2, obs3)
         self._aux_compare_with_ref(self.env, obs3,self.obs4_ref)
-        gen_part = self.env.gen_renewable & (obs3.gen_p > 0.)
+        gen_part = self.env.gen_renewable & (obs3.gen_p > self.env._tol_poly)
         # generator produce less than pmax
         assert np.all(obs3.curtailment_limit[gen_part] <= obs3.gen_pmax[gen_part])
         # no more curtailment, so productions increase
@@ -297,14 +317,97 @@ class TestExtremeCurtail(unittest.TestCase):
         obs2, reward, done, info = self.env.step(self.env.action_space())
         assert not done
         
-        # now the setpoint is reached, let's increase "at once" (it should break a limit => curtailment will be limited)
+        # now the setpoint is reached, let's increase "at once" (it is possible without violating anything)
         obs3, reward, done, info = self.env.step(self.all_one)
         assert not done
         # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
         assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
-        obs4, reward, done, info = self.env.step(self.all_one)
+        assert np.all(obs3.gen_p >= -self.env._tol_poly)
+        assert np.all(obs3.gen_p[self.env.gen_renewable] >= obs2.gen_p[self.env.gen_renewable])
+        self._aux_test_gen(obs2, obs3)
+        self._aux_compare_with_ref(self.env, obs3,self.obs4_ref)
+        
+        # another do nothing (setpoint still not reached)
+        obs4, reward, done, info = self.env.step(self.env.action_space())
         assert not done
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
+        assert np.all(obs4.gen_p >= -self.env._tol_poly)
+        assert np.all(obs4.gen_p[self.env.gen_renewable] >= obs3.gen_p[self.env.gen_renewable])
         self._aux_test_gen(obs3, obs4)
+        self._aux_compare_with_ref(self.env, obs4, self.obs5_ref)
+        
+        # setpoint should be correct now
+        obs5, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        # not too much losses (which would indicate errors in the computation of the total amount to dispatch)
+        assert np.all(np.abs(self.env._gen_activeprod_t_redisp - self.env._gen_activeprod_t)) <= 1
+        assert np.all(obs5.gen_p >= -self.env._tol_poly)
+        assert np.all(obs5.gen_p[self.env.gen_renewable] >= obs1.gen_p[self.env.gen_renewable])
+        self._aux_test_gen(obs4, obs5)
+        self._aux_compare_with_ref(self.env, obs5, self.obs6_ref)
+        gen_part = self.env.gen_renewable & (obs3.gen_p > 0.)
+        # generator produce less than pmax
+        assert np.all(obs5.curtailment_limit[gen_part] <= obs5.gen_pmax[gen_part])
+        # no more curtailment, so productions increase
+        assert np.all(obs5.gen_p[self.env.gen_renewable] >= obs4.gen_p[self.env.gen_renewable])
+        # information of generation without curtailment is correct
+        assert np.all(obs5.gen_p_before_curtail[self.env.gen_renewable] == self.obs6_ref.gen_p[self.env.gen_renewable])
+        # setpoint is matched
+        assert np.all(obs5.gen_p_before_curtail[self.env.gen_renewable] == obs5.gen_p[self.env.gen_renewable])
+
+
+
+class TestExtremeStorage(unittest.TestCase):
+    def setUp(self) -> None:
+        self.env_name = "educ_case14_storage"
+        from lightsim2grid import LightSimBackend
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.env_name,
+                                    test=True,
+                                    backend=LightSimBackend(),
+                                    data_feeding_kwargs={"max_iter": 10},
+                                    _add_to_name="TestExtremeStorage")
+        increase_storage = np.array([15., 30.])
+        type(self.env).storage_max_p_absorb[:] = increase_storage
+        type(self.env).storage_max_p_prod[:] = increase_storage
+        type(self.env.action_space).storage_max_p_absorb[:] = increase_storage
+        type(self.env.action_space).storage_max_p_prod[:] = increase_storage
+        self.env.action_space.actionClass.storage_max_p_prod[:] = increase_storage
+        self.env.action_space.actionClass.storage_max_p_prod[:] = increase_storage
+        
+        # retrieve the reference values, without curtailment
+        self.env.seed(0)
+        self.env.set_id(0)
+        self.obs_ref = self.env.reset()
+        self.obs1_ref , *_ = self.env.step(self.env.action_space())
+        self.obs2_ref , *_ = self.env.step(self.env.action_space())
+        self.obs3_ref , *_ = self.env.step(self.env.action_space())
+        self.obs4_ref , *_ = self.env.step(self.env.action_space())
+        self.obs5_ref , *_ = self.env.step(self.env.action_space())
+        self.obs6_ref , *_ = self.env.step(self.env.action_space())
+
+        self.storage_ko = self.env.action_space({"set_storage": -self.env.storage_max_p_absorb})
+    
+    def test_do_break(self):
+        self.env.seed(0)
+        self.env.set_id(0)
+        obs0 = self.env.reset()
+        obs1, reward, done, info = self.env.step(self.storage_ko)
+        assert done
+    
+    def test_storage_limited(self):
+        param = self.env.parameters
+        param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+        self.env.change_parameters(param)
+        self.env.seed(0)
+        self.env.set_id(0)
+        obs = self.env.reset()
+        obs1, reward, done, info = self.env.step(self.storage_ko)
+        assert not done
+        TestExtremeCurtail._aux_test_gen(obs, obs1)
+        TestExtremeCurtail._aux_compare_with_ref(self.env, obs1, self.obs1_ref)
         
 # TODO test with simulate !!!!
      

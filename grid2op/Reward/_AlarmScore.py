@@ -69,7 +69,7 @@ class _AlarmScore(AlarmReward):
 
         # This class remembers the past state of the grid, this does not make sense for the "simulate" env
         # so i deactivate it in this case.
-        from grid2op.Observation._ObsEnv import _ObsEnv  # to avoid circular dependencies
+        from grid2op.Environment._ObsEnv import _ObsEnv  # to avoid circular dependencies
         self._deactivate_reward_cls = (_ObsEnv, )
 
     def initialize(self, env):
