@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from lib2to3.pytree import Base
 import time
 import copy
 import os
@@ -16,7 +17,9 @@ import numpy as np
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
 from abc import ABC, abstractmethod
+from grid2op.Action.ActionSpace import ActionSpace
 from grid2op.Observation.baseObservation import BaseObservation
+from grid2op.Observation.observationSpace import ObservationSpace
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects, RandomObject
@@ -341,17 +344,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # to use the data
         self.done = False
         self.current_reward = None
-        self._helper_action_env = None
+        self._helper_action_env: ActionSpace = None
         self.chronics_handler = None
         self._game_rules = None
-        self._action_space = None
+        self._action_space: ActionSpace = None
 
-        self._rewardClass = None
-        self._actionClass = None
-        self._observationClass = None
-        self._legalActClass = None
-        self._observation_space = None
-        self._names_chronics_to_backend = None
+        self._rewardClass: type = None
+        self._actionClass: type = None
+        self._observationClass: type = None
+        self._legalActClass: type = None
+        self._observation_space: ObservationSpace = None
+        self._names_chronics_to_backend: dict = None
         self._reward_helper = None
 
         # gym compatibility
@@ -718,7 +721,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             bk_cls.alarms_area_lines = copy.deepcopy(area_lines)
 
     @property
-    def action_space(self):
+    def action_space(self) -> ActionSpace:
         """this represent a view on the action space"""
         return self._action_space
 
@@ -729,7 +732,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                        "using the GymEnv. Please consult the documentation.")
 
     @property
-    def observation_space(self):
+    def observation_space(self) -> ObservationSpace:
         """this represent a view on the action space"""
         return self._observation_space
 
@@ -1542,7 +1545,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # TODO try with another method here, maybe
                 error_dispatch = "Redispatching automaton terminated with error (no more information available " \
                                  "at this point):\n\"{}\"".format(res.message)
-                except_ = InvalidRedispatching(error_dispatch)
+                except_ = InvalidRedispatching(error_dispatch)            
         return except_
 
     def _detect_infeasible_dispatch(self, incr_in_chronics, avail_down, avail_up):
@@ -1810,6 +1813,38 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # charge cannot be negative, but it can be below Emin if there are some uncompensated losses
             self._storage_current_charge[:] = np.maximum(self._storage_current_charge, 0.)
 
+    def _aux_remove_power_too_high(self, delta_, indx_too_high):
+        """
+        delta_ is given in energy (and NOT power)
+        
+        handles self._storage_power in
+        case we need to cut the storage action because the power would be too high
+        """
+        coeff_p_to_E = self.delta_time_seconds / 3600.  # TODO optim this is const for all time steps
+        tmp_ = 1. / coeff_p_to_E * delta_
+        if self._parameters.ACTIVATE_STORAGE_LOSS:
+            # from the storage i need to reduce of tmp_ MW (to compensate the delta_ MWh)
+            # but when it's "transfer" to the grid i don't have the same amount (due to inefficiencies)
+            # it's a "/" because i need more energy from the grid than what the actual charge will be
+            tmp_ /= self.storage_charging_efficiency[indx_too_high]
+        self._storage_power[indx_too_high] -= tmp_
+    
+    def _aux_remove_power_too_low(self, delta_, indx_too_low):
+        """
+        delta_ is given in energy (and NOT power)
+        
+        handles self._storage_power in
+        case we need to cut the storage action because the power would be too low
+        """
+        coeff_p_to_E = self.delta_time_seconds / 3600.  # TODO optim this is const for all time steps
+        tmp_ = 1. / coeff_p_to_E * delta_
+        if self._parameters.ACTIVATE_STORAGE_LOSS:
+            # from the storage i need to increase of tmp_ MW (to compensate the delta_ MWh)
+            # but when it's "transfer" to the grid i don't have the same amount (due to inefficiencies)
+            # it's a "*" because i have less power on the grid than what is removed from the battery
+            tmp_ *= self.storage_discharging_efficiency[indx_too_low]
+        self._storage_power[indx_too_low] -= tmp_
+        
     def _compute_storage(self, action_storage_power):
         self._storage_previous_charge[:] = self._storage_current_charge
         storage_act = np.isfinite(action_storage_power) & (action_storage_power != 0.)
@@ -1835,26 +1870,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             indx_too_high = self._storage_current_charge > self.storage_Emax
             if np.any(indx_too_high):
                 delta_ = (self._storage_current_charge[indx_too_high] - self.storage_Emax[indx_too_high])
-                tmp_ = 1. / coeff_p_to_E * delta_
-                if self._parameters.ACTIVATE_STORAGE_LOSS:
-                    # from the storage i need to reduce of tmp_ MW (to compensate the delta_ MWh)
-                    # but when it's "transfer" to the grid i don't have the same amount (due to inefficiencies)
-                    # it's a "/" because i need more energy from the grid than what the actual charge will be
-                    tmp_ /= self.storage_charging_efficiency[indx_too_high]
-                self._storage_power[indx_too_high] -= tmp_
+                self._aux_remove_power_too_high(delta_, indx_too_high)
                 self._storage_current_charge[indx_too_high] = self.storage_Emax[indx_too_high]
 
             # indx when there is not enough energy on the battery
             indx_too_low = self._storage_current_charge < self.storage_Emin
             if np.any(indx_too_low):
                 delta_ = (self._storage_current_charge[indx_too_low] - self.storage_Emin[indx_too_low])
-                tmp_ = 1. / coeff_p_to_E * delta_
-                if self._parameters.ACTIVATE_STORAGE_LOSS:
-                    # from the storage i need to increase of tmp_ MW (to compensate the delta_ MWh)
-                    # but when it's "transfer" to the grid i don't have the same amount (due to inefficiencies)
-                    # it's a "*" because i have less power on the grid than what is removed from the battery
-                    tmp_ *= self.storage_discharging_efficiency[indx_too_low]
-                self._storage_power[indx_too_low] -= tmp_
+                self._aux_remove_power_too_low(delta_, indx_too_low)
                 self._storage_current_charge[indx_too_low] = self.storage_Emin[indx_too_low]
 
             self._storage_current_charge[:] = np.maximum(self._storage_current_charge, self.storage_Emin)
@@ -1864,7 +1887,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         else:
             # battery effect should be removed, so i multiply it by -1.
             self._amount_storage = 0.
-
+            
         tmp = self._amount_storage
         self._amount_storage -= self._amount_storage_prev
         self._amount_storage_prev = tmp
@@ -1937,7 +1960,123 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             gen_curtailed =  self._limit_curtailment != 1.
             
         return gen_curtailed
+    
+    def _aux_readjust_curtailment_after_limiting(self, total_curtailment, new_p_th, new_p):
+        self._sum_curtailment_mw += total_curtailment
+        self._sum_curtailment_mw_prev += total_curtailment
+        if total_curtailment > self._tol_poly:
+            # in this case, the curtailment is too strong, I need to make it less strong
+            curtailed = new_p_th - new_p
+        else:
+            # in this case, the curtailment is too low, this can happen, for example when there is a
+            # "strong" curtailment but afterwards you ask to set everything to 1. (so no curtailment)
+            # I cannot reuse the previous case (too_much > self._tol_poly) because the
+            # curtailment is already computed there...
+            new_p_with_previous_curtailment = 1. * new_p_th
+            self._aux_compute_new_p_curtailment(new_p_with_previous_curtailment, self._limit_curtailment_prev)
+            curtailed = new_p_th - new_p_with_previous_curtailment
             
+        curt_sum = curtailed.sum()
+        if abs(curt_sum) > self._tol_poly:
+            curtailed[~self.gen_renewable] = 0.
+            curtailed *= total_curtailment / curt_sum
+            new_p[self.gen_renewable] += curtailed[self.gen_renewable]
+    
+    def _aux_readjust_storage_after_limiting(self, total_storage):                              
+        new_act_storage = 1.0 * self._storage_power
+                    
+        modif_storage = new_act_storage * total_storage / new_act_storage.sum()
+        # handle self._storage_power and self._storage_current_charge
+        coeff_p_to_E = self.delta_time_seconds / 3600.  # TODO optim this is const for all time steps
+        self._storage_power -= modif_storage
+        
+        # now compute the state of charge of the storage units (with efficiencies)
+        is_discharging = self._storage_power < 0. 
+        is_charging = self._storage_power > 0. 
+        modif_storage[is_discharging] /= type(self).storage_discharging_efficiency[is_discharging]
+        modif_storage[is_charging] *= type(self).storage_charging_efficiency[is_charging]
+
+        self._storage_current_charge -= coeff_p_to_E * modif_storage
+        # inform the grid that the storage is reduced
+        self._amount_storage -= total_storage
+        self._amount_storage_prev = self._amount_storage
+    
+    def _aux_limit_curtail_storage_if_needed(self, new_p, new_p_th, gen_curtailed):
+        gen_redisp = self.gen_redispatchable
+                    
+        normal_increase = new_p - (self._gen_activeprod_t_redisp - self._actual_dispatch)
+        normal_increase = normal_increase[gen_redisp]
+        p_min_down = self.gen_pmin[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
+        avail_down = np.maximum(p_min_down, -self.gen_max_ramp_down[gen_redisp])
+        p_max_up = self.gen_pmax[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
+        avail_up = np.minimum(p_max_up, self.gen_max_ramp_up[gen_redisp])
+        
+        sum_move = np.sum(normal_increase) + self._amount_storage - self._sum_curtailment_mw
+        total_storage_curtail = self._amount_storage - self._sum_curtailment_mw
+        update_env_act = False
+
+        if abs(total_storage_curtail) >= self._tol_poly:
+            # if there is an impact on the curtailment / storage (otherwise I cannot fix anything)
+            too_much = 0.
+            if sum_move > np.sum(avail_up):
+                # I need to limit curtailment (not enough ramps up available)
+                too_much = dt_float(sum_move - np.sum(avail_up) + self._tol_poly)
+                self._limited_before = too_much
+            elif sum_move < np.sum(avail_down):
+                # I need to limit storage unit (not enough ramps down available)
+                too_much = dt_float(sum_move - np.sum(avail_down) - self._tol_poly)
+                self._limited_before = too_much
+            elif np.abs(self._limited_before) >= self._tol_poly:
+                # adjust the "mess" I did before by not curtailing enough
+                max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
+                update_env_act = True
+                too_much = min(np.sum(avail_up) - self._tol_poly, self._limited_before)
+                self._limited_before -= too_much
+                too_much = self._limited_before
+
+            if abs(too_much) > self._tol_poly:
+                total_curtailment = - self._sum_curtailment_mw / total_storage_curtail * too_much
+                total_storage = self._amount_storage / total_storage_curtail * too_much  # TODO !!!
+                update_env_act = True
+                # fix curtailment
+                self._aux_readjust_curtailment_after_limiting(total_curtailment, new_p_th, new_p)
+                    
+                # fix storage     
+                self._aux_readjust_storage_after_limiting(total_storage)
+                    
+            if update_env_act:
+                self._aux_update_curtail_env_act(new_p)
+    
+    def _aux_handle_act_inj(self, action: BaseAction):
+        for inj_key in ["load_p", "prod_p", "load_q"]:
+            # modification of the injections in the action, this erases the actions in the environment
+            if inj_key in action._dict_inj:
+                if inj_key in self._env_modification._dict_inj:
+                        this_p_load = 1. * self._env_modification._dict_inj[inj_key]
+                        act_modif = action._dict_inj[inj_key]
+                        this_p_load[np.isfinite(act_modif)] = act_modif[np.isfinite(act_modif)]
+                        self._env_modification._dict_inj[inj_key][:] = this_p_load
+                else:
+                        self._env_modification._dict_inj[inj_key] = 1.0 * action._dict_inj[inj_key]
+                        self._env_modification._modif_inj = True 
+    
+    def _aux_handle_attack(self, action: BaseAction):
+        # TODO code the opponent part here and split more the timings! here "opponent time" is
+        # TODO included in time_apply_act
+        attack, attack_duration = self._oppSpace.attack(observation=self.current_obs,
+                                                        agent_action=action,
+                                                        env_action=self._env_modification)
+
+        if attack is not None:
+            # the opponent choose to attack
+            # i update the "cooldown" on these things
+            lines_attacked, subs_attacked = attack.get_topological_impact()
+            self._times_before_line_status_actionable[lines_attacked] = \
+                            np.maximum(attack_duration, self._times_before_line_status_actionable[lines_attacked])
+            self._times_before_topology_actionable[subs_attacked] = \
+                            np.maximum(attack_duration, self._times_before_topology_actionable[subs_attacked])
+            self._backend_action += attack
+                            
     def step(self, action: BaseAction) -> Tuple[BaseObservation, float, bool, dict]:
         """
         Run one timestep of the environment's dynamics. When end of
@@ -2124,92 +2263,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         # and NOT absorbed by the generators either
                         self._withdraw_storage_losses()
                         # end storage
-                        
-                ################################################ fix redispatching for curtailment storage 
+                
+                # fix redispatching for curtailment storage 
                 if self.redispatching_unit_commitment_availble and self._parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION:
                     # limit the curtailment / storage in case of infeasible redispatching
-                    gen_redisp = self.gen_redispatchable
-                    
-                    normal_increase = new_p - (self._gen_activeprod_t_redisp - self._actual_dispatch)
-                    normal_increase = normal_increase[gen_redisp]
-                    p_min_down = self.gen_pmin[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
-                    avail_down = np.maximum(p_min_down, -self.gen_max_ramp_down[gen_redisp])
-                    p_max_up = self.gen_pmax[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
-                    avail_up = np.minimum(p_max_up, self.gen_max_ramp_up[gen_redisp])
-                    
-                    sum_move = np.sum(normal_increase) + self._amount_storage - self._sum_curtailment_mw
-                    total_storage_curtail = self._amount_storage - self._sum_curtailment_mw
-                    update_env_act = False
-                    
-                    if abs(total_storage_curtail) >= self._tol_poly:
-                        # if there is an impact on the curtailment / storage (otherwise I cannot fix anything)
-                        too_much = 0.
-                        if sum_move > np.sum(avail_up):
-                            # I need to limit curtailment (not enough ramps up available)
-                            too_much = dt_float(sum_move - np.sum(avail_up) + self._tol_poly)
-                            self._limited_before = too_much
-                        elif sum_move < np.sum(avail_down):
-                            # I need to limit storage unit (not enough ramps down available)
-                            too_much = dt_float(sum_move - np.sum(avail_down) - self._tol_poly)
-                            self._limited_before = too_much
-                        elif np.abs(self._limited_before) >= self._tol_poly:
-                            # adjust the "mess" I did before by not curtailing enough
-                            max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
-                            update_env_act = True
-                            too_much = min(np.sum(avail_up) - self._tol_poly, self._limited_before)
-                            self._limited_before -= too_much
-                            too_much = self._limited_before
-                        
-                        # if abs(self._limited_before) > self._tol_poly:
-                        if abs(too_much) > self._tol_poly:
-                            total_curtailment = - self._sum_curtailment_mw / total_storage_curtail * too_much
-                            total_storage = self._amount_storage / total_storage_curtail * too_much  # TODO !!!
-                            
-                            # fix curtailment
-                            self._sum_curtailment_mw += too_much
-                            self._sum_curtailment_mw_prev += too_much
-                            update_env_act = True
-                            if too_much > self._tol_poly:
-                                # in this case, the curtailment is too strong, I need to make it less strong
-                                curtailed = new_p_th - new_p
-                            else:
-                                # in this case, the curtailment is too low, this can happen, for example when there is a
-                                # "strong" curtailment but afterwards you ask to set everything to 1. (so no curtailment)
-                                # I cannot reuse the previous case (too_much > self._tol_poly) because the
-                                # curtailment is already computed there...
-                                new_p_with_previous_curtailment = 1. * new_p_th
-                                gen_curtailed = self._aux_compute_new_p_curtailment(new_p_with_previous_curtailment, self._limit_curtailment_prev)
-                                curtailed = new_p_th - new_p_with_previous_curtailment
-                                
-                            curt_sum = curtailed.sum()
-                            if abs(curt_sum) > self._tol_poly:
-                                curtailed[~self.gen_renewable] = 0.
-                                curtailed *= total_curtailment / curt_sum
-                                new_p[self.gen_renewable] += curtailed[self.gen_renewable]
-                            # fix storage
-                            # TODO
-
-                        if update_env_act:
-                            self._aux_update_curtail_env_act(new_p)
-                if hasattr(self, "_debug"):
-                    import pdb
-                    pdb.set_trace()      
-                #####################################################################################
+                    self._aux_limit_curtail_storage_if_needed(new_p, new_p_th, gen_curtailed)
                       
                 # case where the action modifies load (TODO maybe make a different env for that...)
-                for inj_key in ["load_p", "prod_p", "load_q"]:
-                    # modification of the injections in the action, this erases the actions in the environment
-                    if inj_key in action._dict_inj:
-                        if inj_key in self._env_modification._dict_inj:
-                                this_p_load = 1. * self._env_modification._dict_inj[inj_key]
-                                act_modif = action._dict_inj[inj_key]
-                                this_p_load[np.isfinite(act_modif)] = act_modif[np.isfinite(act_modif)]
-                                self._env_modification._dict_inj[inj_key][:] = this_p_load
-                        else:
-                                self._env_modification._dict_inj[inj_key] = 1.0 * action._dict_inj[inj_key]
-                                self._env_modification._modif_inj = True    
-                    
+                self._aux_handle_act_inj(action)
+                                
                 valid_disp, except_tmp = self._make_redisp(already_modified_gen, new_p)
+
                 if not valid_disp or except_tmp is not None:
                     # game over case (divergence of the scipy routine to compute redispatching)
                     action = self._action_space({})
@@ -2236,13 +2300,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
             # same kind of limit for the storage
+
             action._redispatch[:] = 0.
             action._storage_power[:] = self._storage_power
             self._backend_action += action
             action._storage_power[:] = action_storage_power
             action._redispatch[:] = init_disp
-            # TODO storage: check the original action, even when replaced by do nothing is not modified
-
+            # TODO storage: check the original action, even when replaced by do nothing is not modified    
             self._backend_action += self._env_modification
             self._backend_action.set_redispatch(self._actual_dispatch)
 
@@ -2250,23 +2314,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             voltage_control_act = self._voltage_control(action, prod_v_chronics)
             self._backend_action += voltage_control_act
 
-            # have the opponent here
-            # TODO code the opponent part here and split more the timings! here "opponent time" is
-            # TODO included in time_apply_act
+            # handle the opponent here
             tick = time.perf_counter()
-            attack, attack_duration = self._oppSpace.attack(observation=self.current_obs,
-                                                            agent_action=action,
-                                                            env_action=self._env_modification)
-
-            if attack is not None:
-                # the opponent choose to attack
-                # i update the "cooldown" on these things
-                lines_attacked, subs_attacked = attack.get_topological_impact()
-                self._times_before_line_status_actionable[lines_attacked] = \
-                                np.maximum(attack_duration, self._times_before_line_status_actionable[lines_attacked])
-                self._times_before_topology_actionable[subs_attacked] = \
-                                np.maximum(attack_duration, self._times_before_topology_actionable[subs_attacked])
-                self._backend_action += attack
+            self._aux_handle_attack(action)
             self._time_opponent += time.perf_counter() - tick
             self.backend.apply_action(self._backend_action)
 

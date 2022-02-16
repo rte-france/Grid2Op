@@ -348,6 +348,7 @@ grid2op/tests/output_unittest.txt
 test_utils_multiproc.py
 test_simulator.py
 venv36/
+bug_jan.py
 
 # profiling files
 **.prof

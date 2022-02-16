@@ -399,6 +399,10 @@ class GridObjects:
 
     storage_Emin:
         minimum energy in the storage unit, in MWh
+        
+        At any given point, the state of charge (obs.storage_charge) should be >= than `storage_Emin`. This might
+        not be the case if there are losses on your storage units. In this case, the charge can fall below
+        this (but the charge will never be < 0.)
 
     storage_max_p_prod:
         maximum power the storage unit can produce (in MW)
@@ -410,7 +414,10 @@ class GridObjects:
         Cost of usage of the storage unit, when charged or discharged, in $/MWh produced (or absorbed)
 
     storage_loss:
-        The self discharged loss of each storage unit (in MW)
+        The self discharged loss of each storage unit (in MW). It is applicable for each step and each
+        storage unit where the state of charge is > 0.
+        
+        Due to this loss, the storage state of charge can fall below its minimum allowed capacity `storage_Emin`.
 
     storage_charging_efficiency:
         The efficiency when the storage unit is charging (how much will the capacity increase when the

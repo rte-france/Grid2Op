@@ -70,7 +70,7 @@ class ActionSpace(SerializableActionSpace):
         SerializableActionSpace.__init__(self, gridobj, actionClass=actionClass)
         self.legal_action = legal_action
 
-    def __call__(self, dict_=None, check_legal=False, env=None):
+    def __call__(self, dict_ :dict=None, check_legal :bool=False, env :"BaseEnv"=None) -> BaseAction:
         """
         This utility allows you to build a valid action, with the proper sizes if you provide it with a valid
         dictionary.
