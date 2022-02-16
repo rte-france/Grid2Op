@@ -107,7 +107,8 @@ class PandaPowerBackend(Backend):
     def __init__(self,
                  detailed_infos_for_cascading_failures=False,
                  ligthsim2grid=False,  # use lightsim2grid as pandapower powerflow solver
-                 dist_slack=False
+                 dist_slack=False,
+                 max_iter=10,
                  ):
         Backend.__init__(self, detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
         self.prod_pu_to_kv = None
@@ -193,6 +194,7 @@ class PandaPowerBackend(Backend):
         
         self._ligthsim2grid = ligthsim2grid
         self._dist_slack = dist_slack
+        self._max_iter = max_iter
 
     def _check_for_non_modeled_elements(self):
         """This function check for elements in the pandapower grid that will have no impact on grid2op.
@@ -314,7 +316,8 @@ class PandaPowerBackend(Backend):
             pp.runpp(self._grid,
                      numba=numba_,
                      lightsim2grid=self._ligthsim2grid,
-                     distributed_slack=self._dist_slack)
+                     distributed_slack=self._dist_slack,
+                     max_iteration=self._max_iter)
         new_pp_version = False
         if not "slack_weight" in self._grid.gen:
             self._grid.gen["slack_weight"] = 1.0
@@ -373,7 +376,8 @@ class PandaPowerBackend(Backend):
             pp.runpp(self._grid,
                      numba=numba_,
                      lightsim2grid=self._ligthsim2grid,
-                     distributed_slack=self._dist_slack)
+                     distributed_slack=self._dist_slack,
+                     max_iteration=self._max_iter)
         
         self.__nb_bus_before = self._grid.bus.shape[0]
         self.__nb_powerline = self._grid.line.shape[0]
@@ -822,8 +826,7 @@ class PandaPowerBackend(Backend):
         computation: if the number of
         buses has not changed between two calls, the previous results are re used. This speeds up the computation
         in case of "do nothing" action applied.
-        """
-        conv = True
+        """            
         nb_bus = self.get_nb_active_bus()
         try:
             with warnings.catch_warnings():
@@ -854,6 +857,7 @@ class PandaPowerBackend(Backend):
                              init=self._pf_init,
                              numba=numba_,
                              ligthsim2grid=self._ligthsim2grid,
+                             max_iteration=self._max_iter,
                              distributed_slack=self._dist_slack)
 
                 # stores the computation time

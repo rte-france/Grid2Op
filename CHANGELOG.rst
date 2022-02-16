@@ -64,6 +64,7 @@ Change Log
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower
 - [IMPROVED] doc of observation module (some attributes were missing)
 - [IMPROVED] officially drop python 3.6 supports (which could not benefit from all the features)
+- [IMPROVED] add support for setting the maximum number of iteration in the `PandaPowerBackend`
 - [IMPROVED] when the curtailment / storage is too "strong" at a given step, the environment will now allow 
   every controllable turned-on generators to mitigate it. This should increase the possibility to act on the
   curtailment and storage units without "breaking" the environment. 
