@@ -421,6 +421,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._amount_storage = None  # total amount of storage to be dispatched
         self._amount_storage_prev = None
         self._storage_power = None
+        self._storage_power_prev = None
 
         # curtailment
         self._limit_curtailment = None
@@ -630,6 +631,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._amount_storage = copy.deepcopy(self._amount_storage)
         new_obj._amount_storage_prev = copy.deepcopy(self._amount_storage_prev)
         new_obj._storage_power = copy.deepcopy(self._storage_power)
+        new_obj._storage_power_prev = copy.deepcopy(self._storage_power_prev)
 
         # curtailment
         new_obj._limit_curtailment = copy.deepcopy(self._limit_curtailment)
@@ -915,6 +917,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._storage_previous_charge = np.zeros(self.n_storage, dtype=dt_float)
         self._action_storage = np.zeros(self.n_storage, dtype=dt_float)
         self._storage_power = np.zeros(self.n_storage, dtype=dt_float)
+        self._storage_power_prev = np.zeros(self.n_storage, dtype=dt_float)
         self._amount_storage = 0.
         self._amount_storage_prev = 0.
 
@@ -996,6 +999,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._storage_previous_charge[:] = tmp  # might not be needed, but it's not for the time it takes...
             self._storage_current_charge[:] = tmp
             self._storage_power[:] = 0.
+            self._storage_power_prev[:] = 0.
             self._amount_storage = 0.
             self._amount_storage_prev = 0.
             # TODO storage: check in simulate too!
@@ -1984,8 +1988,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     
     def _aux_readjust_storage_after_limiting(self, total_storage):                              
         new_act_storage = 1.0 * self._storage_power
-                    
-        modif_storage = new_act_storage * total_storage / new_act_storage.sum()
+        sum_this_step = new_act_storage.sum()
+        if abs(total_storage) < abs(sum_this_step):
+            # i can modify the current action
+            modif_storage = new_act_storage * total_storage / sum_this_step
+        else:
+            # i need to retrieve what I did in a previous action
+            # because the current action is not enough (the previous actions
+            # cause a problem right now)                              
+            new_act_storage = 1.0 * self._storage_power_prev
+            sum_this_step = new_act_storage.sum()
+            modif_storage = new_act_storage * total_storage / sum_this_step
+        
         # handle self._storage_power and self._storage_current_charge
         coeff_p_to_E = self.delta_time_seconds / 3600.  # TODO optim this is const for all time steps
         self._storage_power -= modif_storage
@@ -1999,7 +2013,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._storage_current_charge -= coeff_p_to_E * modif_storage
         # inform the grid that the storage is reduced
         self._amount_storage -= total_storage
-        self._amount_storage_prev = self._amount_storage
+        self._amount_storage_prev -= total_storage
     
     def _aux_limit_curtail_storage_if_needed(self, new_p, new_p_th, gen_curtailed):
         gen_redisp = self.gen_redispatchable
@@ -2038,6 +2052,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 total_curtailment = - self._sum_curtailment_mw / total_storage_curtail * too_much
                 total_storage = self._amount_storage / total_storage_curtail * too_much  # TODO !!!
                 update_env_act = True
+                # TODO "log" the total_curtailment and total_storage somewhere (in the info part of the step function)
                 # fix curtailment
                 self._aux_readjust_curtailment_after_limiting(total_curtailment, new_p_th, new_p)
                     
@@ -2268,7 +2283,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 if self.redispatching_unit_commitment_availble and self._parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION:
                     # limit the curtailment / storage in case of infeasible redispatching
                     self._aux_limit_curtail_storage_if_needed(new_p, new_p_th, gen_curtailed)
-                      
+                    
+                self._storage_power_prev[:] = self._storage_power
                 # case where the action modifies load (TODO maybe make a different env for that...)
                 self._aux_handle_act_inj(action)
                                 
@@ -2592,7 +2608,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         "_voltage_controler", "_backend_action_class", "_backend_action", "backend", "debug_dispatch",
                         # "__new_param", "__new_forecast_param", "__new_reward_func",
                         "_storage_current_charge", "_storage_previous_charge", "_action_storage", "_amount_storage", "_amount_storage_prev",
-                        "_storage_power", "_limit_curtailment", "_limit_curtailment_prev",
+                        "_storage_power", "_storage_power_prev", "_limit_curtailment", "_limit_curtailment_prev",
                         "_gen_before_curtailment", "_sum_curtailment_mw", "_sum_curtailment_mw_prev",
                         "_has_attention_budget", "_attentiong_budget", "_attention_budget_cls", "_is_alarm_illegal",
                         "_is_alarm_used_in_reward", "_kwargs_attention_budget",

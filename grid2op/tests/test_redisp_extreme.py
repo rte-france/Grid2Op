@@ -481,22 +481,27 @@ class TestExtremeStorage(unittest.TestCase):
         TestExtremeCurtail._aux_test_gen(obs, obs1, min_loss_slack=4)  # I generate ~40 MW on this grid with storage, losses changes a lot !
         TestExtremeCurtail._aux_compare_with_ref(self.env, obs1, self.obs1_ref, min_loss_slack=4)
     
-        self.env._debug = True
         obs2, reward, done, info = self.env.step(self.env.action_space())
-        pdb.set_trace()
-        assert np.all(obs2.storage_power == 0.)
-        assert self.env._amount_storage == -amount_storage_first_step
+        # assert np.all(obs2.storage_power == 0.)  # this is no more true because i did not get enough "ramp"
+        obs2_power_storage = np.sum(obs2.storage_power)
+        assert self.env._amount_storage == -amount_storage_first_step + obs2_power_storage
         self._aux_test_storage(obs1, obs2)
         TestExtremeCurtail._aux_test_gen(obs1, obs2, min_loss_slack=4)  # I generate ~40 MW on this grid with storage, losses changes a lot !
         TestExtremeCurtail._aux_compare_with_ref(self.env, obs2, self.obs2_ref, min_loss_slack=4)
         
         obs3, reward, done, info = self.env.step(self.env.action_space())
         assert np.all(obs3.storage_power == 0.)
-        assert self.env._amount_storage == 0.
-        self._debug = True
+        assert abs(self.env._amount_storage - (-obs2_power_storage)) <= 1e-4
         self._aux_test_storage(obs2, obs3)
-        TestExtremeCurtail._aux_test_gen(obs3, obs3, min_loss_slack=4)  # I generate ~40 MW on this grid with storage, losses changes a lot !
+        TestExtremeCurtail._aux_test_gen(obs2, obs3, min_loss_slack=4)  # I generate ~40 MW on this grid with storage, losses changes a lot !
         TestExtremeCurtail._aux_compare_with_ref(self.env, obs3, self.obs3_ref, min_loss_slack=4)
+    
+        obs4, reward, done, info = self.env.step(self.env.action_space())
+        assert np.all(obs4.storage_power == 0.)
+        assert self.env._amount_storage == 0.
+        self._aux_test_storage(obs3, obs4)
+        TestExtremeCurtail._aux_test_gen(obs3, obs4, min_loss_slack=4)  # I generate ~40 MW on this grid with storage, losses changes a lot !
+        TestExtremeCurtail._aux_compare_with_ref(self.env, obs4, self.obs4_ref, min_loss_slack=4)
     
     def test_tests_down(self):
         """in this test i do not test the new feature, i test that the tests performed are working
@@ -599,6 +604,7 @@ class TestExtremeStorage(unittest.TestCase):
         
         self.env._debug = True
         obs2, reward, done, info = self.env.step(self.env.action_space())
+        pdb.set_trace()
         assert np.all(obs2.gen_p[obs2.gen_renewable] == 0.)  # everything is set to 0. now !
         self._aux_test_storage(obs1, obs2)
         # test the generators are ok
