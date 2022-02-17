@@ -217,7 +217,7 @@ class BaseObservation(GridObjects):
         generators that cannot be curtailed)
 
     curtailment_limit: :class:`numpy.ndarray`, dtype:float
-        Limit (in ratio of gen_pmax) imposed on each renewable generator as set by the agent
+        Limit (in ratio of gen_pmax) imposed on each renewable generator as set by the agent.
         
         It is always 1. if no curtailment actions is acting on the generator.
 
@@ -313,7 +313,7 @@ class BaseObservation(GridObjects):
                 # storage
                 "storage_charge", "storage_power_target", "storage_power",
                 # curtailment
-                "gen_p_before_curtail", "curtailment", "curtailment_limit", "curtailment_limit_effective"
+                "gen_p_before_curtail", "curtailment", "curtailment_limit", "curtailment_limit_effective",
                 # attention budget
                 "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
                 "was_alarm_used_after_game_over",

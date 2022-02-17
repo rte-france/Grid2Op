@@ -47,8 +47,9 @@ class TestL2RPNNEURIPS2020_Track1(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 1407, f"obs space size is {self.env.observation_space.n}," \
-                                                     f"should be {1407}"
+        size_th = 1429
+        assert self.env.observation_space.n == size_th, f"obs space size is {self.env.observation_space.n}," \
+                                                        f"should be {size_th}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -90,9 +91,10 @@ class TestL2RPNICAPS2021(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 1410, f"obs space size is " \
-                                                     f"{self.env.observation_space.n}," \
-                                                     f"should be {1410}"
+        size_th = 1432
+        assert self.env.observation_space.n == size_th, f"obs space size is " \
+                                                        f"{self.env.observation_space.n}," \
+                                                        f"should be {size_th}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -132,8 +134,9 @@ class TestL2RPNNEURIPS2020_Track2(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 4241, f"obs space size is {self.env.observation_space.n}," \
-                                                     f"should be {4241}"
+        size_th = 4303
+        assert self.env.observation_space.n == size_th, f"obs space size is {self.env.observation_space.n}," \
+                                                        f"should be {size_th}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -173,8 +176,9 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 461, f"obs space size is {self.env.observation_space.n}," \
-                                                    f"should be {461}"
+        size_th = 467
+        assert self.env.observation_space.n == size_th, f"obs space size is {self.env.observation_space.n}," \
+                                                        f"should be {size_th}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -214,8 +218,9 @@ class TestEDUC_CASE14_REDISP(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 461, f"obs space size is {self.env.observation_space.n}," \
-                                                    f"should be {461}"
+        size_th = 467
+        assert self.env.observation_space.n == size_th, f"obs space size is {self.env.observation_space.n}," \
+                                                        f"should be {size_th}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""
@@ -255,8 +260,9 @@ class TestEDUC_STORAGE(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 469, f"obs space size is {self.env.observation_space.n}," \
-                                                    f"should be {469}"
+        size_th = 475
+        assert self.env.observation_space.n == size_th, f"obs space size is {self.env.observation_space.n}," \
+                                                        f"should be {size_th}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""

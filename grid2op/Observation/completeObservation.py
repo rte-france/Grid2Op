@@ -116,7 +116,8 @@ class CompleteObservation(BaseObservation):
         "time_next_maintenance", "duration_next_maintenance",
         "target_dispatch", "actual_dispatch",
         "storage_charge", "storage_power_target", "storage_power",
-        "gen_p_before_curtail", "curtailment", "curtailment_limit",
+        "gen_p_before_curtail", "curtailment", "curtailment_limit", 
+        "curtailment_limit_effective", # starting grid2op version 1.6.6
         "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
         "was_alarm_used_after_game_over",
         "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",  # starting from grid2op version 1.6.0

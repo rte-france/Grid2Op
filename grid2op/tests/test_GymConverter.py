@@ -108,7 +108,7 @@ class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
                 # assert obs == obs2
                 obs_diff, attr_diff = obs.where_different(obs2)
                 for el in attr_diff:
-                    assert el in obs.attr_list_json, f"{el} should be equal in obs and obs2"
+                    assert el in obs.attr_list_json, f"attribute \"{el}\" should be equal in obs and obs2"
 
                 for i in range(10):
                     obs, *_ = env.step(env.action_space())

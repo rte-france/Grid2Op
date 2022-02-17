@@ -38,6 +38,8 @@ Change Log
   case of gym compatibility has also been adjusted to be consistent with curtailment.
   Before it has the size of `env.n_gen` now `np.sum(env.gen_redispatchable)`.
 - [BREAKING] move the `_ObsEnv` module to `Environment` (was before in `Observation`).
+- [BREAKING] adding the `curtailment_limit_effective` in the observation converted to gym. This changes
+  the sizes of the gym observation.
 - [FIXED] a bug preventing to use `backend.update_from_obs` when there are shunts on the grid for `PandapowerBackend`
 - [FIXED] a bug in the gym action space: see issue https://github.com/rte-france/Grid2Op/issues/281
 - [FIXED] a bug in the gym box action space: see issue https://github.com/rte-france/Grid2Op/issues/283

@@ -6,7 +6,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from lib2to3.pytree import Base
+
+from datetime import datetime
+import logging
 import time
 import copy
 import os
@@ -120,10 +122,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     reward_range: ``tuple``
         For open ai gym compatibility. It represents the range of the rewards: reward min, reward max
 
-    viewer
+    viewer:
         For open ai gym compatibility.
 
-    viewer_fig
+    viewer_fig:
         For open ai gym compatibility.
 
     _gen_activeprod_t:
@@ -248,76 +250,75 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
-        self._is_test = _is_test
+        self._is_test : bool = _is_test
         if logger is None:
-            import logging
             self.logger = logging.getLogger(__name__)
             self.logger.disabled = True
         else:
-            self.logger = logger.getChild("grid2op_BaseEnv")
+            self.logger : logging.Logger = logger.getChild("grid2op_BaseEnv")
 
         if init_grid_path is not None:
-            self._init_grid_path = os.path.abspath(init_grid_path)
+            self._init_grid_path : os.PathLike = os.path.abspath(init_grid_path)
         else:
             self._init_grid_path = None
 
-        self._DEBUG = False
-        self._complete_action_cls = None
-        self.__closed = False  # by default the environment is not closed
+        self._DEBUG : bool= False
+        self._complete_action_cls : type = None
+        self.__closed : bool = False  # by default the environment is not closed
 
         # specific to power system
         if not isinstance(parameters, Parameters):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
                                    "grid2op.Parameters class, type provided is \"{}\"".format(type(parameters)))
         parameters.check_valid()  # check the provided parameters are valid
-        self._parameters = copy.deepcopy(parameters)
-        self.with_forecast = with_forecast
+        self._parameters : Parameters = copy.deepcopy(parameters)
+        self.with_forecast : bool = with_forecast
 
         # some timers
-        self._time_apply_act = dt_float(0)
-        self._time_powerflow = dt_float(0)
-        self._time_extract_obs = dt_float(0)
-        self._time_opponent = dt_float(0)
-        self._time_redisp = dt_float(0)
-        self._time_step = dt_float(0)
+        self._time_apply_act : float = dt_float(0)
+        self._time_powerflow  : float = dt_float(0)
+        self._time_extract_obs  : float = dt_float(0)
+        self._time_opponent  : float = dt_float(0)
+        self._time_redisp  : float = dt_float(0)
+        self._time_step : float  = dt_float(0)
 
         # data relative to interpolation
-        self._epsilon_poly = dt_float(epsilon_poly)
-        self._tol_poly = dt_float(tol_poly)
+        self._epsilon_poly : float  = dt_float(epsilon_poly)
+        self._tol_poly : float  = dt_float(tol_poly)
 
         # class used for the action spaces
-        self._helper_action_class = None
-        self._helper_observation_class = None
+        self._helper_action_class : ActionSpace = None
+        self._helper_observation_class : ActionSpace = None
 
         # and calendar data
-        self.time_stamp = None
-        self.nb_time_step = dt_int(0)
+        self.time_stamp : time.struct_time = None
+        self.nb_time_step : datetime.timedelta = dt_int(0)
         self.delta_time_seconds = None  # number of seconds between two consecutive step
 
         # observation
-        self.current_obs = None
-        self._line_status = None
+        self.current_obs : BaseObservation = None
+        self._line_status : np.array = None
 
-        self._ignore_min_up_down_times = self._parameters.IGNORE_MIN_UP_DOWN_TIME
-        self._forbid_dispatch_off = not self._parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
+        self._ignore_min_up_down_times : bool = self._parameters.IGNORE_MIN_UP_DOWN_TIME
+        self._forbid_dispatch_off : bool = not self._parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
 
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
-        self._no_overflow_disconnection = self._parameters.NO_OVERFLOW_DISCONNECTION
-        self._timestep_overflow = None
-        self._nb_timestep_overflow_allowed = None
-        self._hard_overflow_threshold = self._parameters.HARD_OVERFLOW_THRESHOLD
+        self._no_overflow_disconnection : bool = self._parameters.NO_OVERFLOW_DISCONNECTION
+        self._timestep_overflow : np.array = None
+        self._nb_timestep_overflow_allowed : np.array = None
+        self._hard_overflow_threshold : float = self._parameters.HARD_OVERFLOW_THRESHOLD
 
         # store actions "cooldown"
-        self._times_before_line_status_actionable = None
-        self._max_timestep_line_status_deactivated = self._parameters.NB_TIMESTEP_COOLDOWN_LINE
-        self._times_before_topology_actionable = None
-        self._max_timestep_topology_deactivated = self._parameters.NB_TIMESTEP_COOLDOWN_SUB
-        self._nb_ts_reco = self._parameters.NB_TIMESTEP_RECONNECTION
+        self._times_before_line_status_actionable : np.array = None
+        self._max_timestep_line_status_deactivated : int = self._parameters.NB_TIMESTEP_COOLDOWN_LINE
+        self._times_before_topology_actionable : np.array = None
+        self._max_timestep_topology_deactivated : int = self._parameters.NB_TIMESTEP_COOLDOWN_SUB
+        self._nb_ts_reco : int = self._parameters.NB_TIMESTEP_RECONNECTION
 
         # for maintenance operation
-        self._time_next_maintenance = None
-        self._duration_next_maintenance = None
+        self._time_next_maintenance : np.array = None
+        self._duration_next_maintenance : np.array = None
 
         # hazard (not used outside of this class, information is given in `times_before_line_status_actionable`
         self._hazard_duration = None
@@ -897,7 +898,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_activeprod_t = np.zeros(self.n_gen, dtype=dt_float)
         self._gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=dt_float)
         self._nb_timestep_overflow_allowed = np.ones(shape=self.n_line, dtype=dt_int)
-        self._max_timestep_line_status_deactivated = np.zeros(shape=self.n_line, dtype=dt_int)
+        self._max_timestep_line_status_deactivated = self._parameters.NB_TIMESTEP_COOLDOWN_LINE
 
         self._times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self._times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
@@ -2028,7 +2029,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         sum_move = np.sum(normal_increase) + self._amount_storage - self._sum_curtailment_mw
         total_storage_curtail = self._amount_storage - self._sum_curtailment_mw
         update_env_act = False
-
+            
         if abs(total_storage_curtail) >= self._tol_poly:
             # if there is an impact on the curtailment / storage (otherwise I cannot fix anything)
             too_much = 0.
@@ -2042,7 +2043,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._limited_before = too_much
             elif np.abs(self._limited_before) >= self._tol_poly:
                 # adjust the "mess" I did before by not curtailing enough
-                max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
+                # max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
                 update_env_act = True
                 too_much = min(np.sum(avail_up) - self._tol_poly, self._limited_before)
                 self._limited_before -= too_much
@@ -2053,6 +2054,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 total_storage = self._amount_storage / total_storage_curtail * too_much  # TODO !!!
                 update_env_act = True
                 # TODO "log" the total_curtailment and total_storage somewhere (in the info part of the step function)
+                
+                if np.sign(total_curtailment) != np.sign(total_storage):
+                    # curtailment goes up, storage down, i only "limit" the one that
+                    # has the same sign as too much
+                    total_curtailment = too_much if np.sign(total_curtailment) == np.sign(too_much) else 0.
+                    total_storage = too_much if np.sign(total_storage) == np.sign(too_much) else 0.
+                    # NB i can directly assign all the "curtailment" to the maximum because in this case, too_much will
+                    # necessarily be > than total_curtail (or total_storage) because the other
+                    # one is of opposite sign
+                
                 # fix curtailment
                 self._aux_readjust_curtailment_after_limiting(total_curtailment, new_p_th, new_p)
                     
@@ -2078,6 +2089,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _aux_handle_attack(self, action: BaseAction):
         # TODO code the opponent part here and split more the timings! here "opponent time" is
         # TODO included in time_apply_act
+        lines_attacked, subs_attacked = None, None
         attack, attack_duration = self._oppSpace.attack(observation=self.current_obs,
                                                         agent_action=action,
                                                         env_action=self._env_modification)
@@ -2091,6 +2103,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._times_before_topology_actionable[subs_attacked] = \
                             np.maximum(attack_duration, self._times_before_topology_actionable[subs_attacked])
             self._backend_action += attack
+        return lines_attacked, subs_attacked, attack_duration
                             
     def step(self, action: BaseAction) -> Tuple[BaseObservation, float, bool, dict]:
         """
@@ -2332,7 +2345,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             # handle the opponent here
             tick = time.perf_counter()
-            self._aux_handle_attack(action)
+            lines_attacked, subs_attacked, attack_duration = self._aux_handle_attack(action)
             self._time_opponent += time.perf_counter() - tick
             self.backend.apply_action(self._backend_action)
 

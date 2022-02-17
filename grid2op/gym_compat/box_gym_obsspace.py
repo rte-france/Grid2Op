@@ -29,7 +29,7 @@ ALL_ATTR_OBS = ("year", "month", "day", "hour_of_day", "minute_of_hour",
                 "time_before_cooldown_sub", "time_next_maintenance",
                 "duration_next_maintenance", "target_dispatch", "actual_dispatch",
                 "storage_charge", "storage_power_target", "storage_power", "curtailment",
-                "curtailment_limit", "thermal_limit",
+                "curtailment_limit", "curtailment_limit_effective", "thermal_limit",
                 "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
                 "was_alarm_used_after_game_over"
                 )
@@ -317,6 +317,7 @@ class BoxGymObsSpace(Box):
         self.dict_properties["prod_q"] = self.dict_properties["gen_q"]
         self.dict_properties["prod_v"] = self.dict_properties["gen_v"]
         self.dict_properties["gen_p_before_curtail"] = self.dict_properties["gen_p"]
+        self.dict_properties["curtailment_limit_effective"] = self.dict_properties["curtailment_limit"]
 
         if functs is None:
             functs = {}

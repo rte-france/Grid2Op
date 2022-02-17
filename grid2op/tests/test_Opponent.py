@@ -343,7 +343,7 @@ class TestLoadingOpp(unittest.TestCase):
                 obs, reward, done, info = env.step(env.action_space())
                 # the opponent has attacked
                 assert "opponent_attack_line" in info
-                assert np.sum(info["opponent_attack_line"]) == 1, "error at iteration {} for attack".format(i)
+                assert np.sum(info["opponent_attack_line"]) == 1, "error at iteration {} for attack".format(0)
                 assert info["opponent_attack_line"][line_opponent_attack]
                 # but the maintenance cooldown has priority (longer)
                 assert np.all(obs.time_before_cooldown_line ==
@@ -379,6 +379,7 @@ class TestLoadingOpp(unittest.TestCase):
                 # cooldown should be updated correctly
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                
                 for i in range(3):
                     obs, reward, done, info = env.step(env.action_space())  # the maintenance is happening
                     # i have a maintenance in 1 time step

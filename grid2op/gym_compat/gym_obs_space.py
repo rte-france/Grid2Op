@@ -221,7 +221,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "storage_charge":
                     low = np.zeros(observation_space.n_storage, dtype=dt_float)
                     high = observation_space.storage_Emax
-                elif attr_nm == "curtailment" or attr_nm == "curtailment_limit":
+                elif attr_nm == "curtailment" or attr_nm == "curtailment_limit" or attr_nm == "curtailment_limit_effective":
                     low = 0.
                     high = 1.0
                 elif attr_nm == "attention_budget":
