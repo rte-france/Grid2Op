@@ -199,6 +199,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                          "gen_p_before_curtail": [0.0, 0.0, 0.0, 7.599999904632568, 0.0],
                          "curtailment": [0.0, 0.0, 0.0, 0.0, 0.0],
                          "curtailment_limit": [1.0, 1.0, 1.0, 1.0, 1.0],
+                         "curtailment_limit_effective": [1.0, 1.0, 1.0, 1.0, 1.0],
                          "theta_ex": [-1.3276801109313965, -4.100967884063721, -10.311812400817871, -11.245238304138184,
                                       -10.119081497192383, -10.50421142578125, -11.245238304138184, -4.473601341247559,
                                       -4.824699401855469, -4.100967884063721, -4.824699401855469, -4.100967884063721,
@@ -245,7 +246,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                 dt_int, dt_int, dt_float, dt_float,
                                 dt_float, dt_float, dt_float,
                                 # curtailment
-                                dt_float, dt_float, dt_float,
+                                dt_float, dt_float, dt_float, dt_float,
                                 # alarm feature
                                 dt_bool, dt_int, dt_int, dt_float, dt_bool,
                                 # shunts
@@ -263,11 +264,14 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         self.shapes = np.array([1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
                                 20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
-                                5, 5, 0, 0, 0, 5, 5, 5, 1, 1, 0, 1, 1,
+                                5, 5, 0, 0, 0, 
+                                # curtailment
+                                5, 5, 5, 5, 
+                                1, 1, 0, 1, 1,
                                 1, 1, 1, 1,
                                 1, 1, 1,
                                 5, 5])
-        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10
+        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5
 
     def tearDown(self):
         self.env.close()

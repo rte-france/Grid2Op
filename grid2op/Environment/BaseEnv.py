@@ -2104,7 +2104,147 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                             np.maximum(attack_duration, self._times_before_topology_actionable[subs_attacked])
             self._backend_action += attack
         return lines_attacked, subs_attacked, attack_duration
-                            
+    
+    def _aux_apply_redisp(self, action, new_p, new_p_th, gen_curtailed, except_):
+        is_illegal_redisp = False
+        is_done = False
+        is_illegal_reco = False
+        
+        # remember generator that were "up" before the action
+        gen_up_before = self._gen_activeprod_t > 0.
+
+        # compute the redispatching and the new productions active setpoint
+        already_modified_gen = self._get_already_modified_gen(action)
+        valid_disp, except_tmp, info_ = self._prepare_redisp(action, new_p, already_modified_gen)
+
+        if except_tmp is not None:
+            action = self._action_space({})
+            is_illegal_redisp = True
+            except_.append(except_tmp)
+
+            if self.n_storage > 0:
+                # TODO curtailment: cancel it here too !
+                self._storage_current_charge[:] = self._storage_previous_charge
+                self._amount_storage -= self._amount_storage_prev
+
+                # dissipated energy, it's not seen on the grid, just lost in the storage unit.
+                # this is why it should not be taken into account in self._amount_storage
+                # and NOT absorbed by the generators either
+                self._withdraw_storage_losses()
+                # end storage
+        
+        # fix redispatching for curtailment storage 
+        if self.redispatching_unit_commitment_availble and self._parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION:
+            # limit the curtailment / storage in case of infeasible redispatching
+            self._aux_limit_curtail_storage_if_needed(new_p, new_p_th, gen_curtailed)
+            
+        self._storage_power_prev[:] = self._storage_power
+        # case where the action modifies load (TODO maybe make a different env for that...)
+        self._aux_handle_act_inj(action)
+                        
+        valid_disp, except_tmp = self._make_redisp(already_modified_gen, new_p)
+
+        if not valid_disp or except_tmp is not None:
+            # game over case (divergence of the scipy routine to compute redispatching)
+            action = self._action_space({})
+            is_illegal_redisp = True
+            except_.append(except_tmp)
+            is_done = True
+            except_.append(
+                InvalidRedispatching("Game over due to infeasible redispatching state. "
+                                        "The routine used to compute the \"next state\" has diverged. "
+                                        "This means that there is no way to compute a physically valid generator state "
+                                        "(one that meets all pmin / pmax - ramp min / ramp max with the information "
+                                        "provided. As one of the physical constraints would be violated, this means that "
+                                        "a generator would be damaged in real life. This is a game over.")
+                )
+
+        # check the validity of min downtime and max uptime
+        except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
+        if except_tmp is not None:
+            is_illegal_reco = True
+            action = self._action_space({})
+            except_.append(except_tmp)  
+        return is_illegal_redisp, is_illegal_reco, is_done
+    
+    def _aux_update_backend_action(self, action, action_storage_power, init_disp):        
+        # make sure the dispatching action is not implemented "as is" by the backend.
+        # the environment must make sure it's a zero-sum action.
+        # same kind of limit for the storage
+        action._redispatch[:] = 0.
+        action._storage_power[:] = self._storage_power
+        self._backend_action += action
+        action._storage_power[:] = action_storage_power
+        action._redispatch[:] = init_disp
+        # TODO storage: check the original action, even when replaced by do nothing is not modified    
+        self._backend_action += self._env_modification
+        self._backend_action.set_redispatch(self._actual_dispatch)      
+   
+    def _aux_run_pf_after_state_properly_set(self, action, init_line_status, new_p, except_):
+        has_error = True
+        try:
+            # compute the next _grid state
+            beg_pf = time.perf_counter()
+            disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self._env_dc)
+            self._disc_lines[:] = disc_lines
+            self._time_powerflow += time.perf_counter() - beg_pf
+            if conv_ is None:
+                beg_res = time.perf_counter()
+                self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
+                overflow_lines = self.backend.get_line_overflow()
+                # save the current topology as "last" topology (for connected powerlines)
+                # and update the state of the disconnected powerline due to cascading failure
+                self._backend_action.update_state(disc_lines)
+
+                # one timestep passed, i can maybe reconnect some lines
+                self._times_before_line_status_actionable[self._times_before_line_status_actionable > 0] -= 1
+                # update the vector for lines that have been disconnected
+                self._times_before_line_status_actionable[disc_lines >= 0] = int(self._nb_ts_reco)
+                self._update_time_reconnection_hazards_maintenance()
+
+                # for the powerline that are on overflow, increase this time step
+                self._timestep_overflow[overflow_lines] += 1
+
+                # set to 0 the number of timestep for lines that are not on overflow
+                self._timestep_overflow[~overflow_lines] = 0
+
+                # build the topological action "cooldown"
+                aff_lines, aff_subs = action.get_topological_impact(init_line_status)
+                if self._max_timestep_line_status_deactivated > 0:
+                    # i update the cooldown only when this does not impact the line disconnected for the
+                    # opponent or by maintenance for example
+                    cond = aff_lines  # powerlines i modified
+                    # powerlines that are not affected by any other "forced disconnection"
+                    cond &= self._times_before_line_status_actionable < self._max_timestep_line_status_deactivated
+                    self._times_before_line_status_actionable[cond] = self._max_timestep_line_status_deactivated
+                if self._max_timestep_topology_deactivated > 0:
+                    self._times_before_topology_actionable[self._times_before_topology_actionable > 0] -= 1
+                    self._times_before_topology_actionable[aff_subs] = self._max_timestep_topology_deactivated
+
+                # extract production active value at this time step (should be independent of action class)
+                self._gen_activeprod_t[:], *_ = self.backend.generators_info()
+                # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
+                # of the system. So basically, when it's too high (higher than the ramp) it can
+                # mess up the rest of the environment
+                self._gen_activeprod_t_redisp[:] = new_p + self._actual_dispatch
+
+                # set the line status
+                self._line_status[:] = copy.deepcopy(self.backend.get_line_status())
+
+                # finally, build the observation (it's a different one at each step, we cannot reuse the same one)
+                # THIS SHOULD BE DONE AFTER EVERYTHING IS INITIALIZED !
+                self.current_obs = self.get_obs()
+                # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
+                # TODO is non zero and disconnected, this should be ok.
+                self._time_extract_obs += time.perf_counter() - beg_res
+
+                has_error = False
+        except Grid2OpException as exc_:
+            except_.append(exc_)
+            if self.logger is not None:
+                self.logger.error("Impossible to compute next grid state with error \"{}\"".format(exc_))
+        return detailed_info, has_error
+                     
     def step(self, action: BaseAction) -> Tuple[BaseObservation, float, bool, dict]:
         """
         Run one timestep of the environment's dynamics. When end of
@@ -2203,7 +2343,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # somehow "env.step()" or "env.reset()"
         has_error = True
         is_done = False
-        disc_lines = None
         is_illegal = False
         is_ambiguous = False
         is_illegal_redisp = False
@@ -2261,83 +2400,24 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             
             # storage unit
             if self.n_storage > 0:
-                self._compute_storage(action_storage_power)
+                # limiting the storage units is done in `_aux_apply_redisp`
+                # this only ensure the Emin / Emax and all the actions
+                self._compute_storage(action_storage_power)  
                      
-            # curtailment
+            # curtailment (does not attempt to "limit" the curtailment to make sure
+            # it is feasible)
             self._gen_before_curtailment[self.gen_renewable] = new_p[self.gen_renewable]
             gen_curtailed = self._aux_handle_curtailment_without_limit(action, new_p)
                 
             beg__redisp = time.perf_counter()
             if self.redispatching_unit_commitment_availble or self.n_storage > 0.:
-                # remember generator that were "up" before the action
-                gen_up_before = self._gen_activeprod_t > 0.
+                # this computes the "optimal" redispatching
+                # and it is also in this function that the limiting of the curtailment / storage actions
+                # is perform to make the state "feasible"
+                is_illegal_redisp, is_illegal_reco, is_done = self._aux_apply_redisp(action, new_p, new_p_th, gen_curtailed, except_)
+            self._time_redisp += time.perf_counter() - beg__redisp
 
-                # compute the redispatching and the new productions active setpoint
-                already_modified_gen = self._get_already_modified_gen(action)
-                valid_disp, except_tmp, info_ = self._prepare_redisp(action, new_p, already_modified_gen)
-
-                if except_tmp is not None:
-                    action = self._action_space({})
-                    is_illegal_redisp = True
-                    except_.append(except_tmp)
-
-                    if self.n_storage > 0:
-                        # TODO curtailment: cancel it here too !
-                        self._storage_current_charge[:] = self._storage_previous_charge
-                        self._amount_storage -= self._amount_storage_prev
-
-                        # dissipated energy, it's not seen on the grid, just lost in the storage unit.
-                        # this is why it should not be taken into account in self._amount_storage
-                        # and NOT absorbed by the generators either
-                        self._withdraw_storage_losses()
-                        # end storage
-                
-                # fix redispatching for curtailment storage 
-                if self.redispatching_unit_commitment_availble and self._parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION:
-                    # limit the curtailment / storage in case of infeasible redispatching
-                    self._aux_limit_curtail_storage_if_needed(new_p, new_p_th, gen_curtailed)
-                    
-                self._storage_power_prev[:] = self._storage_power
-                # case where the action modifies load (TODO maybe make a different env for that...)
-                self._aux_handle_act_inj(action)
-                                
-                valid_disp, except_tmp = self._make_redisp(already_modified_gen, new_p)
-
-                if not valid_disp or except_tmp is not None:
-                    # game over case (divergence of the scipy routine to compute redispatching)
-                    action = self._action_space({})
-                    is_illegal_redisp = True
-                    except_.append(except_tmp)
-                    is_done = True
-                    except_.append(
-                        InvalidRedispatching("Game over due to infeasible redispatching state. "
-                                             "The routine used to compute the \"next state\" has diverged. "
-                                             "This means that there is no way to compute a physically valid generator state "
-                                             "(one that meets all pmin / pmax - ramp min / ramp max with the information "
-                                             "provided. As one of the physical constraints would be violated, this means that "
-                                             "a generator would be damaged in real life. This is a game over.")
-                        )
-
-                # check the validity of min downtime and max uptime
-                except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
-                if except_tmp is not None:
-                    is_illegal_reco = True
-                    action = self._action_space({})
-                    except_.append(except_tmp)
-                self._time_redisp += time.perf_counter() - beg__redisp
-
-            # make sure the dispatching action is not implemented "as is" by the backend.
-            # the environment must make sure it's a zero-sum action.
-            # same kind of limit for the storage
-
-            action._redispatch[:] = 0.
-            action._storage_power[:] = self._storage_power
-            self._backend_action += action
-            action._storage_power[:] = action_storage_power
-            action._redispatch[:] = init_disp
-            # TODO storage: check the original action, even when replaced by do nothing is not modified    
-            self._backend_action += self._env_modification
-            self._backend_action.set_redispatch(self._actual_dispatch)
+            self._aux_update_backend_action(action, action_storage_power, init_disp)
 
             # now get the new generator voltage setpoint
             voltage_control_act = self._voltage_control(action, prod_v_chronics)
@@ -2347,70 +2427,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             tick = time.perf_counter()
             lines_attacked, subs_attacked, attack_duration = self._aux_handle_attack(action)
             self._time_opponent += time.perf_counter() - tick
+            
             self.backend.apply_action(self._backend_action)
-
             self._time_apply_act += time.perf_counter() - beg_
-            try:
-                # compute the next _grid state
-                beg_pf = time.perf_counter()
-                disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self._env_dc)
-                self._disc_lines[:] = disc_lines
-                self._time_powerflow += time.perf_counter() - beg_pf
-                if conv_ is None:
-                    beg_res = time.perf_counter()
-                    self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
-                    overflow_lines = self.backend.get_line_overflow()
-                    # save the current topology as "last" topology (for connected powerlines)
-                    # and update the state of the disconnected powerline due to cascading failure
-                    self._backend_action.update_state(disc_lines)
-
-                    # one timestep passed, i can maybe reconnect some lines
-                    self._times_before_line_status_actionable[self._times_before_line_status_actionable > 0] -= 1
-                    # update the vector for lines that have been disconnected
-                    self._times_before_line_status_actionable[disc_lines >= 0] = int(self._nb_ts_reco)
-                    self._update_time_reconnection_hazards_maintenance()
-
-                    # for the powerline that are on overflow, increase this time step
-                    self._timestep_overflow[overflow_lines] += 1
-
-                    # set to 0 the number of timestep for lines that are not on overflow
-                    self._timestep_overflow[~overflow_lines] = 0
-
-                    # build the topological action "cooldown"
-                    aff_lines, aff_subs = action.get_topological_impact(init_line_status)
-                    if self._max_timestep_line_status_deactivated > 0:
-                        # i update the cooldown only when this does not impact the line disconnected for the
-                        # opponent or by maintenance for example
-                        cond = aff_lines  # powerlines i modified
-                        # powerlines that are not affected by any other "forced disconnection"
-                        cond &= self._times_before_line_status_actionable < self._max_timestep_line_status_deactivated
-                        self._times_before_line_status_actionable[cond] = self._max_timestep_line_status_deactivated
-                    if self._max_timestep_topology_deactivated > 0:
-                        self._times_before_topology_actionable[self._times_before_topology_actionable > 0] -= 1
-                        self._times_before_topology_actionable[aff_subs] = self._max_timestep_topology_deactivated
-
-                    # extract production active value at this time step (should be independent of action class)
-                    self._gen_activeprod_t[:], *_ = self.backend.generators_info()
-                    # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
-                    # of the system. So basically, when it's too high (higher than the ramp) it can
-                    # mess up the rest of the environment
-                    self._gen_activeprod_t_redisp[:] = new_p + self._actual_dispatch
-
-                    # set the line status
-                    self._line_status[:] = copy.deepcopy(self.backend.get_line_status())
-
-                    # finally, build the observation (it's a different one at each step, we cannot reuse the same one)
-                    # THIS SHOULD BE DONE AFTER EVERYTHING IS INITIALIZED !
-                    self.current_obs = self.get_obs()
-                    # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
-                    # TODO is non zero and disconnected, this should be ok.
-                    self._time_extract_obs += time.perf_counter() - beg_res
-
-                    has_error = False
-            except Grid2OpException as exc_:
-                except_.append(exc_)
-                if self.logger is not None:
-                    self.logger.error("Impossible to compute next grid state with error \"{}\"".format(exc_))
+            
+            # now it's time to run the powerflow properly
+            # and to update the time dependant properties
+            detailed_info, has_error = self._aux_run_pf_after_state_properly_set(action, init_line_status, new_p, except_)
 
         except StopIteration:
             # episode is over

@@ -603,7 +603,6 @@ class TestExtremeStorage(unittest.TestCase):
         TestExtremeCurtail._aux_test_gen(obs, obs1, min_loss_slack=4)  # I generate ~40 MW on this grid with storage, losses changes a lot !
         TestExtremeCurtail._aux_compare_with_ref(self.env, obs1, self.obs1_ref, min_loss_slack=4)
         
-        self.env._debug = True
         obs2, reward, done, info = self.env.step(self.env.action_space())
         assert np.all(obs2.gen_p[obs2.gen_renewable] >= 0.), "some curtailment make for a negative production !"
         assert np.all(obs2.gen_p[obs2.gen_renewable] == 0.)  # everything is set to 0. now !
@@ -611,6 +610,14 @@ class TestExtremeStorage(unittest.TestCase):
         # test the generators are ok
         TestExtremeCurtail._aux_test_gen(obs1, obs2, min_loss_slack=4)  # I generate ~40 MW on this grid with storage, losses changes a lot !
         TestExtremeCurtail._aux_compare_with_ref(self.env, obs2, self.obs2_ref, min_loss_slack=4)
+        
+        obs3, reward, done, info = self.env.step(self.env.action_space())
+        assert np.all(obs3.gen_p[obs2.gen_renewable] >= 0.), "some curtailment make for a negative production !"
+        assert np.all(obs3.gen_p[obs2.gen_renewable] == 0.)  # everything is set to 0. now !
+        self._aux_test_storage(obs2, obs3)
+        # test the generators are ok
+        TestExtremeCurtail._aux_test_gen(obs2, obs3, min_loss_slack=4)  # I generate ~40 MW on this grid with storage, losses changes a lot !
+        TestExtremeCurtail._aux_compare_with_ref(self.env, obs3, self.obs3_ref, min_loss_slack=4)
 
 # TODO test with simulate !!!!
      
