@@ -73,9 +73,9 @@ class Simulator(object):
             raise SimulatorError("when using change_backend_type function, the backend_type should"
                                  " be subtype of class Backend")
         if not os.path.exists(grid_path):
-            raise Simulator(f"the supposed grid path \"{grid_path}\" does not exists")
+            raise SimulatorError(f"the supposed grid path \"{grid_path}\" does not exists")
         if not os.path.isfile(grid_path):
-            raise Simulator(f"the supposed grid path \"{grid_path}\" if not a file")
+            raise SimulatorError(f"the supposed grid path \"{grid_path}\" if not a file")
         
         tmp_backend = backend_type(**kwargs)
         tmp_backend.load_grid(grid_path)
@@ -151,7 +151,6 @@ class Simulator(object):
         
         scale_objective = max(0.5 * np.sum(np.abs(target_dispatch_redisp))**2, 1.0)
         scale_objective = np.round(scale_objective, decimals=4)
-        scale_objective = scale_objective
         
         tmp_zeros = np.zeros((1, nb_dispatchable), dtype=float)
         

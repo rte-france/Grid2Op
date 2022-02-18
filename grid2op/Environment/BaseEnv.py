@@ -13,7 +13,7 @@ import time
 import copy
 import os
 import json
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from scipy.optimize import minimize
@@ -224,29 +224,29 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     ALARM_FILE_NAME = "alerts_info.json"
 
     def __init__(self,
-                 init_env_path,
-                 init_grid_path,
-                 parameters,
-                 voltagecontrolerClass,
-                 thermal_limit_a=None,
-                 epsilon_poly=1e-4,  # precision of the redispatching algorithm
-                 tol_poly=1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
-                 other_rewards={},
-                 with_forecast=True,
-                 opponent_action_class=DontAct,
-                 opponent_class=BaseOpponent,
-                 opponent_init_budget=0.,
-                 opponent_budget_per_ts=0.,
-                 opponent_budget_class=NeverAttackBudget,
-                 opponent_attack_duration=0,
-                 opponent_attack_cooldown=99999,
-                 kwargs_opponent={},
-                 has_attention_budget=False,
-                 attention_budget_cls=LinearAttentionBudget,
-                 kwargs_attention_budget={},
-                 logger=None,  
-                 kwargs_observation=None,
-                 _is_test=False,  # TODO not implemented !!
+                 init_env_path : os.PathLike,
+                 init_grid_path : os.PathLike,
+                 parameters :Parameters,
+                 voltagecontrolerClass : type,
+                 thermal_limit_a: Optional[np.ndarray]=None,
+                 epsilon_poly : float=1e-4,  # precision of the redispatching algorithm
+                 tol_poly :float=1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
+                 other_rewards :dict={},
+                 with_forecast :bool=True,
+                 opponent_action_class :type=DontAct,
+                 opponent_class : type=BaseOpponent,
+                 opponent_init_budget :float=0.,
+                 opponent_budget_per_ts :float=0.,
+                 opponent_budget_class :type=NeverAttackBudget,
+                 opponent_attack_duration :int=0,
+                 opponent_attack_cooldown :int=99999,
+                 kwargs_opponent :dict={},
+                 has_attention_budget :bool=False,
+                 attention_budget_cls :type=LinearAttentionBudget,
+                 kwargs_attention_budget :dict={},
+                 logger: Optional[logging.Logger]=None,  
+                 kwargs_observation :Optional[dict]=None,
+                 _is_test : bool=False,  # TODO not implemented !!
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
@@ -297,7 +297,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # observation
         self.current_obs : BaseObservation = None
-        self._line_status : np.array = None
+        self._line_status : np.ndarray = None
 
         self._ignore_min_up_down_times : bool = self._parameters.IGNORE_MIN_UP_DOWN_TIME
         self._forbid_dispatch_off : bool = not self._parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
@@ -305,36 +305,36 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
         self._no_overflow_disconnection : bool = self._parameters.NO_OVERFLOW_DISCONNECTION
-        self._timestep_overflow : np.array = None
-        self._nb_timestep_overflow_allowed : np.array = None
+        self._timestep_overflow : np.ndarray = None
+        self._nb_timestep_overflow_allowed : np.ndarray = None
         self._hard_overflow_threshold : float = self._parameters.HARD_OVERFLOW_THRESHOLD
 
         # store actions "cooldown"
-        self._times_before_line_status_actionable : np.array = None
+        self._times_before_line_status_actionable : np.ndarray = None
         self._max_timestep_line_status_deactivated : int = self._parameters.NB_TIMESTEP_COOLDOWN_LINE
-        self._times_before_topology_actionable : np.array = None
+        self._times_before_topology_actionable : np.ndarray = None
         self._max_timestep_topology_deactivated : int = self._parameters.NB_TIMESTEP_COOLDOWN_SUB
         self._nb_ts_reco : int = self._parameters.NB_TIMESTEP_RECONNECTION
 
         # for maintenance operation
-        self._time_next_maintenance : np.array = None
-        self._duration_next_maintenance : np.array = None
+        self._time_next_maintenance : np.ndarray = None
+        self._duration_next_maintenance : np.ndarray = None
 
         # hazard (not used outside of this class, information is given in `times_before_line_status_actionable`
-        self._hazard_duration = None
+        self._hazard_duration : np.ndarray = None
 
         self._env_dc = self._parameters.ENV_DC
 
         # redispatching data
-        self._target_dispatch = None
-        self._actual_dispatch = None
-        self._gen_uptime = None
-        self._gen_downtime = None
-        self._gen_activeprod_t = None
-        self._gen_activeprod_t_redisp = None
+        self._target_dispatch : np.ndarray = None
+        self._actual_dispatch : np.ndarray= None
+        self._gen_uptime : np.ndarray= None
+        self._gen_downtime : np.ndarray= None
+        self._gen_activeprod_t : np.ndarray= None
+        self._gen_activeprod_t_redisp : np.ndarray= None
 
-        self._thermal_limit_a = thermal_limit_a
-        self._disc_lines = None
+        self._thermal_limit_a : np.ndarray= thermal_limit_a
+        self._disc_lines : np.ndarray= None
 
         # store environment modifications
         self._injection = None
@@ -1412,10 +1412,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # I can "save" the situation by turning on all generators, I do it
                     # TODO logger here
                     gen_participating = gen_participating_tmp
-                    p_min_down = p_min_down_tmp
-                    avail_down = avail_down_tmp
-                    p_max_up = p_max_up_tmp
-                    avail_up = avail_up_tmp
                     except_ = None
                 else:
                     return except_tmp
@@ -2165,7 +2161,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             is_illegal_reco = True
             action = self._action_space({})
             except_.append(except_tmp)  
-        return is_illegal_redisp, is_illegal_reco, is_done
+        return action, is_illegal_redisp, is_illegal_reco, is_done
     
     def _aux_update_backend_action(self, action, action_storage_power, init_disp):        
         # make sure the dispatching action is not implemented "as is" by the backend.
@@ -2414,7 +2410,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # this computes the "optimal" redispatching
                 # and it is also in this function that the limiting of the curtailment / storage actions
                 # is perform to make the state "feasible"
-                is_illegal_redisp, is_illegal_reco, is_done = self._aux_apply_redisp(action, new_p, new_p_th, gen_curtailed, except_)
+                action, is_illegal_redisp, is_illegal_reco, is_done = self._aux_apply_redisp(action, new_p, new_p_th, gen_curtailed, except_)
             self._time_redisp += time.perf_counter() - beg__redisp
 
             self._aux_update_backend_action(action, action_storage_power, init_disp)
