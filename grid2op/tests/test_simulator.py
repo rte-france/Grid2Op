@@ -165,8 +165,8 @@ class TestComplexActions(unittest.TestCase):
                                      new_load_p=obs.load_p,
                                      new_load_q=obs.load_q)
         assert np.max(np.abs(res.current_obs.target_dispatch - obs.target_dispatch)) <= 1e-5
-        assert np.max(np.abs(res.current_obs.actual_dispatch - obs.actual_dispatch)) <= 1e-5
-        assert np.max(np.abs(res.current_obs.gen_p - obs.gen_p)) <= 1e-5
+        assert np.max(np.abs(res.current_obs.actual_dispatch - obs.actual_dispatch)) <= 1e-2
+        assert np.max(np.abs(res.current_obs.gen_p - obs.gen_p)) <= 1e-2
         
         act2 = self.env.action_space({"redispatch": [(0, 5.), (1, 4.)]})
         obs2, *_ = self.env.step(act2)
@@ -174,11 +174,11 @@ class TestComplexActions(unittest.TestCase):
                            new_gen_p=obs2.gen_p - obs.actual_dispatch,
                            new_load_p=obs2.load_p,
                            new_load_q=obs2.load_q)
-        assert np.max(np.abs(res2.current_obs.target_dispatch - obs2.target_dispatch)) <= 1e-5
+        assert np.max(np.abs(res2.current_obs.target_dispatch - obs2.target_dispatch)) <= 1e-2
         # ultimately the redispatch should match (but not necessarily at this step)
         for _ in range(2):
             obsn, *_ = self.env.step(self.env.action_space())
-        assert np.max(np.abs(res2.current_obs.actual_dispatch - obsn.actual_dispatch)) <= 1e-1
+        assert np.max(np.abs(res2.current_obs.actual_dispatch - obsn.actual_dispatch)) <= 2e-1
         
         act3 = self.env.action_space({"redispatch": [(5, 3.)]})
         obs3, *_ = self.env.step(act3)
@@ -186,17 +186,47 @@ class TestComplexActions(unittest.TestCase):
                             new_gen_p=obs3.gen_p - obs3.actual_dispatch,
                             new_load_p=obs3.load_p,
                             new_load_q=obs3.load_q)
-        assert np.max(np.abs(res3.current_obs.target_dispatch - obs3.target_dispatch)) <= 1e-1
-        assert np.max(np.abs(res3.current_obs.actual_dispatch - obs3.actual_dispatch)) <= 0.2
-        assert np.max(np.abs(res3.current_obs.gen_p - obs3.gen_p)) <= 0.2
+        
+        assert np.max(np.abs(res3.current_obs.target_dispatch - obs3.target_dispatch)) <= 2e-1
+        assert np.max(np.abs(res3.current_obs.actual_dispatch - obs3.actual_dispatch)) <= 4e-1
+        assert np.max(np.abs(res3.current_obs.gen_p - obs3.gen_p)) <= 4e-1
         
     def test_storage(self):
-        # TODO
-        pass
+        act = self.env.action_space({"set_storage": [(0, -5.)]})
+        obs, *_ = self.env.step(act)
+        res = self.simulator.predict(act,
+                                     new_gen_p=obs.gen_p - obs.actual_dispatch,
+                                     new_load_p=obs.load_p,
+                                     new_load_q=obs.load_q)
+        assert np.max(np.abs(res.current_obs.actual_dispatch - obs.actual_dispatch)) <= 0.1
+        assert np.max(np.abs(res.current_obs.gen_p - obs.gen_p)) <= 0.1
+        assert np.max(np.abs(res.current_obs.storage_power - obs.storage_power)) <= 0.1
+        assert np.max(np.abs(res.current_obs.storage_charge - obs.storage_charge)) <= 0.1
+        
+        # check Emin / Emax are met
+        for it_num in range(16):
+            res.predict(act, do_copy=False)
+            assert res.converged, f"error at iteration {it_num}"
+        assert np.all(res.current_obs.storage_power == [-5.0, 0.])
+        res.predict(act, do_copy=False)
+        assert res.converged
+        assert np.all(res.current_obs.storage_charge == [0., 3.5])
+        assert np.all(np.abs(res.current_obs.storage_power - [-0.499, 0.]) <= 0.01)
+        res.predict(act, do_copy=False)
+        assert res.converged
+        assert np.all(res.current_obs.storage_charge == [0., 3.5])
+        assert np.all(np.abs(res.current_obs.storage_power) <= 0.01)
+        
+        act2 = self.env.action_space({"set_storage": [(0, 5.), (1, -10.)]})
+        res.predict(act2, do_copy=False)
+        assert res.converged
+        assert np.all(np.abs(res.current_obs.storage_charge - [0.417, 2.667]) <= 0.01)
+        assert np.all(np.abs(res.current_obs.storage_power - [5., -10.]) <= 0.01)
         
     def test_curtailment(self):
         gen_id = 2
-        act = self.env.action_space()  # should curtail 3.4 MW
+        # should curtail 3.4 MW
+        act = self.env.action_space()  
         act.curtail_mw = [(gen_id, 5.)]
         obs, *_ = self.env.step(act)
         new_gen_p = obs.gen_p - obs.actual_dispatch
@@ -206,10 +236,76 @@ class TestComplexActions(unittest.TestCase):
                                      new_load_p=obs.load_p,
                                      new_load_q=obs.load_q)
         assert np.max(np.abs(res.current_obs.target_dispatch - obs.target_dispatch)) <= 1e-5
-        assert np.max(np.abs(res.current_obs.actual_dispatch - obs.actual_dispatch)) <= 1e-2
-        assert np.max(np.abs(res.current_obs.gen_p - obs.gen_p)) <= 1e-2
+        assert np.max(np.abs(res.current_obs.actual_dispatch - obs.actual_dispatch)) <= 0.1
+        assert np.max(np.abs(res.current_obs.gen_p - obs.gen_p)) <= 0.1
+
+        # should curtail another 3 MW
+        act2 = self.env.action_space()  
+        act2.curtail_mw = [(gen_id, 2.)]
+        obs1, *_ = self.env.step(act2)
+        new_gen_p2 = obs1.gen_p - obs1.actual_dispatch
+        new_gen_p2[gen_id] = obs1.gen_p_before_curtail[gen_id]
+        res2 = self.simulator.predict(act2,
+                                      new_gen_p=new_gen_p2,
+                                      new_load_p=obs1.load_p,
+                                      new_load_q=obs1.load_q)
+        assert np.max(np.abs(res2.current_obs.target_dispatch - obs1.target_dispatch)) <= 1e-5
+        assert np.max(np.abs(res2.current_obs.actual_dispatch - obs1.actual_dispatch)) <= 0.01
+        assert np.max(np.abs(res2.current_obs.gen_p - obs1.gen_p)) <= 0.01
         
-        # TODO continue that !
+        # should curtail less (-4 MW)
+        act3 = self.env.action_space()  
+        act3.curtail_mw = [(gen_id, 6.)]
+        obs2, *_ = self.env.step(act3)
+        new_gen_p3 = obs2.gen_p - obs2.actual_dispatch
+        new_gen_p3[gen_id] = obs2.gen_p_before_curtail[gen_id]
+        res3 = self.simulator.predict(act3,
+                                      new_gen_p=new_gen_p3,
+                                      new_load_p=obs2.load_p,
+                                      new_load_q=obs2.load_q)
+        assert np.max(np.abs(res3.current_obs.target_dispatch - obs2.target_dispatch)) <= 1e-5
+        assert np.max(np.abs(res3.current_obs.actual_dispatch - obs2.actual_dispatch)) <= 0.2
+        assert np.max(np.abs(res3.current_obs.gen_p - obs2.gen_p)) <= 0.2
+        
+        # remove all curtailment
+        act4 = self.env.action_space()
+        act4.curtail_mw = [(gen_id, 9.)]
+        obs3, *_ = self.env.step(act4)
+        new_gen_p4 = obs3.gen_p - obs3.actual_dispatch
+        new_gen_p4[gen_id] = obs3.gen_p_before_curtail[gen_id]
+        res4 = self.simulator.predict(act4,
+                                      new_gen_p=new_gen_p4,
+                                      new_load_p=obs3.load_p,
+                                      new_load_q=obs3.load_q)
+        assert np.max(np.abs(res4.current_obs.actual_dispatch)) <= 1e-5
+        assert np.max(np.abs(res4.current_obs.target_dispatch - obs3.target_dispatch)) <= 1e-5
+        assert np.max(np.abs(res4.current_obs.actual_dispatch - obs3.actual_dispatch)) <= 0.2
+        assert np.max(np.abs(res4.current_obs.gen_p - obs3.gen_p)) <= 0.2
+        
+        # now test when I start from a previous step with curtailment already
+        res5 = res3.predict(act4,
+                            new_gen_p=new_gen_p4,
+                            new_load_p=obs3.load_p,
+                            new_load_q=obs3.load_q)
+        assert np.max(np.abs(res5.current_obs.actual_dispatch)) <= 1e-5
+        assert np.max(np.abs(res5.current_obs.target_dispatch - res4.current_obs.target_dispatch)) <= 0.01
+        assert np.max(np.abs(res5.current_obs.actual_dispatch - res4.current_obs.actual_dispatch)) <= 0.01
+        assert np.max(np.abs(res5.current_obs.gen_p - res4.current_obs.gen_p)) <= 0.01
+    
+        # now another test where i still apply some curtailment
+        res6 = res2.predict(act3,
+                            new_gen_p=new_gen_p3,
+                            new_load_p=obs2.load_p,
+                            new_load_q=obs2.load_q)
+        assert np.max(np.abs(res6.current_obs.target_dispatch - res3.current_obs.target_dispatch)) <= 0.01
+        assert np.max(np.abs(res6.current_obs.actual_dispatch - res3.current_obs.actual_dispatch)) <= 0.01
+        assert np.max(np.abs(res6.current_obs.gen_p - res3.current_obs.gen_p)) <= 0.01
+    
+        # TODO test observation attributes: 
+        # res.current_obs.curtailment[:] = (new_gen_p - new_gen_p_modif) / act.gen_pmax
+        #     res.current_obs.curtailment_limit[:] = act.curtail
+        #     res.current_obs.curtailment_limit_effective[:] = act.curtail
+        #     res.current_obs.gen_p_before_curtail[:] = new_gen_p
         
 if __name__ == "__main__":
     unittest.main()

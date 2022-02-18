@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
-from typing import Optional
+from typing import Optional, Tuple
 import numpy as np
 import os
 from scipy.optimize import minimize
@@ -48,6 +48,14 @@ class Simulator(object):
         
         self._tol_redisp : float= tol_redisp
     
+    @property
+    def converged(self) -> bool:
+        return self._converged
+    
+    @converged.setter
+    def converged(self, values):
+        raise SimulatorError("Cannot set this property.")
+    
     def copy(self) -> "Simulator":
         if self.current_obs is None:
             raise SimulatorError("Impossible to copy a non initialized Simulator. "
@@ -57,7 +65,7 @@ class Simulator(object):
         res.current_obs = res.current_obs.copy()
         return res
     
-    def change_backend(self, backend):
+    def change_backend(self, backend :Backend):
         if not isinstance(backend, Backend):
             raise SimulatorError("when using change_backend function, the backend should"
                                  " be an object (an not a class) of type backend")
@@ -65,7 +73,7 @@ class Simulator(object):
         self.backend = backend.copy()  # backend_class.init_grid(type(self.backend))
         self.set_state(obs=self.current_obs)
     
-    def change_backend_type(self, backend_type, grid_path, **kwargs):
+    def change_backend_type(self, backend_type :type, grid_path :os.PathLike, **kwargs):
         if not isinstance(backend_type, type):
             raise SimulatorError("when using change_backend_type function, the backend_type should"
                                  " be a class an not an object")
@@ -87,10 +95,10 @@ class Simulator(object):
     def set_state(self,
                   obs: Optional[BaseObservation]=None,
                   do_powerflow: bool=True,
-                  new_gen_p : np.array=None,
-                  new_gen_v : np.array=None,
-                  new_load_p : np.array=None,
-                  new_load_q : np.array=None):
+                  new_gen_p : np.ndarray=None,
+                  new_gen_v : np.ndarray=None,
+                  new_load_p : np.ndarray=None,
+                  new_load_q : np.ndarray=None):
         
         if obs is not None:
             self.current_obs = obs.copy()
@@ -114,7 +122,7 @@ class Simulator(object):
         if new_gen_v is not None:
             self.current_obs.gen_v[:] = new_gen_v
             
-        self.converged = None
+        self._converged = None
         self.error = None
         self.backend.update_from_obs(self.current_obs, force_update=True)
         
@@ -130,7 +138,10 @@ class Simulator(object):
         else:
             self.current_obs.set_game_over()
         
-    def _adjust_controlable_gen(self, new_gen_p, target_dispatch, sum_target):
+    def _adjust_controlable_gen(self,
+                                new_gen_p :np.ndarray,
+                                target_dispatch :np.ndarray,
+                                sum_target: float) -> Optional[float]:
         nb_dispatchable = np.sum(self.current_obs.gen_redispatchable)
         
         # which generators needs to be "optimized" -> the one where
@@ -157,18 +168,18 @@ class Simulator(object):
         # wrap everything into the proper scipy form
         def target(actual_dispatchable):
             # define my real objective
-            quad_ = (actual_dispatchable[gen_in_target] - target_dispatch_redisp[gen_in_target]) ** 2
+            quad_ = 1e2 * (actual_dispatchable[gen_in_target] - target_dispatch_redisp[gen_in_target]) ** 2
             coeffs_quads = weights[gen_in_target] * quad_
             coeffs_quads_const = coeffs_quads.sum()
             coeffs_quads_const /= scale_objective  # scaling the function
-            coeffs_quads_const += 0.01 * np.sum(actual_dispatchable**2 * weights)
+            coeffs_quads_const += 1e-2 * np.sum(actual_dispatchable**2 * weights)
             return coeffs_quads_const
 
         def jac(actual_dispatchable):
             res_jac = 1.0 * tmp_zeros
-            res_jac[0, gen_in_target] = 2.0 * weights[gen_in_target] * (actual_dispatchable[gen_in_target] - target_dispatch_redisp[gen_in_target])
+            res_jac[0, gen_in_target] = 1e2 * 2.0 * weights[gen_in_target] * (actual_dispatchable[gen_in_target] - target_dispatch_redisp[gen_in_target])
             res_jac /= scale_objective  # scaling the function
-            res_jac += 0.02 * actual_dispatchable * weights
+            res_jac += 2e-2 * actual_dispatchable * weights
             return res_jac
         
         mat_sum_ok = np.ones((1, nb_dispatchable))
@@ -204,14 +215,15 @@ class Simulator(object):
                 # i don't want to divide by something too cloose to 0.
                 denom_adjust = 1.0
             x0[can_adjust] = - init_sum / (weights[can_adjust] * denom_adjust)
-            
+        
         res = f(x0)
         if res.success:
             return res.x
         else:
             return None
     
-    def _amount_curtailed(self, act, new_gen_p):
+    def _amount_curtailed(self, act :BaseAction, new_gen_p :np.ndarray) \
+        -> Tuple[np.ndarray, float]:
         curt_vect = 1.0 * act.curtail
         curt_vect[curt_vect == -1.] = 1.
         limit_curtail = curt_vect* act.gen_pmax
@@ -221,8 +233,44 @@ class Simulator(object):
         new_gen_p_after_curtail = 1.0 * new_gen_p
         new_gen_p_after_curtail -= curtailed
         return new_gen_p_after_curtail, amount_curtail
+
+    def _amount_storage(self, act: BaseAction) -> Tuple[float, np.ndarray]:
+        storage_act = 1.0 * act.storage_p
+        res = np.sum(self.current_obs.storage_power_target)
+        current_charge = 1.0 * self.current_obs.storage_charge
+        storage_power = np.zeros(act.n_storage)
+        if np.all(np.abs(storage_act) <= self._tol_redisp):
+            return -res, storage_power, current_charge
+        coeff_p_to_E = self.current_obs.delta_time / 60.  # obs.delta_time is in minutes
+
+        # convert power (action to energy)
+        storage_act_E = storage_act * coeff_p_to_E
+        # take into account the efficiencies
+        do_charge = storage_act_E < 0.
+        do_discharge = storage_act_E > 0.
+        storage_act_E[do_charge] /= act.storage_charging_efficiency[do_charge]
+        storage_act_E[do_discharge] *= act.storage_discharging_efficiency[do_discharge]
+        # make sure we don't go over / above Emin / Emax
+        min_down_E = act.storage_Emin - current_charge
+        min_up_E = act.storage_Emax - current_charge 
+        storage_act_E = np.minimum(storage_act_E, min_up_E)
+        storage_act_E = np.maximum(storage_act_E, min_down_E)
+        current_charge += storage_act_E
+        # convert back to power (for the observation) the amount the grid got
+        storage_power = storage_act_E / coeff_p_to_E
+        storage_power[do_charge] *= act.storage_charging_efficiency[do_charge]
+        storage_power[do_discharge] /= act.storage_discharging_efficiency[do_discharge]
+        res += np.sum(storage_power)
+        return -res, storage_power, current_charge
         
-    def _fix_redisp_curtailment_storage(self, act, new_gen_p):
+    def _fix_redisp_curtailment_storage(self,
+                                        act : BaseAction,
+                                        new_gen_p :np.ndarray) -> Tuple[bool,
+                                                                        np.ndarray,
+                                                                        np.ndarray, 
+                                                                        np.ndarray,
+                                                                        np.ndarray,
+                                                                        np.ndarray,]:
         """This function emulates the "frequency control" of the 
         environment.
         
@@ -231,11 +279,9 @@ class Simulator(object):
         
         It is a very rough simplification of what happens in the environment.
         """
-        
-        if new_gen_p is None:
-            new_gen_p = 1.0 * self.current_obs.gen_p
         new_gen_p_after_curtail, amount_curtail = self._amount_curtailed(act, new_gen_p)
-        sum_target =  amount_curtail # TODO !
+        amount_storage, storage_power, storage_charge = self._amount_storage(act)
+        sum_target =  amount_curtail - amount_storage # TODO !
         
         target_dispatch = self.current_obs.target_dispatch + act.redispatch
         # if previous setpoint was say -2 and at this step I redispatch of
@@ -246,18 +292,19 @@ class Simulator(object):
         if abs(np.sum(target_dispatch) - sum_target) >= self._tol_redisp:
             adjust = self._adjust_controlable_gen(new_gen_p_after_curtail, target_dispatch, sum_target)
             if adjust is None:
-                return True, None, None, None
+                return True, None, None, None, None, None
             else:
-                return True, new_gen_p_after_curtail, target_dispatch, adjust
-        return False, None, None, None
+                return True, new_gen_p_after_curtail, target_dispatch, adjust, storage_power, storage_charge
+        return False, None, None, None, None, None
         
     def predict(self,
                 act: BaseAction,
-                do_copy: bool=True,
-                new_gen_p : np.array=None,
-                new_gen_v : np.array=None,
-                new_load_p : np.array=None,
-                new_load_q : np.array=None) -> "Simulator":
+                new_gen_p :np.ndarray=None,
+                new_gen_v :np.ndarray=None,
+                new_load_p :np.ndarray=None,
+                new_load_q :np.ndarray=None,
+                do_copy :bool=True,
+                ) -> "Simulator":
         # init the result
         if do_copy:
             res = self.copy()
@@ -265,6 +312,9 @@ class Simulator(object):
             res = self
         this_act = act.copy()
         
+        if new_gen_p is None:
+            new_gen_p = 1.0 * self.current_obs.gen_p
+            
         res.set_state(obs=None, 
                       new_gen_p=new_gen_p,
                       new_gen_v=new_gen_v, 
@@ -272,26 +322,35 @@ class Simulator(object):
                       new_load_q=new_load_q)
         
         # "fix" the action for the redispatching / curtailment / storage part
-        has_adjusted, new_gen_p_modif, target_dispatch, adjust = res._fix_redisp_curtailment_storage(this_act, new_gen_p)
+        has_adjusted, new_gen_p_modif, target_dispatch, adjust, storage_power, storage_charge = res._fix_redisp_curtailment_storage(this_act, new_gen_p)
         
         if has_adjusted:
             if target_dispatch is None:
                 res._converged = False
                 res.current_obs.set_game_over()
                 res._error = InvalidRedispatching("")
-                return
+                return res
             
             redisp_modif = np.zeros(self.current_obs.n_gen)
             redisp_modif[self.current_obs.gen_redispatchable] = adjust
             # adjust the proper things in the observation
             res.current_obs.target_dispatch = target_dispatch
             this_act.redispatch = redisp_modif
-            res.current_obs.actual_dispatch = redisp_modif
+            res.current_obs.actual_dispatch[:] = redisp_modif
             this_act._dict_inj["prod_p"] = 1.0 * new_gen_p_modif
             this_act._modif_inj = True
-            # TODO : curtail, curtailment_limit, storage_power
-            # TODO deactivate the storage state of charge !
-        
+            
+            # TODO : curtail, curtailment_limit (in observation)
+            res.current_obs.curtailment[:] = (new_gen_p - new_gen_p_modif) / act.gen_pmax
+            res.current_obs.curtailment_limit[:] = act.curtail
+            res.current_obs.curtailment_limit_effective[:] = act.curtail
+            res.current_obs.gen_p_before_curtail[:] = new_gen_p
+            res.current_obs.storage_power[:] = storage_power
+            res.current_obs.storage_charge[:] = storage_charge
+        else:
+            res.current_obs.storage_power[:] = 0.
+            res.current_obs.actual_dispatch[:] = 0.
+            
         # apply the action
         bk_act = res.backend.my_bk_act_class()
         bk_act += this_act
@@ -305,7 +364,7 @@ class Simulator(object):
         return res
 
     def close(self):
-        if self.backend is not None:
+        if hasattr(self, "backend") and self.backend is not None:
             self.backend.close()
         self.backend = None
         self.current_obs = None
