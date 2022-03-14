@@ -15,7 +15,7 @@ import warnings
 from grid2op.Environment import Environment
 from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
-from grid2op.Chronics import ChronicsHandler, ChangeNothing
+from grid2op.Chronics import ChronicsHandler, ChangeNothing, FromNPY
 from grid2op.Chronics import GridStateFromFile, GridValue
 from grid2op.Action import BaseAction, DontAct
 from grid2op.Exceptions import *
@@ -457,7 +457,7 @@ def make_from_dataset_path(dataset_path="/",
                                            defaultClass=data_feeding_kwargs["chronicsClass"],
                                            msg_error=ERR_MSG_KWARGS["chronics_class"],
                                            isclass=True)
-    if (chronics_class_used != ChangeNothing) and exc_chronics is not None:
+    if ((chronics_class_used != ChangeNothing) and (chronics_class_used != FromNPY))and exc_chronics is not None:
         raise EnvError(f"Impossible to find the chronics for your environment. Please make sure to provide "
                        f"a folder \"{NAME_CHRONICS_FOLDER}\" within your environment folder.")
 

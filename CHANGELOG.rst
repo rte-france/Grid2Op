@@ -55,6 +55,7 @@ Change Log
 - [FIXED] an error in the redispatching: in some cases, the environment detected that the redispatching was infeasible when it
   was not and in some others it did not detect when it while it was infeasible. This was mainly the case
   when curtailment and storage units were heavily modified.
+- [FIXED] now possible to create an environment with the `FromNPY` chronixcs even if the "chronics" folder is absent. 
 - [ADDED] a function `normalize_attr` allowing to easily scale some data for the
   `BoxGymObsSpace` and `BoxGymActSpace`
 - [ADDED] support for distributed slack in pandapower (if supported)

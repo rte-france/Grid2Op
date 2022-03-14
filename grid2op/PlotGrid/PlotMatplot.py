@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import copy
 import io
 import numpy as np
 
@@ -650,7 +651,7 @@ class PlotMatplot(BasePlot):
                                    facecolor=color)
         self.ax.add_patch(patch)
 
-    def assign_line_palette(self, palette_name="YlOrRd", nb_color=10):
+    def assign_line_palette(self, palette_name="YlOrRd", nb_color=10, line_color_scheme=None):
         """
         Assign a new color palette when you want to plot information on the powerline.
 
@@ -679,11 +680,14 @@ class PlotMatplot(BasePlot):
         Some palette are available there `colormaps <https://matplotlib.org/tutorials/colors/colormaps.html>`_
 
         """
-        palette = plt.get_cmap(palette_name)
-        cols = []
-        for i in range(1, nb_color+1):
-            cols.append(palette(i / nb_color))
-        self._line_color_scheme = cols
+        if line_color_scheme is None:
+            palette = plt.get_cmap(palette_name)
+            cols = []
+            for i in range(1, nb_color+1):
+                cols.append(palette(i / nb_color))
+            self._line_color_scheme = cols
+        else:
+            self._line_color_scheme = copy.deepcopy(line_color_scheme)
 
     def restore_line_palette(self):
         self._line_color_scheme = self._line_color_scheme_orig
