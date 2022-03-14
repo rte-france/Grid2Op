@@ -3,6 +3,9 @@ Change Log
 
 [TODO]
 --------------------
+- [???] have dedicated type of actions / observation for each available 
+  environment, defined in the "conf.py" file (to make possible the use of different
+  grid2op version)
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
