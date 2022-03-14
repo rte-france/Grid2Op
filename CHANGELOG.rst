@@ -8,6 +8,7 @@ Change Log
   grid2op version)
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
+- [???] model better the voltage, include voltage constraints
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
 - [???] add a "_cst_" or something in the `const` member of all the classes
 - [???] in deepcopy of env, make tests that the "pointers" are properly propagated in the attributes (for example
