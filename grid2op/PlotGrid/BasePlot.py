@@ -845,7 +845,7 @@ class BasePlot(ABC):
                     observation.rho /= np.max(tmp)
                 elif coloring == "load":
                     # TODO
-                    warnings.warn("ooloring = loads is not available at the moment")
+                    warnings.warn("coloring = loads is not available at the moment")
                 elif coloring == "gen":
                     if gen_values is None:
                         raise PlotError("Impossible to color the grid based on the gen information (key word argument "
