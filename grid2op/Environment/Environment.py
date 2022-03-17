@@ -1497,3 +1497,55 @@ class Environment(BaseEnv):
         res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
         res["_is_test"] = self._is_test  # TODO not implemented !!
         return res
+
+    def generate_data(self, nb_year=1, nb_core=1, seed=None):
+        """This function uses the chronix2grid package to generate more data that will then
+        be available locally. You need to install it independently (see https://github.com/BDonnot/ChroniX2Grid#installation 
+        for more information)
+        
+        I also requires the lightsim2grid simulator.
+        
+        This is only available for some environment (only the environment used for wcci 2022 competition at
+        time of writing).
+        
+        Generating data takes some time (around 1 - 2 minutes to generate a weekly scenario) and this why we recommend
+        to do it "offline" and then use the generated data for training or evaluation.
+        
+        .. warning::
+        
+            You should not start this function twice. Before starting a new run, make sure the previous one has terminated (otherwise you might
+            erase some previously generated scenario)
+        
+        Examples
+        ---------
+        
+        The recommended process when you want to use this function is to first generate some more data:
+        
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make("l2rpn_wcci_2022")
+            env.generate_data(nb_year=XXX)  # replace XXX by the amount of data you want. If you put 1 you will have 52 different
+            # scenarios
+            
+        Then, later on, you can use it as you please, transparently:
+        
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make("l2rpn_wcci_2022")
+            
+            obs = env.reset()  # obs might come from the data you have generated
+            
+        Parameters
+        ----------
+        nb_year : int, optional
+            the number of "year" you want to generate. Each "year" is made of 52 weeks meaning that if you
+            ask to generate one year, you have 52 more scenarios, by default 1
+        nb_core : int, optional
+            number of computer cores to use, by default 1.
+        seed: int, optional
+            If the same seed is given, then the same data will be generated.
+        """
+        from chronix2grid.grid2op_utils import add_data
+        add_data(env=self, seed=seed, nb_scenario=nb_year, nb_core=nb_core, with_loss=True)
