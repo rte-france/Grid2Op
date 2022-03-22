@@ -43,6 +43,7 @@ pkgs = {
             "pygifsicle>=1.0.1",
             "psutil>=5.7.0",
             "gym>=0.17.2",
+            "lightsim2grid"
         ],
         "docs": [
             "numpydoc>=0.9.2",
