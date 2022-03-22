@@ -60,6 +60,7 @@ Change Log
   was not and in some others it did not detect when it while it was infeasible. This was mainly the case
   when curtailment and storage units were heavily modified.
 - [FIXED] now possible to create an environment with the `FromNPY` chronixcs even if the "chronics" folder is absent. 
+- [FIXED] a bug preventing to converte observation as networkx graph with oldest version of numpy and newest version of scipy.
 - [ADDED] a function `normalize_attr` allowing to easily scale some data for the
   `BoxGymObsSpace` and `BoxGymActSpace`
 - [ADDED] support for distributed slack in pandapower (if supported)

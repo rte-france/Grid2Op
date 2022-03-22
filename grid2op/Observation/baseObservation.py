@@ -1737,7 +1737,7 @@ class BaseObservation(GridObjects):
 
         .. note::
             The graph returned by this function is "frozen" to prevent its modification. If you really want to modify
-            it you can
+            it you can "unfroze" it.
 
         Returns
         -------
@@ -1808,8 +1808,12 @@ class BaseObservation(GridObjects):
         mat_p.setdiag(0.)
         mat_p.eliminate_zeros()
 
-        # create the graph
-        graph = networkx.from_scipy_sparse_matrix(mat_p, edge_attribute="p")
+        # create the networkx graph
+        try:
+            graph = networkx.from_scipy_sparse_array(mat_p, edge_attribute="p")
+        except AttributeError:
+            # oldest version of scipy did not have the `from_scipy_sparse_array` function
+            graph = networkx.from_scipy_sparse_matrix(mat_p, edge_attribute="p")
 
         # add the nodes attributes
         networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_p)}, "p")
