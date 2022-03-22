@@ -455,6 +455,7 @@ class TestAlarmFeature(unittest.TestCase):
        197.42432  , 174.3434   , 295.6653   , 149.95523  , 149.95523  ,
         50.128273 ,  31.93147  ,  74.32939  ,  54.26264  ,  41.730865 ,
        238.96637  , 197.42432  , 113.98372  , 413.98587  ])
+        env.seed(0)
         _ = env.reset()
         # it crashed
         obs, *_ = env.step(env.action_space())

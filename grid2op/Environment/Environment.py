@@ -1547,5 +1547,10 @@ class Environment(BaseEnv):
         seed: int, optional
             If the same seed is given, then the same data will be generated.
         """
-        from chronix2grid.grid2op_utils import add_data
+        try:
+            from chronix2grid.grid2op_utils import add_data
+        except ImportError as exc_:
+            raise ImportError(f"Chronix2grid package is not installed. Install it with `pip install grid2op[chronix2grid]`"
+                              f"Please visit https://github.com/bdonnot/chronix2grid#installation "
+                              f"for further install instructions.") from exc_
         add_data(env=self, seed=seed, nb_scenario=nb_year, nb_core=nb_core, with_loss=True)
