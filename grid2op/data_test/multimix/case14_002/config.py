@@ -34,7 +34,7 @@ config = {
         230.9401074,
         170.79945452,
         3402.24266,
-        3402.24266
+        3402.24266,
     ],
-    "names_chronics_to_grid": None
+    "names_chronics_to_grid": None,
 }

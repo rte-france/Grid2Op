@@ -45,20 +45,27 @@ class BasePlot(GridObjects):
         The observation space used.
 
     """
-    def __init__(self,
-                 observation_space,
-                 substation_layout=None,
-                 radius_sub=20.,
-                 load_prod_dist=70.,
-                 bus_radius=6.):
 
-        warnings.warn("This whole class has been deprecated. Use `grid2op.PlotGrid module instead`",
-                      category=DeprecationWarning)
+    def __init__(
+        self,
+        observation_space,
+        substation_layout=None,
+        radius_sub=20.0,
+        load_prod_dist=70.0,
+        bus_radius=6.0,
+    ):
+
+        warnings.warn(
+            "This whole class has been deprecated. Use `grid2op.PlotGrid module instead`",
+            category=DeprecationWarning,
+        )
         if substation_layout is None:
             if observation_space.grid_layout is None:
                 # if no layout is provided, and observation_space has no layout, then it fails
-                raise PlotError("Impossible to use plotting abilities without specifying a layout (coordinates) "
-                                "of the substations.")
+                raise PlotError(
+                    "Impossible to use plotting abilities without specifying a layout (coordinates) "
+                    "of the substations."
+                )
 
             # if no layout is provided, use the one in the observation_space
             substation_layout = []
@@ -66,8 +73,12 @@ class BasePlot(GridObjects):
                 substation_layout.append(observation_space.grid_layout[el])
 
         if len(substation_layout) != observation_space.n_sub:
-            raise PlotError("You provided a layout with {} elements while there are {} substations on the powergrid. "
-                            "Your layout is invalid".format(len(substation_layout), observation_space.n_sub))
+            raise PlotError(
+                "You provided a layout with {} elements while there are {} substations on the powergrid. "
+                "Your layout is invalid".format(
+                    len(substation_layout), observation_space.n_sub
+                )
+            )
         GridObjects.__init__(self)
         self.init_grid(observation_space)
 
@@ -76,7 +87,7 @@ class BasePlot(GridObjects):
         self._layout["substations"] = self._get_sub_layout(substation_layout)
 
         self.radius_sub = radius_sub
-        self.load_prod_dist = load_prod_dist # distance between load and generator to the center of the substation
+        self.load_prod_dist = load_prod_dist  # distance between load and generator to the center of the substation
         self.bus_radius = bus_radius
 
         self.subs_elements = [None for _ in self.observation_space.sub_info]
@@ -142,12 +153,29 @@ class BasePlot(GridObjects):
         loads = self._draw_loads(fig)
         # draw gens
         gens = self._draw_gens(fig)
-        self._post_process_obs(fig, reward=None, done=None, timestamp=None,
-                               subs=subs, lines=lines, loads=loads, gens=gens, topos=[])
+        self._post_process_obs(
+            fig,
+            reward=None,
+            done=None,
+            timestamp=None,
+            subs=subs,
+            lines=lines,
+            loads=loads,
+            gens=gens,
+            topos=[],
+        )
         return fig
 
-    def plot_info(self, fig=None, line_info=None, load_info=None, gen_info=None, sub_info=None,
-                  colormap=None, unit=None):
+    def plot_info(
+        self,
+        fig=None,
+        line_info=None,
+        load_info=None,
+        gen_info=None,
+        sub_info=None,
+        colormap=None,
+        unit=None,
+    ):
 
         """
         .. warning:: /!\\\\ This module is deprecated /!\\\\
@@ -195,19 +223,29 @@ class BasePlot(GridObjects):
         if line_info is not None:
             unit_line = unit
             if len(line_info) != self.n_line:
-                raise PlotError("Impossible to display these information on the powerlines: there are {} elements"
-                                "provided while {} powerlines on this grid".format(len(line_info), self.n_line))
+                raise PlotError(
+                    "Impossible to display these information on the powerlines: there are {} elements"
+                    "provided while {} powerlines on this grid".format(
+                        len(line_info), self.n_line
+                    )
+                )
             line_info = np.array(line_info).astype(np.float)
         line_info = [line_info, line_info, line_info]
-        lines = self._draw_powerlines(fig, vals=line_info, colormap=colormap, unit=unit_line)
+        lines = self._draw_powerlines(
+            fig, vals=line_info, colormap=colormap, unit=unit_line
+        )
 
         # draw substation
         unit_sub = None
         if sub_info is not None:
             unit_sub = unit
             if len(sub_info) != self.n_sub:
-                raise PlotError("Impossible to display these information on the substations: there are {} elements"
-                                "provided while {} substations on this grid".format(len(sub_info), self.n_sub))
+                raise PlotError(
+                    "Impossible to display these information on the substations: there are {} elements"
+                    "provided while {} substations on this grid".format(
+                        len(sub_info), self.n_sub
+                    )
+                )
             sub_info = np.array(sub_info).astype(np.float)
         subs = self._draw_subs(fig, vals=sub_info, colormap=colormap, unit=unit_sub)
 
@@ -216,8 +254,12 @@ class BasePlot(GridObjects):
         if load_info is not None:
             unit_load = unit
             if len(load_info) != self.n_load:
-                raise PlotError("Impossible to display these information on the loads: there are {} elements"
-                                "provided while {} loads on this grid".format(len(load_info), self.n_load))
+                raise PlotError(
+                    "Impossible to display these information on the loads: there are {} elements"
+                    "provided while {} loads on this grid".format(
+                        len(load_info), self.n_load
+                    )
+                )
             load_info = np.array(load_info).astype(np.float)
         loads = self._draw_loads(fig, vals=load_info, colormap=colormap, unit=unit_load)
 
@@ -226,25 +268,40 @@ class BasePlot(GridObjects):
         if gen_info is not None:
             unit_gen = unit
             if len(gen_info) != self.n_gen:
-                raise PlotError("Impossible to display these information on the generators: there are {} elements"
-                                "provided while {} generators on this grid".format(len(gen_info), self.n_gen))
+                raise PlotError(
+                    "Impossible to display these information on the generators: there are {} elements"
+                    "provided while {} generators on this grid".format(
+                        len(gen_info), self.n_gen
+                    )
+                )
             gen_info = np.array(gen_info).astype(np.float)
         gens = self._draw_gens(fig, vals=gen_info, colormap=colormap, unit=unit_gen)
 
-        self._post_process_obs(fig, reward=None, done=None, timestamp=None,
-                               subs=subs, lines=lines, loads=loads, gens=gens, topos=[])
+        self._post_process_obs(
+            fig,
+            reward=None,
+            done=None,
+            timestamp=None,
+            subs=subs,
+            lines=lines,
+            loads=loads,
+            gens=gens,
+            topos=[],
+        )
         return fig
 
-    def plot_obs(self,
-                 observation,
-                 fig=None,
-                 reward=None,
-                 done=None,
-                 timestamp=None,
-                 line_info="rho",
-                 load_info="p",
-                 gen_info="p",
-                 colormap="line"):
+    def plot_obs(
+        self,
+        observation,
+        fig=None,
+        reward=None,
+        done=None,
+        timestamp=None,
+        line_info="rho",
+        load_info="p",
+        gen_info="p",
+        colormap="line",
+    ):
         """
         .. warning:: /!\\\\ This module is deprecated /!\\\\
 
@@ -303,21 +360,29 @@ class BasePlot(GridObjects):
             line_vals = [observation.v_or]
             line_units = "kV"
         else:
-            raise PlotError("Impossible to plot value \"{}\" for line. Possible values are \"rho\", \"p\", \"v\" and \"a\".")
+            raise PlotError(
+                'Impossible to plot value "{}" for line. Possible values are "rho", "p", "v" and "a".'
+            )
         line_vals.append(observation.line_status)
         line_vals.append(observation.p_or)
-        lines = self._draw_powerlines(fig, vals=line_vals, unit=line_units, colormap=colormap)
+        lines = self._draw_powerlines(
+            fig, vals=line_vals, unit=line_units, colormap=colormap
+        )
 
         # draw the loads
         if load_info == "p":
-            loads_vals = - observation.load_p
+            loads_vals = -observation.load_p
             load_units = "MW"
         elif load_info == "v":
             loads_vals = observation.load_v
             load_units = "kV"
         else:
-            raise PlotError("Impossible to plot value \"{}\" for load. Possible values are \"p\" and \"v\".")
-        loads = self._draw_loads(fig, vals=loads_vals, unit=load_units, colormap=colormap)
+            raise PlotError(
+                'Impossible to plot value "{}" for load. Possible values are "p" and "v".'
+            )
+        loads = self._draw_loads(
+            fig, vals=loads_vals, unit=load_units, colormap=colormap
+        )
 
         # draw the generators
         if gen_info == "p":
@@ -327,18 +392,22 @@ class BasePlot(GridObjects):
             gen_vals = observation.prod_v
             gen_units = "kV"
         else:
-            raise PlotError("Impossible to plot value \"{}\" for generators. Possible values are \"p\" and \"v\".")
+            raise PlotError(
+                'Impossible to plot value "{}" for generators. Possible values are "p" and "v".'
+            )
         gens = self._draw_gens(fig, vals=gen_vals, unit=gen_units, colormap=colormap)
         # draw the topologies
         topos = self._draw_topos(fig=fig, observation=observation)
-        self._post_process_obs(fig, reward, done, timestamp, subs, lines, loads, gens, topos)
+        self._post_process_obs(
+            fig, reward, done, timestamp, subs, lines, loads, gens, topos
+        )
         return fig
 
     def _get_sub_layout(self, init_layout):
         return init_layout
 
     def _get_line_name(self, subor_id, sub_ex_id, line_id):
-        l_nm = 'l_{}_{}_{}'.format(subor_id, sub_ex_id, line_id)
+        l_nm = "l_{}_{}_{}".format(subor_id, sub_ex_id, line_id)
         return l_nm
 
     def _get_load_name(self, sub_id, c_id):
@@ -346,7 +415,7 @@ class BasePlot(GridObjects):
         return c_nm
 
     def _get_gen_name(self, sub_id, g_id):
-        p_nm = 'gen_{}_{}'.format(sub_id, g_id)
+        p_nm = "gen_{}_{}".format(sub_id, g_id)
         return p_nm
 
     def _compute_layout(self):
@@ -374,7 +443,9 @@ class BasePlot(GridObjects):
             if line_id not in self._layout["line"]:
                 # state = observation.state_of(line_id=line_id)
                 sub_or_id = self.line_or_to_subid[line_id]  # state["origin"]["sub_id"]
-                sub_ex_id = self.line_ex_to_subid[line_id]  # state["extremity"]["sub_id"]
+                sub_ex_id = self.line_ex_to_subid[
+                    line_id
+                ]  # state["extremity"]["sub_id"]
                 pos_or = self._layout["substations"][sub_or_id]
                 pos_ex = self._layout["substations"][sub_ex_id]
 
@@ -383,14 +454,16 @@ class BasePlot(GridObjects):
                 z_ex_tmp = pos_ex[0] + 1j * pos_ex[1]
 
                 module_or = cmath.phase(z_ex_tmp - z_or_tmp)
-                module_ex = cmath.phase(- (z_ex_tmp - z_or_tmp))
+                module_ex = cmath.phase(-(z_ex_tmp - z_or_tmp))
 
                 # check parrallel lines:
                 # for now it works only if there are 2 parrallel lines. The idea is to add / withdraw
                 # 10° for each module in this case.
                 # TODO draw line but not straight line in this case, this looks ugly for now :-/
                 deg_parrallel = 25
-                tmp_parrallel = self.observation_space.get_lines_id(from_=sub_or_id, to_=sub_ex_id)
+                tmp_parrallel = self.observation_space.get_lines_id(
+                    from_=sub_or_id, to_=sub_ex_id
+                )
                 if len(tmp_parrallel) > 1:
                     if line_id == tmp_parrallel[0]:
                         module_or += deg_parrallel / 360 * 2 * cmath.pi
@@ -421,15 +494,19 @@ class BasePlot(GridObjects):
             # equally split
             pos_sub = self._layout["substations"][sub_id]
             z_sub = pos_sub[0] + 1j * pos_sub[1]
-            pos_possible = [self.radius_sub * cmath.exp(1j * 2 * cmath.pi * i / nb_el) + z_sub
-                            for i in range(nb_el)]
+            pos_possible = [
+                self.radius_sub * cmath.exp(1j * 2 * cmath.pi * i / nb_el) + z_sub
+                for i in range(nb_el)
+            ]
 
             # remove powerlines (already assigned)
             for el_nm, dict_el in elements.items():
                 if dict_el["type"] == "line":
                     z = dict_el["z"]
-                    closest = np.argmin([abs(pos - z)**2 for pos in pos_possible])
-                    pos_possible = [el for i, el in enumerate(pos_possible) if i != closest]
+                    closest = np.argmin([abs(pos - z) ** 2 for pos in pos_possible])
+                    pos_possible = [
+                        el for i, el in enumerate(pos_possible) if i != closest
+                    ]
 
             i = 0
             # now assign load and generator
@@ -468,17 +545,19 @@ class BasePlot(GridObjects):
             pos_load_sub = self.subs_elements[sub_id][c_nm]["pos"]
             pos_center_sub = self._layout["substations"][sub_id]
 
-            z_sub = (pos_center_sub[0] + 1j * pos_center_sub[1])
+            z_sub = pos_center_sub[0] + 1j * pos_center_sub[1]
             theta = cmath.phase((self.subs_elements[sub_id][c_nm]["z"] - z_sub))
             pos_load = z_sub + cmath.exp(1j * theta) * self.load_prod_dist
 
             # position of the end of the line connecting the object to the substation
             pos_end_line = pos_load - cmath.exp(1j * theta) * 20
             how_center = self._get_position(theta)
-            tmp_dict = {"pos_end_line": pos_end_line,
-                        "pos_load_sub": pos_load_sub,
-                        "pos_load": pos_load,
-                        "how_center": how_center}
+            tmp_dict = {
+                "pos_end_line": pos_end_line,
+                "pos_load_sub": pos_load_sub,
+                "pos_load": pos_load,
+                "how_center": how_center,
+            }
             self.subs_elements[sub_id][c_nm]["elements_display"] = tmp_dict
         else:
             dict_element = self.subs_elements[sub_id][c_nm]["elements_display"]
@@ -497,17 +576,19 @@ class BasePlot(GridObjects):
             pos_gen_sub = self.subs_elements[sub_id][c_nm]["pos"]
             pos_center_sub = self._layout["substations"][sub_id]
 
-            z_sub = (pos_center_sub[0] + 1j * pos_center_sub[1])
+            z_sub = pos_center_sub[0] + 1j * pos_center_sub[1]
             theta = cmath.phase((self.subs_elements[sub_id][c_nm]["z"] - z_sub))
             pos_gen = z_sub + cmath.exp(1j * theta) * self.load_prod_dist
 
             # position of the end of the line connecting the object to the substation
             pos_end_line = pos_gen - cmath.exp(1j * theta) * 20
             how_center = self._get_position(theta)
-            tmp_dict = {"pos_end_line": pos_end_line,
-                        "pos_gen_sub": pos_gen_sub,
-                        "pos_gen": pos_gen,
-                        "how_center": how_center}
+            tmp_dict = {
+                "pos_end_line": pos_end_line,
+                "pos_gen_sub": pos_gen_sub,
+                "pos_gen": pos_gen,
+                "how_center": how_center,
+            }
             self.subs_elements[sub_id][c_nm]["elements_display"] = tmp_dict
         else:
             dict_element = self.subs_elements[sub_id][c_nm]["elements_display"]
@@ -520,7 +601,7 @@ class BasePlot(GridObjects):
 
     def _get_topo_coord(self, sub_id, observation, elements):
         pos_center_sub = self._layout["substations"][sub_id]
-        z_sub = (pos_center_sub[0] + 1j * pos_center_sub[1])
+        z_sub = pos_center_sub[0] + 1j * pos_center_sub[1]
 
         tmp = observation.state_of(substation_id=sub_id)
         if tmp["nb_bus"] == 1:
@@ -554,22 +635,25 @@ class BasePlot(GridObjects):
         diff_theta = theta_z[0] - theta_z[1]
         # alpha = cmath.pi + diff_theta
         alpha = -cmath.pi + diff_theta
-        alpha = math.fmod(alpha, 2*cmath.pi)
+        alpha = math.fmod(alpha, 2 * cmath.pi)
         theta_z = [theta_z[0] - alpha * NN[1], theta_z[1] + alpha * NN[0]]
 
         # buses_z = [z_sub + (self.radius_sub - self.bus_radius) * 0.75 * cmath.exp(1j * theta) for theta in theta_z]
-        buses_z = [z_sub + (self.radius_sub - self.bus_radius) * 0.6 * cmath.exp(1j * theta) for theta in theta_z]
+        buses_z = [
+            z_sub + (self.radius_sub - self.bus_radius) * 0.6 * cmath.exp(1j * theta)
+            for theta in theta_z
+        ]
         return buses_z, bus_vect
 
     @staticmethod
     def _get_position(theta):
         quarter_pi = cmath.pi / 4
-        half_pi = cmath.pi / 2.
+        half_pi = cmath.pi / 2.0
         if theta >= -quarter_pi and theta < quarter_pi:
             res = "center|left"
         elif theta >= quarter_pi and theta < quarter_pi + half_pi:
             res = "up|center"
-        elif theta >= quarter_pi + half_pi and theta < quarter_pi + 2. * half_pi:
+        elif theta >= quarter_pi + half_pi and theta < quarter_pi + 2.0 * half_pi:
             res = "center|right"
         else:
             res = "down|center"
@@ -580,7 +664,7 @@ class BasePlot(GridObjects):
             if isinstance(number, float) or isinstance(number, np.float):
                 if np.isfinite(number):
                     if unit == "%":
-                        number *= 100.
+                        number *= 100.0
                     number = "{:.1f}".format(number)
                 else:
                     return None
@@ -606,7 +690,7 @@ class BasePlot(GridObjects):
                 vals = self._get_vals(vals)
 
         if texts is not None:
-            vals = [float(text if text is not None else 0.) for text in texts]
+            vals = [float(text if text is not None else 0.0) for text in texts]
 
         for sub_id, center in enumerate(self._layout["substations"]):
             if texts is None:
@@ -622,7 +706,7 @@ class BasePlot(GridObjects):
         return subs
 
     def get_sub_color_map(self):
-        return  None
+        return None
 
     def _draw_subs_one_sub(self, fig, sub_id, center, this_col, text):
         return None
@@ -659,22 +743,35 @@ class BasePlot(GridObjects):
                 status = vals[1][line_id]
                 por = vals[2][line_id]
             else:
-                value = 0.
+                value = 0.0
                 status = True
-                por = 1.
+                por = 1.0
 
             if por is None:
-                por = 1.
+                por = 1.0
             if status is None:
                 status = True
 
             if not status:
                 this_col = self.default_color
-            lines.append(self._draw_powerlines_one_powerline(fig, line_id, pos_or, pos_ex,
-                                                             status, value, txt_, por >= 0., this_col))
+            lines.append(
+                self._draw_powerlines_one_powerline(
+                    fig,
+                    line_id,
+                    pos_or,
+                    pos_ex,
+                    status,
+                    value,
+                    txt_,
+                    por >= 0.0,
+                    this_col,
+                )
+            )
         return lines
 
-    def _draw_powerlines_one_powerline(self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col):
+    def _draw_powerlines_one_powerline(
+        self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col
+    ):
         return None
 
     def _draw_loads(self, fig=None, vals=None, colormap=None, unit=None):
@@ -691,7 +788,9 @@ class BasePlot(GridObjects):
                 vals = self._get_vals(vals)
 
         for c_id in range(self.n_load):
-            pos_end_line, pos_load_sub, pos_load, how_center = self._get_load_coord(c_id)
+            pos_end_line, pos_load_sub, pos_load, how_center = self._get_load_coord(
+                c_id
+            )
             if texts is None:
                 txt_ = "{}\nid: {}".format(self.name_load[c_id], c_id)
                 this_col = colormap_("")
@@ -702,11 +801,31 @@ class BasePlot(GridObjects):
                 else:
                     this_col = self.default_color
 
-            loads.append(self._draw_loads_one_load(fig, c_id, pos_load, txt_, pos_end_line,
-                                                   pos_load_sub, how_center, this_col))
+            loads.append(
+                self._draw_loads_one_load(
+                    fig,
+                    c_id,
+                    pos_load,
+                    txt_,
+                    pos_end_line,
+                    pos_load_sub,
+                    how_center,
+                    this_col,
+                )
+            )
         return loads
 
-    def _draw_loads_one_load(self, fig, l_id, pos_load, txt_, pos_end_line, pos_load_sub, how_center, this_col):
+    def _draw_loads_one_load(
+        self,
+        fig,
+        l_id,
+        pos_load,
+        txt_,
+        pos_end_line,
+        pos_load_sub,
+        how_center,
+        this_col,
+    ):
         return None
 
     def _get_sub_color_map(self, normalized_val):
@@ -729,7 +848,7 @@ class BasePlot(GridObjects):
         min_ = np.min(vals)
         max_ = np.max(vals)
         vals -= min_
-        vals /= (max_ - min_ + 1e-5)
+        vals /= max_ - min_ + 1e-5
         # now vals is between 0 and 1, i push it toward 1 a bit to better see it
         vals += 0.5
         vals /= 1.5
@@ -759,10 +878,23 @@ class BasePlot(GridObjects):
                     this_col = self._get_gen_color_map(vals[g_id])
                 else:
                     this_col = self.default_color
-            gens.append(self._draw_gens_one_gen(fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col))
+            gens.append(
+                self._draw_gens_one_gen(
+                    fig,
+                    g_id,
+                    pos_gen,
+                    txt_,
+                    pos_end_line,
+                    pos_gen_sub,
+                    how_center,
+                    this_col,
+                )
+            )
         return gens
 
-    def _draw_gens_one_gen(self, fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col):
+    def _draw_gens_one_gen(
+        self, fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col
+    ):
         return None
 
     def _draw_topos(self, observation, fig):
@@ -773,24 +905,26 @@ class BasePlot(GridObjects):
             if not buses_z:
                 # I don't plot details of substations with 1 bus for better quality
                 continue
-            res_topo += self._draw_topos_one_sub(fig, sub_id, buses_z, elements, bus_vect)
+            res_topo += self._draw_topos_one_sub(
+                fig, sub_id, buses_z, elements, bus_vect
+            )
         return res_topo
 
     def _draw_topos_one_sub(self, fig, sub_id, buses_z, elements, bus_vect):
         return [None]
 
-    def _post_process_obs(self, fig, reward, done, timestamp, subs, lines, loads, gens, topos):
+    def _post_process_obs(
+        self, fig, reward, done, timestamp, subs, lines, loads, gens, topos
+    ):
         pass
 
     def init_fig(self, fig, reward, done, timestamp):
         pass
 
-
     ## DEPRECATED FUNCTIONS
-    def plot_observation(self, observation, fig=None,
-                         line_info="rho",
-                         load_info="p",
-                         gen_info="p"):
+    def plot_observation(
+        self, observation, fig=None, line_info="rho", load_info="p", gen_info="p"
+    ):
         """
 
         .. warning:: /!\\\\ This module is deprecated /!\\\\
@@ -819,21 +953,24 @@ class BasePlot(GridObjects):
         res: ``plotly figure``
             The resulting figure.
         """
-        warnings.warn("\"plot_observation\" method will be deprecated in future version. "
-                      "Please use \"plot_obs\" instead.",
-                      category=PendingDeprecationWarning)
+        warnings.warn(
+            '"plot_observation" method will be deprecated in future version. '
+            'Please use "plot_obs" instead.',
+            category=PendingDeprecationWarning,
+        )
 
-        res = self.plot_obs(observation,
-                            fig=fig,
-                            line_info=line_info,
-                            load_info=load_info,
-                            gen_info=gen_info)
+        res = self.plot_obs(
+            observation,
+            fig=fig,
+            line_info=line_info,
+            load_info=load_info,
+            gen_info=gen_info,
+        )
         return res
 
-    def get_plot_observation(self, observation, fig=None,
-                         line_info="rho",
-                         load_info="p",
-                         gen_info="p"):
+    def get_plot_observation(
+        self, observation, fig=None, line_info="rho", load_info="p", gen_info="p"
+    ):
         """
 
         .. warning:: /!\\\\ This module is deprecated /!\\\\
@@ -862,13 +999,17 @@ class BasePlot(GridObjects):
         res: ``plotly figure``
             The resulting figure.
         """
-        warnings.warn("\"get_plot_observation\" method will be deprecated in future version. "
-                      "Please use \"plot_obs\" instead.",
-                      category=PendingDeprecationWarning)
+        warnings.warn(
+            '"get_plot_observation" method will be deprecated in future version. '
+            'Please use "plot_obs" instead.',
+            category=PendingDeprecationWarning,
+        )
 
-        res = self.plot_obs(observation,
-                            fig=fig,
-                            line_info=line_info,
-                            load_info=load_info,
-                            gen_info=gen_info)
+        res = self.plot_obs(
+            observation,
+            fig=fig,
+            line_info=line_info,
+            load_info=load_info,
+            gen_info=gen_info,
+        )
         return res

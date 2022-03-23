@@ -24,6 +24,7 @@ from grid2op.gym_compat import ContinuousToDiscreteConverter
 import pdb
 
 import warnings
+
 warnings.simplefilter("error")
 
 
@@ -51,7 +52,10 @@ class BaseTestGymConverter:
             elif len(tmp) == 1:
                 assert np.all(np.abs(float(obj[k]) - float(obj2[k])) <= self.tol)
             else:
-                assert np.all(np.abs(obj[k].astype(dt_float) - obj2[k].astype(dt_float)) <= self.tol)
+                assert np.all(
+                    np.abs(obj[k].astype(dt_float) - obj2[k].astype(dt_float))
+                    <= self.tol
+                )
         for k, v in obj.items():
             assert k in obj2  # make sure every keys of obj are in obj2
 
@@ -70,7 +74,9 @@ class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             if self.get_env_path() is not None:
-                env_path_or_name = os.path.join(self.get_env_path(), self.get_env_name())
+                env_path_or_name = os.path.join(
+                    self.get_env_path(), self.get_env_name()
+                )
             else:
                 env_path_or_name = self.get_env_name()
             with make(env_path_or_name, test=True) as env:
@@ -108,20 +114,26 @@ class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
                 # assert obs == obs2
                 obs_diff, attr_diff = obs.where_different(obs2)
                 for el in attr_diff:
-                    assert el in obs.attr_list_json, f"{el} should be equal in obs and obs2"
+                    assert (
+                        el in obs.attr_list_json
+                    ), f'attribute "{el}" should be equal in obs and obs2'
 
                 for i in range(10):
                     obs, *_ = env.step(env.action_space())
                     gym_obs = obs_space.to_gym(obs)
                     self._aux_test_json(obs_space, gym_obs)
-                    assert obs_space.contains(gym_obs), "gym space does not contain the observation for ts {}".format(i)
+                    assert obs_space.contains(
+                        gym_obs
+                    ), "gym space does not contain the observation for ts {}".format(i)
                     obs2 = obs_space.from_gym(gym_obs)
                     # TODO there is not reason that these 2 are equal: reset, will erase everything
                     # TODO whereas creating the observation
                     # assert obs == obs2, "obs and converted obs are not equal for ts {}".format(i)
                     obs_diff, attr_diff = obs.where_different(obs2)
                     for el in attr_diff:
-                        assert el in obs.attr_list_json, f"{el} should be equal in obs and obs2 for ts {i}"
+                        assert (
+                            el in obs.attr_list_json
+                        ), f"{el} should be equal in obs and obs2 for ts {i}"
 
     def test_to_from_gym_act(self):
         with warnings.catch_warnings():
@@ -217,12 +229,15 @@ class TestToVect(unittest.TestCase, BaseTestConverter):
 
 class TestDropAttr(unittest.TestCase):
     """test the method to remove part of the attribute of the action / observation space"""
+
     def test_keep_only_attr(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make("educ_case14_redisp", test=True)
             gym_env = GymEnv(env)
-            attr_kept = sorted(("rho", "line_status", "actual_dispatch", "target_dispatch"))
+            attr_kept = sorted(
+                ("rho", "line_status", "actual_dispatch", "target_dispatch")
+            )
             ob_space = gym_env.observation_space
             ob_space = ob_space.keep_only_attr(attr_kept)
             assert np.all(sorted(ob_space.spaces.keys()) == attr_kept)
@@ -232,7 +247,9 @@ class TestDropAttr(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = make("educ_case14_redisp", test=True)
             gym_env = GymEnv(env)
-            attr_deleted = sorted(("rho", "line_status", "actual_dispatch", "target_dispatch"))
+            attr_deleted = sorted(
+                ("rho", "line_status", "actual_dispatch", "target_dispatch")
+            )
             ob_space = gym_env.observation_space
             ob_space = ob_space.ignore_attr(attr_deleted)
             for el in attr_deleted:
@@ -241,6 +258,7 @@ class TestDropAttr(unittest.TestCase):
 
 class TestContinuousToDiscrete(unittest.TestCase):
     """test the ContinuousToDiscreteConverter converter"""
+
     def setUp(self) -> None:
         self.tol = 1e-4
 
@@ -250,47 +268,49 @@ class TestContinuousToDiscrete(unittest.TestCase):
             env = make("educ_case14_redisp", test=True)
             gym_env = GymEnv(env)
             act_space = gym_env.action_space
-            act_space = act_space.reencode_space("redispatch",
-                                                 ContinuousToDiscreteConverter(nb_bins=3,
-                                                                               init_space=act_space["redispatch"])
-                                                 )
+            act_space = act_space.reencode_space(
+                "redispatch",
+                ContinuousToDiscreteConverter(
+                    nb_bins=3, init_space=act_space["redispatch"]
+                ),
+            )
 
             # with 3 interval like [-10, 10] (the second generator)
             # should be split => 0 -> [-10, -3.33), 1 => [-3.33, 3.33), [3.33, 10.]
             # test the "all 0" action (all 0 => encoded to 1, because i have 3 bins)
-            g2op_object = np.array([0., 0., 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [1, 1, 0, 0, 0, 1])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(res2 == 0.)
+            assert np.all(res2 == 0.0)
 
             # test the all 0 action, but one is not 0 (negative)
-            g2op_object = np.array([0., -3.2, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, -3.2, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [1, 1, 0, 0, 0, 1])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(res2 == 0.)
+            assert np.all(res2 == 0.0)
 
             # test the all 0 action, but one is not 0 (positive)
-            g2op_object = np.array([0., 3.2, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, 3.2, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [1, 1, 0, 0, 0, 1])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(res2 == 0.)
+            assert np.all(res2 == 0.0)
 
             # test one is 2
-            g2op_object = np.array([0., 3.4, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, 3.4, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [1, 2, 0, 0, 0, 1])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(np.abs(res2 - [0., 5.0, 0., 0., 0., 0.]) <= self.tol)
+            assert np.all(np.abs(res2 - [0.0, 5.0, 0.0, 0.0, 0.0, 0.0]) <= self.tol)
 
             # test one is 0
-            g2op_object = np.array([0., -3.4, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, -3.4, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [1, 0, 0, 0, 0, 1])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(np.abs(res2 - [0., -5.0, 0., 0., 0., 0.]) <= self.tol)
+            assert np.all(np.abs(res2 - [0.0, -5.0, 0.0, 0.0, 0.0, 0.0]) <= self.tol)
 
     def test_split_in_5(self):
         with warnings.catch_warnings():
@@ -298,80 +318,89 @@ class TestContinuousToDiscrete(unittest.TestCase):
             env = make("educ_case14_redisp", test=True)
             gym_env = GymEnv(env)
             act_space = gym_env.action_space
-            act_space = act_space.reencode_space("redispatch",
-                                                 ContinuousToDiscreteConverter(nb_bins=5,
-                                                                               init_space=act_space["redispatch"])
-                                                 )
+            act_space = act_space.reencode_space(
+                "redispatch",
+                ContinuousToDiscreteConverter(
+                    nb_bins=5, init_space=act_space["redispatch"]
+                ),
+            )
 
             # with 5
-            g2op_object = np.array([0., 0., 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [2, 2, 0, 0, 0, 2])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(res2 == 0.)
+            assert np.all(res2 == 0.0)
 
             # test the all 0 action, but one is not 0 (negative)
-            g2op_object = np.array([0., -1.9, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, -1.9, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [2, 2, 0, 0, 0, 2])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(res2 == 0.)
+            assert np.all(res2 == 0.0)
 
             # positive side
-            g2op_object = np.array([0., 2.1, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, 2.1, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [2, 3, 0, 0, 0, 2])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(np.abs(res2 - [0., 3.33333, 0., 0., 0., 0.]) <= self.tol)
+            assert np.all(np.abs(res2 - [0.0, 3.33333, 0.0, 0.0, 0.0, 0.0]) <= self.tol)
 
-            g2op_object = np.array([0., 5.9, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, 5.9, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [2, 3, 0, 0, 0, 2])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(np.abs(res2 - [0., 3.33333, 0., 0., 0., 0.]) <= self.tol)
+            assert np.all(np.abs(res2 - [0.0, 3.33333, 0.0, 0.0, 0.0, 0.0]) <= self.tol)
 
-            g2op_object = np.array([0., 6.1, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, 6.1, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [2, 4, 0, 0, 0, 2])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(np.abs(res2 - [0., 6.666666, 0., 0., 0., 0.]) <= self.tol)
+            assert np.all(
+                np.abs(res2 - [0.0, 6.666666, 0.0, 0.0, 0.0, 0.0]) <= self.tol
+            )
 
             # negative side
-            g2op_object = np.array([0., -2.1, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, -2.1, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [2, 1, 0, 0, 0, 2])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(np.abs(res2 - [0., -3.3333, 0., 0., 0., 0.]) <= self.tol)
+            assert np.all(np.abs(res2 - [0.0, -3.3333, 0.0, 0.0, 0.0, 0.0]) <= self.tol)
 
-            g2op_object = np.array([0., -5.9, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, -5.9, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [2, 1, 0, 0, 0, 2])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(np.abs(res2 - [0., -3.33333, 0., 0., 0., 0.]) <= self.tol)
+            assert np.all(
+                np.abs(res2 - [0.0, -3.33333, 0.0, 0.0, 0.0, 0.0]) <= self.tol
+            )
 
-            g2op_object = np.array([0., -6.1, 0., 0., 0., 0.])
+            g2op_object = np.array([0.0, -6.1, 0.0, 0.0, 0.0, 0.0])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [2, 0, 0, 0, 0, 2])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            assert np.all(np.abs(res2 - [0., -6.666666, 0., 0., 0., 0.]) <= self.tol)
+            assert np.all(
+                np.abs(res2 - [0.0, -6.666666, 0.0, 0.0, 0.0, 0.0]) <= self.tol
+            )
 
 
 class TestWithoutConverterStorage(TestWithoutConverterWCCI):
     def get_env_name(self):
         return "educ_case14_storage"
 
+
 class TestDiscreteActSpace(unittest.TestCase):
     def setUp(self) -> None:
         self.filenamedict = "test_action_json_educ_case14_storage.json"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.glop_env = make("educ_case14_storage",
-                                 test=True,
-                                 action_class=PlayableAction)
-    
+            self.glop_env = make(
+                "educ_case14_storage", test=True, action_class=PlayableAction
+            )
+
     def tearDown(self) -> None:
         self.glop_env.close()
-    
+
     def test_create(self):
         gym_env = GymEnv(self.glop_env)
         act_space = gym_env.action_space
@@ -379,17 +408,19 @@ class TestDiscreteActSpace(unittest.TestCase):
             warnings.filterwarnings("ignore")
             act_space = DiscreteActSpace(self.glop_env.action_space)
         assert act_space.n == 690, f"{act_space.n = } instead of {690}"
-  
+
     def test_create_from_list(self):
         path_input = os.path.join(PATH_DATA_TEST, self.filenamedict)
         with open(path_input, "r") as f:
             action_list = json.load(f)
         gym_env = GymEnv(self.glop_env)
         act_space = gym_env.action_space
-        
-        act_space = DiscreteActSpace(self.glop_env.action_space,
-                                     action_list=action_list)
+
+        act_space = DiscreteActSpace(
+            self.glop_env.action_space, action_list=action_list
+        )
         assert act_space.n == 255, f"{act_space.n = } instead of {255}"
+
 
 if __name__ == "__main__":
     unittest.main()

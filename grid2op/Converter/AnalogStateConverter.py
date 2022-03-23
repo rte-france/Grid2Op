@@ -15,13 +15,13 @@ class AnalogStateConverter(Converter):
     """
     Converter that can be used with analog representation of the grid state.
     Details are provided in convert_obs and convert_act
-    
+
     The grid2op observation is converted into a 1d normalied array
     The grid2op action is created from a set of real valued arrays
 
     It can not yet be converted to / from gym space. If this feature is interesting for you, you can
     reply to the issue posted at https://github.com/rte-france/Grid2Op/issues/16
-    
+
     """
 
     def __init__(self, action_space, bias=0.0):
@@ -61,16 +61,22 @@ class AnalogStateConverter(Converter):
         lex_pos = obs.line_ex_pos_topo_vect
 
         # Get time data
-        time_li = [obs.month / 12.0, obs.day / 31.0, obs.day_of_week / 7.0,
-                   obs.hour_of_day / 24.0, obs.minute_of_hour / 60.0]
+        time_li = [
+            obs.month / 12.0,
+            obs.day / 31.0,
+            obs.day_of_week / 7.0,
+            obs.hour_of_day / 24.0,
+            obs.minute_of_hour / 60.0,
+        ]
         time_v = self.to_norm_vect(time_li)
-        time_line_cd = self.to_norm_vect(obs.time_before_cooldown_line,
-                                         pad_v=-1.0, scale_v=10.0)
-        time_line_nm = self.to_norm_vect(obs.time_next_maintenance,
-                                         scale_v=10.0)
-        time_sub_cd = self.to_norm_vect(obs.time_before_cooldown_sub,
-                                        pad_v=-1.0, scale_v=10.0)
-    
+        time_line_cd = self.to_norm_vect(
+            obs.time_before_cooldown_line, pad_v=-1.0, scale_v=10.0
+        )
+        time_line_nm = self.to_norm_vect(obs.time_next_maintenance, scale_v=10.0)
+        time_sub_cd = self.to_norm_vect(
+            obs.time_before_cooldown_sub, pad_v=-1.0, scale_v=10.0
+        )
+
         # Get generators info
         g_p = self.to_norm_vect(obs.prod_p, scale_v=1000.0)
         g_q = self.to_norm_vect(obs.prod_q, scale_v=1000.0)
@@ -107,7 +113,7 @@ class AnalogStateConverter(Converter):
                 or_buses[line_id] = 0.0
         or_bus = self.to_norm_vect(or_buses, pad_v=-1.0, scale_v=3.0)
         or_rho = self.to_norm_vect(obs.rho, pad_v=-1.0)
-    
+
         # Get extremities origin info
         ex_p = self.to_norm_vect(obs.p_ex, scale_v=1000.0)
         ex_q = self.to_norm_vect(obs.q_ex, scale_v=1000.0)
@@ -120,23 +126,45 @@ class AnalogStateConverter(Converter):
         ex_bus = self.to_norm_vect(ex_buses, pad_v=-1.0, scale_v=3.0)
         ex_rho = self.to_norm_vect(obs.rho, pad_v=-1.0)
 
-        res = np.concatenate([
-            # Time
-            time_v, time_line_cd, time_sub_cd, time_line_nm,
-            # Gens
-            g_p, g_q, g_v, g_ar, g_tr, g_bus, g_cost,
-            # Loads
-            l_p, l_q, l_v, l_bus,
-            # Origins
-            or_p, or_q, or_v, or_bus, or_rho,
-            # Extremities
-            ex_p, ex_q, ex_v, ex_bus, ex_rho
-        ])
+        res = np.concatenate(
+            [
+                # Time
+                time_v,
+                time_line_cd,
+                time_sub_cd,
+                time_line_nm,
+                # Gens
+                g_p,
+                g_q,
+                g_v,
+                g_ar,
+                g_tr,
+                g_bus,
+                g_cost,
+                # Loads
+                l_p,
+                l_q,
+                l_v,
+                l_bus,
+                # Origins
+                or_p,
+                or_q,
+                or_v,
+                or_bus,
+                or_rho,
+                # Extremities
+                ex_p,
+                ex_q,
+                ex_v,
+                ex_bus,
+                ex_rho,
+            ]
+        )
         return res + self.__bias
 
     def convert_act(self, netstate):
         """
-        Create a grid2op action based on the last observation and 
+        Create a grid2op action based on the last observation and
         the real valued state vectors in parameters
 
         Parameters
@@ -175,29 +203,33 @@ class AnalogStateConverter(Converter):
         act_setbus = self.netbus_to_act_setbus(self.__obs, netbus)
         act_setstatus = self.netline_to_act_setstatus(self.__obs, netline)
         act_redispatch = self.netdisp_to_act_redispatch(self.__obs, netdisp)
-        act = self.__call__({
-            'set_bus': act_setbus,
-            'set_line_status': act_setstatus,
-            'redispatch': act_redispatch
-        })
+        act = self.__call__(
+            {
+                "set_bus": act_setbus,
+                "set_line_status": act_setstatus,
+                "redispatch": act_redispatch,
+            }
+        )
         return act
 
     @staticmethod
     def size_obs(obs):
-        dims = np.array([
-            # Time
-            5, # Timestamp
-            2 * obs.n_line,
-            obs.n_sub,
-            # Gen
-            obs.n_gen * 7,
-            # Load
-            obs.n_load * 4,
-            # Line origins
-            obs.n_line * 5,
-            # Line extremities
-            obs.n_line * 5
-        ])
+        dims = np.array(
+            [
+                # Time
+                5,  # Timestamp
+                2 * obs.n_line,
+                obs.n_sub,
+                # Gen
+                obs.n_gen * 7,
+                # Load
+                obs.n_load * 4,
+                # Line origins
+                obs.n_line * 5,
+                # Line extremities
+                obs.n_line * 5,
+            ]
+        )
         return np.sum(dims)
 
     @staticmethod
@@ -231,12 +263,12 @@ class AnalogStateConverter(Converter):
         # [-1.0;1.0] -> [-ramp_down;+ramp_up]
         act_redispatch = np.zeros(obs.n_gen)
         for i, d in enumerate(net_disp):
-            if math.isclose(d, 0.0): # Skip if 0.0
+            if math.isclose(d, 0.0):  # Skip if 0.0
                 continue
             rmin = obs.gen_max_ramp_down[i]
             rmax = obs.gen_max_ramp_up[i]
             r = np.interp(d, [-1.0, 1.0], [-rmin, rmax])
-            act_redispatch[i] = round(r) # Round at 1MW
+            act_redispatch[i] = round(r)  # Round at 1MW
         return act_redispatch
 
     # Helpers to generate random actions
@@ -250,7 +282,7 @@ class AnalogStateConverter(Converter):
         rnd_sub = np.random.randint(obs.n_sub)
         n_elem = obs.sub_info[rnd_sub]
         # Pick a random number of elements to change
-        rnd_n_changes = np.random.randint(n_elem+1)
+        rnd_n_changes = np.random.randint(n_elem + 1)
         # Pick the elements to change at random
         rnd_sub_elems = np.random.randint(0, n_elem, rnd_n_changes)
         # Set the topo vect
@@ -261,7 +293,7 @@ class AnalogStateConverter(Converter):
             # Set the other buses to 0.0
             for b in range(n_bus):
                 if b == rnd_bus:
-                    continue;
+                    continue
                 rnd_topo[b][sub_topo_pos + elem_pos] = 0.0
 
         return rnd_topo
@@ -280,7 +312,7 @@ class AnalogStateConverter(Converter):
         disp_rnd = np.zeros(obs.n_gen)
         # Take random gen to disp
         rnd_gen = np.random.randint(obs.n_gen)
-        # Take a random disp 
+        # Take a random disp
         rnd_ramp = np.random.uniform(-1.0, 1.0)
         disp_rnd[rnd_gen] = rnd_ramp
 

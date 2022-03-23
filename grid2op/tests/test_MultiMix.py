@@ -20,11 +20,12 @@ from grid2op.Opponent import BaseOpponent
 from grid2op.dtypes import dt_float
 
 import warnings
+
 warnings.simplefilter("error")
 
 
 class TestMultiMixEnvironment(unittest.TestCase):
-    def test_creation(self):        
+    def test_creation(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
         assert mme.current_obs is not None
         assert mme.current_env is not None
@@ -40,7 +41,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
     def test_create_fail(self):
         with self.assertRaises(EnvError):
             mme = MultiMixEnvironment("/tmp/error")
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with self.assertRaises(EnvError):
                 mme = MultiMixEnvironment(tmpdir)
@@ -60,9 +61,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
             "game": GameplayReward,
             "l2rpn": L2RPNReward,
         }
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
-                                  param=p,
-                                  other_rewards=oth_r)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p, other_rewards=oth_r)
         assert mme.current_obs is not None
         assert mme.current_env is not None
         o, r, d, i = mme.step(mme.action_space({}))
@@ -75,9 +74,8 @@ class TestMultiMixEnvironment(unittest.TestCase):
         class DummyBackend1(PandaPowerBackend):
             def dummy(self):
                 return True
-            
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
-                                  backend=DummyBackend1())
+
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, backend=DummyBackend1())
         assert mme.current_obs is not None
         assert mme.current_env is not None
         for env in mme:
@@ -86,28 +84,31 @@ class TestMultiMixEnvironment(unittest.TestCase):
     def test_creation_with_backend_are_not_shared(self):
         class DummyBackend2(PandaPowerBackend):
             def __init__(self, detailed_infos_for_cascading_failures=False):
-                super().__init__(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+                super().__init__(
+                    detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+                )
                 self.calls = 0
 
             def dummy(self):
                 r = self.calls
                 self.calls += 1
                 return r
-            
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
-                                  backend=DummyBackend2())
+
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, backend=DummyBackend2())
         assert mme.current_obs is not None
         assert mme.current_env is not None
         for t in range(3):
             for env in mme:
-                dummy = env.backend.dummy() 
+                dummy = env.backend.dummy()
                 assert dummy == t
 
     def test_creation_with_opponent(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
-                                  opponent_class=BaseOpponent,
-                                  opponent_init_budget=42.0,
-                                  opponent_budget_per_ts=0.42)
+        mme = MultiMixEnvironment(
+            PATH_DATA_MULTIMIX,
+            opponent_class=BaseOpponent,
+            opponent_init_budget=42.0,
+            opponent_budget_per_ts=0.42,
+        )
         assert mme.current_obs is not None
         assert mme.current_env is not None
         for env in mme:
@@ -137,9 +138,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
             "game": GameplayReward,
             "l2rpn": L2RPNReward,
         }
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
-                                  param=p,
-                                  other_rewards=oth_r)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p, other_rewards=oth_r)
         mme.reset()
 
         assert mme.current_obs is not None
@@ -153,7 +152,9 @@ class TestMultiMixEnvironment(unittest.TestCase):
     def test_reset_with_backend(self):
         class DummyBackend3(PandaPowerBackend):
             def __init__(self, detailed_infos_for_cascading_failures=False):
-                super().__init__(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+                super().__init__(
+                    detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+                )
                 self._dummy = -1
 
             def reset(self, grid_path=None, grid_filename=None):
@@ -162,16 +163,17 @@ class TestMultiMixEnvironment(unittest.TestCase):
             def dummy(self):
                 return self._dummy
 
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
-                                  backend=DummyBackend3())
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, backend=DummyBackend3())
         mme.reset()
         assert mme.current_env.backend.dummy() == 1
 
     def test_reset_with_opponent(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
-                                  opponent_class=BaseOpponent,
-                                  opponent_init_budget=42.0,
-                                  opponent_budget_per_ts=0.42)
+        mme = MultiMixEnvironment(
+            PATH_DATA_MULTIMIX,
+            opponent_class=BaseOpponent,
+            opponent_init_budget=42.0,
+            opponent_budget_per_ts=0.42,
+        )
         mme.reset()
         assert mme.current_obs is not None
         assert mme.current_env is not None
@@ -198,11 +200,11 @@ class TestMultiMixEnvironment(unittest.TestCase):
         mme1 = MultiMixEnvironment(PATH_DATA_MULTIMIX)
         seeds_1 = mme1.seed(2)
         mme1.close()
-        
+
         mme2 = MultiMixEnvironment(PATH_DATA_MULTIMIX)
         seeds_2 = mme2.seed(42)
         mme2.close()
-        
+
         mme3 = MultiMixEnvironment(PATH_DATA_MULTIMIX)
         seeds_3 = mme3.seed(2)
         mme3.close()
@@ -214,7 +216,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
         dn = mme.action_space({})
 
-        obs, r, done, info  = mme.step(dn)
+        obs, r, done, info = mme.step(dn)
         assert obs is not None
         assert r is not None
         assert isinstance(info, dict)
@@ -227,9 +229,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         line_or_topo = mme.line_or_pos_topo_vect[LINE_ID]
         switch_status = mme.action_space.get_change_line_status_vect()
         switch_status[LINE_ID] = True
-        switch_action = mme.action_space({
-            'change_line_status': switch_status
-        })
+        switch_action = mme.action_space({"change_line_status": switch_status})
 
         obs, r, d, info = mme.step(switch_action)
         assert d is False
@@ -245,7 +245,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         # Forecast off
         mme.deactivate_forecast()
         # Step once
-        obs, _, _ , _ = mme.step(dn)
+        obs, _, _, _ = mme.step(dn)
         # Cant simulate
         with self.assertRaises(NoForecastAvailable):
             obs.simulate(dn)
@@ -253,7 +253,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         mme.reactivate_forecast()
         # Reset, step once
         mme.reset()
-        obs, _, _ , _ = mme.step(dn)
+        obs, _, _, _ = mme.step(dn)
         # Can simulate
         obs, r, done, info = obs.simulate(dn)
         assert obs is not None
@@ -263,8 +263,8 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_bracket_access_by_name(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
-        
-        mix1_env = mme["case14_001"]                                          
+
+        mix1_env = mme["case14_001"]
         assert mix1_env.name == "case14_001"
         mix2_env = mme["case14_002"]
         assert mix2_env.name == "case14_002"
@@ -294,11 +294,11 @@ class TestMultiMixEnvironment(unittest.TestCase):
         vals_unique = list(set(vals))
 
         assert len(vals) == len(vals_unique)
-        
+
     def test_items_acces(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
 
-        for k,v in mme.items():
+        for k, v in mme.items():
             assert k is not None
             assert v is not None
             assert isinstance(v, BaseEnv)
@@ -325,7 +325,10 @@ class TestMultiMixEnvironment(unittest.TestCase):
         obs_after = env2.reset()
         obs00, reward00, done00, info00 = mme.step(mme.action_space())
         # i did not affect the other environment
-        assert obs00.minute_of_hour == obs0.minute_of_hour + mme.chronics_handler.time_interval.seconds // 60
+        assert (
+            obs00.minute_of_hour
+            == obs0.minute_of_hour + mme.chronics_handler.time_interval.seconds // 60
+        )
         # reset read the right chronics
         assert obs_after.minute_of_hour == 0
 

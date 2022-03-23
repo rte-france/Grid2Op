@@ -36,6 +36,7 @@ class ConstantReward(BaseReward):
         # the reward is 0., always... Not really useful
 
     """
+
     def __init__(self):
         BaseReward.__init__(self)
 

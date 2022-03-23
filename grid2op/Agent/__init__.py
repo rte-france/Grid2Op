@@ -18,7 +18,7 @@ __all__ = [
     "DeltaRedispatchRandomAgent",
     "MLAgent",
     "RecoPowerlineAgent",
-    "FromActionsListAgent"
+    "FromActionsListAgent",
 ]
 
 from grid2op.Agent.baseAgent import BaseAgent

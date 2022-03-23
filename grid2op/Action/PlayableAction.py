@@ -17,6 +17,7 @@ class PlayableAction(BaseAction):
     From this class inherit all actions that the player will be allowed to do. This includes for example
     :class:`TopologyAndDispatchAction` or :class:`TopologyAction`
     """
+
     authorized_keys = {
         "set_line_status",
         "change_line_status",
@@ -25,7 +26,7 @@ class PlayableAction(BaseAction):
         "redispatch",
         "set_storage",
         "curtail",
-        "raise_alarm"
+        "raise_alarm",
     }
 
     attr_list_vect = [
@@ -36,7 +37,7 @@ class PlayableAction(BaseAction):
         "_redispatch",
         "_storage_power",
         "_curtail",
-        "_raise_alarm"
+        "_raise_alarm",
     ]
     attr_list_set = set(attr_list_vect)
     shunt_added = True  # no shunt here
@@ -90,13 +91,18 @@ class PlayableAction(BaseAction):
         """
         if self._dict_inj:
             raise AmbiguousAction("Injections actions are not playable.")
-        
+
         self._check_for_ambiguity()
-        return {}, \
-            self._set_line_status, self._switch_line_status, \
-            self._set_topo_vect, self._change_bus_vect,\
-            self._redispatch, self._storage_power,\
-               {}
+        return (
+            {},
+            self._set_line_status,
+            self._switch_line_status,
+            self._set_topo_vect,
+            self._change_bus_vect,
+            self._redispatch,
+            self._storage_power,
+            {},
+        )
 
     def update(self, dict_):
         """
@@ -118,7 +124,9 @@ class PlayableAction(BaseAction):
         """
 
         self._reset_vect()
-        warn_msg = "The key \"{}\" used to update an action will be ignored. Valid keys are {}"
+        warn_msg = (
+            'The key "{}" used to update an action will be ignored. Valid keys are {}'
+        )
 
         if dict_ is None:
             return self

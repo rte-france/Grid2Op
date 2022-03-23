@@ -36,14 +36,14 @@ class LinesReconnectedReward(BaseReward):
         # the reward is computed with the LinesReconnectedReward class
 
     """
+
     def __init__(self):
         BaseReward.__init__(self)
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(1.0)
         self.penalty_max_at_n_lines = dt_float(2.0)
 
-    def __call__(self, action, env, has_error,
-                 is_done, is_illegal, is_ambiguous):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min
 
@@ -62,7 +62,7 @@ class LinesReconnectedReward(BaseReward):
 
         max_p = self.penalty_max_at_n_lines
         n_penalties = np.clip(n_penalties, dt_float(0.0), max_p)
-        r = np.interp(n_penalties,
-                      [dt_float(0.0), max_p],
-                      [self.reward_max, self.reward_min])
+        r = np.interp(
+            n_penalties, [dt_float(0.0), max_p], [self.reward_max, self.reward_min]
+        )
         return dt_float(r)

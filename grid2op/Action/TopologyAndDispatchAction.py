@@ -11,20 +11,21 @@ from grid2op.Action.PlayableAction import PlayableAction
 
 class TopologyAndDispatchAction(PlayableAction):
     """
-    This type of :class:`PlayableAction` implements the modifications 
+    This type of :class:`PlayableAction` implements the modifications
     of the grid with topological and redispatching actions.
 
-    It accepts the key words: "set_line_status", "change_line_status", 
+    It accepts the key words: "set_line_status", "change_line_status",
     "set_bus", "change_bus" and "redispatch".
-    Nothing else is supported and any attempt to use something else 
+    Nothing else is supported and any attempt to use something else
     will have no impact.
     """
+
     authorized_keys = {
         "set_line_status",
         "change_line_status",
         "set_bus",
         "change_bus",
-        "redispatch"
+        "redispatch",
     }
 
     attr_list_vect = [
@@ -32,11 +33,10 @@ class TopologyAndDispatchAction(PlayableAction):
         "_set_topo_vect",
         "_change_bus_vect",
         "_switch_line_status",
-        "_redispatch"
+        "_redispatch",
     ]
 
     attr_list_set = set(attr_list_vect)
 
     def __init__(self):
         super().__init__()
-

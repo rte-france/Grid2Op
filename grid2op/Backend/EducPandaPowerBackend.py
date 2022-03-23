@@ -61,6 +61,7 @@ class EducPandaPowerBackend(Backend):
     real :class:`grid2op.Backend.PandaPowerBackend` class.
 
     """
+
     def __init__(self, detailed_infos_for_cascading_failures=False):
         """
         Nothing much to do here except initializing what you would need (a tensorflow session, link to some
@@ -73,9 +74,14 @@ class EducPandaPowerBackend(Backend):
         detailed_infos_for_cascading_failures: ``bool``
             See the documentation of :class:`grid2op.Backend.Backend.__init__` for more information
         """
-        Backend.__init__(self, detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
-        warnings.warn("This backend is used for demonstration purpose only, you should not use it under any "
-                      "circumstances. Please use grid2op.Backend.PandaPowerBackend instead")
+        Backend.__init__(
+            self,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
+        warnings.warn(
+            "This backend is used for demonstration purpose only, you should not use it under any "
+            "circumstances. Please use grid2op.Backend.PandaPowerBackend instead"
+        )
         self._nb_real_line_pandapower = None
 
         # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
@@ -118,7 +124,9 @@ class EducPandaPowerBackend(Backend):
 
         # first, handles different kind of path:
         if path is None and filename is None:
-            raise RuntimeError("You must provide at least one of path or file to load a powergrid.")
+            raise RuntimeError(
+                "You must provide at least one of path or file to load a powergrid."
+            )
         if path is None:
             full_path = filename
         elif filename is None:
@@ -126,7 +134,7 @@ class EducPandaPowerBackend(Backend):
         else:
             full_path = os.path.join(path, filename)
         if not os.path.exists(full_path):
-            raise RuntimeError("There is no powergrid at \"{}\"".format(full_path))
+            raise RuntimeError('There is no powergrid at "{}"'.format(full_path))
 
         # then load the grid located at the full path and store it in `self._grid`
         # raise an exception if it can't be loaded
@@ -136,9 +144,11 @@ class EducPandaPowerBackend(Backend):
                 warnings.filterwarnings("ignore", category=DeprecationWarning)
                 self._grid = pp.from_json(full_path)
         except Exception as exc_:
-            raise BackendError(f"Impossible to load the powergrid located at \"{full_path}\". Please "
-                               f"check the file exist and that the file represent a valid pandapower "
-                               f"grid. For your information, the error is:\n{exc_}")
+            raise BackendError(
+                f'Impossible to load the powergrid located at "{full_path}". Please '
+                f"check the file exist and that the file represent a valid pandapower "
+                f"grid. For your information, the error is:\n{exc_}"
+            )
 
         ######################################################################
         # this part is due to the "modeling" of the topology FOR THIS EXAMPLE
@@ -159,7 +169,9 @@ class EducPandaPowerBackend(Backend):
         ######################################################################
 
         # and now we initialize the number of each of the elements
-        self.n_line = self._grid.line.shape[0] + self._grid.trafo.shape[0]  # trafo are powerline for grid2op !
+        self.n_line = (
+            self._grid.line.shape[0] + self._grid.trafo.shape[0]
+        )  # trafo are powerline for grid2op !
         self.n_gen = self._grid.gen.shape[0]
         self.n_load = self._grid.load.shape[0]
         # self.n_sub  # already initialize above
@@ -171,19 +183,30 @@ class EducPandaPowerBackend(Backend):
         # here we just decide (but that is a convention we could have done it differently)
         # that "origin side" (grid2op) corresponds to "from_bus" from pandapower line and "hv_bus" for
         # pandapower trafo.
-        self.line_or_to_subid = np.concatenate((copy.deepcopy(self._grid.line["from_bus"]),
-                                                copy.deepcopy(self._grid.trafo["hv_bus"])
-                                                ))
-        self.line_ex_to_subid = np.concatenate((copy.deepcopy(self._grid.line["to_bus"]),
-                                                copy.deepcopy(self._grid.trafo["lv_bus"])
-                                                ))
+        self.line_or_to_subid = np.concatenate(
+            (
+                copy.deepcopy(self._grid.line["from_bus"]),
+                copy.deepcopy(self._grid.trafo["hv_bus"]),
+            )
+        )
+        self.line_ex_to_subid = np.concatenate(
+            (
+                copy.deepcopy(self._grid.line["to_bus"]),
+                copy.deepcopy(self._grid.trafo["lv_bus"]),
+            )
+        )
 
         # and now we don't forget to initialize the rest
         self._compute_pos_big_topo()  # we highly recommend you to call this !
 
         # and now the thermal limit
-        self.thermal_limit_a = 1000 * np.concatenate((self._grid.line["max_i_ka"].values,
-                                                      self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
+        self.thermal_limit_a = 1000 * np.concatenate(
+            (
+                self._grid.line["max_i_ka"].values,
+                self._grid.trafo["sn_mva"].values
+                / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values),
+            )
+        )
         self.thermal_limit_a = self.thermal_limit_a.astype(dt_float)
 
         # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
@@ -202,13 +225,20 @@ class EducPandaPowerBackend(Backend):
         if backendAction is None:
             return
 
-        active_bus, (prod_p, prod_v, load_p, load_q, storage), _, shunts__ = backendAction()
+        (
+            active_bus,
+            (prod_p, prod_v, load_p, load_q, storage),
+            _,
+            shunts__,
+        ) = backendAction()
 
         for gen_id, new_p in prod_p:
             self._grid.gen["p_mw"].iloc[gen_id] = new_p
         for gen_id, new_v in prod_v:
             self._grid.gen["vm_pu"].iloc[gen_id] = new_v  # but new_v is not pu !
-            self._grid.gen["vm_pu"].iloc[gen_id] /= self._grid.bus["vn_kv"][self.gen_to_subid[gen_id]]  # now it is :-)
+            self._grid.gen["vm_pu"].iloc[gen_id] /= self._grid.bus["vn_kv"][
+                self.gen_to_subid[gen_id]
+            ]  # now it is :-)
 
         for load_id, new_p in load_p:
             self._grid.load["p_mw"].iloc[load_id] = new_p
@@ -225,7 +255,9 @@ class EducPandaPowerBackend(Backend):
                 # this formula is really convenient because we decided to duplicated buses in each substation.
                 # and decided that: bus 1 of a substation with id `sub_id` will have id `sub_id` and
                 # bus 2 of the same substation will have id `sub_id + n_substation`
-                self._grid.load["bus"][load_id] = self.load_to_subid[load_id] + (new_bus - 1) * self.n_sub
+                self._grid.load["bus"][load_id] = (
+                    self.load_to_subid[load_id] + (new_bus - 1) * self.n_sub
+                )
 
         gens_bus = backendAction.get_gens_bus()
         for gen_id, new_bus in gens_bus:
@@ -233,7 +265,9 @@ class EducPandaPowerBackend(Backend):
                 self._grid.gen["in_service"][gen_id] = False
             else:
                 self._grid.gen["in_service"][gen_id] = True
-                self._grid.gen["bus"][gen_id] = self.gen_to_subid[gen_id] + (new_bus - 1) * self.n_sub
+                self._grid.gen["bus"][gen_id] = (
+                    self.gen_to_subid[gen_id] + (new_bus - 1) * self.n_sub
+                )
 
         lines_or_bus = backendAction.get_lines_or_bus()
         for line_id, new_bus in lines_or_bus:
@@ -250,7 +284,9 @@ class EducPandaPowerBackend(Backend):
                 dt["in_service"][line_id_db] = False
             else:
                 dt["in_service"][line_id_db] = True
-                dt[key][line_id_db] = self.line_or_to_subid[line_id] + (new_bus - 1) * self.n_sub
+                dt[key][line_id_db] = (
+                    self.line_or_to_subid[line_id] + (new_bus - 1) * self.n_sub
+                )
 
         lines_ex_bus = backendAction.get_lines_ex_bus()
         for line_id, new_bus in lines_ex_bus:
@@ -267,7 +303,9 @@ class EducPandaPowerBackend(Backend):
                 dt["in_service"][line_id_db] = False
             else:
                 dt["in_service"][line_id_db] = True
-                dt[key][line_id_db] = self.line_ex_to_subid[line_id] + (new_bus - 1) * self.n_sub
+                dt[key][line_id_db] = (
+                    self.line_ex_to_subid[line_id] + (new_bus - 1) * self.n_sub
+                )
 
         # spec
         bus_is = self._grid.bus["in_service"]
@@ -288,7 +326,9 @@ class EducPandaPowerBackend(Backend):
         try:
             with warnings.catch_warnings():
                 # remove the warning if _grid non connex. And it that case load flow as not converged
-                warnings.filterwarnings("ignore", category=scipy.sparse.linalg.MatrixRankWarning)
+                warnings.filterwarnings(
+                    "ignore", category=scipy.sparse.linalg.MatrixRankWarning
+                )
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 if is_dc:
                     pp.rundcpp(self._grid, check_connectivity=False)
@@ -317,8 +357,12 @@ class EducPandaPowerBackend(Backend):
             bus_or_id = row[0]
             bus_ex_id = row[1]
             if line_status[i]:
-                res[self.line_or_pos_topo_vect[i]] = 1 if bus_or_id == self.line_or_to_subid[i] else 2
-                res[self.line_ex_pos_topo_vect[i]] = 1 if bus_ex_id == self.line_ex_to_subid[i] else 2
+                res[self.line_or_pos_topo_vect[i]] = (
+                    1 if bus_or_id == self.line_or_to_subid[i] else 2
+                )
+                res[self.line_ex_pos_topo_vect[i]] = (
+                    1 if bus_ex_id == self.line_ex_to_subid[i] else 2
+                )
             else:
                 res[self.line_or_pos_topo_vect[i]] = -1
                 res[self.line_ex_pos_topo_vect[i]] = -1
@@ -332,8 +376,12 @@ class EducPandaPowerBackend(Backend):
 
             j = i + nb
             if line_status[j]:
-                res[self.line_or_pos_topo_vect[j]] = 1 if bus_or_id == self.line_or_to_subid[j] else 2
-                res[self.line_ex_pos_topo_vect[j]] = 1 if bus_ex_id == self.line_ex_to_subid[j] else 2
+                res[self.line_or_pos_topo_vect[j]] = (
+                    1 if bus_or_id == self.line_or_to_subid[j] else 2
+                )
+                res[self.line_ex_pos_topo_vect[j]] = (
+                    1 if bus_ex_id == self.line_ex_to_subid[j] else 2
+                )
             else:
                 res[self.line_or_pos_topo_vect[j]] = -1
                 res[self.line_ex_pos_topo_vect[j]] = -1
@@ -346,13 +394,17 @@ class EducPandaPowerBackend(Backend):
 
         i = 0
         for bus_id in self._grid.load["bus"].values:
-            res[self.load_pos_topo_vect[i]] = 1 if bus_id == self.load_to_subid[i] else 2
+            res[self.load_pos_topo_vect[i]] = (
+                1 if bus_id == self.load_to_subid[i] else 2
+            )
             i += 1
-            
+
         # do not forget storage units !
         i = 0
         for bus_id in self._grid.storage["bus"].values:
-            res[self.storage_pos_topo_vect[i]] = 1 if bus_id == self.storage_to_subid[i] else 2
+            res[self.storage_pos_topo_vect[i]] = (
+                1 if bus_id == self.storage_to_subid[i] else 2
+            )
             i += 1
         return res
 
@@ -364,7 +416,9 @@ class EducPandaPowerBackend(Backend):
         prod_p = self._grid.res_gen["p_mw"].values.astype(dt_float)
         prod_q = self._grid.res_gen["q_mvar"].values.astype(dt_float)
         prod_v = self._grid.res_gen["vm_pu"].values.astype(dt_float)  # in pu
-        prod_v *= self._grid.bus["vn_kv"].iloc[self.gen_to_subid].values.astype(dt_float)  # in kV
+        prod_v *= (
+            self._grid.bus["vn_kv"].iloc[self.gen_to_subid].values.astype(dt_float)
+        )  # in kV
         return prod_p, prod_q, prod_v
 
     def loads_info(self):
@@ -374,16 +428,28 @@ class EducPandaPowerBackend(Backend):
         # carefull with copy / deep copy
         load_p = self._grid.res_load["p_mw"].values.astype(dt_float)
         load_q = self._grid.res_load["q_mvar"].values.astype(dt_float)
-        load_v = self._grid.res_bus.loc[self._grid.load["bus"].values]["vm_pu"].values.astype(dt_float)  # in pu
-        load_v *= self._grid.res_bus.loc[self._grid.load["bus"].values]["vn_kv"].values.astype(dt_float)  # in kV
+        load_v = self._grid.res_bus.loc[self._grid.load["bus"].values][
+            "vm_pu"
+        ].values.astype(
+            dt_float
+        )  # in pu
+        load_v *= self._grid.res_bus.loc[self._grid.load["bus"].values][
+            "vn_kv"
+        ].values.astype(
+            dt_float
+        )  # in kV
         return load_p, load_q, load_v
 
     def _aux_get_line_info(self, colname_powerline, colname_trafo):
         """
         concatenate the information of powerlines and trafo using the convention that "powerlines go first"
         """
-        res = np.concatenate((self._grid.res_line[colname_powerline].values,
-                              self._grid.res_trafo[colname_trafo].values))
+        res = np.concatenate(
+            (
+                self._grid.res_line[colname_powerline].values,
+                self._grid.res_trafo[colname_trafo].values,
+            )
+        )
         return res
 
     def lines_or_info(self):
@@ -432,7 +498,12 @@ class EducPandaPowerBackend(Backend):
         .. warning::  /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
         """
-        return np.concatenate((self._grid.line["in_service"].values, self._grid.trafo["in_service"].values)).astype(dt_bool)
+        return np.concatenate(
+            (
+                self._grid.line["in_service"].values,
+                self._grid.trafo["in_service"].values,
+            )
+        ).astype(dt_bool)
 
     def _disconnect_line(self, id_):
         """
@@ -444,7 +515,9 @@ class EducPandaPowerBackend(Backend):
         if id_ < self._nb_real_line_pandapower:
             self._grid.line["in_service"].iloc[id_] = False
         else:
-            self._grid.trafo["in_service"].iloc[id_ - self._nb_real_line_pandapower] = False
+            self._grid.trafo["in_service"].iloc[
+                id_ - self._nb_real_line_pandapower
+            ] = False
 
     def copy(self):
         """
@@ -474,10 +547,18 @@ class EducPandaPowerBackend(Backend):
         # set everything to its proper bus (this is because we used a specific way to represent
         # the topology for this example by chosing not to use swtiches, but to double the number of
         # buses per "substation"
-        self._grid.line["from_bus"].iloc[:] = self.line_or_to_subid[:self._nb_real_line_pandapower]
-        self._grid.trafo["hv_bus"].iloc[:] = self.line_or_to_subid[self._nb_real_line_pandapower:]
-        self._grid.line["to_bus"].iloc[:] = self.line_ex_to_subid[:self._nb_real_line_pandapower]
-        self._grid.trafo["lv_bus"].iloc[:] = self.line_ex_to_subid[self._nb_real_line_pandapower:]
+        self._grid.line["from_bus"].iloc[:] = self.line_or_to_subid[
+            : self._nb_real_line_pandapower
+        ]
+        self._grid.trafo["hv_bus"].iloc[:] = self.line_or_to_subid[
+            self._nb_real_line_pandapower :
+        ]
+        self._grid.line["to_bus"].iloc[:] = self.line_ex_to_subid[
+            : self._nb_real_line_pandapower
+        ]
+        self._grid.trafo["lv_bus"].iloc[:] = self.line_ex_to_subid[
+            self._nb_real_line_pandapower :
+        ]
         self._grid.load["bus"].iloc[:] = self.load_to_subid
         self._grid.gen["bus"].iloc[:] = self.gen_to_subid
 
@@ -487,8 +568,8 @@ class EducPandaPowerBackend(Backend):
         self._grid.load["in_service"].iloc[:] = True
         self._grid.gen["in_service"].iloc[:] = True
 
-        self._grid.bus["in_service"].iloc[:self.n_sub] = True
-        self._grid.bus["in_service"].iloc[self.n_sub:] = False
+        self._grid.bus["in_service"].iloc[: self.n_sub] = True
+        self._grid.bus["in_service"].iloc[self.n_sub :] = False
 
     def close(self):
         """

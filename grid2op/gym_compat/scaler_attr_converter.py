@@ -26,11 +26,11 @@ class ScalerAttrConverter(BaseGymAttrConverter):
     Need help if you can :-)
 
     """
+
     def __init__(self, substract, divide, dtype=None, init_space=None):
-        BaseGymAttrConverter.__init__(self,
-                                      g2op_to_gym=None,
-                                      gym_to_g2op=None,
-                                      space=None)
+        BaseGymAttrConverter.__init__(
+            self, g2op_to_gym=None, gym_to_g2op=None, space=None
+        )
         self._substract = np.array(substract)
         self._divide = np.array(divide)
         self.dtype = dtype if dtype is not None else dt_float
@@ -41,7 +41,9 @@ class ScalerAttrConverter(BaseGymAttrConverter):
         if self._is_init_space:
             return
         if not isinstance(init_space, Box):
-            raise RuntimeError("Impossible to scale a converter if this one is not from type space.Box")
+            raise RuntimeError(
+                "Impossible to scale a converter if this one is not from type space.Box"
+            )
 
         tmp_space = copy.deepcopy(init_space)
         # properly change the low / high value
@@ -56,9 +58,9 @@ class ScalerAttrConverter(BaseGymAttrConverter):
             tmp_space.dtype = np.dtype(self.dtype)
             tmp_space.low = tmp_space.low.astype(self.dtype)
             tmp_space.high = tmp_space.high.astype(self.dtype)
-        self.base_initialize(space=tmp_space,
-                             g2op_to_gym=self.scale,
-                             gym_to_g2op=self.unscale)
+        self.base_initialize(
+            space=tmp_space, g2op_to_gym=self.scale, gym_to_g2op=self.unscale
+        )
         self.dtype = self.my_space.dtype
         self._substract = self._substract.astype(self.dtype)
         self._divide = self._divide.astype(self.dtype)
@@ -72,6 +74,6 @@ class ScalerAttrConverter(BaseGymAttrConverter):
     def unscale(self, vect):
         tmp = vect * self._divide + self._substract
         return tmp
-    
+
     def close(self):
         pass

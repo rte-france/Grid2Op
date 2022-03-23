@@ -6,4 +6,5 @@ class AgentError(Grid2OpException):
     """
     This exception indicate that there is an error in the creation of an agent
     """
+
     pass

@@ -30,7 +30,9 @@ def main(args=None):
     try:
         path_data = os.path.abspath(args.path_save)
     except Exception as e:
-        print("Argument \"--path_save\" should be a valid path (directory) on your machine.")
+        print(
+            'Argument "--path_save" should be a valid path (directory) on your machine.'
+        )
         sys.exit(1)
 
     try:
@@ -40,13 +42,21 @@ def main(args=None):
 
 
 def download_cli():
-    parser = argparse.ArgumentParser(description='Download some datasets compatible with grid2op.')
-    parser.add_argument('--path_save', default=DEFAULT_PATH_DATA, type=str,
-                        help='The path where the data will be downloaded.')
-    parser.add_argument('--name', default="rte_case14_redisp", type=str,
-                        help='The name of the dataset (one of {} ).'
-                             ''.format(",".join(LI_VALID_ENV))
-                        )
+    parser = argparse.ArgumentParser(
+        description="Download some datasets compatible with grid2op."
+    )
+    parser.add_argument(
+        "--path_save",
+        default=DEFAULT_PATH_DATA,
+        type=str,
+        help="The path where the data will be downloaded.",
+    )
+    parser.add_argument(
+        "--name",
+        default="rte_case14_redisp",
+        type=str,
+        help="The name of the dataset (one of {} )." "".format(",".join(LI_VALID_ENV)),
+    )
     args = parser.parse_args()
     return args
 

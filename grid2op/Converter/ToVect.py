@@ -28,6 +28,7 @@ class ToVect(Converter):
 
     **NB** the conversion to a gym space should be done thanks to the :class:`grid2op.Converter.GymActionSpace`.
     """
+
     def __init__(self, action_space):
         Converter.__init__(self, action_space)
         self.init_action_space = action_space
@@ -87,6 +88,7 @@ class ToVect(Converter):
             # lazy import
             from gym import spaces
             from grid2op.gym_compat import GymActionSpace
+
             # i do that not to duplicate the code of the low / high bounds
             gym_action_space = GymActionSpace(self.init_action_space)
             low = tuple()
@@ -108,15 +110,15 @@ class ToVect(Converter):
                     high += tuple(v.high)
                     my_size = v.low.shape[0]
                 else:
-                    raise RuntimeError("Impossible to convert this converter to gym. Type {} of data " 
-                                       "encountered while only MultiBinary and Box are supported for now.")
+                    raise RuntimeError(
+                        "Impossible to convert this converter to gym. Type {} of data "
+                        "encountered while only MultiBinary and Box are supported for now."
+                    )
                 shapes.append(my_size)
                 sizes.append(np.arange(my_size) + prev)
                 prev += my_size
             self.__gym_action_space = gym_action_space
-            my_type = spaces.Box(low=np.array(low),
-                                 high=np.array(high),
-                                 dtype=dt_float)
+            my_type = spaces.Box(low=np.array(low), high=np.array(high), dtype=dt_float)
 
             order_me = []
             _order_gym_2_me = np.zeros(my_type.shape[0], dtype=dt_int) - 1
@@ -162,5 +164,6 @@ class ToVect(Converter):
         an open ai gym (ie a Ordered dictionary with one key being only "action")
         """
         from gym import spaces
+
         res = spaces.dict.OrderedDict({"action": action[self.__order_me_2_gym]})
         return res

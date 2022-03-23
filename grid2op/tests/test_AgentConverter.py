@@ -21,12 +21,20 @@ from grid2op import make
 from grid2op.Parameters import Parameters
 
 import warnings
+
 warnings.simplefilter("error")
 
 
 class TestAgent(AgentWithConverter):
-    def __init__(self, action_space, env_name, action_space_converter=IdToAct, **kwargs_converter):
-        AgentWithConverter.__init__(self, action_space, action_space_converter=action_space_converter, **kwargs_converter)
+    def __init__(
+        self, action_space, env_name, action_space_converter=IdToAct, **kwargs_converter
+    ):
+        AgentWithConverter.__init__(
+            self,
+            action_space,
+            action_space_converter=action_space_converter,
+            **kwargs_converter
+        )
         self.action_space.all_actions = []
 
         # do nothing
@@ -47,26 +55,58 @@ class TestAgent(AgentWithConverter):
 
         if env_name == "case14_realistic":
             # remove action that makes the powerflow diverge
-            breaking_acts = [action_space({"set_bus": {"lines_or_id": [(7,2), (8,1), (9,1)],
-                                                       "lines_ex_id": [(17,2)],
-                                                       "generators_id": [(2,2)],
-                                                       "loads_id": [(4,1)]}}),
-                             action_space({"set_bus": {"lines_or_id": [(10, 2), (11, 1), (19,2)],
-                                                       "lines_ex_id": [(16, 2)],
-                                                       "loads_id": [(5, 1)]}}),
-                             action_space({"set_bus": {"lines_or_id": [(5, 1)],
-                                                       "lines_ex_id": [(2, 2)],
-                                                       "generators_id": [(1, 2)],
-                                                       "loads_id": [(1, 1)]}}),
-                             action_space({"set_bus": {"lines_or_id": [(6, 2), (15, 2), (16, 1)],
-                                                       "lines_ex_id": [(3, 2), (5, 2)],
-                                                       "loads_id": [(2, 1)]}})
+            breaking_acts = [
+                action_space(
+                    {
+                        "set_bus": {
+                            "lines_or_id": [(7, 2), (8, 1), (9, 1)],
+                            "lines_ex_id": [(17, 2)],
+                            "generators_id": [(2, 2)],
+                            "loads_id": [(4, 1)],
+                        }
+                    }
+                ),
+                action_space(
+                    {
+                        "set_bus": {
+                            "lines_or_id": [(10, 2), (11, 1), (19, 2)],
+                            "lines_ex_id": [(16, 2)],
+                            "loads_id": [(5, 1)],
+                        }
+                    }
+                ),
+                action_space(
+                    {
+                        "set_bus": {
+                            "lines_or_id": [(5, 1)],
+                            "lines_ex_id": [(2, 2)],
+                            "generators_id": [(1, 2)],
+                            "loads_id": [(1, 1)],
+                        }
+                    }
+                ),
+                action_space(
+                    {
+                        "set_bus": {
+                            "lines_or_id": [(6, 2), (15, 2), (16, 1)],
+                            "lines_ex_id": [(3, 2), (5, 2)],
+                            "loads_id": [(2, 1)],
+                        }
+                    }
+                ),
             ]
         else:
-            breaking_acts = [action_space({"set_bus": {"lines_or_id": [(0,2), (1,2), (2,2), (3,1)],
-                                                       "generators_id": [(0,1)],
-                                                       "loads_id": [(0,1)]}}),
-                             ]
+            breaking_acts = [
+                action_space(
+                    {
+                        "set_bus": {
+                            "lines_or_id": [(0, 2), (1, 2), (2, 2), (3, 1)],
+                            "generators_id": [(0, 1)],
+                            "loads_id": [(0, 1)],
+                        }
+                    }
+                ),
+            ]
 
         # filter out actions that break everything
         all_actions = []
@@ -78,8 +118,14 @@ class TestAgent(AgentWithConverter):
         self.action_space.all_actions = all_actions
 
         # add the action "reset everything to 1 bus"
-        self.action_space.all_actions.append(action_space({"set_bus": np.ones(action_space.dim_topo, dtype=int),
-                                                           "set_line_status": np.ones(action_space.n_line, dtype=int)}))
+        self.action_space.all_actions.append(
+            action_space(
+                {
+                    "set_bus": np.ones(action_space.dim_topo, dtype=int),
+                    "set_line_status": np.ones(action_space.n_line, dtype=int),
+                }
+            )
+        )
         self.nb_act_done = 0
         self.act_this = True
 
@@ -101,7 +147,9 @@ class TestBasicConverter(unittest.TestCase):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case5_example", param=param, gamerules_class=AlwaysLegal, test=True)
+            env = make(
+                "rte_case5_example", param=param, gamerules_class=AlwaysLegal, test=True
+            )
         my_agent = TestAgent(env.action_space, "rte_case5_example")
         obs = env.reset()
         for i in range(10):
@@ -114,7 +162,9 @@ class TestBasicConverter(unittest.TestCase):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case5_example", param=param, gamerules_class=AlwaysLegal, test=True)
+            env = make(
+                "rte_case5_example", param=param, gamerules_class=AlwaysLegal, test=True
+            )
         my_agent = MLAgent(env.action_space)
         obs = env.reset()
         for i in range(10):

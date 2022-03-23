@@ -19,17 +19,18 @@ from grid2op.tests.helper_path_test import *
 
 from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
-from grid2op.tests.test_Environment import (TestLoadingBackendPandaPower as Aux_TestLoadingBackendPandaPower,
-                                            TestIllegalAmbiguous as Aux_TestIllegalAmbiguous,
-                                            TestOtherReward as Aux_TestOtherReward,
-                                            TestResetOk as Aux_TestResetOk,
-                                            TestLineChangeLastBus as Aux_TestLineChangeLastBus,
-                                            TestResetAfterCascadingFailure as Aux_TestResetAfterCascadingFailure,
-                                            TestCascadingFailure as Aux_TestCascadingFailure,
-                                            TestLoading2envDontCrash as Aux_TestLoading2envDontCrash,
-                                            TestDeactivateForecast as Aux_TestDeactivateForecast, 
-                                            TestMaxIter as Aux_TestMaxIter,
-                                            )
+from grid2op.tests.test_Environment import (
+    TestLoadingBackendPandaPower as Aux_TestLoadingBackendPandaPower,
+    TestIllegalAmbiguous as Aux_TestIllegalAmbiguous,
+    TestOtherReward as Aux_TestOtherReward,
+    TestResetOk as Aux_TestResetOk,
+    TestLineChangeLastBus as Aux_TestLineChangeLastBus,
+    TestResetAfterCascadingFailure as Aux_TestResetAfterCascadingFailure,
+    TestCascadingFailure as Aux_TestCascadingFailure,
+    TestLoading2envDontCrash as Aux_TestLoading2envDontCrash,
+    TestDeactivateForecast as Aux_TestDeactivateForecast,
+    TestMaxIter as Aux_TestMaxIter,
+)
 from grid2op.tests.test_Agent import TestAgent as Aux_TestAgent
 
 DEBUG = False
@@ -70,9 +71,13 @@ class TestResetOkCopy(Aux_TestResetOk):
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
-                           other_rewards={"test": L2RPNReward},
-                           backend=backend)
+                env = make(
+                    "rte_case5_example",
+                    test=True,
+                    reward_class=L2RPNReward,
+                    other_rewards={"test": L2RPNReward},
+                    backend=backend,
+                )
         super().test_reset_after_blackout_withdetailed_info(env=env.copy())
 
 

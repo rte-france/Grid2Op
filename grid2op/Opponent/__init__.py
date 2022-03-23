@@ -1,6 +1,13 @@
-__all__ = ["OpponentSpace", "BaseActionBudget", "BaseOpponent", "UnlimitedBudget",
-           "RandomLineOpponent", "WeightedRandomOpponent", "NeverAttackBudget",
-           "GeometricOpponent"]
+__all__ = [
+    "OpponentSpace",
+    "BaseActionBudget",
+    "BaseOpponent",
+    "UnlimitedBudget",
+    "RandomLineOpponent",
+    "WeightedRandomOpponent",
+    "NeverAttackBudget",
+    "GeometricOpponent",
+]
 
 from grid2op.Opponent.OpponentSpace import OpponentSpace
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget

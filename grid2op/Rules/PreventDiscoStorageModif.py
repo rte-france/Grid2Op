@@ -19,6 +19,7 @@ class PreventDiscoStorageModif(BaseRules):
     See :func:`BaseRules.__call__` for a definition of the parameters of this function.
 
     """
+
     def __call__(self, action, env):
         """
         See :func:`BaseRules.__call__` for a definition of the parameters of this function.
@@ -31,11 +32,15 @@ class PreventDiscoStorageModif(BaseRules):
         storage_disco = env.backend.get_topo_vect()[env.storage_pos_topo_vect] < 0
         storage_power, storage_set_bus, storage_change_bus = action.get_storage_modif()
 
-        power_modif_disco = (np.isfinite(storage_power[storage_disco])) & (storage_power[storage_disco] != 0.)
+        power_modif_disco = (np.isfinite(storage_power[storage_disco])) & (
+            storage_power[storage_disco] != 0.0
+        )
         not_set_status = storage_set_bus[storage_disco] <= 0
         not_change_status = ~storage_change_bus[storage_disco]
         if np.any(power_modif_disco & not_set_status & not_change_status):
             tmp_ = power_modif_disco & not_set_status & not_change_status
-            return False, IllegalAction(f"Attempt to modify the power produced / absorbed by a storage unit "
-                                        f"without reconnecting it (check storage with id {np.where(tmp_)[0]}.")
+            return False, IllegalAction(
+                f"Attempt to modify the power produced / absorbed by a storage unit "
+                f"without reconnecting it (check storage with id {np.where(tmp_)[0]}."
+            )
         return True, None

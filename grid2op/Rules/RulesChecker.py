@@ -16,6 +16,7 @@ class RulesChecker(object):
     Class that define the rules of the game.
 
     """
+
     def __init__(self, legalActClass=AlwaysLegal):
         """
 
@@ -26,14 +27,18 @@ class RulesChecker(object):
             an object of this class. It should derived from :class:`BaseRules`.
         """
         if not isinstance(legalActClass, type):
-            raise Grid2OpException("Parameter \"legalActClass\" used to build the RulesChecker should be a "
-                                   "type (a class) "
-                                   "and not an object (an instance of a class). "
-                                   "It is currently \"{}\"".format(type(legalActClass)))
+            raise Grid2OpException(
+                'Parameter "legalActClass" used to build the RulesChecker should be a '
+                "type (a class) "
+                "and not an object (an instance of a class). "
+                'It is currently "{}"'.format(type(legalActClass))
+            )
 
         if not issubclass(legalActClass, BaseRules):
-            raise Grid2OpException("Gamerules: legalActClass should be initialize with a class deriving "
-                                   "from BaseRules and not {}".format(type(legalActClass)))
+            raise Grid2OpException(
+                "Gamerules: legalActClass should be initialize with a class deriving "
+                "from BaseRules and not {}".format(type(legalActClass))
+            )
         self.legal_action = legalActClass()
 
     def __call__(self, action, env):

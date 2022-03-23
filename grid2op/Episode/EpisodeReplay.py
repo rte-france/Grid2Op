@@ -53,16 +53,30 @@ class EpisodeReplay(object):
     episode_data: :class:`grid2op.EpisodeData.EpisodeData`, optional
         The last data of the episode inspected.replay_cli
     """
+
     def __init__(self, agent_path):
         if not os.path.exists(agent_path):
-            raise Grid2OpException("Nothing is found at \"{}\" where an agent path should have been.".format(agent_path))
+            raise Grid2OpException(
+                'Nothing is found at "{}" where an agent path should have been.'.format(
+                    agent_path
+                )
+            )
         self.agent_path = agent_path
         self.episode_data = None
 
-    def replay_episode(self, episode_id, fps=2.0, gif_name=None,
-                       display=True, start_step=0, end_step=-1,
-                       line_info="rho", load_info="p", gen_info="p",
-                       resolution=(1280, 720)):
+    def replay_episode(
+        self,
+        episode_id,
+        fps=2.0,
+        gif_name=None,
+        display=True,
+        start_step=0,
+        end_step=-1,
+        line_info="rho",
+        load_info="p",
+        gen_info="p",
+        resolution=(1280, 720),
+    ):
         """
         When called, this function will start the display of the episode in a "mini movie" format.
 
@@ -76,7 +90,7 @@ class EpisodeReplay(object):
             will last longer. When it's high, episode will be faster, but frames will stay less time on the screen.
 
         gif_name: ``str``
-            If provided, a .gif file is saved in the episode folder with the name :gif_name:. 
+            If provided, a .gif file is saved in the episode folder with the name :gif_name:.
             The .gif extension is happened by this function
 
         start_step: ``int``
@@ -96,7 +110,7 @@ class EpisodeReplay(object):
 
         line_info: ``str``
             Defaults to "rho". What kind of values to show on lines.
-            Can be oneof `["rho", "a", "p", "v", None]` 
+            Can be oneof `["rho", "a", "p", "v", None]`
 
         resolution: ``tuple``
             Defaults to (1280, 720). The resolution to use for the gif.
@@ -104,16 +118,22 @@ class EpisodeReplay(object):
         # Check args
         path_ep = os.path.join(self.agent_path, episode_id)
         if not os.path.exists(path_ep):
-            raise Grid2OpException("No episode is found at \"{}\".".format(path_ep))
+            raise Grid2OpException('No episode is found at "{}".'.format(path_ep))
 
         # Load episode observations
-        self.episode_data = EpisodeData.from_disk(agent_path=self.agent_path, name=episode_id)
+        self.episode_data = EpisodeData.from_disk(
+            agent_path=self.agent_path, name=episode_id
+        )
         all_obs = [el for el in self.episode_data.observations]
         # Create a plotter
         width, height = resolution
-        plot_runner = PlotMatplot(self.episode_data.observation_space,
-                                  width=width, height=height,
-                                  load_name=False, gen_name=False)
+        plot_runner = PlotMatplot(
+            self.episode_data.observation_space,
+            width=width,
+            height=height,
+            load_name=False,
+            gen_name=False,
+        )
 
         # Some vars for gif export if enabled
         frames = []
@@ -135,12 +155,14 @@ class EpisodeReplay(object):
             start_time = time.perf_counter()
 
             # Render the observation
-            fig = plot_runner.plot_obs(observation=obs,
-                                       line_info=line_info,
-                                       gen_info=gen_info,
-                                       load_info=load_info,
-                                       figure=figure,
-                                       redraw=True)
+            fig = plot_runner.plot_obs(
+                observation=obs,
+                line_info=line_info,
+                gen_info=gen_info,
+                load_info=load_info,
+                figure=figure,
+                redraw=True,
+            )
             if figure is None and display:
                 fig.show()
             elif display:
@@ -169,11 +191,14 @@ class EpisodeReplay(object):
                 # Try to compress
                 try:
                     from pygifsicle import optimize
+
                     optimize(gif_path, options=["-w", "--no-conserve-memory"])
                 except:
-                    warn_msg = "Failed to optimize .GIF size, but gif is still saved:\n" \
-                               "Install dependencies to reduce size by ~3 folds\n" \
-                               "apt-get install gifsicle && pip3 install pygifsicle"
+                    warn_msg = (
+                        "Failed to optimize .GIF size, but gif is still saved:\n"
+                        "Install dependencies to reduce size by ~3 folds\n"
+                        "apt-get install gifsicle && pip3 install pygifsicle"
+                    )
                     warnings.warn(warn_msg)
             except Exception as e:
                 warnings.warn("Impossible to save gif with error :\n{}".format(e))
@@ -183,8 +208,7 @@ def episode_replay_cli():
     parser = argparse.ArgumentParser(description="EpisodeReplay")
     parser.add_argument("--agent_path", required=True, type=str)
     parser.add_argument("--episode_id", required=True, type=str)
-    parser.add_argument("--display", required=False,
-                        default=False, action="store_true")
+    parser.add_argument("--display", required=False, default=False, action="store_true")
     parser.add_argument("--fps", required=False, default=2.0, type=float)
     parser.add_argument("--gif_name", required=False, default=None, type=str)
     parser.add_argument("--gif_start", required=False, default=0, type=int)
@@ -197,12 +221,14 @@ def main(args=None):
     if args is None:
         args = episode_replay_cli()
     er = EpisodeReplay(args.agent_path)
-    er.replay_episode(args.episode_id,
-                      fps=args.fps,
-                      gif_name=args.gif_name,
-                      start_step=args.gif_start,
-                      end_step=args.gif_end,
-                      display=args.display)
+    er.replay_episode(
+        args.episode_id,
+        fps=args.fps,
+        gif_name=args.gif_name,
+        start_step=args.gif_start,
+        end_step=args.gif_end,
+        display=args.display,
+    )
 
 
 # Dev / Test by running this file

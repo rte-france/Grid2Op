@@ -44,6 +44,7 @@ class AlarmReward(BaseReward):
 
 
     """
+
     def __init__(self):
         BaseReward.__init__(self)
         # required if you want to design a custom reward taking into account the
@@ -52,9 +53,9 @@ class AlarmReward(BaseReward):
         self.is_alarm_used = False  # required to update it in __call__ !!
 
         self.total_time_steps = dt_float(0.0)
-        self.reward_min = dt_float(-1.)
-        self.reward_max = dt_float(1.)
-        self.reward_no_game_over = dt_float(0.)
+        self.reward_min = dt_float(-1.0)
+        self.reward_max = dt_float(1.0)
+        self.reward_no_game_over = dt_float(0.0)
 
         self.window_size = None
         self.best_time = None
@@ -63,9 +64,11 @@ class AlarmReward(BaseReward):
 
     def initialize(self, env):
         if not env._has_attention_budget:
-            raise Grid2OpException("Impossible to use the \"AlarmReward\" with an environment for which this feature "
-                                   "is disabled. Please make sure \"env._has_attention_budget\" is set to ``True`` or "
-                                   "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`")
+            raise Grid2OpException(
+                'Impossible to use the "AlarmReward" with an environment for which this feature '
+                'is disabled. Please make sure "env._has_attention_budget" is set to ``True`` or '
+                "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`"
+            )
         self.reset(env)
 
     def reset(self, env):
@@ -93,18 +96,22 @@ class AlarmReward(BaseReward):
             dist_to_best = dist_to_game_over - self.best_time
 
             # set it to 0 for the extreme case
-            polynom = (dist_to_best - self.window_size) * (dist_to_best + self.window_size)
+            polynom = (dist_to_best - self.window_size) * (
+                dist_to_best + self.window_size
+            )
             # scale it such that it is 1 for dist_to_best == 0 (ie step_game_over - step_alarm == self.best_time)
-            res = - polynom / self.window_size**2
+            res = -polynom / self.window_size**2
         return res
 
     def _mult_for_zone(self, alarm, disc_lines, env):
         """compute the multiplicative factor that increases the score if the right zone is predicted"""
-        res = 1.
+        res = 1.0
         # extract the lines that have been disconnected due to cascading failures
         lines_disconnected_first = np.where(disc_lines == 0)[0]
 
-        if (np.sum(alarm) > 1):#if we have more than one zone in the alarm, we cannot discrtiminate, no bonus points
+        if (
+            np.sum(alarm) > 1
+        ):  # if we have more than one zone in the alarm, we cannot discrtiminate, no bonus points
             return res
 
         # extract the zones they belong too
@@ -132,7 +139,9 @@ class AlarmReward(BaseReward):
         if score_for_time != 0:
             is_alarm_used = True  # alarm is in the right time window
             score = score_for_time
-            score *= self._mult_for_zone(alarm, disc_lines, env) / self.mult_for_right_zone
+            score *= (
+                self._mult_for_zone(alarm, disc_lines, env) / self.mult_for_right_zone
+            )
         return score, is_alarm_used
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
@@ -156,10 +165,12 @@ class AlarmReward(BaseReward):
             # so now i can consider the alarms.
             best_score, is_alarm_used = self.reward_min, False
             for alarm in successfull_alarms:
-                tmp_sc, tmp_is = self._points_for_alarm(*alarm,
-                                                        step_game_over=step_game_over,
-                                                        disc_lines=disc_lines,
-                                                        env=env)
+                tmp_sc, tmp_is = self._points_for_alarm(
+                    *alarm,
+                    step_game_over=step_game_over,
+                    disc_lines=disc_lines,
+                    env=env
+                )
                 if tmp_sc > best_score:
                     best_score = tmp_sc
                     is_alarm_used = tmp_is

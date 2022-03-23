@@ -15,6 +15,7 @@ class DoNothingLog:
 
     A class to emulate the behaviour of a logger, but that does absolutely nothing.
     """
+
     INFO = 2
     WARNING = 1
     ERROR = 0
@@ -50,27 +51,27 @@ class ConsoleLog(DoNothingLog):
     def warn(self, *args, **kwargs):
         if self.max_level >= self.WARNING:
             if args:
-                print("WARNING: \"{}\"".format(", ".join(args)))
+                print('WARNING: "{}"'.format(", ".join(args)))
             if kwargs:
                 print("WARNING: {}".format(kwargs))
 
     def info(self, *args, **kwargs):
         if self.max_level >= self.INFO:
             if args:
-                print("INFO: \"{}\"".format(", ".join(args)))
+                print('INFO: "{}"'.format(", ".join(args)))
             if kwargs:
                 print("INFO: {}".format(kwargs))
 
     def error(self, *args, **kwargs):
         if self.max_level >= self.ERROR:
             if args:
-                print("ERROR: \"{}\"".format(", ".join(args)))
+                print('ERROR: "{}"'.format(", ".join(args)))
             if kwargs:
                 print("ERROR: {}".format(kwargs))
 
     def warning(self, *args, **kwargs):
         if self.max_level >= self.WARNING:
             if args:
-                print("WARNING: \"{}\"".format(", ".join(args)))
+                print('WARNING: "{}"'.format(", ".join(args)))
             if kwargs:
                 print("WARNING: {}".format(kwargs))

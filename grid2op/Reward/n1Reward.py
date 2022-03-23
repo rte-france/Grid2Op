@@ -38,7 +38,7 @@ class N1Reward(BaseReward):
     Notes
     -----
     It is also possible to use the `other_rewards` argument to simulate multiple powerline disconnections, for example:
-    
+
     .. code-block:: python
 
         import grid2op
@@ -55,6 +55,7 @@ class N1Reward(BaseReward):
         print(f"\tmax flow after disconnection of line {L_ID}: {obs_n1.rho.max():.3f}")
 
     """
+
     def __init__(self, l_id=0):
         BaseReward.__init__(self)
         self.backend = None

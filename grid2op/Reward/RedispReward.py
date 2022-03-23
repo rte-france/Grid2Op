@@ -76,12 +76,19 @@ class RedispReward(BaseReward):
     "RedisReward" with different meta parameters (see the "Examples" section).
 
     """
+
     _alpha_redisp = dt_float(5.0)
     _min_load_ratio = dt_float(0.1)  # min load = min_load_ratio * max_load
-    _worst_losses_ratio = dt_float(0.05)  # worst_losses = worst_losses_ratio * worst_load
-    _min_reward = dt_float(-10.)  # reward when game over
-    _reward_illegal_ambiguous = dt_float(0.)  # reward when action is illegal or ambiguous
-    _least_losses_ratio = dt_float(0.015)  # least_losses = least_losses_ratio * least_loads
+    _worst_losses_ratio = dt_float(
+        0.05
+    )  # worst_losses = worst_losses_ratio * worst_load
+    _min_reward = dt_float(-10.0)  # reward when game over
+    _reward_illegal_ambiguous = dt_float(
+        0.0
+    )  # reward when action is illegal or ambiguous
+    _least_losses_ratio = dt_float(
+        0.015
+    )  # least_losses = least_losses_ratio * least_loads
 
     def __init__(self):
         BaseReward.__init__(self)
@@ -91,14 +98,15 @@ class RedispReward(BaseReward):
         self.reward_illegal_ambiguous = None
 
     @classmethod
-    def generate_class_custom_params(cls,
-                                     alpha_redisph=5.0,
-                                     min_load_ratio=0.1,  # min load = min_load_ratio * max_load
-                                     worst_losses_ratio=0.05,  # worst_losses = worst_losses_ratio * worst_load
-                                     min_reward=-10.,
-                                     least_losses_ratio=0.015,  # least_losses = least_losses_ratio * least_loads
-                                     reward_illegal_ambiguous=0.,
-                                     ):
+    def generate_class_custom_params(
+        cls,
+        alpha_redisph=5.0,
+        min_load_ratio=0.1,  # min load = min_load_ratio * max_load
+        worst_losses_ratio=0.05,  # worst_losses = worst_losses_ratio * worst_load
+        min_reward=-10.0,
+        least_losses_ratio=0.015,  # least_losses = least_losses_ratio * least_loads
+        reward_illegal_ambiguous=0.0,
+    ):
         if _IS_LINUX:
             # on linux it's fine, i can create new classes for each meta parameters
             nm_res = f"RedispReward_{alpha_redisph:.2f}_{min_load_ratio:.2f}_{worst_losses_ratio:.2f}"
@@ -110,7 +118,7 @@ class RedispReward(BaseReward):
                 "_worst_losses_ratio": dt_float(worst_losses_ratio),
                 "_min_reward": dt_float(min_reward),
                 "_least_losses_ratio": dt_float(least_losses_ratio),
-                "_reward_illegal_ambiguous": dt_float(reward_illegal_ambiguous)
+                "_reward_illegal_ambiguous": dt_float(reward_illegal_ambiguous),
             }
             res_cls = type(nm_res, (cls,), cls_attr_as_dict)
             res_cls.__module__ = cls.__module__
@@ -133,27 +141,35 @@ class RedispReward(BaseReward):
 
     def initialize(self, env):
         if not env.redispatching_unit_commitment_availble:
-            raise Grid2OpException("Impossible to use the RedispReward reward with an environment without generators "
-                                   "cost. Please make sure env.redispatching_unit_commitment_availble is available.")
+            raise Grid2OpException(
+                "Impossible to use the RedispReward reward with an environment without generators "
+                "cost. Please make sure env.redispatching_unit_commitment_availble is available."
+            )
         cls_ = type(self)
 
         worst_marginal_cost = np.max(env.gen_cost_per_MW)
         worst_load = dt_float(np.sum(env.gen_pmax))
         # it's not the worst, but definitely an upper bound
         worst_losses = dt_float(cls_._worst_losses_ratio) * worst_load
-        worst_redisp = cls_._alpha_redisp * np.sum(env.gen_pmax)  # not realistic, but an upper bound
+        worst_redisp = cls_._alpha_redisp * np.sum(
+            env.gen_pmax
+        )  # not realistic, but an upper bound
         self.max_regret = (worst_losses + worst_redisp) * worst_marginal_cost
         self.reward_min = dt_float(cls_._min_reward)
 
-        least_loads = dt_float(worst_load * cls_._min_load_ratio)  # half the capacity of the grid
-        least_losses = dt_float(cls_._least_losses_ratio * least_loads)  # 1.5% of losses
+        least_loads = dt_float(
+            worst_load * cls_._min_load_ratio
+        )  # half the capacity of the grid
+        least_losses = dt_float(
+            cls_._least_losses_ratio * least_loads
+        )  # 1.5% of losses
         least_redisp = dt_float(0.0)  # lower_bound is 0
-        base_marginal_cost = np.min(env.gen_cost_per_MW[env.gen_cost_per_MW > 0.])
+        base_marginal_cost = np.min(env.gen_cost_per_MW[env.gen_cost_per_MW > 0.0])
         min_regret = (least_losses + least_redisp) * base_marginal_cost
         self.reward_max = dt_float((self.max_regret - min_regret) / least_loads)
         self.reward_illegal_ambiguous = cls_._reward_illegal_ambiguous
 
-    def __call__(self,  action, env, has_error, is_done, is_illegal, is_ambiguous):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         res = None
         if is_done:
             # if the episode is over and it's my fault (i did a blackout) i strongly
@@ -170,11 +186,13 @@ class RedispReward(BaseReward):
 
             # compute the marginal cost
             gen_activeprod_t = env._gen_activeprod_t
-            marginal_cost = np.max(env.gen_cost_per_MW[gen_activeprod_t > 0.])
+            marginal_cost = np.max(env.gen_cost_per_MW[gen_activeprod_t > 0.0])
 
             # redispatching amount
             actual_dispatch = env._actual_dispatch
-            redisp_cost = self._alpha_redisp * np.sum(np.abs(actual_dispatch)) * marginal_cost
+            redisp_cost = (
+                self._alpha_redisp * np.sum(np.abs(actual_dispatch)) * marginal_cost
+            )
 
             # cost of losses
             losses_cost = losses * marginal_cost

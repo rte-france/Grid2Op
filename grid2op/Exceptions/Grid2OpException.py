@@ -20,6 +20,7 @@ class Grid2OpException(RuntimeError):
     """
     Base Exception from which all Grid2Op raise exception derived.
     """
+
     def vect_hierarchy_cleaned(self):
         hierarchy = inspect.getmro(self.__class__)
         names_hierarchy = [el.__name__ for el in hierarchy]
@@ -37,5 +38,5 @@ class Grid2OpException(RuntimeError):
 
     def __str__(self):
         res = self.vect_hierarchy_cleaned()
-        res += "\"{}\"".format(RuntimeError.__str__(self))
+        res += '"{}"'.format(RuntimeError.__str__(self))
         return res

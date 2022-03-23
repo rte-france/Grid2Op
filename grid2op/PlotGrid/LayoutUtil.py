@@ -19,27 +19,27 @@ def layout_obs_sub_only(obs, scale=1000.0):
     n_line = obs.n_line
     or_sub = obs.line_or_to_subid
     ex_sub = obs.line_ex_to_subid
-    
+
     # Create a graph of substations vertices
     G = nx.Graph()
-    
+
     # Set lines edges
     for line_idx in range(n_line):
         lor_sub = or_sub[line_idx]
         lex_sub = ex_sub[line_idx]
-        
+
         # Compute edge vertices indices for current graph
         left_v = lor_sub
         right_v = lex_sub
-        
+
         # Register edge in graph
         G.add_edge(left_v, right_v)
-        
+
     # Convert our layout to nx format
     initial_layout = {}
     for sub_idx, sub_name in enumerate(obs.name_sub):
         initial_layout[sub_idx] = obs.grid_layout[sub_name]
-        
+
     # Use kamada_kawai algorithm
     kkl = nx.kamada_kawai_layout(G, scale=scale)
     # Convert back to our layout format
@@ -53,7 +53,9 @@ def layout_obs_sub_only(obs, scale=1000.0):
     return improved_layout
 
 
-def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False, parallel_spacing=3.0):
+def layout_obs_sub_load_and_gen(
+    obs, scale=1000.0, use_initial=False, parallel_spacing=3.0
+):
     # Create a graph of substations vertices
     G = nx.Graph()
 
@@ -70,11 +72,11 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False, parallel_s
     for line_idx in range(obs.n_line):
         lor_sub = obs.line_or_to_subid[line_idx]
         lex_sub = obs.line_ex_to_subid[line_idx]
-        
+
         # Compute edge vertices indices for current graph
         left_v = lor_sub
         right_v = lex_sub
-        
+
         # Register edge in graph
         G.add_edge(left_v, right_v, weight=sub_w)
 
@@ -119,7 +121,7 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False, parallel_s
             sub_name = layout_keys[load_subid]
             load_sub_pos = obs.load_to_sub_pos[load_idx]
             load_sub_pos /= obs.sub_info[load_subid]
-            load_sub_pos *= (2.0 * math.pi)
+            load_sub_pos *= 2.0 * math.pi
             load_pos = list(copy.deepcopy(obs.grid_layout[sub_name]))
             load_pos[0] += math.cos(load_sub_pos) * load_w
             load_pos[1] += math.sin(load_sub_pos) * load_w
@@ -129,7 +131,7 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False, parallel_s
             sub_name = layout_keys[gen_subid]
             gen_sub_pos = obs.gen_to_sub_pos[gen_idx]
             gen_sub_pos /= obs.sub_info[gen_subid]
-            gen_sub_pos *= (2.0 * math.pi)
+            gen_sub_pos *= 2.0 * math.pi
             gen_pos = list(copy.deepcopy(obs.grid_layout[sub_name]))
             gen_pos[0] += math.cos(gen_sub_pos) * gen_w
             gen_pos[1] += math.sin(gen_sub_pos) * gen_w
@@ -139,7 +141,7 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False, parallel_s
             sub_name = layout_keys[stor_subid]
             stor_sub_pos = obs.storage_to_sub_pos[stor_idx]
             stor_sub_pos /= obs.sub_info[stor_subid]
-            stor_sub_pos *= (2.0 * math.pi)
+            stor_sub_pos *= 2.0 * math.pi
             stor_pos = list(copy.deepcopy(obs.grid_layout[sub_name]))
             stor_pos[0] += math.cos(stor_sub_pos) * gen_w
             stor_pos[1] += math.sin(stor_sub_pos) * gen_w
@@ -151,12 +153,9 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False, parallel_s
         fix = list(range(obs.n_sub))
         seed = np.random.RandomState(0)
         # Use Fruchterman-Reingold algorithm
-        kkl = nx.spring_layout(G,
-                               scale=scale,
-                               fixed=fix,
-                               pos=initial_layout,
-                               seed=seed,
-                               iterations=1000)
+        kkl = nx.spring_layout(
+            G, scale=scale, fixed=fix, pos=initial_layout, seed=seed, iterations=1000
+        )
     else:
         # Use kamada_kawai algorithm
         kkl = nx.kamada_kawai_layout(G, scale=scale)
@@ -168,7 +167,7 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False, parallel_s
         v = kkl[sub_idx]
         vx = np.round(v[0])
         vy = np.round(v[1])
-        improved_layout[key] = [vx, vy]    
+        improved_layout[key] = [vx, vy]
     for load_idx, load_subid in enumerate(obs.load_to_subid):
         key = obs.name_load[load_idx]
         v = kkl[load_offset + load_idx]

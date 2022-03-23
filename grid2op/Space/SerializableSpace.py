@@ -60,10 +60,8 @@ class SerializableSpace(GridObjects, RandomObject):
         spaces they are made of.
 
     """
-    def __init__(self,
-                 gridobj,
-                 subtype=object,
-                 _init_grid=True):
+
+    def __init__(self, gridobj, subtype=object, _init_grid=True):
         """
 
         subtype: ``type``
@@ -77,16 +75,19 @@ class SerializableSpace(GridObjects, RandomObject):
 
         if not isinstance(subtype, type):
             raise Grid2OpException(
-                "Parameter \"subtype\" used to build the Space should be a type (a class) and not an object "
-                "(an instance of a class). It is currently \"{}\"".format(
-                    type(subtype)))
+                'Parameter "subtype" used to build the Space should be a type (a class) and not an object '
+                '(an instance of a class). It is currently "{}"'.format(type(subtype))
+            )
 
         GridObjects.__init__(self)
         RandomObject.__init__(self)
         self._init_subtype = subtype  # do not use, use to save restore only !!!
         if _init_grid:
             self.subtype = subtype.init_grid(gridobj)
-            from grid2op.Action import BaseAction  # lazy loading to prevent circular reference
+            from grid2op.Action import (
+                BaseAction,
+            )  # lazy loading to prevent circular reference
+
             if issubclass(self.subtype, BaseAction):
                 # add the shunt data if needed by the action only
                 self.subtype._add_shunt_data()
@@ -96,10 +97,15 @@ class SerializableSpace(GridObjects, RandomObject):
             self.subtype = subtype
 
         from grid2op.Action import BaseAction  # lazy import to avoid circular reference
-        from grid2op.Observation import BaseObservation  # lazy import to avoid circular reference
+        from grid2op.Observation import (
+            BaseObservation,
+        )  # lazy import to avoid circular reference
+
         if not issubclass(subtype, (BaseAction, BaseObservation)):
-            raise RuntimeError(f"\"subtype\" should inherit either BaseAction or BaseObservation. Currently it "
-                               f"is \"{subtype}\"")
+            raise RuntimeError(
+                f'"subtype" should inherit either BaseAction or BaseObservation. Currently it '
+                f'is "{subtype}"'
+            )
         self._template_obj = self.subtype()
         self.n = self._template_obj.size()
 
@@ -160,19 +166,27 @@ class SerializableSpace(GridObjects, RandomObject):
         if isinstance(dict_, str):
             path = dict_
             if not os.path.exists(path):
-                raise Grid2OpException("Unable to find the file \"{}\" to load the ObservationSpace".format(path))
+                raise Grid2OpException(
+                    'Unable to find the file "{}" to load the ObservationSpace'.format(
+                        path
+                    )
+                )
             with open(path, "r", encoding="utf-8") as f:
                 dict_ = json.load(fp=f)
 
         gridobj = GridObjects.from_dict(dict_)
         actionClass_str = extract_from_dict(dict_, "_init_subtype", str)
-        actionClass_li = actionClass_str.split('.')
+        actionClass_li = actionClass_str.split(".")
 
         if actionClass_li[-1] in globals():
             subtype = globals()[actionClass_li[-1]]
         else:
             try:
-                exec("from {} import {}".format(".".join(actionClass_li[:-1]), actionClass_li[-1]))
+                exec(
+                    "from {} import {}".format(
+                        ".".join(actionClass_li[:-1]), actionClass_li[-1]
+                    )
+                )
             except ModuleNotFoundError as exc_:
                 # prior to grid2op 1.6.5 the Observation module was grid2op.Observation.completeObservation.CompleteObservation
                 # after its grid2op.Observation.completeObservation.CompleteObservation
@@ -181,10 +195,14 @@ class SerializableSpace(GridObjects, RandomObject):
                 if len(actionClass_li) > 2:
                     test_str = actionClass_li[2]
                     actionClass_li[2] = test_str[0].lower() + test_str[1:]
-                    exec("from {} import {}".format(".".join(actionClass_li[:-1]), actionClass_li[-1]))
+                    exec(
+                        "from {} import {}".format(
+                            ".".join(actionClass_li[:-1]), actionClass_li[-1]
+                        )
+                    )
                 else:
                     raise exc_
-                    
+
             # TODO make something better and recursive here
             try:
                 subtype = eval(actionClass_li[-1])
@@ -193,36 +211,54 @@ class SerializableSpace(GridObjects, RandomObject):
                     try:
                         subtype = eval(".".join(actionClass_li[1:]))
                     except Exception as exc_:
-                        msg_err_ = "Impossible to find the module \"{}\" to load back the space (ERROR 1). " \
-                                   "Try \"from {} import {}\""
-                        raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]),
-                                                               actionClass_li[-1]))
+                        msg_err_ = (
+                            'Impossible to find the module "{}" to load back the space (ERROR 1). '
+                            'Try "from {} import {}"'
+                        )
+                        raise Grid2OpException(
+                            msg_err_.format(
+                                actionClass_str,
+                                ".".join(actionClass_li[:-1]),
+                                actionClass_li[-1],
+                            )
+                        )
                 else:
-                    msg_err_ = "Impossible to find the module \"{}\" to load back the space (ERROR 2). " \
-                               "Try \"from {} import {}\""
-                    raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]),
-                                                           actionClass_li[-1]))
+                    msg_err_ = (
+                        'Impossible to find the module "{}" to load back the space (ERROR 2). '
+                        'Try "from {} import {}"'
+                    )
+                    raise Grid2OpException(
+                        msg_err_.format(
+                            actionClass_str,
+                            ".".join(actionClass_li[:-1]),
+                            actionClass_li[-1],
+                        )
+                    )
             except AttributeError:
                 try:
                     subtype = eval(actionClass_li[-1])
                 except Exception as exc_:
                     if len(actionClass_li) > 1:
-                        msg_err_ = "Impossible to find the class named \"{}\" to load back the space (ERROR 3)" \
-                                   "(module is found but not the class in it) Please import it via " \
-                                   "\"from {} import {}\"."
-                        msg_err_ = msg_err_.format(actionClass_str,
-                                                   ".".join(actionClass_li[:-1]),
-                                                   actionClass_li[-1])
+                        msg_err_ = (
+                            'Impossible to find the class named "{}" to load back the space (ERROR 3)'
+                            "(module is found but not the class in it) Please import it via "
+                            '"from {} import {}".'
+                        )
+                        msg_err_ = msg_err_.format(
+                            actionClass_str,
+                            ".".join(actionClass_li[:-1]),
+                            actionClass_li[-1],
+                        )
                     else:
-                        msg_err_ = "Impossible to import the class named \"{}\" to load back the space (ERROR 4) " \
-                                   "(the module is found but not the class in it)"
+                        msg_err_ = (
+                            'Impossible to import the class named "{}" to load back the space (ERROR 4) '
+                            "(the module is found but not the class in it)"
+                        )
                         msg_err_ = msg_err_.format(actionClass_str)
                     raise Grid2OpException(msg_err_)
         # create the proper SerializableSpace class for this environment
         CLS = SerializableSpace.init_grid(gridobj)
-        res = CLS(gridobj=gridobj,
-                  subtype=subtype,
-                  _init_grid=True)
+        res = CLS(gridobj=gridobj, subtype=subtype, _init_grid=True)
         return res
 
     def cls_to_dict(self):
@@ -245,8 +281,14 @@ class SerializableSpace(GridObjects, RandomObject):
         # TODO this is super weird that this is a regular method, but inherit from a class method !
         res = super().cls_to_dict()
 
-        save_to_dict(res, self, "_init_subtype",
-                     lambda x: re.sub("(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)))
+        save_to_dict(
+            res,
+            self,
+            "_init_subtype",
+            lambda x: re.sub(
+                "(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)
+            ),
+        )
         return res
 
     def size(self):
@@ -403,7 +445,9 @@ class SerializableSpace(GridObjects, RandomObject):
 
         """
         if attr_name not in self._to_extract_vect:
-            raise Grid2OpException("Attribute \"{}\" is not found in the object of type \"{}\"."
-                                   "".format(attr_name, self.subtype))
+            raise Grid2OpException(
+                'Attribute "{}" is not found in the object of type "{}".'
+                "".format(attr_name, self.subtype)
+            )
         res = self._to_extract_vect[attr_name]
         return res

@@ -16,12 +16,16 @@ _WARNING_ISSUED_FOR_SUB_NO_ELEM = False
 
 def extract_from_dict(dict_, key, converter):
     if key not in dict_:
-        raise Grid2OpException("Impossible to find key \"{}\" while loading the dictionary.".format(key))
+        raise Grid2OpException(
+            'Impossible to find key "{}" while loading the dictionary.'.format(key)
+        )
     try:
         res = converter(dict_[key])
     except Exception as exc_:
-        raise Grid2OpException("Impossible to convert \"{}\" into class {} with exception "
-                               "\n\"{}\"".format(key, converter, exc_))
+        raise Grid2OpException(
+            'Impossible to convert "{}" into class {} with exception '
+            '\n"{}"'.format(key, converter, exc_)
+        )
     return res
 
 
@@ -46,7 +50,9 @@ def save_to_dict(res_dict, me, key, converter, copy_=True):
 
     """
     if not hasattr(me, key):
-        raise Grid2OpException("Impossible to find key \"{}\" while loading the dictionary.".format(key))
+        raise Grid2OpException(
+            'Impossible to find key "{}" while loading the dictionary.'.format(key)
+        )
     try:
         if converter is not None:
             res = converter(getattr(me, key))
@@ -56,11 +62,15 @@ def save_to_dict(res_dict, me, key, converter, copy_=True):
             else:
                 res = getattr(me, key)
     except Exception as exc_:
-        raise Grid2OpException("Impossible to convert \"{}\" into class {} with exception "
-                               "\n\"{}\"".format(key, converter, exc_))
+        raise Grid2OpException(
+            'Impossible to convert "{}" into class {} with exception '
+            '\n"{}"'.format(key, converter, exc_)
+        )
 
     if key in res_dict:
-        msg_err_ = "Key \"{}\" is already present in the result dictionary. This would override it" \
-                   " and is not supported."
+        msg_err_ = (
+            'Key "{}" is already present in the result dictionary. This would override it'
+            " and is not supported."
+        )
         raise Grid2OpException(msg_err_.format(key))
     res_dict[key] = res

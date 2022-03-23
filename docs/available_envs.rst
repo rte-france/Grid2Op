@@ -101,24 +101,25 @@ Description of some environments
 
 The provided list has been updated early April 2021:
 
-===========================  ===========  =============  ==========  ===============  ============================
-env name                     grid size     maintenance    opponent    redisp.           storage unit
-===========================  ===========  =============  ==========  ===============  ============================
-l2rpn_case14_sandbox          14 sub.       ❌               ❌  ️         ✔️ ️                 ❌
-l2rpn_wcci_2020               36 sub.       ✔️  ️         ❌  ️         ✔️ ️                ❌
-l2rpn_neurips_2020_track1     36 sub.       ✔️  ️         ✔️ ️       ✔️ ️                 ❌
-l2rpn_neurips_2020_track2     118 sub.      ✔️  ️         ❌   ️         ✔️ ️                 ❌
-\* educ_case14_redisp \*      14 sub.       ❌️             ❌  ️ ️       ✔️ ️                 ❌
-\* educ_case14_storage \*     14 sub.       ❌️             ❌   ️         ✔️ ️                 ✔️
-\* rte_case5_example \*       5 sub.        ❌️             ❌  ️ ️        ❌ ️ ️                  ❌
-\* educ_case14_redisp \*      14 sub.       ❌️             ❌   ️         ✔️ ️                  ❌
-\* educ_case14_storage \*     14 sub.       ❌️             ❌  ️          ✔️      ️             ❌
-\* rte_case14_opponent \*     14 sub.       ❌️             ✔️ ️        ❌ ️ ️                  ❌
-\* rte_case14_realistic \*    14 sub.       ❌️             ❌ ️  ️        ✔️      ️             ❌
-\* rte_case14_redisp \*       14 sub.       ❌️             ❌ ️  ️        ✔️ ️                  ❌
-\* rte_case14_test \*         14 sub.       ❌️             ❌ ️  ️        ❌ ️ ️                  ❌
-\* rte_case118_example \*     118 sub.      ❌️             ❌   ️         ✔️ ️                  ❌
-===========================  ===========  =============  ==========  ===============  ============================
+================================  ===========  =============  ==========  ===============  ============================
+env name                          grid size     maintenance    opponent    redisp.           storage unit
+================================  ===========  =============  ==========  ===============  ============================
+:ref:`l2rpn_case14_sandbox`        14 sub.       ❌               ❌  ️         ✔️ ️                 ❌
+:ref:`l2rpn_wcci_2020`             36 sub.       ✔️  ️         ❌  ️         ✔️ ️                ❌
+:ref:`l2rpn_neurips_2020_track1`   36 sub.       ✔️  ️         ✔️ ️       ✔️ ️                 ❌
+:ref:`l2rpn_neurips_2020_track2`   118 sub.      ✔️  ️         ❌   ️         ✔️ ️                 ❌
+:ref:`l2rpn_icaps_2021`            36 sub.       ✔️  ️         ✔️ ️       ✔️ ️                 ❌
+\* educ_case14_redisp \*           14 sub.       ❌️             ❌  ️ ️       ✔️ ️                 ❌
+\* educ_case14_storage \*          14 sub.       ❌️             ❌   ️         ✔️ ️                 ✔️
+\* rte_case5_example \*            5 sub.        ❌️             ❌  ️ ️        ❌ ️ ️                  ❌
+\* educ_case14_redisp \*           14 sub.       ❌️             ❌   ️         ✔️ ️                  ❌
+\* educ_case14_storage \*          14 sub.       ❌️             ❌  ️          ✔️      ️             ❌
+\* rte_case14_opponent \*          14 sub.       ❌️             ✔️ ️        ❌ ️ ️                  ❌
+\* rte_case14_realistic \*         14 sub.       ❌️             ❌ ️  ️        ✔️      ️             ❌
+\* rte_case14_redisp \*            14 sub.       ❌️             ❌ ️  ️        ✔️ ️                  ❌
+\* rte_case14_test \*              14 sub.       ❌️             ❌ ️  ️        ❌ ️ ️                  ❌
+\* rte_case118_example \*          118 sub.      ❌️             ❌   ️         ✔️ ️                  ❌
+================================  ===========  =============  ==========  ===============  ============================
 
 To create regular environment, you can do:
 
@@ -177,6 +178,7 @@ For these testing environments (the one with \* around them in the above list):
     More information about each environment is provided in each of the sub section below
     (one sub section per environment)
 
+.. _l2rpn_case14_sandbox:
 
 l2rpn_case14_sandbox
 +++++++++++++++++++++
@@ -192,6 +194,33 @@ This grid looks like:
 
 |l2rpn_case14_sandbox_layout|
 
+.. _l2rpn_icaps_2021:
+
+l2rpn_icaps_2021
+++++++++++++++++
+
+This environment comes in 3 different "variations" (depending on the number of chronics available):
+
+- `l2rpn_icaps_2021_small` (1 GB equivalent of 50 years of powergrid data at 5 mins interval,
+  so `4 838 400` different steps !)
+- `l2rpn_icaps_2021_large` (4.8 GB equivalent of ~250 years of powergrid data at 5 mins interval,
+  so `23 804 928` different steps !)
+- `l2rpn_icaps_2021` (use it for test only, only a few snapshots are available)
+
+We recommend to create this environment with:
+
+.. code-block:: python
+
+    import grid2op
+    env_name  = "l2rpn_icaps_2021_small"
+    env = grid2op.make(env_name)
+
+It is based on the same powergrid as the :ref:`l2rpn_neurips_2020_track1` environment
+and was used for the L2RPN ICAPS 2021 competition. It counts 36 substations, 59
+powerlines, 22 generators and 37 loads.
+
+
+.. _l2rpn_neurips_2020_track1:
 
 l2rpn_neurips_2020_track1
 +++++++++++++++++++++++++++
@@ -199,9 +228,9 @@ l2rpn_neurips_2020_track1
 This environment comes in 3 different "variations" (depending on the number of chronics available):
 
 - `l2rpn_neurips_2020_track1_small` (900 MB, equivalent of 48 years of powergrid data at 5 mins interval,
-  so `5 045 760` different steps !)
+  so `4 644 864` different steps !)
 - `l2rpn_neurips_2020_track1_large` (4.5 GB, equivalent of 240 years of powergrid data at 5 mins interval,
-  so `25 228 800` different steps.)
+  so `23 22 4320` different steps.)
 - `l2rpn_neurips_2020_track1` (use it for test only, only a few snapshots are available)
 
 We recommend to create this environment with:
@@ -228,6 +257,8 @@ One of the specificity of this grid is that it is actually a subset of a bigger 
 This explains why there can be some "negative loads" in this environment. Indeed, this loads represent interconnection
 with other part of the original grid (emphasize in green in the figure above).
 
+
+.. _l2rpn_neurips_2020_track2:
 
 l2rpn_neurips_2020_track2
 +++++++++++++++++++++++++++
@@ -258,6 +289,8 @@ powerlines, 62 generators and 99 loads. The grid is represented in the figure be
 
 This grid is, as specified in the previous paragraph, a "super set" of the grid used in the other track. It does not
 count any "interconnection" with other types of grid.
+
+.. _l2rpn_wcci_2020:
 
 l2rpn_wcci_2020
 +++++++++++++++++++++++++++

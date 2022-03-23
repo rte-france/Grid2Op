@@ -3,12 +3,12 @@ Change Log
 
 [TODO]
 --------------------
-- [???] Create a "Simulator" class that is like a backend but with which
-  you can interact more easily with grid2op actions for example (it should
-  also returns grid2op observations !)
-- [???] add the attributes "gen_margin_up" and "gen_margin_down" in the observations.
+- [???] have dedicated type of actions / observation for each available 
+  environment, defined in the "conf.py" file (to make possible the use of different
+  grid2op version)
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
+- [???] model better the voltage, include voltage constraints
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
 - [???] add a "_cst_" or something in the `const` member of all the classes
 - [???] in deepcopy of env, make tests that the "pointers" are properly propagated in the attributes (for example
@@ -41,6 +41,10 @@ Change Log
 - [BREAKING] the size of the continuous action space for the redispatching in
   case of gym compatibility has also been adjusted to be consistent with curtailment.
   Before it has the size of `env.n_gen` now `np.sum(env.gen_redispatchable)`.
+- [BREAKING] move the `_ObsEnv` module to `Environment` (was before in `Observation`).
+- [BREAKING] adding the `curtailment_limit_effective` in the observation converted to gym. This changes
+  the sizes of the gym observation.
+- [FIXED] a bug preventing to use `backend.update_from_obs` when there are shunts on the grid for `PandapowerBackend`
 - [FIXED] a bug in the gym action space: see issue https://github.com/rte-france/Grid2Op/issues/281
 - [FIXED] a bug in the gym box action space: see issue https://github.com/rte-france/Grid2Op/issues/283
 - [FIXED] a bug when using `MultifolderWithCache` and `Runner` (see issue https://github.com/rte-france/Grid2Op/issues/285)
@@ -52,14 +56,26 @@ Change Log
   (previously it was only a string) when redispatching was illegal.
 - [FIXED] a bug in `env.train_val_split_random` when some non chronics files where present in the
   "chronics" folder of the environment.
+- [FIXED] an error in the redispatching: in some cases, the environment detected that the redispatching was infeasible when it
+  was not and in some others it did not detect when it while it was infeasible. This was mainly the case
+  when curtailment and storage units were heavily modified.
+- [FIXED] now possible to create an environment with the `FromNPY` chronixcs even if the "chronics" folder is absent. 
+- [FIXED] a bug preventing to converte observation as networkx graph with oldest version of numpy and newest version of scipy.
 - [ADDED] a function `normalize_attr` allowing to easily scale some data for the
   `BoxGymObsSpace` and `BoxGymActSpace`
 - [ADDED] support for distributed slack in pandapower (if supported)
 - [ADDED] an attribute `self.infos` for the BaseEnv that contains the "info" return value of `env.step(...)`
 - [ADDED] the possibility to shuffle the chronics of a `GymEnv` (the default behavior is now to shuffle them)
+- [ADDED] two attribtues for the observation: `obs.gen_margin_up` and `obs.gen_margin_down`
 - [IMPROVED] better difference between env_path and grid_path in environments.
 - [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower
+- [IMPROVED] doc of observation module (some attributes were missing)
+- [IMPROVED] officially drop python 3.6 supports (which could not benefit from all the features)
+- [IMPROVED] add support for setting the maximum number of iteration in the `PandaPowerBackend`
+- [IMPROVED] when the curtailment / storage is too "strong" at a given step, the environment will now allow 
+  every controllable turned-on generators to mitigate it. This should increase the possibility to act on the
+  curtailment and storage units without "breaking" the environment. 
 
 [1.6.5] - 2022-01-19
 ---------------------

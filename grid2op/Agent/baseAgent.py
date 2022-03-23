@@ -27,6 +27,7 @@ class BaseAgent(RandomObject, ABC):
         be illegal or ambiguous, and so lead to a "game over" or to a error. But at least it will have a proper size.
 
     """
+
     def __init__(self, action_space):
         RandomObject.__init__(self)
         self.action_space = copy.deepcopy(action_space)

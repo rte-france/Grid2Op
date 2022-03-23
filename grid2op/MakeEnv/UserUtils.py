@@ -68,9 +68,10 @@ def list_available_local_env():
 
     for el in os.listdir(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA):
         tmp_dir = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, el)
-        if (os.path.exists(os.path.join(tmp_dir, "config.py")) and \
-            os.path.exists(os.path.join(tmp_dir, "grid.json"))) or \
-            os.path.exists(os.path.join(tmp_dir, ".multimix")):
+        if (
+            os.path.exists(os.path.join(tmp_dir, "config.py"))
+            and os.path.exists(os.path.join(tmp_dir, "grid.json"))
+        ) or os.path.exists(os.path.join(tmp_dir, ".multimix")):
             res.append(el)
     return res
 
@@ -100,7 +101,14 @@ def list_available_test_env():
     """
     from grid2op.MakeEnv.Make import TEST_DEV_ENVS
     import re
-    res = sorted([el for el in TEST_DEV_ENVS.keys() if re.match("(^rte_.*)|(^l2rpn_.*)|(^educ_.*)", el) is not None])
+
+    res = sorted(
+        [
+            el
+            for el in TEST_DEV_ENVS.keys()
+            if re.match("(^rte_.*)|(^l2rpn_.*)|(^educ_.*)", el) is not None
+        ]
+    )
     return res
 
 
@@ -156,15 +164,25 @@ def change_local_dir(new_path):
     try:
         new_path = str(new_path)
     except:
-        raise Grid2OpException("The new path should be convertible to str. It is currently \"{}\"".format(new_path))
+        raise Grid2OpException(
+            'The new path should be convertible to str. It is currently "{}"'.format(
+                new_path
+            )
+        )
 
     root_dir = os.path.split(new_path)[0]
     if not os.path.exists(root_dir):
-        raise Grid2OpException("Data cannot be stored in \"{}\" as the base path of this directory (\"{}\") does "
-                               "not exists.".format(new_path, root_dir))
+        raise Grid2OpException(
+            'Data cannot be stored in "{}" as the base path of this directory ("{}") does '
+            "not exists.".format(new_path, root_dir)
+        )
 
     if not os.path.isdir(new_path):
-        raise Grid2OpException("Data cannot be stored in \"{}\" as it is a file and not a directory.".format(new_path))
+        raise Grid2OpException(
+            'Data cannot be stored in "{}" as it is a file and not a directory.'.format(
+                new_path
+            )
+        )
 
     newconfig = {}
 
@@ -173,8 +191,10 @@ def change_local_dir(new_path):
             with open(DEFAULT_PATH_CONFIG, "r", encoding="utf-8") as f:
                 newconfig = json.load(f)
         except:
-            raise Grid2OpException("Impossible to read the grid2op configuration files \"{}\". Make sure it is a "
-                                   "valid json encoded with \"utf-8\" encoding.".format(DEFAULT_PATH_CONFIG))
+            raise Grid2OpException(
+                'Impossible to read the grid2op configuration files "{}". Make sure it is a '
+                'valid json encoded with "utf-8" encoding.'.format(DEFAULT_PATH_CONFIG)
+            )
 
     newconfig[KEY_DATA_PATH] = new_path
 
@@ -182,7 +202,9 @@ def change_local_dir(new_path):
         with open(DEFAULT_PATH_CONFIG, "w", encoding="utf-8") as f:
             json.dump(fp=f, obj=newconfig, sort_keys=True, indent=4)
     except:
-        raise Grid2OpException("Impossible to write the grid2op configuration files \"{}\". Make sure you have "
-                               "writing access to it.".format(DEFAULT_PATH_CONFIG))
+        raise Grid2OpException(
+            'Impossible to write the grid2op configuration files "{}". Make sure you have '
+            "writing access to it.".format(DEFAULT_PATH_CONFIG)
+        )
 
     grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA = new_path

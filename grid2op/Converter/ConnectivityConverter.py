@@ -160,10 +160,13 @@ class ConnectivityConverter(Converter):
     This heuristic tries to act on as little elements as possible.
 
     """
+
     def __init__(self, action_space):
         if not action_space.supports_type("set_bus"):
-            raise RuntimeError("It is not possible to use the connectivity converter if the action space do not "
-                               "support the \"set_bus\" argument.")
+            raise RuntimeError(
+                "It is not possible to use the connectivity converter if the action space do not "
+                'support the "set_bus" argument.'
+            )
 
         Converter.__init__(self, action_space)
         self.__class__ = ConnectivityConverter.init_grid(action_space)
@@ -208,11 +211,23 @@ class ConnectivityConverter(Converter):
             next_gen = g_id[next_gen_] if g_id.shape[0] > 0 else None
             next_lor = lor_id[next_lor_] if lor_id.shape[0] > 0 else None
             next_lex = lex_id[next_lex_] if lex_id.shape[0] > 0 else None
-            next_storage = storage_id[next_storage_] if storage_id.shape[0] > 0 else None
+            next_storage = (
+                storage_id[next_storage_] if storage_id.shape[0] > 0 else None
+            )
             for id_i in range(nb_element):
-                type_i, id_obj_i = self._get_id_from_obj(id_i,
-                                                         c_pos, g_pos, lor_pos, lex_pos, storage_pos,
-                                                         next_load, next_gen, next_lor, next_lex, next_storage)
+                type_i, id_obj_i = self._get_id_from_obj(
+                    id_i,
+                    c_pos,
+                    g_pos,
+                    lor_pos,
+                    lex_pos,
+                    storage_pos,
+                    next_load,
+                    next_gen,
+                    next_lor,
+                    next_lex,
+                    next_storage,
+                )
                 if type_i == "load":
                     next_load_ += 1
                     next_load = c_id[next_load_] if c_id.shape[0] > next_load_ else None
@@ -221,13 +236,21 @@ class ConnectivityConverter(Converter):
                     next_gen = g_id[next_gen_] if g_id.shape[0] > next_gen_ else None
                 elif type_i == "line_or":
                     next_lor_ += 1
-                    next_lor = lor_id[next_lor_] if lor_id.shape[0] > next_lor_ else None
+                    next_lor = (
+                        lor_id[next_lor_] if lor_id.shape[0] > next_lor_ else None
+                    )
                 elif type_i == "line_ex":
                     next_lex_ += 1
-                    next_lex = lex_id[next_lex_] if lex_id.shape[0] > next_lex_ else None
+                    next_lex = (
+                        lex_id[next_lex_] if lex_id.shape[0] > next_lex_ else None
+                    )
                 elif type_i == "storage":
                     next_storage_ += 1
-                    next_storage = storage_id[next_storage_] if storage_id.shape[0] > next_storage_ else None
+                    next_storage = (
+                        storage_id[next_storage_]
+                        if storage_id.shape[0] > next_storage_
+                        else None
+                    )
                 else:
                     raise RuntimeError(f"Unsupported object type: {type_i}")
                 my_types.append((type_i, id_obj_i))
@@ -236,7 +259,7 @@ class ConnectivityConverter(Converter):
             for id_i in range(nb_element):
                 id_i_ = my_types[id_i]
                 pos_topo_i = pos_topo[id_i]
-                for id_j in range(id_i+1, nb_element):
+                for id_j in range(id_i + 1, nb_element):
                     id_j_ = my_types[id_j]
                     pos_topo_j = pos_topo[id_j]
                     self.obj_type.append((sub_id, id_i_, id_j_))
@@ -250,9 +273,20 @@ class ConnectivityConverter(Converter):
         if "max_sub_changed" in kwargs:
             self.max_sub_changed = int(kwargs["max_sub_changed"])
 
-    def _get_id_from_obj(self, id_,
-                         c_pos, g_pos, lor_pos, lex_pos, storage_pos,
-                         next_load, next_gen, next_lor, next_lex, next_storage):
+    def _get_id_from_obj(
+        self,
+        id_,
+        c_pos,
+        g_pos,
+        lor_pos,
+        lex_pos,
+        storage_pos,
+        next_load,
+        next_gen,
+        next_lor,
+        next_lex,
+        next_storage,
+    ):
         if id_ in c_pos:
             type_ = "load"
             id_obj_ = next_load
@@ -341,14 +375,18 @@ class ConnectivityConverter(Converter):
         """
         encoded_act = np.array(encoded_act).astype(dt_float)
         if encoded_act.shape[0] != self.n:
-            raise RuntimeError(f"Invalid encoded_act shape provided it should be {self.n}")
-        if np.any((encoded_act < -1.) | (encoded_act > 1.)):
-            errors = (encoded_act < -1.) | (encoded_act > 1.)
+            raise RuntimeError(
+                f"Invalid encoded_act shape provided it should be {self.n}"
+            )
+        if np.any((encoded_act < -1.0) | (encoded_act > 1.0)):
+            errors = (encoded_act < -1.0) | (encoded_act > 1.0)
             indexes = np.where(errors)[0]
-            raise RuntimeError(f"All elements of \"encoded_act\" must be in range [-1, 1]. Please check your "
-                               f"encoded action at positions {indexes[:5]}... (only first 5 displayed)")
+            raise RuntimeError(
+                f'All elements of "encoded_act" must be in range [-1, 1]. Please check your '
+                f"encoded action at positions {indexes[:5]}... (only first 5 displayed)"
+            )
 
-        act_want_change = encoded_act != 0.
+        act_want_change = encoded_act != 0.0
         encoded_act_filtered = encoded_act[act_want_change]
         if encoded_act_filtered.shape[0] == 0:
             # do nothing action in this case
@@ -374,7 +412,7 @@ class ConnectivityConverter(Converter):
                     act = tmp_act
                     disag = tmp_disag
         else:
-            raise RuntimeError("Unknown parameters \"explore\" provided.")
+            raise RuntimeError('Unknown parameters "explore" provided.')
 
         self.last_disagreement = disag
         return act
@@ -384,14 +422,18 @@ class ConnectivityConverter(Converter):
         topo_vect = np.zeros(self.dim_topo, dtype=dt_int)
         subs_added = np.full(self.n_sub, fill_value=False)
         sub_changed = 0
-        order_id = []  # id of the pairs i have the right to modify (i can't always modifies everything due to
+        order_id = (
+            []
+        )  # id of the pairs i have the right to modify (i can't always modifies everything due to
         # limit on self.max_sub_changed
         for el in order:
             my_sub = self.subs_ids[el]
             if not subs_added[my_sub]:
                 if sub_changed < self.max_sub_changed:
                     subs_added[my_sub] = True
-                    topo_vect[self.pos_topo[el, 0]] = 1  # assign to +1 the first element of the substation met
+                    topo_vect[
+                        self.pos_topo[el, 0]
+                    ] = 1  # assign to +1 the first element of the substation met
                     sub_changed += 1
                     order_id.append(el)  # i need to modify this element later on:
                     # because it's the first element of a substation and i have the right to modify the substation
@@ -413,14 +455,14 @@ class ConnectivityConverter(Converter):
                     if val > 0.0:
                         # they are likely on same bus
                         topo_vect[bus_2_id] = topo_vect[bus_1_id]
-                    elif val < 0.:
+                    elif val < 0.0:
                         # they are likely on different bus
                         topo_vect[bus_2_id] = 1 - topo_vect[bus_1_id] + 2
                 elif need_1 and not need_2:
                     if val > 0.0:
                         # they are likely on same bus
                         topo_vect[bus_1_id] = topo_vect[bus_2_id]
-                    elif val < 0.:
+                    elif val < 0.0:
                         # they are likely on different bus
                         topo_vect[bus_1_id] = 1 - topo_vect[bus_2_id] + 2
                 elif need_1 and need_2:
@@ -447,15 +489,24 @@ class ConnectivityConverter(Converter):
 
         Lower disagreement is always better.
         """
-        set_component = encoded_act != 0.
+        set_component = encoded_act != 0.0
         bus_el1 = topo_vect[self.pos_topo[:, 0]]
         bus_el2 = topo_vect[self.pos_topo[:, 1]]
         # for the element that will connected
         together = 1 - encoded_act[(bus_el1 == bus_el2) & (bus_el1 > 0) & set_component]
         # for the element that will be disconnected
-        split = 1 + encoded_act[(bus_el1 != bus_el2) & (bus_el1 > 0) & (bus_el2 > 0) & set_component]
+        split = (
+            1
+            + encoded_act[
+                (bus_el1 != bus_el2) & (bus_el1 > 0) & (bus_el2 > 0) & set_component
+            ]
+        )
         # for the elements that are not affected by the action (i don't know where they will be: maximum penalty)
-        not_set = np.full(np.sum(((bus_el1 == 0) | (bus_el2 == 0)) & set_component), fill_value=2, dtype=dt_int)
+        not_set = np.full(
+            np.sum(((bus_el1 == 0) | (bus_el2 == 0)) & set_component),
+            fill_value=2,
+            dtype=dt_int,
+        )
 
         # total disagreement
         raw_disag = together.sum() + split.sum() + not_set.sum()
@@ -463,7 +514,7 @@ class ConnectivityConverter(Converter):
         return scaled_disag
 
     def sample(self):
-        coded_act = self.space_prng.rand(self.n) * 2. - 1.
+        coded_act = self.space_prng.rand(self.n) * 2.0 - 1.0
         return self.convert_act(coded_act)
 
     def which_pairs(self, pair_id):
@@ -486,14 +537,18 @@ class ConnectivityConverter(Converter):
         try:
             pair_id = int(pair_id)
         except Exception as exc_:
-            raise RuntimeError(f"Invalid \"pair_id\" provided, it should be of integer type. Error was: \n\"{exc_}\"")
+            raise RuntimeError(
+                f'Invalid "pair_id" provided, it should be of integer type. Error was: \n"{exc_}"'
+            )
         if pair_id < 0:
-            raise RuntimeError(f"\"pair_id\" should be positive. You provided {pair_id}")
+            raise RuntimeError(f'"pair_id" should be positive. You provided {pair_id}')
         if pair_id >= self.n:
-            raise RuntimeError(f"\"pair_id\" should be lower than the size of the action space, in this case "
-                               f"{self.n}. You provided {pair_id}")
+            raise RuntimeError(
+                f'"pair_id" should be lower than the size of the action space, in this case '
+                f"{self.n}. You provided {pair_id}"
+            )
         return self.obj_type[pair_id]
 
     def do_nothing_encoded_act(self):
-        """ returns the do nothing encoding act"""
+        """returns the do nothing encoding act"""
         return np.zeros(self.n, dtype=dt_float)

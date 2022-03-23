@@ -18,7 +18,7 @@ class LinesCapacityReward(BaseReward):
     Returns min reward if all lines are used at max capacity
 
     Compared to `:class:L2RPNReward`:
-    This reward is linear (instead of quadratic) and only 
+    This reward is linear (instead of quadratic) and only
     considers connected lines capacities
 
     Examples
@@ -39,6 +39,7 @@ class LinesCapacityReward(BaseReward):
         # the reward is computed with the LinesCapacityReward class
 
     """
+
     def __init__(self):
         BaseReward.__init__(self)
         self.reward_min = dt_float(0.0)
@@ -47,8 +48,7 @@ class LinesCapacityReward(BaseReward):
     def initialize(self, env):
         pass
 
-    def __call__(self,  action, env, has_error,
-                 is_done, is_illegal, is_ambiguous):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min
 
@@ -56,7 +56,9 @@ class LinesCapacityReward(BaseReward):
         n_connected = np.sum(obs.line_status.astype(dt_float))
         usage = np.sum(obs.rho[obs.line_status == True])
         usage = np.clip(usage, 0.0, float(n_connected))
-        reward = np.interp(n_connected - usage,
-                           [dt_float(0.0), float(n_connected)],
-                           [self.reward_min, self.reward_max])
+        reward = np.interp(
+            n_connected - usage,
+            [dt_float(0.0), float(n_connected)],
+            [self.reward_min, self.reward_max],
+        )
         return reward

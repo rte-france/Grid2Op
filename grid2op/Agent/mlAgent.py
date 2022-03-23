@@ -17,8 +17,11 @@ class MLAgent(AgentWithConverter):
 
     In this class, the "my_act" is expected to return a vector that can be directly converted into a valid action.
     """
+
     def __init__(self, action_space, action_space_converter=ToVect, **kwargs_converter):
-        AgentWithConverter.__init__(self, action_space, action_space_converter, **kwargs_converter)
+        AgentWithConverter.__init__(
+            self, action_space, action_space_converter, **kwargs_converter
+        )
         self.do_nothing_vect = action_space({}).to_vect()
 
     def my_act(self, transformed_observation, reward, done=False):

@@ -167,3 +167,4 @@ workflows:
           - install37
           - install38
           - install39
+          - install310

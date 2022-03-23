@@ -1,5 +1,5 @@
 __all__ = [
-    "BasePlot", 
+    "BasePlot",
     "PlotMatplotlib",
     "PlotPlotly",
     "PlotPyGame",
@@ -20,6 +20,8 @@ import warnings
 class PlotGraph(BasePlot):
     def __init__(self, *args, **kwargs):
         super().__init__(self, *args, **kwargs)
-        warnings.warn("PlotGraph has been renamed to BasePlot"
-                      " -- The old name will be removed in future versions",
-                      category=PendingDeprecationWarning)
+        warnings.warn(
+            "PlotGraph has been renamed to BasePlot"
+            " -- The old name will be removed in future versions",
+            category=PendingDeprecationWarning,
+        )

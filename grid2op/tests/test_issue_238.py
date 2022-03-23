@@ -24,22 +24,25 @@ class Issue224Tester(unittest.TestCase):
             rho_normalization = [1.0]
             opponent_attack_cooldown = 2  # need to be at least 1
             opponent_attack_duration = 12
-            opponent_budget_per_ts = 9999.
-            opponent_init_budget = 9999.
-            self.env = grid2op.make(env_nm,
-                                    test=True,
-                                    # chronics_class=ChangeNothing,
-                                    opponent_attack_cooldown=opponent_attack_cooldown,
-                                    opponent_attack_duration=opponent_attack_duration,
-                                    opponent_budget_per_ts=opponent_budget_per_ts,
-                                    opponent_init_budget=opponent_init_budget,
-                                    opponent_action_class=PowerlineSetAction,
-                                    opponent_class=WeightedRandomOpponent,
-                                    opponent_budget_class=BaseActionBudget,
-                                    kwargs_opponent={"lines_attacked": lines_attacked,
-                                                     "rho_normalization": rho_normalization,
-                                                     "attack_period": opponent_attack_cooldown}
-                                    )
+            opponent_budget_per_ts = 9999.0
+            opponent_init_budget = 9999.0
+            self.env = grid2op.make(
+                env_nm,
+                test=True,
+                # chronics_class=ChangeNothing,
+                opponent_attack_cooldown=opponent_attack_cooldown,
+                opponent_attack_duration=opponent_attack_duration,
+                opponent_budget_per_ts=opponent_budget_per_ts,
+                opponent_init_budget=opponent_init_budget,
+                opponent_action_class=PowerlineSetAction,
+                opponent_class=WeightedRandomOpponent,
+                opponent_budget_class=BaseActionBudget,
+                kwargs_opponent={
+                    "lines_attacked": lines_attacked,
+                    "rho_normalization": rho_normalization,
+                    "attack_period": opponent_attack_cooldown,
+                },
+            )
             self.env.seed(0)
             self.env.reset()
 
@@ -50,5 +53,7 @@ class Issue224Tester(unittest.TestCase):
         # TODO but i would need an env with a connected powerline with exactly 0 flow on it !
         # assert obs.rho[18] == 0., "line 18 should not have any flow"
 
-        res = self.env._opponent.attack(obs, self.env.action_space(), self.env.action_space(), 100, False)
+        res = self.env._opponent.attack(
+            obs, self.env.action_space(), self.env.action_space(), 100, False
+        )
         assert len(res) == 2, "it should return something of length 2"

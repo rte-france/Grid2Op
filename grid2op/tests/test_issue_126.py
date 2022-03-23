@@ -30,23 +30,35 @@ class Issue126Tester(unittest.TestCase):
             env = make(dataset, test=True)
 
         agent = DeltaRedispatchRandomAgent(env.action_space)
-        runner = Runner(**env.get_params_for_runner(),
-                        agentClass=None,
-                        agentInstance=agent)
+        runner = Runner(
+            **env.get_params_for_runner(), agentClass=None, agentInstance=agent
+        )
         with tempfile.TemporaryDirectory() as tmpdirname:
-            res = runner.run(nb_episode=nb_episode,
-                             path_save=tmpdirname,
-                             nb_process=1,
-                             max_iter=nb_timesteps,
-                             env_seeds=[0],
-                             agent_seeds=[0],
-                             pbar=False)
+            res = runner.run(
+                nb_episode=nb_episode,
+                path_save=tmpdirname,
+                nb_process=1,
+                max_iter=nb_timesteps,
+                env_seeds=[0],
+                agent_seeds=[0],
+                pbar=False,
+            )
             episode_data = EpisodeData.from_disk(tmpdirname, res[0][1])
-            
-        assert len(episode_data.actions.objects) - nb_timesteps == 0, "wrong number of actions {}".format(len(episode_data.actions.objects))
-        assert len(episode_data.actions) - nb_timesteps == 0, "wrong number of actions {}".format(len(episode_data.actions))
-        assert len(episode_data.observations.objects) - (nb_timesteps + 1) == 0, "wrong number of observations: {}".format(len(episode_data.observations.objects))
-        assert len(episode_data.observations) - (nb_timesteps + 1) == 0, "wrong number of observations {}".format( len(episode_data.observations))
+
+        assert (
+            len(episode_data.actions.objects) - nb_timesteps == 0
+        ), "wrong number of actions {}".format(len(episode_data.actions.objects))
+        assert (
+            len(episode_data.actions) - nb_timesteps == 0
+        ), "wrong number of actions {}".format(len(episode_data.actions))
+        assert (
+            len(episode_data.observations.objects) - (nb_timesteps + 1) == 0
+        ), "wrong number of observations: {}".format(
+            len(episode_data.observations.objects)
+        )
+        assert (
+            len(episode_data.observations) - (nb_timesteps + 1) == 0
+        ), "wrong number of observations {}".format(len(episode_data.observations))
 
 
 if __name__ == "__main__":

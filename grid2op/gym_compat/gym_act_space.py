@@ -10,7 +10,11 @@ from gym import spaces
 import warnings
 import numpy as np
 
-from grid2op.Environment import Environment, MultiMixEnvironment, BaseMultiProcessEnvironment
+from grid2op.Environment import (
+    Environment,
+    MultiMixEnvironment,
+    BaseMultiProcessEnvironment,
+)
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Converter.Converters import Converter
@@ -82,25 +86,27 @@ class GymActionSpace(_BaseGymSpaceConverter):
         grid2op_act = IdToAct.convert_act(converter_act)
 
     """
+
     # deals with the action space (it depends how it's encoded...)
-    keys_grid2op_2_human = {"prod_p": "prod_p",
-                            "prod_v": "prod_v",
-                            "load_p": "load_p",
-                            "load_q": "load_q",
-                            "_redispatch": "redispatch",
-                            "_set_line_status": "set_line_status",
-                            "_switch_line_status": "change_line_status",
-                            "_set_topo_vect": "set_bus",
-                            "_change_bus_vect": "change_bus",
-                            "_hazards": "hazards",
-                            "_maintenance": "maintenance",
-                            "_storage_power": "storage_power",
-                            "_curtail": "curtail",
-                            "_raise_alarm": "raise_alarm",
-                            'shunt_p': '_shunt_p',
-                            'shunt_q': '_shunt_q',
-                            'shunt_bus': '_shunt_bus',
-                            }
+    keys_grid2op_2_human = {
+        "prod_p": "prod_p",
+        "prod_v": "prod_v",
+        "load_p": "load_p",
+        "load_q": "load_q",
+        "_redispatch": "redispatch",
+        "_set_line_status": "set_line_status",
+        "_switch_line_status": "change_line_status",
+        "_set_topo_vect": "set_bus",
+        "_change_bus_vect": "change_bus",
+        "_hazards": "hazards",
+        "_maintenance": "maintenance",
+        "_storage_power": "storage_power",
+        "_curtail": "curtail",
+        "_raise_alarm": "raise_alarm",
+        "shunt_p": "_shunt_p",
+        "shunt_q": "_shunt_q",
+        "shunt_bus": "_shunt_bus",
+    }
     keys_human_2_grid2op = {v: k for k, v in keys_grid2op_2_human.items()}
 
     def __init__(self, env, converter=None, dict_variables=None):
@@ -110,17 +116,23 @@ class GymActionSpace(_BaseGymSpaceConverter):
         """
         if dict_variables is None:
             dict_variables = {}
-        if isinstance(env, (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)):
+        if isinstance(
+            env, (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)
+        ):
             # action_space is an environment
             self.initial_act_space = env.action_space
             self._init_env = env
         elif isinstance(env, ActionSpace) and converter is None:
-            warnings.warn("It is now deprecated to initialize an Converter with an "
-                          "action space. Please use an environment instead.")
+            warnings.warn(
+                "It is now deprecated to initialize an Converter with an "
+                "action space. Please use an environment instead."
+            )
             self.initial_act_space = env
             self._init_env = None
         else:
-            raise RuntimeError("GymActionSpace must be created with an Environment of an ActionSpace (or a Converter)")
+            raise RuntimeError(
+                "GymActionSpace must be created with an Environment of an ActionSpace (or a Converter)"
+            )
         dict_ = {}
         # TODO Make sure it works well !
         if converter is not None and isinstance(converter, Converter):
@@ -129,12 +141,16 @@ class GymActionSpace(_BaseGymSpaceConverter):
             dict_ = converter.get_gym_dict()
             self.__is_converter = True
         elif converter is not None:
-            raise RuntimeError("Impossible to initialize a gym action space with a converter of type \"{}\" "
-                               "A converter should inherit from grid2op.Converter".format(type(converter)))
+            raise RuntimeError(
+                'Impossible to initialize a gym action space with a converter of type "{}" '
+                "A converter should inherit from grid2op.Converter".format(
+                    type(converter)
+                )
+            )
         else:
-            self._fill_dict_act_space(dict_,
-                                      self.initial_act_space,
-                                      dict_variables=dict_variables)
+            self._fill_dict_act_space(
+                dict_, self.initial_act_space, dict_variables=dict_variables
+            )
             dict_ = self._fix_dict_keys(dict_)
             self.__is_converter = False
         _BaseGymSpaceConverter.__init__(self, dict_, dict_variables)
@@ -173,14 +189,22 @@ class GymActionSpace(_BaseGymSpaceConverter):
         or and is now present here, it will be re added in the final observation
         """
         if self._init_env is None:
-            raise RuntimeError("Impossible to reencode a space that has been initialized with an "
-                               "action space as input. Please provide a valid")
+            raise RuntimeError(
+                "Impossible to reencode a space that has been initialized with an "
+                "action space as input. Please provide a valid"
+            )
         if self.__is_converter:
-            raise RuntimeError("Impossible to reencode a space that is a converter space.")
+            raise RuntimeError(
+                "Impossible to reencode a space that is a converter space."
+            )
 
         my_dict = self.get_dict_encoding()
         if fun is not None and not isinstance(fun, BaseGymAttrConverter):
-            raise RuntimeError("Impossible to initialize a converter with a function of type {}".format(type(fun)))
+            raise RuntimeError(
+                "Impossible to initialize a converter with a function of type {}".format(
+                    type(fun)
+                )
+            )
         if key in self.keys_human_2_grid2op:
             key2 = self.keys_human_2_grid2op[key]
         else:
@@ -199,9 +223,9 @@ class GymActionSpace(_BaseGymSpaceConverter):
 
     def _fill_dict_act_space(self, dict_, action_space, dict_variables):
         # TODO what about dict_variables !!!
-        for attr_nm, sh, dt in zip(action_space.attr_list_vect,
-                                   action_space.shape,
-                                   action_space.dtype):
+        for attr_nm, sh, dt in zip(
+            action_space.attr_list_vect, action_space.shape, action_space.dtype
+        ):
             if sh == 0:
                 # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
                 continue
@@ -216,15 +240,9 @@ class GymActionSpace(_BaseGymSpaceConverter):
             elif dt == dt_int:
                 # discrete action space
                 if attr_nm == "_set_line_status":
-                    my_type = spaces.Box(low=-1,
-                                         high=1,
-                                         shape=shape,
-                                         dtype=dt)
+                    my_type = spaces.Box(low=-1, high=1, shape=shape, dtype=dt)
                 elif attr_nm == "_set_topo_vect":
-                    my_type = spaces.Box(low=-1,
-                                         high=2,
-                                         shape=shape,
-                                         dtype=dt)
+                    my_type = spaces.Box(low=-1, high=2, shape=shape, dtype=dt)
             elif dt == dt_bool:
                 # boolean observation space
                 my_type = self._boolean_type(sh)
@@ -242,13 +260,13 @@ class GymActionSpace(_BaseGymSpaceConverter):
                     shape = None
                 elif attr_nm == "prod_v":
                     # voltages can't be negative
-                    low = 0.
+                    low = 0.0
                 elif attr_nm == "_redispatch":
                     # redispatch
                     low = -1.0 * action_space.gen_max_ramp_down
                     high = 1.0 * action_space.gen_max_ramp_up
-                    low[~action_space.gen_redispatchable] = 0.
-                    high[~action_space.gen_redispatchable] = 0.
+                    low[~action_space.gen_redispatchable] = 0.0
+                    high[~action_space.gen_redispatchable] = 0.0
                 elif attr_nm == "_curtail":
                     # curtailment
                     low = np.zeros(action_space.n_gen, dtype=dt_float)
@@ -324,16 +342,19 @@ class GymActionSpace(_BaseGymSpaceConverter):
             gym_action = self.initial_act_space.convert_action_to_gym(action)
         else:
             # in that case action should be an instance of grid2op BaseAction
-            assert isinstance(action, BaseAction), "impossible to convert an action not coming from grid2op"
+            assert isinstance(
+                action, BaseAction
+            ), "impossible to convert an action not coming from grid2op"
             # TODO this do not work in case of multiple converter,
             #  TODO this should somehow call tmp = self._keys_encoding[internal_k].g2op_to_gym(v)
-            gym_action = self._base_to_gym(self.spaces.keys(),
-                                           action,
-                                           dtypes={k: self.spaces[k].dtype for k in self.spaces},
-                                           converter=self.keys_human_2_grid2op
-                                           )
+            gym_action = self._base_to_gym(
+                self.spaces.keys(),
+                action,
+                dtypes={k: self.spaces[k].dtype for k in self.spaces},
+                converter=self.keys_human_2_grid2op,
+            )
         return gym_action
 
     def close(self):
         if hasattr(self, "_init_env"):
-            self._init_env = None   # this doesn't own the environment
+            self._init_env = None  # this doesn't own the environment

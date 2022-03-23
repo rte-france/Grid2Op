@@ -15,10 +15,11 @@ class NeverAttackBudget(BaseActionBudget):
 
     It SHOULD NOT be used if the opponent is allowed to take any actions!
     """
+
     def __init__(self, action_space):
         BaseActionBudget.__init__(self, action_space)
 
     def __call__(self, attack):
         if attack is not None:
             return np.inf
-        return 0.
+        return 0.0

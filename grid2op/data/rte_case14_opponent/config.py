@@ -35,15 +35,24 @@ config = {
         230.9401074,
         170.79945452,
         3402.24266,
-        3402.24266
+        3402.24266,
     ],
     "names_chronics_to_grid": None,
-    "opponent_attack_cooldown": 12*24,
-    "opponent_attack_duration": 12*4,
+    "opponent_attack_cooldown": 12 * 24,
+    "opponent_attack_duration": 12 * 4,
     "opponent_budget_per_ts": 0.5,
-    "opponent_init_budget": 0.,
+    "opponent_init_budget": 0.0,
     "opponent_action_class": PowerlineSetAction,
     "opponent_class": RandomLineOpponent,
     "opponent_budget_class": BaseActionBudget,
-    "kwargs_opponent": {"lines_attacked": ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]}
+    "kwargs_opponent": {
+        "lines_attacked": [
+            "1_3_3",
+            "1_4_4",
+            "3_6_15",
+            "9_10_12",
+            "11_12_13",
+            "12_13_14",
+        ]
+    },
 }
