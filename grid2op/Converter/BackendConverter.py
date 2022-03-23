@@ -19,6 +19,7 @@ ERROR_ELEMENT_CONNECTED = (
     "No {0} connected at substation {1} for the target backend while a {0} is connected "
     "at substation {2} for the source backend"
 )
+ERROR_INVALID_VECTOR = "invalid vector: some element are not found in either source or target"
 
 
 class BackendConverter(Backend):
@@ -424,14 +425,14 @@ class BackendConverter(Backend):
     def _check_vect_valid(self, vect):
         assert np.all(
             vect >= 0
-        ), "invalid vector: some element are not found in either source or target"
+        ), ERROR_INVALID_VECTOR
         assert sorted(np.unique(vect)) == sorted(
             vect
-        ), "invalid vector: some element are not found in either source or target"
+        ), ERROR_INVALID_VECTOR
         if vect.shape[0] > 0:
             assert (
                 np.max(vect) == vect.shape[0] - 1
-            ), "invalid vector: some element are not found in either source or target"
+            ), ERROR_INVALID_VECTOR
 
     def _check_both_consistent(self, tg2sr, sr2tg):
         self._check_vect_valid(tg2sr)

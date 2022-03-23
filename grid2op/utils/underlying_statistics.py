@@ -157,7 +157,7 @@ class EpisodeStatistics(object):
         return np.load(path)["data"]
 
     def _clean_observations(self, path_tmp, episode_name):
-        full_path = os.path.join(path_tmp, episode_name, EpisodeData.OBSERVATIONS)
+        full_path = os.path.join(path_tmp, episode_name, EpisodeData.OBSERVATIONS_FILE)
         if not os.path.exists(full_path) or not os.path.isfile(full_path):
             # this is not a proper path for the observation
             return
@@ -180,7 +180,7 @@ class EpisodeStatistics(object):
                 os.path.join(path_tmp, episode_name, self.get_name_file(obs_nm)),
                 all_attr,
             )
-        self._delete_if_exists(path_tmp, episode_name, EpisodeData.OBSERVATIONS)
+        self._delete_if_exists(path_tmp, episode_name, EpisodeData.OBSERVATIONS_FILE)
 
     def _gather_all(self, li_episodes, dict_metadata, score_names):
         """gather all the data from all the episodes into large array (for easier access later on)"""
@@ -707,10 +707,10 @@ class EpisodeStatistics(object):
         li_episodes = EpisodeData.list_episode(self.path_save_stats)
         for path_tmp, episode_name in li_episodes:
             # remove the useless information (saved but not used)
-            self._delete_if_exists(path_tmp, episode_name, EpisodeData.ACTIONS)
+            self._delete_if_exists(path_tmp, episode_name, EpisodeData.ACTIONS_FILE)
             self._delete_if_exists(path_tmp, episode_name, EpisodeData.AG_EXEC_TIMES)
             self._delete_if_exists(path_tmp, episode_name, EpisodeData.LINES_FAILURES)
-            self._delete_if_exists(path_tmp, episode_name, EpisodeData.ENV_ACTIONS)
+            self._delete_if_exists(path_tmp, episode_name, EpisodeData.ENV_ACTIONS_FILE)
             self._delete_if_exists(path_tmp, episode_name, EpisodeData.ATTACK)
             if scores_func is not None:
                 self._retrieve_scores(path_tmp, episode_name)

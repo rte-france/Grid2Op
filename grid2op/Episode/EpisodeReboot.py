@@ -79,6 +79,7 @@ class _GridFromLog(GridValue):
         order_backend_subs,
         names_chronics_to_backend,
     ):
+        # This is required to follow the GridValue interface, but it needs to be empty here.
         pass
 
     def load_next(self):

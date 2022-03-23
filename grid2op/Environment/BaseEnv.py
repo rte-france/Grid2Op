@@ -235,7 +235,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         thermal_limit_a: Optional[np.ndarray] = None,
         epsilon_poly: float = 1e-4,  # precision of the redispatching algorithm
         tol_poly: float = 1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
-        other_rewards: dict = {},
+        other_rewards: dict = None,
         with_forecast: bool = True,
         opponent_action_class: type = DontAct,
         opponent_class: type = BaseOpponent,
@@ -244,16 +244,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         opponent_budget_class: type = NeverAttackBudget,
         opponent_attack_duration: int = 0,
         opponent_attack_cooldown: int = 99999,
-        kwargs_opponent: dict = {},
+        kwargs_opponent: dict = None,
         has_attention_budget: bool = False,
         attention_budget_cls: type = LinearAttentionBudget,
-        kwargs_attention_budget: dict = {},
+        kwargs_attention_budget: dict = None,
         logger: Optional[logging.Logger] = None,
         kwargs_observation: Optional[dict] = None,
         _is_test: bool = False,  # TODO not implemented !!
     ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
+        if other_rewards is None:
+            other_rewards = {}
+        if kwargs_attention_budget is None:
+            kwargs_attention_budget = {}
+        if kwargs_opponent is None:
+            kwargs_opponent = {}
+            
         self._is_test: bool = _is_test
         if logger is None:
             self.logger = logging.getLogger(__name__)

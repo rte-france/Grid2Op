@@ -30,6 +30,7 @@ from grid2op.Space import GridObjects
 
 # TODO be consistent with gen_* and prod_* also in dictionaries
 
+ERROR_ONLY_SINGLE_EL = "You can only the inspect the effect of an action on one single element"
 
 class BaseObservation(GridObjects):
     """
@@ -705,9 +706,7 @@ class BaseObservation(GridObjects):
                 or substation_id is not None
                 or storage_id is not None
             ):
-                raise Grid2OpException(
-                    "You can only the inspect the effect of an action on one single element"
-                )
+                raise Grid2OpException(ERROR_ONLY_SINGLE_EL)
             if load_id >= len(self.load_p):
                 raise Grid2OpException(
                     'There are no load of id "load_id={}" in this grid.'.format(load_id)
@@ -730,9 +729,7 @@ class BaseObservation(GridObjects):
                 or substation_id is not None
                 or storage_id is not None
             ):
-                raise Grid2OpException(
-                    "You can only the inspect the effect of an action on one single element"
-                )
+                raise Grid2OpException(ERROR_ONLY_SINGLE_EL)
             if gen_id >= len(self.gen_p):
                 raise Grid2OpException(
                     'There are no generator of id "gen_id={}" in this grid.'.format(
@@ -761,9 +758,7 @@ class BaseObservation(GridObjects):
                 res["theta"] = self.gen_theta[gen_id]
         elif line_id is not None:
             if substation_id is not None or storage_id is not None:
-                raise Grid2OpException(
-                    "You can only the inspect the effect of an action on one single element"
-                )
+                raise Grid2OpException(ERROR_ONLY_SINGLE_EL)
             if line_id >= len(self.p_or):
                 raise Grid2OpException(
                     'There are no powerline of id "line_id={}" in this grid.'.format(
@@ -808,9 +803,7 @@ class BaseObservation(GridObjects):
 
         elif storage_id is not None:
             if substation_id is not None:
-                raise Grid2OpException(
-                    "You can only the inspect the effect of an action on one single element"
-                )
+                raise Grid2OpException(ERROR_ONLY_SINGLE_EL)
             if storage_id >= self.n_storage:
                 raise Grid2OpException(
                     'There are no storage unit with id "storage_id={}" in this grid.'.format(

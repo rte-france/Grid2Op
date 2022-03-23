@@ -120,6 +120,7 @@ class Backend(GridObjects, ABC):
     my_bk_act_class = None
     _complete_action_class = None
 
+    ERR_INIT_POWERFLOW = "Power cannot be computed on the first time step, please check your data."
     def __init__(self, detailed_infos_for_cascading_failures=False):
         """
         Initialize an instance of Backend. This does nothing per se. Only the call to :func:`Backend.load_grid`
@@ -1809,30 +1810,22 @@ class Backend(GridObjects, ABC):
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_line_status()"')
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError(
-                "Power cannot be computed on the first time step, please check your data."
-            )
+            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_line_flow()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_line_flow()"')
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError(
-                "Power cannot be computed on the first time step, please check your data."
-            )
+            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_thermal_limit()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_thermal_limit()"')
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError(
-                "Power cannot be computed on the first time step, please check your data."
-            )
+            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_line_overflow()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_line_overflow()"')
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError(
-                "Power cannot be computed on the first time step, please check your data."
-            )
+            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
 
         tmp = self.generators_info()
         if len(tmp) != 3:

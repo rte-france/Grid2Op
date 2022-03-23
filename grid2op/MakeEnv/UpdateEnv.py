@@ -190,7 +190,7 @@ def _hash_env(
                 with open(full_path_file, "r", encoding="utf-8") as f:
                     text_ = f.read()
                     text_ = re.sub(
-                        "\s|\n|\r", "", text_
+                        "\s", "", text_
                     )  # this is done to ensure a compatibility between platform
                     # sometime git replaces the "\r\n" in windows with "\n" on linux / macos and it messes
                     # up the hash

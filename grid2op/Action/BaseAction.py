@@ -376,6 +376,9 @@ class BaseAction(GridObjects):
     _line_or_str = "line (origin)"
     _line_ex_str = "line (extremity)"
 
+    ERR_ACTION_CUT = 'The action added to me will be cut, because i don\'t support modification of "{}"'
+    ERR_NO_STOR_SET_BUS = 'Impossible to modify the storage bus (with "set") with this action type.'
+    
     def __init__(self):
         """
         INTERNAL USE ONLY
@@ -1143,8 +1146,7 @@ class BaseAction(GridObjects):
             old_finite = old_value[new_is_finite | old_is_finite]
             if np.any(new_finite != old_finite):
                 warnings.warn(
-                    'The action added to me will be cut, because i don\'t support modification of "{}"'
-                    "".format(attr_name)
+                    type(self).ERR_ACTION_CUT.format(attr_name)
                 )
         else:
             getattr(self, attr_name)[:] = new_value
@@ -1197,16 +1199,14 @@ class BaseAction(GridObjects):
         for el in other._dict_inj:
             if not el in self.attr_list_set:
                 warnings.warn(
-                    'The action added to me will be cut, because i don\'t support modification of "{}"'
-                    "".format(el)
+                    type(self).ERR_ACTION_CUT.format(el)
                 )
         # redispatching
         redispatching = other._redispatch
         if np.any(redispatching != 0.0):
             if "_redispatch" not in self.attr_list_set:
                 warnings.warn(
-                    'The action added to me will be cut, because i don\'t support modification of "{}"'
-                    "".format("_redispatch")
+                    type(self).ERR_ACTION_CUT.format("_redispatch")
                 )
             else:
                 ok_ind = np.isfinite(redispatching)
@@ -1218,8 +1218,7 @@ class BaseAction(GridObjects):
         if np.any(ok_ind):
             if "_storage_power" not in self.attr_list_set:
                 warnings.warn(
-                    'The action added to me will be cut, because i don\'t support modification of "{}"'
-                    "".format("_storage_power")
+                    type(self).ERR_ACTION_CUT.format("_storage_power")
                 )
             else:
                 self._storage_power[ok_ind] += set_storage[ok_ind]
@@ -1230,8 +1229,7 @@ class BaseAction(GridObjects):
         if np.any(ok_ind):
             if "_curtail" not in self.attr_list_set:
                 warnings.warn(
-                    'The action added to me will be cut, because i don\'t support modification of "{}"'
-                    "".format("_curtail")
+                    type(self).ERR_ACTION_CUT.format("_curtail")
                 )
             else:
                 self._curtail[ok_ind] = curtailment[ok_ind]
@@ -3687,9 +3685,7 @@ class BaseAction(GridObjects):
         It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
         """
         if "set_storage" not in self.authorized_keys:
-            raise IllegalAction(
-                'Impossible to modify the storage bus (with "set") with this action type.'
-            )
+            raise IllegalAction(type(self).ERR_NO_STOR_SET_BUS)
         res = self.set_bus[self.storage_pos_topo_vect]
         res.flags.writeable = False
         return res
@@ -3697,13 +3693,9 @@ class BaseAction(GridObjects):
     @storage_set_bus.setter
     def storage_set_bus(self, values):
         if "set_bus" not in self.authorized_keys:
-            raise IllegalAction(
-                'Impossible to modify the storage bus (with "set") with this action type.'
-            )
+            raise IllegalAction(type(self).ERR_NO_STOR_SET_BUS)
         if "set_storage" not in self.authorized_keys:
-            raise IllegalAction(
-                'Impossible to modify the storage bus (with "set") with this action type.'
-            )
+            raise IllegalAction(type(self).ERR_NO_STOR_SET_BUS)
         orig_ = self.storage_set_bus
         try:
             self._aux_affect_object_int(

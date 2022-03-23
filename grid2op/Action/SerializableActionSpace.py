@@ -36,14 +36,18 @@ class SerializableActionSpace(SerializableSpace):
 
     """
 
-    SET_STATUS = 0
-    CHANGE_STATUS = 1
-    SET_BUS = 2
-    CHANGE_BUS = 3
-    REDISPATCHING = 4
-    STORAGE_POWER = 5
-    RAISE_ALARM = 6
+    SET_STATUS_ID = 0
+    CHANGE_STATUS_ID = 1
+    SET_BUS_ID = 2
+    CHANGE_BUS_ID = 3
+    REDISPATCHING_ID = 4
+    STORAGE_POWER_ID = 5
+    RAISE_ALARM_ID = 6
 
+    ERR_MSG_WRONG_TYPE = ('The action to update using `ActionSpace` is of type "{}" '
+                         '"which is not the type of action handled by this action space "'
+                         '("{}")')
+    
     def __init__(self, gridobj, actionClass=BaseAction, _init_grid=True):
         """
         INTERNAL USE ONLY
@@ -96,20 +100,21 @@ class SerializableActionSpace(SerializableSpace):
 
     def _get_possible_action_types(self):
         rnd_types = []
+        cls = type(self)
         if "set_line_status" in self.actionClass.authorized_keys:
-            rnd_types.append(self.SET_STATUS)
+            rnd_types.append(cls.SET_STATUS_ID)
         if "change_line_status" in self.actionClass.authorized_keys:
-            rnd_types.append(self.CHANGE_STATUS)
+            rnd_types.append(cls.CHANGE_STATUS_ID)
         if "set_bus" in self.actionClass.authorized_keys:
-            rnd_types.append(self.SET_BUS)
+            rnd_types.append(cls.SET_BUS_ID)
         if "change_bus" in self.actionClass.authorized_keys:
-            rnd_types.append(self.CHANGE_BUS)
+            rnd_types.append(cls.CHANGE_BUS_ID)
         if "redispatch" in self.actionClass.authorized_keys:
-            rnd_types.append(self.REDISPATCHING)
+            rnd_types.append(cls.REDISPATCHING_ID)
         if self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
-            rnd_types.append(self.STORAGE_POWER)
+            rnd_types.append(cls.STORAGE_POWER_ID)
         if self.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
-            rnd_types.append(self.RAISE_ALARM)
+            rnd_types.append(cls.RAISE_ALARM_ID)
         return rnd_types
 
     def supports_type(self, action_type):
@@ -304,19 +309,19 @@ class SerializableActionSpace(SerializableSpace):
         # this sampling
         rnd_type = self.space_prng.choice(rnd_types)
 
-        if rnd_type == self.SET_STATUS:
+        if rnd_type == self.SET_STATUS_ID:
             rnd_update = self._sample_set_line_status()
-        elif rnd_type == self.CHANGE_STATUS:
+        elif rnd_type == self.CHANGE_STATUS_ID:
             rnd_update = self._sample_change_line_status()
-        elif rnd_type == self.SET_BUS:
+        elif rnd_type == self.SET_BUS_ID:
             rnd_update = self._sample_set_bus()
-        elif rnd_type == self.CHANGE_BUS:
+        elif rnd_type == self.CHANGE_BUS_ID:
             rnd_update = self._sample_change_bus()
-        elif rnd_type == self.REDISPATCHING:
+        elif rnd_type == self.REDISPATCHING_ID:
             rnd_update = self._sample_redispatch()
-        elif rnd_type == self.STORAGE_POWER:
+        elif rnd_type == self.STORAGE_POWER_ID:
             rnd_update = self._sample_storage_power()
-        elif rnd_type == self.RAISE_ALARM:
+        elif rnd_type == self.RAISE_ALARM_ID:
             rnd_update = self._sample_raise_alarm()
         else:
             raise Grid2OpException(
@@ -398,9 +403,7 @@ class SerializableActionSpace(SerializableSpace):
         else:
             if not isinstance(previous_action, self.actionClass):
                 raise AmbiguousAction(
-                    'The action to update using `ActionSpace` is of type "{}" '
-                    "which is not the type of action handled by this helper "
-                    '("{}")'.format(type(previous_action), self.actionClass)
+                    type(self).ERR_MSG_WRONG_TYPE.format(type(previous_action), self.actionClass)
                 )
             res = previous_action
         if line_id > self.n_line:
@@ -493,9 +496,7 @@ class SerializableActionSpace(SerializableSpace):
         else:
             if not isinstance(previous_action, self.actionClass):
                 raise AmbiguousAction(
-                    'The action to update using `ActionSpace` is of type "{}" '
-                    "which is not the type of action handled by this helper "
-                    '("{}")'.format(type(previous_action), self.actionClass)
+                    type(self).ERR_MSG_WRONG_TYPE.format(type(previous_action), self.actionClass)
                 )
             res = previous_action
         if line_id > self.n_line:
@@ -592,9 +593,7 @@ class SerializableActionSpace(SerializableSpace):
         else:
             if not isinstance(previous_action, self.actionClass):
                 raise AmbiguousAction(
-                    'The action to update using `ActionSpace` is of type "{}" '
-                    "which is not the type of action handled by this helper "
-                    '("{}")'.format(type(previous_action), self.actionClass)
+                    type(self).ERR_MSG_WRONG_TYPE.format(type(previous_action), self.actionClass)
                 )
             res = previous_action
 

@@ -140,9 +140,9 @@ class EpisodeData:
     TIMES = "episode_times.json"
     OTHER_REWARDS = "other_rewards.json"
     AG_EXEC_TIMES = "agent_exec_times.npz"
-    ACTIONS = "actions.npz"
-    ENV_ACTIONS = "env_modifications.npz"
-    OBSERVATIONS = "observations.npz"
+    ACTIONS_FILE = "actions.npz"
+    ENV_ACTIONS_FILE = "env_modifications.npz"
+    OBSERVATIONS_FILE = "observations.npz"
     LINES_FAILURES = "disc_lines_cascading_failure.npz"
     ATTACK = "opponent_attack.npz"
     REWARDS = "rewards.npz"
@@ -154,9 +154,9 @@ class EpisodeData:
         TIMES,
         OTHER_REWARDS,
         AG_EXEC_TIMES,
-        ACTIONS,
-        ENV_ACTIONS,
-        OBSERVATIONS,
+        ACTIONS_FILE,
+        ENV_ACTIONS_FILE,
+        OBSERVATIONS_FILE,
         LINES_FAILURES,
         ATTACK,
         REWARDS,
@@ -450,12 +450,12 @@ class EpisodeData:
             times = np.load(os.path.join(episode_path, EpisodeData.AG_EXEC_TIMES))[
                 "data"
             ]
-            actions = np.load(os.path.join(episode_path, EpisodeData.ACTIONS))["data"]
-            env_actions = np.load(os.path.join(episode_path, EpisodeData.ENV_ACTIONS))[
+            actions = np.load(os.path.join(episode_path, EpisodeData.ACTIONS_FILE))["data"]
+            env_actions = np.load(os.path.join(episode_path, EpisodeData.ENV_ACTIONS_FILE))[
                 "data"
             ]
             observations = np.load(
-                os.path.join(episode_path, EpisodeData.OBSERVATIONS)
+                os.path.join(episode_path, EpisodeData.OBSERVATIONS_FILE)
             )["data"]
             disc_lines = np.load(
                 os.path.join(episode_path, EpisodeData.LINES_FAILURES)
@@ -739,12 +739,12 @@ class EpisodeData:
                 os.path.join(self.episode_path, EpisodeData.AG_EXEC_TIMES),
                 data=self.times,
             )
-            self.actions.save(os.path.join(self.episode_path, EpisodeData.ACTIONS))
+            self.actions.save(os.path.join(self.episode_path, EpisodeData.ACTIONS_FILE))
             self.env_actions.save(
-                os.path.join(self.episode_path, EpisodeData.ENV_ACTIONS)
+                os.path.join(self.episode_path, EpisodeData.ENV_ACTIONS_FILE)
             )
             self.observations.save(
-                os.path.join(self.episode_path, EpisodeData.OBSERVATIONS)
+                os.path.join(self.episode_path, EpisodeData.OBSERVATIONS_FILE)
             )
             self.attacks.save(
                 os.path.join(os.path.join(self.episode_path, EpisodeData.ATTACK))
