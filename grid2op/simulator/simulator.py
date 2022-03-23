@@ -20,6 +20,20 @@ from grid2op.Exceptions import SimulatorError, InvalidRedispatching
 
 
 class Simulator(object):
+    """This class represents a "simulator". It allows to check the impact on this or that on th powergrid, quite 
+    like what human operators have at their disposal in control rooms.
+    
+    It behaves similarly to `env.step(...)` or `obs.simulate(...)` with a few key differences:
+    
+    - you can "chain" the call to simulator: `simulator.predict(...).predict(...).predict(...)`
+    - it does not take into account the "time": no cooldown on lines nor substation, storage
+      "state of charge" (energy) does not decrease when you use them
+    - no automatic line disconnection: lines are not disconnected when they are above their limit
+    - no opponent will act on the grid
+    
+    Please see the documentation for usage examples.
+    
+    """
     def __init__(
         self, backend: Optional[Backend], env: Optional[BaseEnv] = None, tol_redisp=1e-6
     ):
@@ -58,6 +72,13 @@ class Simulator(object):
 
     @property
     def converged(self) -> bool:
+        """
+        
+        Returns
+        -------
+        bool
+            Whether or not the powerflow has converged
+        """
         return self._converged
 
     @converged.setter
@@ -65,6 +86,19 @@ class Simulator(object):
         raise SimulatorError("Cannot set this property.")
 
     def copy(self) -> "Simulator":
+        """Allows to perform a (deep) copy of the simulator.
+
+        Returns
+        -------
+        Simulator
+            A (deep) copy of the simulator you want to copy.
+
+        Raises
+        ------
+        SimulatorError
+            In case the simulator is not initialized.
+            
+        """
         if self.current_obs is None:
             raise SimulatorError(
                 "Impossible to copy a non initialized Simulator. "
@@ -76,6 +110,29 @@ class Simulator(object):
         return res
 
     def change_backend(self, backend: Backend):
+        """You can use this function in case you want to change the "solver" use to perform the computation.
+        
+        For example, you could use a machine learning based model to do the computation (to accelerate them), provided
+        that you have at your disposal such an algorithm. 
+
+        .. warning::
+            The backend you pass as argument should be initialized with the same grid as the one currently in use.
+        
+        Notes
+        -----
+        Once changed, all the "simulator" that "derived" from this simulator will use the same backend types.
+        
+        Parameters
+        ----------
+        backend : Backend
+            Another grid2op backend you can use to perform the computation.
+
+        Raises
+        ------
+        SimulatorError
+            When you do not pass a correct backend.
+            
+        """
         if not isinstance(backend, Backend):
             raise SimulatorError(
                 "when using change_backend function, the backend should"
@@ -86,6 +143,27 @@ class Simulator(object):
         self.set_state(obs=self.current_obs)
 
     def change_backend_type(self, backend_type: type, grid_path: os.PathLike, **kwargs):
+        """It allows to change the type of the backend used
+
+        Parameters
+        ----------
+        backend_type : type
+            The new backend type
+        grid_path : os.PathLike
+            The path from where to load the powergrid
+        kwargs:
+            Extra arguments used to build the backend.
+            
+        Notes
+        -----
+        Once changed, all the "simulator" that "derived" from this simulator will use the same backend types.
+        
+        Raises
+        ------
+        SimulatorError
+            if something went wrong (eg you do not pass a type, your type does not inherit from Backend, the file
+            located at `grid_path` does not exists etc.)
+        """
         if not isinstance(backend_type, type):
             raise SimulatorError(
                 "when using change_backend_type function, the backend_type should"
@@ -119,6 +197,30 @@ class Simulator(object):
         new_load_p: np.ndarray = None,
         new_load_q: np.ndarray = None,
     ):
+        """Set the state of the simulator to a given state described by an observation (and optionally some
+        new loads and generation)
+
+        Parameters
+        ----------
+        obs : Optional[BaseObservation], optional
+            The observation to get the state from, by default None
+        do_powerflow : bool, optional
+            Whether to use the underlying backend to get a consistent state after
+            this modification or not, by default True
+        new_gen_p : np.ndarray, optional
+            new generator active setpoint, by default None
+        new_gen_v : np.ndarray, optional
+            new generator voltage setpoint, by default None
+        new_load_p : np.ndarray, optional
+            new load active consumption, by default None
+        new_load_q : np.ndarray, optional
+            new load reactive consumption, by default None
+
+        Raises
+        ------
+        SimulatorError
+            In case the current simulator is not initialized.
+        """
 
         if obs is not None:
             self.current_obs = obs.copy()
@@ -364,6 +466,29 @@ class Simulator(object):
         new_load_q: np.ndarray = None,
         do_copy: bool = True,
     ) -> "Simulator":
+        """Predict the state of the grid after a given action has been taken.
+
+        Parameters
+        ----------
+        act : BaseAction
+            The action you want to take
+        new_gen_p : np.ndarray, optional
+            the new production active setpoint, by default None
+        new_gen_v : np.ndarray, optional
+            the new production voltage setpoint, by default None
+        new_load_p : np.ndarray, optional
+            the new consumption active values, by default None
+        new_load_q : np.ndarray, optional
+            the new consumption reactive values, by default None
+        do_copy : bool, optional
+            Whether to make a copy or not, by default True
+            
+        Returns
+        -------
+        Simulator
+            The new simulator representing the grid state after the simulation of the action.
+            
+        """
         # init the result
         if do_copy:
             res = self.copy()
@@ -434,6 +559,7 @@ class Simulator(object):
         return res
 
     def close(self):
+        """close the underlying backend"""
         if hasattr(self, "backend") and self.backend is not None:
             self.backend.close()
         self.backend = None

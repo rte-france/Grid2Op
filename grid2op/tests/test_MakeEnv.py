@@ -755,7 +755,7 @@ class TestHashEnv(unittest.TestCase):
         hash_this_env = _hash_env(path_)
         assert (
             hash_this_env.hexdigest()
-            == "35791e669b84c5da16061ab6aaf3f4748d32871a16fd97ebfc7acbf83104dbc00bc7878481fe35e14236f14eb86610700734f756295675dd5d8d0d918cec3770"
+            == "bec981458530b8f238b014c6303622c78f8aee2fbbbedaf6449cf30da6487cd8d175e1e765f21f9a4db5269e4bed3f061f1bf97ed5f387e48463a26a86e96df2"
         ), f"wrong hash digest. It's \n\t{hash_this_env.hexdigest()}"
 
 
