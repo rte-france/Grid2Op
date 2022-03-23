@@ -15,6 +15,7 @@ from grid2op.Action import ActionSpace
 from grid2op.Converter import IdToAct
 
 from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
+
 # TODO test that it works normally
 # TODO test the casting in dt_int or dt_float depending on the data
 # TODO test the scaling
@@ -105,13 +106,13 @@ class DiscreteActSpace(Discrete):
 
         gym_env = GymEnv(env)
         action_list = ... # a list of action, that can be processed by
-        # IdToAct.init_converter (all_actions): see 
+        # IdToAct.init_converter (all_actions): see
         # https://grid2op.readthedocs.io/en/latest/converter.html#grid2op.Converter.IdToAct.init_converter
         gym_env.observation_space = DiscreteActSpace(env.observation_space,
                                                      action_list=action_list)
 
     .. note::
-    
+
         This last version is much (much) safer and reproducible. Indeed, the
         actions usable by your agent will be the same (and in the same order)
         regardless of the grid2op version.
@@ -122,17 +123,21 @@ class DiscreteActSpace(Discrete):
         or actions on storage units).
 
     """
-    def __init__(self,
-                 grid2op_action_space,
-                 attr_to_keep=ALL_ATTR,
-                 nb_bins=None,
-                 action_list=None,
-                 ):
+
+    def __init__(
+        self,
+        grid2op_action_space,
+        attr_to_keep=ALL_ATTR,
+        nb_bins=None,
+        action_list=None,
+    ):
 
         if not isinstance(grid2op_action_space, ActionSpace):
-            raise Grid2OpException(f"Impossible to create a BoxGymActSpace without providing a "
-                                   f"grid2op action_space. You provided {type(grid2op_action_space)}"
-                                   f"as the \"grid2op_action_space\" attribute.")
+            raise Grid2OpException(
+                f"Impossible to create a BoxGymActSpace without providing a "
+                f"grid2op action_space. You provided {type(grid2op_action_space)}"
+                f'as the "grid2op_action_space" attribute.'
+            )
 
         if nb_bins is None:
             nb_bins = {"redispatch": 7, "set_storage": 7, "curtail": 7}
@@ -144,20 +149,25 @@ class DiscreteActSpace(Discrete):
             # by default, i remove all the attributes that are not supported by the action type
             # i do not do that if the user specified specific attributes to keep. This is his responsibility in
             # in this case
-            attr_to_keep = {el for el in attr_to_keep if grid2op_action_space.supports_type(el)}
+            attr_to_keep = {
+                el for el in attr_to_keep if grid2op_action_space.supports_type(el)
+            }
         else:
             if action_list is not None:
-                raise Grid2OpException("Impossible to specify a list of attributes "
-                                       "to keep (argument attr_to_keep) AND a list of "
-                                       "action to use (argument action_list).")
+                raise Grid2OpException(
+                    "Impossible to specify a list of attributes "
+                    "to keep (argument attr_to_keep) AND a list of "
+                    "action to use (argument action_list)."
+                )
         for el in attr_to_keep:
             if el not in ATTR_DISCRETE and action_list is None:
-                warnings.warn(f"The class \"DiscreteActSpace\" should mainly be used to consider only discrete "
-                              f"actions (eg. set_line_status, set_bus or change_bus). Though it is possible to use "
-                              f"\"{el}\" when building it, be aware that this continuous action will be treated "
-                              f"as discrete by splitting it into bins. "
-                              f"Consider using the \"BoxGymActSpace\" for these attributes."
-                              )
+                warnings.warn(
+                    f'The class "DiscreteActSpace" should mainly be used to consider only discrete '
+                    f"actions (eg. set_line_status, set_bus or change_bus). Though it is possible to use "
+                    f'"{el}" when building it, be aware that this continuous action will be treated '
+                    f"as discrete by splitting it into bins. "
+                    f'Consider using the "BoxGymActSpace" for these attributes.'
+                )
 
         self._attr_to_keep = sorted(attr_to_keep)
         self._nb_bins = nb_bins
@@ -194,15 +204,21 @@ class DiscreteActSpace(Discrete):
                     li_act += self.dict_properties[attr_nm](self.action_space)
                 else:
                     if attr_nm == "curtail" or attr_nm == "curtail_mw":
-                        li_act += self.dict_properties[attr_nm](self.action_space, num_bin=self._nb_bins[attr_nm])
+                        li_act += self.dict_properties[attr_nm](
+                            self.action_space, num_bin=self._nb_bins[attr_nm]
+                        )
                     else:
-                        li_act += self.dict_properties[attr_nm](self.action_space,
-                                                                num_down=self._nb_bins[attr_nm],
-                                                                num_up=self._nb_bins[attr_nm])
+                        li_act += self.dict_properties[attr_nm](
+                            self.action_space,
+                            num_down=self._nb_bins[attr_nm],
+                            num_up=self._nb_bins[attr_nm],
+                        )
             else:
-                li_keys = '\n\t- '.join(sorted(list(self.dict_properties.keys())))
-                raise RuntimeError(f"Unknown action attributes \"{attr_nm}\". Supported attributes are: "
-                                   f"\n\t- {li_keys}")
+                li_keys = "\n\t- ".join(sorted(list(self.dict_properties.keys())))
+                raise RuntimeError(
+                    f'Unknown action attributes "{attr_nm}". Supported attributes are: '
+                    f"\n\t- {li_keys}"
+                )
 
         converter.init_converter(li_act)
         self.converter = converter
@@ -226,7 +242,7 @@ class DiscreteActSpace(Discrete):
 
         """
         res = self.converter.all_actions[int(gym_act)]
-        return res      
-           
+        return res
+
     def close(self):
         pass

@@ -20,6 +20,7 @@ class BaseActionBudget:
     It makes sure the opponent uses the correct type of "action", and  compute the bugdet associated to it.
 
     """
+
     def __init__(self, action_space):
         self.action_space = action_space
 
@@ -47,9 +48,11 @@ class BaseActionBudget:
             return 0
 
         if not isinstance(attack, self.action_space.actionClass):
-            raise OpponentError("Attempt to use an attack of type \"{}\" which is not a instance of \"{}\", "
-                                "the type of action the opponent was supposed to use."
-                                "".format(type(attack), self.action_space.actionClass))
+            raise OpponentError(
+                'Attempt to use an attack of type "{}" which is not a instance of "{}", '
+                "the type of action the opponent was supposed to use."
+                "".format(type(attack), self.action_space.actionClass)
+            )
         aff_lines, aff_subs = attack.get_topological_impact()
         cost = np.sum(aff_lines) + np.sum(aff_subs)
         return cost

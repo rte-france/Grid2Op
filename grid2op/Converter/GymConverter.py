@@ -9,11 +9,15 @@
 
 class GymObservationSpace:
     def __init__(self, env):
-        raise RuntimeError("The \"GymObservationSpace\" has been moved to \"grid2op.gym\" module instead.\n"
-                           "Note to update: use \"from grid2op.gym_compat import GymObservationSpace\"")
+        raise RuntimeError(
+            'The "GymObservationSpace" has been moved to "grid2op.gym" module instead.\n'
+            'Note to update: use "from grid2op.gym_compat import GymObservationSpace"'
+        )
 
 
 class GymActionSpace:
     def __init__(self, action_space):
-        raise RuntimeError("The \"GymActionSpace\" has been moved to \"grid2op.gym\" module instead.\n"
-                           "Note to update: use \"from grid2op.gym_compat import GymActionSpace\"")
+        raise RuntimeError(
+            'The "GymActionSpace" has been moved to "grid2op.gym" module instead.\n'
+            'Note to update: use "from grid2op.gym_compat import GymActionSpace"'
+        )

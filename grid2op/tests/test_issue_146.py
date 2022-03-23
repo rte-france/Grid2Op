@@ -8,6 +8,7 @@
 
 import grid2op
 import numpy as np
+
 #!/usr/bin/env python3
 
 import grid2op
@@ -22,7 +23,7 @@ import pdb
 class TestReward(BaseReward):
     def __init__(self):
         super().__init__()
-        self.reward_min = dt_float(100.0) # Note difference from below
+        self.reward_min = dt_float(100.0)  # Note difference from below
         self.reward_max = dt_float(0.0)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
@@ -41,12 +42,18 @@ class Issue146Tester(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True, reward_class=TestReward)
+            env = grid2op.make(
+                "rte_case14_realistic", test=True, reward_class=TestReward
+            )
 
-        action = env.action_space({"set_bus": {"substations_id": [(1, [2, 2, 1, 1, 2, -1])]}})
+        action = env.action_space(
+            {"set_bus": {"substations_id": [(1, [2, 2, 1, 1, 2, -1])]}}
+        )
         obs, reward, done, info = env.step(action)
         assert done
-        assert reward == dt_float(-10.0), "reward should be -10.0 and not \"reward_min\" (ie 100.)"
+        assert reward == dt_float(
+            -10.0
+        ), 'reward should be -10.0 and not "reward_min" (ie 100.)'
 
 
 if __name__ == "__main__":

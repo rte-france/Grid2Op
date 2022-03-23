@@ -16,7 +16,9 @@ class Issue281Tester(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction)
+            self.env = grid2op.make(
+                "educ_case14_storage", test=True, action_class=CompleteAction
+            )
 
     def tearDown(self):
         self.env.close()
@@ -24,6 +26,7 @@ class Issue281Tester(unittest.TestCase):
     def test_can_make(self):
         """test that the opponent state is correctly copied"""
         gym_env = GymEnv(self.env)
+
 
 if __name__ == "__main__":
     unittest.main()

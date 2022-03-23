@@ -14,7 +14,6 @@ from grid2op.Reward import AlarmReward
 from grid2op.dtypes import dt_float
 
 
-
 class _AlarmScore(AlarmReward):
     """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -58,7 +57,7 @@ class _AlarmScore(AlarmReward):
         AlarmReward.__init__(self)
         # required if you want to design a custom reward taking into account the
         # alarm feature
-        self.reward_min = dt_float(-2.)
+        self.reward_min = dt_float(-2.0)
         # we keep other parameters values from AlarmReward as is
 
         self.mult_for_right_zone = 1.5
@@ -69,14 +68,19 @@ class _AlarmScore(AlarmReward):
 
         # This class remembers the past state of the grid, this does not make sense for the "simulate" env
         # so i deactivate it in this case.
-        from grid2op.Environment._ObsEnv import _ObsEnv  # to avoid circular dependencies
-        self._deactivate_reward_cls = (_ObsEnv, )
+        from grid2op.Environment._ObsEnv import (
+            _ObsEnv,
+        )  # to avoid circular dependencies
+
+        self._deactivate_reward_cls = (_ObsEnv,)
 
     def initialize(self, env):
         if not env._has_attention_budget:
-            raise Grid2OpException("Impossible to use the \"_AlarmScore\" with an environment for which this feature "
-                                   "is disabled. Please make sure \"env._has_attention_budget\" is set to ``True`` or "
-                                   "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`")
+            raise Grid2OpException(
+                'Impossible to use the "_AlarmScore" with an environment for which this feature '
+                'is disabled. Please make sure "env._has_attention_budget" is set to ``True`` or '
+                "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`"
+            )
         self.n_line = env.n_line
         self.reset(env)
 
@@ -99,7 +103,9 @@ class _AlarmScore(AlarmReward):
 
         nb_obs = len(self.disc_lines_all_before_cascade)
         for step in range(nb_obs - self.window_disconnection, nb_obs):
-            disc_lines_to_consider_for_score[self.disc_lines_all_before_cascade[step] >= 0] = True
+            disc_lines_to_consider_for_score[
+                self.disc_lines_all_before_cascade[step] >= 0
+            ] = True
 
         if np.sum(disc_lines_to_consider_for_score) == 0:
             disc_lines_to_consider_for_score = disc_lines_at_cascading_time == 0
@@ -131,15 +137,19 @@ class _AlarmScore(AlarmReward):
             successfull_alarms = env._attention_budget._all_successful_alarms
             step_game_over = env.nb_time_step
 
-            disc_lines_to_consider_for_score = self._lines_disconnected_first(disc_lines_now)
+            disc_lines_to_consider_for_score = self._lines_disconnected_first(
+                disc_lines_now
+            )
 
             # so now i can consider the alarms.
             best_score, is_alarm_used = self.reward_min, False
             for alarm in successfull_alarms:
-                tmp_sc, tmp_is = self._points_for_alarm(*alarm,
-                                                        step_game_over=step_game_over,
-                                                        disc_lines=disc_lines_to_consider_for_score,
-                                                        env=env)
+                tmp_sc, tmp_is = self._points_for_alarm(
+                    *alarm,
+                    step_game_over=step_game_over,
+                    disc_lines=disc_lines_to_consider_for_score,
+                    env=env
+                )
                 if tmp_sc > best_score:
                     best_score = tmp_sc
                     is_alarm_used = tmp_is

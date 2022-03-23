@@ -55,15 +55,17 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
 
     TODO add example of code on how to use this.
     """
+
     def __init__(self, nb_bins, init_space=None):
-        BaseGymAttrConverter.__init__(self,
-                                      g2op_to_gym=None,
-                                      gym_to_g2op=None,
-                                      space=None)
+        BaseGymAttrConverter.__init__(
+            self, g2op_to_gym=None, gym_to_g2op=None, space=None
+        )
         if nb_bins < 2:
-            raise RuntimeError("This do not work with less that 1 bin (if you want to ignored some part "
-                               "of the action_space or observation_space please use the "
-                               "\"gym_space.ignore_attr\" or \"gym_space.keep_only_attr\"")
+            raise RuntimeError(
+                "This do not work with less that 1 bin (if you want to ignored some part "
+                "of the action_space or observation_space please use the "
+                '"gym_space.ignore_attr" or "gym_space.keep_only_attr"'
+            )
 
         self._nb_bins = nb_bins
 
@@ -78,30 +80,34 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
 
     def initialize_space(self, init_space):
         if not isinstance(init_space, Box):
-            raise RuntimeError("Impossible to convert a gym space of type {} to a discrete space"
-                               " (it should be of "
-                               "type space.Box)"
-                               "".format(type(init_space)))
+            raise RuntimeError(
+                "Impossible to convert a gym space of type {} to a discrete space"
+                " (it should be of "
+                "type space.Box)"
+                "".format(type(init_space))
+            )
 
         min_ = init_space.low
         max_ = init_space.high
         self._ignored = min_ == max_  # which component are ignored
         self._res = min_
-        self._values = np.linspace(min_, max_, num=self._nb_bins+2)
-        self._values = self._values[1:-1, :]  # the values that will be used when using #gym_to_glop
+        self._values = np.linspace(min_, max_, num=self._nb_bins + 2)
+        self._values = self._values[
+            1:-1, :
+        ]  # the values that will be used when using #gym_to_glop
 
         # TODO there might a cleaner approach here
-        self._bins_size = np.linspace(min_, max_, num=2*self._nb_bins+1)
+        self._bins_size = np.linspace(min_, max_, num=2 * self._nb_bins + 1)
         self._bins_size = self._bins_size[2:-1:2, :]  # the values defining the "cuts"
 
         self._gen_idx = np.arange(self._bins_size.shape[-1])
         n_bins = np.ones(min_.shape[0], dtype=dt_int) * dt_int(self._nb_bins)
-        n_bins[self._ignored] = 1  # if min and max are equal, i don't want to have multiple variable
+        n_bins[
+            self._ignored
+        ] = 1  # if min and max are equal, i don't want to have multiple variable
         space = MultiDiscrete(n_bins)
 
-        self.base_initialize(space=space,
-                             g2op_to_gym=None,
-                             gym_to_g2op=None)
+        self.base_initialize(space=space, g2op_to_gym=None, gym_to_g2op=None)
 
     def gym_to_g2op(self, gym_object):
         return copy.deepcopy(self._values[gym_object, self._gen_idx])
@@ -111,7 +117,7 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
         mask = 1 - mask
         res = np.sum(mask, axis=0)
         res[self._ignored] = 0
-        return res    
-             
+        return res
+
     def close(self):
         pass

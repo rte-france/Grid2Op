@@ -16,7 +16,17 @@ THERMAL_ID = 1
 WIND_ID = 2
 SOLAR_ID = 3
 HYDRO_ID = 4
-TYPE_GEN = {'nuclear': NUKE_ID, 'thermal': THERMAL_ID, 'wind': WIND_ID, 'solar': SOLAR_ID, 'hydro': HYDRO_ID}
-COLOR_GEN = {NUKE_ID: NUKE_COLOR, THERMAL_ID: THERMAL_COLOR, WIND_ID: WIND_COLOR,
-             SOLAR_ID: SOLAR_COLOR, HYDRO_ID: HYDRO_COLOR}
-
+TYPE_GEN = {
+    "nuclear": NUKE_ID,
+    "thermal": THERMAL_ID,
+    "wind": WIND_ID,
+    "solar": SOLAR_ID,
+    "hydro": HYDRO_ID,
+}
+COLOR_GEN = {
+    NUKE_ID: NUKE_COLOR,
+    THERMAL_ID: THERMAL_COLOR,
+    WIND_ID: WIND_COLOR,
+    SOLAR_ID: SOLAR_COLOR,
+    HYDRO_ID: HYDRO_COLOR,
+}

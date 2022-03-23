@@ -11,22 +11,17 @@ from grid2op.Action.PlayableAction import PlayableAction
 
 class PowerlineChangeAndDispatchAction(PlayableAction):
     """
-    This type of :class:`PlayableAction` only implements the 
+    This type of :class:`PlayableAction` only implements the
     modifications of the grid with powerlines switch and dispatch actions.
 
     It accepts the key words: "change_line_status" and "redispatch".
-    Nothing else is supported and any attempt to use something else 
+    Nothing else is supported and any attempt to use something else
     will have no impact.
     """
-    authorized_keys = {
-        "change_line_status",
-        "redispatch"
-    }
 
-    attr_list_vect = [
-        "_switch_line_status",
-        "_redispatch"
-    ]
+    authorized_keys = {"change_line_status", "redispatch"}
+
+    attr_list_vect = ["_switch_line_status", "_redispatch"]
     attr_list_set = set(attr_list_vect)
 
     def __init__(self):

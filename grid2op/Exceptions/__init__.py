@@ -51,7 +51,7 @@ __all__ = [
     "UsedRunnerError",
     "NotEnoughAttentionBudget",
     "AgentError",
-    "SimulatorError"
+    "SimulatorError",
 ]
 
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
@@ -78,7 +78,9 @@ from grid2op.Exceptions.IllegalActionExceptions import ActiveSetPointBelowPmin
 from grid2op.Exceptions.IllegalActionExceptions import OnLoad
 from grid2op.Exceptions.IllegalActionExceptions import OnLines
 from grid2op.Exceptions.IllegalActionExceptions import InvalidReconnection
-from grid2op.Exceptions.IllegalActionExceptions import UnitCommitorRedispachingNotAvailable
+from grid2op.Exceptions.IllegalActionExceptions import (
+    UnitCommitorRedispachingNotAvailable,
+)
 
 from grid2op.Exceptions.AmbiguousActionExceptions import NotEnoughGenerators
 from grid2op.Exceptions.AmbiguousActionExceptions import GeneratorTurnedOffTooSoon

@@ -31,32 +31,54 @@ class _GridFromLog(GridValue):
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     """
-    def __init__(self, episode_data,
-                 time_interval=timedelta(minutes=5),
-                 max_iter=-1,
-                 start_datetime=None,
-                 chunk_size=None
-                 ):
+
+    def __init__(
+        self,
+        episode_data,
+        time_interval=timedelta(minutes=5),
+        max_iter=-1,
+        start_datetime=None,
+        chunk_size=None,
+    ):
         # TODO reload directly the loadp, loadq, prodp and prodv from the path of the episode data if possible
         self.episode_data = episode_data
         if start_datetime is None:
-            warnings.warn("\"start_datetime\" argument is ignored when building the _GridFromLog")
+            warnings.warn(
+                '"start_datetime" argument is ignored when building the _GridFromLog'
+            )
         if chunk_size is None:
-            warnings.warn("\"chunk_size\" argument is ignored when building the _GridFromLog")
-        GridValue.__init__(self,
-                           time_interval=time_interval,
-                           max_iter=max_iter,
-                           start_datetime=self.episode_data.observations[0].get_time_stamp(),
-                           chunk_size=None)
+            warnings.warn(
+                '"chunk_size" argument is ignored when building the _GridFromLog'
+            )
+        GridValue.__init__(
+            self,
+            time_interval=time_interval,
+            max_iter=max_iter,
+            start_datetime=self.episode_data.observations[0].get_time_stamp(),
+            chunk_size=None,
+        )
 
         # TODO reload that
-        self.maintenance_time = np.zeros(self.episode_data.observations[0].line_status.shape[0], dtype=int) - 1
-        self.maintenance_duration = np.zeros(self.episode_data.observations[0].line_status.shape[0], dtype=int)
-        self.hazard_duration = np.zeros(self.episode_data.observations[0].line_status.shape[0], dtype=int)
+        self.maintenance_time = (
+            np.zeros(self.episode_data.observations[0].line_status.shape[0], dtype=int)
+            - 1
+        )
+        self.maintenance_duration = np.zeros(
+            self.episode_data.observations[0].line_status.shape[0], dtype=int
+        )
+        self.hazard_duration = np.zeros(
+            self.episode_data.observations[0].line_status.shape[0], dtype=int
+        )
         self.curr_iter = 0
 
-    def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
-                   names_chronics_to_backend):
+    def initialize(
+        self,
+        order_backend_loads,
+        order_backend_prods,
+        order_backend_lines,
+        order_backend_subs,
+        names_chronics_to_backend,
+    ):
         pass
 
     def load_next(self):
@@ -65,10 +87,11 @@ class _GridFromLog(GridValue):
         self.current_datetime = obs.get_time_stamp()
 
         res = {}
-        injs = {"prod_p": obs.prod_p.astype(dt_float),
-                "load_p": obs.load_p.astype(dt_float),
-                "load_q": obs.load_q.astype(dt_float),
-                }
+        injs = {
+            "prod_p": obs.prod_p.astype(dt_float),
+            "load_p": obs.load_p.astype(dt_float),
+            "load_q": obs.load_q.astype(dt_float),
+        }
         res["injection"] = injs
 
         # TODO
@@ -78,12 +101,14 @@ class _GridFromLog(GridValue):
         #     res["hazards"] = self.hazards[self.current_index, :]
 
         prod_v = obs.prod_v
-        return self.current_datetime,\
-               res, \
-               self.maintenance_time, \
-               self.maintenance_duration, \
-               self.hazard_duration, \
-               prod_v
+        return (
+            self.current_datetime,
+            res,
+            self.maintenance_time,
+            self.maintenance_duration,
+            self.hazard_duration,
+            prod_v,
+        )
 
     def check_validity(self, backend):
         return True
@@ -99,6 +124,7 @@ class OpponentFromLog(BaseOpponent):
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     """
+
     pass
 
 
@@ -112,6 +138,7 @@ class EpisodeReboot:
         It is a beta feature
 
     """
+
     def __init__(self):
         self.episode_data = None
         self.env = None
@@ -119,18 +146,22 @@ class EpisodeReboot:
         self.current_time_step = None
         self.action = None  # the last action played
 
-        warnings.warn("EpisodeReboot is a beta feature, it will likely be renamed, methods will be adapted "
-                      "and it has probably some bugs. Use with care!")
+        warnings.warn(
+            "EpisodeReboot is a beta feature, it will likely be renamed, methods will be adapted "
+            "and it has probably some bugs. Use with care!"
+        )
 
     def load(self, backend, agent_path=None, name=None, data=None, env_kwargs={}):
         if data is None:
             if agent_path is not None and name is not None:
                 self.episode_data = EpisodeData.from_disk(agent_path, name)
             else:
-                raise Grid2OpException("To replay an episode you need at least to provide an EpisodeData "
-                                       "(using the keyword argument \"data=...\") or provide the path and name where "
-                                       "the "
-                                       "episode is stored (keyword arguments \"agent_path\" and \"name\").")
+                raise Grid2OpException(
+                    "To replay an episode you need at least to provide an EpisodeData "
+                    '(using the keyword argument "data=...") or provide the path and name where '
+                    "the "
+                    'episode is stored (keyword arguments "agent_path" and "name").'
+                )
         else:
             self.episode_data = copy.deepcopy(data)
             self.episode_data.reboot()
@@ -138,8 +169,9 @@ class EpisodeReboot:
         if self.env is not None:
             self.env.close()
             self.env = None
-        self.chronics_handler = ChronicsHandler(chronicsClass=_GridFromLog,
-                                                episode_data=self.episode_data)
+        self.chronics_handler = ChronicsHandler(
+            chronicsClass=_GridFromLog, episode_data=self.episode_data
+        )
 
         if "chronics_handler" in env_kwargs:
             del env_kwargs["chronics_handler"]
@@ -157,11 +189,13 @@ class EpisodeReboot:
             if dict_["env_seed"] is not None:
                 seed = int(dict_["env_seed"])
 
-        self.env = Environment(**env_kwargs,
-                               backend=backend,
-                               chronics_handler=self.chronics_handler,
-                               opponent_class=OpponentFromLog,
-                               name=nm)
+        self.env = Environment(
+            **env_kwargs,
+            backend=backend,
+            chronics_handler=self.chronics_handler,
+            opponent_class=OpponentFromLog,
+            name=nm
+        )
         if seed is not None:
             self.env.seed(seed)
 
@@ -189,19 +223,29 @@ class EpisodeReboot:
         self.env._gen_activeprod_t[:] = obs.prod_p.astype(dt_float)
         self.env._actual_dispatch[:] = obs.actual_dispatch.astype(dt_float)
         self.env._target_dispatch[:] = obs.target_dispatch.astype(dt_float)
-        self.env._gen_activeprod_t_redisp[:] = obs.prod_p.astype(dt_float) + obs.actual_dispatch.astype(dt_float)
+        self.env._gen_activeprod_t_redisp[:] = obs.prod_p.astype(
+            dt_float
+        ) + obs.actual_dispatch.astype(dt_float)
         self.env.current_obs = obs
         self.env._timestep_overflow[:] = obs.timestep_overflow.astype(dt_int)
-        self.env._times_before_line_status_actionable[:] = obs.time_before_cooldown_line.astype(dt_int)
-        self.env._times_before_topology_actionable[:] = obs.time_before_cooldown_sub.astype(dt_int)
+        self.env._times_before_line_status_actionable[
+            :
+        ] = obs.time_before_cooldown_line.astype(dt_int)
+        self.env._times_before_topology_actionable[
+            :
+        ] = obs.time_before_cooldown_sub.astype(dt_int)
 
-        self.env._duration_next_maintenance[:] = obs.duration_next_maintenance.astype(dt_int)
+        self.env._duration_next_maintenance[:] = obs.duration_next_maintenance.astype(
+            dt_int
+        )
         self.env._time_next_maintenance[:] = obs.time_next_maintenance.astype(dt_int)
 
         # # TODO check that the "stored" "last bus for when the powerline were connected" are
         # # kept there (I might need to do a for loop)
         self.env.backend.update_from_obs(obs)
-        disc_lines, detailed_info, conv_ = self.env.backend.next_grid_state(env=self.env)
+        disc_lines, detailed_info, conv_ = self.env.backend.next_grid_state(
+            env=self.env
+        )
         if conv_ is None:
             self.env._backend_action.update_state(disc_lines)
         self.env._backend_action.reset()
@@ -225,11 +269,15 @@ class EpisodeReboot:
 
         """
         if _sentinel is not None:
-            raise Grid2OpException("You should not use reboot.next() with any argument.")
+            raise Grid2OpException(
+                "You should not use reboot.next() with any argument."
+            )
 
         if self.current_time_step is None:
-            raise Grid2OpException("Impossible to go to the next time step with an episode not loaded. "
-                                   "Call \"EpisodeReboot.load\" before.")
+            raise Grid2OpException(
+                "Impossible to go to the next time step with an episode not loaded. "
+                'Call "EpisodeReboot.load" before.'
+            )
 
         if _update:
             # I put myself at the observation just before the next time step
@@ -266,12 +314,16 @@ class EpisodeReboot:
         agent did the 9th action (just before)
         """
         if time_step > len(self.episode_data.actions):
-            raise Grid2OpException("The stored episode counts only {} time steps. You cannot go "
-                                   "at time step {}"
-                                   "".format(len(self.episode_data.actions), time_step))
+            raise Grid2OpException(
+                "The stored episode counts only {} time steps. You cannot go "
+                "at time step {}"
+                "".format(len(self.episode_data.actions), time_step)
+            )
 
         if time_step <= 0:
-            raise Grid2OpException("You cannot go to timestep <= 0, it does not make sense (as there is not \"-1th\""
-                                   "action). If you want to load the data, please use \"EpisodeReboot.load\".")
+            raise Grid2OpException(
+                'You cannot go to timestep <= 0, it does not make sense (as there is not "-1th"'
+                'action). If you want to load the data, please use "EpisodeReboot.load".'
+            )
         self.current_time_step = time_step - 1
         return self.next(_update=True)

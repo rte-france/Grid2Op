@@ -81,7 +81,7 @@ class BaseOpponent(RandomObject):
         """
         The purpose of this method is to tell the agent that his attack is being continued
         and to indicate the current state of the grid.
-        
+
         At every time step, either "attack" or "tell_acttack_continues" is called exactly once.
 
         Parameters

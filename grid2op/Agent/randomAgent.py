@@ -27,8 +27,13 @@ class RandomAgent(AgentWithConverter):
     information about the later).
 
     """
-    def __init__(self, action_space, action_space_converter=IdToAct, **kwargs_converter):
-        AgentWithConverter.__init__(self, action_space, action_space_converter, **kwargs_converter)
+
+    def __init__(
+        self, action_space, action_space_converter=IdToAct, **kwargs_converter
+    ):
+        AgentWithConverter.__init__(
+            self, action_space, action_space_converter, **kwargs_converter
+        )
 
     def my_act(self, transformed_observation, reward, done=False):
         """

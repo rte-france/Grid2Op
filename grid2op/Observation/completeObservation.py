@@ -102,47 +102,76 @@ class CompleteObservation(BaseObservation):
             [``bool``]
 
     """
+
     attr_list_vect = [
-        "year", "month", "day", "hour_of_day",
-        "minute_of_hour", "day_of_week",
-        "gen_p", "gen_q", "gen_v",
-        "load_p", "load_q", "load_v",
-        "p_or", "q_or", "v_or", "a_or",
-        "p_ex", "q_ex", "v_ex", "a_ex",
+        "year",
+        "month",
+        "day",
+        "hour_of_day",
+        "minute_of_hour",
+        "day_of_week",
+        "gen_p",
+        "gen_q",
+        "gen_v",
+        "load_p",
+        "load_q",
+        "load_v",
+        "p_or",
+        "q_or",
+        "v_or",
+        "a_or",
+        "p_ex",
+        "q_ex",
+        "v_ex",
+        "a_ex",
         "rho",
-        "line_status", "timestep_overflow",
+        "line_status",
+        "timestep_overflow",
         "topo_vect",
-        "time_before_cooldown_line", "time_before_cooldown_sub",
-        "time_next_maintenance", "duration_next_maintenance",
-        "target_dispatch", "actual_dispatch",
-        "storage_charge", "storage_power_target", "storage_power",
-        "gen_p_before_curtail", "curtailment", "curtailment_limit", 
-        "curtailment_limit_effective", # starting grid2op version 1.6.6
-        "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
+        "time_before_cooldown_line",
+        "time_before_cooldown_sub",
+        "time_next_maintenance",
+        "duration_next_maintenance",
+        "target_dispatch",
+        "actual_dispatch",
+        "storage_charge",
+        "storage_power_target",
+        "storage_power",
+        "gen_p_before_curtail",
+        "curtailment",
+        "curtailment_limit",
+        "curtailment_limit_effective",  # starting grid2op version 1.6.6
+        "is_alarm_illegal",
+        "time_since_last_alarm",
+        "last_alarm",
+        "attention_budget",
         "was_alarm_used_after_game_over",
-        "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",  # starting from grid2op version 1.6.0
-        "current_step", "max_step",  # starting from grid2op version 1.6.4
+        "_shunt_p",
+        "_shunt_q",
+        "_shunt_v",
+        "_shunt_bus",  # starting from grid2op version 1.6.0
+        "current_step",
+        "max_step",  # starting from grid2op version 1.6.4
         "delta_time",  # starting grid2op version 1.6.5
-        "gen_margin_up", "gen_margin_down",  # starting grid2op version 1.6.6
+        "gen_margin_up",
+        "gen_margin_down",  # starting grid2op version 1.6.6
     ]
-    attr_list_json = ["_thermal_limit",
-                      "support_theta",
-                      "theta_or",
-                      "theta_ex",
-                      "load_theta",
-                      "gen_theta",
-                      "storage_theta"]
+    attr_list_json = [
+        "_thermal_limit",
+        "support_theta",
+        "theta_or",
+        "theta_ex",
+        "load_theta",
+        "gen_theta",
+        "storage_theta",
+    ]
     attr_list_set = set(attr_list_vect)
 
-    def __init__(self,
-                 obs_env=None,
-                 action_helper=None,
-                 random_prng=None):
+    def __init__(self, obs_env=None, action_helper=None, random_prng=None):
 
-        BaseObservation.__init__(self,
-                                 obs_env=obs_env,
-                                 action_helper=action_helper,
-                                 random_prng=random_prng)
+        BaseObservation.__init__(
+            self, obs_env=obs_env, action_helper=action_helper, random_prng=random_prng
+        )
         self._dictionnarized = None
 
     def update(self, env, with_forecast=True):

@@ -24,6 +24,7 @@ class DontAct(PlayableAction):
     modify it will fail.
 
     """
+
     authorized_keys = set()
     attr_list_vect = []
 

@@ -441,6 +441,7 @@ class GridObjects:
 
     # TODO specify the unit of redispatching data MWh, $/MW etc.
     """
+
     BEFORE_COMPAT_VERSION = "neurips_2020_compat"
     glop_version = grid2op.__version__
     _PATH_ENV = None  # especially do not modify that
@@ -504,11 +505,35 @@ class GridObjects:
     _vectorized = None
 
     # for redispatching / unit commitment
-    _li_attr_disp = ["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
-                     "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
-                     "gen_startup_cost", "gen_shutdown_cost", "gen_renewable"]
+    _li_attr_disp = [
+        "gen_type",
+        "gen_pmin",
+        "gen_pmax",
+        "gen_redispatchable",
+        "gen_max_ramp_up",
+        "gen_max_ramp_down",
+        "gen_min_uptime",
+        "gen_min_downtime",
+        "gen_cost_per_MW",
+        "gen_startup_cost",
+        "gen_shutdown_cost",
+        "gen_renewable",
+    ]
 
-    _type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float, bool]
+    _type_attr_disp = [
+        str,
+        float,
+        float,
+        bool,
+        float,
+        float,
+        int,
+        int,
+        float,
+        float,
+        float,
+        bool,
+    ]
 
     # redispatch data, not available in all environment
     redispatching_unit_commitment_availble = False
@@ -549,8 +574,12 @@ class GridObjects:
     # dimension of the alarm "space" (number of alarm that can be raised at each step)
     dim_alarms = 0  # TODO
     alarms_area_names = []  # name of each area  # TODO
-    alarms_lines_area = {}  # for each lines of the grid, gives on which area(s) it is  # TODO
-    alarms_area_lines = []  # for each area in the grid, gives which powerlines it contains # TODO
+    alarms_lines_area = (
+        {}
+    )  # for each lines of the grid, gives on which area(s) it is  # TODO
+    alarms_area_lines = (
+        []
+    )  # for each area in the grid, gives which powerlines it contains # TODO
 
     def __init__(self):
         pass
@@ -559,8 +588,10 @@ class GridObjects:
     def tell_dim_alarm(cls, dim_alarms):
         if cls.dim_alarms != 0:
             # number of alarms has already been set, i issue a warning
-            warnings.warn("You will change the number of dimensions of the alarm. This might cause trouble "
-                          "if you environment is read back. We strongly recommend NOT to do this.")
+            warnings.warn(
+                "You will change the number of dimensions of the alarm. This might cause trouble "
+                "if you environment is read back. We strongly recommend NOT to do this."
+            )
         cls.dim_alarms = dim_alarms
 
     @classmethod
@@ -630,11 +661,35 @@ class GridObjects:
         cls._vectorized = None
 
         # for redispatching / unit commitment
-        cls._li_attr_disp = ["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
-                         "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
-                         "gen_startup_cost", "gen_shutdown_cost", "gen_renewable"]
+        cls._li_attr_disp = [
+            "gen_type",
+            "gen_pmin",
+            "gen_pmax",
+            "gen_redispatchable",
+            "gen_max_ramp_up",
+            "gen_max_ramp_down",
+            "gen_min_uptime",
+            "gen_min_downtime",
+            "gen_cost_per_MW",
+            "gen_startup_cost",
+            "gen_shutdown_cost",
+            "gen_renewable",
+        ]
 
-        cls._type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float, bool]
+        cls._type_attr_disp = [
+            str,
+            float,
+            float,
+            bool,
+            float,
+            float,
+            int,
+            int,
+            float,
+            float,
+            float,
+            bool,
+        ]
 
         # redispatch data, not available in all environment
         cls.redispatching_unit_commitment_availble = False
@@ -702,9 +757,11 @@ class GridObjects:
 
         """
         if self.attr_list_vect is None:
-            raise IncorrectNumberOfElements("attr_list_vect attribute is not defined for class {}. "
-                                            "It is not possible to convert it from/to a vector, "
-                                            "nor to know its size, shape or dtype.".format(type(self)))
+            raise IncorrectNumberOfElements(
+                "attr_list_vect attribute is not defined for class {}. "
+                "It is not possible to convert it from/to a vector, "
+                "nor to know its size, shape or dtype.".format(type(self))
+            )
 
     def _get_array_from_attr_name(self, attr_name):
         """
@@ -766,7 +823,10 @@ class GridObjects:
 
         if self._vectorized is None:
             self._raise_error_attr_list_none()
-            li_vect = [self._get_array_from_attr_name(el).astype(dt_float) for el in self.attr_list_vect]
+            li_vect = [
+                self._get_array_from_attr_name(el).astype(dt_float)
+                for el in self.attr_list_vect
+            ]
             if li_vect:
                 self._vectorized = np.concatenate(li_vect)
             else:
@@ -812,7 +872,7 @@ class GridObjects:
         all_keys = self.attr_list_vect + self.attr_list_json
         for key, array_ in dict_.items():
             if key not in all_keys:
-                raise AmbiguousAction(f"Impossible to recognize the key \"{key}\"")
+                raise AmbiguousAction(f'Impossible to recognize the key "{key}"')
             my_attr = getattr(self, key)
             if isinstance(my_attr, np.ndarray):
                 # the regular instance is an array, so i just need to assign the right values to it
@@ -875,7 +935,9 @@ class GridObjects:
 
         """
         self._raise_error_attr_list_none()
-        res = np.array([self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect]).astype(dt_int)
+        res = np.array(
+            [self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect]
+        ).astype(dt_int)
         return res
 
     def dtype(self):
@@ -918,7 +980,9 @@ class GridObjects:
         """
 
         self._raise_error_attr_list_none()
-        res = np.array([self._get_array_from_attr_name(el).dtype for el in self.attr_list_vect])
+        res = np.array(
+            [self._get_array_from_attr_name(el).dtype for el in self.attr_list_vect]
+        )
         return res
 
     def _assign_attr_from_name(self, attr_nm, vect):
@@ -997,36 +1061,44 @@ class GridObjects:
 
         """
         if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements("Incorrect number of elements found while load a GridObjects "
-                                            "from a vector. Found {} elements instead of {}"
-                                            "".format(vect.shape[0], self.size()))
+            raise IncorrectNumberOfElements(
+                "Incorrect number of elements found while load a GridObjects "
+                "from a vector. Found {} elements instead of {}"
+                "".format(vect.shape[0], self.size())
+            )
 
         try:
             vect = np.array(vect).astype(dt_float)
         except Exception as exc_:
-            raise EnvError("Impossible to convert the input vector to a floating point numpy array "
-                           "with error:\n"
-                           "\"{}\".".format(exc_))
+            raise EnvError(
+                "Impossible to convert the input vector to a floating point numpy array "
+                "with error:\n"
+                '"{}".'.format(exc_)
+            )
 
         self._raise_error_attr_list_none()
         prev_ = 0
         for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
-            tmp = vect[prev_:(prev_ + sh)]
+            tmp = vect[prev_ : (prev_ + sh)]
 
-            #TODO a flag that says "default Nan" for example for when attributes are initialized with
+            # TODO a flag that says "default Nan" for example for when attributes are initialized with
             # nan
             # if np.any(~np.isfinite(tmp)) and default_nan:
             #     raise NonFiniteElement("None finite number in from_vect detected")
 
-            if attr_nm not in type(self).attr_nan_list_set and np.any(~np.isfinite(tmp)):
+            if attr_nm not in type(self).attr_nan_list_set and np.any(
+                ~np.isfinite(tmp)
+            ):
                 raise NonFiniteElement("None finite number in from_vect detected")
 
             try:
                 tmp = tmp.astype(dt)
             except Exception as exc_:
-                raise EnvError("Impossible to convert the input vector to its type ({}) for attribute \"{}\" "
-                               "with error:\n"
-                               "\"{}\".".format(dt, attr_nm, exc_))
+                raise EnvError(
+                    'Impossible to convert the input vector to its type ({}) for attribute "{}" '
+                    "with error:\n"
+                    '"{}".'.format(dt, attr_nm, exc_)
+                )
 
             self._assign_attr_from_name(attr_nm, tmp)
             prev_ += sh
@@ -1110,7 +1182,7 @@ class GridObjects:
 
     def _init_class_attr(self, obj=None):
         """init the class attribute from an instance of the class
-            THIS IS NOT A CLASS ATTR
+        THIS IS NOT A CLASS ATTR
         """
         if obj is None:
             obj = self
@@ -1148,26 +1220,42 @@ class GridObjects:
         """
 
         # check if we need to implement the position in substation
-        if cls.n_storage == -1 and \
-           cls.storage_to_subid is None and \
-           cls.storage_pos_topo_vect is None and \
-           cls.storage_to_sub_pos is None:
+        if (
+            cls.n_storage == -1
+            and cls.storage_to_subid is None
+            and cls.storage_pos_topo_vect is None
+            and cls.storage_to_sub_pos is None
+        ):
             # no storage on the grid, so i deactivate them
             cls.set_no_storage()
         cls._compute_sub_elements()
         cls._compute_sub_pos()
 
-        cls.load_pos_topo_vect = cls._aux_pos_big_topo(cls.load_to_subid, cls.load_to_sub_pos).astype(dt_int)
-        cls.gen_pos_topo_vect = cls._aux_pos_big_topo(cls.gen_to_subid, cls.gen_to_sub_pos).astype(dt_int)
-        cls.line_or_pos_topo_vect = cls._aux_pos_big_topo(cls.line_or_to_subid, cls.line_or_to_sub_pos).astype(dt_int)
-        cls.line_ex_pos_topo_vect = cls._aux_pos_big_topo(cls.line_ex_to_subid, cls.line_ex_to_sub_pos).astype(dt_int)
-        cls.storage_pos_topo_vect = cls._aux_pos_big_topo(cls.storage_to_subid, cls.storage_to_sub_pos).astype(dt_int)
+        cls.load_pos_topo_vect = cls._aux_pos_big_topo(
+            cls.load_to_subid, cls.load_to_sub_pos
+        ).astype(dt_int)
+        cls.gen_pos_topo_vect = cls._aux_pos_big_topo(
+            cls.gen_to_subid, cls.gen_to_sub_pos
+        ).astype(dt_int)
+        cls.line_or_pos_topo_vect = cls._aux_pos_big_topo(
+            cls.line_or_to_subid, cls.line_or_to_sub_pos
+        ).astype(dt_int)
+        cls.line_ex_pos_topo_vect = cls._aux_pos_big_topo(
+            cls.line_ex_to_subid, cls.line_ex_to_sub_pos
+        ).astype(dt_int)
+        cls.storage_pos_topo_vect = cls._aux_pos_big_topo(
+            cls.storage_to_subid, cls.storage_to_sub_pos
+        ).astype(dt_int)
 
         cls._topo_vect_to_sub = np.repeat(np.arange(cls.n_sub), repeats=cls.sub_info)
-        cls.grid_objects_types = np.full(shape=(cls.dim_topo, 6), fill_value=-1, dtype=dt_int)
+        cls.grid_objects_types = np.full(
+            shape=(cls.dim_topo, 6), fill_value=-1, dtype=dt_int
+        )
         prev = 0
         for sub_id, nb_el in enumerate(cls.sub_info):
-            cls.grid_objects_types[prev:(prev + nb_el), :] = cls.get_obj_substations(substation_id=sub_id)
+            cls.grid_objects_types[prev : (prev + nb_el), :] = cls.get_obj_substations(
+                substation_id=sub_id
+            )
             prev += nb_el
 
     @classmethod
@@ -1178,36 +1266,46 @@ class GridObjects:
                 cls.load_to_subid = np.array(cls.load_to_subid)
                 cls.load_to_subid = cls.load_to_subid.astype(dt_int)
             except Exception as exc_:
-                raise EnvError(f"self.load_to_subid should be convertible to a numpy array. "
-                               f"It fails with error \"{exc_}\"")
+                raise EnvError(
+                    f"self.load_to_subid should be convertible to a numpy array. "
+                    f'It fails with error "{exc_}"'
+                )
         if not isinstance(cls.gen_to_subid, np.ndarray):
             try:
                 cls.gen_to_subid = np.array(cls.gen_to_subid)
                 cls.gen_to_subid = cls.gen_to_subid.astype(dt_int)
             except Exception as exc_:
-                raise EnvError(f"self.gen_to_subid should be convertible to a numpy array. "
-                               f"It fails with error \"{exc_}\"")
+                raise EnvError(
+                    f"self.gen_to_subid should be convertible to a numpy array. "
+                    f'It fails with error "{exc_}"'
+                )
         if not isinstance(cls.line_or_to_subid, np.ndarray):
             try:
                 cls.line_or_to_subid = np.array(cls.line_or_to_subid)
                 cls.line_or_to_subid = cls.line_or_to_subid.astype(dt_int)
             except Exception as exc_:
-                raise EnvError(f"self.line_or_to_subid should be convertible to a numpy array. "
-                               f"It fails with error \"{exc_}\"")
+                raise EnvError(
+                    f"self.line_or_to_subid should be convertible to a numpy array. "
+                    f'It fails with error "{exc_}"'
+                )
         if not isinstance(cls.line_ex_to_subid, np.ndarray):
             try:
                 cls.line_ex_to_subid = np.array(cls.line_ex_to_subid)
                 cls.line_ex_to_subid = cls.line_ex_to_subid.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.line_ex_to_subid should be convertible to a numpy array"
-                               f"It fails with error \"{exc_}\"")
+                raise EnvError(
+                    "self.line_ex_to_subid should be convertible to a numpy array"
+                    f'It fails with error "{exc_}"'
+                )
 
         if not isinstance(cls.storage_to_subid, np.ndarray):
             try:
                 cls.storage_to_subid = np.array(cls.storage_to_subid)
                 cls.storage_to_subid = cls.storage_to_subid.astype(dt_int)
             except Exception as e:
-                raise EnvError("self.storage_to_subid should be convertible to a numpy array")
+                raise EnvError(
+                    "self.storage_to_subid should be convertible to a numpy array"
+                )
 
         # now check the sizes
         if len(cls.load_to_subid) != cls.n_load:
@@ -1215,35 +1313,43 @@ class GridObjects:
         if np.min(cls.load_to_subid) < 0:
             raise EnvError("Some shunt is connected to a negative substation id.")
         if np.max(cls.load_to_subid) > cls.n_sub:
-            raise EnvError("Some load is supposed to be connected to substations with id {} which"
-                           "is greater than the number of substations of the grid, which is {}."
-                           "".format(np.max(cls.load_to_subid), cls.n_sub))
+            raise EnvError(
+                "Some load is supposed to be connected to substations with id {} which"
+                "is greater than the number of substations of the grid, which is {}."
+                "".format(np.max(cls.load_to_subid), cls.n_sub)
+            )
 
         if len(cls.gen_to_subid) != cls.n_gen:
             raise IncorrectNumberOfGenerators()
         if np.min(cls.gen_to_subid) < 0:
             raise EnvError("Some shunt is connected to a negative substation id.")
         if np.max(cls.gen_to_subid) > cls.n_sub:
-            raise EnvError("Some generator is supposed to be connected to substations with id {} which"
-                           "is greater than the number of substations of the grid, which is {}."
-                           "".format(np.max(cls.gen_to_subid), cls.n_sub))
+            raise EnvError(
+                "Some generator is supposed to be connected to substations with id {} which"
+                "is greater than the number of substations of the grid, which is {}."
+                "".format(np.max(cls.gen_to_subid), cls.n_sub)
+            )
         if len(cls.line_or_to_subid) != cls.n_line:
             raise IncorrectNumberOfLines()
         if np.min(cls.line_or_to_subid) < 0:
             raise EnvError("Some shunt is connected to a negative substation id.")
         if np.max(cls.line_or_to_subid) > cls.n_sub:
-            raise EnvError("Some powerline (or) is supposed to be connected to substations with id {} which"
-                           "is greater than the number of substations of the grid, which is {}."
-                           "".format(np.max(cls.line_or_to_subid), cls.n_sub))
+            raise EnvError(
+                "Some powerline (or) is supposed to be connected to substations with id {} which"
+                "is greater than the number of substations of the grid, which is {}."
+                "".format(np.max(cls.line_or_to_subid), cls.n_sub)
+            )
 
         if len(cls.line_ex_to_subid) != cls.n_line:
             raise IncorrectNumberOfLines()
         if np.min(cls.line_ex_to_subid) < 0:
             raise EnvError("Some shunt is connected to a negative substation id.")
         if np.max(cls.line_ex_to_subid) > cls.n_sub:
-            raise EnvError("Some powerline (ex) is supposed to be connected to substations with id {} which"
-                           "is greater than the number of substations of the grid, which is {}."
-                           "".format(np.max(cls.line_or_to_subid), cls.n_sub))
+            raise EnvError(
+                "Some powerline (ex) is supposed to be connected to substations with id {} which"
+                "is greater than the number of substations of the grid, which is {}."
+                "".format(np.max(cls.line_or_to_subid), cls.n_sub)
+            )
         if len(cls.storage_to_subid) != cls.n_storage:
             raise IncorrectNumberOfStorages()
 
@@ -1251,52 +1357,76 @@ class GridObjects:
             if np.min(cls.storage_to_subid) < 0:
                 raise EnvError("Some storage is connected to a negative substation id.")
             if np.max(cls.storage_to_subid) > cls.n_sub:
-                raise EnvError("Some powerline (ex) is supposed to be connected to substations with id {} which"
-                               "is greater than the number of substations of the grid, which is {}."
-                               "".format(np.max(cls.line_or_to_subid), cls.n_sub))
+                raise EnvError(
+                    "Some powerline (ex) is supposed to be connected to substations with id {} which"
+                    "is greater than the number of substations of the grid, which is {}."
+                    "".format(np.max(cls.line_or_to_subid), cls.n_sub)
+                )
 
     @classmethod
     def _fill_names(cls):
         if cls.name_line is None:
-            cls.name_line = ['{}_{}_{}'.format(or_id, ex_id, l_id) for l_id, (or_id, ex_id) in
-                             enumerate(zip(cls.line_or_to_subid, cls.line_ex_to_subid))]
+            cls.name_line = [
+                "{}_{}_{}".format(or_id, ex_id, l_id)
+                for l_id, (or_id, ex_id) in enumerate(
+                    zip(cls.line_or_to_subid, cls.line_ex_to_subid)
+                )
+            ]
             cls.name_line = np.array(cls.name_line)
-            warnings.warn("name_line is None so default line names have been assigned to your grid. "
-                          "(FYI: Line names are used to make the correspondence between the chronics and the backend)"
-                          "This might result in impossibility to load data."
-                          "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
+            warnings.warn(
+                "name_line is None so default line names have been assigned to your grid. "
+                "(FYI: Line names are used to make the correspondence between the chronics and the backend)"
+                "This might result in impossibility to load data."
+                '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+            )
         if cls.name_load is None:
-            cls.name_load = ["load_{}_{}".format(bus_id, load_id) for load_id, bus_id in enumerate(cls.load_to_subid)]
+            cls.name_load = [
+                "load_{}_{}".format(bus_id, load_id)
+                for load_id, bus_id in enumerate(cls.load_to_subid)
+            ]
             cls.name_load = np.array(cls.name_load)
-            warnings.warn("name_load is None so default load names have been assigned to your grid. "
-                          "(FYI: load names are used to make the correspondence between the chronics and the backend)"
-                          "This might result in impossibility to load data."
-                          "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
+            warnings.warn(
+                "name_load is None so default load names have been assigned to your grid. "
+                "(FYI: load names are used to make the correspondence between the chronics and the backend)"
+                "This might result in impossibility to load data."
+                '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+            )
         if cls.name_gen is None:
-            cls.name_gen = ["gen_{}_{}".format(bus_id, gen_id) for gen_id, bus_id in enumerate(cls.gen_to_subid)]
+            cls.name_gen = [
+                "gen_{}_{}".format(bus_id, gen_id)
+                for gen_id, bus_id in enumerate(cls.gen_to_subid)
+            ]
             cls.name_gen = np.array(cls.name_gen)
-            warnings.warn("name_gen is None so default generator names have been assigned to your grid. "
-                          "(FYI: generator names are used to make the correspondence between the chronics and "
-                          "the backend)"
-                          "This might result in impossibility to load data."
-                          "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
+            warnings.warn(
+                "name_gen is None so default generator names have been assigned to your grid. "
+                "(FYI: generator names are used to make the correspondence between the chronics and "
+                "the backend)"
+                "This might result in impossibility to load data."
+                '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+            )
         if cls.name_sub is None:
             cls.name_sub = ["sub_{}".format(sub_id) for sub_id in range(cls.n_sub)]
             cls.name_sub = np.array(cls.name_sub)
-            warnings.warn("name_sub is None so default substation names have been assigned to your grid. "
-                          "(FYI: substation names are used to make the correspondence between the chronics and "
-                          "the backend)"
-                          "This might result in impossibility to load data."
-                          "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
+            warnings.warn(
+                "name_sub is None so default substation names have been assigned to your grid. "
+                "(FYI: substation names are used to make the correspondence between the chronics and "
+                "the backend)"
+                "This might result in impossibility to load data."
+                '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+            )
         if cls.name_storage is None:
-            cls.name_storage = ["storage_{}_{}".format(bus_id, sto_id)
-                                for sto_id, bus_id in enumerate(cls.storage_to_subid)]
+            cls.name_storage = [
+                "storage_{}_{}".format(bus_id, sto_id)
+                for sto_id, bus_id in enumerate(cls.storage_to_subid)
+            ]
             cls.name_storage = np.array(cls.name_sub)
-            warnings.warn("name_storage is None so default storage unit names have been assigned to your grid. "
-                          "(FYI: storage names are used to make the correspondence between the chronics and "
-                          "the backend)"
-                          "This might result in impossibility to load data."
-                          "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
+            warnings.warn(
+                "name_storage is None so default storage unit names have been assigned to your grid. "
+                "(FYI: storage names are used to make the correspondence between the chronics and "
+                "the backend)"
+                "This might result in impossibility to load data."
+                '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+            )
 
     @classmethod
     def _check_names(cls):
@@ -1307,38 +1437,54 @@ class GridObjects:
                 cls.name_line = np.array(cls.name_line)
                 cls.name_line = cls.name_line.astype(str)
             except Exception as exc_:
-                raise EnvError(f"self.name_line should be convertible to a numpy array of type str. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    f"self.name_line should be convertible to a numpy array of type str. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.name_load, np.ndarray):
             try:
                 cls.name_load = np.array(cls.name_load)
                 cls.name_load = cls.name_load.astype(str)
             except Exception as exc_:
-                raise EnvError("self.name_load should be convertible to a numpy array of type str. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.name_load should be convertible to a numpy array of type str. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.name_gen, np.ndarray):
             try:
                 cls.name_gen = np.array(cls.name_gen)
                 cls.name_gen = cls.name_gen.astype(str)
             except Exception as exc_:
-                raise EnvError("self.name_gen should be convertible to a numpy array of type str. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.name_gen should be convertible to a numpy array of type str. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.name_sub, np.ndarray):
             try:
                 cls.name_sub = np.array(cls.name_sub)
                 cls.name_sub = cls.name_sub.astype(str)
             except Exception as exc_:
-                raise EnvError("self.name_sub should be convertible to a numpy array of type str. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.name_sub should be convertible to a numpy array of type str. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.name_storage, np.ndarray):
             try:
                 cls.name_storage = np.array(cls.name_storage)
                 cls.name_storage = cls.name_storage.astype(str)
             except Exception as exc_:
-                raise EnvError("self.name_storage should be convertible to a numpy array of type str. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.name_storage should be convertible to a numpy array of type str. Error was "
+                    f"{exc_}"
+                )
 
-        attrs_nms = [cls.name_gen, cls.name_sub, cls.name_line, cls.name_load, cls.name_storage]
+        attrs_nms = [
+            cls.name_gen,
+            cls.name_sub,
+            cls.name_line,
+            cls.name_load,
+            cls.name_storage,
+        ]
         nms = ["generators", "substations", "lines", "loads", "storage units"]
         if cls.shunts_data_available:
             # these are set to "None" if there is no shunts on the grid
@@ -1348,9 +1494,11 @@ class GridObjects:
         for arr_, nm in zip(attrs_nms, nms):
             tmp = np.unique(arr_)
             if tmp.shape[0] != arr_.shape[0]:
-                nms = '\n\t - '.join(sorted(arr_))
-                raise EnvError(f"Two {nm} have the same names. Please check the \"grid.json\" file and make sure the "
-                               f"name of the {nm} are all different. Right now they are \n\t - {nms}.")
+                nms = "\n\t - ".join(sorted(arr_))
+                raise EnvError(
+                    f'Two {nm} have the same names. Please check the "grid.json" file and make sure the '
+                    f"name of the {nm} are all different. Right now they are \n\t - {nms}."
+                )
 
     @classmethod
     def _check_sub_pos(cls):
@@ -1359,36 +1507,46 @@ class GridObjects:
                 cls.load_to_sub_pos = np.array(cls.load_to_sub_pos)
                 cls.load_to_sub_pos = cls.load_to_sub_pos.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.load_to_sub_pos should be convertible to a numpy array. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.load_to_sub_pos should be convertible to a numpy array. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.gen_to_sub_pos, np.ndarray):
             try:
                 cls.gen_to_sub_pos = np.array(cls.gen_to_sub_pos)
                 cls.gen_to_sub_pos = cls.gen_to_sub_pos.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.gen_to_sub_pos should be convertible to a numpy array. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.gen_to_sub_pos should be convertible to a numpy array. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.line_or_to_sub_pos, np.ndarray):
             try:
                 cls.line_or_to_sub_pos = np.array(cls.line_or_to_sub_pos)
                 cls.line_or_to_sub_pos = cls.line_or_to_sub_pos.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.line_or_to_sub_pos should be convertible to a numpy array. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.line_or_to_sub_pos should be convertible to a numpy array. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.line_ex_to_sub_pos, np.ndarray):
             try:
                 cls.line_ex_to_sub_pos = np.array(cls.line_ex_to_sub_pos)
-                cls.line_ex_to_sub_pos = cls.line_ex_to_sub_pos .astype(dt_int)
+                cls.line_ex_to_sub_pos = cls.line_ex_to_sub_pos.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.line_ex_to_sub_pos should be convertible to a numpy array. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.storage_to_sub_pos, np.ndarray):
             try:
                 cls.storage_to_sub_pos = np.array(cls.storage_to_sub_pos)
-                cls.storage_to_sub_pos = cls.storage_to_sub_pos .astype(dt_int)
+                cls.storage_to_sub_pos = cls.storage_to_sub_pos.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.line_ex_to_sub_pos should be convertible to a numpy array. Error was "
+                    f"{exc_}"
+                )
 
     @classmethod
     def _check_topo_vect(cls):
@@ -1397,36 +1555,46 @@ class GridObjects:
                 cls.load_pos_topo_vect = np.array(cls.load_pos_topo_vect)
                 cls.load_pos_topo_vect = cls.load_pos_topo_vect.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.load_pos_topo_vect should be convertible to a numpy array. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.load_pos_topo_vect should be convertible to a numpy array. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.gen_pos_topo_vect, np.ndarray):
             try:
                 cls.gen_pos_topo_vect = np.array(cls.gen_pos_topo_vect)
                 cls.gen_pos_topo_vect = cls.gen_pos_topo_vect.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.gen_pos_topo_vect should be convertible to a numpy array. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.gen_pos_topo_vect should be convertible to a numpy array. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.line_or_pos_topo_vect, np.ndarray):
             try:
                 cls.line_or_pos_topo_vect = np.array(cls.line_or_pos_topo_vect)
                 cls.line_or_pos_topo_vect = cls.line_or_pos_topo_vect.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.line_or_pos_topo_vect should be convertible to a numpy array. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.line_or_pos_topo_vect should be convertible to a numpy array. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.line_ex_pos_topo_vect, np.ndarray):
             try:
                 cls.line_ex_pos_topo_vect = np.array(cls.line_ex_pos_topo_vect)
                 cls.line_ex_pos_topo_vect = cls.line_ex_pos_topo_vect.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.line_ex_pos_topo_vect should be convertible to a numpy array. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.line_ex_pos_topo_vect should be convertible to a numpy array. Error was "
+                    f"{exc_}"
+                )
         if not isinstance(cls.storage_pos_topo_vect, np.ndarray):
             try:
                 cls.storage_pos_topo_vect = np.array(cls.storage_pos_topo_vect)
                 cls.storage_pos_topo_vect = cls.storage_pos_topo_vect.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.storage_pos_topo_vect should be convertible to a numpy array. Error was "
-                               f"{exc_}")
+                raise EnvError(
+                    "self.storage_pos_topo_vect should be convertible to a numpy array. Error was "
+                    f"{exc_}"
+                )
 
     @classmethod
     def _compute_sub_pos(cls):
@@ -1456,35 +1624,43 @@ class GridObjects:
             need_implement = True
         if cls.gen_to_sub_pos is None:
             if need_implement is False:
-                raise BackendError("You chose to implement \"load_to_sub_pos\" but not \"gen_to_sub_pos\". We cannot "
-                                   "work with that. Please either use the automatic setting, or implement all of "
-                                   "*_to_sub_pos vectors"
-                                   "")
+                raise BackendError(
+                    'You chose to implement "load_to_sub_pos" but not "gen_to_sub_pos". We cannot '
+                    "work with that. Please either use the automatic setting, or implement all of "
+                    "*_to_sub_pos vectors"
+                    ""
+                )
             need_implement = True
         if cls.line_or_to_sub_pos is None:
             if need_implement is False:
-                raise BackendError("You chose to implement \"line_or_to_sub_pos\" but not \"load_to_sub_pos\""
-                                   "or \"gen_to_sub_pos\". We cannot "
-                                   "work with that. Please either use the automatic setting, or implement all of "
-                                   "*_to_sub_pos vectors"
-                                   "")
+                raise BackendError(
+                    'You chose to implement "line_or_to_sub_pos" but not "load_to_sub_pos"'
+                    'or "gen_to_sub_pos". We cannot '
+                    "work with that. Please either use the automatic setting, or implement all of "
+                    "*_to_sub_pos vectors"
+                    ""
+                )
             need_implement = True
         if cls.line_ex_to_sub_pos is None:
             if need_implement is False:
-                raise BackendError("You chose to implement \"line_ex_to_sub_pos\" but not \"load_to_sub_pos\""
-                                   "or \"gen_to_sub_pos\" or \"line_or_to_sub_pos\". We cannot "
-                                   "work with that. Please either use the automatic setting, or implement all of "
-                                   "*_to_sub_pos vectors"
-                                   "")
+                raise BackendError(
+                    'You chose to implement "line_ex_to_sub_pos" but not "load_to_sub_pos"'
+                    'or "gen_to_sub_pos" or "line_or_to_sub_pos". We cannot '
+                    "work with that. Please either use the automatic setting, or implement all of "
+                    "*_to_sub_pos vectors"
+                    ""
+                )
             need_implement = True
         if cls.storage_to_sub_pos is None:
             if need_implement is False:
-                raise BackendError("You chose to implement \"storage_to_sub_pos\" but not \"load_to_sub_pos\""
-                                   "or \"gen_to_sub_pos\" or \"line_or_to_sub_pos\" or \"line_ex_to_sub_pos\". "
-                                   "We cannot "
-                                   "work with that. Please either use the automatic setting, or implement all of "
-                                   "*_to_sub_pos vectors"
-                                   "")
+                raise BackendError(
+                    'You chose to implement "storage_to_sub_pos" but not "load_to_sub_pos"'
+                    'or "gen_to_sub_pos" or "line_or_to_sub_pos" or "line_ex_to_sub_pos". '
+                    "We cannot "
+                    "work with that. Please either use the automatic setting, or implement all of "
+                    "*_to_sub_pos vectors"
+                    ""
+                )
             need_implement = True
 
         if not need_implement:
@@ -1575,23 +1751,35 @@ class GridObjects:
         # TODO refactor the `_check***` to use the same "base functions" that would be coded only once.
 
         if cls.n_gen <= 0:
-            raise EnvError("n_gen is negative. Powergrid is invalid: there are no generator")
+            raise EnvError(
+                "n_gen is negative. Powergrid is invalid: there are no generator"
+            )
         if cls.n_load <= 0:
-            raise EnvError("n_load is negative. Powergrid is invalid: there are no load")
+            raise EnvError(
+                "n_load is negative. Powergrid is invalid: there are no load"
+            )
         if cls.n_line <= 0:
-            raise EnvError("n_line is negative. Powergrid is invalid: there are no line")
+            raise EnvError(
+                "n_line is negative. Powergrid is invalid: there are no line"
+            )
         if cls.n_sub <= 0:
-            raise EnvError("n_sub is negative. Powergrid is invalid: there are no substation")
+            raise EnvError(
+                "n_sub is negative. Powergrid is invalid: there are no substation"
+            )
 
-        if cls.n_storage == -1 and \
-           cls.storage_to_subid is None and \
-           cls.storage_pos_topo_vect is None and \
-           cls.storage_to_sub_pos is None:
+        if (
+            cls.n_storage == -1
+            and cls.storage_to_subid is None
+            and cls.storage_pos_topo_vect is None
+            and cls.storage_to_sub_pos is None
+        ):
             # no storage on the grid, so i deactivate them
             cls.set_no_storage()
 
         if cls.n_storage < 0:
-            raise EnvError("n_storage is negative. Powergrid is invalid: you specify a negative number of unit storage")
+            raise EnvError(
+                "n_storage is negative. Powergrid is invalid: you specify a negative number of unit storage"
+            )
 
         cls._compute_sub_elements()
         if not isinstance(cls.sub_info, np.ndarray):
@@ -1599,8 +1787,10 @@ class GridObjects:
                 cls.sub_info = np.array(cls.sub_info)
                 cls.sub_info = cls.sub_info.astype(dt_int)
             except Exception as exc_:
-                raise EnvError(f"self.sub_info should be convertible to a numpy array. "
-                               f"It fails with error \"{exc_}\"")
+                raise EnvError(
+                    f"self.sub_info should be convertible to a numpy array. "
+                    f'It fails with error "{exc_}"'
+                )
 
         # to which subtation they are connected
         cls._check_sub_id()
@@ -1618,45 +1808,60 @@ class GridObjects:
         cls._check_topo_vect()
 
         # test that all numbers are finite:
-        tmp = np.concatenate((
-            cls.sub_info.flatten(),
-            cls.load_to_subid.flatten(),
-            cls.gen_to_subid.flatten(),
-            cls.line_or_to_subid.flatten(),
-            cls.line_ex_to_subid.flatten(),
-            cls.storage_to_subid.flatten(),
-            cls.load_to_sub_pos.flatten(),
-            cls.gen_to_sub_pos.flatten(),
-            cls.line_or_to_sub_pos.flatten(),
-            cls.line_ex_to_sub_pos.flatten(),
-            cls.storage_to_sub_pos.flatten(),
-            cls.load_pos_topo_vect.flatten(),
-            cls.gen_pos_topo_vect.flatten(),
-            cls.line_or_pos_topo_vect.flatten(),
-            cls.line_ex_pos_topo_vect.flatten(),
-            cls.storage_pos_topo_vect.flatten()
-        ))
+        tmp = np.concatenate(
+            (
+                cls.sub_info.flatten(),
+                cls.load_to_subid.flatten(),
+                cls.gen_to_subid.flatten(),
+                cls.line_or_to_subid.flatten(),
+                cls.line_ex_to_subid.flatten(),
+                cls.storage_to_subid.flatten(),
+                cls.load_to_sub_pos.flatten(),
+                cls.gen_to_sub_pos.flatten(),
+                cls.line_or_to_sub_pos.flatten(),
+                cls.line_ex_to_sub_pos.flatten(),
+                cls.storage_to_sub_pos.flatten(),
+                cls.load_pos_topo_vect.flatten(),
+                cls.gen_pos_topo_vect.flatten(),
+                cls.line_or_pos_topo_vect.flatten(),
+                cls.line_ex_pos_topo_vect.flatten(),
+                cls.storage_pos_topo_vect.flatten(),
+            )
+        )
         try:
             if np.any(~np.isfinite(tmp)):
-                raise EnvError("The grid could not be loaded properly."
-                               "One of the vector is made of non finite elements, check the sub_info, *_to_subid, "
-                               "*_to_sub_pos and *_pos_topo_vect vectors")
+                raise EnvError(
+                    "The grid could not be loaded properly."
+                    "One of the vector is made of non finite elements, check the sub_info, *_to_subid, "
+                    "*_to_sub_pos and *_pos_topo_vect vectors"
+                )
         except Exception as exc_:
-            raise EnvError(f"Impossible to check whether or not vectors contains only finite elements (probably one "
-                           f"or more topology related vector is not valid (contains ``None``). Error was "
-                           f"{exc_}")
+            raise EnvError(
+                f"Impossible to check whether or not vectors contains only finite elements (probably one "
+                f"or more topology related vector is not valid (contains ``None``). Error was "
+                f"{exc_}"
+            )
 
         # check sizes
         if len(cls.sub_info) != cls.n_sub:
-            raise IncorrectNumberOfSubstation("The number of substation is not consistent in "
-                                              "self.sub_info (size \"{}\")"
-                                              "and  self.n_sub ({})".format(len(cls.sub_info), cls.n_sub))
-        if np.sum(cls.sub_info) != cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage:
+            raise IncorrectNumberOfSubstation(
+                "The number of substation is not consistent in "
+                'self.sub_info (size "{}")'
+                "and  self.n_sub ({})".format(len(cls.sub_info), cls.n_sub)
+            )
+        if (
+            np.sum(cls.sub_info)
+            != cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage
+        ):
             err_msg = "The number of elements of elements is not consistent between self.sub_info where there are "
-            err_msg += "{} elements connected to all substations and the number of load, generators and lines in " \
-                       "the _grid ({})."
-            err_msg = err_msg.format(np.sum(cls.sub_info),
-                                     cls.n_load + cls.n_gen + 2*cls.n_line + cls.n_storage)
+            err_msg += (
+                "{} elements connected to all substations and the number of load, generators and lines in "
+                "the _grid ({})."
+            )
+            err_msg = err_msg.format(
+                np.sum(cls.sub_info),
+                cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage,
+            )
             raise IncorrectNumberOfElements(err_msg)
 
         if len(cls.name_load) != cls.n_load:
@@ -1679,18 +1884,28 @@ class GridObjects:
         if len(cls.line_ex_to_sub_pos) != cls.n_line:
             raise IncorrectNumberOfLines("len(self.line_ex_to_sub_pos) != self.n_line")
         if len(cls.storage_to_sub_pos) != cls.n_storage:
-            raise IncorrectNumberOfStorages("len(self.storage_to_sub_pos) != self.n_storage")
+            raise IncorrectNumberOfStorages(
+                "len(self.storage_to_sub_pos) != self.n_storage"
+            )
 
         if len(cls.load_pos_topo_vect) != cls.n_load:
             raise IncorrectNumberOfLoads("len(self.load_pos_topo_vect) != self.n_load")
         if len(cls.gen_pos_topo_vect) != cls.n_gen:
-            raise IncorrectNumberOfGenerators("len(self.gen_pos_topo_vect) != self.n_gen")
+            raise IncorrectNumberOfGenerators(
+                "len(self.gen_pos_topo_vect) != self.n_gen"
+            )
         if len(cls.line_or_pos_topo_vect) != cls.n_line:
-            raise IncorrectNumberOfLines("len(self.line_or_pos_topo_vect) != self.n_line")
+            raise IncorrectNumberOfLines(
+                "len(self.line_or_pos_topo_vect) != self.n_line"
+            )
         if len(cls.line_ex_pos_topo_vect) != cls.n_line:
-            raise IncorrectNumberOfLines("len(self.line_ex_pos_topo_vect) != self.n_line")
+            raise IncorrectNumberOfLines(
+                "len(self.line_ex_pos_topo_vect) != self.n_line"
+            )
         if len(cls.storage_pos_topo_vect) != cls.n_storage:
-            raise IncorrectNumberOfLines("len(self.storage_pos_topo_vect) != self.n_storage")
+            raise IncorrectNumberOfLines(
+                "len(self.storage_pos_topo_vect) != self.n_storage"
+            )
 
         # test if object are connected to right substation
         obj_per_sub = np.zeros(shape=(cls.n_sub,), dtype=dt_int)
@@ -1706,62 +1921,100 @@ class GridObjects:
             obj_per_sub[sub_id] += 1
 
         if not np.all(obj_per_sub == cls.sub_info):
-            raise IncorrectNumberOfElements(f"for substation(s): {np.where(obj_per_sub != cls.sub_info)[0]}")
+            raise IncorrectNumberOfElements(
+                f"for substation(s): {np.where(obj_per_sub != cls.sub_info)[0]}"
+            )
 
         # test right number of element in substations
         # test that for each substation i don't have an id above the number of element of a substations
-        for i, (sub_id, sub_pos) in enumerate(zip(cls.load_to_subid, cls.load_to_sub_pos)):
+        for i, (sub_id, sub_pos) in enumerate(
+            zip(cls.load_to_subid, cls.load_to_sub_pos)
+        ):
             if sub_pos >= cls.sub_info[sub_id]:
                 raise IncorrectPositionOfLoads("for load {}".format(i))
-        for i, (sub_id, sub_pos) in enumerate(zip(cls.gen_to_subid, cls.gen_to_sub_pos)):
+        for i, (sub_id, sub_pos) in enumerate(
+            zip(cls.gen_to_subid, cls.gen_to_sub_pos)
+        ):
             if sub_pos >= cls.sub_info[sub_id]:
                 raise IncorrectPositionOfGenerators("for generator {}".format(i))
-        for i, (sub_id, sub_pos) in enumerate(zip(cls.line_or_to_subid, cls.line_or_to_sub_pos)):
+        for i, (sub_id, sub_pos) in enumerate(
+            zip(cls.line_or_to_subid, cls.line_or_to_sub_pos)
+        ):
             if sub_pos >= cls.sub_info[sub_id]:
                 raise IncorrectPositionOfLines("for line {} at origin end".format(i))
-        for i, (sub_id, sub_pos) in enumerate(zip(cls.line_ex_to_subid, cls.line_ex_to_sub_pos)):
+        for i, (sub_id, sub_pos) in enumerate(
+            zip(cls.line_ex_to_subid, cls.line_ex_to_sub_pos)
+        ):
             if sub_pos >= cls.sub_info[sub_id]:
                 raise IncorrectPositionOfLines("for line {} at extremity end".format(i))
-        for i, (sub_id, sub_pos) in enumerate(zip(cls.storage_to_subid, cls.storage_to_sub_pos)):
+        for i, (sub_id, sub_pos) in enumerate(
+            zip(cls.storage_to_subid, cls.storage_to_sub_pos)
+        ):
             if sub_pos >= cls.sub_info[sub_id]:
                 raise IncorrectPositionOfStorages("for storage {}".format(i))
 
         # check that i don't have 2 objects with the same id in the "big topo" vector
-        concat_topo = np.concatenate((cls.load_pos_topo_vect.flatten(),
-                                     cls.gen_pos_topo_vect.flatten(),
-                                     cls.line_or_pos_topo_vect.flatten(),
-                                     cls.line_ex_pos_topo_vect.flatten(),
-                                     cls.storage_pos_topo_vect.flatten()))
+        concat_topo = np.concatenate(
+            (
+                cls.load_pos_topo_vect.flatten(),
+                cls.gen_pos_topo_vect.flatten(),
+                cls.line_or_pos_topo_vect.flatten(),
+                cls.line_ex_pos_topo_vect.flatten(),
+                cls.storage_pos_topo_vect.flatten(),
+            )
+        )
         if len(np.unique(concat_topo)) != np.sum(cls.sub_info):
-            raise EnvError("2 different objects would have the same id in the topology vector, or there would be"
-                           "an empty component in this vector.")
+            raise EnvError(
+                "2 different objects would have the same id in the topology vector, or there would be"
+                "an empty component in this vector."
+            )
 
         # check that self.load_pos_topo_vect and co are consistent
-        load_pos_big_topo = cls._aux_pos_big_topo(cls.load_to_subid, cls.load_to_sub_pos)
+        load_pos_big_topo = cls._aux_pos_big_topo(
+            cls.load_to_subid, cls.load_to_sub_pos
+        )
         if not np.all(load_pos_big_topo == cls.load_pos_topo_vect):
-            raise IncorrectPositionOfLoads("Mismatch between load_to_subid, load_to_sub_pos and load_pos_topo_vect")
+            raise IncorrectPositionOfLoads(
+                "Mismatch between load_to_subid, load_to_sub_pos and load_pos_topo_vect"
+            )
         gen_pos_big_topo = cls._aux_pos_big_topo(cls.gen_to_subid, cls.gen_to_sub_pos)
         if not np.all(gen_pos_big_topo == cls.gen_pos_topo_vect):
-            raise IncorrectNumberOfGenerators("Mismatch between gen_to_subid, gen_to_sub_pos and gen_pos_topo_vect")
-        lines_or_pos_big_topo = cls._aux_pos_big_topo(cls.line_or_to_subid, cls.line_or_to_sub_pos)
+            raise IncorrectNumberOfGenerators(
+                "Mismatch between gen_to_subid, gen_to_sub_pos and gen_pos_topo_vect"
+            )
+        lines_or_pos_big_topo = cls._aux_pos_big_topo(
+            cls.line_or_to_subid, cls.line_or_to_sub_pos
+        )
         if not np.all(lines_or_pos_big_topo == cls.line_or_pos_topo_vect):
-            raise IncorrectPositionOfLines("Mismatch between line_or_to_subid, "
-                                           "line_or_to_sub_pos and line_or_pos_topo_vect")
-        lines_ex_pos_big_topo = cls._aux_pos_big_topo(cls.line_ex_to_subid, cls.line_ex_to_sub_pos)
+            raise IncorrectPositionOfLines(
+                "Mismatch between line_or_to_subid, "
+                "line_or_to_sub_pos and line_or_pos_topo_vect"
+            )
+        lines_ex_pos_big_topo = cls._aux_pos_big_topo(
+            cls.line_ex_to_subid, cls.line_ex_to_sub_pos
+        )
         if not np.all(lines_ex_pos_big_topo == cls.line_ex_pos_topo_vect):
-            raise IncorrectPositionOfLines("Mismatch between line_ex_to_subid, "
-                                           "line_ex_to_sub_pos and line_ex_pos_topo_vect")
-        storage_pos_big_topo = cls._aux_pos_big_topo(cls.storage_to_subid, cls.storage_to_sub_pos)
+            raise IncorrectPositionOfLines(
+                "Mismatch between line_ex_to_subid, "
+                "line_ex_to_sub_pos and line_ex_pos_topo_vect"
+            )
+        storage_pos_big_topo = cls._aux_pos_big_topo(
+            cls.storage_to_subid, cls.storage_to_sub_pos
+        )
         if not np.all(storage_pos_big_topo == cls.storage_pos_topo_vect):
-            raise IncorrectPositionOfStorages("Mismatch between storage_to_subid, "
-                                              "storage_to_sub_pos and storage_pos_topo_vect")
+            raise IncorrectPositionOfStorages(
+                "Mismatch between storage_to_subid, "
+                "storage_to_sub_pos and storage_pos_topo_vect"
+            )
 
         # no empty bus: at least one element should be present on each bus
         if np.any(cls.sub_info < 1):
             if not grid2op.Space.space_utils._WARNING_ISSUED_FOR_SUB_NO_ELEM:
-                warnings.warn(f"There are {np.sum(cls.sub_info < 1)} substations where  no 'controlable' elements "
-                              f"are connected. These substations will be used in the computation of the powerflow "
-                              f"(by the backend) but you will NOT be able to control anything on them.")
+                warnings.warn(
+                    f"There are {np.sum(cls.sub_info < 1)} substations where  no 'controlable' elements "
+                    f"are connected. These substations will be used in the computation of the powerflow "
+                    f"(by the backend) but you will NOT be able to control anything on them."
+                )
                 grid2op.Space.space_utils._WARNING_ISSUED_FOR_SUB_NO_ELEM = True
 
         # redispatching / unit commitment
@@ -1782,17 +2035,33 @@ class GridObjects:
     def _check_validity_alarm_data(cls):
         if cls.dim_alarms == 0:
             # no alarm data
-            assert cls.alarms_area_names == [], "No alarm data is provided, yet cls.alarms_area_names != []"
-            assert cls.alarms_lines_area == {}, "No alarm data is provided, yet cls.alarms_lines_area != {}"
-            assert cls.alarms_area_lines == [], "No alarm data is provided, yet cls.alarms_area_lines != []"
+            assert (
+                cls.alarms_area_names == []
+            ), "No alarm data is provided, yet cls.alarms_area_names != []"
+            assert (
+                cls.alarms_lines_area == {}
+            ), "No alarm data is provided, yet cls.alarms_lines_area != {}"
+            assert (
+                cls.alarms_area_lines == []
+            ), "No alarm data is provided, yet cls.alarms_area_lines != []"
         elif cls.dim_alarms < 0:
-            raise EnvError(f"The number of areas for the alarm feature should be >= 0. It currently is {cls.dim_alarms}")
+            raise EnvError(
+                f"The number of areas for the alarm feature should be >= 0. It currently is {cls.dim_alarms}"
+            )
         else:
             # the "alarm" feature is supported
-            assert isinstance(cls.alarms_area_names, list), "cls.alarms_area_names should be a list"
-            assert isinstance(cls.alarms_lines_area, dict), "cls.alarms_lines_area should be a dict"
-            assert isinstance(cls.alarms_area_lines, list), "cls.alarms_area_lines should be a dict"
-            assert len(cls.alarms_area_names) == cls.dim_alarms, "len(cls.alarms_area_names) != cls.dim_alarms"
+            assert isinstance(
+                cls.alarms_area_names, list
+            ), "cls.alarms_area_names should be a list"
+            assert isinstance(
+                cls.alarms_lines_area, dict
+            ), "cls.alarms_lines_area should be a dict"
+            assert isinstance(
+                cls.alarms_area_lines, list
+            ), "cls.alarms_area_lines should be a dict"
+            assert (
+                len(cls.alarms_area_names) == cls.dim_alarms
+            ), "len(cls.alarms_area_names) != cls.dim_alarms"
             names_to_id = {nm: id_ for id_, nm in enumerate(cls.alarms_area_names)}
 
             # check that information in alarms_lines_area and alarms_area_lines match
@@ -1800,31 +2069,39 @@ class GridObjects:
                 for area_nm in li_area:
                     area_id = names_to_id[area_nm]
                     all_lines_this_area = cls.alarms_area_lines[area_id]
-                    assert l_nm in all_lines_this_area, f"line \"{l_nm}\" is said to belong to area \"{area_nm}\" " \
-                                                        f"in cls.alarms_lines_area yet when looking for the lines in " \
-                                                        f"this " \
-                                                        f"area in cls.alarms_area_lines, this line is not in there"
+                    assert l_nm in all_lines_this_area, (
+                        f'line "{l_nm}" is said to belong to area "{area_nm}" '
+                        f"in cls.alarms_lines_area yet when looking for the lines in "
+                        f"this "
+                        f"area in cls.alarms_area_lines, this line is not in there"
+                    )
 
             for area_id, all_lines_this_area in enumerate(cls.alarms_area_lines):
                 area_nm = cls.alarms_area_names[area_id]
                 for l_nm in all_lines_this_area:
-                    assert area_nm in cls.alarms_lines_area[l_nm], f"line \"{l_nm}\" is said to belong to area " \
-                                                                   f"\"{area_nm}\" " \
-                                                                   f"in cls.alarms_area_lines yet when looking for " \
-                                                                   f"the areas where this line belong in " \
-                                                                   f"cls.alarms_lines_area it appears it does not " \
-                                                                   f"belong there."
+                    assert area_nm in cls.alarms_lines_area[l_nm], (
+                        f'line "{l_nm}" is said to belong to area '
+                        f'"{area_nm}" '
+                        f"in cls.alarms_area_lines yet when looking for "
+                        f"the areas where this line belong in "
+                        f"cls.alarms_lines_area it appears it does not "
+                        f"belong there."
+                    )
 
             # now check that all lines are in at least one area
             for line, li_area in cls.alarms_lines_area.items():
                 # check that all lines in the grid are in at least one area
                 if not li_area:
-                    raise EnvError(f"Line (on the grid) named {line} is not in any area. This is not supported at "
-                                   f"the moment")
+                    raise EnvError(
+                        f"Line (on the grid) named {line} is not in any area. This is not supported at "
+                        f"the moment"
+                    )
             # finally check that all powerlines are represented in the dictionary:
             for l_nm in cls.name_line:
                 if l_nm not in cls.alarms_lines_area:
-                    raise EnvError(f"The powerline \"{l_nm}\" is not in cls.alarms_lines_area")
+                    raise EnvError(
+                        f'The powerline "{l_nm}" is not in cls.alarms_lines_area'
+                    )
 
     @classmethod
     def _check_validity_storage_data(cls):
@@ -1843,7 +2120,9 @@ class GridObjects:
         if cls.storage_loss is None:
             raise IncorrectNumberOfStorages("self.storage_loss is None")
         if cls.storage_discharging_efficiency is None:
-            raise IncorrectNumberOfStorages("self.storage_discharging_efficiency is None")
+            raise IncorrectNumberOfStorages(
+                "self.storage_discharging_efficiency is None"
+            )
         if cls.storage_charging_efficiency is None:
             raise IncorrectNumberOfStorages("self.storage_charging_efficiency is None")
 
@@ -1852,23 +2131,41 @@ class GridObjects:
             return
 
         if cls.storage_type.shape[0] != cls.n_storage:
-            raise IncorrectNumberOfStorages("self.storage_type.shape[0] != self.n_storage")
+            raise IncorrectNumberOfStorages(
+                "self.storage_type.shape[0] != self.n_storage"
+            )
         if cls.storage_Emax.shape[0] != cls.n_storage:
-            raise IncorrectNumberOfStorages("self.storage_Emax.shape[0] != self.n_storage")
+            raise IncorrectNumberOfStorages(
+                "self.storage_Emax.shape[0] != self.n_storage"
+            )
         if cls.storage_Emin.shape[0] != cls.n_storage:
-            raise IncorrectNumberOfStorages("self.storage_Emin.shape[0] != self.n_storage")
+            raise IncorrectNumberOfStorages(
+                "self.storage_Emin.shape[0] != self.n_storage"
+            )
         if cls.storage_max_p_prod.shape[0] != cls.n_storage:
-            raise IncorrectNumberOfStorages("self.storage_max_p_prod.shape[0] != self.n_storage")
+            raise IncorrectNumberOfStorages(
+                "self.storage_max_p_prod.shape[0] != self.n_storage"
+            )
         if cls.storage_max_p_absorb.shape[0] != cls.n_storage:
-            raise IncorrectNumberOfStorages("self.storage_max_p_absorb.shape[0] != self.n_storage")
+            raise IncorrectNumberOfStorages(
+                "self.storage_max_p_absorb.shape[0] != self.n_storage"
+            )
         if cls.storage_marginal_cost.shape[0] != cls.n_storage:
-            raise IncorrectNumberOfStorages("self.storage_marginal_cost.shape[0] != self.n_storage")
+            raise IncorrectNumberOfStorages(
+                "self.storage_marginal_cost.shape[0] != self.n_storage"
+            )
         if cls.storage_loss.shape[0] != cls.n_storage:
-            raise IncorrectNumberOfStorages("self.storage_loss.shape[0] != self.n_storage")
+            raise IncorrectNumberOfStorages(
+                "self.storage_loss.shape[0] != self.n_storage"
+            )
         if cls.storage_discharging_efficiency.shape[0] != cls.n_storage:
-            raise IncorrectNumberOfStorages("self.storage_discharging_efficiency.shape[0] != self.n_storage")
+            raise IncorrectNumberOfStorages(
+                "self.storage_discharging_efficiency.shape[0] != self.n_storage"
+            )
         if cls.storage_charging_efficiency.shape[0] != cls.n_storage:
-            raise IncorrectNumberOfStorages("self.storage_charging_efficiency.shape[0] != self.n_storage")
+            raise IncorrectNumberOfStorages(
+                "self.storage_charging_efficiency.shape[0] != self.n_storage"
+            )
 
         if np.any(~np.isfinite(cls.storage_Emax)):
             raise BackendError("np.any(~np.isfinite(self.storage_Emax))")
@@ -1885,203 +2182,336 @@ class GridObjects:
         if np.any(~np.isfinite(cls.storage_charging_efficiency)):
             raise BackendError("np.any(~np.isfinite(self.storage_charging_efficiency))")
         if np.any(~np.isfinite(cls.storage_discharging_efficiency)):
-            raise BackendError("np.any(~np.isfinite(self.storage_discharging_efficiency))")
+            raise BackendError(
+                "np.any(~np.isfinite(self.storage_discharging_efficiency))"
+            )
 
         if np.any(cls.storage_Emax < cls.storage_Emin):
             tmp = np.where(cls.storage_Emax < cls.storage_Emin)[0]
-            raise BackendError(f"storage_Emax < storage_Emin for storage units with ids: {tmp}")
-        if np.any(cls.storage_Emax < 0.):
-            tmp = np.where(cls.storage_Emax < 0.)[0]
-            raise BackendError(f"self.storage_Emax < 0. for storage units with ids: {tmp}")
-        if np.any(cls.storage_Emin < 0.):
-            tmp = np.where(cls.storage_Emin < 0.)[0]
-            raise BackendError(f"self.storage_Emin < 0. for storage units with ids: {tmp}")
-        if np.any(cls.storage_max_p_prod < 0.):
-            tmp = np.where(cls.storage_max_p_prod < 0.)[0]
-            raise BackendError(f"self.storage_max_p_prod < 0. for storage units with ids: {tmp}")
-        if np.any(cls.storage_max_p_absorb < 0.):
-            tmp = np.where(cls.storage_max_p_absorb < 0.)[0]
-            raise BackendError(f"self.storage_max_p_absorb < 0. for storage units with ids: {tmp}")
-        if np.any(cls.storage_loss < 0.):
-            tmp = np.where(cls.storage_loss < 0.)[0]
-            raise BackendError(f"self.storage_loss < 0. for storage units with ids: {tmp}")
-        if np.any(cls.storage_discharging_efficiency <= 0.):
-            tmp = np.where(cls.storage_discharging_efficiency <= 0.)[0]
-            raise BackendError(f"self.storage_discharging_efficiency <= 0. for storage units with ids: {tmp}")
-        if np.any(cls.storage_discharging_efficiency > 1.):
-            tmp = np.where(cls.storage_discharging_efficiency > 1.)[0]
-            raise BackendError(f"self.storage_discharging_efficiency > 1. for storage units with ids: {tmp}")
-        if np.any(cls.storage_charging_efficiency < 0.):
-            tmp = np.where(cls.storage_charging_efficiency < 0.)[0]
-            raise BackendError(f"self.storage_charging_efficiency < 0. for storage units with ids: {tmp}")
-        if np.any(cls.storage_charging_efficiency > 1.):
-            tmp = np.where(cls.storage_charging_efficiency > 1.)[0]
-            raise BackendError(f"self.storage_charging_efficiency > 1. for storage units with ids: {tmp}")
+            raise BackendError(
+                f"storage_Emax < storage_Emin for storage units with ids: {tmp}"
+            )
+        if np.any(cls.storage_Emax < 0.0):
+            tmp = np.where(cls.storage_Emax < 0.0)[0]
+            raise BackendError(
+                f"self.storage_Emax < 0. for storage units with ids: {tmp}"
+            )
+        if np.any(cls.storage_Emin < 0.0):
+            tmp = np.where(cls.storage_Emin < 0.0)[0]
+            raise BackendError(
+                f"self.storage_Emin < 0. for storage units with ids: {tmp}"
+            )
+        if np.any(cls.storage_max_p_prod < 0.0):
+            tmp = np.where(cls.storage_max_p_prod < 0.0)[0]
+            raise BackendError(
+                f"self.storage_max_p_prod < 0. for storage units with ids: {tmp}"
+            )
+        if np.any(cls.storage_max_p_absorb < 0.0):
+            tmp = np.where(cls.storage_max_p_absorb < 0.0)[0]
+            raise BackendError(
+                f"self.storage_max_p_absorb < 0. for storage units with ids: {tmp}"
+            )
+        if np.any(cls.storage_loss < 0.0):
+            tmp = np.where(cls.storage_loss < 0.0)[0]
+            raise BackendError(
+                f"self.storage_loss < 0. for storage units with ids: {tmp}"
+            )
+        if np.any(cls.storage_discharging_efficiency <= 0.0):
+            tmp = np.where(cls.storage_discharging_efficiency <= 0.0)[0]
+            raise BackendError(
+                f"self.storage_discharging_efficiency <= 0. for storage units with ids: {tmp}"
+            )
+        if np.any(cls.storage_discharging_efficiency > 1.0):
+            tmp = np.where(cls.storage_discharging_efficiency > 1.0)[0]
+            raise BackendError(
+                f"self.storage_discharging_efficiency > 1. for storage units with ids: {tmp}"
+            )
+        if np.any(cls.storage_charging_efficiency < 0.0):
+            tmp = np.where(cls.storage_charging_efficiency < 0.0)[0]
+            raise BackendError(
+                f"self.storage_charging_efficiency < 0. for storage units with ids: {tmp}"
+            )
+        if np.any(cls.storage_charging_efficiency > 1.0):
+            tmp = np.where(cls.storage_charging_efficiency > 1.0)[0]
+            raise BackendError(
+                f"self.storage_charging_efficiency > 1. for storage units with ids: {tmp}"
+            )
         if np.any(cls.storage_loss > cls.storage_max_p_absorb):
             tmp = np.where(cls.storage_loss > cls.storage_max_p_absorb)[0]
-            raise BackendError(f"Some storage units are such that their loss (self.storage_loss) is higher "
-                               f"than the maximum power at which they can be charged (self.storage_max_p_absorb). "
-                               f"Such storage units are doomed to discharged (due to losses) without anything "
-                               f"being able to charge them back. This really un interesting behaviour is not "
-                               f"supported by grid2op. Please check storage data for units {tmp}")
+            raise BackendError(
+                f"Some storage units are such that their loss (self.storage_loss) is higher "
+                f"than the maximum power at which they can be charged (self.storage_max_p_absorb). "
+                f"Such storage units are doomed to discharged (due to losses) without anything "
+                f"being able to charge them back. This really un interesting behaviour is not "
+                f"supported by grid2op. Please check storage data for units {tmp}"
+            )
 
     @classmethod
     def _check_validity_shunt_data(cls):
         if cls.n_shunt is None:
-            raise IncorrectNumberOfElements("Backend is supposed to support shunts, but \"n_shunt\" is not set.")
+            raise IncorrectNumberOfElements(
+                'Backend is supposed to support shunts, but "n_shunt" is not set.'
+            )
         if cls.name_shunt is None:
-            raise IncorrectNumberOfElements("Backend is supposed to support shunts, but \"name_shunt\" is not set.")
+            raise IncorrectNumberOfElements(
+                'Backend is supposed to support shunts, but "name_shunt" is not set.'
+            )
         if cls.shunt_to_subid is None:
-            raise IncorrectNumberOfElements("Backend is supposed to support shunts, but \"shunt_to_subid\" is not set.")
+            raise IncorrectNumberOfElements(
+                'Backend is supposed to support shunts, but "shunt_to_subid" is not set.'
+            )
 
         if not isinstance(cls.name_shunt, np.ndarray):
             try:
                 cls.name_shunt = np.array(cls.name_shunt)
                 cls.name_shunt = cls.name_shunt.astype(np.str)
             except Exception as exc:
-                raise EnvError("name_shunt should be convertible to a numpy array with dtype \"str\".")
+                raise EnvError(
+                    'name_shunt should be convertible to a numpy array with dtype "str".'
+                )
 
         if not isinstance(cls.shunt_to_subid, np.ndarray):
             try:
                 cls.shunt_to_subid = np.array(cls.shunt_to_subid)
                 cls.shunt_to_subid = cls.shunt_to_subid.astype(dt_int)
             except Exception as e:
-                raise EnvError("shunt_to_subid should be convertible to a numpy array with dtype \"int\".")
+                raise EnvError(
+                    'shunt_to_subid should be convertible to a numpy array with dtype "int".'
+                )
 
         if cls.name_shunt.shape[0] != cls.n_shunt:
-            raise IncorrectNumberOfElements("Backend is supposed to support shunts, but \"name_shunt\" has not "
-                                            "\"n_shunt\" elements.")
+            raise IncorrectNumberOfElements(
+                'Backend is supposed to support shunts, but "name_shunt" has not '
+                '"n_shunt" elements.'
+            )
         if cls.shunt_to_subid.shape[0] != cls.n_shunt:
-            raise IncorrectNumberOfElements("Backend is supposed to support shunts, but \"shunt_to_subid\" has not "
-                                            "\"n_shunt\" elements.")
+            raise IncorrectNumberOfElements(
+                'Backend is supposed to support shunts, but "shunt_to_subid" has not '
+                '"n_shunt" elements.'
+            )
         if cls.n_shunt > 0:
             # check the substation id only if there are shunt
             if np.min(cls.shunt_to_subid) < 0:
                 raise EnvError("Some shunt is connected to a negative substation id.")
             if np.max(cls.shunt_to_subid) > cls.n_sub:
-                raise EnvError("Some shunt is supposed to be connected to substations with id {} which"
-                               "is greater than the number of substations of the grid, which is {}."
-                               "".format(np.max(cls.shunt_to_subid), cls.n_sub))
+                raise EnvError(
+                    "Some shunt is supposed to be connected to substations with id {} which"
+                    "is greater than the number of substations of the grid, which is {}."
+                    "".format(np.max(cls.shunt_to_subid), cls.n_sub)
+                )
 
     @classmethod
     def _check_validity_dispathcing_data(cls):
         if cls.gen_type is None:
-            raise InvalidRedispatching("Impossible to recognize the type of generators (gen_type) when "
-                                       "redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the type of generators (gen_type) when "
+                "redispatching is supposed to be available."
+            )
         if cls.gen_pmin is None:
-            raise InvalidRedispatching("Impossible to recognize the pmin of generators (gen_pmin) when "
-                                       "redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the pmin of generators (gen_pmin) when "
+                "redispatching is supposed to be available."
+            )
         if cls.gen_pmax is None:
-            raise InvalidRedispatching("Impossible to recognize the pmax of generators (gen_pmax) when "
-                                       "redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the pmax of generators (gen_pmax) when "
+                "redispatching is supposed to be available."
+            )
         if cls.gen_redispatchable is None:
-            raise InvalidRedispatching("Impossible to know which generator can be dispatched (gen_redispatchable)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to know which generator can be dispatched (gen_redispatchable)"
+                " when redispatching is supposed to be available."
+            )
         if cls.gen_max_ramp_up is None:
-            raise InvalidRedispatching("Impossible to recognize the ramp up of generators (gen_max_ramp_up)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the ramp up of generators (gen_max_ramp_up)"
+                " when redispatching is supposed to be available."
+            )
         if cls.gen_max_ramp_down is None:
-            raise InvalidRedispatching("Impossible to recognize the ramp up of generators (gen_max_ramp_down)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the ramp up of generators (gen_max_ramp_down)"
+                " when redispatching is supposed to be available."
+            )
         if cls.gen_min_uptime is None:
-            raise InvalidRedispatching("Impossible to recognize the min uptime of generators (gen_min_uptime)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the min uptime of generators (gen_min_uptime)"
+                " when redispatching is supposed to be available."
+            )
         if cls.gen_min_downtime is None:
-            raise InvalidRedispatching("Impossible to recognize the min downtime of generators (gen_min_downtime)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the min downtime of generators (gen_min_downtime)"
+                " when redispatching is supposed to be available."
+            )
         if cls.gen_cost_per_MW is None:
-            raise InvalidRedispatching("Impossible to recognize the marginal costs of generators (gen_cost_per_MW)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the marginal costs of generators (gen_cost_per_MW)"
+                " when redispatching is supposed to be available."
+            )
         if cls.gen_startup_cost is None:
-            raise InvalidRedispatching("Impossible to recognize the start up cost of generators (gen_startup_cost)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the start up cost of generators (gen_startup_cost)"
+                " when redispatching is supposed to be available."
+            )
         if cls.gen_shutdown_cost is None:
-            raise InvalidRedispatching("Impossible to recognize the shut down cost of generators "
-                                       "(gen_shutdown_cost) when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the shut down cost of generators "
+                "(gen_shutdown_cost) when redispatching is supposed to be available."
+            )
         if cls.gen_renewable is None:
-            raise InvalidRedispatching("Impossible to recognize the whether generators comes from renewable energy "
-                                       "sources "
-                                       "(gen_renewable) when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Impossible to recognize the whether generators comes from renewable energy "
+                "sources "
+                "(gen_renewable) when redispatching is supposed to be available."
+            )
 
         if len(cls.gen_type) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the type of generators (gen_type) when "
-                                       "redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the type of generators (gen_type) when "
+                "redispatching is supposed to be available."
+            )
         if len(cls.gen_pmin) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the pmin of generators (gen_pmin) when "
-                                       "redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the pmin of generators (gen_pmin) when "
+                "redispatching is supposed to be available."
+            )
         if len(cls.gen_pmax) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the pmax of generators (gen_pmax) when "
-                                       "redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the pmax of generators (gen_pmax) when "
+                "redispatching is supposed to be available."
+            )
         if len(cls.gen_redispatchable) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for which generator can be dispatched (gen_redispatchable)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for which generator can be dispatched (gen_redispatchable)"
+                " when redispatching is supposed to be available."
+            )
         if len(cls.gen_max_ramp_up) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the ramp up of generators (gen_max_ramp_up)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the ramp up of generators (gen_max_ramp_up)"
+                " when redispatching is supposed to be available."
+            )
         if len(cls.gen_max_ramp_down) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the ramp up of generators (gen_max_ramp_down)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the ramp up of generators (gen_max_ramp_down)"
+                " when redispatching is supposed to be available."
+            )
         if len(cls.gen_min_uptime) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the min uptime of generators (gen_min_uptime)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the min uptime of generators (gen_min_uptime)"
+                " when redispatching is supposed to be available."
+            )
         if len(cls.gen_min_downtime) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the min downtime of generators (gen_min_downtime)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the min downtime of generators (gen_min_downtime)"
+                " when redispatching is supposed to be available."
+            )
         if len(cls.gen_cost_per_MW) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the marginal costs of generators (gen_cost_per_MW)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the marginal costs of generators (gen_cost_per_MW)"
+                " when redispatching is supposed to be available."
+            )
         if len(cls.gen_startup_cost) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the start up cost of generators (gen_startup_cost)"
-                                       " when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the start up cost of generators (gen_startup_cost)"
+                " when redispatching is supposed to be available."
+            )
         if len(cls.gen_shutdown_cost) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the shut down cost of generators "
-                                       "(gen_shutdown_cost) when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the shut down cost of generators "
+                "(gen_shutdown_cost) when redispatching is supposed to be available."
+            )
         if len(cls.gen_renewable) != cls.n_gen:
-            raise InvalidRedispatching("Invalid length for the renewable flag vector"
-                                       "(gen_renewable) when redispatching is supposed to be available.")
+            raise InvalidRedispatching(
+                "Invalid length for the renewable flag vector"
+                "(gen_renewable) when redispatching is supposed to be available."
+            )
 
         if np.any(cls.gen_min_uptime < 0):
-            raise InvalidRedispatching("Minimum uptime of generator (gen_min_uptime) cannot be negative")
+            raise InvalidRedispatching(
+                "Minimum uptime of generator (gen_min_uptime) cannot be negative"
+            )
         if np.any(cls.gen_min_downtime < 0):
-            raise InvalidRedispatching("Minimum downtime of generator (gen_min_downtime) cannot be negative")
+            raise InvalidRedispatching(
+                "Minimum downtime of generator (gen_min_downtime) cannot be negative"
+            )
 
         for el in cls.gen_type:
             if not el in ["solar", "wind", "hydro", "thermal", "nuclear"]:
                 raise InvalidRedispatching("Unknown generator type : {}".format(el))
 
-        if np.any(cls.gen_pmin < 0.):
+        if np.any(cls.gen_pmin < 0.0):
             raise InvalidRedispatching("One of the Pmin (gen_pmin) is negative")
-        if np.any(cls.gen_pmax < 0.):
+        if np.any(cls.gen_pmax < 0.0):
             raise InvalidRedispatching("One of the Pmax (gen_pmax) is negative")
-        if np.any(cls.gen_max_ramp_down < 0.):
-            raise InvalidRedispatching("One of the ramp up (gen_max_ramp_down) is negative")
-        if np.any(cls.gen_max_ramp_up < 0.):
-            raise InvalidRedispatching("One of the ramp down (gen_max_ramp_up) is negative")
-        if np.any(cls.gen_startup_cost < 0.):
-            raise InvalidRedispatching("One of the start up cost (gen_startup_cost) is negative")
-        if np.any(cls.gen_shutdown_cost < 0.):
-            raise InvalidRedispatching("One of the start up cost (gen_shutdown_cost) is negative")
+        if np.any(cls.gen_max_ramp_down < 0.0):
+            raise InvalidRedispatching(
+                "One of the ramp up (gen_max_ramp_down) is negative"
+            )
+        if np.any(cls.gen_max_ramp_up < 0.0):
+            raise InvalidRedispatching(
+                "One of the ramp down (gen_max_ramp_up) is negative"
+            )
+        if np.any(cls.gen_startup_cost < 0.0):
+            raise InvalidRedispatching(
+                "One of the start up cost (gen_startup_cost) is negative"
+            )
+        if np.any(cls.gen_shutdown_cost < 0.0):
+            raise InvalidRedispatching(
+                "One of the start up cost (gen_shutdown_cost) is negative"
+            )
 
-        for el, type_ in zip(["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
-                              "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
-                              "gen_startup_cost", "gen_shutdown_cost", "gen_renewable"],
-                             [str, dt_float, dt_float, dt_bool, dt_float,
-                              dt_float, dt_int, dt_int, dt_float,
-                              dt_float, dt_float, dt_bool]):
+        for el, type_ in zip(
+            [
+                "gen_type",
+                "gen_pmin",
+                "gen_pmax",
+                "gen_redispatchable",
+                "gen_max_ramp_up",
+                "gen_max_ramp_down",
+                "gen_min_uptime",
+                "gen_min_downtime",
+                "gen_cost_per_MW",
+                "gen_startup_cost",
+                "gen_shutdown_cost",
+                "gen_renewable",
+            ],
+            [
+                str,
+                dt_float,
+                dt_float,
+                dt_bool,
+                dt_float,
+                dt_float,
+                dt_int,
+                dt_int,
+                dt_float,
+                dt_float,
+                dt_float,
+                dt_bool,
+            ],
+        ):
             if not isinstance(getattr(cls, el), np.ndarray):
                 try:
                     setattr(cls, el, getattr(cls, el).astype(type_))
                 except Exception as exc_:
-                    raise InvalidRedispatching("{} should be convertible to a numpy array with error:\n \"{}\""
-                                               "".format(el, exc_))
+                    raise InvalidRedispatching(
+                        '{} should be convertible to a numpy array with error:\n "{}"'
+                        "".format(el, exc_)
+                    )
             if not np.issubdtype(getattr(cls, el).dtype, np.dtype(type_).type):
                 try:
                     setattr(cls, el, getattr(cls, el).astype(type_))
                 except Exception as exc_:
-                    raise InvalidRedispatching("{} should be convertible data should be convertible to "
-                                               "{} with error: \n\"{}\"".format(el, type_, exc_))
-        if np.any(cls.gen_max_ramp_up[cls.gen_redispatchable] > cls.gen_pmax[cls.gen_redispatchable]):
-            raise InvalidRedispatching("Invalid maximum ramp for some generator (above pmax)")
+                    raise InvalidRedispatching(
+                        "{} should be convertible data should be convertible to "
+                        '{} with error: \n"{}"'.format(el, type_, exc_)
+                    )
+        if np.any(
+            cls.gen_max_ramp_up[cls.gen_redispatchable]
+            > cls.gen_pmax[cls.gen_redispatchable]
+        ):
+            raise InvalidRedispatching(
+                "Invalid maximum ramp for some generator (above pmax)"
+            )
 
     @classmethod
     def attach_layout(cls, grid_layout):
@@ -2161,7 +2591,7 @@ class GridObjects:
 
         cls_attr_as_dict = {}
         GridObjects._make_cls_dict_extended(gridobj, cls_attr_as_dict, as_list=False)
-        res_cls = type(name_res, (cls, ), cls_attr_as_dict)
+        res_cls = type(name_res, (cls,), cls_attr_as_dict)
         if hasattr(cls, "_INIT_GRID_CLS") and cls._INIT_GRID_CLS is not None:
             # original class is already from an initialized environment, i keep track of it
             res_cls._INIT_GRID_CLS = cls._INIT_GRID_CLS
@@ -2247,21 +2677,27 @@ class GridObjects:
 
         """
         if _sentinel is not None:
-            raise Grid2OpException("get_obj_connect_to should be used only with key-word arguments")
+            raise Grid2OpException(
+                "get_obj_connect_to should be used only with key-word arguments"
+            )
 
         if substation_id is None:
-            raise Grid2OpException("You ask the composition of a substation without specifying its id."
-                                   "Please provide \"substation_id\"")
+            raise Grid2OpException(
+                "You ask the composition of a substation without specifying its id."
+                'Please provide "substation_id"'
+            )
         if substation_id >= len(cls.sub_info):
-            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid."
-                                   "".format(substation_id))
+            raise Grid2OpException(
+                'There are no substation of id "substation_id={}" in this grid.'
+                "".format(substation_id)
+            )
         res = {
             "loads_id": np.where(cls.load_to_subid == substation_id)[0],
             "generators_id": np.where(cls.gen_to_subid == substation_id)[0],
             "lines_or_id": np.where(cls.line_or_to_subid == substation_id)[0],
             "lines_ex_id": np.where(cls.line_ex_to_subid == substation_id)[0],
-            "storages_id":  np.where(cls.storage_to_subid == substation_id)[0],
-            "nb_elements": cls.sub_info[substation_id]
+            "storages_id": np.where(cls.storage_to_subid == substation_id)[0],
+            "nb_elements": cls.sub_info[substation_id],
         }
         return res
 
@@ -2342,24 +2778,38 @@ class GridObjects:
 
         """
         if _sentinel is not None:
-            raise Grid2OpException("get_obj_substations should be used only with key-word arguments")
+            raise Grid2OpException(
+                "get_obj_substations should be used only with key-word arguments"
+            )
 
         if substation_id is None:
-            raise Grid2OpException("You ask the composition of a substation without specifying its id."
-                                   "Please provide \"substation_id\"")
+            raise Grid2OpException(
+                "You ask the composition of a substation without specifying its id."
+                'Please provide "substation_id"'
+            )
         if substation_id >= len(cls.sub_info):
-            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid."
-                                   "".format(substation_id))
+            raise Grid2OpException(
+                'There are no substation of id "substation_id={}" in this grid.'
+                "".format(substation_id)
+            )
 
         dict_ = cls.get_obj_connect_to(substation_id=substation_id)
         res = np.full((dict_["nb_elements"], 6), fill_value=-1, dtype=dt_int)
         # 0 -> load, 1-> gen, 2 -> lines_or, 3 -> lines_ex
         res[:, cls.SUB_COL] = substation_id
         res[cls.load_to_sub_pos[dict_["loads_id"]], cls.LOA_COL] = dict_["loads_id"]
-        res[cls.gen_to_sub_pos[dict_["generators_id"]], cls.GEN_COL] = dict_["generators_id"]
-        res[cls.line_or_to_sub_pos[dict_["lines_or_id"]], cls.LOR_COL] = dict_["lines_or_id"]
-        res[cls.line_ex_to_sub_pos[dict_["lines_ex_id"]], cls.LEX_COL] = dict_["lines_ex_id"]
-        res[cls.storage_to_sub_pos[dict_["storages_id"]], cls.STORAGE_COL] = dict_["storages_id"]
+        res[cls.gen_to_sub_pos[dict_["generators_id"]], cls.GEN_COL] = dict_[
+            "generators_id"
+        ]
+        res[cls.line_or_to_sub_pos[dict_["lines_or_id"]], cls.LOR_COL] = dict_[
+            "lines_or_id"
+        ]
+        res[cls.line_ex_to_sub_pos[dict_["lines_ex_id"]], cls.LEX_COL] = dict_[
+            "lines_ex_id"
+        ]
+        res[cls.storage_to_sub_pos[dict_["storages_id"]], cls.STORAGE_COL] = dict_[
+            "storages_id"
+        ]
         return res
 
     def get_lines_id(self, _sentinel=None, from_=None, to_=None):
@@ -2403,19 +2853,27 @@ class GridObjects:
         """
         res = []
         if from_ is None:
-            raise BackendError("ObservationSpace.get_lines_id: impossible to look for a powerline with no origin "
-                               "substation. Please modify \"from_\" parameter")
+            raise BackendError(
+                "ObservationSpace.get_lines_id: impossible to look for a powerline with no origin "
+                'substation. Please modify "from_" parameter'
+            )
         if to_ is None:
-            raise BackendError("ObservationSpace.get_lines_id: impossible to look for a powerline with no extremity "
-                               "substation. Please modify \"to_\" parameter")
+            raise BackendError(
+                "ObservationSpace.get_lines_id: impossible to look for a powerline with no extremity "
+                'substation. Please modify "to_" parameter'
+            )
 
-        for i, (ori, ext) in enumerate(zip(self.line_or_to_subid, self.line_ex_to_subid)):
+        for i, (ori, ext) in enumerate(
+            zip(self.line_or_to_subid, self.line_ex_to_subid)
+        ):
             if ori == from_ and ext == to_:
                 res.append(i)
 
         if not res:  # res is empty here
-            raise BackendError("ObservationSpace.get_line_id: impossible to find a powerline with connected at "
-                               "origin at {} and extremity at {}".format(from_, to_))
+            raise BackendError(
+                "ObservationSpace.get_line_id: impossible to find a powerline with connected at "
+                "origin at {} and extremity at {}".format(from_, to_)
+            )
 
         return res
 
@@ -2456,7 +2914,8 @@ class GridObjects:
         if sub_id is None:
             raise BackendError(
                 "GridObjects.get_generators_id: impossible to look for a generator not connected to any substation. "
-                "Please modify \"sub_id\" parameter")
+                'Please modify "sub_id" parameter'
+            )
 
         for i, s_id_gen in enumerate(self.gen_to_subid):
             if s_id_gen == sub_id:
@@ -2465,7 +2924,8 @@ class GridObjects:
         if not res:  # res is empty here
             raise BackendError(
                 "GridObjects.get_generators_id: impossible to find a generator connected at "
-                "substation {}".format(sub_id))
+                "substation {}".format(sub_id)
+            )
 
         return res
 
@@ -2505,7 +2965,8 @@ class GridObjects:
         if sub_id is None:
             raise BackendError(
                 "GridObjects.get_loads_id: impossible to look for a load not connected to any substation. "
-                "Please modify \"sub_id\" parameter")
+                'Please modify "sub_id" parameter'
+            )
 
         for i, s_id_gen in enumerate(self.load_to_subid):
             if s_id_gen == sub_id:
@@ -2513,7 +2974,10 @@ class GridObjects:
 
         if not res:  # res is empty here
             raise BackendError(
-                "GridObjects.get_loads_id: impossible to find a load connected at substation {}".format(sub_id))
+                "GridObjects.get_loads_id: impossible to find a load connected at substation {}".format(
+                    sub_id
+                )
+            )
 
         return res
 
@@ -2553,7 +3017,8 @@ class GridObjects:
         if sub_id is None:
             raise BackendError(
                 "GridObjects.get_storages_id: impossible to look for a load not connected to any substation. "
-                "Please modify \"sub_id\" parameter")
+                'Please modify "sub_id" parameter'
+            )
 
         for i, s_id_gen in enumerate(self.storage_to_subid):
             if s_id_gen == sub_id:
@@ -2561,7 +3026,10 @@ class GridObjects:
 
         if not res:  # res is empty here
             raise BackendError(
-                "GridObjects.bd: impossible to find a storage unit connected at substation {}".format(sub_id))
+                "GridObjects.bd: impossible to find a storage unit connected at substation {}".format(
+                    sub_id
+                )
+            )
 
         return res
 
@@ -2570,115 +3038,296 @@ class GridObjects:
         """NB: `cls` can be here a class or an object of a class..."""
         save_to_dict(res, cls, "glop_version", str, copy_)
         res["_PATH_ENV"] = cls._PATH_ENV  # i do that manually for more control
-        save_to_dict(res, cls, "name_gen", (lambda arr: [str(el) for el in arr]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "name_load", (lambda li: [str(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "name_line", (lambda li: [str(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "name_sub", (lambda li: [str(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "name_storage", (lambda li: [str(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "env_name", str,
-                     copy_)
+        save_to_dict(
+            res,
+            cls,
+            "name_gen",
+            (lambda arr: [str(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "name_load",
+            (lambda li: [str(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "name_line",
+            (lambda li: [str(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "name_sub",
+            (lambda li: [str(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "name_storage",
+            (lambda li: [str(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(res, cls, "env_name", str, copy_)
 
-        save_to_dict(res, cls, "sub_info", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
+        save_to_dict(
+            res,
+            cls,
+            "sub_info",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
 
-        save_to_dict(res, cls, "load_to_subid", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "gen_to_subid", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "line_or_to_subid", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "line_ex_to_subid", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_to_subid", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
+        save_to_dict(
+            res,
+            cls,
+            "load_to_subid",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "gen_to_subid",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "line_or_to_subid",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "line_ex_to_subid",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_to_subid",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
 
-        save_to_dict(res, cls, "load_to_sub_pos", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "gen_to_sub_pos", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "line_or_to_sub_pos", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "line_ex_to_sub_pos", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_to_sub_pos", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
+        save_to_dict(
+            res,
+            cls,
+            "load_to_sub_pos",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "gen_to_sub_pos",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "line_or_to_sub_pos",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "line_ex_to_sub_pos",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_to_sub_pos",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
 
-        save_to_dict(res, cls, "load_pos_topo_vect", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "gen_pos_topo_vect", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "line_or_pos_topo_vect", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "line_ex_pos_topo_vect", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_pos_topo_vect", (lambda li: [int(el) for el in li]) if as_list else None,
-                     copy_)
+        save_to_dict(
+            res,
+            cls,
+            "load_pos_topo_vect",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "gen_pos_topo_vect",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "line_or_pos_topo_vect",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "line_ex_pos_topo_vect",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_pos_topo_vect",
+            (lambda li: [int(el) for el in li]) if as_list else None,
+            copy_,
+        )
 
         # redispatching
         if cls.redispatching_unit_commitment_availble:
             for nm_attr, type_attr in zip(cls._li_attr_disp, cls._type_attr_disp):
-                save_to_dict(res, cls, nm_attr, (lambda li: [type_attr(el) for el in li]) if as_list else None,
-                     copy_)
+                save_to_dict(
+                    res,
+                    cls,
+                    nm_attr,
+                    (lambda li: [type_attr(el) for el in li]) if as_list else None,
+                    copy_,
+                )
         else:
             for nm_attr in cls._li_attr_disp:
                 res[nm_attr] = None
 
         # shunts
         if cls.grid_layout is not None:
-            save_to_dict(res, cls, "grid_layout",
-                         (lambda gl: {str(k): [float(x), float(y)] for k, (x, y) in gl.items()}) if as_list else None,
-                         copy_)
+            save_to_dict(
+                res,
+                cls,
+                "grid_layout",
+                (lambda gl: {str(k): [float(x), float(y)] for k, (x, y) in gl.items()})
+                if as_list
+                else None,
+                copy_,
+            )
         else:
             res["grid_layout"] = None
 
         # shunts
         if cls.shunts_data_available:
-            save_to_dict(res, cls, "name_shunt", (lambda li: [str(el) for el in li]) if as_list else None,
-                         copy_)
-            save_to_dict(res, cls, "shunt_to_subid", (lambda li: [int(el) for el in li]) if as_list else None,
-                         copy_)
+            save_to_dict(
+                res,
+                cls,
+                "name_shunt",
+                (lambda li: [str(el) for el in li]) if as_list else None,
+                copy_,
+            )
+            save_to_dict(
+                res,
+                cls,
+                "shunt_to_subid",
+                (lambda li: [int(el) for el in li]) if as_list else None,
+                copy_,
+            )
         else:
             res["name_shunt"] = None
             res["shunt_to_subid"] = None
 
         # storage data
-        save_to_dict(res, cls, "storage_type", (lambda li: [str(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_Emax", (lambda li: [float(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_Emin", (lambda li: [float(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_max_p_prod", (lambda li: [float(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_max_p_absorb", (lambda li: [float(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_marginal_cost", (lambda li: [float(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_loss", (lambda li: [float(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_charging_efficiency",
-                     (lambda li: [float(el) for el in li]) if as_list else None,
-                     copy_)
-        save_to_dict(res, cls, "storage_discharging_efficiency",
-                     (lambda li: [float(el) for el in li]) if as_list else None,
-                     copy_)
+        save_to_dict(
+            res,
+            cls,
+            "storage_type",
+            (lambda li: [str(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_Emax",
+            (lambda li: [float(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_Emin",
+            (lambda li: [float(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_max_p_prod",
+            (lambda li: [float(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_max_p_absorb",
+            (lambda li: [float(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_marginal_cost",
+            (lambda li: [float(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_loss",
+            (lambda li: [float(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_charging_efficiency",
+            (lambda li: [float(el) for el in li]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_discharging_efficiency",
+            (lambda li: [float(el) for el in li]) if as_list else None,
+            copy_,
+        )
 
         # area for the alarm feature
         res["dim_alarms"] = cls.dim_alarms
-        save_to_dict(res, cls, "alarms_area_names",
-                     (lambda li: [str(el) for el in li]),
-                     copy_)
-        save_to_dict(res, cls, "alarms_lines_area",
-                     (lambda dict_: {str(l_nm): [str(ar_nm) for ar_nm in areas] for l_nm, areas in dict_.items()}),
-                     copy_)
-        save_to_dict(res, cls, "alarms_area_lines",
-                     (lambda lili: [[str(l_nm) for l_nm in lines] for lines in lili]),
-                     copy_)
+        save_to_dict(
+            res, cls, "alarms_area_names", (lambda li: [str(el) for el in li]), copy_
+        )
+        save_to_dict(
+            res,
+            cls,
+            "alarms_lines_area",
+            (
+                lambda dict_: {
+                    str(l_nm): [str(ar_nm) for ar_nm in areas]
+                    for l_nm, areas in dict_.items()
+                }
+            ),
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "alarms_area_lines",
+            (lambda lili: [[str(l_nm) for l_nm in lines] for lines in lili]),
+            copy_,
+        )
         return res
 
     @staticmethod
@@ -2696,7 +3345,9 @@ class GridObjects:
         # storage
         res["n_storage"] = cls.n_storage
         # redispatching / curtailment
-        res["redispatching_unit_commitment_availble"] = cls.redispatching_unit_commitment_availble
+        res[
+            "redispatching_unit_commitment_availble"
+        ] = cls.redispatching_unit_commitment_availble
 
     @classmethod
     def cls_to_dict(cls):
@@ -2758,10 +3409,18 @@ class GridObjects:
         else:
             cls._PATH_ENV = None
 
-        cls.name_gen = extract_from_dict(dict_, "name_gen", lambda x: np.array(x).astype(str))
-        cls.name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
-        cls.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
-        cls.name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
+        cls.name_gen = extract_from_dict(
+            dict_, "name_gen", lambda x: np.array(x).astype(str)
+        )
+        cls.name_load = extract_from_dict(
+            dict_, "name_load", lambda x: np.array(x).astype(str)
+        )
+        cls.name_line = extract_from_dict(
+            dict_, "name_line", lambda x: np.array(x).astype(str)
+        )
+        cls.name_sub = extract_from_dict(
+            dict_, "name_sub", lambda x: np.array(x).astype(str)
+        )
         if "env_name" in dict_:
             # new saved in version >= 1.3.0
             cls.env_name = str(dict_["env_name"])
@@ -2769,23 +3428,47 @@ class GridObjects:
             # environment name was not stored, this make the task to retrieve this impossible
             pass
 
-        cls.sub_info = extract_from_dict(dict_, "sub_info", lambda x: np.array(x).astype(dt_int))
-        cls.load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(dt_int))
-        cls.gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(dt_int))
-        cls.line_or_to_subid = extract_from_dict(dict_, "line_or_to_subid", lambda x: np.array(x).astype(dt_int))
-        cls.line_ex_to_subid = extract_from_dict(dict_, "line_ex_to_subid", lambda x: np.array(x).astype(dt_int))
+        cls.sub_info = extract_from_dict(
+            dict_, "sub_info", lambda x: np.array(x).astype(dt_int)
+        )
+        cls.load_to_subid = extract_from_dict(
+            dict_, "load_to_subid", lambda x: np.array(x).astype(dt_int)
+        )
+        cls.gen_to_subid = extract_from_dict(
+            dict_, "gen_to_subid", lambda x: np.array(x).astype(dt_int)
+        )
+        cls.line_or_to_subid = extract_from_dict(
+            dict_, "line_or_to_subid", lambda x: np.array(x).astype(dt_int)
+        )
+        cls.line_ex_to_subid = extract_from_dict(
+            dict_, "line_ex_to_subid", lambda x: np.array(x).astype(dt_int)
+        )
 
-        cls.load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(dt_int))
-        cls.gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(dt_int))
-        cls.line_or_to_sub_pos = extract_from_dict(dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(dt_int))
-        cls.line_ex_to_sub_pos = extract_from_dict(dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(dt_int))
+        cls.load_to_sub_pos = extract_from_dict(
+            dict_, "load_to_sub_pos", lambda x: np.array(x).astype(dt_int)
+        )
+        cls.gen_to_sub_pos = extract_from_dict(
+            dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(dt_int)
+        )
+        cls.line_or_to_sub_pos = extract_from_dict(
+            dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(dt_int)
+        )
+        cls.line_ex_to_sub_pos = extract_from_dict(
+            dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(dt_int)
+        )
 
-        cls.load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
-        cls.gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
-        cls.line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect",
-                                                      lambda x: np.array(x).astype(dt_int))
-        cls.line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect",
-                                                      lambda x: np.array(x).astype(dt_int))
+        cls.load_pos_topo_vect = extract_from_dict(
+            dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(dt_int)
+        )
+        cls.gen_pos_topo_vect = extract_from_dict(
+            dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(dt_int)
+        )
+        cls.line_or_pos_topo_vect = extract_from_dict(
+            dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(dt_int)
+        )
+        cls.line_ex_pos_topo_vect = extract_from_dict(
+            dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(dt_int)
+        )
 
         cls.n_gen = len(cls.name_gen)
         cls.n_load = len(cls.name_load)
@@ -2798,8 +3481,20 @@ class GridObjects:
             # and no need to make anything else, because everything is already initialized at None
         else:
             cls.redispatching_unit_commitment_availble = True
-            type_attr_disp = [str, dt_float, dt_float, dt_bool, dt_float, dt_float,
-                              dt_int, dt_int, dt_float, dt_float, dt_float, dt_bool]
+            type_attr_disp = [
+                str,
+                dt_float,
+                dt_float,
+                dt_bool,
+                dt_float,
+                dt_float,
+                dt_int,
+                dt_int,
+                dt_float,
+                dt_float,
+                dt_float,
+                dt_bool,
+            ]
 
             # small "hack" here for the "gen_renewable" attribute, used for curtailment, that
             # is coded in grid2op >= 1.5 only
@@ -2810,7 +3505,13 @@ class GridObjects:
                 dict_["gen_renewable"] = [not el for el in dict_["gen_redispatchable"]]
 
             for nm_attr, type_attr in zip(cls._li_attr_disp, type_attr_disp):
-                setattr(cls, nm_attr, extract_from_dict(dict_, nm_attr, lambda x: np.array(x).astype(type_attr)))
+                setattr(
+                    cls,
+                    nm_attr,
+                    extract_from_dict(
+                        dict_, nm_attr, lambda x: np.array(x).astype(type_attr)
+                    ),
+                )
 
         cls.grid_layout = extract_from_dict(dict_, "grid_layout", lambda x: x)
 
@@ -2819,28 +3520,56 @@ class GridObjects:
             cls.shunts_data_available = True
             cls.n_shunt = len(cls.name_shunt)
             cls.name_shunt = np.array(cls.name_shunt).astype(str)
-            cls.shunt_to_subid = extract_from_dict(dict_, "shunt_to_subid", lambda x: np.array(x).astype(dt_int))
+            cls.shunt_to_subid = extract_from_dict(
+                dict_, "shunt_to_subid", lambda x: np.array(x).astype(dt_int)
+            )
 
         if "name_storage" in dict_:
             # this is for backward compatibility with logs coming from grid2op <= 1.5
             # where storage unit did not exist.
-            cls.name_storage = extract_from_dict(dict_, "name_storage", lambda x: np.array(x).astype(str))
-            cls.storage_to_subid = extract_from_dict(dict_, "storage_to_subid", lambda x: np.array(x).astype(dt_int))
-            cls.storage_to_sub_pos = extract_from_dict(dict_, "storage_to_sub_pos",
-                                                       lambda x: np.array(x).astype(dt_int))
-            cls.storage_pos_topo_vect = extract_from_dict(dict_, "storage_pos_topo_vect",
-                                                          lambda x: np.array(x).astype(dt_int))
+            cls.name_storage = extract_from_dict(
+                dict_, "name_storage", lambda x: np.array(x).astype(str)
+            )
+            cls.storage_to_subid = extract_from_dict(
+                dict_, "storage_to_subid", lambda x: np.array(x).astype(dt_int)
+            )
+            cls.storage_to_sub_pos = extract_from_dict(
+                dict_, "storage_to_sub_pos", lambda x: np.array(x).astype(dt_int)
+            )
+            cls.storage_pos_topo_vect = extract_from_dict(
+                dict_, "storage_pos_topo_vect", lambda x: np.array(x).astype(dt_int)
+            )
             cls.n_storage = len(cls.name_storage)
             # storage static data
             extract_from_dict(dict_, "storage_type", lambda x: np.array(x).astype(str))
-            extract_from_dict(dict_, "storage_Emax", lambda x: np.array(x).astype(dt_float))
-            extract_from_dict(dict_, "storage_Emin", lambda x: np.array(x).astype(dt_float))
-            extract_from_dict(dict_, "storage_max_p_prod", lambda x: np.array(x).astype(dt_float))
-            extract_from_dict(dict_, "storage_max_p_absorb", lambda x: np.array(x).astype(dt_float))
-            extract_from_dict(dict_, "storage_marginal_cost", lambda x: np.array(x).astype(dt_float))
-            extract_from_dict(dict_, "storage_loss", lambda x: np.array(x).astype(dt_float))
-            extract_from_dict(dict_, "storage_charging_efficiency", lambda x: np.array(x).astype(dt_float))
-            extract_from_dict(dict_, "storage_discharging_efficiency", lambda x: np.array(x).astype(dt_float))
+            extract_from_dict(
+                dict_, "storage_Emax", lambda x: np.array(x).astype(dt_float)
+            )
+            extract_from_dict(
+                dict_, "storage_Emin", lambda x: np.array(x).astype(dt_float)
+            )
+            extract_from_dict(
+                dict_, "storage_max_p_prod", lambda x: np.array(x).astype(dt_float)
+            )
+            extract_from_dict(
+                dict_, "storage_max_p_absorb", lambda x: np.array(x).astype(dt_float)
+            )
+            extract_from_dict(
+                dict_, "storage_marginal_cost", lambda x: np.array(x).astype(dt_float)
+            )
+            extract_from_dict(
+                dict_, "storage_loss", lambda x: np.array(x).astype(dt_float)
+            )
+            extract_from_dict(
+                dict_,
+                "storage_charging_efficiency",
+                lambda x: np.array(x).astype(dt_float),
+            )
+            extract_from_dict(
+                dict_,
+                "storage_discharging_efficiency",
+                lambda x: np.array(x).astype(dt_float),
+            )
         else:
             # backward compatibility: no storage were supported
             cls.set_no_storage()
@@ -2918,7 +3647,9 @@ class GridObjects:
         me_dict = {}
         GridObjects._make_cls_dict_extended(cls, me_dict, as_list=False, copy_=False)
         other_cls_dict = {}
-        GridObjects._make_cls_dict_extended(other_cls, other_cls_dict, as_list=False, copy_=False)
+        GridObjects._make_cls_dict_extended(
+            other_cls, other_cls_dict, as_list=False, copy_=False
+        )
 
         if me_dict.keys() - other_cls_dict.keys():
             # one key is in me but not in other
@@ -2940,6 +3671,7 @@ class GridObjects:
         import sys
         import os
         import importlib
+
         my_class = None
         if path_env is None:
             return None
@@ -2951,7 +3683,7 @@ class GridObjects:
             return None
         sys.path.append(path_env)
         try:
-            module = importlib.import_module('_grid2op_classes')
+            module = importlib.import_module("_grid2op_classes")
             if hasattr(module, name_cls):
                 my_class = getattr(module, name_cls)
         except (ModuleNotFoundError, ImportError) as exc_:
@@ -2973,7 +3705,9 @@ class GridObjects:
         """
         res_cls = None
         if "_PATH_ENV" in cls_attr and cls_attr["_PATH_ENV"] is not None:
-            res_cls = GridObjects._build_cls_from_import(name_res, cls_attr["_PATH_ENV"])
+            res_cls = GridObjects._build_cls_from_import(
+                name_res, cls_attr["_PATH_ENV"]
+            )
 
         # check if the class already exists, if so returns it
         if res_cls is not None:
@@ -2984,7 +3718,7 @@ class GridObjects:
             res_cls = globals()[name_res]
         else:
             # define properly the class, as it is not found
-            res_cls = type(name_res, (orig_cls, ), cls_attr)
+            res_cls = type(name_res, (orig_cls,), cls_attr)
             res_cls._INIT_GRID_CLS = orig_cls  # don't forget to remember the base class
             # if hasattr(res_cls, "n_sub") and res_cls.n_sub > 0:
             # that's a grid2op class iniailized with an environment, I need to initialize it too
@@ -3023,9 +3757,11 @@ class GridObjects:
         else:
             # i am a "raw" type directly coming from grid2op
             base_cls = my_cls
-        return GridObjects.init_grid_from_dict_for_pickle, \
-               (type(self).__name__, base_cls, cls_attr_as_dict), \
-               my_state
+        return (
+            GridObjects.init_grid_from_dict_for_pickle,
+            (type(self).__name__, base_cls, cls_attr_as_dict),
+            my_state,
+        )
 
     @staticmethod
     def _format_int_vect_to_cls_str(int_vect):
@@ -3066,92 +3802,150 @@ class GridObjects:
 
         attr_nan_list_set_str = "{}"
         if cls.attr_nan_list_set is not None:
-            tmp_ = ",".join([f"\"{el}\"" for el in sorted(cls.attr_nan_list_set)])
-            attr_nan_list_set_str = f'set([{tmp_}])'
+            tmp_ = ",".join([f'"{el}"' for el in sorted(cls.attr_nan_list_set)])
+            attr_nan_list_set_str = f"set([{tmp_}])"
 
-        name_load_str = ",".join([f"\"{el}\"" for el in cls.name_load])
-        name_gen_str = ",".join([f"\"{el}\"" for el in cls.name_gen])
-        name_line_str = ",".join([f"\"{el}\"" for el in cls.name_line])
-        name_storage_str = ",".join([f"\"{el}\"" for el in cls.name_storage])
-        name_sub_str = ",".join([f"\"{el}\"" for el in cls.name_sub])
+        name_load_str = ",".join([f'"{el}"' for el in cls.name_load])
+        name_gen_str = ",".join([f'"{el}"' for el in cls.name_gen])
+        name_line_str = ",".join([f'"{el}"' for el in cls.name_line])
+        name_storage_str = ",".join([f'"{el}"' for el in cls.name_storage])
+        name_sub_str = ",".join([f'"{el}"' for el in cls.name_sub])
 
         sub_info_str = GridObjects._format_int_vect_to_cls_str(cls.sub_info)
 
         load_to_subid_str = GridObjects._format_int_vect_to_cls_str(cls.load_to_subid)
         gen_to_subid_str = GridObjects._format_int_vect_to_cls_str(cls.gen_to_subid)
-        line_or_to_subid_str = GridObjects._format_int_vect_to_cls_str(cls.line_or_to_subid)
-        line_ex_to_subid_str = GridObjects._format_int_vect_to_cls_str(cls.line_ex_to_subid)
-        storage_to_subid_str = GridObjects._format_int_vect_to_cls_str(cls.storage_to_subid)
+        line_or_to_subid_str = GridObjects._format_int_vect_to_cls_str(
+            cls.line_or_to_subid
+        )
+        line_ex_to_subid_str = GridObjects._format_int_vect_to_cls_str(
+            cls.line_ex_to_subid
+        )
+        storage_to_subid_str = GridObjects._format_int_vect_to_cls_str(
+            cls.storage_to_subid
+        )
 
         # which index has this element in the substation vector
-        load_to_sub_pos_str = GridObjects._format_int_vect_to_cls_str(cls.load_to_sub_pos)
+        load_to_sub_pos_str = GridObjects._format_int_vect_to_cls_str(
+            cls.load_to_sub_pos
+        )
         gen_to_sub_pos_str = GridObjects._format_int_vect_to_cls_str(cls.gen_to_sub_pos)
-        line_or_to_sub_pos_str = GridObjects._format_int_vect_to_cls_str(cls.line_or_to_sub_pos)
-        line_ex_to_sub_pos_str = GridObjects._format_int_vect_to_cls_str(cls.line_ex_to_sub_pos)
-        storage_to_sub_pos_str = GridObjects._format_int_vect_to_cls_str(cls.storage_to_sub_pos)
+        line_or_to_sub_pos_str = GridObjects._format_int_vect_to_cls_str(
+            cls.line_or_to_sub_pos
+        )
+        line_ex_to_sub_pos_str = GridObjects._format_int_vect_to_cls_str(
+            cls.line_ex_to_sub_pos
+        )
+        storage_to_sub_pos_str = GridObjects._format_int_vect_to_cls_str(
+            cls.storage_to_sub_pos
+        )
 
         # which index has this element in the topology vector
-        load_pos_topo_vect_str = GridObjects._format_int_vect_to_cls_str(cls.load_pos_topo_vect)
-        gen_pos_topo_vect_str = GridObjects._format_int_vect_to_cls_str(cls.gen_pos_topo_vect)
-        line_or_pos_topo_vect_str = GridObjects._format_int_vect_to_cls_str(cls.line_or_pos_topo_vect)
-        line_ex_pos_topo_vect_str = GridObjects._format_int_vect_to_cls_str(cls.line_ex_pos_topo_vect)
-        storage_pos_topo_vect_str = GridObjects._format_int_vect_to_cls_str(cls.storage_pos_topo_vect)
+        load_pos_topo_vect_str = GridObjects._format_int_vect_to_cls_str(
+            cls.load_pos_topo_vect
+        )
+        gen_pos_topo_vect_str = GridObjects._format_int_vect_to_cls_str(
+            cls.gen_pos_topo_vect
+        )
+        line_or_pos_topo_vect_str = GridObjects._format_int_vect_to_cls_str(
+            cls.line_or_pos_topo_vect
+        )
+        line_ex_pos_topo_vect_str = GridObjects._format_int_vect_to_cls_str(
+            cls.line_ex_pos_topo_vect
+        )
+        storage_pos_topo_vect_str = GridObjects._format_int_vect_to_cls_str(
+            cls.storage_pos_topo_vect
+        )
 
         def format_el_int(values):
             return ",".join([f"{el}" for el in values])
 
         tmp_tmp_ = [format_el_int(el) for el in cls.grid_objects_types]
         tmp_ = ",".join([f"[{el}]" for el in tmp_tmp_])
-        grid_objects_types_str = f"np.array([{tmp_}], " \
-                                 f"dtype=dt_int)"
-        _topo_vect_to_sub_str = GridObjects._format_int_vect_to_cls_str(cls._topo_vect_to_sub)
+        grid_objects_types_str = f"np.array([{tmp_}], " f"dtype=dt_int)"
+        _topo_vect_to_sub_str = GridObjects._format_int_vect_to_cls_str(
+            cls._topo_vect_to_sub
+        )
 
         _vectorized_str = "None"
 
-        gen_type_str = ",".join([f"\"{el}\"" for el in cls.gen_type]) if cls.redispatching_unit_commitment_availble else "None"
+        gen_type_str = (
+            ",".join([f'"{el}"' for el in cls.gen_type])
+            if cls.redispatching_unit_commitment_availble
+            else "None"
+        )
         gen_pmin_str = GridObjects._format_float_vect_to_cls_str(cls.gen_pmin)
         gen_pmax_str = GridObjects._format_float_vect_to_cls_str(cls.gen_pmax)
-        gen_redispatchable_str = GridObjects._format_bool_vect_to_cls_str(cls.gen_redispatchable)
-        gen_max_ramp_up_str = GridObjects._format_float_vect_to_cls_str(cls.gen_max_ramp_up)
-        gen_max_ramp_down_str = GridObjects._format_float_vect_to_cls_str(cls.gen_max_ramp_down)
+        gen_redispatchable_str = GridObjects._format_bool_vect_to_cls_str(
+            cls.gen_redispatchable
+        )
+        gen_max_ramp_up_str = GridObjects._format_float_vect_to_cls_str(
+            cls.gen_max_ramp_up
+        )
+        gen_max_ramp_down_str = GridObjects._format_float_vect_to_cls_str(
+            cls.gen_max_ramp_down
+        )
         gen_min_uptime_str = GridObjects._format_int_vect_to_cls_str(cls.gen_min_uptime)
-        gen_min_downtime_str = GridObjects._format_int_vect_to_cls_str(cls.gen_min_downtime)
-        gen_cost_per_MW_str = GridObjects._format_float_vect_to_cls_str(cls.gen_cost_per_MW)
-        gen_startup_cost_str = GridObjects._format_float_vect_to_cls_str(cls.gen_startup_cost)
-        gen_shutdown_cost_str = GridObjects._format_float_vect_to_cls_str(cls.gen_shutdown_cost)
+        gen_min_downtime_str = GridObjects._format_int_vect_to_cls_str(
+            cls.gen_min_downtime
+        )
+        gen_cost_per_MW_str = GridObjects._format_float_vect_to_cls_str(
+            cls.gen_cost_per_MW
+        )
+        gen_startup_cost_str = GridObjects._format_float_vect_to_cls_str(
+            cls.gen_startup_cost
+        )
+        gen_shutdown_cost_str = GridObjects._format_float_vect_to_cls_str(
+            cls.gen_shutdown_cost
+        )
         gen_renewable_str = GridObjects._format_bool_vect_to_cls_str(cls.gen_renewable)
 
-        storage_type_str = ",".join([f"\"{el}\"" for el in cls.storage_type])
+        storage_type_str = ",".join([f'"{el}"' for el in cls.storage_type])
         storage_Emax_str = GridObjects._format_float_vect_to_cls_str(cls.storage_Emax)
         storage_Emin_str = GridObjects._format_float_vect_to_cls_str(cls.storage_Emin)
-        storage_max_p_prod_str = GridObjects._format_float_vect_to_cls_str(cls.storage_max_p_prod)
-        storage_max_p_absorb_str = GridObjects._format_float_vect_to_cls_str(cls.storage_max_p_absorb)
-        storage_marginal_cost_str = GridObjects._format_float_vect_to_cls_str(cls.storage_marginal_cost)
+        storage_max_p_prod_str = GridObjects._format_float_vect_to_cls_str(
+            cls.storage_max_p_prod
+        )
+        storage_max_p_absorb_str = GridObjects._format_float_vect_to_cls_str(
+            cls.storage_max_p_absorb
+        )
+        storage_marginal_cost_str = GridObjects._format_float_vect_to_cls_str(
+            cls.storage_marginal_cost
+        )
         storage_loss_str = GridObjects._format_float_vect_to_cls_str(cls.storage_loss)
-        storage_charging_efficiency_str = GridObjects._format_float_vect_to_cls_str(cls.storage_charging_efficiency)
-        storage_discharging_efficiency_str = GridObjects._format_float_vect_to_cls_str(cls.storage_discharging_efficiency)
+        storage_charging_efficiency_str = GridObjects._format_float_vect_to_cls_str(
+            cls.storage_charging_efficiency
+        )
+        storage_discharging_efficiency_str = GridObjects._format_float_vect_to_cls_str(
+            cls.storage_discharging_efficiency
+        )
 
         def format_el(values):
-            return ",".join([f"\"{el}\"" for el in values])
-        
+            return ",".join([f'"{el}"' for el in values])
+
         tmp_tmp_ = [f'"{k}": [{format_el(v)}]' for k, v in cls.grid_layout.items()]
         tmp_ = ",".join(tmp_tmp_)
         grid_layout_str = f"{{{tmp_}}}"
 
-        name_shunt_str = ",".join([f"\"{el}\"" for el in cls.name_shunt])
+        name_shunt_str = ",".join([f'"{el}"' for el in cls.name_shunt])
         shunt_to_subid_str = GridObjects._format_int_vect_to_cls_str(cls.shunt_to_subid)
 
-        alarms_area_names_str = "[]" if cls.dim_alarms == 0 else ",".join([f"\"{el}\"" for el in cls.alarms_area_names])
+        alarms_area_names_str = (
+            "[]"
+            if cls.dim_alarms == 0
+            else ",".join([f'"{el}"' for el in cls.alarms_area_names])
+        )
 
-        tmp_tmp_ = ",".join([f'"{k}": [{format_el(v)}]' for k, v in cls.alarms_lines_area.items()])
+        tmp_tmp_ = ",".join(
+            [f'"{k}": [{format_el(v)}]' for k, v in cls.alarms_lines_area.items()]
+        )
         tmp_ = f"{{{tmp_tmp_}}}"
         alarms_lines_area_str = "{}" if cls.dim_alarms == 0 else tmp_
 
         tmp_tmp_ = ",".join([f"[{format_el(el)}]" for el in cls.alarms_area_lines])
-        tmp_ = f'[{tmp_tmp_}]'
+        tmp_ = f"[{tmp_tmp_}]"
         alarms_area_lines_str = "[]" if cls.dim_alarms == 0 else tmp_
-        res = \
-            f"""# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+        res = f"""# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,

@@ -1,3 +1,1 @@
-all = [
-    "DownloadDataset"
-]
+all = ["DownloadDataset"]

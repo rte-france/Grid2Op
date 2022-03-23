@@ -9,7 +9,11 @@ import copy
 import numpy as np
 from gym import spaces
 
-from grid2op.Environment import Environment, MultiMixEnvironment, BaseMultiProcessEnvironment
+from grid2op.Environment import (
+    Environment,
+    MultiMixEnvironment,
+    BaseMultiProcessEnvironment,
+)
 from grid2op.gym_compat.gym_space_converter import _BaseGymSpaceConverter
 from grid2op.Observation import BaseObservation
 from grid2op.dtypes import dt_int, dt_bool, dt_float
@@ -58,20 +62,23 @@ class GymObservationSpace(_BaseGymSpaceConverter):
     `env.gen_pmin` and `env.gen_pmax` are not always ensured in grid2op)
 
     """
+
     def __init__(self, env, dict_variables=None):
-        if not isinstance(env, (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)):
-            raise RuntimeError("GymActionSpace must be created with an Environment of an ActionSpace (or a Converter)")
+        if not isinstance(
+            env, (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)
+        ):
+            raise RuntimeError(
+                "GymActionSpace must be created with an Environment of an ActionSpace (or a Converter)"
+            )
 
         self._init_env = env
         self.initial_obs_space = self._init_env.observation_space
         dict_ = {}  # will represent the gym.Dict space
         if dict_variables is None:
             dict_variables = {}
-        self._fill_dict_obs_space(dict_,
-                                  env.observation_space,
-                                  env.parameters,
-                                  env._oppSpace,
-                                  dict_variables)
+        self._fill_dict_obs_space(
+            dict_, env.observation_space, env.parameters, env._oppSpace, dict_variables
+        )
         _BaseGymSpaceConverter.__init__(self, dict_, dict_variables=dict_variables)
 
     def reencode_space(self, key, fun):
@@ -110,7 +117,11 @@ class GymObservationSpace(_BaseGymSpaceConverter):
 
         my_dict = self.get_dict_encoding()
         if fun is not None and not isinstance(fun, BaseGymAttrConverter):
-            raise RuntimeError("Impossible to initialize a converter with a function of type {}".format(type(fun)))
+            raise RuntimeError(
+                "Impossible to initialize a converter with a function of type {}".format(
+                    type(fun)
+                )
+            )
 
         if fun is not None and not fun.is_init_space():
             if key in my_dict:
@@ -118,16 +129,21 @@ class GymObservationSpace(_BaseGymSpaceConverter):
             elif key in self.spaces:
                 fun.initialize_space(self.spaces[key])
             else:
-                raise RuntimeError(f"Impossible to find key {key} in your observation space")
+                raise RuntimeError(
+                    f"Impossible to find key {key} in your observation space"
+                )
         my_dict[key] = fun
         res = GymObservationSpace(self._init_env, my_dict)
         return res
 
-    def _fill_dict_obs_space(self, dict_, observation_space, env_params, opponent_space,
-                             dict_variables={}):
-        for attr_nm, sh, dt in zip(observation_space.attr_list_vect,
-                                   observation_space.shape,
-                                   observation_space.dtype):
+    def _fill_dict_obs_space(
+        self, dict_, observation_space, env_params, opponent_space, dict_variables={}
+    ):
+        for attr_nm, sh, dt in zip(
+            observation_space.attr_list_vect,
+            observation_space.shape,
+            observation_space.dtype,
+        ):
             if sh == 0:
                 # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
                 continue
@@ -156,19 +172,27 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "topo_vect":
                     my_type = spaces.Box(low=-1, high=2, shape=shape, dtype=dt)
                 elif attr_nm == "time_before_cooldown_line":
-                    my_type = spaces.Box(low=0,
-                                         high=max(env_params.NB_TIMESTEP_COOLDOWN_LINE,
-                                                  env_params.NB_TIMESTEP_RECONNECTION,
-                                                  opponent_space.attack_max_duration
-                                                  ),
-                                         shape=shape,
-                                         dtype=dt)
+                    my_type = spaces.Box(
+                        low=0,
+                        high=max(
+                            env_params.NB_TIMESTEP_COOLDOWN_LINE,
+                            env_params.NB_TIMESTEP_RECONNECTION,
+                            opponent_space.attack_max_duration,
+                        ),
+                        shape=shape,
+                        dtype=dt,
+                    )
                 elif attr_nm == "time_before_cooldown_sub":
-                    my_type = spaces.Box(low=0,
-                                         high=env_params.NB_TIMESTEP_COOLDOWN_SUB,
-                                         shape=shape,
-                                         dtype=dt)
-                elif attr_nm == "duration_next_maintenance" or attr_nm == "time_next_maintenance":
+                    my_type = spaces.Box(
+                        low=0,
+                        high=env_params.NB_TIMESTEP_COOLDOWN_SUB,
+                        shape=shape,
+                        dtype=dt,
+                    )
+                elif (
+                    attr_nm == "duration_next_maintenance"
+                    or attr_nm == "time_next_maintenance"
+                ):
                     # can be -1 if no maintenance, otherwise always positive
                     my_type = self._generic_gym_space(dt, sh, low=-1)
                 elif attr_nm == "time_since_last_alarm":
@@ -199,36 +223,49 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     high += observation_space.obs_env._tol_poly
 
                     # for "power losses" that are not properly computed in the original data
-                    extra_for_losses = _compute_extra_power_for_losses(observation_space)
+                    extra_for_losses = _compute_extra_power_for_losses(
+                        observation_space
+                    )
                     low -= extra_for_losses
                     high += extra_for_losses
 
-                elif attr_nm == "gen_v" or attr_nm == "load_v" or attr_nm == "v_or" or attr_nm == "v_ex":
+                elif (
+                    attr_nm == "gen_v"
+                    or attr_nm == "load_v"
+                    or attr_nm == "v_or"
+                    or attr_nm == "v_ex"
+                ):
                     # voltages can't be negative
-                    low = 0.
+                    low = 0.0
                 elif attr_nm == "a_or" or attr_nm == "a_ex" or attr_nm == "rho":
                     # amps can't be negative
-                    low = 0.
+                    low = 0.0
                 elif attr_nm == "target_dispatch" or attr_nm == "actual_dispatch":
                     # TODO check that to be sure
-                    low = np.minimum(observation_space.gen_pmin,
-                                     -observation_space.gen_pmax)
-                    high = np.maximum(-observation_space.gen_pmin,
-                                      +observation_space.gen_pmax)
+                    low = np.minimum(
+                        observation_space.gen_pmin, -observation_space.gen_pmax
+                    )
+                    high = np.maximum(
+                        -observation_space.gen_pmin, +observation_space.gen_pmax
+                    )
                 elif attr_nm == "storage_power" or attr_nm == "storage_power_target":
-                    low = - observation_space.storage_max_p_prod
+                    low = -observation_space.storage_max_p_prod
                     high = observation_space.storage_max_p_absorb
                 elif attr_nm == "storage_charge":
                     low = np.zeros(observation_space.n_storage, dtype=dt_float)
                     high = observation_space.storage_Emax
-                elif attr_nm == "curtailment" or attr_nm == "curtailment_limit" or attr_nm == "curtailment_limit_effective":
-                    low = 0.
+                elif (
+                    attr_nm == "curtailment"
+                    or attr_nm == "curtailment_limit"
+                    or attr_nm == "curtailment_limit_effective"
+                ):
+                    low = 0.0
                     high = 1.0
                 elif attr_nm == "attention_budget":
-                    low = 0.
+                    low = 0.0
                     high = np.inf
                 elif attr_nm == "delta_time":
-                    low = 0.
+                    low = 0.0
                     high = np.inf
                 # curtailment, curtailment_limit, gen_p_before_curtail
 
@@ -273,10 +310,12 @@ class GymObservationSpace(_BaseGymSpaceConverter):
            The corresponding gym ordered dict
 
         """
-        return self._base_to_gym(self.spaces.keys(),
-                                 grid2op_observation,
-                                 dtypes={k: self.spaces[k].dtype for k in self.spaces}
-                                 )
+        return self._base_to_gym(
+            self.spaces.keys(),
+            grid2op_observation,
+            dtypes={k: self.spaces[k].dtype for k in self.spaces},
+        )
+
     def close(self):
         if hasattr(self, "_init_env"):
-            self._init_env = None   # this doesn't own the environment
+            self._init_env = None  # this doesn't own the environment

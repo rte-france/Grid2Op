@@ -2,7 +2,7 @@
 Grid2Op
 
 """
-__version__ = '1.6.6.pre1'
+__version__ = "1.6.6.pre1"
 
 __all__ = [
     "Action",
@@ -31,10 +31,14 @@ __all__ = [
     "get_current_local_dir",
     "change_local_dir",
     "list_available_test_env",
-    "update_env"
+    "update_env",
 ]
 
 from grid2op.MakeEnv import make_old, make, make_from_dataset_path
 from grid2op.MakeEnv import update_env
-from grid2op.MakeEnv import list_available_remote_env, list_available_local_env, get_current_local_dir
+from grid2op.MakeEnv import (
+    list_available_remote_env,
+    list_available_local_env,
+    get_current_local_dir,
+)
 from grid2op.MakeEnv import change_local_dir, list_available_test_env

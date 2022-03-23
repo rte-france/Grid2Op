@@ -40,6 +40,7 @@ class GymEnv(gym.Env):
 
 
     """
+
     def __init__(self, env_init, shuffle_chronics=True):
         check_gym_version()
         self.init_env = env_init.copy()
@@ -56,13 +57,15 @@ class GymEnv(gym.Env):
         return gym_obs, float(reward), done, info
 
     def reset(self):
-        if self._shuffle_chronics and isinstance(self.init_env.chronics_handler.real_data, Multifolder):
+        if self._shuffle_chronics and isinstance(
+            self.init_env.chronics_handler.real_data, Multifolder
+        ):
             self.init_env.chronics_handler.sample_next_chronics()
         g2op_obs = self.init_env.reset()
         gym_obs = self.observation_space.to_gym(g2op_obs)
         return gym_obs
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         """for compatibility with open ai gym render function"""
         super(GymEnv, self).render(mode=mode)
         self.init_env.render(mode=mode)

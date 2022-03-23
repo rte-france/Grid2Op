@@ -12,8 +12,11 @@ class Converter(ActionSpace):
     """
     This Base class should be use to implement any converter. If for some reasons
     """
+
     def __init__(self, action_space):
-        ActionSpace.__init__(self, action_space, action_space.legal_action, action_space.subtype)
+        ActionSpace.__init__(
+            self, action_space, action_space.legal_action, action_space.subtype
+        )
         self.space_prng = action_space.space_prng
         self.seed_used = action_space.seed_used
 
@@ -72,9 +75,11 @@ class Converter(ActionSpace):
         res: ``dict``
             The dictionary of gym spaces representing this converter.
         """
-        raise NotImplementedError("Impossible to convert the converter \"{}\" automatically "
-                                  "into a gym space (or gym is not installed on your machine)."
-                                  "".format(self))
+        raise NotImplementedError(
+            'Impossible to convert the converter "{}" automatically '
+            "into a gym space (or gym is not installed on your machine)."
+            "".format(self)
+        )
 
     def convert_action_from_gym(self, gymlike_action):
         """
@@ -114,9 +119,11 @@ class Converter(ActionSpace):
             grid2op_action = converter.convert_act(converter_action)
 
         """
-        raise NotImplementedError("Impossible to convert the gym-like action automatically "
-                                  "into the converter representation for \"{}\" "
-                                  "".format(self))
+        raise NotImplementedError(
+            "Impossible to convert the gym-like action automatically "
+            'into the converter representation for "{}" '
+            "".format(self)
+        )
 
     def convert_action_to_gym(self, action):
         """
@@ -154,6 +161,8 @@ class Converter(ActionSpace):
             gym_action = converter.to_gym(converter_action)  # this represents the same action
 
         """
-        raise NotImplementedError("Impossible to convert the gym-like action automatically "
-                                  "into the converter representation for \"{}\" "
-                                  "".format(self))
+        raise NotImplementedError(
+            "Impossible to convert the gym-like action automatically "
+            'into the converter representation for "{}" '
+            "".format(self)
+        )

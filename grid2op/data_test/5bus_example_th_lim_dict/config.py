@@ -12,7 +12,15 @@ config = {
     "gamerules_class": DefaultRules,
     "chronics_class": ChangeNothing,
     "volagecontroler_class": None,
-    "thermal_limits": {'0_1_0': 200., '0_2_1': 300., '0_3_2': 500., '0_4_3': 600., '1_2_4': 700., '2_3_5': 800.,
-                       '2_3_6': 900., '3_4_7': 1000.},
-    "names_chronics_to_grid": None
+    "thermal_limits": {
+        "0_1_0": 200.0,
+        "0_2_1": 300.0,
+        "0_3_2": 500.0,
+        "0_4_3": 600.0,
+        "1_2_4": 700.0,
+        "2_3_5": 800.0,
+        "2_3_6": 900.0,
+        "3_4_7": 1000.0,
+    },
+    "names_chronics_to_grid": None,
 }

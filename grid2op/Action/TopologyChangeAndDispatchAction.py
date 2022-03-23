@@ -11,19 +11,16 @@ from grid2op.Action.PlayableAction import PlayableAction
 
 class TopologyChangeAndDispatchAction(PlayableAction):
     """
-    This type of :class:`PlayableAction` implements the modifications 
+    This type of :class:`PlayableAction` implements the modifications
     of the grid with "change" topological actions and allows for redispatching.
 
-    It accepts the key words: "change_line_status", "change_bus" 
+    It accepts the key words: "change_line_status", "change_bus"
     and "redispatch".
-    Nothing else is supported and any attempt to use something else 
+    Nothing else is supported and any attempt to use something else
     will have no impact.
     """
-    authorized_keys = {
-        "change_line_status",
-        "change_bus",
-        "redispatch"
-    }
+
+    authorized_keys = {"change_line_status", "change_bus", "redispatch"}
 
     attr_list_vect = [
         "_change_bus_vect",

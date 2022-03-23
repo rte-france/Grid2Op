@@ -19,11 +19,15 @@ class Issue282Tester(unittest.TestCase):
         self._default_act_attr_to_keep = ["redispatch", "curtail", "set_storage"]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction)
+            self.env = grid2op.make(
+                "educ_case14_storage", test=True, action_class=CompleteAction
+            )
         self.env_gym = GymEnv(self.env)
-    
+
         self.env_gym.action_space.close()
-        self.env_gym.action_space = BoxGymActSpace(self.env.action_space, attr_to_keep=self._default_act_attr_to_keep)
+        self.env_gym.action_space = BoxGymActSpace(
+            self.env.action_space, attr_to_keep=self._default_act_attr_to_keep
+        )
         self.env_gym.seed(0)
 
     def tearDown(self):
@@ -35,6 +39,7 @@ class Issue282Tester(unittest.TestCase):
         act = self.env_gym.action_space.from_gym(self.env_gym.action_space.sample())
         obs, reward, done, info = self.env.step(act)
         assert len(info["exception"]) == 0, f"{info['exception'] = }"
+
 
 if __name__ == "__main__":
     unittest.main()

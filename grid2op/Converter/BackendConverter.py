@@ -12,9 +12,13 @@ from grid2op.dtypes import dt_float, dt_int
 from grid2op.Backend import Backend
 from grid2op.Exceptions import Grid2OpException
 
-ERROR_NB_ELEMENTS = "Impossible to make a BackendConverter with backends having different number of {}."
-ERROR_ELEMENT_CONNECTED = "No {0} connected at substation {1} for the target backend while a {0} is connected " \
-                          "at substation {2} for the source backend"
+ERROR_NB_ELEMENTS = (
+    "Impossible to make a BackendConverter with backends having different number of {}."
+)
+ERROR_ELEMENT_CONNECTED = (
+    "No {0} connected at substation {1} for the target backend while a {0} is connected "
+    "at substation {2} for the source backend"
+)
 
 
 class BackendConverter(Backend):
@@ -33,8 +37,8 @@ class BackendConverter(Backend):
 
     On the other end, no powerflow at all (except if some powerflows are performed at the initialization) will
     be computed using the source backend, only the target backend is relevant for the powerflow computations.
-    
-    Note that these backend need to access the grid description file from both "source backend" and "target backend" 
+
+    Note that these backend need to access the grid description file from both "source backend" and "target backend"
     class. The underlying grid must be the same.
 
     Examples
@@ -63,16 +67,26 @@ class BackendConverter(Backend):
             # do regular computations here
 
     """
-    def __init__(self,
-                 source_backend_class,
-                 target_backend_class,
-                 target_backend_grid_path=None,
-                 sub_source_target=None,
-                 detailed_infos_for_cascading_failures=False):
-        Backend.__init__(self, detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+
+    def __init__(
+        self,
+        source_backend_class,
+        target_backend_class,
+        target_backend_grid_path=None,
+        sub_source_target=None,
+        detailed_infos_for_cascading_failures=False,
+    ):
+        Backend.__init__(
+            self,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         difcf = detailed_infos_for_cascading_failures
-        self.source_backend = source_backend_class(detailed_infos_for_cascading_failures=difcf)   # the one for the order of the elements
-        self.target_backend = target_backend_class(detailed_infos_for_cascading_failures=difcf)  # the one to computes powerflow
+        self.source_backend = source_backend_class(
+            detailed_infos_for_cascading_failures=difcf
+        )  # the one for the order of the elements
+        self.target_backend = target_backend_class(
+            detailed_infos_for_cascading_failures=difcf
+        )  # the one to computes powerflow
         # if the target backend (the one performing the powerflows) needs a different file
         self.target_backend_grid_path = target_backend_grid_path
 
@@ -104,7 +118,7 @@ class BackendConverter(Backend):
         self.name_storage_data = None
 
         # for easier copy of np array
-        self.cst1 = dt_float(1.)
+        self.cst1 = dt_float(1.0)
 
         # TODO storage check all this class ! + the doc of the backend
 
@@ -143,7 +157,10 @@ class BackendConverter(Backend):
         if self.sub_source_target is None:
             # automatic mode
             # I can only do it if the names matches
-            if np.all(sorted(self.source_backend.name_sub) == sorted(self.target_backend.name_sub)):
+            if np.all(
+                sorted(self.source_backend.name_sub)
+                == sorted(self.target_backend.name_sub)
+            ):
                 for id_source, nm_source in enumerate(self.source_backend.name_sub):
                     id_target = np.where(self.target_backend.name_sub == nm_source)[0]
                     self._sub_tg2sr[id_source] = id_target
@@ -159,23 +176,27 @@ class BackendConverter(Backend):
         self._load_tg2sr = np.full(self.n_load, fill_value=-1, dtype=dt_int)
         self._load_sr2tg = np.full(self.n_load, fill_value=-1, dtype=dt_int)
         # automatic mode
-        self._auto_fill_vect_load_gen_shunt(n_element=self.n_load,
-                                            source_2_id_sub=self.source_backend.load_to_subid,
-                                            target_2_id_sub=self.target_backend.load_to_subid,
-                                            tg2sr=self._load_tg2sr,
-                                            sr2tg=self._load_sr2tg,
-                                            nm="load")
+        self._auto_fill_vect_load_gen_shunt(
+            n_element=self.n_load,
+            source_2_id_sub=self.source_backend.load_to_subid,
+            target_2_id_sub=self.target_backend.load_to_subid,
+            tg2sr=self._load_tg2sr,
+            sr2tg=self._load_sr2tg,
+            nm="load",
+        )
 
         # c) for generator
         self._gen_tg2sr = np.full(self.n_gen, fill_value=-1, dtype=dt_int)
         self._gen_sr2tg = np.full(self.n_gen, fill_value=-1, dtype=dt_int)
         # automatic mode
-        self._auto_fill_vect_load_gen_shunt(n_element=self.n_gen,
-                                            source_2_id_sub=self.source_backend.gen_to_subid,
-                                            target_2_id_sub=self.target_backend.gen_to_subid,
-                                            tg2sr=self._gen_tg2sr,
-                                            sr2tg=self._gen_sr2tg,
-                                            nm="gen")
+        self._auto_fill_vect_load_gen_shunt(
+            n_element=self.n_gen,
+            source_2_id_sub=self.source_backend.gen_to_subid,
+            target_2_id_sub=self.target_backend.gen_to_subid,
+            tg2sr=self._gen_tg2sr,
+            sr2tg=self._gen_sr2tg,
+            nm="gen",
+        )
 
         # d) for powerline
         self._line_tg2sr = np.full(self.n_line, fill_value=-1, dtype=dt_int)
@@ -192,25 +213,32 @@ class BackendConverter(Backend):
         self._storage_tg2sr = np.full(self.n_storage, fill_value=-1, dtype=dt_int)
         self._storage_sr2tg = np.full(self.n_storage, fill_value=-1, dtype=dt_int)
         # automatic mode
-        self._auto_fill_vect_load_gen_shunt(n_element=self.n_storage,
-                                            source_2_id_sub=self.source_backend.storage_to_subid,
-                                            target_2_id_sub=self.target_backend.storage_to_subid,
-                                            tg2sr=self._storage_tg2sr,
-                                            sr2tg=self._storage_sr2tg,
-                                            nm="storage")
+        self._auto_fill_vect_load_gen_shunt(
+            n_element=self.n_storage,
+            source_2_id_sub=self.source_backend.storage_to_subid,
+            target_2_id_sub=self.target_backend.storage_to_subid,
+            tg2sr=self._storage_tg2sr,
+            sr2tg=self._storage_sr2tg,
+            nm="storage",
+        )
 
         # shunt are available if both source and target provide it
-        self.shunts_data_available = self.source_backend.shunts_data_available and self.target_backend.shunts_data_available
+        self.shunts_data_available = (
+            self.source_backend.shunts_data_available
+            and self.target_backend.shunts_data_available
+        )
         if self.shunts_data_available:
             self._shunt_tg2sr = np.full(self.n_shunt, fill_value=-1, dtype=dt_int)
             self._shunt_sr2tg = np.full(self.n_shunt, fill_value=-1, dtype=dt_int)
             # automatic mode
-            self._auto_fill_vect_load_gen_shunt(n_element=self.n_shunt,
-                                                source_2_id_sub=self.source_backend.shunt_to_subid,
-                                                target_2_id_sub=self.target_backend.shunt_to_subid,
-                                                tg2sr=self._shunt_tg2sr,
-                                                sr2tg=self._shunt_sr2tg,
-                                                nm="shunt")
+            self._auto_fill_vect_load_gen_shunt(
+                n_element=self.n_shunt,
+                source_2_id_sub=self.source_backend.shunt_to_subid,
+                target_2_id_sub=self.target_backend.shunt_to_subid,
+                tg2sr=self._shunt_tg2sr,
+                sr2tg=self._shunt_sr2tg,
+                nm="shunt",
+            )
         else:
             self.n_shunt = 0
             self.name_shunt = np.empty(0, dtype=str)
@@ -222,21 +250,27 @@ class BackendConverter(Backend):
         id_sub_target = self._sub_tg2sr[id_sub_source]
         ids_target = np.where(target_2_id_sub == id_sub_target)[0]
         if ids_target.shape[0] == 0:
-            raise RuntimeError(ERROR_ELEMENT_CONNECTED.format(nm, id_sub_target, id_sub_source))
+            raise RuntimeError(
+                ERROR_ELEMENT_CONNECTED.format(nm, id_sub_target, id_sub_source)
+            )
         return id_sub_target, ids_target
 
-    def _auto_fill_vect_load_gen_shunt(self,
-                                       n_element,
-                                       source_2_id_sub, target_2_id_sub,
-                                       tg2sr, sr2tg,
-                                       nm):
+    def _auto_fill_vect_load_gen_shunt(
+        self, n_element, source_2_id_sub, target_2_id_sub, tg2sr, sr2tg, nm
+    ):
         nb_load_per_sub = np.zeros(self.n_sub, dtype=dt_int)
         if source_2_id_sub.shape[0] != n_element:
-            raise RuntimeError("Impossible to convert backend that do not have the same number of objects")
+            raise RuntimeError(
+                "Impossible to convert backend that do not have the same number of objects"
+            )
         if target_2_id_sub.shape[0] != n_element:
-            raise RuntimeError("Impossible to convert backend that do not have the same number of objects")
+            raise RuntimeError(
+                "Impossible to convert backend that do not have the same number of objects"
+            )
         for id_source in range(n_element):
-            id_sub_target, id_target = self._get_possible_target_ids(id_source, source_2_id_sub, target_2_id_sub, nm)
+            id_sub_target, id_target = self._get_possible_target_ids(
+                id_source, source_2_id_sub, target_2_id_sub, nm
+            )
             id_target = id_target[nb_load_per_sub[id_sub_target]]
             # TODO no no no use the "to_sub_pos" to compute that, and even better raise an error in this case
             # this means automatic is failing here !
@@ -260,11 +294,18 @@ class BackendConverter(Backend):
             idor_sub_target = self._sub_tg2sr[idor_sub_source]
             idex_sub_source = source_ex_2_id_sub[id_source]
             idex_sub_target = self._sub_tg2sr[idex_sub_source]
-            ids_target = np.where((target_or_2_id_sub == idor_sub_target) & (target_ex_2_id_sub == idex_sub_target))[0]
+            ids_target = np.where(
+                (target_or_2_id_sub == idor_sub_target)
+                & (target_ex_2_id_sub == idex_sub_target)
+            )[0]
             if ids_target.shape[0] == 0:
-                raise RuntimeError(ERROR_ELEMENT_CONNECTED.format(nm,
-                                                                  "{}->{}".format(idor_sub_target, idex_sub_target),
-                                                                  "{}->{}".format(idor_sub_source, idex_sub_source)))
+                raise RuntimeError(
+                    ERROR_ELEMENT_CONNECTED.format(
+                        nm,
+                        "{}->{}".format(idor_sub_target, idex_sub_target),
+                        "{}->{}".format(idor_sub_source, idex_sub_source),
+                    )
+                )
             id_target = ids_target[nb_load_per_sub[idor_sub_target, idex_sub_target]]
             # TODO no no no use the "to_sub_pos" to compute that, and even better raise an error in this case
             # this means automatic is failing here !
@@ -273,26 +314,36 @@ class BackendConverter(Backend):
             sr2tg[id_target] = id_source
 
     def _auto_fill_vect_topo(self):
-        self._auto_fill_vect_topo_aux(self.n_load,
-                                      self.source_backend.load_pos_topo_vect,
-                                      self.target_backend.load_pos_topo_vect,
-                                      self._load_sr2tg)
-        self._auto_fill_vect_topo_aux(self.n_gen,
-                                      self.source_backend.gen_pos_topo_vect,
-                                      self.target_backend.gen_pos_topo_vect,
-                                      self._gen_sr2tg)
-        self._auto_fill_vect_topo_aux(self.n_line,
-                                      self.source_backend.line_or_pos_topo_vect,
-                                      self.target_backend.line_or_pos_topo_vect,
-                                      self._line_sr2tg)
-        self._auto_fill_vect_topo_aux(self.n_line,
-                                      self.source_backend.line_ex_pos_topo_vect,
-                                      self.target_backend.line_ex_pos_topo_vect,
-                                      self._line_sr2tg)
-        self._auto_fill_vect_topo_aux(self.n_storage,
-                                      self.source_backend.storage_pos_topo_vect,
-                                      self.target_backend.storage_pos_topo_vect,
-                                      self._storage_sr2tg)
+        self._auto_fill_vect_topo_aux(
+            self.n_load,
+            self.source_backend.load_pos_topo_vect,
+            self.target_backend.load_pos_topo_vect,
+            self._load_sr2tg,
+        )
+        self._auto_fill_vect_topo_aux(
+            self.n_gen,
+            self.source_backend.gen_pos_topo_vect,
+            self.target_backend.gen_pos_topo_vect,
+            self._gen_sr2tg,
+        )
+        self._auto_fill_vect_topo_aux(
+            self.n_line,
+            self.source_backend.line_or_pos_topo_vect,
+            self.target_backend.line_or_pos_topo_vect,
+            self._line_sr2tg,
+        )
+        self._auto_fill_vect_topo_aux(
+            self.n_line,
+            self.source_backend.line_ex_pos_topo_vect,
+            self.target_backend.line_ex_pos_topo_vect,
+            self._line_sr2tg,
+        )
+        self._auto_fill_vect_topo_aux(
+            self.n_storage,
+            self.source_backend.storage_pos_topo_vect,
+            self.target_backend.storage_pos_topo_vect,
+            self._storage_sr2tg,
+        )
 
     def _auto_fill_vect_topo_aux(self, n_elem, source_pos, target_pos, sr2tg):
         # TODO that might not be working as intented... it always says it's the identity...
@@ -316,16 +367,24 @@ class BackendConverter(Backend):
         if self.path_redisp is not None:
             # redispatching data were available
             super().load_redispacthing_data(self.path_redisp, name=self.name_redisp)
-            self.source_backend.load_redispacthing_data(self.path_redisp, name=self.name_redisp)
+            self.source_backend.load_redispacthing_data(
+                self.path_redisp, name=self.name_redisp
+            )
             #  self.target_backend.load_redispacthing_data(self.path_redisp, name=self.name_redisp)
         if self.path_storage_data is not None:
             super().load_storage_data(self.path_storage_data, self.name_storage_data)
-            self.source_backend.load_storage_data(self.path_storage_data, name=self.name_storage_data)
-            self.target_backend.load_storage_data(self.path_storage_data, name=self.name_storage_data)
+            self.source_backend.load_storage_data(
+                self.path_storage_data, name=self.name_storage_data
+            )
+            self.target_backend.load_storage_data(
+                self.path_storage_data, name=self.name_storage_data
+            )
         if self.path_grid_layout is not None:
             # grid layout data were available
             super().load_grid_layout(self.path_grid_layout, self.name_grid_layout)
-            self.source_backend.load_grid_layout(self.path_redisp, name=self.name_redisp)
+            self.source_backend.load_grid_layout(
+                self.path_redisp, name=self.name_redisp
+            )
 
         # init the target backend (the one that does the computation and that is initialized)
         self.target_backend.assert_grid_correct()
@@ -341,8 +400,14 @@ class BackendConverter(Backend):
 
         if self.sub_source_target is None:
             # automatic mode for substations, names must match
-            assert np.all(self.target_backend.name_sub[self._sub_tg2sr] == self.source_backend.name_sub)
-            assert np.all(self.source_backend.name_sub[self._sub_sr2tg] == self.target_backend.name_sub)
+            assert np.all(
+                self.target_backend.name_sub[self._sub_tg2sr]
+                == self.source_backend.name_sub
+            )
+            assert np.all(
+                self.source_backend.name_sub[self._sub_sr2tg]
+                == self.target_backend.name_sub
+            )
 
         # check that all corresponding vectors are valid (and properly initialized, like every component above 0 etc.)
         self._check_both_consistent(self._line_tg2sr, self._line_sr2tg)
@@ -357,10 +422,16 @@ class BackendConverter(Backend):
         type(self.target_backend).same_grid_class(type(self.source_backend))
 
     def _check_vect_valid(self, vect):
-        assert np.all(vect >= 0), "invalid vector: some element are not found in either source or target"
-        assert sorted(np.unique(vect)) == sorted(vect), "invalid vector: some element are not found in either source or target"
+        assert np.all(
+            vect >= 0
+        ), "invalid vector: some element are not found in either source or target"
+        assert sorted(np.unique(vect)) == sorted(
+            vect
+        ), "invalid vector: some element are not found in either source or target"
         if vect.shape[0] > 0:
-            assert np.max(vect) == vect.shape[0] - 1, "invalid vector: some element are not found in either source or target"
+            assert (
+                np.max(vect) == vect.shape[0] - 1
+            ), "invalid vector: some element are not found in either source or target"
 
     def _check_both_consistent(self, tg2sr, sr2tg):
         self._check_vect_valid(tg2sr)
@@ -418,7 +489,7 @@ class BackendConverter(Backend):
 
     def get_line_flow(self):
         tmp = self.target_backend.get_line_flow()
-        return self.cst1*tmp[self._line_tg2sr]
+        return self.cst1 * tmp[self._line_tg2sr]
 
     def set_thermal_limit(self, limits):
         super().set_thermal_limit(limits=limits)
@@ -428,7 +499,7 @@ class BackendConverter(Backend):
 
     def get_thermal_limit(self):
         tmp = self.target_backend.get_thermal_limit()
-        return self.cst1*tmp[self._line_tg2sr]
+        return self.cst1 * tmp[self._line_tg2sr]
 
     def get_topo_vect(self):
         tmp = self.target_backend.get_topo_vect()
@@ -436,44 +507,70 @@ class BackendConverter(Backend):
 
     def generators_info(self):
         prod_p, prod_q, prod_v = self.target_backend.generators_info()
-        return self.cst1*prod_p[self._gen_tg2sr], self.cst1*prod_q[self._gen_tg2sr], \
-               self.cst1*prod_v[self._gen_tg2sr]
+        return (
+            self.cst1 * prod_p[self._gen_tg2sr],
+            self.cst1 * prod_q[self._gen_tg2sr],
+            self.cst1 * prod_v[self._gen_tg2sr],
+        )
 
     def loads_info(self):
         load_p, load_q, load_v = self.target_backend.loads_info()
-        return self.cst1*load_p[self._load_tg2sr], self.cst1*load_q[self._load_tg2sr], \
-               self.cst1*load_v[self._load_tg2sr]
+        return (
+            self.cst1 * load_p[self._load_tg2sr],
+            self.cst1 * load_q[self._load_tg2sr],
+            self.cst1 * load_v[self._load_tg2sr],
+        )
 
     def lines_or_info(self):
         p_, q_, v_, a_ = self.target_backend.lines_or_info()
-        return self.cst1*p_[self._line_tg2sr], self.cst1*q_[self._line_tg2sr], \
-               self.cst1*v_[self._line_tg2sr], self.cst1*a_[self._line_tg2sr]
+        return (
+            self.cst1 * p_[self._line_tg2sr],
+            self.cst1 * q_[self._line_tg2sr],
+            self.cst1 * v_[self._line_tg2sr],
+            self.cst1 * a_[self._line_tg2sr],
+        )
 
     def lines_ex_info(self):
         p_, q_, v_, a_ = self.target_backend.lines_ex_info()
-        return self.cst1*p_[self._line_tg2sr], self.cst1*q_[self._line_tg2sr], \
-               self.cst1*v_[self._line_tg2sr], self.cst1*a_[self._line_tg2sr]
+        return (
+            self.cst1 * p_[self._line_tg2sr],
+            self.cst1 * q_[self._line_tg2sr],
+            self.cst1 * v_[self._line_tg2sr],
+            self.cst1 * a_[self._line_tg2sr],
+        )
 
     def storages_info(self):
         p_, q_, v_ = self.target_backend.storages_info()
-        return self.cst1*p_[self._storage_sr2tg], self.cst1*q_[self._storage_sr2tg], \
-               self.cst1*v_[self._storage_sr2tg]
+        return (
+            self.cst1 * p_[self._storage_sr2tg],
+            self.cst1 * q_[self._storage_sr2tg],
+            self.cst1 * v_[self._storage_sr2tg],
+        )
 
     def shunt_info(self):
         if self._shunt_tg2sr is not None:
             # shunts are supported by both source and target backend
             sh_p, sh_q, sh_v, sh_bus = self.target_backend.shunt_info()
-            return sh_p[self._shunt_tg2sr], sh_q[self._shunt_tg2sr], sh_v[self._shunt_tg2sr], sh_bus[self._shunt_tg2sr]
+            return (
+                sh_p[self._shunt_tg2sr],
+                sh_q[self._shunt_tg2sr],
+                sh_v[self._shunt_tg2sr],
+                sh_bus[self._shunt_tg2sr],
+            )
         # shunt are not supported by either source or target backend
         return [], [], [], []
 
     def sub_from_bus_id(self, bus_id):
         # not supported because the bus_id is given into the source backend,
         # and i need to convert to to the target backend, not sure how to do that atm
-        raise Grid2OpException("This backend doesn't allow to get the substation from the bus id.")
+        raise Grid2OpException(
+            "This backend doesn't allow to get the substation from the bus id."
+        )
 
     def _disconnect_line(self, id_):
-        id_target = int(self._line_tg2sr[id_])  # not sure why, but it looks to work this way
+        id_target = int(
+            self._line_tg2sr[id_]
+        )  # not sure why, but it looks to work this way
         self.target_backend._disconnect_line(id_target)
 
     def _transform_action(self, source_action):
@@ -481,24 +578,26 @@ class BackendConverter(Backend):
         # source_action: a backend action!
         target_action = copy.deepcopy(source_action)
         # consistent with TestLoadingBackendFunc, otherwise it's not correct
-        target_action.reorder(no_load=self._load_sr2tg,
-                              no_gen=self._gen_sr2tg,
-                              no_topo=self._topo_sr2tg,
-                              no_shunt=self._shunt_sr2tg,
-                              no_storage=self._storage_sr2tg)
+        target_action.reorder(
+            no_load=self._load_sr2tg,
+            no_gen=self._gen_sr2tg,
+            no_topo=self._topo_sr2tg,
+            no_shunt=self._shunt_sr2tg,
+            no_storage=self._storage_sr2tg,
+        )
         return target_action
 
-    def load_redispacthing_data(self, path, name='prods_charac.csv'):
+    def load_redispacthing_data(self, path, name="prods_charac.csv"):
         # data are loaded with the name of the source backend, i need to map it to the target backend too
         self.path_redisp = path
         self.name_redisp = name
 
-    def load_storage_data(self, path, name='storage_units_charac.csv'):
+    def load_storage_data(self, path, name="storage_units_charac.csv"):
         # data are loaded with the name of the source backend, i need to map it to the target backend too
         self.path_storage_data = path
         self.name_storage_data = name
 
-    def load_grid_layout(self, path, name='grid_layout.json'):
+    def load_grid_layout(self, path, name="grid_layout.json"):
         self.path_grid_layout = path
         self.name_grid_layout = name
 
@@ -539,4 +638,5 @@ class BackendConverter(Backend):
         # env has the powerline stored in the order of the source backend, but i need
         # to have them stored in the order of the target backend for such function
         pass
+
     # TODO update_from_obs too, maybe ?

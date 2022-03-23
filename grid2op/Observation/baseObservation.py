@@ -15,7 +15,12 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Exceptions import Grid2OpException, NoForecastAvailable, EnvError, BaseObservationError
+from grid2op.Exceptions import (
+    Grid2OpException,
+    NoForecastAvailable,
+    EnvError,
+    BaseObservationError,
+)
 from grid2op.Space import GridObjects
 
 # TODO have a method that could do "forecast" by giving the _injection by the agent,
@@ -57,14 +62,14 @@ class BaseObservation(GridObjects):
 
     support_theta: ``bool``
         This flag indicates whether the backend supports the retrieval of the
-        voltage angle. If so (which is the case for most backend) then 
+        voltage angle. If so (which is the case for most backend) then
         some supplementary attributes are available, such as
-        :attr:`BaseObservation.gen_theta`, 
-        :attr:`BaseObservation.load_theta`, 
-        :attr:`BaseObservation.storage_theta`, 
-        :attr:`BaseObservation.theta_or` or  
-        :attr:`BaseObservation.theta_ex` .  
-        
+        :attr:`BaseObservation.gen_theta`,
+        :attr:`BaseObservation.load_theta`,
+        :attr:`BaseObservation.storage_theta`,
+        :attr:`BaseObservation.theta_or` or
+        :attr:`BaseObservation.theta_ex` .
+
     gen_p: :class:`numpy.ndarray`, dtype:float
         The active production value of each generator (expressed in MW).
         (the old name "prod_p" is still usable)
@@ -78,10 +83,10 @@ class BaseObservation(GridObjects):
         (the old name "prod_v" is still usable)
 
     gen_theta: :class:`numpy.ndarray`, dtype:float
-        The voltage angle (in degree) of the bus to which each generator is 
-        connected. Only availble if the backend supports the retrieval of 
+        The voltage angle (in degree) of the bus to which each generator is
+        connected. Only availble if the backend supports the retrieval of
         voltage angles (see :attr:`BaseObservation.support_theta`).
-        
+
     load_p: :class:`numpy.ndarray`, dtype:float
         The active load value of each consumption (expressed in MW).
 
@@ -92,8 +97,8 @@ class BaseObservation(GridObjects):
         The voltage magnitude of the bus to which each consumption is connected (expressed in kV).
 
     load_theta: :class:`numpy.ndarray`, dtype:float
-        The voltage angle (in degree) of the bus to which each consumption 
-        is connected. Only availble if the backend supports the retrieval of 
+        The voltage angle (in degree) of the bus to which each consumption
+        is connected. Only availble if the backend supports the retrieval of
         voltage angles (see :attr:`BaseObservation.support_theta`).
 
     p_or: :class:`numpy.ndarray`, dtype:float
@@ -106,8 +111,8 @@ class BaseObservation(GridObjects):
         The voltage magnitude at the bus to which the origin end of each powerline is connected (expressed in kV).
 
     theta_or: :class:`numpy.ndarray`, dtype:float
-        The voltage angle at the bus to which the origin end of each powerline 
-        is connected (expressed in degree). Only availble if the backend supports the retrieval of 
+        The voltage angle at the bus to which the origin end of each powerline
+        is connected (expressed in degree). Only availble if the backend supports the retrieval of
         voltage angles (see :attr:`BaseObservation.support_theta`).
 
     a_or: :class:`numpy.ndarray`, dtype:float
@@ -123,10 +128,10 @@ class BaseObservation(GridObjects):
         The voltage magnitude at the bus to which the extremity end of each powerline is connected (expressed in kV).
 
     theta_ex: :class:`numpy.ndarray`, dtype:float
-        The voltage angle at the bus to which the extremity end of each powerline 
-        is connected (expressed in degree). Only availble if the backend supports the retrieval of 
+        The voltage angle at the bus to which the extremity end of each powerline
+        is connected (expressed in degree). Only availble if the backend supports the retrieval of
         voltage angles (see :attr:`BaseObservation.support_theta`).
-        
+
     a_ex: :class:`numpy.ndarray`, dtype:float
         The current flow at the extremity end of each powerline (expressed in A).
 
@@ -207,10 +212,10 @@ class BaseObservation(GridObjects):
         Give the actual storage production / loads at the given state.
 
     storage_theta: :class:`numpy.ndarray`, dtype:float
-        The voltage angle (in degree) of the bus to which each storage units 
-        is connected. Only availble if the backend supports the retrieval of 
+        The voltage angle (in degree) of the bus to which each storage units
+        is connected. Only availble if the backend supports the retrieval of
         voltage angles (see :attr:`BaseObservation.support_theta`).
-        
+
     gen_p_before_curtail:  :class:`numpy.ndarray`, dtype:float
         Give the production of renewable generator there would have been
         if no curtailment were applied (**NB** it returns 0.0 for non renewable
@@ -218,28 +223,28 @@ class BaseObservation(GridObjects):
 
     curtailment_limit: :class:`numpy.ndarray`, dtype:float
         Limit (in ratio of gen_pmax) imposed on each renewable generator as set by the agent.
-        
+
         It is always 1. if no curtailment actions is acting on the generator.
 
     curtailment_limit_effective: :class:`numpy.ndarray`, dtype:float
         Limit (in ratio of gen_pmax) imposed on each renewable generator effectively imposed by the environment.
-        
+
         It matches :attr:`BaseObservation.curtailment_limit` if `param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION`
         is ``False`` (default) otherwise the environment is able to limit the curtailment actions if too much
         power would be needed to compensate the "loss" of generation due to renewables.
-        
+
         It is always 1. if no curtailment actions is acting on the generator.
 
     curtailment_mw: :class:`numpy.ndarray`, dtype:float
         Gives the amount of power curtailed for each generator (it is 0. for all
         non renewable generators)
-    
+
     curtailment: :class:`numpy.ndarray`, dtype:float
-        Give the power curtailed for each generator. It is expressed in 
+        Give the power curtailed for each generator. It is expressed in
         ratio of gen_pmax (so between 0. - meaning no curtailment in effect for this
-        generator - to 1.0 - meaning this generator should have produced pmax, but 
+        generator - to 1.0 - meaning this generator should have produced pmax, but
         a curtailment action limits it to 0.)
-        
+
     current_step: ``int``
         Current number of step performed up until this observation (NB this is not given in the observation if
         it is transformed into a vector)
@@ -271,17 +276,17 @@ class BaseObservation(GridObjects):
     gen_margin_up: :class:`numpy.ndarray`, dtype:float
         From how much can you increase each generators production between this
         step and the next.
-        
+
         It is always 0. for non renewable generators. For the others it is defined as
         `np.minimum(type(self).gen_pmax - self.gen_p, self.gen_max_ramp_up)`
-    
+
     gen_margin_down: :class:`numpy.ndarray`, dtype:float
         From how much can you decrease each generators production between this
         step and the next.
-        
+
         It is always 0. for non renewable generators. For the others it is defined as
         `np.minimum(self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down)`
-        
+
     _shunt_p: :class:`numpy.ndarray`, dtype:float
         Shunt active value (only available if shunts are available) (in MW)
 
@@ -297,41 +302,62 @@ class BaseObservation(GridObjects):
 
     """
 
-    _attr_eq = ["line_status",
-                "topo_vect",
-                "timestep_overflow",
-                "gen_p", "gen_q", "gen_v",
-                "load_p", "load_q", "load_v",
-                "p_or", "q_or", "v_or", "a_or",
-                "p_ex", "q_ex", "v_ex", "a_ex",
-                "time_before_cooldown_line",
-                "time_before_cooldown_sub",
-                "time_next_maintenance",
-                "duration_next_maintenance",
-                "target_dispatch", "actual_dispatch",
-                "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",
-                # storage
-                "storage_charge", "storage_power_target", "storage_power",
-                # curtailment
-                "gen_p_before_curtail", "curtailment", "curtailment_limit", "curtailment_limit_effective",
-                # attention budget
-                "is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
-                "was_alarm_used_after_game_over",
-                # gen up / down
-                "gen_margin_up", "gen_margin_down"
-                ]
+    _attr_eq = [
+        "line_status",
+        "topo_vect",
+        "timestep_overflow",
+        "gen_p",
+        "gen_q",
+        "gen_v",
+        "load_p",
+        "load_q",
+        "load_v",
+        "p_or",
+        "q_or",
+        "v_or",
+        "a_or",
+        "p_ex",
+        "q_ex",
+        "v_ex",
+        "a_ex",
+        "time_before_cooldown_line",
+        "time_before_cooldown_sub",
+        "time_next_maintenance",
+        "duration_next_maintenance",
+        "target_dispatch",
+        "actual_dispatch",
+        "_shunt_p",
+        "_shunt_q",
+        "_shunt_v",
+        "_shunt_bus",
+        # storage
+        "storage_charge",
+        "storage_power_target",
+        "storage_power",
+        # curtailment
+        "gen_p_before_curtail",
+        "curtailment",
+        "curtailment_limit",
+        "curtailment_limit_effective",
+        # attention budget
+        "is_alarm_illegal",
+        "time_since_last_alarm",
+        "last_alarm",
+        "attention_budget",
+        "was_alarm_used_after_game_over",
+        # gen up / down
+        "gen_margin_up",
+        "gen_margin_down",
+    ]
 
     attr_list_vect = None
     # value to assess if two observations are equal
     _tol_equal = 1e-3
 
-    def __init__(self,
-                 obs_env=None,
-                 action_helper=None,
-                 random_prng=None):
+    def __init__(self, obs_env=None, action_helper=None, random_prng=None):
         GridObjects.__init__(self)
         self.random_prng = random_prng
-        
+
         self.action_helper = action_helper
         # handles the forecasts here
         self._forecasted_grid_act = {}
@@ -360,7 +386,7 @@ class BaseObservation(GridObjects):
         self.gen_v = np.empty(shape=self.n_gen, dtype=dt_float)
         self.gen_margin_up = np.empty(shape=self.n_gen, dtype=dt_float)
         self.gen_margin_down = np.empty(shape=self.n_gen, dtype=dt_float)
-        
+
         # loads information
         self.load_p = np.empty(shape=self.n_load, dtype=dt_float)
         self.load_q = np.empty(shape=self.n_load, dtype=dt_float)
@@ -390,7 +416,9 @@ class BaseObservation(GridObjects):
 
         # storage unit
         self.storage_charge = np.empty(shape=self.n_storage, dtype=dt_float)  # in MWh
-        self.storage_power_target = np.empty(shape=self.n_storage, dtype=dt_float)  # in MW
+        self.storage_power_target = np.empty(
+            shape=self.n_storage, dtype=dt_float
+        )  # in MW
         self.storage_power = np.empty(shape=self.n_storage, dtype=dt_float)  # in MW
 
         # attention budget
@@ -431,26 +459,68 @@ class BaseObservation(GridObjects):
         # counter
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)
-        self.delta_time = dt_float(5.)
+        self.delta_time = dt_float(5.0)
 
     def _aux_copy(self, other):
-        attr_simple = ["max_step", "current_step", "support_theta", "day_of_week",
-                       "minute_of_hour", "hour_of_day", "day", "month", "year", "delta_time"]
+        attr_simple = [
+            "max_step",
+            "current_step",
+            "support_theta",
+            "day_of_week",
+            "minute_of_hour",
+            "hour_of_day",
+            "day",
+            "month",
+            "year",
+            "delta_time",
+        ]
 
-        attr_vect = ["storage_theta", "gen_theta", "load_theta", "theta_ex", "theta_or", "curtailment_limit",
-                     "curtailment", "gen_p_before_curtail", "_thermal_limit", "is_alarm_illegal",
-                     "time_since_last_alarm", "last_alarm", "attention_budget", "was_alarm_used_after_game_over",
-                     "storage_power", "storage_power_target", "storage_charge",
-                     "actual_dispatch", "target_dispatch",
-                     "duration_next_maintenance", "time_next_maintenance",
-                     "time_before_cooldown_sub", "time_before_cooldown_line",
-                     "rho", "a_ex", "v_ex", "q_ex", "p_ex",
-                     "a_or", "v_or", "q_or", "p_or",
-                     "load_p", "load_q", "load_v",
-                     "gen_p", "gen_q", "gen_v",
-                     "topo_vect", "line_status", "timestep_overflow",
-                     "gen_margin_up", "gen_margin_down", "curtailment_limit_effective"
-                     ]
+        attr_vect = [
+            "storage_theta",
+            "gen_theta",
+            "load_theta",
+            "theta_ex",
+            "theta_or",
+            "curtailment_limit",
+            "curtailment",
+            "gen_p_before_curtail",
+            "_thermal_limit",
+            "is_alarm_illegal",
+            "time_since_last_alarm",
+            "last_alarm",
+            "attention_budget",
+            "was_alarm_used_after_game_over",
+            "storage_power",
+            "storage_power_target",
+            "storage_charge",
+            "actual_dispatch",
+            "target_dispatch",
+            "duration_next_maintenance",
+            "time_next_maintenance",
+            "time_before_cooldown_sub",
+            "time_before_cooldown_line",
+            "rho",
+            "a_ex",
+            "v_ex",
+            "q_ex",
+            "p_ex",
+            "a_or",
+            "v_or",
+            "q_or",
+            "p_or",
+            "load_p",
+            "load_q",
+            "load_v",
+            "gen_p",
+            "gen_q",
+            "gen_v",
+            "topo_vect",
+            "line_status",
+            "timestep_overflow",
+            "gen_margin_up",
+            "gen_margin_down",
+            "curtailment_limit_effective",
+        ]
 
         if self.shunts_data_available:
             attr_vect += ["_shunt_bus", "_shunt_v", "_shunt_q", "_shunt_p"]
@@ -462,8 +532,7 @@ class BaseObservation(GridObjects):
             getattr(other, attr_nm)[:] = getattr(self, attr_nm)
 
     def __copy__(self):
-        res = type(self)(obs_env=self._obs_env,
-                         action_helper=self.action_helper)
+        res = type(self)(obs_env=self._obs_env, action_helper=self.action_helper)
 
         # copy regular attributes
         self._aux_copy(other=res)
@@ -481,15 +550,16 @@ class BaseObservation(GridObjects):
         return res
 
     def __deepcopy__(self, memodict={}):
-        res = type(self)(obs_env=self._obs_env,
-                         action_helper=self.action_helper)
+        res = type(self)(obs_env=self._obs_env, action_helper=self.action_helper)
 
         # copy regular attributes
         self._aux_copy(other=res)
 
         # just deepcopy
         res._connectivity_matrix_ = copy.deepcopy(self._connectivity_matrix_, memodict)
-        res._bus_connectivity_matrix_ = copy.deepcopy(self._bus_connectivity_matrix_, memodict)
+        res._bus_connectivity_matrix_ = copy.deepcopy(
+            self._bus_connectivity_matrix_, memodict
+        )
         res._dictionnarized = copy.deepcopy(self._dictionnarized, memodict)
         res._vectorized = copy.deepcopy(self._vectorized, memodict)
 
@@ -499,13 +569,15 @@ class BaseObservation(GridObjects):
 
         return res
 
-    def state_of(self,
-                 _sentinel=None,
-                 load_id=None,
-                 gen_id=None,
-                 line_id=None,
-                 storage_id=None,
-                 substation_id=None):
+    def state_of(
+        self,
+        _sentinel=None,
+        load_id=None,
+        gen_id=None,
+        line_id=None,
+        storage_id=None,
+        substation_id=None,
+    ):
         """
         Return the state of this action on a give unique load, generator unit, powerline of substation.
         Only one of load, gen, line or substation should be filled.
@@ -609,58 +681,95 @@ class BaseObservation(GridObjects):
 
         """
         if _sentinel is not None:
-            raise Grid2OpException("action.effect_on should only be called with named argument.")
+            raise Grid2OpException(
+                "action.effect_on should only be called with named argument."
+            )
 
-        if load_id is None and gen_id is None and line_id is None and substation_id is None and storage_id is None:
-            raise Grid2OpException("You ask the state of an object in a observation without specifying the object id. "
-                                   "Please provide \"load_id\", \"gen_id\", \"line_id\", \"storage_id\" or "
-                                   "\"substation_id\"")
+        if (
+            load_id is None
+            and gen_id is None
+            and line_id is None
+            and substation_id is None
+            and storage_id is None
+        ):
+            raise Grid2OpException(
+                "You ask the state of an object in a observation without specifying the object id. "
+                'Please provide "load_id", "gen_id", "line_id", "storage_id" or '
+                '"substation_id"'
+            )
 
         if load_id is not None:
-            if gen_id is not None or line_id is not None or substation_id is not None or storage_id is not None:
-                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            if (
+                gen_id is not None
+                or line_id is not None
+                or substation_id is not None
+                or storage_id is not None
+            ):
+                raise Grid2OpException(
+                    "You can only the inspect the effect of an action on one single element"
+                )
             if load_id >= len(self.load_p):
-                raise Grid2OpException("There are no load of id \"load_id={}\" in this grid.".format(load_id))
+                raise Grid2OpException(
+                    'There are no load of id "load_id={}" in this grid.'.format(load_id)
+                )
             if load_id < 0:
                 raise Grid2OpException("`load_id` should be a positive integer")
 
-            res = {"p": self.load_p[load_id],
-                   "q": self.load_q[load_id],
-                   "v": self.load_v[load_id],
-                   "bus": self.topo_vect[self.load_pos_topo_vect[load_id]],
-                   "sub_id": self.load_to_subid[load_id]
-                   }
+            res = {
+                "p": self.load_p[load_id],
+                "q": self.load_q[load_id],
+                "v": self.load_v[load_id],
+                "bus": self.topo_vect[self.load_pos_topo_vect[load_id]],
+                "sub_id": self.load_to_subid[load_id],
+            }
             if self.support_theta:
                 res["theta"] = self.load_theta[load_id]
         elif gen_id is not None:
-            if line_id is not None or substation_id is not None or storage_id is not None:
-                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            if (
+                line_id is not None
+                or substation_id is not None
+                or storage_id is not None
+            ):
+                raise Grid2OpException(
+                    "You can only the inspect the effect of an action on one single element"
+                )
             if gen_id >= len(self.gen_p):
-                raise Grid2OpException("There are no generator of id \"gen_id={}\" in this grid.".format(gen_id))
+                raise Grid2OpException(
+                    'There are no generator of id "gen_id={}" in this grid.'.format(
+                        gen_id
+                    )
+                )
             if gen_id < 0:
                 raise Grid2OpException("`gen_id` should be a positive integer")
 
-            res = {"p": self.gen_p[gen_id],
-                   "q": self.gen_q[gen_id],
-                   "v": self.gen_v[gen_id],
-                   "bus": self.topo_vect[self.gen_pos_topo_vect[gen_id]],
-                   "sub_id": self.gen_to_subid[gen_id],
-                   "target_dispatch": self.target_dispatch[gen_id],
-                   "actual_dispatch": self.target_dispatch[gen_id],
-                   "curtailment": self.curtailment[gen_id],
-                   "curtailment_limit": self.curtailment_limit[gen_id],
-                   "curtailment_limit_effective": self.curtailment_limit_effective[gen_id],
-                   "p_before_curtail": self.gen_p_before_curtail[gen_id],
-                   "margin_up": self.gen_margin_up[gen_id],
-                   "margin_down": self.gen_margin_down[gen_id],
-                   }
+            res = {
+                "p": self.gen_p[gen_id],
+                "q": self.gen_q[gen_id],
+                "v": self.gen_v[gen_id],
+                "bus": self.topo_vect[self.gen_pos_topo_vect[gen_id]],
+                "sub_id": self.gen_to_subid[gen_id],
+                "target_dispatch": self.target_dispatch[gen_id],
+                "actual_dispatch": self.target_dispatch[gen_id],
+                "curtailment": self.curtailment[gen_id],
+                "curtailment_limit": self.curtailment_limit[gen_id],
+                "curtailment_limit_effective": self.curtailment_limit_effective[gen_id],
+                "p_before_curtail": self.gen_p_before_curtail[gen_id],
+                "margin_up": self.gen_margin_up[gen_id],
+                "margin_down": self.gen_margin_down[gen_id],
+            }
             if self.support_theta:
                 res["theta"] = self.gen_theta[gen_id]
         elif line_id is not None:
             if substation_id is not None or storage_id is not None:
-                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+                raise Grid2OpException(
+                    "You can only the inspect the effect of an action on one single element"
+                )
             if line_id >= len(self.p_or):
-                raise Grid2OpException("There are no powerline of id \"line_id={}\" in this grid.".format(line_id))
+                raise Grid2OpException(
+                    'There are no powerline of id "line_id={}" in this grid.'.format(
+                        line_id
+                    )
+                )
             if line_id < 0:
                 raise Grid2OpException("`line_id` should be a positive integer")
 
@@ -672,7 +781,7 @@ class BaseObservation(GridObjects):
                 "v": self.v_or[line_id],
                 "a": self.a_or[line_id],
                 "bus": self.topo_vect[self.line_or_pos_topo_vect[line_id]],
-                "sub_id": self.line_or_to_subid[line_id]
+                "sub_id": self.line_or_to_subid[line_id],
             }
             if self.support_theta:
                 res["origin"]["theta"] = self.theta_or[line_id]
@@ -683,23 +792,31 @@ class BaseObservation(GridObjects):
                 "v": self.v_ex[line_id],
                 "a": self.a_ex[line_id],
                 "bus": self.topo_vect[self.line_ex_pos_topo_vect[line_id]],
-                "sub_id": self.line_ex_to_subid[line_id]
+                "sub_id": self.line_ex_to_subid[line_id],
             }
             if self.support_theta:
                 res["origin"]["theta"] = self.theta_ex[line_id]
 
             # maintenance information
-            res["maintenance"] = {"next": self.time_next_maintenance[line_id],
-                                  "duration_next": self.duration_next_maintenance[line_id]}
+            res["maintenance"] = {
+                "next": self.time_next_maintenance[line_id],
+                "duration_next": self.duration_next_maintenance[line_id],
+            }
 
             # cooldown
             res["cooldown_time"] = self.time_before_cooldown_line[line_id]
 
         elif storage_id is not None:
             if substation_id is not None:
-                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+                raise Grid2OpException(
+                    "You can only the inspect the effect of an action on one single element"
+                )
             if storage_id >= self.n_storage:
-                raise Grid2OpException("There are no storage unit with id \"storage_id={}\" in this grid.".format(line_id))
+                raise Grid2OpException(
+                    'There are no storage unit with id "storage_id={}" in this grid.'.format(
+                        line_id
+                    )
+                )
             if storage_id < 0:
                 raise Grid2OpException("`storage_id` should be a positive integer")
 
@@ -713,19 +830,26 @@ class BaseObservation(GridObjects):
                 res["origin"]["theta"] = self.storage_theta[storage_id]
         else:
             if substation_id >= len(self.sub_info):
-                raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
+                raise Grid2OpException(
+                    'There are no substation of id "substation_id={}" in this grid.'.format(
+                        substation_id
+                    )
+                )
 
             beg_ = int(np.sum(self.sub_info[:substation_id]))
             end_ = int(beg_ + self.sub_info[substation_id])
             topo_sub = self.topo_vect[beg_:end_]
             if np.any(topo_sub > 0):
-                nb_bus = np.max(topo_sub[topo_sub > 0]) - np.min(topo_sub[topo_sub > 0]) + 1
+                nb_bus = (
+                    np.max(topo_sub[topo_sub > 0]) - np.min(topo_sub[topo_sub > 0]) + 1
+                )
             else:
                 nb_bus = 0
-            res = {"topo_vect": topo_sub,
-                   "nb_bus": nb_bus,
-                   "cooldown_time": self.time_before_cooldown_sub[substation_id]
-                   }
+            res = {
+                "topo_vect": topo_sub,
+                "nb_bus": nb_bus,
+                "cooldown_time": self.time_before_cooldown_sub[substation_id],
+            }
 
         return res
 
@@ -762,8 +886,13 @@ class BaseObservation(GridObjects):
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
             cls.dim_alarms = 0
-            for el in ["is_alarm_illegal", "time_since_last_alarm", "last_alarm", "attention_budget",
-                       "was_alarm_used_after_game_over"]:
+            for el in [
+                "is_alarm_illegal",
+                "time_since_last_alarm",
+                "last_alarm",
+                "attention_budget",
+                "was_alarm_used_after_game_over",
+            ]:
                 try:
                     cls.attr_list_vect.remove(el)
                 except ValueError as exc_:
@@ -810,14 +939,18 @@ class BaseObservation(GridObjects):
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
 
-            for el in ["gen_margin_up", "gen_margin_down", "curtailment_limit_effective"]:
+            for el in [
+                "gen_margin_up",
+                "gen_margin_down",
+                "curtailment_limit_effective",
+            ]:
                 try:
                     cls.attr_list_vect.remove(el)
                 except ValueError as exc_:
                     # this attribute was not there in the first place
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
-            
+
     def reset(self):
         """
         INTERNAL
@@ -912,7 +1045,7 @@ class BaseObservation(GridObjects):
 
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)
-        self.delta_time = dt_float(5.)
+        self.delta_time = dt_float(5.0)
 
     def set_game_over(self, env=None):
         """
@@ -928,28 +1061,28 @@ class BaseObservation(GridObjects):
         As some attributes are initialized with `np.empty` it is recommended to reset here all attributes to avoid
         non deterministic behaviour.
         """
-        self.gen_p[:] = 0.
-        self.gen_q[:] = 0.
-        self.gen_v[:] = 0.
-        self.gen_margin_up[:] = 0.
-        self.gen_margin_down[:] = 0.
-        
+        self.gen_p[:] = 0.0
+        self.gen_q[:] = 0.0
+        self.gen_v[:] = 0.0
+        self.gen_margin_up[:] = 0.0
+        self.gen_margin_down[:] = 0.0
+
         # loads information
-        self.load_p[:] = 0.
-        self.load_q[:] = 0.
-        self.load_v[:] = 0.
+        self.load_p[:] = 0.0
+        self.load_q[:] = 0.0
+        self.load_v[:] = 0.0
         # lines origin information
-        self.p_or[:] = 0.
-        self.q_or[:] = 0.
-        self.v_or[:] = 0.
-        self.a_or[:] = 0.
+        self.p_or[:] = 0.0
+        self.q_or[:] = 0.0
+        self.v_or[:] = 0.0
+        self.a_or[:] = 0.0
         # lines extremity information
-        self.p_ex[:] = 0.
-        self.q_ex[:] = 0.
-        self.v_ex[:] = 0.
-        self.a_ex[:] = 0.
+        self.p_ex[:] = 0.0
+        self.q_ex[:] = 0.0
+        self.v_ex[:] = 0.0
+        self.a_ex[:] = 0.0
         # lines relative flows
-        self.rho[:] = 0.
+        self.rho[:] = 0.0
         # line status
         self.line_status[:] = False
         # topological vector
@@ -960,19 +1093,19 @@ class BaseObservation(GridObjects):
         self._forecasted_grid_act = {}
 
         # redispatching
-        self.target_dispatch[:] = 0.
-        self.actual_dispatch[:] = 0.
+        self.target_dispatch[:] = 0.0
+        self.actual_dispatch[:] = 0.0
 
         # storage
-        self.storage_charge[:] = 0.
-        self.storage_power_target[:] = 0.
-        self.storage_power[:] = 0.
+        self.storage_charge[:] = 0.0
+        self.storage_power_target[:] = 0.0
+        self.storage_power[:] = 0.0
 
         # curtailment
-        self.curtailment[:] = 0.
-        self.curtailment_limit[:] = 1.
-        self.curtailment_limit_effective[:] = 1.
-        self.gen_p_before_curtail[:] = 0.
+        self.curtailment[:] = 0.0
+        self.curtailment_limit[:] = 1.0
+        self.curtailment_limit_effective[:] = 1.0
+        self.gen_p_before_curtail[:] = 0.0
 
         # cooldown
         self.time_before_cooldown_line[:] = 0
@@ -984,9 +1117,9 @@ class BaseObservation(GridObjects):
         self.timestep_overflow[:] = 0
 
         if self.shunts_data_available:
-            self._shunt_p[:] = 0.
-            self._shunt_q[:] = 0.
-            self._shunt_v[:] = 0.
+            self._shunt_p[:] = 0.0
+            self._shunt_q[:] = 0.0
+            self._shunt_v[:] = 0.0
             self._shunt_bus[:] = -1
 
         if env is None:
@@ -1008,11 +1141,11 @@ class BaseObservation(GridObjects):
 
         if self.support_theta:
             # by convention, I say it's 0 if the grid is in total blackout
-            self.theta_or[:] = 0.
-            self.theta_ex[:] = 0.
-            self.load_theta[:] = 0.
-            self.gen_theta[:] = 0.
-            self.storage_theta[:] = 0.
+            self.theta_or[:] = 0.0
+            self.theta_ex[:] = 0.0
+            self.load_theta[:] = 0.0
+            self.gen_theta[:] = 0.0
+            self.storage_theta[:] = 0.0
 
         # counter
         if env is not None:
@@ -1049,7 +1182,10 @@ class BaseObservation(GridObjects):
                 if np.any(me_finite != oth_finite):
                     return False
                 # special case of floating points, otherwise vector are never equal
-                if not np.all(np.abs(attr_me[me_finite] - attr_other[oth_finite]) <= self._tol_equal):
+                if not np.all(
+                    np.abs(attr_me[me_finite] - attr_other[oth_finite])
+                    <= self._tol_equal
+                ):
                     return False
             else:
                 if not np.all(attr_me == attr_other):
@@ -1127,7 +1263,9 @@ class BaseObservation(GridObjects):
         """
         same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
-            raise Grid2OpException("Cannot compare to observation not coming from the same powergrid.")
+            raise Grid2OpException(
+                "Cannot compare to observation not coming from the same powergrid."
+            )
         tmp_obs_env = self._obs_env
         self._obs_env = None  # keep aside the backend
         res = copy.deepcopy(self)
@@ -1150,7 +1288,7 @@ class BaseObservation(GridObjects):
                     diff_ = ~np.logical_xor(me_, oth_)
                 else:
                     diff_ = me_ - oth_
-            res.__setattr__(stat_nm,  diff_)
+            res.__setattr__(stat_nm, diff_)
         return res
 
     def where_different(self, other):
@@ -1304,9 +1442,16 @@ class BaseObservation(GridObjects):
             #     - assign bus 2 to load 0 [on substation 1]
             # -> one of them is on bus 1 [line (extremity) 0] and the other on bus 2 [load 0]
         """
-        if self._connectivity_matrix_ is None or \
-                (isinstance(self._connectivity_matrix_, csr_matrix) and not as_csr_matrix) or \
-                ((not isinstance(self._connectivity_matrix_, csr_matrix)) and as_csr_matrix ):
+        if (
+            self._connectivity_matrix_ is None
+            or (
+                isinstance(self._connectivity_matrix_, csr_matrix) and not as_csr_matrix
+            )
+            or (
+                (not isinstance(self._connectivity_matrix_, csr_matrix))
+                and as_csr_matrix
+            )
+        ):
             # self._connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
             # fill it by block for the objects
             beg_ = 0
@@ -1320,7 +1465,7 @@ class BaseObservation(GridObjects):
                 end_ += nb_obj
                 # tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=dt_float)
                 for obj1 in range(nb_obj):
-                    my_bus = self.topo_vect[beg_+obj1]
+                    my_bus = self.topo_vect[beg_ + obj1]
                     if my_bus == -1:
                         # object is disconnected, nothing is done
                         continue
@@ -1329,8 +1474,8 @@ class BaseObservation(GridObjects):
                     col_ind.append(beg_ + obj1)
 
                     # connect the other objects to it
-                    for obj2 in range(obj1+1, nb_obj):
-                        my_bus2 = self.topo_vect[beg_+obj2]
+                    for obj2 in range(obj1 + 1, nb_obj):
+                        my_bus2 = self.topo_vect[beg_ + obj2]
                         if my_bus2 == -1:
                             # object is disconnected, nothing is done
                             continue
@@ -1355,13 +1500,17 @@ class BaseObservation(GridObjects):
             row_ind = np.array(row_ind).astype(dt_int)
             col_ind = np.array(col_ind).astype(dt_int)
             if not as_csr_matrix:
-                self._connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
+                self._connectivity_matrix_ = np.zeros(
+                    shape=(self.dim_topo, self.dim_topo), dtype=dt_float
+                )
                 self._connectivity_matrix_[row_ind.T, col_ind] = 1.0
             else:
                 data = np.ones(row_ind.shape[0], dtype=dt_float)
-                self._connectivity_matrix_ = csr_matrix((data, (row_ind, col_ind)),
-                                                        shape=(self.dim_topo, self.dim_topo),
-                                                        dtype=dt_float)
+                self._connectivity_matrix_ = csr_matrix(
+                    (data, (row_ind, col_ind)),
+                    shape=(self.dim_topo, self.dim_topo),
+                    dtype=dt_float,
+                )
         return self._connectivity_matrix_
 
     def _aux_fun_get_bus(self):
@@ -1427,37 +1576,54 @@ class BaseObservation(GridObjects):
             # (of course you can replace 0 with any integer `0 <= l_id < obs.n_line`
 
         """
-        if self._bus_connectivity_matrix_ is None or \
-                (isinstance(self._bus_connectivity_matrix_, csr_matrix) and not as_csr_matrix) or \
-                ((not isinstance(self._bus_connectivity_matrix_, csr_matrix)) and as_csr_matrix ) or \
-                return_lines_index:
+        if (
+            self._bus_connectivity_matrix_ is None
+            or (
+                isinstance(self._bus_connectivity_matrix_, csr_matrix)
+                and not as_csr_matrix
+            )
+            or (
+                (not isinstance(self._bus_connectivity_matrix_, csr_matrix))
+                and as_csr_matrix
+            )
+            or return_lines_index
+        ):
             nb_bus, unique_bus, bus_or, bus_ex = self._aux_fun_get_bus()
 
             # convert the bus id (from 0 to 2 * n_sub) to the row / column in the matrix (number between 0 and nb_bus)
             all_indx = np.arange(nb_bus)
-            tmplate = np.arange(np.max(unique_bus)+1)
+            tmplate = np.arange(np.max(unique_bus) + 1)
             tmplate[unique_bus] = all_indx
             bus_or_in_mat = tmplate[bus_or]
             bus_ex_in_mat = tmplate[bus_ex]
 
             if not as_csr_matrix:
-                self._bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=dt_float)
+                self._bus_connectivity_matrix_ = np.zeros(
+                    shape=(nb_bus, nb_bus), dtype=dt_float
+                )
                 self._bus_connectivity_matrix_[bus_or_in_mat, bus_ex_in_mat] = 1.0
                 self._bus_connectivity_matrix_[bus_ex_in_mat, bus_or_in_mat] = 1.0
                 self._bus_connectivity_matrix_[all_indx, all_indx] = 1.0
             else:
-                data = np.ones(nb_bus + bus_or_in_mat.shape[0] + bus_ex_in_mat.shape[0], dtype=dt_float)
+                data = np.ones(
+                    nb_bus + bus_or_in_mat.shape[0] + bus_ex_in_mat.shape[0],
+                    dtype=dt_float,
+                )
                 row_ind = np.concatenate((all_indx, bus_or_in_mat, bus_ex_in_mat))
                 col_ind = np.concatenate((all_indx, bus_ex_in_mat, bus_or_in_mat))
-                self._bus_connectivity_matrix_ = csr_matrix((data, (row_ind, col_ind)),
-                                                            shape=(nb_bus, nb_bus),
-                                                            dtype=dt_float)
+                self._bus_connectivity_matrix_ = csr_matrix(
+                    (data, (row_ind, col_ind)), shape=(nb_bus, nb_bus), dtype=dt_float
+                )
         if not return_lines_index:
             res = self._bus_connectivity_matrix_
         else:
             # bus or and bus ex are defined above is return_line_index is True
-            lor_bus, _ = self._get_bus_id(self.line_or_pos_topo_vect, self.line_or_to_subid)
-            lex_bus, _ = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
+            lor_bus, _ = self._get_bus_id(
+                self.line_or_pos_topo_vect, self.line_or_to_subid
+            )
+            lex_bus, _ = self._get_bus_id(
+                self.line_ex_pos_topo_vect, self.line_ex_to_subid
+            )
             res = (self._bus_connectivity_matrix_, (tmplate[lor_bus], tmplate[lex_bus]))
         return res
 
@@ -1537,22 +1703,34 @@ class BaseObservation(GridObjects):
 
         """
         nb_bus, unique_bus, bus_or, bus_ex = self._aux_fun_get_bus()
-        prod_bus, prod_conn = self._get_bus_id(self.gen_pos_topo_vect, self.gen_to_subid)
-        load_bus, load_conn = self._get_bus_id(self.load_pos_topo_vect, self.load_to_subid)
-        stor_bus, stor_conn = self._get_bus_id(self.storage_pos_topo_vect, self.storage_to_subid)
-        lor_bus, lor_conn = self._get_bus_id(self.line_or_pos_topo_vect, self.line_or_to_subid)
-        lex_bus, lex_conn = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
+        prod_bus, prod_conn = self._get_bus_id(
+            self.gen_pos_topo_vect, self.gen_to_subid
+        )
+        load_bus, load_conn = self._get_bus_id(
+            self.load_pos_topo_vect, self.load_to_subid
+        )
+        stor_bus, stor_conn = self._get_bus_id(
+            self.storage_pos_topo_vect, self.storage_to_subid
+        )
+        lor_bus, lor_conn = self._get_bus_id(
+            self.line_or_pos_topo_vect, self.line_or_to_subid
+        )
+        lex_bus, lex_conn = self._get_bus_id(
+            self.line_ex_pos_topo_vect, self.line_ex_to_subid
+        )
 
         if self.shunts_data_available:
             sh_bus = 1 * self._shunt_bus
-            sh_bus[sh_bus > 0] = self.shunt_to_subid[sh_bus > 0]*(sh_bus[sh_bus > 0] - 1) + \
-                                 self.shunt_to_subid[sh_bus > 0]
+            sh_bus[sh_bus > 0] = (
+                self.shunt_to_subid[sh_bus > 0] * (sh_bus[sh_bus > 0] - 1)
+                + self.shunt_to_subid[sh_bus > 0]
+            )
             sh_conn = self._shunt_bus != -1
 
         # convert the bus to be "id of row or column in the matrix" instead of the bus id with
         # the "grid2op convention"
         all_indx = np.arange(nb_bus)
-        tmplate = np.arange(np.max(unique_bus)+1)
+        tmplate = np.arange(np.max(unique_bus) + 1)
         tmplate[unique_bus] = all_indx
         prod_bus = tmplate[prod_bus]
         load_bus = tmplate[load_bus]
@@ -1585,30 +1763,33 @@ class BaseObservation(GridObjects):
         nb_prod = np.sum(prod_conn)
         if nb_prod:
             bus_prod = np.arange(prod_bus[prod_conn].max() + 1)
-            map_mat = csr_matrix((np.ones(nb_prod), (prod_bus[prod_conn], np.arange(nb_prod))),
-                                 shape=(bus_prod.shape[0], nb_prod),
-                                 dtype=dt_float
-                                 )
+            map_mat = csr_matrix(
+                (np.ones(nb_prod), (prod_bus[prod_conn], np.arange(nb_prod))),
+                shape=(bus_prod.shape[0], nb_prod),
+                dtype=dt_float,
+            )
             data[bus_prod] += map_mat.dot(prod_vect[prod_conn])
 
         # handle load
         nb_load = np.sum(load_conn)
         if nb_load:
             bus_load = np.arange(load_bus[load_conn].max() + 1)
-            map_mat = csr_matrix((np.ones(nb_load), (load_bus[load_conn], np.arange(nb_load))),
-                                 shape=(bus_load.shape[0], nb_load),
-                                 dtype=dt_float
-                                 )
+            map_mat = csr_matrix(
+                (np.ones(nb_load), (load_bus[load_conn], np.arange(nb_load))),
+                shape=(bus_load.shape[0], nb_load),
+                dtype=dt_float,
+            )
             data[bus_load] -= map_mat.dot(load_vect[load_conn])
 
         # handle storage
         nb_stor = np.sum(stor_conn)
         if nb_stor:
             bus_stor = np.arange(stor_bus[stor_conn].max() + 1)
-            map_mat = csr_matrix((np.ones(nb_stor), (stor_bus[stor_conn], np.arange(nb_stor))),
-                                 shape=(bus_stor.shape[0], nb_stor),
-                                 dtype=dt_float
-                                 )
+            map_mat = csr_matrix(
+                (np.ones(nb_stor), (stor_bus[stor_conn], np.arange(nb_stor))),
+                shape=(bus_stor.shape[0], nb_stor),
+                dtype=dt_float,
+            )
             data[bus_stor] -= map_mat.dot(stor_vect[stor_conn])
 
         if self.shunts_data_available:
@@ -1616,10 +1797,11 @@ class BaseObservation(GridObjects):
             nb_shunt = np.sum(sh_conn)
             if nb_shunt:
                 bus_shunt = np.arange(sh_bus[sh_conn].max() + 1)
-                map_mat = csr_matrix((np.ones(nb_shunt), (sh_bus[sh_conn], np.arange(nb_shunt))),
-                                     shape=(bus_shunt.shape[0], nb_shunt),
-                                     dtype=dt_float
-                                     )
+                map_mat = csr_matrix(
+                    (np.ones(nb_shunt), (sh_bus[sh_conn], np.arange(nb_shunt))),
+                    shape=(bus_shunt.shape[0], nb_shunt),
+                    dtype=dt_float,
+                )
                 data[bus_shunt] -= map_mat.dot(sh_vect[sh_conn])
 
         # powerlines
@@ -1627,9 +1809,9 @@ class BaseObservation(GridObjects):
         data[np.arange(nb_lex) + nb_bus + nb_lor] -= ex_vect[lex_conn]
         row_ind = np.concatenate((all_indx, lor_bus[lor_conn], lex_bus[lex_conn]))
         col_ind = np.concatenate((all_indx, lex_bus[lex_conn], lor_bus[lor_conn]))
-        res = csr_matrix((data, (row_ind, col_ind)),
-                         shape=(nb_bus, nb_bus),
-                         dtype=dt_float)
+        res = csr_matrix(
+            (data, (row_ind, col_ind)), shape=(nb_bus, nb_bus), dtype=dt_float
+        )
         if not as_csr_matrix:
             res = res.toarray()
 
@@ -1644,13 +1826,7 @@ class BaseObservation(GridObjects):
         dict_.update(dict_2)
         networkx.set_edge_attributes(graph, dict_, attr_nm)
 
-    def _add_edges_multi(self,
-                         vector_or,
-                         vector_ex,
-                         attr_nm,
-                         lor_bus,
-                         lex_bus,
-                         graph):
+    def _add_edges_multi(self, vector_or, vector_ex, attr_nm, lor_bus, lex_bus, graph):
         """
         Utilities to add attributes of the edges of the graph in networkx, because edges are not necessarily
         "oriented" the same way (so we need to reverse or / ex if networkx oriented it in the same way)
@@ -1788,8 +1964,9 @@ class BaseObservation(GridObjects):
 
         """
         # TODO save this graph somewhere, in a self._as_networkx attributes for example
-        mat_p, (load_bus, gen_bus, stor_bus, lor_bus, lex_bus) = self.flow_bus_matrix(active_flow=True,
-                                                                                      as_csr_matrix=True)
+        mat_p, (load_bus, gen_bus, stor_bus, lor_bus, lex_bus) = self.flow_bus_matrix(
+            active_flow=True, as_csr_matrix=True
+        )
         mat_q, *_ = self.flow_bus_matrix(active_flow=False, as_csr_matrix=True)
         # bus voltage
         bus_v = np.zeros(mat_p.shape[0])
@@ -1805,7 +1982,7 @@ class BaseObservation(GridObjects):
 
         # bus active injection
         bus_p = mat_p.diagonal().copy()
-        mat_p.setdiag(0.)
+        mat_p.setdiag(0.0)
         mat_p.eliminate_zeros()
 
         # create the networkx graph
@@ -1816,14 +1993,26 @@ class BaseObservation(GridObjects):
             graph = networkx.from_scipy_sparse_matrix(mat_p, edge_attribute="p")
 
         # add the nodes attributes
-        networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_p)}, "p")
-        networkx.set_node_attributes(graph, {el: val for el, val in enumerate(mat_q.diagonal())}, "q")
-        networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_v)}, "v")
-        networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_subid)}, "sub_id")
+        networkx.set_node_attributes(
+            graph, {el: val for el, val in enumerate(bus_p)}, "p"
+        )
+        networkx.set_node_attributes(
+            graph, {el: val for el, val in enumerate(mat_q.diagonal())}, "q"
+        )
+        networkx.set_node_attributes(
+            graph, {el: val for el, val in enumerate(bus_v)}, "v"
+        )
+        networkx.set_node_attributes(
+            graph, {el: val for el, val in enumerate(bus_subid)}, "sub_id"
+        )
         if self.support_theta:
-            networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_theta)}, "theta")
+            networkx.set_node_attributes(
+                graph, {el: val for el, val in enumerate(bus_theta)}, "theta"
+            )
 
-        dict_cooldown = {el: val for el, val in enumerate(self.time_before_cooldown_sub)}
+        dict_cooldown = {
+            el: val for el, val in enumerate(self.time_before_cooldown_sub)
+        }
         dict_cooldown2 = {}
         for k, v in dict_cooldown.items():
             dict_cooldown2[k + self.n_sub] = v
@@ -1835,14 +2024,24 @@ class BaseObservation(GridObjects):
         self._add_edges_multi(self.q_or, self.q_ex, "q", lor_bus, lex_bus, graph)
         self._add_edges_multi(self.a_or, self.a_ex, "a", lor_bus, lex_bus, graph)
         if self.support_theta:
-            self._add_edges_multi(self.theta_or, self.theta_ex, "theta", lor_bus, lex_bus, graph)
+            self._add_edges_multi(
+                self.theta_or, self.theta_ex, "theta", lor_bus, lex_bus, graph
+            )
 
         self._add_edges_simple(self.rho, "rho", lor_bus, lex_bus, graph)
-        self._add_edges_simple(self.time_before_cooldown_line, "cooldown", lor_bus, lex_bus, graph)
+        self._add_edges_simple(
+            self.time_before_cooldown_line, "cooldown", lor_bus, lex_bus, graph
+        )
         self._add_edges_simple(self.line_status, "status", lor_bus, lex_bus, graph)
-        self._add_edges_simple(self.thermal_limit, "thermal_limit", lor_bus, lex_bus, graph)
-        self._add_edges_simple(self.timestep_overflow, "timestep_overflow", lor_bus, lex_bus, graph)
-        networkx.freeze(graph)  # extra layer of security: prevent accidental modification of this graph
+        self._add_edges_simple(
+            self.thermal_limit, "thermal_limit", lor_bus, lex_bus, graph
+        )
+        self._add_edges_simple(
+            self.timestep_overflow, "timestep_overflow", lor_bus, lex_bus, graph
+        )
+        networkx.freeze(
+            graph
+        )  # extra layer of security: prevent accidental modification of this graph
         return graph
 
     def get_forecasted_inj(self, time_step=1):
@@ -1869,7 +2068,11 @@ class BaseObservation(GridObjects):
             The forecast load reactive consumption
         """
         if time_step >= len(self._forecasted_inj):
-            raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
+            raise NoForecastAvailable(
+                "Forecast for {} timestep ahead is not possible with your chronics.".format(
+                    time_step
+                )
+            )
         t, a = self._forecasted_inj[time_step]
         prod_p_f = np.full(self.n_gen, fill_value=np.NaN, dtype=dt_float)
         prod_v_f = np.full(self.n_gen, fill_value=np.NaN, dtype=dt_float)
@@ -1898,8 +2101,13 @@ class BaseObservation(GridObjects):
         """
         Get the time stamp of the current observation as a `datetime.datetime` object
         """
-        res = datetime.datetime(year=self.year, month=self.month, day=self.day,
-                                hour=self.hour_of_day, minute=self.minute_of_hour)
+        res = datetime.datetime(
+            year=self.year,
+            month=self.month,
+            day=self.day,
+            hour=self.hour_of_day,
+            minute=self.minute_of_hour,
+        )
         return res
 
     def simulate(self, action, time_step=1):
@@ -1985,37 +2193,45 @@ class BaseObservation(GridObjects):
 
         """
         if self.action_helper is None:
-            raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation "
-                                      "(no action_space "
-                                      "and no simulated environment are set).")
+            raise NoForecastAvailable(
+                "No forecasts are available for this instance of BaseObservation "
+                "(no action_space "
+                "and no simulated environment are set)."
+            )
         if self._obs_env is None:
-            raise EnvError("This observation has no \"environment used for simulation\" (_obs_env) is not created. "
-                           "This is the case if you loaded this observation from a disk (for example using "
-                           "EpisodeData) "
-                           "or used a Runner with multi processing with the \"add_detailed_output=True\" "
-                           "flag. This is a feature of grid2op: you cannot serialize backends.")
+            raise EnvError(
+                'This observation has no "environment used for simulation" (_obs_env) is not created. '
+                "This is the case if you loaded this observation from a disk (for example using "
+                "EpisodeData) "
+                'or used a Runner with multi processing with the "add_detailed_output=True" '
+                "flag. This is a feature of grid2op: you cannot serialize backends."
+            )
 
         if time_step < 0:
             raise NoForecastAvailable("Impossible to forecast in the past.")
 
         if time_step >= len(self._forecasted_inj):
-            raise NoForecastAvailable("Forecast for {} timestep(s) ahead is not possible with your chronics."
-                                      "".format(time_step))
+            raise NoForecastAvailable(
+                "Forecast for {} timestep(s) ahead is not possible with your chronics."
+                "".format(time_step)
+            )
 
         if time_step not in self._forecasted_grid_act:
             timestamp, inj_forecasted = self._forecasted_inj[time_step]
             self._forecasted_grid_act[time_step] = {
                 "timestamp": timestamp,
-                "inj_action": self.action_helper(inj_forecasted)
+                "inj_action": self.action_helper(inj_forecasted),
             }
 
         timestamp = self._forecasted_grid_act[time_step]["timestamp"]
         inj_action = self._forecasted_grid_act[time_step]["inj_action"]
-        self._obs_env.init(inj_action,
-                           time_stamp=timestamp,
-                           timestep_overflow=self.timestep_overflow,
-                           topo_vect=self.topo_vect,
-                           time_step=time_step)
+        self._obs_env.init(
+            inj_action,
+            time_stamp=timestamp,
+            timestep_overflow=self.timestep_overflow,
+            topo_vect=self.topo_vect,
+            time_step=time_step,
+        )
 
         sim_obs, *rest = self._obs_env.simulate(action)
         sim_obs = copy.deepcopy(sim_obs)
@@ -2074,7 +2290,6 @@ class BaseObservation(GridObjects):
         res = self.topo_vect[self.line_or_pos_topo_vect]
         res.flags.writeable = False
         return res
-
 
     @property
     def line_ex_bus(self):
@@ -2269,10 +2484,18 @@ class BaseObservation(GridObjects):
             self._dictionnarized["loads"]["p"] = self.load_p
             self._dictionnarized["loads"]["q"] = self.load_q
             self._dictionnarized["loads"]["v"] = self.load_v
-            self._dictionnarized["prods"] = {}  # TODO will be removed in future versions
-            self._dictionnarized["prods"]["p"] = self.gen_p  # TODO will be removed in future versions
-            self._dictionnarized["prods"]["q"] = self.gen_q  # TODO will be removed in future versions
-            self._dictionnarized["prods"]["v"] = self.gen_v  # TODO will be removed in future versions
+            self._dictionnarized[
+                "prods"
+            ] = {}  # TODO will be removed in future versions
+            self._dictionnarized["prods"][
+                "p"
+            ] = self.gen_p  # TODO will be removed in future versions
+            self._dictionnarized["prods"][
+                "q"
+            ] = self.gen_q  # TODO will be removed in future versions
+            self._dictionnarized["prods"][
+                "v"
+            ] = self.gen_v  # TODO will be removed in future versions
             self._dictionnarized["gens"] = {}
             self._dictionnarized["gens"]["p"] = self.gen_p
             self._dictionnarized["gens"]["q"] = self.gen_q
@@ -2290,32 +2513,52 @@ class BaseObservation(GridObjects):
             self._dictionnarized["rho"] = self.rho
 
             self._dictionnarized["maintenance"] = {}
-            self._dictionnarized["maintenance"]['time_next_maintenance'] = self.time_next_maintenance
-            self._dictionnarized["maintenance"]['duration_next_maintenance'] = self.duration_next_maintenance
+            self._dictionnarized["maintenance"][
+                "time_next_maintenance"
+            ] = self.time_next_maintenance
+            self._dictionnarized["maintenance"][
+                "duration_next_maintenance"
+            ] = self.duration_next_maintenance
             self._dictionnarized["cooldown"] = {}
-            self._dictionnarized["cooldown"]['line'] = self.time_before_cooldown_line
-            self._dictionnarized["cooldown"]['substation'] = self.time_before_cooldown_sub
+            self._dictionnarized["cooldown"]["line"] = self.time_before_cooldown_line
+            self._dictionnarized["cooldown"][
+                "substation"
+            ] = self.time_before_cooldown_sub
             self._dictionnarized["redispatching"] = {}
-            self._dictionnarized["redispatching"]["target_redispatch"] = self.target_dispatch
-            self._dictionnarized["redispatching"]["actual_dispatch"] = self.actual_dispatch
+            self._dictionnarized["redispatching"][
+                "target_redispatch"
+            ] = self.target_dispatch
+            self._dictionnarized["redispatching"][
+                "actual_dispatch"
+            ] = self.actual_dispatch
 
             # storage
             self._dictionnarized["storage_charge"] = 1.0 * self.storage_charge
-            self._dictionnarized["storage_power_target"] = 1.0 * self.storage_power_target
+            self._dictionnarized["storage_power_target"] = (
+                1.0 * self.storage_power_target
+            )
             self._dictionnarized["storage_power"] = 1.0 * self.storage_power
 
             # curtailment
-            self._dictionnarized["gen_p_before_curtail"] = 1.0 * self.gen_p_before_curtail
+            self._dictionnarized["gen_p_before_curtail"] = (
+                1.0 * self.gen_p_before_curtail
+            )
             self._dictionnarized["curtailment"] = 1.0 * self.curtailment
             self._dictionnarized["curtailment_limit"] = 1.0 * self.curtailment_limit
-            self._dictionnarized["curtailment_limit_effective"] = 1.0 * self.curtailmentcurtailment_limit_effective_limit
+            self._dictionnarized["curtailment_limit_effective"] = (
+                1.0 * self.curtailmentcurtailment_limit_effective_limit
+            )
 
             # alarm / attention budget
             self._dictionnarized["is_alarm_illegal"] = self.is_alarm_illegal[0]
-            self._dictionnarized["time_since_last_alarm"] = self.time_since_last_alarm[0]
+            self._dictionnarized["time_since_last_alarm"] = self.time_since_last_alarm[
+                0
+            ]
             self._dictionnarized["last_alarm"] = copy.deepcopy(self.last_alarm)
             self._dictionnarized["attention_budget"] = self.attention_budget[0]
-            self._dictionnarized["was_alarm_used_after_game_over"] = self.was_alarm_used_after_game_over[0]
+            self._dictionnarized[
+                "was_alarm_used_after_game_over"
+            ] = self.was_alarm_used_after_game_over[0]
 
             # current_step / max step
             self._dictionnarized["current_step"] = self.current_step
@@ -2408,6 +2651,7 @@ class BaseObservation(GridObjects):
         """
 
         from grid2op.Action import BaseAction
+
         if not isinstance(act, BaseAction):
             raise RuntimeError("You can only add actions to observation at the moment")
 
@@ -2420,8 +2664,10 @@ class BaseObservation(GridObjects):
 
         ambiguous, except_tmp = act.is_ambiguous()
         if ambiguous:
-            raise RuntimeError(f"Impossible to add an ambiguous action to an observation. Your action was "
-                               f"ambiguous because: \"{except_tmp}\"")
+            raise RuntimeError(
+                f"Impossible to add an ambiguous action to an observation. Your action was "
+                f'ambiguous because: "{except_tmp}"'
+            )
 
         # if a powerline has been reconnected without specific bus, i issue a warning
         if "set_line_status" in act.authorized_keys:
@@ -2432,12 +2678,18 @@ class BaseObservation(GridObjects):
             else:
                 line_ex_set_bus = np.zeros(res.n_line, dtype=dt_int)
                 line_or_set_bus = np.zeros(res.n_line, dtype=dt_int)
-            error_no_bus_set = "You reconnected a powerline with your action but did not specify on which bus " \
-                               "to reconnect both its end. This behaviour, also perfectly fine for an environment " \
-                               "will not be accurate in the method obs + act. Consult the documentation for more " \
-                               "information. Problem arose for powerlines with id {}"
+            error_no_bus_set = (
+                "You reconnected a powerline with your action but did not specify on which bus "
+                "to reconnect both its end. This behaviour, also perfectly fine for an environment "
+                "will not be accurate in the method obs + act. Consult the documentation for more "
+                "information. Problem arose for powerlines with id {}"
+            )
 
-            tmp = (reco_powerline == 1) & (line_ex_set_bus <= 0) & (res.topo_vect[self.line_ex_pos_topo_vect] == -1)
+            tmp = (
+                (reco_powerline == 1)
+                & (line_ex_set_bus <= 0)
+                & (res.topo_vect[self.line_ex_pos_topo_vect] == -1)
+            )
             if np.any(tmp):
                 id_issue_ex = np.where(tmp)[0]
                 if issue_warn:
@@ -2445,7 +2697,11 @@ class BaseObservation(GridObjects):
                 if "set_bus" in act.authorized_keys:
                     # assign 1 in the bus in this case
                     act.line_ex_set_bus = [(el, 1) for el in id_issue_ex]
-            tmp = (reco_powerline == 1) & (line_or_set_bus <= 0) & (res.topo_vect[self.line_or_pos_topo_vect] == -1)
+            tmp = (
+                (reco_powerline == 1)
+                & (line_or_set_bus <= 0)
+                & (res.topo_vect[self.line_or_pos_topo_vect] == -1)
+            )
             if np.any(tmp):
                 id_issue_or = np.where(tmp)[0]
                 if issue_warn:
@@ -2459,12 +2715,15 @@ class BaseObservation(GridObjects):
             res.topo_vect[act.set_bus != 0] = act.set_bus[act.set_bus != 0]
 
         if "change_bus" in act.authorized_keys:
-            do_change_bus_on = act.change_bus & (res.topo_vect > 0)  # change bus of elements that were on
+            do_change_bus_on = act.change_bus & (
+                res.topo_vect > 0
+            )  # change bus of elements that were on
             res.topo_vect[do_change_bus_on] = 3 - res.topo_vect[do_change_bus_on]
 
         # topo vect: reco of powerline that should be
-        res.line_status = (res.topo_vect[self.line_or_pos_topo_vect] >= 1) & \
-                          (res.topo_vect[self.line_ex_pos_topo_vect] >= 1)
+        res.line_status = (res.topo_vect[self.line_or_pos_topo_vect] >= 1) & (
+            res.topo_vect[self.line_ex_pos_topo_vect] >= 1
+        )
 
         # powerline status
         if "set_line_status" in act.authorized_keys:
@@ -2478,8 +2737,12 @@ class BaseObservation(GridObjects):
             # bus were not provided
             if "set_bus" in act.authorized_keys:
                 # I assign previous bus (because it could have been modified)
-                res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = act.line_or_set_bus[reco_line]
-                res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = act.line_ex_set_bus[reco_line]
+                res.topo_vect[
+                    res.line_or_pos_topo_vect[reco_line]
+                ] = act.line_or_set_bus[reco_line]
+                res.topo_vect[
+                    res.line_ex_pos_topo_vect[reco_line]
+                ] = act.line_ex_set_bus[reco_line]
             else:
                 # I assign one (action do not allow me to modify the bus)
                 res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = 1
@@ -2505,42 +2768,56 @@ class BaseObservation(GridObjects):
                     line_ex_set_bus = np.zeros(res.n_line, dtype=dt_int)
                     line_or_set_bus = np.zeros(res.n_line, dtype=dt_int)
 
-                if issue_warn and (np.any(line_or_set_bus[reco_line] == 0) or
-                                   np.any(line_ex_set_bus[reco_line] == 0)):
-                    warnings.warn("A powerline has been reconnected with a \"change_status\" action without "
-                                  "specifying on which bus it was supposed to be reconnected. This is "
-                                  "perfectly fine in regular grid2op environment, but this behaviour "
-                                  "cannot be properly implemented with the only information in the "
-                                  "observation. Please see the documentation for more information."
-                                  )
+                if issue_warn and (
+                    np.any(line_or_set_bus[reco_line] == 0)
+                    or np.any(line_ex_set_bus[reco_line] == 0)
+                ):
+                    warnings.warn(
+                        'A powerline has been reconnected with a "change_status" action without '
+                        "specifying on which bus it was supposed to be reconnected. This is "
+                        "perfectly fine in regular grid2op environment, but this behaviour "
+                        "cannot be properly implemented with the only information in the "
+                        "observation. Please see the documentation for more information."
+                    )
                     line_or_set_bus[reco_line & (line_or_set_bus == 0)] = 1
                     line_ex_set_bus[reco_line & (line_ex_set_bus == 0)] = 1
 
-                res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = line_or_set_bus[reco_line]
-                res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = line_ex_set_bus[reco_line]
+                res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = line_or_set_bus[
+                    reco_line
+                ]
+                res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = line_ex_set_bus[
+                    reco_line
+                ]
                 res.line_status[reco_line] = True
 
-        if 'redispatch' in act.authorized_keys:
+        if "redispatch" in act.authorized_keys:
             redisp = act.redispatch
             if np.any(redisp != 0) and issue_warn:
-                warnings.warn("You did redispatching on this action. Redispatching is heavily transformed "
-                              "by the environment (consult the documentation about the modeling of the "
-                              "generators for example) so we will not even try to mimic this here.")
+                warnings.warn(
+                    "You did redispatching on this action. Redispatching is heavily transformed "
+                    "by the environment (consult the documentation about the modeling of the "
+                    "generators for example) so we will not even try to mimic this here."
+                )
 
-        if 'set_storage' in act.authorized_keys:
+        if "set_storage" in act.authorized_keys:
             storage_p = act.storage_p
             if np.any(storage_p != 0) and issue_warn:
-                warnings.warn("You did action on storage units in this action. This implies performing some "
-                              "redispatching which is heavily transformed "
-                              "by the environment (consult the documentation about the modeling of the "
-                              "generators for example) so we will not even try to mimic this here.")
+                warnings.warn(
+                    "You did action on storage units in this action. This implies performing some "
+                    "redispatching which is heavily transformed "
+                    "by the environment (consult the documentation about the modeling of the "
+                    "generators for example) so we will not even try to mimic this here."
+                )
         return res
 
     def __add__(self, act):
         from grid2op.Action import BaseAction
+
         if isinstance(act, BaseAction):
             return self.add_act(act, issue_warn=True)
-        raise Grid2OpException("Only grid2op action can be added to grid2op observation at the moment.")
+        raise Grid2OpException(
+            "Only grid2op action can be added to grid2op observation at the moment."
+        )
 
     @property
     def thermal_limit(self):
@@ -2610,10 +2887,10 @@ class BaseObservation(GridObjects):
         backend :
             The backend from which to update the observation
         """
-        
+
         self.line_status[:] = backend.get_line_status()
         self.topo_vect[:] = backend.get_topo_vect()
-        
+
         # get the values related to continuous values
         self.gen_p[:], self.gen_q[:], self.gen_v[:] = backend.generators_info()
         self.load_p[:], self.load_q[:], self.load_v[:] = backend.loads_info()
@@ -2624,14 +2901,18 @@ class BaseObservation(GridObjects):
 
         # margin up and down
         if type(self).redispatching_unit_commitment_availble:
-            self.gen_margin_up[:] = np.minimum(type(self).gen_pmax - self.gen_p, self.gen_max_ramp_up)
-            self.gen_margin_up[type(self).gen_renewable] = 0.
-            self.gen_margin_down[:] = np.minimum(self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down)
-            self.gen_margin_down[type(self).gen_renewable] = 0.
+            self.gen_margin_up[:] = np.minimum(
+                type(self).gen_pmax - self.gen_p, self.gen_max_ramp_up
+            )
+            self.gen_margin_up[type(self).gen_renewable] = 0.0
+            self.gen_margin_down[:] = np.minimum(
+                self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down
+            )
+            self.gen_margin_down[type(self).gen_renewable] = 0.0
         else:
-            self.gen_margin_up[:] = 0.
-            self.gen_margin_down[:] = 0.
-            
+            self.gen_margin_up[:] = 0.0
+            self.gen_margin_down[:] = 0.0
+
         # handle shunts (if avaialble)
         if self.shunts_data_available:
             sh_p, sh_q, sh_v, sh_bus = backend.shunt_info()
@@ -2639,12 +2920,17 @@ class BaseObservation(GridObjects):
             self._shunt_q[:] = sh_q
             self._shunt_v[:] = sh_v
             self._shunt_bus[:] = sh_bus
-        
+
         if backend.can_output_theta:
             self.support_theta = True  # backend supports the computation of theta
-            self.theta_or[:], self.theta_ex[:], self.load_theta[:], self.gen_theta[:], self.storage_theta[:] = \
-                backend.get_theta()
-                
+            (
+                self.theta_or[:],
+                self.theta_ex[:],
+                self.load_theta[:],
+                self.gen_theta[:],
+                self.storage_theta[:],
+            ) = backend.get_theta()
+
     def _update_obs_complete(self, env, with_forecast=True):
         """
         update all the observation attributes as if it was a complete, fully
@@ -2667,7 +2953,7 @@ class BaseObservation(GridObjects):
 
         # attribute that depends only on the backend state
         self._update_attr_backend(env.backend)
-        
+
         # storage units
         self.storage_charge[:] = env._storage_current_charge
         self.storage_power_target[:] = env._action_storage
@@ -2702,15 +2988,19 @@ class BaseObservation(GridObjects):
 
         if self.redispatching_unit_commitment_availble:
             self.gen_p_before_curtail[:] = env._gen_before_curtailment
-            self.curtailment[:] = (self.gen_p_before_curtail - self.gen_p) / self.gen_pmax
-            self.curtailment[~self.gen_renewable] = 0.
+            self.curtailment[:] = (
+                self.gen_p_before_curtail - self.gen_p
+            ) / self.gen_pmax
+            self.curtailment[~self.gen_renewable] = 0.0
             self.curtailment_limit[:] = env._limit_curtailment
-            self.curtailment_limit[self.curtailment_limit >= 1.] = 1.0
+            self.curtailment_limit[self.curtailment_limit >= 1.0] = 1.0
             gen_curtailed = self.gen_renewable & (self.curtailment_limit != 1)
-            self.curtailment_limit_effective[gen_curtailed] = self.gen_p[gen_curtailed] / self.gen_pmax[gen_curtailed]
-            self.curtailment_limit_effective[~gen_curtailed] = 1.
+            self.curtailment_limit_effective[gen_curtailed] = (
+                self.gen_p[gen_curtailed] / self.gen_pmax[gen_curtailed]
+            )
+            self.curtailment_limit_effective[~gen_curtailed] = 1.0
         else:
-            self.curtailment[:] = 0.
+            self.curtailment[:] = 0.0
             self.gen_p_before_curtail[:] = self.gen_p
             self.curtailment_limit[:] = 1.0
             self.curtailment_limit_effective[:] = 1.0
@@ -2718,34 +3008,41 @@ class BaseObservation(GridObjects):
         if self.dim_alarms and env._has_attention_budget:
             self.is_alarm_illegal[:] = env._is_alarm_illegal
             if env._attention_budget.time_last_successful_alarm_raised > 0:
-                self.time_since_last_alarm[:] = self.current_step - env._attention_budget.time_last_successful_alarm_raised
+                self.time_since_last_alarm[:] = (
+                    self.current_step
+                    - env._attention_budget.time_last_successful_alarm_raised
+                )
             else:
                 self.time_since_last_alarm[:] = -1
             self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
             self.attention_budget[:] = env._attention_budget.current_budget
-            
-        self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.)
+
+        self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.0)
 
     def get_simulator(self) -> "Simulator":
         """This function allows to retrieve a valid and properly initialized "Simulator"
-        
+
         A :class:`grid2op.simulator.Simulator` can be used to simulate the impact of
         multiple consecutive actions, without taking into account any
         kind of rules.
-    
-        It can also be use with forecast of the productions / consumption to 
+
+        It can also be use with forecast of the productions / consumption to
         predict whether or not a given state is "robust" to variation of the
         injections for example.
-        
+
         You can find more information about simulator on the dedicated page of the
         documentation.
         """
-        from grid2op.simulator import Simulator  # lazy import to prevent circular references
+        from grid2op.simulator import (
+            Simulator,
+        )  # lazy import to prevent circular references
+
         # BaseObservation is only used for typing in the simulator...
         if self._obs_env is None:
-            raise BaseObservationError("Impossible to build a simulator is the "
-                                       "observation space does not support it. "
-                                      )
+            raise BaseObservationError(
+                "Impossible to build a simulator is the "
+                "observation space does not support it. "
+            )
         res = Simulator(backend=self._obs_env.backend)
         res.set_state(self)
         return res

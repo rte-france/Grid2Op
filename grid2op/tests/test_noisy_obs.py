@@ -22,9 +22,9 @@ class TestNoisy(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage",
-                                    test=True,
-                                    observation_class=NoisyObservation)
+            self.env = grid2op.make(
+                "educ_case14_storage", test=True, observation_class=NoisyObservation
+            )
         self.env.seed(0)
         self.env.set_id(0)
         self.obs = self.env.reset()
@@ -128,9 +128,9 @@ class TestNoisy(unittest.TestCase):
         # (simulate is based on forecast, not on actual environment state)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage",
-                               test=True,
-                               observation_class=CompleteObservation)
+            env = grid2op.make(
+                "educ_case14_storage", test=True, observation_class=CompleteObservation
+            )
         env.seed(0)
         env.set_id(0)
         obs = env.reset()
@@ -140,16 +140,20 @@ class TestNoisy(unittest.TestCase):
     def test_runner(self):
         runner = Runner(**self.env.get_params_for_runner())
         # check it's the same when seed is the same
-        res = runner.run(nb_episode=1,
-                         max_iter=10,
-                         episode_id=[0],
-                         env_seeds=[0],
-                         add_detailed_output=True)
-        res2 = runner.run(nb_episode=1,
-                          max_iter=10,
-                          episode_id=[0],
-                          env_seeds=[0],
-                          add_detailed_output=True)
+        res = runner.run(
+            nb_episode=1,
+            max_iter=10,
+            episode_id=[0],
+            env_seeds=[0],
+            add_detailed_output=True,
+        )
+        res2 = runner.run(
+            nb_episode=1,
+            max_iter=10,
+            episode_id=[0],
+            env_seeds=[0],
+            add_detailed_output=True,
+        )
 
         self._obs_equals(res[0][-1].observations[0], self.obs)
         for el in range(10):
@@ -158,26 +162,31 @@ class TestNoisy(unittest.TestCase):
             self._obs_equals(obs1, obs2)
 
         # check it's different when seed is different
-        res3 = runner.run(nb_episode=1,
-                          max_iter=10,
-                          episode_id=[0],
-                          env_seeds=[1],
-                          add_detailed_output=True)
+        res3 = runner.run(
+            nb_episode=1,
+            max_iter=10,
+            episode_id=[0],
+            env_seeds=[1],
+            add_detailed_output=True,
+        )
         for el in range(10):
             obs1 = res[0][-1].observations[el]
             obs3 = res3[0][-1].observations[el]
             with self.assertRaises(AssertionError):
                 self._obs_equals(obs1, obs3)
 
+
 class TestNoisyDiffParams(TestNoisy):
     def setUp(self) -> None:
-        kwargs_observation = {"sigma_load_p": 1., "sigma_gen_p": 0.1}
+        kwargs_observation = {"sigma_load_p": 1.0, "sigma_gen_p": 0.1}
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage",
-                                    test=True,
-                                    observation_class=NoisyObservation,
-                                    kwargs_observation=kwargs_observation)
+            self.env = grid2op.make(
+                "educ_case14_storage",
+                test=True,
+                observation_class=NoisyObservation,
+                kwargs_observation=kwargs_observation,
+            )
         self.env.seed(0)
         self.env.set_id(0)
         self.obs = self.env.reset()
@@ -187,18 +196,21 @@ class TestNoisyDiffParams(TestNoisy):
         kwargs_observation = {"sigma_load_p": 0.1, "sigma_gen_p": 1.0}
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage",
-                               test=True,
-                               observation_class=NoisyObservation,
-                               kwargs_observation=kwargs_observation)
+            env = grid2op.make(
+                "educ_case14_storage",
+                test=True,
+                observation_class=NoisyObservation,
+                kwargs_observation=kwargs_observation,
+            )
         env.seed(0)
         env.set_id(0)
         obs = env.reset()
         with self.assertRaises(AssertionError):
             self._obs_equals(obs, self.obs)
 
-# TODO next: have a powerflow there to compute the outcome of the state 
+
+# TODO next: have a powerflow there to compute the outcome of the state
 # after the modification
-       
+
 if __name__ == "__main__":
     unittest.main()

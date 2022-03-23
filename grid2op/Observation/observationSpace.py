@@ -9,7 +9,9 @@
 import sys
 import copy
 
-from grid2op.Observation.serializableObservationSpace import SerializableObservationSpace
+from grid2op.Observation.serializableObservationSpace import (
+    SerializableObservationSpace,
+)
 from grid2op.Reward import RewardHelper
 from grid2op.Observation.completeObservation import CompleteObservation
 
@@ -53,14 +55,17 @@ class ObservationSpace(SerializableObservationSpace):
         An instance of the observation with appropriate dimensions. It is updated and will be sent to he BaseAgent.
 
     """
-    def __init__(self,
-                 gridobj,
-                 env,
-                 rewardClass=None,
-                 observationClass=CompleteObservation,
-                 actionClass=None,
-                 with_forecast=True,
-                 kwargs_observation=None,):
+
+    def __init__(
+        self,
+        gridobj,
+        env,
+        rewardClass=None,
+        observationClass=CompleteObservation,
+        actionClass=None,
+        with_forecast=True,
+        kwargs_observation=None,
+    ):
         """
         INTERNAL
 
@@ -69,17 +74,22 @@ class ObservationSpace(SerializableObservationSpace):
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
         """
 
-        from grid2op.Environment._ObsEnv import _ObsEnv  # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
-        
+        from grid2op.Environment._ObsEnv import (
+            _ObsEnv,
+        )  # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
+
         if actionClass is None:
             from grid2op.Action import CompleteAction
+
             actionClass = CompleteAction
 
-        SerializableObservationSpace.__init__(self, gridobj, observationClass=observationClass)
+        SerializableObservationSpace.__init__(
+            self, gridobj, observationClass=observationClass
+        )
         self.with_forecast = with_forecast
         self._simulate_parameters = copy.deepcopy(env.parameters)
         self._legal_action = env._game_rules.legal_action
-        self._env_param  = copy.deepcopy(env.parameters)
+        self._env_param = copy.deepcopy(env.parameters)
 
         if rewardClass is None:
             self._reward_func = env._reward_helper.template_reward
@@ -95,35 +105,38 @@ class ObservationSpace(SerializableObservationSpace):
 
         # TODO here: have another backend class maybe
         self._backend_obs = env.backend.copy()
-        _ObsEnv_class = _ObsEnv.init_grid(type(env.backend), force_module=_ObsEnv.__module__)
+        _ObsEnv_class = _ObsEnv.init_grid(
+            type(env.backend), force_module=_ObsEnv.__module__
+        )
         _ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
         setattr(sys.modules[_ObsEnv.__module__], _ObsEnv_class.__name__, _ObsEnv_class)
-        self.obs_env = _ObsEnv_class(init_env_path=None,  # don't leak the path of the real grid to the observation space
-                                     init_grid_path=None,  # don't leak the path of the real grid to the observation space
-                                     backend_instanciated=self._backend_obs,
-                                     obsClass=CompleteObservation,  # do not put self.observationClass otherwise it's initialized twice
-                                     parameters=self._simulate_parameters,
-                                     reward_helper=self.reward_helper,
-                                     action_helper=self.action_helper_env,
-                                     thermal_limit_a=env.get_thermal_limit(),
-                                     legalActClass=copy.deepcopy(env._legalActClass),
-                                     other_rewards=other_rewards,
-                                     helper_action_class=env._helper_action_class,
-                                     helper_action_env=env._helper_action_env,
-                                     epsilon_poly=env._epsilon_poly,
-                                     tol_poly=env._tol_poly,
-                                     has_attention_budget=env._has_attention_budget,
-                                     attention_budget_cls=env._attention_budget_cls,
-                                     kwargs_attention_budget=env._kwargs_attention_budget,
-                                     max_episode_duration=env.max_episode_duration(),
-                                     _complete_action_cls=env._complete_action_cls,
-                                     _ptr_orig_obs_space=self,
-                                     )
+        self.obs_env = _ObsEnv_class(
+            init_env_path=None,  # don't leak the path of the real grid to the observation space
+            init_grid_path=None,  # don't leak the path of the real grid to the observation space
+            backend_instanciated=self._backend_obs,
+            obsClass=CompleteObservation,  # do not put self.observationClass otherwise it's initialized twice
+            parameters=self._simulate_parameters,
+            reward_helper=self.reward_helper,
+            action_helper=self.action_helper_env,
+            thermal_limit_a=env.get_thermal_limit(),
+            legalActClass=copy.deepcopy(env._legalActClass),
+            other_rewards=other_rewards,
+            helper_action_class=env._helper_action_class,
+            helper_action_env=env._helper_action_env,
+            epsilon_poly=env._epsilon_poly,
+            tol_poly=env._tol_poly,
+            has_attention_budget=env._has_attention_budget,
+            attention_budget_cls=env._attention_budget_cls,
+            kwargs_attention_budget=env._kwargs_attention_budget,
+            max_episode_duration=env.max_episode_duration(),
+            _complete_action_cls=env._complete_action_cls,
+            _ptr_orig_obs_space=self,
+        )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
 
         self._empty_obs = self._template_obj
-        self._update_env_time = 0.
+        self._update_env_time = 0.0
         self.__nb_simulate_called_this_step = 0
         self.__nb_simulate_called_this_episode = 0
 
@@ -155,7 +168,11 @@ class ObservationSpace(SerializableObservationSpace):
         """
         This checks on the rules if the agent has not made too many calls to "obs.simulate" this step
         """
-        return self._legal_action.can_use_simulate(self.__nb_simulate_called_this_step, self.__nb_simulate_called_this_episode, self._env_param)
+        return self._legal_action.can_use_simulate(
+            self.__nb_simulate_called_this_step,
+            self.__nb_simulate_called_this_episode,
+            self._env_param,
+        )
 
     def _change_parameters(self, new_param):
         """
@@ -199,13 +216,18 @@ class ObservationSpace(SerializableObservationSpace):
         """
         from grid2op.Reward import BaseReward
         from grid2op.Exceptions import Grid2OpException
+
         self.obs_env.other_rewards = {}
         for k, v in dict_reward.items():
             if not issubclass(v, BaseReward):
-                raise Grid2OpException("All values of \"rewards\" key word argument should be classes that inherit "
-                                       "from \"grid2op.BaseReward\"")
+                raise Grid2OpException(
+                    'All values of "rewards" key word argument should be classes that inherit '
+                    'from "grid2op.BaseReward"'
+                )
             if not isinstance(k, str):
-                raise Grid2OpException("All keys of \"rewards\" should be of string type.")
+                raise Grid2OpException(
+                    'All keys of "rewards" should be of string type.'
+                )
             self.obs_env.other_rewards[k] = RewardHelper(v)
 
         for k, v in self.obs_env.other_rewards.items():
@@ -223,10 +245,12 @@ class ObservationSpace(SerializableObservationSpace):
         if self.with_forecast:
             self.obs_env.update_grid(env)
 
-        res = self.observationClass(obs_env=self.obs_env,
-                                    action_helper=self.action_helper_env,
-                                    random_prng=self.space_prng,
-                                    **self._ptr_kwargs_observation)
+        res = self.observationClass(
+            obs_env=self.obs_env,
+            action_helper=self.action_helper_env,
+            random_prng=self.space_prng,
+            **self._ptr_kwargs_observation
+        )
         self.__nb_simulate_called_this_step = 0
         if _update_state:
             # TODO how to make sure that whatever the number of time i call "simulate" i still get the same observations
@@ -258,10 +282,10 @@ class ObservationSpace(SerializableObservationSpace):
         self.__nb_simulate_called_this_episode = 0
         for k, v in self.obs_env.other_rewards.items():
             v.reset(real_env)
-        self._env_param  = copy.deepcopy(real_env.parameters)
+        self._env_param = copy.deepcopy(real_env.parameters)
 
     def _custom_deepcopy_for_copy(self, new_obj):
-        """implements a faster "res = copy.deepcopy(self)" to use 
+        """implements a faster "res = copy.deepcopy(self)" to use
         in "self.copy"
         Do not use it anywhere else...
         """
@@ -279,12 +303,14 @@ class ObservationSpace(SerializableObservationSpace):
         new_obj.obs_env = self.obs_env  # it is None anyway !
         new_obj._update_env_time = self._update_env_time
         new_obj.__nb_simulate_called_this_step = self.__nb_simulate_called_this_step
-        new_obj.__nb_simulate_called_this_episode = self.__nb_simulate_called_this_episode
-        new_obj._env_param  = copy.deepcopy(self._env_param)
+        new_obj.__nb_simulate_called_this_episode = (
+            self.__nb_simulate_called_this_episode
+        )
+        new_obj._env_param = copy.deepcopy(self._env_param)
 
         # as it's a "pointer" it's init from the env when needed here
         # this is why i don't deep copy it here !
-        new_obj._ptr_kwargs_observation = self._ptr_kwargs_observation  
+        new_obj._ptr_kwargs_observation = self._ptr_kwargs_observation
 
     def copy(self, copy_backend=False):
         """
@@ -330,6 +356,6 @@ class ObservationSpace(SerializableObservationSpace):
     def close(self):
         if self.obs_env is not None:
             self.obs_env.close()
-            
+
         del self.obs_env
         self.obs_env = None

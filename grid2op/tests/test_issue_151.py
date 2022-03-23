@@ -33,7 +33,9 @@ class Issue151Tester(unittest.TestCase):
             env = grid2op.make("rte_case14_realistic", test=True)
         do_nothing = env.action_space({})
         obs, reward, done, info = env.step(do_nothing)
-        obs.line_status = obs.line_status / 1  # do some weird things to the vector "line_status"
+        obs.line_status = (
+            obs.line_status / 1
+        )  # do some weird things to the vector "line_status"
 
         # the next line of cod
         _, _, _, _ = env.step(do_nothing)

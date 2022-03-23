@@ -28,13 +28,17 @@ PATH_DATA_TEST = data_dir
 PATH_CHRONICS = data_dir
 PATH_CHRONICS_Make2 = os.path.abspath(os.path.join(grid2op_dir, "data"))
 PATH_DATA_TEST_PP = os.path.abspath(os.path.join(PATH_DATA_TEST, "test_PandaPower"))
-EXAMPLE_CHRONICSPATH = os.path.abspath(os.path.join(data_dir, "5bus_example", "chronics"))
-EXAMPLE_CASEFILE = os.path.abspath(os.path.join(data_dir, "5bus_example", "5bus_example.json"))
+EXAMPLE_CHRONICSPATH = os.path.abspath(
+    os.path.join(data_dir, "5bus_example", "chronics")
+)
+EXAMPLE_CASEFILE = os.path.abspath(
+    os.path.join(data_dir, "5bus_example", "5bus_example.json")
+)
 PATH_DATA_MULTIMIX = os.path.abspath(os.path.join(data_dir, "multimix"))
 
 
 class HelperTests(unittest.TestCase):
-    def __init__(self, methodName='runTest'):
+    def __init__(self, methodName="runTest"):
         unittest.TestCase.__init__(self, methodName=methodName)
         self.tolvect = dt_float(1e-2)
         self.tol_one = dt_float(1e-5)

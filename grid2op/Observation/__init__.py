@@ -11,7 +11,7 @@ __all__ = [
     "CompleteObservation",
     "NoisyObservation",
     "BaseObservation",
-    "ObservationSpace"
+    "ObservationSpace",
 ]
 
 from grid2op.Observation.completeObservation import CompleteObservation

@@ -30,15 +30,20 @@ class Issue148Tester(unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_SUB = 3
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),  test=True,
-                               param=param)
+            env = grid2op.make(
+                os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+                test=True,
+                param=param,
+            )
 
         ID_MAINT = 11  # in maintenance at the second time step
         obs = env.reset()
         # check i can "simulate" properly if a maintenance happens next
         sim_o, sim_r, sim_d, sim_i = obs.simulate(env.action_space())
         assert not sim_d
-        assert sim_o.time_next_maintenance[ID_MAINT] == 0  # the stuff have been properly updated
+        assert (
+            sim_o.time_next_maintenance[ID_MAINT] == 0
+        )  # the stuff have been properly updated
         assert not sim_o.line_status[ID_MAINT]
         oo_, rr_, dd_, ii_ = env.step(env.action_space())
         assert not dd_
@@ -48,7 +53,9 @@ class Issue148Tester(unittest.TestCase):
         # check once the maintenance is performed, it stays this way
         sim_o, sim_r, sim_d, sim_i = oo_.simulate(env.action_space())
         assert not sim_d
-        assert sim_o.time_next_maintenance[ID_MAINT] == 0  # the stuff have been properly updated
+        assert (
+            sim_o.time_next_maintenance[ID_MAINT] == 0
+        )  # the stuff have been properly updated
         assert not sim_o.line_status[ID_MAINT]
         oo_, rr_, dd_, ii_ = env.step(env.action_space())
         assert not dd_
@@ -56,7 +63,9 @@ class Issue148Tester(unittest.TestCase):
         assert not oo_.line_status[ID_MAINT]
 
         # now test the cooldown
-        action = env.action_space({"set_bus": {"substations_id": [(1, [1, 1, 1, 1, 1, 1])]}})
+        action = env.action_space(
+            {"set_bus": {"substations_id": [(1, [1, 1, 1, 1, 1, 1])]}}
+        )
         oo_, rr_, dd_, ii_ = env.step(action)
         assert oo_.time_before_cooldown_sub[1] == 3
         oo_, rr_, dd_, ii_ = env.step(env.action_space())

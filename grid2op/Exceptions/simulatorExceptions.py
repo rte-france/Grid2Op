@@ -8,10 +8,12 @@
 
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
 
+
 class SimulatorError(Grid2OpException):
     """
     This exception indicate that the simulator you are trying to use is not initialized.
-    
+
     You might want to call `simulator.set_state(...)` before using it.
     """
+
     pass

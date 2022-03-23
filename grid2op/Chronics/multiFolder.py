@@ -51,31 +51,47 @@ class Multifolder(GridValue):
         :attr:`MultiFolder.gridvalueClass`.
 
     """
-    def __init__(self, path,
-                 time_interval=timedelta(minutes=5),
-                 start_datetime=datetime(year=2019, month=1, day=1),
-                 gridvalueClass=GridStateFromFile,
-                 sep=";",
-                 max_iter=-1,
-                 chunk_size=None,
-                 filter_func=None):
-        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, chunk_size=chunk_size,
-                           start_datetime=start_datetime)
+
+    def __init__(
+        self,
+        path,
+        time_interval=timedelta(minutes=5),
+        start_datetime=datetime(year=2019, month=1, day=1),
+        gridvalueClass=GridStateFromFile,
+        sep=";",
+        max_iter=-1,
+        chunk_size=None,
+        filter_func=None,
+    ):
+        GridValue.__init__(
+            self,
+            time_interval=time_interval,
+            max_iter=max_iter,
+            chunk_size=chunk_size,
+            start_datetime=start_datetime,
+        )
         self.gridvalueClass = gridvalueClass
         self.data = None
         self.path = os.path.abspath(path)
         self.sep = sep
         try:
-            self.subpaths = [os.path.join(self.path, el) for el in os.listdir(self.path)
-                             if os.path.isdir(os.path.join(self.path, el))]
+            self.subpaths = [
+                os.path.join(self.path, el)
+                for el in os.listdir(self.path)
+                if os.path.isdir(os.path.join(self.path, el))
+            ]
             self.subpaths.sort()
             self.subpaths = np.array(self.subpaths)
         except FileNotFoundError:
-            raise ChronicsError("Path \"{}\" doesn't exists.".format(self.path)) from None
+            raise ChronicsError(
+                'Path "{}" doesn\'t exists.'.format(self.path)
+            ) from None
 
         if len(self.subpaths) == 0:
-            raise ChronicsNotFoundError("Not chronics are found in \"{}\". Make sure there are at least "
-                                        "1 chronics folder there.".format(self.path))
+            raise ChronicsNotFoundError(
+                'Not chronics are found in "{}". Make sure there are at least '
+                "1 chronics folder there.".format(self.path)
+            )
         # TODO clarify that
         # np.random.shuffle(self.subpaths)
         self.chunk_size = chunk_size
@@ -92,8 +108,10 @@ class Multifolder(GridValue):
             self._filter = self._default_filter
         else:
             if not callable(filter_func):
-                raise ChronicsError("The filtering function you provided ("
-                                    "kwargs: filter_func) is not callable.")
+                raise ChronicsError(
+                    "The filtering function you provided ("
+                    "kwargs: filter_func) is not callable."
+                )
             self._filter = filter_func
         self._prev_cache_id = 0
         self._order = None
@@ -101,17 +119,17 @@ class Multifolder(GridValue):
     def get_kwargs(self, dict_):
         if self._filter != self._default_filter:
             dict_["filter_func"] = self._filter
-        
+
     def available_chronics(self):
         """return the list of available chronics.
-        
+
         Examples
         --------
 
         # TODO
         """
         return self.subpaths[self._order]
-        
+
     def _default_filter(self, x):
         """
         default filter used at the initialization. It keeps only the first data encountered.
@@ -220,7 +238,7 @@ class Multifolder(GridValue):
         # make sure it sums to 1
         probabilities /= np.sum(probabilities)
         # take one at "random" among these
-        selected = self.space_prng.choice(self._order,  p=probabilities)
+        selected = self.space_prng.choice(self._order, p=probabilities)
         id_sel = np.where(self._order == selected)[0]
         self._prev_cache_id = selected - 1
         return id_sel
@@ -254,13 +272,21 @@ class Multifolder(GridValue):
             self._order.append(i)
 
         if len(self._order) == 0:
-            raise RuntimeError("Impossible to initialize the Multifolder. Your \"filter_fun\" filters out all the "
-                               "possible scenarios.")
+            raise RuntimeError(
+                'Impossible to initialize the Multifolder. Your "filter_fun" filters out all the '
+                "possible scenarios."
+            )
         self._order = np.array(self._order)
         return self.subpaths[self._order]
 
-    def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
-                   names_chronics_to_backend=None):
+    def initialize(
+        self,
+        order_backend_loads,
+        order_backend_prods,
+        order_backend_lines,
+        order_backend_subs,
+        names_chronics_to_backend=None,
+    ):
 
         self._order_backend_loads = order_backend_loads
         self._order_backend_prods = order_backend_prods
@@ -278,18 +304,25 @@ class Multifolder(GridValue):
 
         id_scenario = self._order[self._prev_cache_id]
         this_path = self.subpaths[id_scenario]
-        self.data = self.gridvalueClass(time_interval=self.time_interval,
-                                        sep=self.sep,
-                                        path=this_path,
-                                        max_iter=self.max_iter,
-                                        chunk_size=self.chunk_size)
+        self.data = self.gridvalueClass(
+            time_interval=self.time_interval,
+            sep=self.sep,
+            path=this_path,
+            max_iter=self.max_iter,
+            chunk_size=self.chunk_size,
+        )
         if self.seed is not None:
             max_int = np.iinfo(dt_int).max
             seed_chronics = self.space_prng.randint(max_int)
             self.data.seed(seed_chronics)
 
-        self.data.initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
-                             names_chronics_to_backend=names_chronics_to_backend)
+        self.data.initialize(
+            order_backend_loads,
+            order_backend_prods,
+            order_backend_lines,
+            order_backend_subs,
+            names_chronics_to_backend=names_chronics_to_backend,
+        )
 
     def done(self):
         """
@@ -358,19 +391,24 @@ class Multifolder(GridValue):
             the previous value, as calling this function as an impact only after `env.reset()` is called)
         """
         import pdb
+
         if isinstance(id_num, str):
             # new accepted behaviour starting 1.6.4
             # new in version 1.6.5: you only need to specify the chronics folder id and not the full path
             found = False
             for internal_id_, number in enumerate(self._order):
-                if self.subpaths[number] == id_num or \
-                   os.path.join(self.path,id_num) == self.subpaths[number]:
+                if (
+                    self.subpaths[number] == id_num
+                    or os.path.join(self.path, id_num) == self.subpaths[number]
+                ):
                     self._prev_cache_id = internal_id_
                     found = True
 
             if not found:
-                raise ChronicsError(f"Impossible to find the chronics with id \"{id_num}\". The call to "
-                                    f"`env.chronics_handler.tell_id(...)` cannot be performed.")
+                raise ChronicsError(
+                    f'Impossible to find the chronics with id "{id_num}". The call to '
+                    f"`env.chronics_handler.tell_id(...)` cannot be performed."
+                )
         else:
             # default behaviour prior to 1.6.4
             self._prev_cache_id = id_num
@@ -379,7 +417,6 @@ class Multifolder(GridValue):
         if previous:
             self._prev_cache_id -= 1
             self._prev_cache_id %= len(self._order)
-
 
     def get_id(self) -> str:
         """
@@ -497,6 +534,7 @@ class Multifolder(GridValue):
 
         """
         if shuffler is None:
+
             def shuffler(x):
                 return x[self.space_prng.choice(len(x), size=len(x), replace=False)]
 
@@ -582,24 +620,30 @@ class Multifolder(GridValue):
             id_this_chron = os.path.split(subpath)[-1]
             if not id_this_chron in datetime_beg:
                 continue
-            tmp = self.gridvalueClass(time_interval=self.time_interval,
-                                      sep=self.sep,
-                                      path=subpath,
-                                      max_iter=self.max_iter,
-                                      chunk_size=self.chunk_size)
+            tmp = self.gridvalueClass(
+                time_interval=self.time_interval,
+                sep=self.sep,
+                path=subpath,
+                max_iter=self.max_iter,
+                chunk_size=self.chunk_size,
+            )
             seed_chronics = None
             if self.seed is not None:
                 max_int = np.iinfo(dt_int).max
                 seed_chronics = self.space_prng.randint(max_int)
                 tmp.seed(seed_chronics)
             seed_chronics_all[subpath] = seed_chronics
-            tmp.initialize(self._order_backend_loads,
-                           self._order_backend_prods,
-                           self._order_backend_lines,
-                           self._order_backend_subs,
-                           self._names_chronics_to_backend)
+            tmp.initialize(
+                self._order_backend_loads,
+                self._order_backend_prods,
+                self._order_backend_lines,
+                self._order_backend_subs,
+                self._names_chronics_to_backend,
+            )
             path_out_chron = os.path.join(path_out, id_this_chron)
-            tmp.split_and_save(datetime_beg[id_this_chron], datetime_end[id_this_chron], path_out_chron)
+            tmp.split_and_save(
+                datetime_beg[id_this_chron], datetime_end[id_this_chron], path_out_chron
+            )
 
             meta_params = {}
             meta_params["datetime_beg"] = datetime_beg
@@ -607,11 +651,14 @@ class Multifolder(GridValue):
             meta_params["path_out"] = path_out
             meta_params["all_seeds"] = seed_chronics_all
             try:
-                with open(os.path.join(path_out, "split_and_save_meta_params.json"), "w", encoding="utf-8") as f:
-                    json.dump(obj=meta_params, fp=f,
-                              sort_keys=True,
-                              indent=4
-                              )
+                with open(
+                    os.path.join(path_out, "split_and_save_meta_params.json"),
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    json.dump(obj=meta_params, fp=f, sort_keys=True, indent=4)
             except Exception as exc_:
-                warnings.warn("Impossible to save the \"metadata\" for the chronics with error:\n\"{}\""
-                              "".format(exc_))
+                warnings.warn(
+                    'Impossible to save the "metadata" for the chronics with error:\n"{}"'
+                    "".format(exc_)
+                )

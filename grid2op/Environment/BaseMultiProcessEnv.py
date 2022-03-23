@@ -31,20 +31,24 @@ class RemoteEnv(Process):
     :class:`grid2op.Observation.BaseObservation` are forwarded to the agent.
 
     """
-    def __init__(self,
-                 env_params,
-                 p_id,
-                 remote,
-                 parent_remote,
-                 seed,
-                 logger=None,
-                 name=None,
-                 return_info=True,
-                 _obs_to_vect=True):
+
+    def __init__(
+        self,
+        env_params,
+        p_id,
+        remote,
+        parent_remote,
+        seed,
+        logger=None,
+        name=None,
+        return_info=True,
+        _obs_to_vect=True,
+    ):
         Process.__init__(self, group=None, target=None, name=name)
 
         if logger is None:
             import logging
+
             self.logger = logging.getLogger(__name__)
             self.logger.disabled = True
         else:
@@ -64,7 +68,7 @@ class RemoteEnv(Process):
         # internal do not modify  # Do not work (in the sens that is it less efficient)
         self.return_info = return_info
         self._obs_to_vect = _obs_to_vect
-        self._comp_time = 0.
+        self._comp_time = 0.0
 
     def init_env(self):
         """
@@ -90,12 +94,17 @@ class RemoteEnv(Process):
             if "logger" in self.env_params:
                 # disable the logger of the environment, to force the use of this one
                 del self.env_params["logger"]
-            self.env = Environment(**self.env_params, backend=self.backend, logger=self.logger)
+            self.env = Environment(
+                **self.env_params, backend=self.backend, logger=self.logger
+            )
 
         env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
         self.all_seeds = self.env.seed(env_seed)
-        self.env.chronics_handler.shuffle(shuffler=lambda x: x[self.space_prng.choice(len(x), size=len(x),
-                                                                                      replace=False)])
+        self.env.chronics_handler.shuffle(
+            shuffler=lambda x: x[
+                self.space_prng.choice(len(x), size=len(x), replace=False)
+            ]
+        )
 
     def _clean_observation(self, obs):
         obs._forecasted_grid = []
@@ -115,7 +124,9 @@ class RemoteEnv(Process):
             try:
                 self.env.reset()
                 if self.fast_forward > 0:
-                    self.env.fast_forward_chronics(self.space_prng.randint(0, self.fast_forward))
+                    self.env.fast_forward_chronics(
+                        self.space_prng.randint(0, self.fast_forward)
+                    )
                 obs = self.env.get_obs()
                 obs_v = obs.to_vect()
                 if np.all(np.isfinite(obs_v)):
@@ -136,9 +147,9 @@ class RemoteEnv(Process):
 
         while True:
             cmd, data = self.remote.recv()
-            if cmd == 'get_spaces':
+            if cmd == "get_spaces":
                 self.remote.send((self.env.observation_space, self.env.action_space))
-            elif cmd == 's':
+            elif cmd == "s":
                 # perform a step
                 beg_ = time.perf_counter()
                 if data is None:
@@ -160,19 +171,19 @@ class RemoteEnv(Process):
                 end_ = time.perf_counter()
                 self._comp_time += end_ - beg_
                 self.remote.send((res_obs, reward, done, info))
-            elif cmd == 'r':
+            elif cmd == "r":
                 # perfom a reset
                 obs_v = self.get_obs_ifnotconv()
                 self.remote.send(obs_v)
-            elif cmd == 'c':
+            elif cmd == "c":
                 # close everything
                 self.env.close()
                 self.remote.close()
                 break
-            elif cmd == 'z':
+            elif cmd == "z":
                 # adapt the chunk size
                 self.env.set_chunk_size(data)
-            elif cmd == 'o':
+            elif cmd == "o":
                 # get_obs
                 tmp = self.env.get_obs()
                 if self._obs_to_vect:
@@ -261,30 +272,40 @@ class BaseMultiProcessEnvironment(GridObjects):
         Whether to return the information dictionary or not (might speed up computation)
 
     """
+
     def __init__(self, envs, obs_as_class=True, return_info=True, logger=None):
         GridObjects.__init__(self)
         self.__closed = False
         for env in envs:
             if not isinstance(env, Environment):
-                raise MultiEnvException("You provided environment of type \"{}\" which is not supported."
-                                        "Please only provide a grid2op.Environment.Environment class."
-                                        "".format(type(env)))
+                raise MultiEnvException(
+                    'You provided environment of type "{}" which is not supported.'
+                    "Please only provide a grid2op.Environment.Environment class."
+                    "".format(type(env))
+                )
 
         self.nb_env = len(envs)
         max_int = np.iinfo(dt_int).max
         _remotes, _work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
         env_params = [sub_env.get_kwargs(with_backend=False) for sub_env in envs]
-        self._ps = [RemoteEnv(env_params=env_,
-                              p_id=i,
-                              remote=work_remote,
-                              parent_remote=remote,
-                              name="{}_{}".format(envs[i].name, i),
-                              return_info=return_info,
-                              seed=envs[i].space_prng.randint(max_int),
-                              logger=logger.getChild("BaseMultiProcessEnvironment") if logger is not None else None
-                              )
-                    for i, (work_remote, remote, env_) in enumerate(zip(_work_remotes, _remotes, env_params))]
+        self._ps = [
+            RemoteEnv(
+                env_params=env_,
+                p_id=i,
+                remote=work_remote,
+                parent_remote=remote,
+                name="{}_{}".format(envs[i].name, i),
+                return_info=return_info,
+                seed=envs[i].space_prng.randint(max_int),
+                logger=logger.getChild("BaseMultiProcessEnvironment")
+                if logger is not None
+                else None,
+            )
+            for i, (work_remote, remote, env_) in enumerate(
+                zip(_work_remotes, _remotes, env_params)
+            )
+        ]
 
         # on windows, this has to be created after
         self.envs = envs
@@ -292,7 +313,9 @@ class BaseMultiProcessEnvironment(GridObjects):
         self._work_remotes = _work_remotes
 
         for p in self._ps:
-            p.daemon = True  # if the main process crashes, we should not cause things to hang
+            p.daemon = (
+                True  # if the main process crashes, we should not cause things to hang
+            )
             p.start()
         for remote in self._work_remotes:
             remote.close()
@@ -304,7 +327,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         for remote, action in zip(self._remotes, actions):
             vect = action.to_vect()
             # vect = None  # TODO
-            remote.send(('s', vect))
+            remote.send(("s", vect))
         self._waiting = True
 
     def _wait_for_obs(self):
@@ -312,11 +335,15 @@ class BaseMultiProcessEnvironment(GridObjects):
         self._waiting = False
         obs, rews, dones, infos = zip(*results)
         if self.obs_as_class:
-            obs = [self.envs[e].observation_space.from_vect(ob) for e, ob in enumerate(obs)]
+            obs = [
+                self.envs[e].observation_space.from_vect(ob) for e, ob in enumerate(obs)
+            ]
         return np.stack(obs), np.stack(rews), np.stack(dones), infos
 
     def copy(self):
-        raise NotImplementedError("It is not possible to copy multiprocessing environments at the moment.")
+        raise NotImplementedError(
+            "It is not possible to copy multiprocessing environments at the moment."
+        )
 
     def step(self, actions):
         """
@@ -421,13 +448,17 @@ class BaseMultiProcessEnvironment(GridObjects):
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
         if len(actions) != self.nb_env:
-            raise MultiEnvException("Incorrect number of actions provided. You provided {} actions, but the "
-                                    "MultiEnvironment counts {} different environment."
-                                    "".format(len(actions), self.nb_env))
+            raise MultiEnvException(
+                "Incorrect number of actions provided. You provided {} actions, but the "
+                "MultiEnvironment counts {} different environment."
+                "".format(len(actions), self.nb_env)
+            )
         for act in actions:
             if not isinstance(act, BaseAction):
-                raise MultiEnvException("All actions send to MultiEnvironment.step should be of type \"grid2op.BaseAction\""
-                                        "and not {}".format(type(act)))
+                raise MultiEnvException(
+                    'All actions send to MultiEnvironment.step should be of type "grid2op.BaseAction"'
+                    "and not {}".format(type(act))
+                )
 
         self._send_act(actions)
         obs, rews, dones, infos = self._wait_for_obs()
@@ -451,10 +482,12 @@ class BaseMultiProcessEnvironment(GridObjects):
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
-            remote.send(('r', None))
+            remote.send(("r", None))
         res = [remote.recv() for e, remote in enumerate(self._remotes)]
         if self.obs_as_class:
-            res = [self.envs[e].observation_space.from_vect(el) for e, el in enumerate(res)]
+            res = [
+                self.envs[e].observation_space.from_vect(el) for e, el in enumerate(res)
+            ]
         return np.stack(res)
 
     def close(self):
@@ -465,7 +498,7 @@ class BaseMultiProcessEnvironment(GridObjects):
             return
 
         for remote in self._remotes:
-            remote.send(('c', None))
+            remote.send(("c", None))
         self.__closed = True
 
     def set_chunk_size(self, new_chunk_size):
@@ -486,17 +519,21 @@ class BaseMultiProcessEnvironment(GridObjects):
         try:
             new_chunk_size = int(new_chunk_size)
         except Exception as e:
-            raise Grid2OpException("Impossible to set the chunk size. It should be convertible a integer, and not"
-                                   "{}".format(new_chunk_size))
+            raise Grid2OpException(
+                "Impossible to set the chunk size. It should be convertible a integer, and not"
+                "{}".format(new_chunk_size)
+            )
 
         if new_chunk_size <= 0:
-            raise Grid2OpException("Impossible to read less than 1 data at a time. Please make sure \"new_chunk_size\""
-                                   "is a positive integer.")
+            raise Grid2OpException(
+                'Impossible to read less than 1 data at a time. Please make sure "new_chunk_size"'
+                "is a positive integer."
+            )
 
         for remote in self._remotes:
-            remote.send(('z', new_chunk_size))
+            remote.send(("z", new_chunk_size))
 
-    def set_ff(self, ff_max=7*24*60/5):
+    def set_ff(self, ff_max=7 * 24 * 60 / 5):
         """
         This method is primarily used for training.
 
@@ -508,10 +545,12 @@ class BaseMultiProcessEnvironment(GridObjects):
         try:
             ff_max = int(ff_max)
         except Exception as exc_:
-            raise RuntimeError("ff_max parameters should be convertible to an integer.") from exc_
+            raise RuntimeError(
+                "ff_max parameters should be convertible to an integer."
+            ) from exc_
 
         for remote in self._remotes:
-            remote.send(('f', ff_max))
+            remote.send(("f", ff_max))
 
     def get_seeds(self):
         """
@@ -520,7 +559,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
-            remote.send(('seed', None))
+            remote.send(("seed", None))
         res = [remote.recv() for remote in self._remotes]
         return res
 
@@ -531,7 +570,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
-            remote.send(('params', None))
+            remote.send(("params", None))
         res = [remote.recv() for remote in self._remotes]
         return res
 
@@ -540,13 +579,16 @@ class BaseMultiProcessEnvironment(GridObjects):
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
-            remote.send(('o', None))
-        res = [self.envs[e].observation_space.from_vect(remote.recv()) for e, remote in enumerate(self._remotes)]
+            remote.send(("o", None))
+        res = [
+            self.envs[e].observation_space.from_vect(remote.recv())
+            for e, remote in enumerate(self._remotes)
+        ]
         return res
 
     def _send_sim(self, actions):
         for remote, action in zip(self._remotes, actions):
-            remote.send(('sim', action.to_vect()))
+            remote.send(("sim", action.to_vect()))
         self._waiting = True
 
     def simulate(self, actions):
@@ -594,13 +636,17 @@ class BaseMultiProcessEnvironment(GridObjects):
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
         if len(actions) != self.nb_env:
-            raise MultiEnvException("Incorrect number of actions provided. You provided {} actions, but the "
-                                    "MultiEnvironment counts {} different environment."
-                                    "".format(len(actions), self.nb_env))
+            raise MultiEnvException(
+                "Incorrect number of actions provided. You provided {} actions, but the "
+                "MultiEnvironment counts {} different environment."
+                "".format(len(actions), self.nb_env)
+            )
         for act in actions:
             if not isinstance(act, BaseAction):
-                raise MultiEnvException("All actions send to MultiEnvironment.step should be of type "
-                                        "\"grid2op.BaseAction\" and not {}".format(type(act)))
+                raise MultiEnvException(
+                    "All actions send to MultiEnvironment.step should be of type "
+                    '"grid2op.BaseAction" and not {}'.format(type(act))
+                )
 
         self._send_sim(actions)
         sim_obs, sim_rews, sim_dones, sim_infos = self._wait_for_obs()
@@ -634,8 +680,10 @@ class BaseMultiProcessEnvironment(GridObjects):
             if not hasattr(sub_env, name):
                 res = False
         if not res:
-            raise RuntimeError("At least one of the sub_env has not the attribute \"{}\". This will not be "
-                               "executed.".format(name))
+            raise RuntimeError(
+                'At least one of the sub_env has not the attribute "{}". This will not be '
+                "executed.".format(name)
+            )
         for remote in self._remotes:
             remote.send((name, None))
         res = [remote.recv() for remote in self._remotes]
@@ -648,7 +696,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
-            remote.send(('comp_time', None))
+            remote.send(("comp_time", None))
         res = [remote.recv() for remote in self._remotes]
         return res
 
@@ -659,7 +707,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
-            remote.send(('powerflow_time', None))
+            remote.send(("powerflow_time", None))
         res = [remote.recv() for remote in self._remotes]
         return res
 
@@ -670,7 +718,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
         for remote in self._remotes:
-            remote.send(('step_time', None))
+            remote.send(("step_time", None))
         res = [remote.recv() for remote in self._remotes]
         return res
 
@@ -689,14 +737,18 @@ class BaseMultiProcessEnvironment(GridObjects):
         if callable(filter_funs):
             filter_funs = [filter_funs for _ in range(self.nb_env)]
         if len(filter_funs) != self.nb_env:
-            raise RuntimeError("filter_funs should be either a single function that will be applied "
-                               "identically to each sub_env or a list of callable functions.")
+            raise RuntimeError(
+                "filter_funs should be either a single function that will be applied "
+                "identically to each sub_env or a list of callable functions."
+            )
         for el in filter_funs:
             if not callable(el):
-                raise RuntimeError("filter_funs should be composed of callable elements, such as functions "
-                                   "that can be use with `env.chronics_handler.set_filter`")
+                raise RuntimeError(
+                    "filter_funs should be composed of callable elements, such as functions "
+                    "that can be use with `env.chronics_handler.set_filter`"
+                )
         for sub_env_id, remote in enumerate(self._remotes):
-            remote.send(('set_filter', filter_funs[sub_env_id]))
+            remote.send(("set_filter", filter_funs[sub_env_id]))
         res = [remote.recv() for remote in self._remotes]
         return res
 
@@ -715,13 +767,15 @@ class BaseMultiProcessEnvironment(GridObjects):
         if isinstance(id_, int):
             id_ = [id_ for _ in range(self.nb_env)]
         if len(id_) != self.nb_env:
-            raise RuntimeError("id_ should be either a single integer or an integer that represents "
-                               "the chronics to use.")
+            raise RuntimeError(
+                "id_ should be either a single integer or an integer that represents "
+                "the chronics to use."
+            )
         for el in id_:
             if not isinstance(el, int):
                 raise RuntimeError("id_ should be composed of integers.")
         for sub_env_id, remote in enumerate(self._remotes):
-            remote.send(('set_id', id_[sub_env_id]))
+            remote.send(("set_id", id_[sub_env_id]))
         res = [remote.recv() for remote in self._remotes]
         return res
 
@@ -729,6 +783,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
         if not self.__closed:
             self.close()
+
 
 if __name__ == "__main__":
     from tqdm import tqdm
@@ -741,7 +796,7 @@ if __name__ == "__main__":
     env = make()
     env.seed(42)
     envs = [env for _ in range(nb_env)]
-    
+
     agent = DoNothingAgent(env.action_space)
     multi_envs = BaseMultiProcessEnvironment(envs)
 
@@ -749,11 +804,13 @@ if __name__ == "__main__":
     rews = [env.reward_range[0] for i in range(nb_env)]
     dones = [False for i in range(nb_env)]
 
-    total_reward = 0.
+    total_reward = 0.0
     for i in tqdm(range(NB_STEP)):
         acts = [None for _ in range(nb_env)]
         for env_act_id in range(nb_env):
-            acts[env_act_id] = agent.act(obs[env_act_id], rews[env_act_id], dones[env_act_id])
+            acts[env_act_id] = agent.act(
+                obs[env_act_id], rews[env_act_id], dones[env_act_id]
+            )
         obs, rews, dones, infos = multi_envs.step(acts)
         total_reward += np.sum(rews)
         len(rews)
@@ -773,4 +830,3 @@ if __name__ == "__main__":
     env.close()
     print("total_reward mluti_env: {}".format(total_reward))
     print("total_reward single env: {}".format(total_reward_single))
-

@@ -19,10 +19,12 @@ class Issue285Tester(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("rte_case5_example",
-                                    test=True,
-                                    chronics_class=MultifolderWithCache)
-        self.env.chronics_handler.real_data.set_filter(lambda x: re.match(".*0$", x) is not None)
+            self.env = grid2op.make(
+                "rte_case5_example", test=True, chronics_class=MultifolderWithCache
+            )
+        self.env.chronics_handler.real_data.set_filter(
+            lambda x: re.match(".*0$", x) is not None
+        )
         self.env.chronics_handler.real_data.reset()
 
     def tearDown(self):
@@ -35,6 +37,7 @@ class Issue285Tester(unittest.TestCase):
         assert res[0][1] != res[1][1]
         assert res[0][1] == "00"
         assert res[1][1] == "10"
+
 
 if __name__ == "__main__":
     unittest.main()

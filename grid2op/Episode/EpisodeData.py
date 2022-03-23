@@ -14,7 +14,12 @@ import numpy as np
 
 import grid2op
 from grid2op.Space import GridObjects
-from grid2op.Exceptions import Grid2OpException, EnvError, IncorrectNumberOfElements, NonFiniteElement
+from grid2op.Exceptions import (
+    Grid2OpException,
+    EnvError,
+    IncorrectNumberOfElements,
+    NonFiniteElement,
+)
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
 
@@ -124,6 +129,7 @@ class EpisodeData:
             print("At step {} the active productions were {}".format(i, obs.prod_p))
 
     """
+
     ACTION_SPACE = "dict_action_space.json"
     OBS_SPACE = "dict_observation_space.json"
     ENV_MODIF_SPACE = "dict_env_modification_space.json"
@@ -142,55 +148,70 @@ class EpisodeData:
     REWARDS = "rewards.npz"
     GRID2OPINFO_FILE = "grid2op.info"
 
-    ATTR_EPISODE = [PARAMS, META, TIMES, OTHER_REWARDS, AG_EXEC_TIMES, ACTIONS,
-                    ENV_ACTIONS, OBSERVATIONS, LINES_FAILURES, ATTACK, REWARDS]
+    ATTR_EPISODE = [
+        PARAMS,
+        META,
+        TIMES,
+        OTHER_REWARDS,
+        AG_EXEC_TIMES,
+        ACTIONS,
+        ENV_ACTIONS,
+        OBSERVATIONS,
+        LINES_FAILURES,
+        ATTACK,
+        REWARDS,
+    ]
 
-    def __init__(self,
-                 actions=None,
-                 env_actions=None,
-                 observations=None,
-                 rewards=None,
-                 disc_lines=None,
-                 times=None,
-                 params=None,
-                 meta=None,
-                 episode_times=None,
-                 observation_space=None,
-                 action_space=None,
-                 helper_action_env=None,
-                 attack_space=None,
-                 path_save=None,
-                 disc_lines_templ=None,
-                 attack_templ=None,
-                 attack=None,
-                 logger=None,
-                 name="EpisodeData",
-                 get_dataframes=None,
-                 force_detail=False,
-                 other_rewards=[],
-                 _init_collections=False):
+    def __init__(
+        self,
+        actions=None,
+        env_actions=None,
+        observations=None,
+        rewards=None,
+        disc_lines=None,
+        times=None,
+        params=None,
+        meta=None,
+        episode_times=None,
+        observation_space=None,
+        action_space=None,
+        helper_action_env=None,
+        attack_space=None,
+        path_save=None,
+        disc_lines_templ=None,
+        attack_templ=None,
+        attack=None,
+        logger=None,
+        name="EpisodeData",
+        get_dataframes=None,
+        force_detail=False,
+        other_rewards=[],
+        _init_collections=False,
+    ):
         self.parameters = None
-        self.actions = CollectionWrapper(actions,
-                                         action_space,
-                                         "actions",
-                                         check_legit=False,
-                                         init_me=_init_collections)
+        self.actions = CollectionWrapper(
+            actions,
+            action_space,
+            "actions",
+            check_legit=False,
+            init_me=_init_collections,
+        )
 
-        self.observations = CollectionWrapper(observations,
-                                              observation_space,
-                                              "observations",
-                                              init_me=_init_collections)
+        self.observations = CollectionWrapper(
+            observations, observation_space, "observations", init_me=_init_collections
+        )
 
-        self.env_actions = CollectionWrapper(env_actions,
-                                             helper_action_env,
-                                             "env_actions",
-                                             check_legit=False,
-                                             init_me=_init_collections)
+        self.env_actions = CollectionWrapper(
+            env_actions,
+            helper_action_env,
+            "env_actions",
+            check_legit=False,
+            init_me=_init_collections,
+        )
 
-        self.attacks = CollectionWrapper(attack,
-                                         attack_space,
-                                         "attacks",
-                                         init_me=_init_collections)
+        self.attacks = CollectionWrapper(
+            attack, attack_space, "attacks", init_me=_init_collections
+        )
 
         self.meta = meta
         # gives a unique game over for everyone
@@ -257,44 +278,46 @@ class EpisodeData:
                 try:
                     os.mkdir(self.agent_path)
                     self.logger.info(
-                        "Creating path \"{}\" to save the runner".format(self.agent_path))
+                        'Creating path "{}" to save the runner'.format(self.agent_path)
+                    )
                 except FileExistsError:
                     pass
 
-            act_space_path = os.path.join(
-                self.agent_path, EpisodeData.ACTION_SPACE)
-            obs_space_path = os.path.join(
-                self.agent_path, EpisodeData.OBS_SPACE)
+            act_space_path = os.path.join(self.agent_path, EpisodeData.ACTION_SPACE)
+            obs_space_path = os.path.join(self.agent_path, EpisodeData.OBS_SPACE)
             env_modif_space_path = os.path.join(
-                self.agent_path, EpisodeData.ENV_MODIF_SPACE)
-            attack_space_path = os.path.join(
-                self.agent_path, EpisodeData.ATTACK_SPACE)
+                self.agent_path, EpisodeData.ENV_MODIF_SPACE
+            )
+            attack_space_path = os.path.join(self.agent_path, EpisodeData.ATTACK_SPACE)
 
             if not os.path.exists(act_space_path):
                 dict_action_space = action_space.cls_to_dict()
-                with open(act_space_path, "w", encoding='utf8') as f:
-                    json.dump(obj=dict_action_space, fp=f,
-                              indent=4, sort_keys=True)
+                with open(act_space_path, "w", encoding="utf8") as f:
+                    json.dump(obj=dict_action_space, fp=f, indent=4, sort_keys=True)
             if not os.path.exists(obs_space_path):
                 dict_observation_space = observation_space.cls_to_dict()
-                with open(obs_space_path, "w", encoding='utf8') as f:
-                    json.dump(obj=dict_observation_space,
-                              fp=f, indent=4, sort_keys=True)
+                with open(obs_space_path, "w", encoding="utf8") as f:
+                    json.dump(
+                        obj=dict_observation_space, fp=f, indent=4, sort_keys=True
+                    )
             if not os.path.exists(env_modif_space_path):
                 dict_helper_action_env = helper_action_env.cls_to_dict()
-                with open(env_modif_space_path, "w", encoding='utf8') as f:
-                    json.dump(obj=dict_helper_action_env, fp=f,
-                              indent=4, sort_keys=True)
+                with open(env_modif_space_path, "w", encoding="utf8") as f:
+                    json.dump(
+                        obj=dict_helper_action_env, fp=f, indent=4, sort_keys=True
+                    )
             if not os.path.exists(attack_space_path):
                 dict_attack_space = attack_space.cls_to_dict()
-                with open(attack_space_path, "w", encoding='utf8') as f:
-                    json.dump(obj=dict_attack_space, fp=f,
-                              indent=4, sort_keys=True)
+                with open(attack_space_path, "w", encoding="utf8") as f:
+                    json.dump(obj=dict_attack_space, fp=f, indent=4, sort_keys=True)
 
             if not os.path.exists(self.episode_path):
                 os.mkdir(self.episode_path)
                 logger.info(
-                    "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.name))
+                    'Creating path "{}" to save the episode {}'.format(
+                        self.episode_path, self.name
+                    )
+                )
 
     @staticmethod
     def list_episode(path_agent):
@@ -375,7 +398,7 @@ class EpisodeData:
 
     def go_to(self, index):
         self.actions.go_to(index)
-        self.observations.go_to(index+1)
+        self.observations.go_to(index + 1)
         self.env_actions.go_to(index)
 
     def get_actions(self):
@@ -408,8 +431,10 @@ class EpisodeData:
             The data loaded properly in memory.
         """
         if agent_path is None:
-            raise Grid2OpException("A path to an episode should be provided, please call \"from_disk\" with "
-                                   "\"agent_path other\" than None")
+            raise Grid2OpException(
+                'A path to an episode should be provided, please call "from_disk" with '
+                '"agent_path other" than None'
+            )
         episode_path = os.path.abspath(os.path.join(agent_path, name))
 
         try:
@@ -422,51 +447,66 @@ class EpisodeData:
             with open(os.path.join(episode_path, EpisodeData.OTHER_REWARDS)) as f:
                 other_rewards = json.load(fp=f)
 
-            times = np.load(os.path.join(
-                episode_path, EpisodeData.AG_EXEC_TIMES))["data"]
+            times = np.load(os.path.join(episode_path, EpisodeData.AG_EXEC_TIMES))[
+                "data"
+            ]
             actions = np.load(os.path.join(episode_path, EpisodeData.ACTIONS))["data"]
-            env_actions = np.load(os.path.join(
-                episode_path, EpisodeData.ENV_ACTIONS))["data"]
-            observations = np.load(os.path.join(
-                episode_path, EpisodeData.OBSERVATIONS))["data"]
-            disc_lines = np.load(os.path.join(
-                episode_path, EpisodeData.LINES_FAILURES))["data"]
-            attack = np.load(os.path.join(
-                episode_path, EpisodeData.ATTACK))["data"]
+            env_actions = np.load(os.path.join(episode_path, EpisodeData.ENV_ACTIONS))[
+                "data"
+            ]
+            observations = np.load(
+                os.path.join(episode_path, EpisodeData.OBSERVATIONS)
+            )["data"]
+            disc_lines = np.load(
+                os.path.join(episode_path, EpisodeData.LINES_FAILURES)
+            )["data"]
+            attack = np.load(os.path.join(episode_path, EpisodeData.ATTACK))["data"]
             rewards = np.load(os.path.join(episode_path, EpisodeData.REWARDS))["data"]
 
         except FileNotFoundError as ex:
             raise Grid2OpException(f"EpisodeData file not found \n {str(ex)}")
 
-        observation_space = ObservationSpace.from_dict(os.path.join(agent_path, EpisodeData.OBS_SPACE))
-        action_space = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ACTION_SPACE))
-        helper_action_env = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
-        attack_space = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
+        observation_space = ObservationSpace.from_dict(
+            os.path.join(agent_path, EpisodeData.OBS_SPACE)
+        )
+        action_space = ActionSpace.from_dict(
+            os.path.join(agent_path, EpisodeData.ACTION_SPACE)
+        )
+        helper_action_env = ActionSpace.from_dict(
+            os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE)
+        )
+        attack_space = ActionSpace.from_dict(
+            os.path.join(agent_path, EpisodeData.ATTACK_SPACE)
+        )
         if observation_space.glop_version != grid2op.__version__:
-            warnings.warn("You are using a \"grid2op compatibility\" feature (the data you saved "
-                          "have been saved with a previous grid2op version). When we loaded your data, we attempted "
-                          "to not include most recent grid2op features. This is feature is not well tested. It would "
-                          "be wise to regenerate the data with the latest grid2Op version.")
+            warnings.warn(
+                'You are using a "grid2op compatibility" feature (the data you saved '
+                "have been saved with a previous grid2op version). When we loaded your data, we attempted "
+                "to not include most recent grid2op features. This is feature is not well tested. It would "
+                "be wise to regenerate the data with the latest grid2Op version."
+            )
 
-        return cls(actions=actions,
-                   env_actions=env_actions,
-                   observations=observations,
-                   rewards=rewards,
-                   disc_lines=disc_lines,
-                   times=times,
-                   params=_parameters,
-                   meta=episode_meta,
-                   episode_times=episode_times,
-                   observation_space=observation_space,
-                   action_space=action_space,
-                   helper_action_env=helper_action_env,
-                   path_save=None,  # No save when reading
-                   attack=attack,
-                   attack_space=attack_space,
-                   name=name,
-                   get_dataframes=True,
-                   other_rewards=other_rewards,
-                   _init_collections=True)
+        return cls(
+            actions=actions,
+            env_actions=env_actions,
+            observations=observations,
+            rewards=rewards,
+            disc_lines=disc_lines,
+            times=times,
+            params=_parameters,
+            meta=episode_meta,
+            episode_times=episode_times,
+            observation_space=observation_space,
+            action_space=action_space,
+            helper_action_env=helper_action_env,
+            path_save=None,  # No save when reading
+            attack=attack,
+            attack_space=attack_space,
+            name=name,
+            get_dataframes=True,
+            other_rewards=other_rewards,
+            _init_collections=True,
+        )
 
     def set_parameters(self, env):
         """
@@ -511,13 +551,12 @@ class EpisodeData:
         """
         if self.force_detail or self.serialize:
             self.meta = {}
-            self.meta["chronics_path"] = "{}".format(
-                env.chronics_handler.get_id())
+            self.meta["chronics_path"] = "{}".format(env.chronics_handler.get_id())
             self.meta["chronics_max_timestep"] = "{}".format(
-                env.chronics_handler.max_timestep())
+                env.chronics_handler.max_timestep()
+            )
             self.meta["grid_path"] = "{}".format(env._init_grid_path)
-            self.meta["backend_type"] = "{}".format(
-                type(env.backend).__name__)
+            self.meta["backend_type"] = "{}".format(type(env.backend).__name__)
             self.meta["env_type"] = "{}".format(type(env).__name__)
             self.meta["nb_timestep_played"] = time_step
             self.meta["cumulative_reward"] = cum_reward
@@ -530,8 +569,18 @@ class EpisodeData:
             else:
                 self.meta["agent_seed"] = int(agent_seed)
 
-    def incr_store(self, efficient_storing, time_step, time_step_duration,
-                   reward, env_act, act, obs, opp_attack, info):
+    def incr_store(
+        self,
+        efficient_storing,
+        time_step,
+        time_step_duration,
+        reward,
+        env_act,
+        act,
+        obs,
+        opp_attack,
+        info,
+    ):
         """
         INTERNAL
 
@@ -573,7 +622,7 @@ class EpisodeData:
                 self.attacks.update(time_step, opp_attack, efficient_storing)
             else:
                 if efficient_storing:
-                    self.attacks.collection[time_step - 1, :] = 0.
+                    self.attacks.collection[time_step - 1, :] = 0.0
                 else:
                     # might not work !
                     self.attacks = np.concatenate((self.attacks, self.attack_templ))
@@ -591,27 +640,30 @@ class EpisodeData:
             else:
                 # might not work !
                 # completely inefficient way of writing
-                self.times = np.concatenate(
-                    (self.times, (time_step_duration,)))
+                self.times = np.concatenate((self.times, (time_step_duration,)))
                 self.rewards = np.concatenate((self.rewards, (reward,)))
                 if "disc_lines" in info:
                     arr = info["disc_lines"]
                     if arr is not None:
                         self.disc_lines = np.concatenate(
-                            (self.disc_lines, arr.reshape(1, -1)))
+                            (self.disc_lines, arr.reshape(1, -1))
+                        )
                     else:
                         self.disc_lines = np.concatenate(
-                            (self.disc_lines, self.disc_lines_templ))
+                            (self.disc_lines, self.disc_lines_templ)
+                        )
 
             if "rewards" in info:
-                self.other_rewards.append({k: self._convert_to_float(v) for k, v in info["rewards"].items()})
+                self.other_rewards.append(
+                    {k: self._convert_to_float(v) for k, v in info["rewards"].items()}
+                )
             # TODO add is_illegal and is_ambiguous flags!
 
     def _convert_to_float(self, el):
         try:
             res = float(el)
         except Exception as exc_:
-            res = -float('inf')
+            res = -float("inf")
         return res
 
     def set_episode_times(self, env, time_act, beg_, end_):
@@ -638,12 +690,15 @@ class EpisodeData:
             self.episode_times = {}
             self.episode_times["Env"] = {}
             self.episode_times["Env"]["total"] = float(
-                env._time_apply_act + env._time_powerflow + env._time_extract_obs)
+                env._time_apply_act + env._time_powerflow + env._time_extract_obs
+            )
             self.episode_times["Env"]["apply_act"] = float(env._time_apply_act)
             self.episode_times["Env"]["powerflow_computation"] = float(
-                env._time_powerflow)
+                env._time_powerflow
+            )
             self.episode_times["Env"]["observation_computation"] = float(
-                env._time_extract_obs)
+                env._time_extract_obs
+            )
             self.episode_times["Agent"] = {}
             self.episode_times["Agent"]["total"] = float(time_act)
             self.episode_times["total"] = float(end_ - beg_)
@@ -662,8 +717,7 @@ class EpisodeData:
 
         """
         if self.serialize:
-            parameters_path = os.path.join(
-                self.episode_path, EpisodeData.PARAMS)
+            parameters_path = os.path.join(self.episode_path, EpisodeData.PARAMS)
             with open(parameters_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.parameters, fp=f, indent=4, sort_keys=True)
 
@@ -671,36 +725,43 @@ class EpisodeData:
             with open(meta_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.meta, fp=f, indent=4, sort_keys=True)
 
-            episode_times_path = os.path.join(
-                self.episode_path, EpisodeData.TIMES)
+            episode_times_path = os.path.join(self.episode_path, EpisodeData.TIMES)
             with open(episode_times_path, "w", encoding="utf-8") as f:
-                json.dump(obj=self.episode_times, fp=f,
-                          indent=4, sort_keys=True)
+                json.dump(obj=self.episode_times, fp=f, indent=4, sort_keys=True)
 
             episode_other_rewards_path = os.path.join(
-                self.episode_path, EpisodeData.OTHER_REWARDS)
+                self.episode_path, EpisodeData.OTHER_REWARDS
+            )
             with open(episode_other_rewards_path, "w", encoding="utf-8") as f:
-                json.dump(obj=self.other_rewards, fp=f,
-                          indent=4, sort_keys=True)
+                json.dump(obj=self.other_rewards, fp=f, indent=4, sort_keys=True)
 
-            np.savez_compressed(os.path.join(self.episode_path, EpisodeData.AG_EXEC_TIMES), data=self.times)
-            self.actions.save(
-                os.path.join(self.episode_path, EpisodeData.ACTIONS))
+            np.savez_compressed(
+                os.path.join(self.episode_path, EpisodeData.AG_EXEC_TIMES),
+                data=self.times,
+            )
+            self.actions.save(os.path.join(self.episode_path, EpisodeData.ACTIONS))
             self.env_actions.save(
-                os.path.join(self.episode_path, EpisodeData.ENV_ACTIONS))
+                os.path.join(self.episode_path, EpisodeData.ENV_ACTIONS)
+            )
             self.observations.save(
-                os.path.join(self.episode_path, EpisodeData.OBSERVATIONS))
+                os.path.join(self.episode_path, EpisodeData.OBSERVATIONS)
+            )
             self.attacks.save(
-                os.path.join(os.path.join(self.episode_path,
-                                          EpisodeData.ATTACK)))
-            np.savez_compressed(os.path.join(
-                self.episode_path, EpisodeData.LINES_FAILURES), data=self.disc_lines)
-            np.savez_compressed(os.path.join(self.episode_path,
-                                 EpisodeData.REWARDS), data=self.rewards)
+                os.path.join(os.path.join(self.episode_path, EpisodeData.ATTACK))
+            )
+            np.savez_compressed(
+                os.path.join(self.episode_path, EpisodeData.LINES_FAILURES),
+                data=self.disc_lines,
+            )
+            np.savez_compressed(
+                os.path.join(self.episode_path, EpisodeData.REWARDS), data=self.rewards
+            )
 
-            with open(os.path.join(self.episode_path, self.GRID2OPINFO_FILE),
-                      "w",
-                      encoding="utf-8") as f:
+            with open(
+                os.path.join(self.episode_path, self.GRID2OPINFO_FILE),
+                "w",
+                encoding="utf-8",
+            ) as f:
                 dict_ = {"version": f"{grid2op.__version__}"}
                 json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
 
@@ -714,7 +775,11 @@ class EpisodeData:
         """
         version = "<=1.4.0"
         if os.path.exists(os.path.join(path_episode, EpisodeData.GRID2OPINFO_FILE)):
-            with open(os.path.join(path_episode, EpisodeData.GRID2OPINFO_FILE), "r", encoding="utf-8") as f:
+            with open(
+                os.path.join(path_episode, EpisodeData.GRID2OPINFO_FILE),
+                "r",
+                encoding="utf-8",
+            ) as f:
                 dict_ = json.load(fp=f)
                 if "version" in dict_:
                     version = dict_["version"]
@@ -772,11 +837,14 @@ class CollectionWrapper:
 
     """
 
-    def __init__(self, collection, helper, collection_name, check_legit=True, init_me=True):
+    def __init__(
+        self, collection, helper, collection_name, check_legit=True, init_me=True
+    ):
         self.collection = collection
         if not hasattr(helper, "from_vect"):
-            raise Grid2OpException(f"Object {helper} must implement a "
-                                   f"from_vect method.")
+            raise Grid2OpException(
+                f"Object {helper} must implement a " f"from_vect method."
+            )
         self.helper = helper
         self.collection_name = collection_name
         self.elem_name = self.collection_name[:-1]
@@ -787,12 +855,14 @@ class CollectionWrapper:
         if not init_me:
             # the runner just has been created, so i don't need to update this collection
             # from previous data, but we need to initialize the list holder
-            self.objects = [None]*len(self.collection)
+            self.objects = [None] * len(self.collection)
             return
 
         for i, elem in enumerate(self.collection):
             try:
-                collection_obj = self.helper.from_vect(self.collection[i, :], check_legit=check_legit)
+                collection_obj = self.helper.from_vect(
+                    self.collection[i, :], check_legit=check_legit
+                )
                 self.objects.append(collection_obj)
             except IncorrectNumberOfElements as exc_:
                 # grid2op does not allow to load the object: there is a mismatch between what has been stored
@@ -817,7 +887,8 @@ class CollectionWrapper:
         else:
             raise Grid2OpException(
                 f"Trying to reach {self.elem_name} {i + 1} but "
-                f"there are only {len(self)} {self.collection_name}.")
+                f"there are only {len(self)} {self.collection_name}."
+            )
 
     def __iter__(self):
         self.i = 0
@@ -834,18 +905,24 @@ class CollectionWrapper:
         if efficient_storage:
             self.collection[time_step - 1, :] = value.to_vect()
         else:
-            self.collection = np.concatenate((self.collection, value.to_vect().reshape(1, -1)))
+            self.collection = np.concatenate(
+                (self.collection, value.to_vect().reshape(1, -1))
+            )
         self.objects[time_step - 1] = value
 
     def save(self, path):
-        np.savez_compressed(path, data=self.collection)  # do not change keyword arguments
+        np.savez_compressed(
+            path, data=self.collection
+        )  # do not change keyword arguments
 
     def reboot(self):
         self.i = 0
 
     def go_to(self, index):
         if index >= len(self):
-            raise Grid2OpException("index too long for collection {}".format(self.collection_name))
+            raise Grid2OpException(
+                "index too long for collection {}".format(self.collection_name)
+            )
         self.i = index
 
 

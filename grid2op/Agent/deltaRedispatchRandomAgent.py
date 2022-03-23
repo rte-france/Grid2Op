@@ -34,9 +34,8 @@ class DeltaRedispatchRandomAgent(BaseAgent):
       The redispatching MW value used in both directions
 
     """
-    def __init__(self, action_space,
-                 n_gens_to_redispatch=2,
-                 redispatching_delta=1.0):
+
+    def __init__(self, action_space, n_gens_to_redispatch=2, redispatching_delta=1.0):
         super().__init__(action_space)
         self.desired_actions = []
 
@@ -55,18 +54,14 @@ class DeltaRedispatchRandomAgent(BaseAgent):
         # (increase or decrease by the delta)
         for gen_id in gens_redisp:
             # Create action redispatch by opposite delta
-            act1 = self.action_space({
-                "redispatch": [
-                    (gen_id, -float(redispatching_delta))
-                ]
-            })
-            
+            act1 = self.action_space(
+                {"redispatch": [(gen_id, -float(redispatching_delta))]}
+            )
+
             # Create action redispatch by delta
-            act2 = self.action_space({
-                "redispatch": [
-                    (gen_id, float(redispatching_delta))
-                ]
-            })
+            act2 = self.action_space(
+                {"redispatch": [(gen_id, float(redispatching_delta))]}
+            )
 
             # Register this generator actions
             self.desired_actions.append(act1)

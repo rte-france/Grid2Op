@@ -46,17 +46,27 @@ class ChronicsHandler(RandomObject):
         path where the data are located.
 
     """
-    def __init__(self, chronicsClass=ChangeNothing, time_interval=timedelta(minutes=5), max_iter=-1,
-                 **kwargs):
+
+    def __init__(
+        self,
+        chronicsClass=ChangeNothing,
+        time_interval=timedelta(minutes=5),
+        max_iter=-1,
+        **kwargs
+    ):
         RandomObject.__init__(self)
         if not isinstance(chronicsClass, type):
-            raise Grid2OpException("Parameter \"chronicsClass\" used to build the ChronicsHandler should be a type "
-                                   "(a class) and not an object (an instance of a class). It is currently "
-                                   "\"{}\"".format(type(chronicsClass)))
+            raise Grid2OpException(
+                'Parameter "chronicsClass" used to build the ChronicsHandler should be a type '
+                "(a class) and not an object (an instance of a class). It is currently "
+                '"{}"'.format(type(chronicsClass))
+            )
 
         if not issubclass(chronicsClass, GridValue):
-            raise ChronicsError("ChronicsHandler: the \"chronicsClass\" argument should be a derivative of the "
-                               "\"Grid2Op.GridValue\" type and not {}.".format(type(chronicsClass)))
+            raise ChronicsError(
+                'ChronicsHandler: the "chronicsClass" argument should be a derivative of the '
+                '"Grid2Op.GridValue" type and not {}.'.format(type(chronicsClass))
+            )
 
         self.chronicsClass = chronicsClass
         self._kwargs = kwargs
@@ -68,11 +78,14 @@ class ChronicsHandler(RandomObject):
 
         self._real_data = None
         try:
-            self._real_data = self.chronicsClass(time_interval=time_interval, max_iter=self.max_iter,
-                                                 **self.kwargs)
+            self._real_data = self.chronicsClass(
+                time_interval=time_interval, max_iter=self.max_iter, **self.kwargs
+            )
         except TypeError as exc_:
-            raise ChronicsError("Impossible to build a chronics of type {} with arguments in "
-                                "{}".format(chronicsClass, self.kwargs)) from exc_
+            raise ChronicsError(
+                "Impossible to build a chronics of type {} with arguments in "
+                "{}".format(chronicsClass, self.kwargs)
+            ) from exc_
 
     @property
     def kwargs(self):
@@ -83,8 +96,8 @@ class ChronicsHandler(RandomObject):
 
     @kwargs.setter
     def kwargs(self, new_value):
-        raise ChronicsError("Impossible to set the \"kwargs\" attribute")
-    
+        raise ChronicsError('Impossible to set the "kwargs" attribute')
+
     @property
     def real_data(self):
         return self._real_data
@@ -124,8 +137,8 @@ class ChronicsHandler(RandomObject):
     def get_name(self):
         """
         This method retrieve a unique name that is used to serialize episode data on
-        disk. 
-        
+        disk.
+
         See definition of :mod:`EpisodeData` for more information about this method.
 
         """
@@ -143,13 +156,19 @@ class ChronicsHandler(RandomObject):
         """
 
         if not isinstance(max_iter, int):
-            raise Grid2OpException("The maximum number of iterations possible for this chronics, before it ends.")
+            raise Grid2OpException(
+                "The maximum number of iterations possible for this chronics, before it ends."
+            )
         if max_iter == 0:
-            raise Grid2OpException("The maximum number of iteration should be > 0 (or -1 if you mean "
-                                   "\"don't limit it\")")
+            raise Grid2OpException(
+                "The maximum number of iteration should be > 0 (or -1 if you mean "
+                '"don\'t limit it")'
+            )
         elif max_iter < -1:
-            raise Grid2OpException("The maximum number of iteration should be > 0 (or -1 if you mean "
-                                   "\"don't limit it\")")
+            raise Grid2OpException(
+                "The maximum number of iteration should be > 0 (or -1 if you mean "
+                '"don\'t limit it")'
+            )
         self.max_iter = max_iter
         self._real_data.max_iter = max_iter
 
@@ -178,7 +197,7 @@ class ChronicsHandler(RandomObject):
         return seed, seed_chronics
 
     def __getattr__(self, name):
-        if name in ['__getstate__', '__setstate__']:
+        if name in ["__getstate__", "__setstate__"]:
             # otherwise there is a recursion depth exceeded in multiprocessing
             # https://github.com/matplotlib/matplotlib/issues/7852/
             return object.__getattr__(self, name)

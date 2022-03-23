@@ -15,9 +15,12 @@ class BaseGymAttrConverter(object):
 
     Need help if you can :-)
     """
+
     def __init__(self, space=None, gym_to_g2op=None, g2op_to_gym=None):
         check_gym_version()
-        self.__is_init_super = False  # is the "super" class initialized, do not modify in child class
+        self.__is_init_super = (
+            False  # is the "super" class initialized, do not modify in child class
+        )
 
         self._is_init_space = False  # is the instance initialized
         self._my_gym_to_g2op = None
@@ -43,7 +46,9 @@ class BaseGymAttrConverter(object):
         if self._is_init_space:
             return
         if not isinstance(space, Space):
-            raise RuntimeError("Impossible to scale a converter if this one is not from type space.Space")
+            raise RuntimeError(
+                "Impossible to scale a converter if this one is not from type space.Space"
+            )
         self.my_space = space
         self._is_init_space = True
 
@@ -62,7 +67,9 @@ class BaseGymAttrConverter(object):
 
         """
         if self._my_gym_to_g2op is None:
-            raise NotImplementedError("Unable to convert gym object to grid2op object with this converter")
+            raise NotImplementedError(
+                "Unable to convert gym object to grid2op object with this converter"
+            )
         return self._my_gym_to_g2op(gym_object)
 
     def g2op_to_gym(self, g2op_object):
@@ -81,5 +88,7 @@ class BaseGymAttrConverter(object):
 
         """
         if self._my_g2op_to_gym is None:
-            raise NotImplementedError("Unable to convert grid2op object to gym object with this converter")
+            raise NotImplementedError(
+                "Unable to convert grid2op object to gym object with this converter"
+            )
         return self._my_g2op_to_gym(g2op_object)

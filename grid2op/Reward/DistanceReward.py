@@ -34,13 +34,13 @@ class DistanceReward(BaseReward):
         # the reward is computed with the DistanceReward class
 
     """
+
     def __init__(self):
         BaseReward.__init__(self)
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(1.0)
 
-    def __call__(self, action, env, has_error,
-                 is_done, is_illegal, is_ambiguous):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min
 
@@ -63,7 +63,9 @@ class DistanceReward(BaseReward):
             # Set index to next sub station
             idx += n_elems_on_sub
 
-        r = np.interp(diff,
-                      [dt_float(0.0), len(topo) * dt_float(1.0)],
-                      [self.reward_max, self.reward_min])
+        r = np.interp(
+            diff,
+            [dt_float(0.0), len(topo) * dt_float(1.0)],
+            [self.reward_max, self.reward_min],
+        )
         return r

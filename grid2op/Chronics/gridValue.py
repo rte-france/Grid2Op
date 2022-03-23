@@ -84,11 +84,14 @@ class GridValue(RandomObject, ABC):
 
 
     """
-    def __init__(self,
-                 time_interval=timedelta(minutes=5),
-                 max_iter=-1,
-                 start_datetime=datetime(year=2019, month=1, day=1),
-                 chunk_size=None):
+
+    def __init__(
+        self,
+        time_interval=timedelta(minutes=5),
+        max_iter=-1,
+        start_datetime=datetime(year=2019, month=1, day=1),
+        chunk_size=None,
+    ):
         RandomObject.__init__(self)
 
         self.time_interval = time_interval
@@ -103,14 +106,20 @@ class GridValue(RandomObject, ABC):
 
     def get_kwargs(self, dict_):
         """
-        Overload this function if you want to pass some data when building 
+        Overload this function if you want to pass some data when building
         a new instance of this class.
         """
         pass
-    
+
     @abstractmethod
-    def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
-                   names_chronics_to_backend):
+    def initialize(
+        self,
+        order_backend_loads,
+        order_backend_prods,
+        order_backend_lines,
+        order_backend_subs,
+        names_chronics_to_backend,
+    ):
         """
         This function is used to initialize the data generator.
         It can be use to load scenarios, or to initialize noise if scenarios are generated on the fly. It must also
@@ -339,7 +348,7 @@ class GridValue(RandomObject, ABC):
         """
 
         res = np.full(maintenance.shape, fill_value=np.NaN, dtype=dt_int)
-        maintenance = np.concatenate((maintenance, (0,0)))
+        maintenance = np.concatenate((maintenance, (0, 0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
         # I need to "+1"
@@ -486,7 +495,14 @@ class GridValue(RandomObject, ABC):
 
         """
         self.current_datetime += self.time_interval
-        return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration, None
+        return (
+            self.current_datetime,
+            {},
+            self.maintenance_time,
+            self.maintenance_duration,
+            self.hazard_duration,
+            None,
+        )
 
     @abstractmethod
     def check_validity(self, backend):
@@ -588,8 +604,10 @@ class GridValue(RandomObject, ABC):
 
             As of grid2op 1.6.4, this function now accepts the return value of `self.get_id()`.
         """
-        warnings.warn("Class {} doesn't handle different input folder. \"tell_id\" method has no impact."
-                      "".format(type(self).__name__))
+        warnings.warn(
+            'Class {} doesn\'t handle different input folder. "tell_id" method has no impact.'
+            "".format(type(self).__name__)
+        )
 
     def get_id(self) -> str:
         """
@@ -605,8 +623,10 @@ class GridValue(RandomObject, ABC):
             specific folder, this could be the path to this folder.
 
         """
-        warnings.warn("Class {} doesn't handle different input folder. \"get_id\" method will return \"\"."
-                      "".format(type(self).__name__))
+        warnings.warn(
+            'Class {} doesn\'t handle different input folder. "get_id" method will return "".'
+            "".format(type(self).__name__)
+        )
         return ""
 
     def max_timestep(self):
@@ -730,7 +750,9 @@ class GridValue(RandomObject, ABC):
                 # it always prints "2" (representing february)
 
         """
-        warnings.warn(f"Calling this function has no effect for chronics generated from \"{type(self)}\"")
+        warnings.warn(
+            f'Calling this function has no effect for chronics generated from "{type(self)}"'
+        )
 
     def set_chunk_size(self, new_chunk_size):
         """
