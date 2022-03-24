@@ -18,6 +18,7 @@ import pdb
 
 class TestNetworkXGraph(unittest.TestCase):
     """this class test the networkx representation of an observation."""
+
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

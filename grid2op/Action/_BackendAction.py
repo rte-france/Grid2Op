@@ -21,6 +21,7 @@ class ValueStore:
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     """
+
     def __init__(self, size, dtype):
         ## TODO at the init it's mandatory to have everything at "1" here
         # if topo is not "fully connected" it will not work
@@ -52,7 +53,7 @@ class ValueStore:
         self.values[changed_] = (1 - self.values[changed_]) + 2
 
     def _change_val_float(self, newvals):
-        changed_ = newvals != 0.
+        changed_ = newvals != 0.0
         self.changed[changed_] = True
         self.values[changed_] += newvals[changed_]
 
@@ -197,6 +198,7 @@ class _BackendAction(GridObjects):
     This class "digest" the players / environment / opponent / voltage controlers "action",
     and transform it to setpoint for the backend.
     """
+
     def __init__(self):
         GridObjects.__init__(self)
         # last connected registered
@@ -213,7 +215,9 @@ class _BackendAction(GridObjects):
         self.storage_power = ValueStore(self.n_storage, dtype=dt_float)
 
         self.activated_bus = np.full((self.n_sub, 2), dtype=dt_bool, fill_value=False)
-        self.big_topo_to_subid = np.repeat(list(range(self.n_sub)), repeats=self.sub_info)
+        self.big_topo_to_subid = np.repeat(
+            list(range(self.n_sub)), repeats=self.sub_info
+        )
 
         # shunts
         if self.shunts_data_available:
@@ -328,7 +332,7 @@ class _BackendAction(GridObjects):
         self.storage_power.reset()
         # storage unit have their power reset to 0. each step
         self.storage_power.changed[:] = True
-        self.storage_power.values[:] = 0.
+        self.storage_power.values[:] = 0.0
 
         # shunts
         if self.shunts_data_available:
@@ -426,19 +430,27 @@ class _BackendAction(GridObjects):
         # this need to be done BEFORE the topology, as a connected powerline will be connected to their old bus.
         # regardless if the status is changed in the action or not.
         if other._modif_change_status:
-            self.current_topo.change_status(switch_status,
-                                            self.line_or_pos_topo_vect,
-                                            self.line_ex_pos_topo_vect,
-                                            self.last_topo_registered)
+            self.current_topo.change_status(
+                switch_status,
+                self.line_or_pos_topo_vect,
+                self.line_ex_pos_topo_vect,
+                self.last_topo_registered,
+            )
         if other._modif_set_status:
-            self.current_topo.set_status(set_status,
-                                         self.line_or_pos_topo_vect,
-                                         self.line_ex_pos_topo_vect,
-                                         self.last_topo_registered)
+            self.current_topo.set_status(
+                set_status,
+                self.line_or_pos_topo_vect,
+                self.line_ex_pos_topo_vect,
+                self.last_topo_registered,
+            )
 
         # if other._modif_change_status or other._modif_set_status:
-        self._status_or_before[:], self._status_ex_before[:] = self.current_topo.get_line_status(
-            self.line_or_pos_topo_vect, self.line_ex_pos_topo_vect)
+        (
+            self._status_or_before[:],
+            self._status_ex_before[:],
+        ) = self.current_topo.get_line_status(
+            self.line_or_pos_topo_vect, self.line_ex_pos_topo_vect
+        )
 
         # IV topo
         if other._modif_change_bus:
@@ -449,13 +461,16 @@ class _BackendAction(GridObjects):
         # V Force disconnected status
         # of disconnected powerlines extremities
         self._status_or[:], self._status_ex[:] = self.current_topo.get_line_status(
-            self.line_or_pos_topo_vect, self.line_ex_pos_topo_vect)
+            self.line_or_pos_topo_vect, self.line_ex_pos_topo_vect
+        )
 
         # At least one disconnected extremity
         if other._modif_change_bus or other._modif_set_bus:
             disco_or = (self._status_or_before == -1) | (self._status_or == -1)
             disco_ex = (self._status_ex_before == -1) | (self._status_ex == -1)
-            disco_now = disco_or | disco_ex  # a powerline is disconnected if at least one of its extremity is
+            disco_now = (
+                disco_or | disco_ex
+            )  # a powerline is disconnected if at least one of its extremity is
             # added
             reco_or = (self._status_or_before == -1) & (self._status_or >= 1)
             reco_ex = (self._status_or_before == -1) & (self._status_ex >= 1)
@@ -466,15 +481,23 @@ class _BackendAction(GridObjects):
             set_now[disco_now] = -1
             set_now[reco_now] = 1
 
-            self.current_topo.set_status(set_now,
-                                         self.line_or_pos_topo_vect,
-                                         self.line_ex_pos_topo_vect,
-                                         self.last_topo_registered)
+            self.current_topo.set_status(
+                set_now,
+                self.line_or_pos_topo_vect,
+                self.line_ex_pos_topo_vect,
+                self.last_topo_registered,
+            )
 
         return self
 
     def __call__(self):
-        injections = self.prod_p, self.prod_v, self.load_p, self.load_q, self.storage_power
+        injections = (
+            self.prod_p,
+            self.prod_v,
+            self.load_p,
+            self.load_q,
+            self.storage_power,
+        )
         topo = self.current_topo
         shunts = None
         if self.shunts_data_available:
@@ -497,13 +520,17 @@ class _BackendAction(GridObjects):
     def get_lines_or_bus(self):
         if self._lines_or_bus is None:
             self._lines_or_bus = ValueStore(self.n_line, dtype=dt_int)
-        self._lines_or_bus.copy_from_index(self.current_topo, self.line_or_pos_topo_vect)
+        self._lines_or_bus.copy_from_index(
+            self.current_topo, self.line_or_pos_topo_vect
+        )
         return self._lines_or_bus
 
     def get_lines_ex_bus(self):
         if self._lines_ex_bus is None:
             self._lines_ex_bus = ValueStore(self.n_line, dtype=dt_int)
-        self._lines_ex_bus.copy_from_index(self.current_topo, self.line_ex_pos_topo_vect)
+        self._lines_ex_bus.copy_from_index(
+            self.current_topo, self.line_ex_pos_topo_vect
+        )
         return self._lines_ex_bus
 
     def get_storages_bus(self):
@@ -514,7 +541,7 @@ class _BackendAction(GridObjects):
 
     def _get_active_bus(self):
         self.activated_bus[:] = False
-        tmp = self.current_topo.values-1
+        tmp = self.current_topo.values - 1
         self.activated_bus[self.big_topo_to_subid, tmp] = True
 
     def update_state(self, powerline_disconnected):
@@ -527,9 +554,11 @@ class _BackendAction(GridObjects):
         if np.any(powerline_disconnected >= 0):
             arr_ = np.zeros(powerline_disconnected.shape, dtype=dt_int)
             arr_[powerline_disconnected] = -1
-            self.current_topo.set_status(arr_,
-                                         self.line_or_pos_topo_vect,
-                                         self.line_ex_pos_topo_vect,
-                                         self.last_topo_registered)
+            self.current_topo.set_status(
+                arr_,
+                self.line_or_pos_topo_vect,
+                self.line_ex_pos_topo_vect,
+                self.last_topo_registered,
+            )
         self.last_topo_registered.update_connected(self.current_topo)
         self.current_topo.reset()

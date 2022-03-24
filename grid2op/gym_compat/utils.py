@@ -8,31 +8,38 @@
 
 _MIN_GYM_VERSION = "0.17.2"
 
-ALL_ATTR = ("set_line_status",
-            "change_line_status",
-            "set_bus",
-            "change_bus",
-            "redispatch",
-            "set_storage",
-            "curtail",
-            "raise_alarm")
+ALL_ATTR = (
+    "set_line_status",
+    "change_line_status",
+    "set_bus",
+    "change_bus",
+    "redispatch",
+    "set_storage",
+    "curtail",
+    "raise_alarm",
+)
 
-ATTR_DISCRETE = ("set_line_status",
-                 "change_line_status",
-                 "set_bus",
-                 "change_bus",
-                 "sub_set_bus",
-                 "sub_change_bus",
-                 "one_sub_set",
-                 "one_sub_change",
-                 "raise_alarm")
+ATTR_DISCRETE = (
+    "set_line_status",
+    "change_line_status",
+    "set_bus",
+    "change_bus",
+    "sub_set_bus",
+    "sub_change_bus",
+    "one_sub_set",
+    "one_sub_change",
+    "raise_alarm",
+)
 
 
 def check_gym_version():
     import gym
+
     if gym.__version__ < _MIN_GYM_VERSION:
-        raise RuntimeError(f"Grid2op does not work with gym < {_MIN_GYM_VERSION} and you have gym with "
-                           f"version {gym.__version__} installed.")
+        raise RuntimeError(
+            f"Grid2op does not work with gym < {_MIN_GYM_VERSION} and you have gym with "
+            f"version {gym.__version__} installed."
+        )
 
 
 def _compute_extra_power_for_losses(gridobj):
@@ -40,4 +47,5 @@ def _compute_extra_power_for_losses(gridobj):
     to handle the "because of the power losses gen_pmin and gen_pmax can be slightly altered"
     """
     import numpy as np
+
     return 0.3 * np.sum(np.abs(gridobj.gen_pmax))

@@ -11,6 +11,7 @@ import grid2op
 import unittest
 import numpy as np
 
+
 class Issue274Tester(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
@@ -27,12 +28,13 @@ class Issue274Tester(unittest.TestCase):
         copy_attack_times = 1 * env_cpy._opponent._attack_times
         assert np.all(init_attack_times == after_attack_times)
         assert np.all(init_attack_times == copy_attack_times)
-    
+
     def test_same_opponent_space(self):
         """test that the opponent space state (in particular the current attack) is properly copied"""
         self.env.seed(3)
         self.env.reset()
         import pdb
+
         init_attack_times = 1 * self.env._opponent._attack_times
         assert np.all(init_attack_times == [5, 105, 180])
         for i in range(5):
@@ -46,9 +48,17 @@ class Issue274Tester(unittest.TestCase):
             env_cpy = self.env.copy()
             *_, info = self.env.step(self.env.action_space())
             *_, info_cpy = env_cpy.step(self.env.action_space())
-            assert info["opponent_attack_line"] is not None, f"no line attacked at iteration {i}"
-            assert info_cpy["opponent_attack_line"] is not None, f"no line attacked at iteration {i} for the copy env"
+            assert (
+                info["opponent_attack_line"] is not None
+            ), f"no line attacked at iteration {i}"
+            assert (
+                info_cpy["opponent_attack_line"] is not None
+            ), f"no line attacked at iteration {i} for the copy env"
             line_attacked = np.where(info["opponent_attack_line"])[0]
             cpy_line_attacked = np.where(info_cpy["opponent_attack_line"])[0]
-            assert init_line_attacked == line_attacked, f"wrong line attack at iteration {i}"
-            assert init_line_attacked == cpy_line_attacked, f"wrong line attack at iteration {i} for the copy env"
+            assert (
+                init_line_attacked == line_attacked
+            ), f"wrong line attack at iteration {i}"
+            assert (
+                init_line_attacked == cpy_line_attacked
+            ), f"wrong line attack at iteration {i} for the copy env"

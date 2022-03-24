@@ -22,6 +22,7 @@ class GreedyAgent(BaseAgent):
     This class is an abstract class (object of this class cannot be created). To create "GreedyAgent" one must
     override this class. Examples are provided with :class:`PowerLineSwitch` and :class:`TopologyGreedy`.
     """
+
     def __init__(self, action_space):
         BaseAgent.__init__(self, action_space)
         self.tested_action = None
@@ -54,11 +55,20 @@ class GreedyAgent(BaseAgent):
         """
         self.tested_action = self._get_tested_action(observation)
         if len(self.tested_action) > 1:
-            self.resulting_rewards = np.full(shape=len(self.tested_action), fill_value=np.NaN, dtype=dt_float)
+            self.resulting_rewards = np.full(
+                shape=len(self.tested_action), fill_value=np.NaN, dtype=dt_float
+            )
             for i, action in enumerate(self.tested_action):
-                simul_obs, simul_reward, simul_has_error, simul_info = observation.simulate(action)
+                (
+                    simul_obs,
+                    simul_reward,
+                    simul_has_error,
+                    simul_info,
+                ) = observation.simulate(action)
                 self.resulting_rewards[i] = simul_reward
-            reward_idx = int(np.argmax(self.resulting_rewards))  # rewards.index(max(rewards))
+            reward_idx = int(
+                np.argmax(self.resulting_rewards)
+            )  # rewards.index(max(rewards))
             best_action = self.tested_action[reward_idx]
         else:
             best_action = self.tested_action[0]

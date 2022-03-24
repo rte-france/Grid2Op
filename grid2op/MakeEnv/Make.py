@@ -45,47 +45,72 @@ TEST_DEV_ENVS = {
     "case14_fromfile": DEV_DATASET.format("rte_case14_test"),
 }
 
-_REQUEST_FAIL_EXHAUSTED_ERR = "Impossible to retrieve data at \"{}\".\n" \
-                              "If the problem persists, please contact grid2op developers by sending an issue at " \
-                              "https://github.com/rte-france/Grid2Op/issues"
-_REQUEST_FAIL_RETRY_ERR = "Failure to get a response from the url \"{}\".\n" \
-                          "Retrying... {} attempt(s) remaining"
-_REQUEST_EXCEPT_RETRY_ERR = "Exception in getting an answer from \"{}\".\n" \
-                            "Retrying... {} attempt(s) remaining"
+_REQUEST_FAIL_EXHAUSTED_ERR = (
+    'Impossible to retrieve data at "{}".\n'
+    "If the problem persists, please contact grid2op developers by sending an issue at "
+    "https://github.com/rte-france/Grid2Op/issues"
+)
+_REQUEST_FAIL_RETRY_ERR = (
+    'Failure to get a response from the url "{}".\n'
+    "Retrying... {} attempt(s) remaining"
+)
+_REQUEST_EXCEPT_RETRY_ERR = (
+    'Exception in getting an answer from "{}".\n' "Retrying... {} attempt(s) remaining"
+)
 
-_LIST_REMOTE_URL = "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/datasets.json"
+_LIST_REMOTE_URL = (
+    "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/datasets.json"
+)
 _LIST_REMOTE_KEY = "download_url"
-_LIST_REMOTE_INVALID_CONTENT_JSON_ERR = "Impossible to retrieve available datasets. " \
-                                        "File could not be converted to json. " \
-                                        "Parsing error:\n {}"
-_LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR = "Corrupted json retrieved from github api. " \
-                                         "Please wait a few minutes and try again. " \
-                                         "If the error persist, contact grid2op devs by making an issue at " \
-                                         "\n\thttps://github.com/rte-france/Grid2Op/issues/new/choose"
-_LIST_REMOTE_INVALID_DATASETS_JSON_ERR = "Impossible to retrieve available datasets. " \
-                                         "File could not be converted to json. " \
-                                         "The error was \n\"{}\""
+_LIST_REMOTE_INVALID_CONTENT_JSON_ERR = (
+    "Impossible to retrieve available datasets. "
+    "File could not be converted to json. "
+    "Parsing error:\n {}"
+)
+_LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR = (
+    "Corrupted json retrieved from github api. "
+    "Please wait a few minutes and try again. "
+    "If the error persist, contact grid2op devs by making an issue at "
+    "\n\thttps://github.com/rte-france/Grid2Op/issues/new/choose"
+)
+_LIST_REMOTE_INVALID_DATASETS_JSON_ERR = (
+    "Impossible to retrieve available datasets. "
+    "File could not be converted to json. "
+    'The error was \n"{}"'
+)
 
-_FETCH_ENV_UNKNOWN_ERR = "Impossible to find the environment named \"{}\".\n" \
-                         "Current available environments are:\n{}"
+_FETCH_ENV_UNKNOWN_ERR = (
+    'Impossible to find the environment named "{}".\n'
+    "Current available environments are:\n{}"
+)
 
 _MULTIMIX_FILE = ".multimix"
 
-_MAKE_DEV_ENV_WARN = "You are using a development environment. " \
-                     "This environment is not intended for training agents. It might not be up to date "\
-                     "and its primary use if for tests (hence the \"test=True\" you passed as argument). "\
-                     "Use at your own risk."
-_MAKE_DEV_ENV_DEPRECATED_WARN = "Dev env \"{}\" has been deprecated " \
-                                "and will be removed in future version.\n" \
-                                "Please update to dev envs starting by \"rte\" or \"l2rpn\""
-_MAKE_FIRST_TIME_WARN = "It is the first time you use the environment \"{}\".\n" \
-                        "We will attempt to download this environment from remote"
-_MAKE_UNKNOWN_ENV = "Impossible to load the environment named \"{}\"."
+_MAKE_DEV_ENV_WARN = (
+    "You are using a development environment. "
+    "This environment is not intended for training agents. It might not be up to date "
+    'and its primary use if for tests (hence the "test=True" you passed as argument). '
+    "Use at your own risk."
+)
+_MAKE_DEV_ENV_DEPRECATED_WARN = (
+    'Dev env "{}" has been deprecated '
+    "and will be removed in future version.\n"
+    'Please update to dev envs starting by "rte" or "l2rpn"'
+)
+_MAKE_FIRST_TIME_WARN = (
+    'It is the first time you use the environment "{}".\n'
+    "We will attempt to download this environment from remote"
+)
+_MAKE_UNKNOWN_ENV = 'Impossible to load the environment named "{}".'
 
-_EXTRACT_DS_NAME_CONVERT_ERR = "The \"dataset_name\" argument " \
-                               "should be convertible to string, " \
-                               "but \"{}\" was provided."
-_EXTRACT_DS_NAME_RECO_ERR = "Impossible to recognize the environment name from path \"{}\""
+_EXTRACT_DS_NAME_CONVERT_ERR = (
+    'The "dataset_name" argument '
+    "should be convertible to string, "
+    'but "{}" was provided.'
+)
+_EXTRACT_DS_NAME_RECO_ERR = (
+    'Impossible to recognize the environment name from path "{}"'
+)
 
 
 def _send_request_retry(url, nb_retry=10, gh_session=None):
@@ -104,17 +129,17 @@ def _send_request_retry(url, nb_retry=10, gh_session=None):
         response = gh_session.get(url=url)
         if response.status_code == 200:
             return response
-        warnings.warn(_REQUEST_FAIL_RETRY_ERR.format(url, nb_retry-1))
+        warnings.warn(_REQUEST_FAIL_RETRY_ERR.format(url, nb_retry - 1))
         time.sleep(1)
-        return _send_request_retry(url, nb_retry=nb_retry-1, gh_session=gh_session)
+        return _send_request_retry(url, nb_retry=nb_retry - 1, gh_session=gh_session)
     except Grid2OpException:
         raise
     except KeyboardInterrupt:
         raise
     except Exception as exc_:
-        warnings.warn(_REQUEST_EXCEPT_RETRY_ERR.format(url, nb_retry-1))
+        warnings.warn(_REQUEST_EXCEPT_RETRY_ERR.format(url, nb_retry - 1))
         time.sleep(1)
-        return _send_request_retry(url, nb_retry=nb_retry-1, gh_session=gh_session)
+        return _send_request_retry(url, nb_retry=nb_retry - 1, gh_session=gh_session)
 
 
 def _retrieve_github_content(url, is_json=True):
@@ -177,7 +202,9 @@ def _extract_ds_name(dataset_path):
     try:
         dataset_path = str(dataset_path)
     except Exception as exc_:
-        raise Grid2OpException(_EXTRACT_DS_NAME_CONVERT_ERR.format(dataset_path)) from exc_
+        raise Grid2OpException(
+            _EXTRACT_DS_NAME_CONVERT_ERR.format(dataset_path)
+        ) from exc_
 
     try:
         dataset_name = os.path.split(dataset_path)[-1]
@@ -194,31 +221,38 @@ def _aux_is_multimix(dataset_path):
     return False
 
 
-def _aux_make_multimix(dataset_path,
-                       test=False,
-                       experimental_read_from_local_dir=False,
-                       _add_to_name="",
-                       _compat_glop_version=None,
-                       logger=None,
-                       **kwargs):
+def _aux_make_multimix(
+    dataset_path,
+    test=False,
+    experimental_read_from_local_dir=False,
+    _add_to_name="",
+    _compat_glop_version=None,
+    logger=None,
+    **kwargs
+):
     # Local import to prevent imports loop
     from grid2op.Environment import MultiMixEnvironment
-    return MultiMixEnvironment(dataset_path,
-                               experimental_read_from_local_dir=experimental_read_from_local_dir,
-                               _test=test,
-                               _add_to_name=_add_to_name,
-                               _compat_glop_version=_compat_glop_version,
-                               logger=logger,
-                               **kwargs)
+
+    return MultiMixEnvironment(
+        dataset_path,
+        experimental_read_from_local_dir=experimental_read_from_local_dir,
+        _test=test,
+        _add_to_name=_add_to_name,
+        _compat_glop_version=_compat_glop_version,
+        logger=logger,
+        **kwargs
+    )
 
 
-def make(dataset="rte_case14_realistic",
-         test=False,
-         logger=None,
-         experimental_read_from_local_dir=False,
-         _add_to_name="",
-         _compat_glop_version=None,
-         **kwargs):
+def make(
+    dataset="rte_case14_realistic",
+    test=False,
+    logger=None,
+    experimental_read_from_local_dir=False,
+    _add_to_name="",
+    _compat_glop_version=None,
+    **kwargs
+):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -271,9 +305,11 @@ def make(dataset="rte_case14_realistic",
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
         if el not in accepted_kwargs:
-            raise Grid2OpException("The keyword argument \"{}\" you provided is invalid. Possible keyword "
-                                   "arguments to create environments are \"{}\"."
-                                   "".format(el, sorted(accepted_kwargs)))
+            raise Grid2OpException(
+                'The keyword argument "{}" you provided is invalid. Possible keyword '
+                'arguments to create environments are "{}".'
+                "".format(el, sorted(accepted_kwargs))
+            )
     # Select how to create the environment:
     # Default with make from path
     make_from_path_fn = make_from_dataset_path
@@ -294,28 +330,35 @@ def make(dataset="rte_case14_realistic",
         if _aux_is_multimix(dataset) and not test_tmp:
             make_from_path_fn = _aux_make_multimix
         elif _aux_is_multimix(dataset) and test_tmp:
+
             def make_from_path_fn_(*args, **kwargs):
                 if not "logger" in kwargs:
-                    kwargs["logger"] =  logger
+                    kwargs["logger"] = logger
                 if not "experimental_read_from_local_dir" in kwargs:
-                    kwargs["experimental_read_from_local_dir"] =  experimental_read_from_local_dir
-                return _aux_make_multimix(*args,
-                                          test=True,
-                                          **kwargs)
+                    kwargs[
+                        "experimental_read_from_local_dir"
+                    ] = experimental_read_from_local_dir
+                return _aux_make_multimix(*args, test=True, **kwargs)
 
             make_from_path_fn = make_from_path_fn_
         if not "logger" in kwargs:
-            kwargs["logger"] =  logger
+            kwargs["logger"] = logger
         if not "experimental_read_from_local_dir" in kwargs:
-            kwargs["experimental_read_from_local_dir"] =  experimental_read_from_local_dir
-        return make_from_path_fn(dataset_path=dataset,
-                                 _add_to_name=_add_to_name_tmp,
-                                 _compat_glop_version=_compat_glop_version_tmp,
-                                 **kwargs)
+            kwargs[
+                "experimental_read_from_local_dir"
+            ] = experimental_read_from_local_dir
+        return make_from_path_fn(
+            dataset_path=dataset,
+            _add_to_name=_add_to_name_tmp,
+            _compat_glop_version=_compat_glop_version_tmp,
+            **kwargs
+        )
 
     # Not a path: get the dataset name and cache path
     dataset_name = _extract_ds_name(dataset)
-    real_ds_path = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name)
+    real_ds_path = os.path.join(
+        grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name
+    )
 
     # Unknown dev env
     if test and dataset_name not in TEST_DEV_ENVS:
@@ -325,44 +368,59 @@ def make(dataset="rte_case14_realistic",
     if test:
         warnings.warn(_MAKE_DEV_ENV_WARN)
         # Warning for deprecated dev envs
-        if not (dataset_name.startswith("rte") or dataset_name.startswith("l2rpn") or dataset_name.startswith("educ")):
+        if not (
+            dataset_name.startswith("rte")
+            or dataset_name.startswith("l2rpn")
+            or dataset_name.startswith("educ")
+        ):
             warnings.warn(_MAKE_DEV_ENV_DEPRECATED_WARN.format(dataset_name))
         ds_path = TEST_DEV_ENVS[dataset_name]
         # Check if multimix from path
         if _aux_is_multimix(ds_path):
+
             def make_from_path_fn_(*args, **kwargs):
                 if "logger" not in kwargs:
-                    kwargs["logger"] = logger  # foward the logger if not present already
+                    kwargs[
+                        "logger"
+                    ] = logger  # foward the logger if not present already
                 return _aux_make_multimix(*args, test=True, **kwargs)
 
             make_from_path_fn = make_from_path_fn_
 
-        return make_from_path_fn(dataset_path=ds_path,
-                                 logger=logger,
-                                 _add_to_name=_add_to_name,
-                                 _compat_glop_version=_compat_glop_version,
-                                 experimental_read_from_local_dir=experimental_read_from_local_dir,
-                                 **kwargs)
+        return make_from_path_fn(
+            dataset_path=ds_path,
+            logger=logger,
+            _add_to_name=_add_to_name,
+            _compat_glop_version=_compat_glop_version,
+            experimental_read_from_local_dir=experimental_read_from_local_dir,
+            **kwargs
+        )
 
     # Env directory is present in the DEFAULT_PATH_DATA
     if os.path.exists(real_ds_path):
         if _aux_is_multimix(real_ds_path):
             make_from_path_fn = _aux_make_multimix
-        return make_from_path_fn(real_ds_path,
-                                 logger=logger,
-                                 experimental_read_from_local_dir=experimental_read_from_local_dir,
-                                 **kwargs)
+        return make_from_path_fn(
+            real_ds_path,
+            logger=logger,
+            experimental_read_from_local_dir=experimental_read_from_local_dir,
+            **kwargs
+        )
 
     # Env needs to be downloaded
     warnings.warn(_MAKE_FIRST_TIME_WARN.format(dataset_name))
     _create_path_folder(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA)
     url, ds_name_dl = _fecth_environments(dataset_name)
-    _aux_download(url, dataset_name, grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, ds_name_dl)
+    _aux_download(
+        url, dataset_name, grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, ds_name_dl
+    )
 
     # Check if multimix from path
     if _aux_is_multimix(real_ds_path):
         make_from_path_fn = _aux_make_multimix
-    return make_from_path_fn(dataset_path=real_ds_path,
-                             logger=logger,
-                             experimental_read_from_local_dir=experimental_read_from_local_dir,
-                             **kwargs)
+    return make_from_path_fn(
+        dataset_path=real_ds_path,
+        logger=logger,
+        experimental_read_from_local_dir=experimental_read_from_local_dir,
+        **kwargs
+    )

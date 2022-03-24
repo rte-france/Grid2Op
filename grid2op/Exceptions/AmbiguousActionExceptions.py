@@ -25,6 +25,7 @@ class AmbiguousAction(Grid2OpException):
 
     It doesn't depend on the implemented rules.
     """
+
     pass
 
 
@@ -33,6 +34,7 @@ class InvalidLineStatus(AmbiguousAction):
     This is a more precise exception than :class:`AmbiguousAction` indicating that the
      :class:`grid2op.BaseAction.BaseAction` is ambiguous due to powerlines manipulation.
     """
+
     pass
 
 
@@ -41,6 +43,7 @@ class InvalidStorage(AmbiguousAction):
     This is a more precise exception than :class:`AmbiguousAction` indicating that the
      :class:`grid2op.BaseAction.BaseAction` is ambiguous due to storage unit manipulation.
     """
+
     pass
 
 
@@ -49,6 +52,7 @@ class UnrecognizedAction(AmbiguousAction):
     This is a more precise exception than :class:`AmbiguousAction` indicating that the
     :class:`grid2op.BaseAction.BaseAction` is  ambiguous due to the bad formatting of the action.
     """
+
     pass
 
 
@@ -57,6 +61,7 @@ class InvalidNumberOfLoads(AmbiguousAction):
     This is a more precise exception than :class:`AmbiguousAction` indicating that
     the :class:`grid2op.BaseAction.BaseAction` is ambiguous because an incorrect number of loads tries to be modified.
     """
+
     pass
 
 
@@ -66,6 +71,7 @@ class InvalidNumberOfGenerators(AmbiguousAction):
     the :class:`grid2op.BaseAction.BaseAction`
     is ambiguous because an incorrect number of generator tries to be modified.
     """
+
     pass
 
 
@@ -75,6 +81,7 @@ class InvalidNumberOfLines(AmbiguousAction):
     the :class:`grid2op.BaseAction.BaseAction`
     is ambiguous because an incorrect number of lines tries to be modified.
     """
+
     pass
 
 
@@ -84,6 +91,7 @@ class InvalidNumberOfObjectEnds(AmbiguousAction):
     the :class:`grid2op.BaseAction.BaseAction`
     is ambiguous because an incorrect number of object at a substation try to be modified.
     """
+
     pass
 
 
@@ -93,6 +101,7 @@ class InvalidBusStatus(AmbiguousAction):
     the :class:`grid2op.BaseAction.BaseAction`
     try to both "set" and "switch" some bus to which an object is connected.
     """
+
     pass
 
 
@@ -102,6 +111,7 @@ class InvalidRedispatching(AmbiguousAction):
     the :class:`grid2op.BaseAction.BaseAction`
     try to apply an invalid redispatching strategy.
     """
+
     pass
 
 
@@ -111,6 +121,7 @@ class InvalidCurtailment(AmbiguousAction):
     the :class:`grid2op.BaseAction.BaseAction`
     try to apply an invalid curtailment strategy.
     """
+
     pass
 
 
@@ -119,6 +130,7 @@ class GeneratorTurnedOnTooSoon(InvalidRedispatching):
     This is a more precise exception than :class:`AmbiguousAction` indicating that a generator has been turned on
     before gen_min_up_time time steps.
     """
+
     pass
 
 
@@ -127,6 +139,7 @@ class GeneratorTurnedOffTooSoon(InvalidRedispatching):
     This is a more precise exception than :class:`AmbiguousAction` indicating that a generator has been turned off
     before gen_min_down_time time steps.
     """
+
     pass
 
 
@@ -135,6 +148,7 @@ class NotEnoughGenerators(InvalidRedispatching):
     This is a more precise exception than :class:`AmbiguousAction` indicating that there is not enough turned off
     generators to meet the demand.
     """
+
     pass
 
 
@@ -144,4 +158,5 @@ class NonFiniteElement(InvalidRedispatching):
     non initialized (full of Nan)
     has been loaded by the "from_vect" method.
     """
+
     pass

@@ -44,6 +44,7 @@ class L2RPNReward(BaseReward):
         # the reward is computed with the L2RPNReward class
 
     """
+
     def __init__(self):
         BaseReward.__init__(self)
 
@@ -69,5 +70,7 @@ class L2RPNReward(BaseReward):
         relative_flow = np.divide(ampere_flows, thermal_limits, dtype=dt_float)
 
         x = np.minimum(relative_flow, dt_float(1.0))
-        lines_capacity_usage_score = np.maximum(dt_float(1.0) - x ** 2, np.zeros(x.shape, dtype=dt_float))
+        lines_capacity_usage_score = np.maximum(
+            dt_float(1.0) - x**2, np.zeros(x.shape, dtype=dt_float)
+        )
         return lines_capacity_usage_score

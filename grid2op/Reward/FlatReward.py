@@ -32,6 +32,7 @@ class FlatReward(BaseReward):
         # the reward is computed with the FlatReward class
 
     """
+
     def __init__(self, per_timestep=1):
         BaseReward.__init__(self)
         self.per_timestep = dt_float(per_timestep)

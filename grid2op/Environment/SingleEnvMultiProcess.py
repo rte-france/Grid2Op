@@ -73,12 +73,17 @@ class SingleEnvMultiProcess(BaseMultiProcessEnvironment):
         env.close()
 
     """
+
     def __init__(self, env, nb_env, obs_as_class=True, return_info=True, logger=None):
         envs = [env for _ in range(nb_env)]
-        super().__init__(envs,
-                         obs_as_class=obs_as_class,
-                         return_info=return_info,
-                         logger=logger.getChild("SingleEnvMultiProcess") if logger is not None else None)
+        super().__init__(
+            envs,
+            obs_as_class=obs_as_class,
+            return_info=return_info,
+            logger=logger.getChild("SingleEnvMultiProcess")
+            if logger is not None
+            else None,
+        )
 
 
 if __name__ == "__main__":
@@ -99,11 +104,13 @@ if __name__ == "__main__":
     rews = [env.reward_range[0] for i in range(nb_env)]
     dones = [False for i in range(nb_env)]
 
-    total_reward = 0.
+    total_reward = 0.0
     for i in tqdm(range(NB_STEP)):
         acts = [None for _ in range(nb_env)]
         for env_act_id in range(nb_env):
-            acts[env_act_id] = agent.act(obs[env_act_id], rews[env_act_id], dones[env_act_id])
+            acts[env_act_id] = agent.act(
+                obs[env_act_id], rews[env_act_id], dones[env_act_id]
+            )
         obs, rews, dones, infos = multi_envs.step(acts)
         total_reward += np.sum(rews)
         len(rews)

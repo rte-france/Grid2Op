@@ -16,6 +16,7 @@ class RecoPowerlineAgent(GreedyAgent):
     highest simulated reward.
 
     """
+
     def __init__(self, action_space):
         GreedyAgent.__init__(self, action_space)
 
@@ -25,5 +26,8 @@ class RecoPowerlineAgent(GreedyAgent):
         cooldown = observation.time_before_cooldown_line
         can_be_reco = ~line_stat_s & (cooldown == 0)
         if np.any(can_be_reco):
-            res = [self.action_space({"set_line_status": [(id_, +1)]}) for id_ in np.where(can_be_reco)[0]]
+            res = [
+                self.action_space({"set_line_status": [(id_, +1)]})
+                for id_ in np.where(can_be_reco)[0]
+            ]
         return res

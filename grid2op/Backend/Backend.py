@@ -17,8 +17,17 @@ import numpy as np
 import pandas as pd
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Exceptions import EnvError, DivergingPowerFlow, IncorrectNumberOfElements, IncorrectNumberOfLoads
-from grid2op.Exceptions import IncorrectNumberOfGenerators, BackendError, IncorrectNumberOfLines
+from grid2op.Exceptions import (
+    EnvError,
+    DivergingPowerFlow,
+    IncorrectNumberOfElements,
+    IncorrectNumberOfLoads,
+)
+from grid2op.Exceptions import (
+    IncorrectNumberOfGenerators,
+    BackendError,
+    IncorrectNumberOfLines,
+)
 from grid2op.Space import GridObjects
 from grid2op.Exceptions import Grid2OpException
 
@@ -104,12 +113,14 @@ class Backend(GridObjects, ABC):
         Time to compute the powerflow (might be unset, ie stay at 0.0)
 
     """
+
     env_name = "unknown"
 
     # action to set me
     my_bk_act_class = None
     _complete_action_class = None
 
+    ERR_INIT_POWERFLOW = "Power cannot be computed on the first time step, please check your data."
     def __init__(self, detailed_infos_for_cascading_failures=False):
         """
         Initialize an instance of Backend. This does nothing per se. Only the call to :func:`Backend.load_grid`
@@ -123,7 +134,9 @@ class Backend(GridObjects, ABC):
 
         # the following parameter is used to control the amount of verbosity when computing a cascading failure
         # if it's set to true, it returns all intermediate _grid states. This can slow down the computation!
-        self.detailed_infos_for_cascading_failures = detailed_infos_for_cascading_failures
+        self.detailed_infos_for_cascading_failures = (
+            detailed_infos_for_cascading_failures
+        )
 
         # the power _grid manipulated. One powergrid per backend.
         self._grid = None
@@ -135,7 +148,7 @@ class Backend(GridObjects, ABC):
         self._sh_vnkv = None  # for each shunt gives the nominal value at the bus at which it is connected
         # if this information is not present, then "get_action_to_set" might not behave correctly
 
-        self.comp_time = 0.
+        self.comp_time = 0.0
         self.can_output_theta = False
 
         # to prevent the use of the same backend instance in different environment.
@@ -150,7 +163,7 @@ class Backend(GridObjects, ABC):
         if value is True:
             self._is_loaded = True
         else:
-            raise BackendError("Impossible to unset the \"is_loaded\" status.")
+            raise BackendError('Impossible to unset the "is_loaded" status.')
 
     @abstractmethod
     def load_grid(self, path, filename=None):
@@ -408,7 +421,7 @@ class Backend(GridObjects, ABC):
         For backwards compatibility this method calls `Backend.load_grid`.
         But it is encouraged to overload it in the subclasses.
         """
-        self.comp_time = 0.
+        self.comp_time = 0.0
         self.load_grid(grid_path, filename=grid_filename)
 
     def copy(self):
@@ -480,7 +493,9 @@ class Backend(GridObjects, ABC):
         :rtype: np.array, dtype:bool
         """
         topo_vect = self.get_topo_vect()
-        return (topo_vect[self.line_or_pos_topo_vect] >= 0) & (topo_vect[self.line_ex_pos_topo_vect] >= 0)
+        return (topo_vect[self.line_or_pos_topo_vect] >= 0) & (
+            topo_vect[self.line_ex_pos_topo_vect] >= 0
+        )
 
     def get_line_flow(self):
         """
@@ -543,22 +558,30 @@ class Backend(GridObjects, ABC):
         """
         if isinstance(limits, np.ndarray):
             if limits.shape[0] == self.n_line:
-                self.thermal_limit_a = 1. * limits.astype(dt_float)
+                self.thermal_limit_a = 1.0 * limits.astype(dt_float)
         elif isinstance(limits, dict):
             for el in limits.keys():
                 if not el in self.name_line:
-                    raise BackendError("You asked to modify the thermal limit of powerline named \"{}\" that is not "
-                                       "on the grid. Names of powerlines are {}".format(el, self.name_line))
+                    raise BackendError(
+                        'You asked to modify the thermal limit of powerline named "{}" that is not '
+                        "on the grid. Names of powerlines are {}".format(
+                            el, self.name_line
+                        )
+                    )
             for i, el in self.name_line:
                 if el in limits:
                     try:
                         tmp = dt_float(limits[el])
                     except:
-                        raise BackendError("Impossible to convert data ({}) for powerline named \"{}\" into float "
-                                           "values".format(limits[el], el))
+                        raise BackendError(
+                            'Impossible to convert data ({}) for powerline named "{}" into float '
+                            "values".format(limits[el], el)
+                        )
                     if tmp <= 0:
-                        raise BackendError("New thermal limit for powerlines \"{}\" is not positive ({})"
-                                           "".format(el, tmp))
+                        raise BackendError(
+                            'New thermal limit for powerlines "{}" is not positive ({})'
+                            "".format(el, tmp)
+                        )
                     self.thermal_limit_a[i] = tmp
 
     def update_thermal_limit(self, env):
@@ -713,7 +736,9 @@ class Backend(GridObjects, ABC):
         storage_theta: ``numpy.ndarray``
             Gives the voltage angle to the bus at which each storage unit is connected
         """
-        raise NotImplementedError("Your backend does not support the retrieval of the voltage angle theta.")
+        raise NotImplementedError(
+            "Your backend does not support the retrieval of the voltage angle theta."
+        )
 
     def sub_from_bus_id(self, bus_id):
         """
@@ -734,7 +759,9 @@ class Backend(GridObjects, ABC):
             The substation to which an object connected to bus with id `bus_id` is connected to.
 
         """
-        raise BackendError("This backend doesn't allow to get the substation from the bus id.")
+        raise BackendError(
+            "This backend doesn't allow to get the substation from the bus id."
+        )
 
     def _disconnect_line(self, id_):
         """
@@ -793,12 +820,16 @@ class Backend(GridObjects, ABC):
         except Grid2OpException as exc_:
             exc_me = exc_
         except Exception as exc_:
-            exc_me = DivergingPowerFlow(f" An unexpected error occurred during the computation of the powerflow."
-                                        f"The error is: \n {exc_} \n. This is game over")
+            exc_me = DivergingPowerFlow(
+                f" An unexpected error occurred during the computation of the powerflow."
+                f"The error is: \n {exc_} \n. This is game over"
+            )
 
         if not conv and exc_me is None:
-            exc_me = DivergingPowerFlow("GAME OVER: Powerflow has diverged during computation "
-                                        "or a load has been disconnected or a generator has been disconnected.")
+            exc_me = DivergingPowerFlow(
+                "GAME OVER: Powerflow has diverged during computation "
+                "or a load has been disconnected or a generator has been disconnected."
+            )
         return exc_me
 
     def next_grid_state(self, env, is_dc=False):
@@ -848,11 +879,16 @@ class Backend(GridObjects, ABC):
             lines_status = self.get_line_status()
 
             # a) disconnect lines on hard overflow (that are still connected)
-            to_disc = (lines_flows > env._hard_overflow_threshold * thermal_limits) & lines_status
+            to_disc = (
+                lines_flows > env._hard_overflow_threshold * thermal_limits
+            ) & lines_status
 
             # b) deals with soft overflow (disconnect them if lines still connected)
             init_time_step_overflow[(lines_flows >= thermal_limits) & lines_status] += 1
-            to_disc[(init_time_step_overflow > env._nb_timestep_overflow_allowed) & lines_status] = True
+            to_disc[
+                (init_time_step_overflow > env._nb_timestep_overflow_allowed)
+                & lines_status
+            ] = True
 
             # disconnect the current power lines
             if np.sum(to_disc[lines_status]) == 0:
@@ -895,7 +931,9 @@ class Backend(GridObjects, ABC):
             The voltage magnitude of the bus to which each load is connected (in kV)
         """
         if self.n_storage > 0:
-            raise BackendError("storages_info method is not implemented yet there is batteries on the grid.")
+            raise BackendError(
+                "storages_info method is not implemented yet there is batteries on the grid."
+            )
 
     def storage_deact_for_backward_comaptibility(self):
         """
@@ -964,7 +1002,9 @@ class Backend(GridObjects, ABC):
         # check for each bus
         p_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
         q_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
-        v_bus = np.zeros((self.n_sub, 2, 2), dtype=dt_float) - 1.  # sub, busbar, [min,max]
+        v_bus = (
+            np.zeros((self.n_sub, 2, 2), dtype=dt_float) - 1.0
+        )  # sub, busbar, [min,max]
         topo_vect = self.get_topo_vect()
 
         # bellow i'm "forced" to do a loop otherwise, numpy do not compute the "+=" the way I want it to.
@@ -980,42 +1020,110 @@ class Backend(GridObjects, ABC):
             q_subs[self.line_ex_to_subid[i]] += q_ex[i]
 
             # for bus
-            p_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1] += p_or[i]
-            q_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1] += q_or[i]
+            p_bus[
+                self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1
+            ] += p_or[i]
+            q_bus[
+                self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1
+            ] += q_or[i]
 
-            p_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1] += p_ex[i]
-            q_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1] += q_ex[i]
+            p_bus[
+                self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1
+            ] += p_ex[i]
+            q_bus[
+                self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1
+            ] += q_ex[i]
 
             # fill the min / max voltage per bus (initialization)
-            if v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0] == -1:
-                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0] = v_or[i]
-            if v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0] == -1:
-                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0] = v_ex[i]
-            if v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1] == -1:
-                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1] = v_or[i]
-            if v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1] == -1:
-                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1] = v_ex[i]
+            if (
+                v_bus[
+                    self.line_or_to_subid[i],
+                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
+                ][0]
+                == -1
+            ):
+                v_bus[
+                    self.line_or_to_subid[i],
+                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
+                ][0] = v_or[i]
+            if (
+                v_bus[
+                    self.line_ex_to_subid[i],
+                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
+                ][0]
+                == -1
+            ):
+                v_bus[
+                    self.line_ex_to_subid[i],
+                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
+                ][0] = v_ex[i]
+            if (
+                v_bus[
+                    self.line_or_to_subid[i],
+                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
+                ][1]
+                == -1
+            ):
+                v_bus[
+                    self.line_or_to_subid[i],
+                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
+                ][1] = v_or[i]
+            if (
+                v_bus[
+                    self.line_ex_to_subid[i],
+                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
+                ][1]
+                == -1
+            ):
+                v_bus[
+                    self.line_ex_to_subid[i],
+                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
+                ][1] = v_ex[i]
 
             # now compute the correct stuff
-            if v_or[i] > 0.:
+            if v_or[i] > 0.0:
                 # line is connected
-                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0] = min(
-                    v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0],
-                    v_or[i]
+                v_bus[
+                    self.line_or_to_subid[i],
+                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
+                ][0] = min(
+                    v_bus[
+                        self.line_or_to_subid[i],
+                        topo_vect[self.line_or_pos_topo_vect[i]] - 1,
+                    ][0],
+                    v_or[i],
                 )
-                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1] = max(
-                    v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1],
-                    v_or[i]
+                v_bus[
+                    self.line_or_to_subid[i],
+                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
+                ][1] = max(
+                    v_bus[
+                        self.line_or_to_subid[i],
+                        topo_vect[self.line_or_pos_topo_vect[i]] - 1,
+                    ][1],
+                    v_or[i],
                 )
             if v_ex[i] > 0:
                 # line is connected
-                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0] = min(
-                    v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0],
-                    v_ex[i]
+                v_bus[
+                    self.line_ex_to_subid[i],
+                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
+                ][0] = min(
+                    v_bus[
+                        self.line_ex_to_subid[i],
+                        topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
+                    ][0],
+                    v_ex[i],
                 )
-                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1] = max(
-                    v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1],
-                    v_ex[i]
+                v_bus[
+                    self.line_ex_to_subid[i],
+                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
+                ][1] = max(
+                    v_bus[
+                        self.line_ex_to_subid[i],
+                        topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
+                    ][1],
+                    v_ex[i],
                 )
 
         for i in range(self.n_gen):
@@ -1024,19 +1132,31 @@ class Backend(GridObjects, ABC):
             q_subs[self.gen_to_subid[i]] -= q_gen[i]
 
             # for bus
-            p_bus[self.gen_to_subid[i],  topo_vect[self.gen_pos_topo_vect[i]]-1] -= p_gen[i]
-            q_bus[self.gen_to_subid[i],  topo_vect[self.gen_pos_topo_vect[i]]-1] -= q_gen[i]
+            p_bus[
+                self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1
+            ] -= p_gen[i]
+            q_bus[
+                self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1
+            ] -= q_gen[i]
 
             # compute max and min values
             if v_gen[i]:
                 # but only if gen is connected
-                v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][0] = min(
-                    v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][0],
-                    v_gen[i]
+                v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][
+                    0
+                ] = min(
+                    v_bus[
+                        self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1
+                    ][0],
+                    v_gen[i],
                 )
-                v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][1] = max(
-                    v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][1],
-                    v_gen[i]
+                v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][
+                    1
+                ] = max(
+                    v_bus[
+                        self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1
+                    ][1],
+                    v_gen[i],
                 )
 
         for i in range(self.n_load):
@@ -1045,37 +1165,65 @@ class Backend(GridObjects, ABC):
             q_subs[self.load_to_subid[i]] += q_load[i]
 
             # for buses
-            p_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += p_load[i]
-            q_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += q_load[i]
+            p_bus[
+                self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1
+            ] += p_load[i]
+            q_bus[
+                self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1
+            ] += q_load[i]
 
             # compute max and min values
             if v_load[i]:
                 # but only if load is connected
-                v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][0] = min(
-                    v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][0],
-                    v_load[i]
+                v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][
+                    0
+                ] = min(
+                    v_bus[
+                        self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1
+                    ][0],
+                    v_load[i],
                 )
-                v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][1] = max(
-                    v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][1],
-                    v_load[i]
+                v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][
+                    1
+                ] = max(
+                    v_bus[
+                        self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1
+                    ][1],
+                    v_load[i],
                 )
 
         for i in range(self.n_storage):
             p_subs[self.storage_to_subid[i]] += p_storage[i]
             q_subs[self.storage_to_subid[i]] += q_storage[i]
-            p_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]]-1] += p_storage[i]
-            q_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]]-1] += q_storage[i]
+            p_bus[
+                self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1
+            ] += p_storage[i]
+            q_bus[
+                self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1
+            ] += q_storage[i]
 
             # compute max and min values
             if v_storage[i] > 0:
                 # the storage unit is connected
-                v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][0] = min(
-                    v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][0],
-                    v_storage[i]
+                v_bus[
+                    self.storage_to_subid[i],
+                    topo_vect[self.storage_pos_topo_vect[i]] - 1,
+                ][0] = min(
+                    v_bus[
+                        self.storage_to_subid[i],
+                        topo_vect[self.storage_pos_topo_vect[i]] - 1,
+                    ][0],
+                    v_storage[i],
                 )
-                v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][1] = max(
-                    v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][1],
-                    v_storage[i]
+                v_bus[
+                    self.storage_to_subid[i],
+                    topo_vect[self.storage_pos_topo_vect[i]] - 1,
+                ][1] = max(
+                    v_bus[
+                        self.storage_to_subid[i],
+                        topo_vect[self.storage_pos_topo_vect[i]] - 1,
+                    ][1],
+                    v_storage[i],
                 )
 
         if self.shunts_data_available:
@@ -1091,21 +1239,21 @@ class Backend(GridObjects, ABC):
 
                 # compute max and min values
                 v_bus[self.shunt_to_subid[i], bus_s[i] - 1][0] = min(
-                    v_bus[self.shunt_to_subid[i], bus_s[i] - 1][0],
-                    v_s[i]
+                    v_bus[self.shunt_to_subid[i], bus_s[i] - 1][0], v_s[i]
                 )
                 v_bus[self.shunt_to_subid[i], bus_s[i] - 1][1] = max(
-                    v_bus[self.shunt_to_subid[i], bus_s[i] - 1][1],
-                    v_s[i]
+                    v_bus[self.shunt_to_subid[i], bus_s[i] - 1][1], v_s[i]
                 )
         else:
-            warnings.warn("Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
-                          "incorrect.")
+            warnings.warn(
+                "Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
+                "incorrect."
+            )
         diff_v_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
         diff_v_bus[:, :] = v_bus[:, :, 1] - v_bus[:, :, 0]
         return p_subs, q_subs, p_bus, q_bus, diff_v_bus
 
-    def load_redispacthing_data(self, path, name='prods_charac.csv'):
+    def load_redispacthing_data(self, path, name="prods_charac.csv"):
         """
         INTERNAL
 
@@ -1153,60 +1301,87 @@ class Backend(GridObjects, ABC):
         try:
             df = pd.read_csv(fullpath, sep=",")
         except Exception as exc_:
-            warnings.warn(f"Impossible to load the redispatching data for this environment with error:\n\"{exc_}\"\n"
-                          f"Redispatching will be unavailable.\n"
-                          f"Please make sure \"{name}\" file is a csv (coma ',') separated file.")
+            warnings.warn(
+                f'Impossible to load the redispatching data for this environment with error:\n"{exc_}"\n'
+                f"Redispatching will be unavailable.\n"
+                f"Please make sure \"{name}\" file is a csv (coma ',') separated file."
+            )
             return
 
-        mandatory_columns = ["type", "Pmax", "Pmin", "max_ramp_up", "max_ramp_down", "start_cost",
-                             "shut_down_cost", "marginal_cost", "min_up_time", "min_down_time"]
+        mandatory_columns = [
+            "type",
+            "Pmax",
+            "Pmin",
+            "max_ramp_up",
+            "max_ramp_down",
+            "start_cost",
+            "shut_down_cost",
+            "marginal_cost",
+            "min_up_time",
+            "min_down_time",
+        ]
         for el in mandatory_columns:
             if el not in df.columns:
-                warnings.warn(f"Impossible to load the redispatching data for this environment because"
-                              f"one of the mandatory column is not present ({el}). Please check the file "
-                              f"\"{name}\" contains all the mandatory columns: {mandatory_columns}")
+                warnings.warn(
+                    f"Impossible to load the redispatching data for this environment because"
+                    f"one of the mandatory column is not present ({el}). Please check the file "
+                    f'"{name}" contains all the mandatory columns: {mandatory_columns}'
+                )
                 return
 
         gen_info = {}
         for _, row in df.iterrows():
-            gen_info[row["name"]] = {"type": row["type"],
-                                     "pmax": row["Pmax"],
-                                     "pmin": row["Pmin"],
-                                     "max_ramp_up": row["max_ramp_up"],
-                                     "max_ramp_down": row["max_ramp_down"],
-                                     "start_cost": row["start_cost"],
-                                     "shut_down_cost": row["shut_down_cost"],
-                                     "marginal_cost": row["marginal_cost"],
-                                     "min_up_time": row["min_up_time"],
-                                     "min_down_time": row["min_down_time"]
-                                     }
+            gen_info[row["name"]] = {
+                "type": row["type"],
+                "pmax": row["Pmax"],
+                "pmin": row["Pmin"],
+                "max_ramp_up": row["max_ramp_up"],
+                "max_ramp_down": row["max_ramp_down"],
+                "start_cost": row["start_cost"],
+                "shut_down_cost": row["shut_down_cost"],
+                "marginal_cost": row["marginal_cost"],
+                "min_up_time": row["min_up_time"],
+                "min_down_time": row["min_down_time"],
+            }
         self.redispatching_unit_commitment_availble = True
 
         self.gen_type = np.full(self.n_gen, fill_value="aaaaaaaaaa")
-        self.gen_pmin = np.full(self.n_gen, fill_value=1., dtype=dt_float)
-        self.gen_pmax = np.full(self.n_gen, fill_value=1., dtype=dt_float)
+        self.gen_pmin = np.full(self.n_gen, fill_value=1.0, dtype=dt_float)
+        self.gen_pmax = np.full(self.n_gen, fill_value=1.0, dtype=dt_float)
         self.gen_redispatchable = np.full(self.n_gen, fill_value=False, dtype=dt_bool)
-        self.gen_max_ramp_up = np.full(self.n_gen, fill_value=0., dtype=dt_float)
-        self.gen_max_ramp_down = np.full(self.n_gen, fill_value=0., dtype=dt_float)
+        self.gen_max_ramp_up = np.full(self.n_gen, fill_value=0.0, dtype=dt_float)
+        self.gen_max_ramp_down = np.full(self.n_gen, fill_value=0.0, dtype=dt_float)
         self.gen_min_uptime = np.full(self.n_gen, fill_value=-1, dtype=dt_int)
         self.gen_min_downtime = np.full(self.n_gen, fill_value=-1, dtype=dt_int)
-        self.gen_cost_per_MW = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # marginal cost
-        self.gen_startup_cost = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # start cost
-        self.gen_shutdown_cost = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # shutdown cost
+        self.gen_cost_per_MW = np.full(
+            self.n_gen, fill_value=1.0, dtype=dt_float
+        )  # marginal cost
+        self.gen_startup_cost = np.full(
+            self.n_gen, fill_value=1.0, dtype=dt_float
+        )  # start cost
+        self.gen_shutdown_cost = np.full(
+            self.n_gen, fill_value=1.0, dtype=dt_float
+        )  # shutdown cost
         self.gen_renewable = np.full(self.n_gen, fill_value=False, dtype=dt_bool)
 
         for i, gen_nm in enumerate(self.name_gen):
             try:
                 tmp_gen = gen_info[gen_nm]
             except KeyError as exc_:
-                raise BackendError(f"Impossible to load the redispatching data. The generator {i} with name {gen_nm} "
-                                   f"could not be located on the description file \"{name}\".")
+                raise BackendError(
+                    f"Impossible to load the redispatching data. The generator {i} with name {gen_nm} "
+                    f'could not be located on the description file "{name}".'
+                )
             self.gen_type[i] = str(tmp_gen["type"])
-            self.gen_pmin[i] = self._aux_check_finite_float(tmp_gen["pmin"],
-                                                            f" for gen. \"{gen_nm}\" and column \"pmin\"")
-            self.gen_pmax[i] = self._aux_check_finite_float(tmp_gen["pmax"],
-                                                            f" for gen. \"{gen_nm}\" and column \"pmax\"")
-            self.gen_redispatchable[i] = dt_bool(tmp_gen["type"] not in ["wind", "solar"])
+            self.gen_pmin[i] = self._aux_check_finite_float(
+                tmp_gen["pmin"], f' for gen. "{gen_nm}" and column "pmin"'
+            )
+            self.gen_pmax[i] = self._aux_check_finite_float(
+                tmp_gen["pmax"], f' for gen. "{gen_nm}" and column "pmax"'
+            )
+            self.gen_redispatchable[i] = dt_bool(
+                tmp_gen["type"] not in ["wind", "solar"]
+            )
             tmp = dt_float(tmp_gen["max_ramp_up"])
             if np.isfinite(tmp):
                 self.gen_max_ramp_up[i] = tmp
@@ -1220,7 +1395,7 @@ class Backend(GridObjects, ABC):
             self.gen_shutdown_cost[i] = dt_float(tmp_gen["shut_down_cost"])
             self.gen_renewable[i] = dt_bool(tmp_gen["type"] in ["wind", "solar"])
 
-    def load_storage_data(self, path, name='storage_units_charac.csv'):
+    def load_storage_data(self, path, name="storage_units_charac.csv"):
         """
         INTERNAL
 
@@ -1277,82 +1452,122 @@ class Backend(GridObjects, ABC):
         # for storage unit information
         fullpath = os.path.join(path, name)
         if not os.path.exists(fullpath):
-            raise BackendError(f"There are storage unit on the grid, yet we could not locate their description."
-                               f"Please make sure to have a file \"{name}\" where the environment data are located."
-                               f"For this environment the location is \"{path}\"")
+            raise BackendError(
+                f"There are storage unit on the grid, yet we could not locate their description."
+                f'Please make sure to have a file "{name}" where the environment data are located.'
+                f'For this environment the location is "{path}"'
+            )
 
         try:
             df = pd.read_csv(fullpath)
         except Exception as exc_:
-            raise BackendError(f"There are storage unit on the grid, yet we could not locate their description."
-                               f"Please make sure to have a file \"{name}\" where the environment data are located."
-                               f"For this environment the location is \"{path}\"")
-        mandatory_colnames = ["name", "type", "Emax", "Emin", "max_p_prod", "max_p_absorb",
-                              "marginal_cost"]
+            raise BackendError(
+                f"There are storage unit on the grid, yet we could not locate their description."
+                f'Please make sure to have a file "{name}" where the environment data are located.'
+                f'For this environment the location is "{path}"'
+            )
+        mandatory_colnames = [
+            "name",
+            "type",
+            "Emax",
+            "Emin",
+            "max_p_prod",
+            "max_p_absorb",
+            "marginal_cost",
+        ]
         for el in mandatory_colnames:
             if el not in df.columns:
-                raise BackendError(f"There are storage unit on the grid, yet we could not properly load their "
-                                   f"description. Please make sure the csv {name} contains all the columns "
-                                   f"{mandatory_colnames}")
+                raise BackendError(
+                    f"There are storage unit on the grid, yet we could not properly load their "
+                    f"description. Please make sure the csv {name} contains all the columns "
+                    f"{mandatory_colnames}"
+                )
 
         stor_info = {}
         for _, row in df.iterrows():
-            stor_info[row["name"]] = {"name": row["name"],
-                                      "type": row["type"],
-                                      "Emax": row["Emax"],
-                                      "Emin": row["Emin"],
-                                      "max_p_prod": row["max_p_prod"],
-                                      "max_p_absorb": row["max_p_absorb"],
-                                      "marginal_cost": row["marginal_cost"]
-                                      }
+            stor_info[row["name"]] = {
+                "name": row["name"],
+                "type": row["type"],
+                "Emax": row["Emax"],
+                "Emin": row["Emin"],
+                "max_p_prod": row["max_p_prod"],
+                "max_p_absorb": row["max_p_absorb"],
+                "marginal_cost": row["marginal_cost"],
+            }
             if "power_loss" in row:
                 stor_info[row["name"]]["power_loss"] = row["power_loss"]
             else:
-                stor_info[row["name"]]["power_loss"] = 0.
+                stor_info[row["name"]]["power_loss"] = 0.0
             if "charging_efficiency" in row:
-                stor_info[row["name"]]["charging_efficiency"] = row["charging_efficiency"]
+                stor_info[row["name"]]["charging_efficiency"] = row[
+                    "charging_efficiency"
+                ]
             else:
-                stor_info[row["name"]]["charging_efficiency"] = 1.
+                stor_info[row["name"]]["charging_efficiency"] = 1.0
             if "discharging_efficiency" in row:
-                stor_info[row["name"]]["discharging_efficiency"] = row["discharging_efficiency"]
+                stor_info[row["name"]]["discharging_efficiency"] = row[
+                    "discharging_efficiency"
+                ]
             else:
-                stor_info[row["name"]]["discharging_efficiency"] = 1.
+                stor_info[row["name"]]["discharging_efficiency"] = 1.0
 
         self.storage_type = np.full(self.n_storage, fill_value="aaaaaaaaaa")
-        self.storage_Emax = np.full(self.n_storage, fill_value=1., dtype=dt_float)
-        self.storage_Emin = np.full(self.n_storage, fill_value=0., dtype=dt_float)
-        self.storage_max_p_prod = np.full(self.n_storage, fill_value=1., dtype=dt_float)
-        self.storage_max_p_absorb = np.full(self.n_storage, fill_value=1., dtype=dt_float)
-        self.storage_marginal_cost = np.full(self.n_storage, fill_value=1., dtype=dt_float)
-        self.storage_loss = np.full(self.n_storage, fill_value=0., dtype=dt_float)
-        self.storage_charging_efficiency = np.full(self.n_storage, fill_value=1., dtype=dt_float)
-        self.storage_discharging_efficiency = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_Emax = np.full(self.n_storage, fill_value=1.0, dtype=dt_float)
+        self.storage_Emin = np.full(self.n_storage, fill_value=0.0, dtype=dt_float)
+        self.storage_max_p_prod = np.full(
+            self.n_storage, fill_value=1.0, dtype=dt_float
+        )
+        self.storage_max_p_absorb = np.full(
+            self.n_storage, fill_value=1.0, dtype=dt_float
+        )
+        self.storage_marginal_cost = np.full(
+            self.n_storage, fill_value=1.0, dtype=dt_float
+        )
+        self.storage_loss = np.full(self.n_storage, fill_value=0.0, dtype=dt_float)
+        self.storage_charging_efficiency = np.full(
+            self.n_storage, fill_value=1.0, dtype=dt_float
+        )
+        self.storage_discharging_efficiency = np.full(
+            self.n_storage, fill_value=1.0, dtype=dt_float
+        )
 
         for i, sto_nm in enumerate(self.name_storage):
             try:
                 tmp_sto = stor_info[sto_nm]
             except KeyError as exc_:
-                raise BackendError(f"Impossible to load the storage data. The storage unit {i} with name {sto_nm} "
-                                   f"could not be located on the description file \"{name}\" with error : \n"
-                                   f"{exc_}.")
+                raise BackendError(
+                    f"Impossible to load the storage data. The storage unit {i} with name {sto_nm} "
+                    f'could not be located on the description file "{name}" with error : \n'
+                    f"{exc_}."
+                )
 
             self.storage_type[i] = str(tmp_sto["type"])
-            self.storage_Emax[i] = self._aux_check_finite_float(tmp_sto["Emax"], f" for {sto_nm} and column \"Emax\"")
-            self.storage_Emin[i] = self._aux_check_finite_float(tmp_sto["Emin"], f" for {sto_nm} and column \"Emin\"")
-            self.storage_max_p_prod[i] = self._aux_check_finite_float(tmp_sto["max_p_prod"],
-                                                                      f" for {sto_nm} and column \"max_p_prod\"")
-            self.storage_max_p_absorb[i] = self._aux_check_finite_float(tmp_sto["max_p_absorb"],
-                                                                        f" for {sto_nm} and column \"max_p_absorb\"")
-            self.storage_marginal_cost[i] = self._aux_check_finite_float(tmp_sto["marginal_cost"],
-                                                                         f" for {sto_nm} and column \"marginal_cost\"")
-            self.storage_loss[i] = self._aux_check_finite_float(tmp_sto["power_loss"],
-                                                                f" for {sto_nm} and column \"power_loss\"")
+            self.storage_Emax[i] = self._aux_check_finite_float(
+                tmp_sto["Emax"], f' for {sto_nm} and column "Emax"'
+            )
+            self.storage_Emin[i] = self._aux_check_finite_float(
+                tmp_sto["Emin"], f' for {sto_nm} and column "Emin"'
+            )
+            self.storage_max_p_prod[i] = self._aux_check_finite_float(
+                tmp_sto["max_p_prod"], f' for {sto_nm} and column "max_p_prod"'
+            )
+            self.storage_max_p_absorb[i] = self._aux_check_finite_float(
+                tmp_sto["max_p_absorb"], f' for {sto_nm} and column "max_p_absorb"'
+            )
+            self.storage_marginal_cost[i] = self._aux_check_finite_float(
+                tmp_sto["marginal_cost"], f' for {sto_nm} and column "marginal_cost"'
+            )
+            self.storage_loss[i] = self._aux_check_finite_float(
+                tmp_sto["power_loss"], f' for {sto_nm} and column "power_loss"'
+            )
             self.storage_charging_efficiency[i] = self._aux_check_finite_float(
                 tmp_sto["charging_efficiency"],
-                f" for {sto_nm} and column \"charging_efficiency\"")
+                f' for {sto_nm} and column "charging_efficiency"',
+            )
             self.storage_discharging_efficiency[i] = self._aux_check_finite_float(
                 tmp_sto["discharging_efficiency"],
-                f" for {sto_nm} and column \"discharging_efficiency\"")
+                f' for {sto_nm} and column "discharging_efficiency"',
+            )
 
     def _aux_check_finite_float(self, nb_, str_=""):
         """
@@ -1365,10 +1580,12 @@ class Backend(GridObjects, ABC):
         """
         tmp = dt_float(nb_)
         if not np.isfinite(tmp):
-            raise BackendError(f"Infinite number met for a number that should be finite. Please check your data {str_}")
+            raise BackendError(
+                f"Infinite number met for a number that should be finite. Please check your data {str_}"
+            )
         return tmp
 
-    def load_grid_layout(self, path, name='grid_layout.json'):
+    def load_grid_layout(self, path, name="grid_layout.json"):
         """
         INTERNAL
 
@@ -1406,8 +1623,10 @@ class Backend(GridObjects, ABC):
                 y = dt_float(y)
                 new_grid_layout[el] = (x, y)
             except Exception as e_:
-                return Exception("fail to convert coordinates for {} into list of coordinates with error {}"
-                                 "".format(el, e_))
+                return Exception(
+                    "fail to convert coordinates for {} into list of coordinates with error {}"
+                    "".format(el, e_)
+                )
 
         self.attach_layout(grid_layout=new_grid_layout)
         return None
@@ -1432,30 +1651,34 @@ class Backend(GridObjects, ABC):
         line_status = self._aux_get_line_status_to_set(self.get_line_status())
         topo_vect = self.get_topo_vect()
         if np.all(topo_vect == -1):
-            raise RuntimeError("The get_action_to_set should not be used after a divergence of the powerflow")
+            raise RuntimeError(
+                "The get_action_to_set should not be used after a divergence of the powerflow"
+            )
         prod_p, _, prod_v = self.generators_info()
         load_p, load_q, _ = self.loads_info()
         set_me = self._complete_action_class()
-        dict_ = {"set_line_status": line_status,
-                 "set_bus": 1 * topo_vect,
-                 "injection": {
-                     "prod_p": prod_p,
-                     "prod_v": prod_v,
-                     "load_p": load_p,
-                     "load_q": load_q,
-        }}
+        dict_ = {
+            "set_line_status": line_status,
+            "set_bus": 1 * topo_vect,
+            "injection": {
+                "prod_p": prod_p,
+                "prod_v": prod_v,
+                "load_p": load_p,
+                "load_q": load_q,
+            },
+        }
 
         if self.shunts_data_available:
             p_s, q_s, sh_v, bus_s = self.shunt_info()
             dict_["shunt"] = {"shunt_bus": bus_s}
             if np.sum(bus_s >= 1):
-                p_s *= (self._sh_vnkv / sh_v)**2
-                q_s *= (self._sh_vnkv / sh_v)**2
+                p_s *= (self._sh_vnkv / sh_v) ** 2
+                q_s *= (self._sh_vnkv / sh_v) ** 2
                 p_s[bus_s == -1] = np.NaN
                 q_s[bus_s == -1] = np.NaN
                 dict_["shunt"]["shunt_p"] = p_s
                 dict_["shunt"]["shunt_q"] = q_s
-        
+
         if self.n_storage > 0:
             sto_p, *_ = self.storages_info()
             dict_["set_storage"] = 1.0 * sto_p
@@ -1463,7 +1686,7 @@ class Backend(GridObjects, ABC):
         set_me.update(dict_)
         return set_me
 
-    def update_from_obs(self, obs):
+    def update_from_obs(self, obs, force_update=False):
         """
         Takes an observation as input and update the internal state of `self` to match the state of the backend
         that produced this observation.
@@ -1484,31 +1707,36 @@ class Backend(GridObjects, ABC):
             A complete observation describing the state of the grid you want this backend to be in.
 
         """
-        # lazy loading to prevent circular reference
+        # lazy loading to prevent circular references
         from grid2op.Observation import CompleteObservation
 
-        if not isinstance(obs, CompleteObservation):
-            raise BackendError("Impossible to set a backend to a state not represented by a "
-                               "\"grid2op.Observation.CompleteObservation\".")
+        if (not force_update) and (not isinstance(obs, CompleteObservation)):
+            raise BackendError(
+                "Impossible to set a backend to a state not represented by a "
+                '"grid2op.Observation.CompleteObservation".'
+            )
 
         backend_action = self.my_bk_act_class()
         act = self._complete_action_class()
         line_status = self._aux_get_line_status_to_set(obs.line_status)
         # skip the action part and update directly the backend action !
-        dict_ = {"set_bus": obs.topo_vect,
-                 "set_line_status": line_status,
-                 "injection": {
-                     "prod_p": obs.prod_p,
-                     "prod_v": obs.prod_v,
-                     "load_p": obs.load_p,
-                     "load_q": obs.load_q,
-                 }
-                 }
+        dict_ = {
+            "set_bus": obs.topo_vect,
+            "set_line_status": line_status,
+            "injection": {
+                "prod_p": obs.prod_p,
+                "prod_v": obs.prod_v,
+                "load_p": obs.load_p,
+                "load_q": obs.load_q,
+            },
+        }
 
         if self.shunts_data_available and obs.shunts_data_available:
             if "_shunt_bus" not in type(obs).attr_list_set:
-                raise BackendError("Impossible to set the backend to the state given by the observation: shunts data "
-                                   "are not present in the observation.")
+                raise BackendError(
+                    "Impossible to set the backend to the state given by the observation: shunts data "
+                    "are not present in the observation."
+                )
 
             dict_["shunt"] = {"shunt_bus": obs._shunt_bus}
             shunt_co = obs._shunt_bus >= 1
@@ -1543,8 +1771,14 @@ class Backend(GridObjects, ABC):
             self._init_class_attr()
 
             # hack due to changing class of imported module in the module itself
-            self.__class__ = type(self).init_grid(type(self), force_module=type(self).__module__)
-            setattr(sys.modules[type(self).__module__], self.__class__.__name__, self.__class__)
+            self.__class__ = type(self).init_grid(
+                type(self), force_module=type(self).__module__
+            )
+            setattr(
+                sys.modules[type(self).__module__],
+                self.__class__.__name__,
+                self.__class__,
+            )
             # reset the attribute of the grid2op.Backend.Backend class
             # that can be messed up with depending on the initialization of the backend
             Backend._clear_class_attribute()
@@ -1574,61 +1808,77 @@ class Backend(GridObjects, ABC):
         # test the results gives the proper size
         tmp = self.get_line_status()
         if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")
+            raise IncorrectNumberOfLines('returned by "backend.get_line_status()"')
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_line_flow()
         if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_line_flow()\"")
+            raise IncorrectNumberOfLines('returned by "backend.get_line_flow()"')
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_thermal_limit()
         if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_thermal_limit()\"")
+            raise IncorrectNumberOfLines('returned by "backend.get_thermal_limit()"')
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_line_overflow()
         if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_line_overflow()\"")
+            raise IncorrectNumberOfLines('returned by "backend.get_line_overflow()"')
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
 
         tmp = self.generators_info()
         if len(tmp) != 3:
-            raise EnvError("\"generators_info()\" should return a tuple with 3 elements: p, q and v")
+            raise EnvError(
+                '"generators_info()" should return a tuple with 3 elements: p, q and v'
+            )
         for el in tmp:
             if el.shape[0] != self.n_gen:
-                raise IncorrectNumberOfGenerators("returned by \"backend.generators_info()\"")
+                raise IncorrectNumberOfGenerators(
+                    'returned by "backend.generators_info()"'
+                )
         tmp = self.loads_info()
         if len(tmp) != 3:
-            raise EnvError("\"loads_info()\" should return a tuple with 3 elements: p, q and v")
+            raise EnvError(
+                '"loads_info()" should return a tuple with 3 elements: p, q and v'
+            )
         for el in tmp:
             if el.shape[0] != self.n_load:
-                raise IncorrectNumberOfLoads("returned by \"backend.loads_info()\"")
+                raise IncorrectNumberOfLoads('returned by "backend.loads_info()"')
         tmp = self.lines_or_info()
         if len(tmp) != 4:
-            raise EnvError("\"lines_or_info()\" should return a tuple with 4 elements: p, q, v and a")
+            raise EnvError(
+                '"lines_or_info()" should return a tuple with 4 elements: p, q, v and a'
+            )
         for el in tmp:
             if el.shape[0] != self.n_line:
-                raise IncorrectNumberOfLines("returned by \"backend.lines_or_info()\"")
+                raise IncorrectNumberOfLines('returned by "backend.lines_or_info()"')
         tmp = self.lines_ex_info()
         if len(tmp) != 4:
-            raise EnvError("\"lines_ex_info()\" should return a tuple with 4 elements: p, q, v and a")
+            raise EnvError(
+                '"lines_ex_info()" should return a tuple with 4 elements: p, q, v and a'
+            )
         for el in tmp:
             if el.shape[0] != self.n_line:
-                raise IncorrectNumberOfLines("returned by \"backend.lines_ex_info()\"")
+                raise IncorrectNumberOfLines('returned by "backend.lines_ex_info()"')
 
         if self.n_storage > 0:
             tmp = self.storages_info()
             if len(tmp) != 3:
-                raise EnvError("\"storages_info()\" should return a tuple with 3 elements: p, q and v")
+                raise EnvError(
+                    '"storages_info()" should return a tuple with 3 elements: p, q and v'
+                )
             for el in tmp:
                 if el.shape[0] != self.n_storage:
-                    raise IncorrectNumberOfLines("returned by \"backend.storages_info()\"")
+                    raise IncorrectNumberOfLines(
+                        'returned by "backend.storages_info()"'
+                    )
 
         tmp = self.get_topo_vect()
         if tmp.shape[0] != np.sum(self.sub_info):
-            raise IncorrectNumberOfElements("returned by \"backend.get_topo_vect()\"")
+            raise IncorrectNumberOfElements('returned by "backend.get_topo_vect()"')
 
         if np.any(~np.isfinite(tmp)):
-            raise EnvError("Some components of \"backend.get_topo_vect()\" are not finite. This should be integer.")
+            raise EnvError(
+                'Some components of "backend.get_topo_vect()" are not finite. This should be integer.'
+            )

@@ -26,7 +26,9 @@ class Issue153Tester(unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_SUB = 3
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True, _add_to_name="test_issue_153")
+            env = grid2op.make(
+                "rte_case14_realistic", test=True, _add_to_name="test_issue_153"
+            )
         env.gen_max_ramp_up[:] = env.gen_pmax
         env.gen_max_ramp_down[:] = env.gen_pmax
         env.action_space.gen_max_ramp_up[:] = env.gen_pmax
@@ -52,4 +54,3 @@ class Issue153Tester(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

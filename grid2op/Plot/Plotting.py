@@ -21,27 +21,36 @@ class Plotting:
     .. warning:: /!\\\\ This class is deprecated /!\\\\
 
     """
-    allwed_display_mod = {"pygame": PlotPyGame,
-                          "plotly": PlotPlotly,
-                          "matplotlib": PlotMatplotlib}
 
-    def __init__(self,
-                 observation_space,
-                 display_mod="plotly",
-                 substation_layout=None,
-                 radius_sub=20.,
-                 load_prod_dist=70.,
-                 bus_radius=6.):
+    allwed_display_mod = {
+        "pygame": PlotPyGame,
+        "plotly": PlotPlotly,
+        "matplotlib": PlotMatplotlib,
+    }
+
+    def __init__(
+        self,
+        observation_space,
+        display_mod="plotly",
+        substation_layout=None,
+        radius_sub=20.0,
+        load_prod_dist=70.0,
+        bus_radius=6.0,
+    ):
         if display_mod not in self.allwed_display_mod:
-            raise PlotError("Only avaible plot mod are \"{}\". You specified \"{}\" which is not supported."
-                            "".format(self.allwed_display_mod, display_mod))
+            raise PlotError(
+                'Only avaible plot mod are "{}". You specified "{}" which is not supported.'
+                "".format(self.allwed_display_mod, display_mod)
+            )
 
         cls_ = self.allwed_display_mod[display_mod]
-        self.displ_backend = cls_(observation_space,
-                                  substation_layout=substation_layout,
-                                  radius_sub=radius_sub,
-                                  load_prod_dist=load_prod_dist,
-                                  bus_radius=bus_radius)
+        self.displ_backend = cls_(
+            observation_space,
+            substation_layout=substation_layout,
+            radius_sub=radius_sub,
+            load_prod_dist=load_prod_dist,
+            bus_radius=bus_radius,
+        )
         self.display_mod = display_mod
 
     def _display_fig(self, fig, display):
@@ -52,42 +61,67 @@ class Plotting:
                 fig, ax = fig
                 fig.show()
 
-    def plot_layout(self, fig=None, reward=None, done=None, timestamp=None, display=True):
+    def plot_layout(
+        self, fig=None, reward=None, done=None, timestamp=None, display=True
+    ):
         try:
-            fig = self.displ_backend.plot_layout(fig=fig, reward=reward, done=done, timestamp=timestamp)
+            fig = self.displ_backend.plot_layout(
+                fig=fig, reward=reward, done=done, timestamp=timestamp
+            )
             self._display_fig(fig, display=display)
         except PyGameQuit:
             pass
         return fig
 
-    def plot_info(self, fig=None, line_info=None, load_info=None, gen_info=None, sub_info=None,
-                  colormap=None, display=True):
+    def plot_info(
+        self,
+        fig=None,
+        line_info=None,
+        load_info=None,
+        gen_info=None,
+        sub_info=None,
+        colormap=None,
+        display=True,
+    ):
         try:
-            fig = self.displ_backend.plot_info(fig=fig, line_info=line_info, load_info=load_info, gen_info=gen_info,
-                                               sub_info=sub_info, colormap=colormap)
+            fig = self.displ_backend.plot_info(
+                fig=fig,
+                line_info=line_info,
+                load_info=load_info,
+                gen_info=gen_info,
+                sub_info=sub_info,
+                colormap=colormap,
+            )
             self._display_fig(fig, display=display)
         except PyGameQuit:
             pass
         return fig
 
-    def plot_obs(self,
-                 observation,
-                 fig=None,
-                 reward=None,
-                 done=None,
-                 timestamp=None,
-                 line_info="rho",
-                 load_info="p",
-                 gen_info="p",
-                 colormap="line",
-                 display=True):
+    def plot_obs(
+        self,
+        observation,
+        fig=None,
+        reward=None,
+        done=None,
+        timestamp=None,
+        line_info="rho",
+        load_info="p",
+        gen_info="p",
+        colormap="line",
+        display=True,
+    ):
         try:
-            fig = self.displ_backend.plot_obs(observation, fig=fig,
-                                              reward=reward, done=done, timestamp=timestamp,
-                                              line_info=line_info,
-                                              load_info=load_info,
-                                              gen_info=gen_info,
-                                              colormap=colormap)
+            fig = self.displ_backend.plot_obs(
+                observation,
+                fig=fig,
+                reward=reward,
+                done=done,
+                timestamp=timestamp,
+                line_info=line_info,
+                load_info=load_info,
+                gen_info=gen_info,
+                colormap=colormap,
+            )
             self._display_fig(fig, display=display)
         except PyGameQuit:
             pass

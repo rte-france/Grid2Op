@@ -11,22 +11,17 @@ from grid2op.Action.PlayableAction import PlayableAction
 
 class TopologyChangeAction(PlayableAction):
     """
-    This type of :class:`PlayableAction` implements the modifications 
+    This type of :class:`PlayableAction` implements the modifications
     of the grid with "change" topological actions.
 
     It accepts the key words: "change_line_status" and "change_bus".
-    Nothing else is supported and any attempt to use something else 
+    Nothing else is supported and any attempt to use something else
     will have no impact.
     """
-    authorized_keys = {
-        "change_line_status",
-        "change_bus"
-    }
 
-    attr_list_vect = [
-        "_change_bus_vect",
-        "_switch_line_status"
-    ]
+    authorized_keys = {"change_line_status", "change_bus"}
+
+    attr_list_vect = ["_change_bus_vect", "_switch_line_status"]
     attr_list_set = set(attr_list_vect)
 
     def __init__(self):

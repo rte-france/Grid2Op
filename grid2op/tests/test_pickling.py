@@ -13,9 +13,12 @@ import copy
 import multiprocessing as mp
 
 import grid2op
-from grid2op.gym_compat import (ContinuousToDiscreteConverter, GymEnv,
-                                MultiToTupleConverter,
-                                ScalerAttrConverter)
+from grid2op.gym_compat import (
+    ContinuousToDiscreteConverter,
+    GymEnv,
+    MultiToTupleConverter,
+    ScalerAttrConverter,
+)
 
 
 with warnings.catch_warnings():
@@ -37,49 +40,59 @@ class TestMultiProc(unittest.TestCase):
     def test_basic(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name="for_mp_test")
+            env = grid2op.make(
+                "l2rpn_case14_sandbox", test=True, _add_to_name="for_mp_test"
+            )
         env_gym = GymEnv(env)
 
         obs_gym = env_gym.reset()
 
         # 3. (optional) customize it (see section above for more information)
         ## customize action space
-        env_gym.action_space = env_gym.action_space.ignore_attr(
-            "set_bus").ignore_attr("set_line_status")
+        env_gym.action_space = env_gym.action_space.ignore_attr("set_bus").ignore_attr(
+            "set_line_status"
+        )
         env_gym.action_space = env_gym.action_space.reencode_space(
-            "redispatch", ContinuousToDiscreteConverter(nb_bins=11))
+            "redispatch", ContinuousToDiscreteConverter(nb_bins=11)
+        )
         env_gym.action_space = env_gym.action_space.reencode_space(
-            "change_bus", MultiToTupleConverter())
+            "change_bus", MultiToTupleConverter()
+        )
         env_gym.action_space = env_gym.action_space.reencode_space(
-            "change_line_status", MultiToTupleConverter())
+            "change_line_status", MultiToTupleConverter()
+        )
         env_gym.action_space = env_gym.action_space.reencode_space(
-            "redispatch", MultiToTupleConverter())
+            "redispatch", MultiToTupleConverter()
+        )
 
         ## customize observation space
         ob_space = env_gym.observation_space
         ob_space = ob_space.keep_only_attr(
-            ["rho", "gen_p", "load_p", "topo_vect", "actual_dispatch"])
+            ["rho", "gen_p", "load_p", "topo_vect", "actual_dispatch"]
+        )
         ob_space = ob_space.reencode_space(
-            "actual_dispatch",
-            ScalerAttrConverter(substract=0., divide=env.gen_pmax))
+            "actual_dispatch", ScalerAttrConverter(substract=0.0, divide=env.gen_pmax)
+        )
         ob_space = ob_space.reencode_space(
-            "gen_p",
-            ScalerAttrConverter(substract=0., divide=env.gen_pmax))
+            "gen_p", ScalerAttrConverter(substract=0.0, divide=env.gen_pmax)
+        )
         ob_space = ob_space.reencode_space(
             "load_p",
             ScalerAttrConverter(
-                substract=obs_gym["load_p"], divide=0.5 * obs_gym["load_p"]))
+                substract=obs_gym["load_p"], divide=0.5 * obs_gym["load_p"]
+            ),
+        )
         env_gym.observation_space = ob_space
 
-        ctx = mp.get_context('spawn')
+        ctx = mp.get_context("spawn")
         env_gym1 = copy.deepcopy(env_gym)
         env_gym2 = copy.deepcopy(env_gym)
         with ctx.Pool(2) as p:
             p.map(TestMultiProc.f, [env_gym1, env_gym2])
-            
+
         with ctx.Pool(2) as p:
             p.map(TestMultiProc.g, [env_gym1, env_gym2])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

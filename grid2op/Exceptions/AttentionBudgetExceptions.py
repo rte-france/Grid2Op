@@ -14,4 +14,5 @@ class NotEnoughAttentionBudget(Grid2OpException):
     This exception is raised when the player attempted to alert the "human operator" but it has not
     enough budget to do so.
     """
+
     pass

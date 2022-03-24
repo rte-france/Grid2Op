@@ -35,14 +35,19 @@ class SerializableActionSpace(SerializableSpace):
         action (see :func:`Action.size`) or to sample a new Action (see :func:`grid2op.Action.Action.sample`)
 
     """
-    SET_STATUS = 0
-    CHANGE_STATUS = 1
-    SET_BUS = 2
-    CHANGE_BUS = 3
-    REDISPATCHING = 4
-    STORAGE_POWER = 5
-    RAISE_ALARM = 6
 
+    SET_STATUS_ID = 0
+    CHANGE_STATUS_ID = 1
+    SET_BUS_ID = 2
+    CHANGE_BUS_ID = 3
+    REDISPATCHING_ID = 4
+    STORAGE_POWER_ID = 5
+    RAISE_ALARM_ID = 6
+
+    ERR_MSG_WRONG_TYPE = ('The action to update using `ActionSpace` is of type "{}" '
+                         '"which is not the type of action handled by this action space "'
+                         '("{}")')
+    
     def __init__(self, gridobj, actionClass=BaseAction, _init_grid=True):
         """
         INTERNAL USE ONLY
@@ -62,7 +67,9 @@ class SerializableActionSpace(SerializableSpace):
             :class:`BaseAction`.
 
         """
-        SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass, _init_grid=_init_grid)
+        SerializableSpace.__init__(
+            self, gridobj=gridobj, subtype=actionClass, _init_grid=_init_grid
+        )
         self.actionClass = self.subtype
         self._template_act = self.actionClass()
 
@@ -93,20 +100,21 @@ class SerializableActionSpace(SerializableSpace):
 
     def _get_possible_action_types(self):
         rnd_types = []
+        cls = type(self)
         if "set_line_status" in self.actionClass.authorized_keys:
-            rnd_types.append(self.SET_STATUS)
+            rnd_types.append(cls.SET_STATUS_ID)
         if "change_line_status" in self.actionClass.authorized_keys:
-            rnd_types.append(self.CHANGE_STATUS)
+            rnd_types.append(cls.CHANGE_STATUS_ID)
         if "set_bus" in self.actionClass.authorized_keys:
-            rnd_types.append(self.SET_BUS)
+            rnd_types.append(cls.SET_BUS_ID)
         if "change_bus" in self.actionClass.authorized_keys:
-            rnd_types.append(self.CHANGE_BUS)
+            rnd_types.append(cls.CHANGE_BUS_ID)
         if "redispatch" in self.actionClass.authorized_keys:
-            rnd_types.append(self.REDISPATCHING)
+            rnd_types.append(cls.REDISPATCHING_ID)
         if self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
-            rnd_types.append(self.STORAGE_POWER)
+            rnd_types.append(cls.STORAGE_POWER_ID)
         if self.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
-            rnd_types.append(self.RAISE_ALARM)
+            rnd_types.append(cls.RAISE_ALARM_ID)
         return rnd_types
 
     def supports_type(self, action_type):
@@ -142,23 +150,31 @@ class SerializableActionSpace(SerializableSpace):
             # this environment do not allow for topological changes but only action on storage units and redispatching
 
         """
-        name_action_types = ["set_line_status",
-                             "change_line_status",
-                             "set_bus",
-                             "change_bus",
-                             "redispatch",
-                             "storage_power",
-                             "set_storage",
-                             "curtail",
-                             "curtail_mw",
-                             "raise_alarm"]
-        assert action_type in name_action_types, f"The action type provided should be in {name_action_types}. " \
-                                                 f"You provided {action_type} which is not supported."
+        name_action_types = [
+            "set_line_status",
+            "change_line_status",
+            "set_bus",
+            "change_bus",
+            "redispatch",
+            "storage_power",
+            "set_storage",
+            "curtail",
+            "curtail_mw",
+            "raise_alarm",
+        ]
+        assert action_type in name_action_types, (
+            f"The action type provided should be in {name_action_types}. "
+            f"You provided {action_type} which is not supported."
+        )
 
         if action_type == "storage_power":
-            return (self.n_storage > 0) and ("set_storage" in self.actionClass.authorized_keys)
+            return (self.n_storage > 0) and (
+                "set_storage" in self.actionClass.authorized_keys
+            )
         elif action_type == "set_storage":
-            return (self.n_storage > 0) and ("set_storage" in self.actionClass.authorized_keys)
+            return (self.n_storage > 0) and (
+                "set_storage" in self.actionClass.authorized_keys
+            )
         elif action_type == "curtail_mw":
             return "curtail" in self.actionClass.authorized_keys
         else:
@@ -293,22 +309,24 @@ class SerializableActionSpace(SerializableSpace):
         # this sampling
         rnd_type = self.space_prng.choice(rnd_types)
 
-        if rnd_type == self.SET_STATUS:
+        if rnd_type == self.SET_STATUS_ID:
             rnd_update = self._sample_set_line_status()
-        elif rnd_type == self.CHANGE_STATUS:
+        elif rnd_type == self.CHANGE_STATUS_ID:
             rnd_update = self._sample_change_line_status()
-        elif rnd_type == self.SET_BUS:
+        elif rnd_type == self.SET_BUS_ID:
             rnd_update = self._sample_set_bus()
-        elif rnd_type == self.CHANGE_BUS:
+        elif rnd_type == self.CHANGE_BUS_ID:
             rnd_update = self._sample_change_bus()
-        elif rnd_type == self.REDISPATCHING:
+        elif rnd_type == self.REDISPATCHING_ID:
             rnd_update = self._sample_redispatch()
-        elif rnd_type == self.STORAGE_POWER:
+        elif rnd_type == self.STORAGE_POWER_ID:
             rnd_update = self._sample_storage_power()
-        elif rnd_type == self.RAISE_ALARM:
+        elif rnd_type == self.RAISE_ALARM_ID:
             rnd_update = self._sample_raise_alarm()
         else:
-            raise Grid2OpException("Impossible to sample action of type {}".format(rnd_type))
+            raise Grid2OpException(
+                "Impossible to sample action of type {}".format(rnd_type)
+            )
 
         rnd_act.update(rnd_update)
         return rnd_act
@@ -363,32 +381,42 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         if line_id is None and line_name is None:
-            raise AmbiguousAction("You need to provide either the \"line_id\" or the \"line_name\" of the powerline "
-                                  "you want to disconnect")
+            raise AmbiguousAction(
+                'You need to provide either the "line_id" or the "line_name" of the powerline '
+                "you want to disconnect"
+            )
         if line_id is not None and line_name is not None:
-            raise AmbiguousAction("You need to provide only of the \"line_id\" or the \"line_name\" of the powerline "
-                                  "you want to disconnect")
+            raise AmbiguousAction(
+                'You need to provide only of the "line_id" or the "line_name" of the powerline '
+                "you want to disconnect"
+            )
 
         if line_id is None:
             line_id = np.where(self.name_line == line_name)[0]
             if not len(line_id):
-                raise AmbiguousAction("Line with name \"{}\" is not on the grid. The powerlines names are:\n{}"
-                                      "".format(line_name, self.name_line))
+                raise AmbiguousAction(
+                    'Line with name "{}" is not on the grid. The powerlines names are:\n{}'
+                    "".format(line_name, self.name_line)
+                )
         if previous_action is None:
             res = self.actionClass()
         else:
             if not isinstance(previous_action, self.actionClass):
-                raise AmbiguousAction("The action to update using `ActionSpace` is of type \"{}\" "
-                                      "which is not the type of action handled by this helper "
-                                      "(\"{}\")".format(type(previous_action), self.actionClass))
+                raise AmbiguousAction(
+                    type(self).ERR_MSG_WRONG_TYPE.format(type(previous_action), self.actionClass)
+                )
             res = previous_action
         if line_id > self.n_line:
-            raise AmbiguousAction("You asked to disconnect powerline of id {} but this id does not exist. The "
-                                  "grid counts only {} powerline".format(line_id, self.n_line))
+            raise AmbiguousAction(
+                "You asked to disconnect powerline of id {} but this id does not exist. The "
+                "grid counts only {} powerline".format(line_id, self.n_line)
+            )
         res.update({"set_line_status": [(line_id, -1)]})
         return res
 
-    def reconnect_powerline(self, bus_or, bus_ex, line_id=None, line_name=None, previous_action=None):
+    def reconnect_powerline(
+        self, bus_or, bus_ex, line_id=None, line_name=None, previous_action=None
+    ):
         """
         Utilities to reconnect a powerline more easily.
 
@@ -450,11 +478,15 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         if line_id is None and line_name is None:
-            raise AmbiguousAction("You need to provide either the \"line_id\" or the \"line_name\" of the powerline "
-                                  "you want to reconnect")
+            raise AmbiguousAction(
+                'You need to provide either the "line_id" or the "line_name" of the powerline '
+                "you want to reconnect"
+            )
         if line_id is not None and line_name is not None:
-            raise AmbiguousAction("You need to provide only of the \"line_id\" or the \"line_name\" of the powerline "
-                                  "you want to reconnect")
+            raise AmbiguousAction(
+                'You need to provide only of the "line_id" or the "line_name" of the powerline '
+                "you want to reconnect"
+            )
 
         if line_id is None:
             line_id = np.where(self.name_line == line_name)[0]
@@ -463,19 +495,34 @@ class SerializableActionSpace(SerializableSpace):
             res = self.actionClass()
         else:
             if not isinstance(previous_action, self.actionClass):
-                raise AmbiguousAction("The action to update using `ActionSpace` is of type \"{}\" "
-                                      "which is not the type of action handled by this helper "
-                                      "(\"{}\")".format(type(previous_action), self.actionClass))
+                raise AmbiguousAction(
+                    type(self).ERR_MSG_WRONG_TYPE.format(type(previous_action), self.actionClass)
+                )
             res = previous_action
         if line_id > self.n_line:
-            raise AmbiguousAction("You asked to disconnect powerline of id {} but this id does not exist. The "
-                                  "grid counts only {} powerline".format(line_id, self.n_line))
-        res.update({"set_line_status": [(line_id, 1)],
-                    "set_bus": {"lines_or_id": [(line_id, bus_or)],
-                                "lines_ex_id": [(line_id, bus_ex)]}})
+            raise AmbiguousAction(
+                "You asked to disconnect powerline of id {} but this id does not exist. The "
+                "grid counts only {} powerline".format(line_id, self.n_line)
+            )
+        res.update(
+            {
+                "set_line_status": [(line_id, 1)],
+                "set_bus": {
+                    "lines_or_id": [(line_id, bus_or)],
+                    "lines_ex_id": [(line_id, bus_ex)],
+                },
+            }
+        )
         return res
 
-    def change_bus(self, name_element, extremity=None, substation=None, type_element=None, previous_action=None):
+    def change_bus(
+        self,
+        name_element,
+        extremity=None,
+        substation=None,
+        type_element=None,
+        previous_action=None,
+    ):
         """
         Utilities to change the bus of a single element if you give its name. **NB** Changing a bus has the effect to
         assign the object to bus 1 if it was before that connected to bus 2, and to assign it to bus 2 if it was
@@ -545,13 +592,14 @@ class SerializableActionSpace(SerializableSpace):
             res = self.actionClass()
         else:
             if not isinstance(previous_action, self.actionClass):
-                raise AmbiguousAction("The action to update using `ActionSpace` is of type \"{}\" "
-                                      "which is not the type of action handled by this helper "
-                                      "(\"{}\")".format(type(previous_action), self.actionClass))
+                raise AmbiguousAction(
+                    type(self).ERR_MSG_WRONG_TYPE.format(type(previous_action), self.actionClass)
+                )
             res = previous_action
 
-        dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(name_element, extremity, substation,
-                                                                        type_element, res)
+        dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(
+            name_element, extremity, substation, type_element, res
+        )
         arr_ = dict_["change_bus"]
         me_id_ = to_sub_pos[my_id]
         arr_[me_id_] = True
@@ -568,13 +616,24 @@ class SerializableActionSpace(SerializableSpace):
             to_sub_pos = self.line_ex_to_sub_pos
             to_name = self.name_line
         elif extremity is None:
-            raise Grid2OpException("It is mandatory to know on which ends you want to change the bus of the powerline")
+            raise Grid2OpException(
+                "It is mandatory to know on which ends you want to change the bus of the powerline"
+            )
         else:
-            raise Grid2OpException("unknown extremity specifier \"{}\". Extremity should be \"or\" or \"ex\""
-                                   "".format(extremity))
+            raise Grid2OpException(
+                'unknown extremity specifier "{}". Extremity should be "or" or "ex"'
+                "".format(extremity)
+            )
         return to_subid, to_sub_pos, to_name
 
-    def _extract_dict_action(self, name_element, extremity=None, substation=None, type_element=None, action=None):
+    def _extract_dict_action(
+        self,
+        name_element,
+        extremity=None,
+        substation=None,
+        type_element=None,
+        action=None,
+    ):
         to_subid = None
         to_sub_pos = None
         to_name = None
@@ -590,11 +649,13 @@ class SerializableActionSpace(SerializableSpace):
                 to_sub_pos = self.gen_to_sub_pos
                 to_name = self.name_gen
             elif name_element in self.name_line:
-                to_subid, to_sub_pos, to_name = self._extract_database_powerline(extremity)
+                to_subid, to_sub_pos, to_name = self._extract_database_powerline(
+                    extremity
+                )
             else:
                 AmbiguousAction(
-                    "Element \"{}\" not found in the powergrid".format(
-                        name_element))
+                    'Element "{}" not found in the powergrid'.format(name_element)
+                )
         elif type_element == "line":
             to_subid, to_sub_pos, to_name = self._extract_database_powerline(extremity)
         elif type_element[:3] == "gen" or type_element[:4] == "prod":
@@ -606,8 +667,10 @@ class SerializableActionSpace(SerializableSpace):
             to_sub_pos = self.load_to_sub_pos
             to_name = self.name_load
         else:
-            raise AmbiguousAction("unknown type_element specifier \"{}\". type_element should be \"line\" or \"load\" "
-                                  "or \"gen\"".format(extremity))
+            raise AmbiguousAction(
+                'unknown type_element specifier "{}". type_element should be "line" or "load" '
+                'or "gen"'.format(extremity)
+            )
 
         my_id = None
         for i, nm in enumerate(to_name):
@@ -615,13 +678,23 @@ class SerializableActionSpace(SerializableSpace):
                 my_id = i
                 break
         if my_id is None:
-            raise AmbiguousAction("Element \"{}\" not found in the powergrid".format(name_element))
+            raise AmbiguousAction(
+                'Element "{}" not found in the powergrid'.format(name_element)
+            )
         my_sub_id = to_subid[my_id]
 
         dict_ = action.effect_on(substation_id=my_sub_id)
         return dict_, to_sub_pos, my_id, my_sub_id
 
-    def set_bus(self, name_element, new_bus, extremity=None, substation=None, type_element=None, previous_action=None):
+    def set_bus(
+        self,
+        name_element,
+        new_bus,
+        extremity=None,
+        substation=None,
+        type_element=None,
+        previous_action=None,
+    ):
         """
         Utilities to set the bus of a single element if you give its name. **NB** Setting a bus has the effect to
         assign the object to this bus. If it was before that connected to bus 1, and you assign it to bus 1 (*new_bus*
@@ -695,8 +768,9 @@ class SerializableActionSpace(SerializableSpace):
         else:
             res = previous_action
 
-        dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(name_element, extremity, substation,
-                                                                        type_element, res)
+        dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(
+            name_element, extremity, substation, type_element, res
+        )
         dict_["set_bus"][to_sub_pos[my_id]] = new_bus
         res.update({"set_bus": {"substations_id": [(my_sub_id, dict_["set_bus"])]}})
         return res
@@ -759,7 +833,9 @@ class SerializableActionSpace(SerializableSpace):
         for bus_or in [1, 2]:
             for bus_ex in [1, 2]:
                 for i in range(action_space.n_line):
-                    act = action_space.reconnect_powerline(line_id=i, bus_ex=bus_ex, bus_or=bus_or)
+                    act = action_space.reconnect_powerline(
+                        line_id=i, bus_ex=bus_ex, bus_or=bus_or
+                    )
                     res.append(act)
 
         return res
@@ -854,11 +930,15 @@ class SerializableActionSpace(SerializableSpace):
                 if tup_ not in already_set:
                     indx = np.full(shape=num_el, fill_value=False, dtype=dt_bool)
                     # tup = np.array((0, *tup)).astype(dt_bool)  # add a zero to first element -> break symmetry
-                    tup = np.array(tup_).astype(dt_bool)  # add a zero to first element -> break symmetry
+                    tup = np.array(tup_).astype(
+                        dt_bool
+                    )  # add a zero to first element -> break symmetry
                     indx[tup] = True
-                    action = action_space({"change_bus": {"substations_id": [(sub_id_, indx)]}})
+                    action = action_space(
+                        {"change_bus": {"substations_id": [(sub_id_, indx)]}}
+                    )
                     already_set.add(tup_)
-                    already_set.add(tuple([1-el for el in tup_]))
+                    already_set.add(tuple([1 - el for el in tup_]))
                     res.append(action)
                 # otherwise, the change has already beend added (NB by symmetry , if there are A, B, C and D in
                 # a substation, changing A,B or changing C,D always has the same effect.
@@ -916,17 +996,25 @@ class SerializableActionSpace(SerializableSpace):
 
             new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
             # perform the action "set everything on bus 1"
-            action = action_space({"set_bus": {"substations_id": [(sub_id_, new_topo)]}})
+            action = action_space(
+                {"set_bus": {"substations_id": [(sub_id_, new_topo)]}}
+            )
             tmp.append(action)
 
-            powerlines_or_id = action_space.line_or_to_sub_pos[action_space.line_or_to_subid == sub_id_]
-            powerlines_ex_id = action_space.line_ex_to_sub_pos[action_space.line_ex_to_subid == sub_id_]
+            powerlines_or_id = action_space.line_or_to_sub_pos[
+                action_space.line_or_to_subid == sub_id_
+            ]
+            powerlines_ex_id = action_space.line_ex_to_sub_pos[
+                action_space.line_ex_to_subid == sub_id_
+            ]
             powerlines_id = np.concatenate((powerlines_or_id, powerlines_ex_id))
 
             # computes all the topologies at 2 buses for this substation
             for tup in itertools.product(S, repeat=num_el - 1):
                 indx = np.full(shape=num_el, fill_value=False, dtype=dt_bool)
-                tup = np.array((0, *tup)).astype(dt_bool)  # add a zero to first element -> break symmetry
+                tup = np.array((0, *tup)).astype(
+                    dt_bool
+                )  # add a zero to first element -> break symmetry
                 indx[tup] = True
                 if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
                     # i need 2 elements on each bus at least (almost all the times, except when a powerline
@@ -934,18 +1022,28 @@ class SerializableActionSpace(SerializableSpace):
                     new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
                     new_topo[~indx] = 2
 
-                    if np.sum(indx[powerlines_id]) == 0 or np.sum(~indx[powerlines_id]) == 0:
+                    if (
+                        np.sum(indx[powerlines_id]) == 0
+                        or np.sum(~indx[powerlines_id]) == 0
+                    ):
                         # if there is a "node" without a powerline, the topology is not valid
                         continue
 
-                    action = action_space({"set_bus": {"substations_id": [(sub_id_, new_topo)]}})
+                    action = action_space(
+                        {"set_bus": {"substations_id": [(sub_id_, new_topo)]}}
+                    )
                     tmp.append(action)
                 else:
                     # i need to take into account the case where 1 powerline is alone on a bus too
-                    if np.sum(indx[powerlines_id]) >= 1 and np.sum(~indx[powerlines_id]) >= 1:
+                    if (
+                        np.sum(indx[powerlines_id]) >= 1
+                        and np.sum(~indx[powerlines_id]) >= 1
+                    ):
                         new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
                         new_topo[~indx] = 2
-                        action = action_space({"set_bus": {"substations_id": [(sub_id_, new_topo)]}})
+                        action = action_space(
+                            {"set_bus": {"substations_id": [(sub_id_, new_topo)]}}
+                        )
                         tmp.append(action)
 
             if len(tmp) >= 2:
@@ -956,7 +1054,9 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
-    def get_all_unitary_redispatch(action_space, num_down=5, num_up=5, max_ratio_value=1.0):
+    def get_all_unitary_redispatch(
+        action_space, num_down=5, num_up=5, max_ratio_value=1.0
+    ):
         """
         Redispatching action are continuous action. This method is an helper to convert the continuous
         action into discrete action (by rounding).
@@ -1004,11 +1104,17 @@ class SerializableActionSpace(SerializableSpace):
                 continue
 
             # Create evenly spaced positive interval
-            ramps_up = np.linspace(0.0, max_ratio_value * action_space.gen_max_ramp_up[gen_idx], num=num_up)
+            ramps_up = np.linspace(
+                0.0, max_ratio_value * action_space.gen_max_ramp_up[gen_idx], num=num_up
+            )
             ramps_up = ramps_up[1:]  # Exclude redispatch of 0MW
 
             # Create evenly spaced negative interval
-            ramps_down = np.linspace(-max_ratio_value * action_space.gen_max_ramp_down[gen_idx], 0.0, num=num_down)
+            ramps_down = np.linspace(
+                -max_ratio_value * action_space.gen_max_ramp_down[gen_idx],
+                0.0,
+                num=num_down,
+            )
             ramps_down = ramps_down[:-1]  # Exclude redispatch of 0MW
 
             # Merge intervals
@@ -1106,12 +1212,16 @@ class SerializableActionSpace(SerializableSpace):
         for stor_idx in range(n_stor):
 
             # Create evenly spaced positive interval
-            ramps_up = np.linspace(0.0, action_space.storage_max_p_absorb[stor_idx], num=num_up)
+            ramps_up = np.linspace(
+                0.0, action_space.storage_max_p_absorb[stor_idx], num=num_up
+            )
             ramps_up = ramps_up[1:]  # Exclude action of 0MW
 
             # Create evenly spaced negative interval
-            ramps_down = np.linspace(-action_space.storage_max_p_prod[stor_idx], 0.0, num=num_down)
-            ramps_down = ramps_down[:-1] # Exclude action of 0MW
+            ramps_down = np.linspace(
+                -action_space.storage_max_p_prod[stor_idx], 0.0, num=num_down
+            )
+            ramps_down = ramps_down[:-1]  # Exclude action of 0MW
 
             # Merge intervals
             ramps = np.append(ramps_up, ramps_down)
@@ -1134,7 +1244,9 @@ class SerializableActionSpace(SerializableSpace):
         if np.any(is_curtailed):
             res["curtailment"] = []
             if not self.supports_type("curtail"):
-                warnings.warn("A generator is is curtailed, but you cannot perform curtailment action. Impossible to get back to the original topology.")
+                warnings.warn(
+                    "A generator is is curtailed, but you cannot perform curtailment action. Impossible to get back to the original topology."
+                )
                 return
 
             curtail = np.full(obs.n_gen, fill_value=np.NaN)
@@ -1155,7 +1267,9 @@ class SerializableActionSpace(SerializableSpace):
                 elif self.supports_type("change_line_status"):
                     act.change_line_status = [el]
                 else:
-                    warnings.warn("A powerline is disconnected by you cannot reconnect it with your action space. Impossible to get back to the original topology")
+                    warnings.warn(
+                        "A powerline is disconnected by you cannot reconnect it with your action space. Impossible to get back to the original topology"
+                    )
                     break
                 res["powerline"].append(act)
 
@@ -1163,9 +1277,11 @@ class SerializableActionSpace(SerializableSpace):
         not_on_bus_1 = obs.topo_vect > 1  # disconnected lines are handled above
         if np.any(not_on_bus_1):
             res["substation"] = []
-            subs_changed = type(self).grid_objects_types[not_on_bus_1, type(self).SUB_COL]
+            subs_changed = type(self).grid_objects_types[
+                not_on_bus_1, type(self).SUB_COL
+            ]
             for sub_id in set(subs_changed):
-                nb_el : int = type(self).sub_info[sub_id]
+                nb_el: int = type(self).sub_info[sub_id]
                 act = self.actionClass()
                 if self.supports_type("set_bus"):
                     act.sub_set_bus = [(sub_id, np.ones(nb_el, dtype=dt_int))]
@@ -1175,8 +1291,10 @@ class SerializableActionSpace(SerializableSpace):
                     arr_[changed] = True
                     act.sub_change_bus = [(sub_id, arr_)]
                 else:
-                    warnings.warn("A substation is is not on its original topology (all at bus 1) and your action type does not allow to change it. "
-                                  "Impossible to get back to the original topology.")
+                    warnings.warn(
+                        "A substation is is not on its original topology (all at bus 1) and your action type does not allow to change it. "
+                        "Impossible to get back to the original topology."
+                    )
                     break
                 res["substation"].append(act)
 
@@ -1190,95 +1308,134 @@ class SerializableActionSpace(SerializableSpace):
             rem = np.zeros(self.n_gen, dtype=dt_float)
             nb_ = np.zeros(self.n_gen, dtype=dt_int)
             for gen_id in need_redisp:
-                if obs.target_dispatch[gen_id] > 0.:
+                if obs.target_dispatch[gen_id] > 0.0:
                     div_ = obs.target_dispatch[gen_id] / obs.gen_max_ramp_down[gen_id]
                 else:
                     div_ = -obs.target_dispatch[gen_id] / obs.gen_max_ramp_up[gen_id]
                 div_ = np.round(div_, precision)
                 nb_[gen_id] = int(div_)
                 if div_ != int(div_):
-                    if obs.target_dispatch[gen_id] > 0.:
-                        rem[gen_id] = obs.target_dispatch[gen_id] - obs.gen_max_ramp_down[gen_id] * nb_[gen_id]
+                    if obs.target_dispatch[gen_id] > 0.0:
+                        rem[gen_id] = (
+                            obs.target_dispatch[gen_id]
+                            - obs.gen_max_ramp_down[gen_id] * nb_[gen_id]
+                        )
                     else:
-                        rem[gen_id] = - obs.target_dispatch[gen_id] - obs.gen_max_ramp_up[gen_id] * nb_[gen_id]
+                        rem[gen_id] = (
+                            -obs.target_dispatch[gen_id]
+                            - obs.gen_max_ramp_up[gen_id] * nb_[gen_id]
+                        )
                     nb_[gen_id] += 1
             # now create the proper actions
             for nb_act in range(np.max(nb_)):
                 act = self.actionClass()
                 if not self.supports_type("redispatch"):
-                    warnings.warn("Some redispatching are set, but you cannot modify it with your action type. Impossible to get back to the original topology.")
+                    warnings.warn(
+                        "Some redispatching are set, but you cannot modify it with your action type. Impossible to get back to the original topology."
+                    )
                     break
                 reds = np.zeros(self.n_gen, dtype=dt_float)
                 for gen_id in need_redisp:
-                    if  nb_act >= nb_[gen_id]:
+                    if nb_act >= nb_[gen_id]:
                         # nothing to add for this generator in this case
                         continue
-                    if obs.target_dispatch[gen_id] > 0.:
-                        if nb_act < nb_[gen_id] - 1 or (rem[gen_id] == 0. and nb_act == nb_[gen_id] - 1):
-                            reds[gen_id] = - obs.gen_max_ramp_down[gen_id]
+                    if obs.target_dispatch[gen_id] > 0.0:
+                        if nb_act < nb_[gen_id] - 1 or (
+                            rem[gen_id] == 0.0 and nb_act == nb_[gen_id] - 1
+                        ):
+                            reds[gen_id] = -obs.gen_max_ramp_down[gen_id]
                         else:
-                             reds[gen_id] = - rem[gen_id]
+                            reds[gen_id] = -rem[gen_id]
                     else:
-                        if nb_act < nb_[gen_id] - 1 or (rem[gen_id] == 0. and nb_act == nb_[gen_id] - 1):
+                        if nb_act < nb_[gen_id] - 1 or (
+                            rem[gen_id] == 0.0 and nb_act == nb_[gen_id] - 1
+                        ):
                             reds[gen_id] = obs.gen_max_ramp_up[gen_id]
                         else:
-                             reds[gen_id] = rem[gen_id]
+                            reds[gen_id] = rem[gen_id]
 
-                act.redispatch = [(gen_id, red_) for gen_id, red_ in zip(need_redisp, reds)]
+                act.redispatch = [
+                    (gen_id, red_) for gen_id, red_ in zip(need_redisp, reds)
+                ]
                 res["redispatching"].append(act)
 
-    def _aux_get_back_to_ref_state_storage(self, res, obs, storage_setpoint, precision=5):
+    def _aux_get_back_to_ref_state_storage(
+        self, res, obs, storage_setpoint, precision=5
+    ):
         # TODO this is ugly, probably slow and could definitely be optimized
         # TODO refacto with the redispatching
         notredisp_setpoint = obs.storage_charge / obs.storage_Emax != storage_setpoint
-        delta_time_hour = dt_float(obs.delta_time / 60.)
+        delta_time_hour = dt_float(obs.delta_time / 60.0)
         if np.any(notredisp_setpoint):
             need_ajust = np.where(notredisp_setpoint)[0]
             res["storage"] = []
             # combine storage units and do not exceed maximum power
             rem = np.zeros(self.n_storage, dtype=dt_float)
             nb_ = np.zeros(self.n_storage, dtype=dt_int)
-            current_state = (obs.storage_charge - storage_setpoint * obs.storage_Emax)
+            current_state = obs.storage_charge - storage_setpoint * obs.storage_Emax
             for stor_id in need_ajust:
-                if current_state[stor_id] > 0.:
-                    div_ = current_state[stor_id] / (obs.storage_max_p_prod[stor_id] * delta_time_hour)
+                if current_state[stor_id] > 0.0:
+                    div_ = current_state[stor_id] / (
+                        obs.storage_max_p_prod[stor_id] * delta_time_hour
+                    )
                 else:
-                    div_ = - current_state[stor_id] / (obs.storage_max_p_absorb[stor_id] * delta_time_hour)
+                    div_ = -current_state[stor_id] / (
+                        obs.storage_max_p_absorb[stor_id] * delta_time_hour
+                    )
                 div_ = np.round(div_, precision)
                 nb_[stor_id] = int(div_)
                 if div_ != int(div_):
-                    if current_state[stor_id] > 0.:
-                        rem[stor_id] = current_state[stor_id] / delta_time_hour - obs.storage_max_p_prod[stor_id] * nb_[stor_id]
+                    if current_state[stor_id] > 0.0:
+                        rem[stor_id] = (
+                            current_state[stor_id] / delta_time_hour
+                            - obs.storage_max_p_prod[stor_id] * nb_[stor_id]
+                        )
                     else:
-                        rem[stor_id] = - current_state[stor_id] / delta_time_hour - obs.storage_max_p_absorb[stor_id] * nb_[stor_id]
+                        rem[stor_id] = (
+                            -current_state[stor_id] / delta_time_hour
+                            - obs.storage_max_p_absorb[stor_id] * nb_[stor_id]
+                        )
                     nb_[stor_id] += 1
 
             # now create the proper actions
             for nb_act in range(np.max(nb_)):
                 act = self.actionClass()
                 if not self.supports_type("set_storage"):
-                    warnings.warn("Some storage are modififed, but you cannot modify them with your action type. Impossible to get back to the original topology.")
+                    warnings.warn(
+                        "Some storage are modififed, but you cannot modify them with your action type. Impossible to get back to the original topology."
+                    )
                     break
                 reds = np.zeros(self.n_storage, dtype=dt_float)
                 for stor_id in need_ajust:
-                    if  nb_act >= nb_[stor_id]:
+                    if nb_act >= nb_[stor_id]:
                         # nothing to add in this case
                         continue
-                    if current_state[stor_id] > 0.:
-                        if nb_act < nb_[stor_id] - 1 or (rem[stor_id] == 0. and nb_act == nb_[stor_id] - 1):
-                            reds[stor_id] = - obs.storage_max_p_prod[stor_id]
+                    if current_state[stor_id] > 0.0:
+                        if nb_act < nb_[stor_id] - 1 or (
+                            rem[stor_id] == 0.0 and nb_act == nb_[stor_id] - 1
+                        ):
+                            reds[stor_id] = -obs.storage_max_p_prod[stor_id]
                         else:
-                            reds[stor_id] = - rem[stor_id]
+                            reds[stor_id] = -rem[stor_id]
                     else:
-                        if nb_act < nb_[stor_id] - 1 or (rem[stor_id] == 0. and nb_act == nb_[stor_id] - 1):
+                        if nb_act < nb_[stor_id] - 1 or (
+                            rem[stor_id] == 0.0 and nb_act == nb_[stor_id] - 1
+                        ):
                             reds[stor_id] = obs.storage_max_p_absorb[stor_id]
                         else:
                             reds[stor_id] = rem[stor_id]
 
-                act.storage_p = [(stor_id, red_) for stor_id, red_ in zip(need_ajust, reds)]
+                act.storage_p = [
+                    (stor_id, red_) for stor_id, red_ in zip(need_ajust, reds)
+                ]
                 res["storage"].append(act)
 
-    def get_back_to_ref_state(self, obs: "grid2op.Observation.BaseObservation", storage_setpoint=0.5, precision=5) -> Dict[str, List[BaseAction]]:
+    def get_back_to_ref_state(
+        self,
+        obs: "grid2op.Observation.BaseObservation",
+        storage_setpoint=0.5,
+        precision=5,
+    ) -> Dict[str, List[BaseAction]]:
         """
         This function returns the list of unary actions that you can perform in order to get back to the "fully meshed" / "initial" topology.
 
@@ -1307,26 +1464,26 @@ class SerializableActionSpace(SerializableSpace):
         - "storage": for action on storage units (you might need to perform multiple storage actions because of the maximum power these units can absorb / produce )
         - "curtailment": for curtailment action (usually at most one such action is needed)
 
-        After receiving these lists, the agent has the choice for the order in which to apply these actions as well as how to best combine them (you can most 
+        After receiving these lists, the agent has the choice for the order in which to apply these actions as well as how to best combine them (you can most
         of the time combine action of different types in grid2op.)
 
         .. warning::
 
             It does not presume anything on the availability of the objects. For examples, this funciton ignores completely the cooldowns on lines and substations.
 
-        .. warning:: 
+        .. warning::
 
             For the storage units, it tries to set their current setpoint to `storage_setpoint` % of their storage total capacity. Applying these actions
             at different times might not fully set back the storage to this capacity in case of storage losses !
 
         .. warning::
 
-            See section :ref:`action_powerline_status` for note on the powerline status. It might happen that you modify a powerline status using a "set_bus" (ie 
-            tagged as "susbtation" by this function). 
+            See section :ref:`action_powerline_status` for note on the powerline status. It might happen that you modify a powerline status using a "set_bus" (ie
+            tagged as "susbtation" by this function).
 
         .. warning::
 
-            It can raise warnings in case it's not possible, with your action space, to get back to the original / fully meshed topology 
+            It can raise warnings in case it's not possible, with your action space, to get back to the original / fully meshed topology
 
         Examples
         --------
@@ -1335,10 +1492,13 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         from grid2op.Observation.baseObservation import BaseObservation
+
         if not isinstance(obs, BaseObservation):
-            raise AmbiguousAction("You need to provide a grid2op Observation for this function to work correctly.")
+            raise AmbiguousAction(
+                "You need to provide a grid2op Observation for this function to work correctly."
+            )
         res = {}
-        
+
         # powerline actions
         self._aux_get_back_to_ref_state_line(res, obs)
         # substations
@@ -1346,7 +1506,9 @@ class SerializableActionSpace(SerializableSpace):
         # redispatching
         self._aux_get_back_to_ref_state_redisp(res, obs, precision=precision)
         # storage
-        self._aux_get_back_to_ref_state_storage(res, obs, storage_setpoint, precision=precision)
+        self._aux_get_back_to_ref_state_storage(
+            res, obs, storage_setpoint, precision=precision
+        )
         # curtailment
         self._aux_get_back_to_ref_state_curtail(res, obs)
 

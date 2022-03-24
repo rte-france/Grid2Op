@@ -14,8 +14,12 @@ from grid2op.Exceptions import UnknownEnv
 from grid2op.MakeEnv.UserUtils import list_available_local_env
 from grid2op.MakeEnv.Make import _retrieve_github_content
 
-_LIST_REMOTE_URL = "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/updates.json"
-_LIST_REMOTE_ENV_HASH = "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/env_hashes.json"
+_LIST_REMOTE_URL = (
+    "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/updates.json"
+)
+_LIST_REMOTE_ENV_HASH = (
+    "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/env_hashes.json"
+)
 
 
 def _write_file(path_local_env, new_config, file_name):
@@ -77,7 +81,11 @@ def _update_file(dict_, env_name, file_name):
                 _write_file(mix_dir, new_config, file_name=file_name)
     else:
         _write_file(path_local_env, new_config, file_name=file_name)
-    print("\t Successfully updated file \"{}\" for environment \"{}\"".format(file_name, env_name))
+    print(
+        '\t Successfully updated file "{}" for environment "{}"'.format(
+            file_name, env_name
+        )
+    )
 
 
 def _do_env_need_update(env_name, env_hashes):
@@ -94,9 +102,7 @@ def _do_env_need_update(env_name, env_hashes):
         return res
 
 
-def _update_files(env_name=None,
-                  answer_json=None,
-                  env_hashes=None):
+def _update_files(env_name=None, answer_json=None, env_hashes=None):
     """
     INTERNAL
 
@@ -134,21 +140,27 @@ def _update_files(env_name=None,
                 for k, dict_ in dict_main.items():
                     _update_file(dict_, env_name, file_name=k)
             elif need_update and env_name not in answer_json:
-                print(f"Environment: \"{env_name}\" is not up to date, but we did not found any files to update. Please write an issue at https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=bug&template=bug_report.md&title=")
+                print(
+                    f'Environment: "{env_name}" is not up to date, but we did not found any files to update. Please write an issue at https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=bug&template=bug_report.md&title='
+                )
             else:
                 # environment is up to date
-                print("Environment \"{}\" is up to date".format(env_name))
+                print('Environment "{}" is up to date'.format(env_name))
         else:
-            raise UnknownEnv("Impossible to locate the environment named \"{}\". Have you downlaoded it?"
-                             "".format(env_name))
+            raise UnknownEnv(
+                'Impossible to locate the environment named "{}". Have you downlaoded it?'
+                "".format(env_name)
+            )
 
 
 # TODO make that a method of the environment maybe ?
-def _hash_env(path_local_env,
-              hash_=None,
-              blocksize=64,  # TODO is this correct ?
-              ):
+def _hash_env(
+    path_local_env,
+    hash_=None,
+    blocksize=64,  # TODO is this correct ?
+):
     import hashlib  # lazy import
+
     if hash_ is None:
         # we use this as it is supposedly faster than md5
         # we don't really care about the "secure" part of it (though it's a nice tool to have)
@@ -163,18 +175,23 @@ def _hash_env(path_local_env,
     else:
         # i am hashing a regular environment
         # first i hash the config files
-        for fn_ in ["alerts_info.json",
-                    "config.py",
-                    "difficulty_levels.json",
-                    "grid.json",
-                    "grid_layout.json",
-                    "prods_charac.csv"]:  # list the file we want to hash (we don't hash everything
+        for fn_ in [
+            "alerts_info.json",
+            "config.py",
+            "difficulty_levels.json",
+            "grid.json",
+            "grid_layout.json",
+            "prods_charac.csv",
+        ]:  # list the file we want to hash (we don't hash everything
             full_path_file = os.path.join(path_local_env, fn_)
             import re
+
             if os.path.exists(full_path_file):
                 with open(full_path_file, "r", encoding="utf-8") as f:
                     text_ = f.read()
-                    text_ = re.sub("\s|\n|\r", "", text_)  # this is done to ensure a compatibility between platform
+                    text_ = re.sub(
+                        "\s", "", text_
+                    )  # this is done to ensure a compatibility between platform
                     # sometime git replaces the "\r\n" in windows with "\n" on linux / macos and it messes
                     # up the hash
                     hash_.update(text_.encode("utf-8"))

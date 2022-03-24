@@ -38,6 +38,7 @@ __all__ = [
     "AmbiguousAction",
     "NonFiniteElement",
     "DivergingPowerFlow",
+    "BaseObservationError",
     "NoForecastAvailable",
     "SimulateUsedTooMuchThisStep",
     "SimulateUsedTooMuchThisEpisode",
@@ -49,7 +50,8 @@ __all__ = [
     "OpponentError",
     "UsedRunnerError",
     "NotEnoughAttentionBudget",
-    "AgentError"
+    "AgentError",
+    "SimulatorError",
 ]
 
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
@@ -76,7 +78,9 @@ from grid2op.Exceptions.IllegalActionExceptions import ActiveSetPointBelowPmin
 from grid2op.Exceptions.IllegalActionExceptions import OnLoad
 from grid2op.Exceptions.IllegalActionExceptions import OnLines
 from grid2op.Exceptions.IllegalActionExceptions import InvalidReconnection
-from grid2op.Exceptions.IllegalActionExceptions import UnitCommitorRedispachingNotAvailable
+from grid2op.Exceptions.IllegalActionExceptions import (
+    UnitCommitorRedispachingNotAvailable,
+)
 
 from grid2op.Exceptions.AmbiguousActionExceptions import NotEnoughGenerators
 from grid2op.Exceptions.AmbiguousActionExceptions import GeneratorTurnedOffTooSoon
@@ -96,6 +100,7 @@ from grid2op.Exceptions.AmbiguousActionExceptions import NonFiniteElement
 
 from grid2op.Exceptions.PowerflowExceptions import DivergingPowerFlow
 
+from grid2op.Exceptions.ObservationExceptions import BaseObservationError
 from grid2op.Exceptions.ObservationExceptions import NoForecastAvailable
 from grid2op.Exceptions.ObservationExceptions import SimulateUsedTooMuchThisStep
 from grid2op.Exceptions.ObservationExceptions import SimulateUsedTooMuchThisEpisode
@@ -115,3 +120,5 @@ from grid2op.Exceptions.RunnerError import UsedRunnerError
 from grid2op.Exceptions.AttentionBudgetExceptions import NotEnoughAttentionBudget
 
 from grid2op.Exceptions.agentError import AgentError
+
+from grid2op.Exceptions.simulatorExceptions import SimulatorError

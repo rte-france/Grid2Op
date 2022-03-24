@@ -13,17 +13,10 @@ class PowerlineChangeDispatchAndStorageAction(PlayableAction):
     """
     TODO storage doc
     """
-    authorized_keys = {
-        "change_line_status",
-        "redispatch",
-        "set_storage"
-    }
 
-    attr_list_vect = [
-        "_switch_line_status",
-        "_redispatch",
-        "_storage_power"
-    ]
+    authorized_keys = {"change_line_status", "redispatch", "set_storage"}
+
+    attr_list_vect = ["_switch_line_status", "_redispatch", "_storage_power"]
 
     attr_list_set = set(attr_list_vect)
 

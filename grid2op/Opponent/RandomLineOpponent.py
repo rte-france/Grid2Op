@@ -19,6 +19,7 @@ class RandomLineOpponent(BaseOpponent):
     at the initialization.
 
     """
+
     def __init__(self, action_space):
         BaseOpponent.__init__(self, action_space)
         self._do_nothing = None
@@ -47,9 +48,11 @@ class RandomLineOpponent(BaseOpponent):
         # and it's way more flexible that the other one.
 
         if len(lines_attacked) == 0:
-            warnings.warn(f'The opponent is deactivated as there is no information as to which line to attack. '
-                          f'You can set the argument "kwargs_opponent" to the list of the line names you want '
-                          f' the opponent to attack in the "make" function.')
+            warnings.warn(
+                f"The opponent is deactivated as there is no information as to which line to attack. "
+                f'You can set the argument "kwargs_opponent" to the list of the line names you want '
+                f' the opponent to attack in the "make" function.'
+            )
 
         # Store attackable lines IDs
         self._lines_ids = []
@@ -58,19 +61,20 @@ class RandomLineOpponent(BaseOpponent):
             if len(l_id) and len(l_id[0]):
                 self._lines_ids.append(l_id[0][0])
             else:
-                raise OpponentError("Unable to find the powerline named \"{}\" on the grid. For "
-                                    "information, powerlines on the grid are : {}"
-                                    "".format(l_name, sorted(self.action_space.name_line)))
+                raise OpponentError(
+                    'Unable to find the powerline named "{}" on the grid. For '
+                    "information, powerlines on the grid are : {}"
+                    "".format(l_name, sorted(self.action_space.name_line))
+                )
 
         # Pre-build attacks actions
         self._attacks = []
         for l_id in self._lines_ids:
-            att = self.action_space({'set_line_status': [(l_id, -1)]})
+            att = self.action_space({"set_line_status": [(l_id, -1)]})
             self._attacks.append(att)
         self._attacks = np.array(self._attacks)
 
-    def attack(self, observation, agent_action, env_action,
-               budget, previous_fails):
+    def attack(self, observation, agent_action, env_action, budget, previous_fails):
         """
         This method is the equivalent of "attack" for a regular agent.
 

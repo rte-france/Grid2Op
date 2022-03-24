@@ -48,8 +48,15 @@ def plot_zones():
         collections.append(pplt.create_line_collection(net))
         collections.append(pplt.create_trafo_collection(net, size=sizes["trafo"]))
         if zone == 3:
-            collections.append(pplt.create_bus_collection(net, net.bus.loc[net.bus.toy_zone].index,
-                                                          color="g", size=2 * sizes["bus"], zorder=11))
+            collections.append(
+                pplt.create_bus_collection(
+                    net,
+                    net.bus.loc[net.bus.toy_zone].index,
+                    color="g",
+                    size=2 * sizes["bus"],
+                    zorder=11,
+                )
+            )
         pplt.draw_collections(collections, ax=ax)
 
     plt.show()
@@ -77,7 +84,10 @@ def create_zone3():
     pp.runpp(net118)
     vm_gen = net118.res_bus.at[23, "vm_pu"]
 
-    p_mw_gen = net118.res_line.loc[net118.line.from_bus.isin([23, 24]) & net118.line.to_bus.isin([23, 24]), "p_from_mw"]
+    p_mw_gen = net118.res_line.loc[
+        net118.line.from_bus.isin([23, 24]) & net118.line.to_bus.isin([23, 24]),
+        "p_from_mw",
+    ]
     p_mw_gen = abs(sum(p_mw_gen))
 
     net = get_net_118_with_zones()
@@ -97,7 +107,10 @@ def create_zone1():
     va_ext_grid = net118.res_bus.loc[[32, 33, 37], "va_degree"].mean()
     vm_gen = net118.res_bus.at[22, "vm_pu"]
 
-    p_mw_gen = net118.res_line.loc[net118.line.from_bus.isin([22, 23]) & net118.line.to_bus.isin([22, 23]), "p_from_mw"]
+    p_mw_gen = net118.res_line.loc[
+        net118.line.from_bus.isin([22, 23]) & net118.line.to_bus.isin([22, 23]),
+        "p_from_mw",
+    ]
     p_mw_gen = abs(sum(p_mw_gen))
 
     net = get_net_118_with_zones()
@@ -106,8 +119,13 @@ def create_zone1():
 
     zone1_lines = [49, 41, 40]
 
-    b = pp.create_bus(net, vn_kv=net118.bus.loc[33, "vn_kv"], name="zone2_slack", index=118,
-                      geodata=(net118.bus_geodata.at[33, "x"], net118.bus_geodata.at[33, "y"]))
+    b = pp.create_bus(
+        net,
+        vn_kv=net118.bus.loc[33, "vn_kv"],
+        name="zone2_slack",
+        index=118,
+        geodata=(net118.bus_geodata.at[33, "x"], net118.bus_geodata.at[33, "y"]),
+    )
 
     net.line = pd.concat([net.line, net118.line.loc[zone1_lines]], sort=False)
     net.line.loc[zone1_lines, "to_bus"] = int(b)

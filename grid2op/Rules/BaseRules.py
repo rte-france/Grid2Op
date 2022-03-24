@@ -20,6 +20,7 @@ class BaseRules(ABC):
     In :class:`grid2op.Environment`, only action of the users are checked for legality.
 
     """
+
     @abstractmethod
     def __call__(self, action, env):
         """

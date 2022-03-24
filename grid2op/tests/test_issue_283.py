@@ -19,9 +19,11 @@ class Issue283Tester(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True, gamerules_class=AlwaysLegal)
+            self.env = grid2op.make(
+                "educ_case14_storage", test=True, gamerules_class=AlwaysLegal
+            )
             self.env_gym = GymEnv(self.env)
-    
+
         self.env_gym.action_space.close()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -35,10 +37,13 @@ class Issue283Tester(unittest.TestCase):
     def test_can_make(self):
         """test that the opponent state is correctly copied"""
         gym_act = self.env_gym.action_space.sample()
-        gym_act[:self.env.n_line] = 0.  # do not change line status ! (otherwise it diverges)
+        gym_act[
+            : self.env.n_line
+        ] = 0.0  # do not change line status ! (otherwise it diverges)
         act = self.env_gym.action_space.from_gym(gym_act)
         obs, reward, done, info = self.env.step(act)
         assert len(info["exception"]) == 0, f"{info['exception'] = }"
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -98,6 +98,7 @@ Technical Documentation
    parameters
    reward
    runner
+   simulator
    space
    utils
    voltagecontroler

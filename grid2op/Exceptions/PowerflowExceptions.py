@@ -23,4 +23,5 @@ class DivergingPowerFlow(Grid2OpException):
       - the method to solve the powerflow fails to find a valid solution. In this case, adopting a different
         :class:`grid2op.Backend.Backend` might solve the problem.
     """
+
     pass

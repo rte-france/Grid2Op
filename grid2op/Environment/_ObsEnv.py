@@ -25,6 +25,7 @@ class _ObsCH(ChangeNothing):
 
     This class is reserved to internal use. Do not attempt to do anything with it.
     """
+
     def forecasts(self):
         return []
 
@@ -44,50 +45,55 @@ class _ObsEnv(BaseEnv):
 
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
-    def __init__(self,
-                 init_env_path,
-                 init_grid_path,
-                 backend_instanciated,
-                 parameters,
-                 reward_helper,
-                 obsClass,  # not initialized :-/
-                 action_helper,
-                 thermal_limit_a,
-                 legalActClass,
-                 helper_action_class,
-                 helper_action_env,
-                 epsilon_poly,
-                 tol_poly,
-                 max_episode_duration,
-                 other_rewards={},
-                 has_attention_budget=False,
-                 attention_budget_cls=LinearAttentionBudget,
-                 kwargs_attention_budget={},
-                 _complete_action_cls=None,
-                 _ptr_orig_obs_space=None
-                 ):
-        BaseEnv.__init__(self,
-                         init_env_path,
-                         init_grid_path,
-                         copy.deepcopy(parameters),
-                         thermal_limit_a,
-                         other_rewards=other_rewards,
-                         epsilon_poly=epsilon_poly,
-                         tol_poly=tol_poly,
-                         has_attention_budget=has_attention_budget,
-                         attention_budget_cls=attention_budget_cls,
-                         kwargs_attention_budget=kwargs_attention_budget,
-                         kwargs_observation=None,
-                         )
+
+    def __init__(
+        self,
+        init_env_path,
+        init_grid_path,
+        backend_instanciated,
+        parameters,
+        reward_helper,
+        obsClass,  # not initialized :-/
+        action_helper,
+        thermal_limit_a,
+        legalActClass,
+        helper_action_class,
+        helper_action_env,
+        epsilon_poly,
+        tol_poly,
+        max_episode_duration,
+        other_rewards={},
+        has_attention_budget=False,
+        attention_budget_cls=LinearAttentionBudget,
+        kwargs_attention_budget={},
+        _complete_action_cls=None,
+        _ptr_orig_obs_space=None,
+    ):
+        BaseEnv.__init__(
+            self,
+            init_env_path,
+            init_grid_path,
+            copy.deepcopy(parameters),
+            thermal_limit_a,
+            other_rewards=other_rewards,
+            epsilon_poly=epsilon_poly,
+            tol_poly=tol_poly,
+            has_attention_budget=has_attention_budget,
+            attention_budget_cls=attention_budget_cls,
+            kwargs_attention_budget=kwargs_attention_budget,
+            kwargs_observation=None,
+        )
         self._reward_helper = reward_helper
         self._helper_action_class = helper_action_class
 
         # initialize the observation space
         self._obsClass = None
-        
+
         self.gen_activeprod_t_init = np.zeros(self.n_gen, dtype=dt_float)
         self.gen_activeprod_t_redisp_init = np.zeros(self.n_gen, dtype=dt_float)
-        self.times_before_line_status_actionable_init = np.zeros(self.n_line, dtype=dt_int)
+        self.times_before_line_status_actionable_init = np.zeros(
+            self.n_line, dtype=dt_int
+        )
         self.times_before_topology_actionable_init = np.zeros(self.n_sub, dtype=dt_int)
         self.time_next_maintenance_init = np.zeros(self.n_line, dtype=dt_int)
         self.duration_next_maintenance_init = np.zeros(self.n_line, dtype=dt_int)
@@ -97,24 +103,32 @@ class _ObsEnv(BaseEnv):
         # line status (inherited from BaseEnv)
         self._line_status = np.full(self.n_line, dtype=dt_bool, fill_value=True)
         # line status (for this usage)
-        self._line_status_me = np.ones(shape=self.n_line, dtype=dt_int)  # this is "line status" but encode in +1 / -1
+        self._line_status_me = np.ones(
+            shape=self.n_line, dtype=dt_int
+        )  # this is "line status" but encode in +1 / -1
         self._line_status_orig = np.ones(shape=self.n_line, dtype=dt_int)
 
-        self._init_backend(chronics_handler=_ObsCH(),
-                           backend=backend_instanciated,
-                           names_chronics_to_backend=None,
-                           actionClass=action_helper.actionClass,
-                           observationClass=obsClass,
-                           rewardClass=None,
-                           legalActClass=legalActClass)
+        self._init_backend(
+            chronics_handler=_ObsCH(),
+            backend=backend_instanciated,
+            names_chronics_to_backend=None,
+            actionClass=action_helper.actionClass,
+            observationClass=obsClass,
+            rewardClass=None,
+            legalActClass=legalActClass,
+        )
 
         ####
         # to be able to save and import (using env.generate_classes) correctly
         self._actionClass = action_helper.subtype
         self._observationClass = _complete_action_cls  # not used anyway
         self._complete_action_cls = _complete_action_cls
-        self._action_space = action_helper  # obs env and env share the same action space
-        self._observation_space = action_helper  # not used here, so it's definitely a hack !
+        self._action_space = (
+            action_helper  # obs env and env share the same action space
+        )
+        self._observation_space = (
+            action_helper  # not used here, so it's definitely a hack !
+        )
         self._ptr_orig_obs_space = _ptr_orig_obs_space
         ####
 
@@ -148,14 +162,14 @@ class _ObsEnv(BaseEnv):
         self._storage_previous_charge_init = np.zeros(self.n_storage, dtype=dt_float)
         self._action_storage_init = np.zeros(self.n_storage, dtype=dt_float)
         self._storage_power_init = np.zeros(self.n_storage, dtype=dt_float)
-        self._amount_storage_init = 0.
-        self._amount_storage_prev_init = 0.
+        self._amount_storage_init = 0.0
+        self._amount_storage_prev_init = 0.0
 
         # curtailment
         self._limit_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
         self._gen_before_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
-        self._sum_curtailment_mw_init = 0.
-        self._sum_curtailment_mw_prev_init = 0.
+        self._sum_curtailment_mw_init = 0.0
+        self._sum_curtailment_mw_prev_init = 0.0
 
         # step count
         self._nb_time_step_init = 0
@@ -168,19 +182,21 @@ class _ObsEnv(BaseEnv):
 
     def max_episode_duration(self):
         return self._max_episode_duration
-    
+
     def _init_myclass(self):
         """this class has already all the powergrid information: it is initialized in the obs space !"""
         pass
 
-    def _init_backend(self,
-                      chronics_handler,
-                      backend,
-                      names_chronics_to_backend,
-                      actionClass,
-                      observationClass,  # base grid2op type
-                      rewardClass,
-                      legalActClass):
+    def _init_backend(
+        self,
+        chronics_handler,
+        backend,
+        names_chronics_to_backend,
+        actionClass,
+        observationClass,  # base grid2op type
+        rewardClass,
+        legalActClass,
+    ):
         self._env_dc = self.parameters.ENV_DC
         self.chronics_handler = chronics_handler
         self.backend = backend
@@ -188,9 +204,11 @@ class _ObsEnv(BaseEnv):
 
         if not issubclass(legalActClass, BaseRules):
             raise Grid2OpException(
-                "Parameter \"legalActClass\" used to build the Environment should derived form the "
-                "grid2op.BaseRules class, type provided is \"{}\"".format(
-                    type(legalActClass)))
+                'Parameter "legalActClass" used to build the Environment should derived form the '
+                'grid2op.BaseRules class, type provided is "{}"'.format(
+                    type(legalActClass)
+                )
+            )
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._legalActClass = legalActClass
         # self._action_space = self._do_nothing
@@ -203,8 +221,7 @@ class _ObsEnv(BaseEnv):
         self._create_attention_budget()
         self._obsClass = observationClass.init_grid(type(self.backend))
         self._obsClass._INIT_GRID_CLS = observationClass
-        self.current_obs_init = self._obsClass(obs_env=None,
-                                               action_helper=None)
+        self.current_obs_init = self._obsClass(obs_env=None, action_helper=None)
         self.current_obs = self.current_obs_init
 
         # backend has loaded everything
@@ -259,7 +276,9 @@ class _ObsEnv(BaseEnv):
         self.backend = backend
         return res
 
-    def init(self, new_state_action, time_stamp, timestep_overflow, topo_vect, time_step=1):
+    def init(
+        self, new_state_action, time_stamp, timestep_overflow, topo_vect, time_step=1
+    ):
         """
         INTERNAL
 
@@ -293,7 +312,11 @@ class _ObsEnv(BaseEnv):
 
         # TODO set the shunts here
         # update the action that set the grid to the real value
-        still_in_maintenance, reconnected, first_ts_maintenance = self._update_vector_with_timestep(time_step)
+        (
+            still_in_maintenance,
+            reconnected,
+            first_ts_maintenance,
+        ) = self._update_vector_with_timestep(time_step)
         if np.any(first_ts_maintenance):
             set_status = np.array(self._line_status_me, dtype=dt_int)
             set_status[first_ts_maintenance] = -1
@@ -304,16 +327,21 @@ class _ObsEnv(BaseEnv):
             set_status = self._line_status_me
             topo_vect = self._topo_vect
 
-        self._backend_action_set += self._helper_action_env({"set_line_status": set_status,
-                                                             "set_bus": topo_vect,
-                                                             "injection": {"prod_p": self._prod_p,
-                                                                           "prod_v": self._prod_v,
-                                                                           "load_p": self._load_p,
-                                                                           "load_q": self._load_q}
-                                                             })
+        self._backend_action_set += self._helper_action_env(
+            {
+                "set_line_status": set_status,
+                "set_bus": topo_vect,
+                "injection": {
+                    "prod_p": self._prod_p,
+                    "prod_v": self._prod_v,
+                    "load_p": self._load_p,
+                    "load_q": self._load_q,
+                },
+            }
+        )
         self._backend_action_set += new_state_action
         # for storage unit
-        self._backend_action_set.storage_power.values[:] = 0.
+        self._backend_action_set.storage_power.values[:] = 0.0
 
         # for curtailment
         if self._env_modification is not None:
@@ -325,7 +353,7 @@ class _ObsEnv(BaseEnv):
         self._timestep_overflow[:] = timestep_overflow
 
     def _get_new_prod_setpoint(self, action):
-        new_p = 1. * self._backend_action_set.prod_p.values
+        new_p = 1.0 * self._backend_action_set.prod_p.values
         if "prod_p" in action._dict_inj:
             tmp = action._dict_inj["prod_p"]
             indx_ok = np.isfinite(tmp)
@@ -348,13 +376,19 @@ class _ObsEnv(BaseEnv):
 
         update the value of the "time dependant" attributes
         """
-        self._times_before_line_status_actionable[:] = np.maximum(self._times_before_line_status_actionable - time_step,
-                                                                  0)
-        self._times_before_topology_actionable[:] = np.maximum(self._times_before_topology_actionable - time_step,
-                                                               0)
+        self._times_before_line_status_actionable[:] = np.maximum(
+            self._times_before_line_status_actionable - time_step, 0
+        )
+        self._times_before_topology_actionable[:] = np.maximum(
+            self._times_before_topology_actionable - time_step, 0
+        )
 
-        still_in_maintenance = (self._duration_next_maintenance > time_step) & (self._time_next_maintenance == 0)
-        reconnected = (self._duration_next_maintenance <= time_step) & (self._time_next_maintenance == 0)
+        still_in_maintenance = (self._duration_next_maintenance > time_step) & (
+            self._time_next_maintenance == 0
+        )
+        reconnected = (self._duration_next_maintenance <= time_step) & (
+            self._time_next_maintenance == 0
+        )
         first_ts_maintenance = self._time_next_maintenance == time_step
 
         # powerline that are still in maintenance at this time step
@@ -377,8 +411,12 @@ class _ObsEnv(BaseEnv):
     def _reset_vect(self):
         self._gen_activeprod_t[:] = self.gen_activeprod_t_init
         self._gen_activeprod_t_redisp[:] = self.gen_activeprod_t_redisp_init
-        self._times_before_line_status_actionable[:] = self.times_before_line_status_actionable_init
-        self._times_before_topology_actionable[:] = self.times_before_topology_actionable_init
+        self._times_before_line_status_actionable[
+            :
+        ] = self.times_before_line_status_actionable_init
+        self._times_before_topology_actionable[
+            :
+        ] = self.times_before_topology_actionable_init
         self._time_next_maintenance[:] = self.time_next_maintenance_init
         self._duration_next_maintenance[:] = self.duration_next_maintenance_init
         self._target_dispatch[:] = self.target_dispatch_init
@@ -515,7 +553,9 @@ class _ObsEnv(BaseEnv):
         self._topo_vect = real_backend.get_topo_vect()
 
         # convert line status to -1 / 1 instead of false / true
-        self._line_status_orig[:] = env.get_current_line_status().astype(dt_int)  # false -> 0 true -> 1
+        self._line_status_orig[:] = env.get_current_line_status().astype(
+            dt_int
+        )  # false -> 0 true -> 1
         self._line_status_orig *= 2  # false -> 0 true -> 2
         self._line_status_orig -= 1  # false -> -1; true -> 1
         self.is_init = False
@@ -528,8 +568,12 @@ class _ObsEnv(BaseEnv):
             self._thermal_limit_a[:] = env._thermal_limit_a.astype(dt_float)
         self.gen_activeprod_t_init[:] = env._gen_activeprod_t
         self.gen_activeprod_t_redisp_init[:] = env._gen_activeprod_t_redisp
-        self.times_before_line_status_actionable_init[:] = env._times_before_line_status_actionable
-        self.times_before_topology_actionable_init[:] = env._times_before_topology_actionable
+        self.times_before_line_status_actionable_init[
+            :
+        ] = env._times_before_line_status_actionable
+        self.times_before_topology_actionable_init[
+            :
+        ] = env._times_before_topology_actionable
         self.time_next_maintenance_init[:] = env._time_next_maintenance
         self.duration_next_maintenance_init[:] = env._duration_next_maintenance
         self.target_dispatch_init[:] = env._target_dispatch
@@ -564,23 +608,50 @@ class _ObsEnv(BaseEnv):
 
     def get_current_line_status(self):
         return self._line_status == 1
-    
+
     def close(self):
         """close this environment, once and for all"""
         super().close()
-        
-                # clean all the attributes
-        for attr_nm in ["_obsClass", "gen_activeprod_t_init", "gen_activeprod_t_redisp_init",
-                        "times_before_line_status_actionable_init", "times_before_topology_actionable_init",
-                        "time_next_maintenance_init", "duration_next_maintenance_init", "target_dispatch_init",
-                        "_line_status", "_line_status_me", "_line_status_orig", "_load_p", "_load_q",
-                        "_load_v", "_prod_p", "_prod_q", "_prod_v", "_topo_vect",
-                        "opp_space_state", "opp_state", "_storage_current_charge_init", "_storage_previous_charge_init",
-                        "_action_storage_init", "_amount_storage_init", "_amount_storage_prev_init", "_storage_power_init",
-                        "_storage_current_charge_init", "_storage_previous_charge_init", 
-                        "_limit_curtailment_init", "_gen_before_curtailment_init", "_sum_curtailment_mw_init",
-                        "_sum_curtailment_mw_prev_init", "_nb_time_step_init", "_attention_budget_state_init",
-                        "_max_episode_duration", "_ptr_orig_obs_space"]:
+
+        # clean all the attributes
+        for attr_nm in [
+            "_obsClass",
+            "gen_activeprod_t_init",
+            "gen_activeprod_t_redisp_init",
+            "times_before_line_status_actionable_init",
+            "times_before_topology_actionable_init",
+            "time_next_maintenance_init",
+            "duration_next_maintenance_init",
+            "target_dispatch_init",
+            "_line_status",
+            "_line_status_me",
+            "_line_status_orig",
+            "_load_p",
+            "_load_q",
+            "_load_v",
+            "_prod_p",
+            "_prod_q",
+            "_prod_v",
+            "_topo_vect",
+            "opp_space_state",
+            "opp_state",
+            "_storage_current_charge_init",
+            "_storage_previous_charge_init",
+            "_action_storage_init",
+            "_amount_storage_init",
+            "_amount_storage_prev_init",
+            "_storage_power_init",
+            "_storage_current_charge_init",
+            "_storage_previous_charge_init",
+            "_limit_curtailment_init",
+            "_gen_before_curtailment_init",
+            "_sum_curtailment_mw_init",
+            "_sum_curtailment_mw_prev_init",
+            "_nb_time_step_init",
+            "_attention_budget_state_init",
+            "_max_episode_duration",
+            "_ptr_orig_obs_space",
+        ]:
             if hasattr(self, attr_nm):
                 delattr(self, attr_nm)
             setattr(self, attr_nm, None)

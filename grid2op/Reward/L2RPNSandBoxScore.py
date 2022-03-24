@@ -27,13 +27,14 @@ class L2RPNSandBoxScore(BaseReward):
     The "reward" the closest to this score is given by the :class:`RedispReward` class.
 
     """
+
     def __init__(self, alpha_redisph=1.0):
         BaseReward.__init__(self)
         self.reward_min = dt_float(1.0)  # carefull here between min and max...
         self.reward_max = dt_float(300.0 * 70.0)
         self.alpha_redisph = dt_float(alpha_redisph)
 
-    def __call__(self,  action, env, has_error, is_done, is_illegal, is_ambiguous):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error:
             # DO SOMETHING IN THIS CASE
             return self.reward_min
@@ -45,11 +46,13 @@ class L2RPNSandBoxScore(BaseReward):
 
         # compute the marginal cost
         gen_activeprod_t = env._gen_activeprod_t
-        p_t = np.max(env.gen_cost_per_MW[gen_activeprod_t > 0.]).astype(dt_float)
+        p_t = np.max(env.gen_cost_per_MW[gen_activeprod_t > 0.0]).astype(dt_float)
 
         # redispatching amount
         actual_dispatch = env._actual_dispatch
-        c_redispatching = dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(actual_dispatch)) * p_t
+        c_redispatching = (
+            dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(actual_dispatch)) * p_t
+        )
 
         # cost of losses
         c_loss = losses * p_t

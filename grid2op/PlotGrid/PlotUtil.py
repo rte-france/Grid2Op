@@ -17,6 +17,7 @@ class PlotUtil:
 
     This is a wrapper that contains utilities to draw the information on the plots more easily.
     """
+
     @staticmethod
     def format_value_unit(value, unit):
         if isinstance(value, float):
@@ -41,7 +42,10 @@ class PlotUtil:
 
     @staticmethod
     def norm_from_points(x1, y1, x2, y2):
-        x, y, = PlotUtil.vec_from_points(x1, y1, x2, y2)
+        (
+            x,
+            y,
+        ) = PlotUtil.vec_from_points(x1, y1, x2, y2)
         return PlotUtil.norm_from_vec(x, y)
 
     @staticmethod

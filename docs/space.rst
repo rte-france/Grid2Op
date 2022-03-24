@@ -28,4 +28,3 @@ Detailed Documentation by class
     :autosummary:
 
 .. include:: final.rst
-

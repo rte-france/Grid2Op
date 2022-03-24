@@ -16,9 +16,10 @@ class UnlimitedBudget(BaseActionBudget):
 
     It SHOULD NOT be used if the opponent is allowed to take any actions!
     """
+
     def __init__(self, action_space):
         BaseActionBudget.__init__(self, action_space)
-        self._zero = dt_float(0.)
+        self._zero = dt_float(0.0)
 
     def __call__(self, attack):
         return self._zero

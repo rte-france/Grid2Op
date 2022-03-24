@@ -14,6 +14,7 @@ class AlwaysLegal(BaseRules):
     This subclass doesn't implement any rules regarding the legality of the actions. All actions are legal.
 
     """
+
     def __call__(self, action, env):
         """
         All actions being legal, this returns always true.
