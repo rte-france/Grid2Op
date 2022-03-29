@@ -212,7 +212,7 @@ class Environment(BaseEnv):
         if self.backend.is_loaded:
             raise EnvError(
                 "Impossible to use the same backend twice. Please create your environment with a "
-                "new backend instance."
+                "new backend instance (new object)."
             )
 
         if self._read_from_local_dir:
