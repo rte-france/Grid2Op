@@ -60,12 +60,15 @@ Change Log
 - [FIXED] a bug preventing to converte observation as networkx graph with oldest version of numpy and newest version of scipy.
 - [FIXED] a bug when using `max_iter` and `Runner` in case of max_iter being larger than the number of steps in the
   environment and `nb_episode` >= 2.
+- [FIXED] a bug in the hashing of environment in case of storage units (the characteristics of the storage units
+  were not taken into account in the hash).
 - [ADDED] a function `normalize_attr` allowing to easily scale some data for the
   `BoxGymObsSpace` and `BoxGymActSpace`
 - [ADDED] support for distributed slack in pandapower (if supported)
 - [ADDED] an attribute `self.infos` for the BaseEnv that contains the "info" return value of `env.step(...)`
 - [ADDED] the possibility to shuffle the chronics of a `GymEnv` (the default behavior is now to shuffle them)
 - [ADDED] two attribtues for the observation: `obs.gen_margin_up` and `obs.gen_margin_down`
+- [ADDED] support for hashing chronix2grid related components.
 - [IMPROVED] better difference between `env_path` and `grid_path` in environments.
 - [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower

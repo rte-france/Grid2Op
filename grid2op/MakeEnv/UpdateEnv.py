@@ -182,6 +182,15 @@ def _hash_env(
             "grid.json",
             "grid_layout.json",
             "prods_charac.csv",
+            "storage_units_charac.csv",
+            # chronix2grid files, if any
+            "loads_charac.csv",
+            "params.json",
+            "params_load.json",
+            "params_loss.json",
+            "params_opf.json",
+            "params_res.json",
+            "scenario_params.json",
         ]:  # list the file we want to hash (we don't hash everything
             full_path_file = os.path.join(path_local_env, fn_)
             import re

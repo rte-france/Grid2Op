@@ -745,18 +745,28 @@ class TestMakeMultiMix(unittest.TestCase):
 
 
 class TestHashEnv(unittest.TestCase):
-    def test_hash(self):
+    def aux_test_hash_l2rpn_case14_sandbox(self, env_name, hash_str):
         from grid2op.MakeEnv.UpdateEnv import _hash_env
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("l2rpn_case14_sandbox", test=True)
+            env = make(env_name, test=True)
         path_ = env.get_path_env()
         hash_this_env = _hash_env(path_)
         assert (
             hash_this_env.hexdigest()
-            == "bec981458530b8f238b014c6303622c78f8aee2fbbbedaf6449cf30da6487cd8d175e1e765f21f9a4db5269e4bed3f061f1bf97ed5f387e48463a26a86e96df2"
+            == f"{hash_str}"
         ), f"wrong hash digest. It's \n\t{hash_this_env.hexdigest()}"
+        
+    def test_hash_l2rpn_case14_sandbox(self):
+        self.aux_test_hash_l2rpn_case14_sandbox("l2rpn_case14_sandbox", 
+                                                "3b247355036adc488290e9f756b6c1978eaaa2daf8380c7d0e6640096e3ffd77cdd0c9da39b67694d9450035a4a4200ef0207794436cfb7f60fe98154352b7d9")
+        
+    def test_hash_educ_case14_storage(self):
+        # the file "storage_units_charac" was not used when hashing the environment, which was a bug
+        self.aux_test_hash_l2rpn_case14_sandbox("educ_case14_storage", 
+                                                "c5192c21b778129ae4201ff5c992c1d7605fda26280c7267858d3e87cf03adbc15a15913355908b39a7c0839811eec399bed82714d4cd78e5fcae7d984bd641b")
+    
 
 
 if __name__ == "__main__":
