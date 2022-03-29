@@ -760,7 +760,7 @@ class TestHashEnv(unittest.TestCase):
         
     def test_hash_l2rpn_case14_sandbox(self):
         self.aux_test_hash_l2rpn_case14_sandbox("l2rpn_case14_sandbox", 
-                                                "65f722f2f5255f30bf7c7c2db12163be9604cce6cd45e4b8609dbd183308b5c968af952006fcdd628ae4f9101c79fed6bdd54f443e32bbe9671fa2f387dab93d")
+                                                "6ebc5cd1bd8044364aab34ad21bec0533083662ad3090bdb9e88af289438eacbd7a9c22264541a7cbffac360278300f44fbb9f6874d488da26bff8e1ea4881f3")
         
     def test_hash_educ_case14_storage(self):
         # the file "storage_units_charac" was not used when hashing the environment, which was a bug

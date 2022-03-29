@@ -629,7 +629,7 @@ class GridStateFromFile(GridValue):
 
         if self.max_iter > 0:
             if self.n_ is not None:
-                if self.max_iter > self.n_:
+                if self.max_iter >= self.n_:
                     self.max_iter = self.n_ - 1
                     # TODO: issue warning in this case
             self.n_ = self.max_iter + 1
