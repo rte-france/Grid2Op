@@ -12,6 +12,7 @@ import numpy as np
 import re
 
 import grid2op
+from grid2op.Opponent.OpponentSpace import OpponentSpace
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Action import (
     ActionSpace,
@@ -85,6 +86,7 @@ class Environment(BaseEnv):
         with_forecast=True,
         epsilon_poly=1e-4,  # precision of the redispatching algorithm we don't recommend to go above 1e-4
         tol_poly=1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
+        opponent_space_type=OpponentSpace,
         opponent_action_class=DontAct,
         opponent_class=BaseOpponent,
         opponent_init_budget=0.0,
@@ -114,6 +116,7 @@ class Environment(BaseEnv):
             other_rewards=other_rewards,
             with_forecast=with_forecast,
             voltagecontrolerClass=voltagecontrolerClass,
+            opponent_space_type=opponent_space_type,
             opponent_action_class=opponent_action_class,
             opponent_class=opponent_class,
             opponent_budget_class=opponent_budget_class,
@@ -1043,6 +1046,7 @@ class Environment(BaseEnv):
         res["_raw_backend_class"] = self._raw_backend_class
         res["with_forecast"] = self.with_forecast
 
+        res["opponent_space_type"] = self._opponent_space_type
         res["opponent_action_class"] = self._opponent_action_class
         res["opponent_class"] = self._opponent_class
         res["opponent_init_budget"] = self._opponent_init_budget
@@ -1642,6 +1646,7 @@ class Environment(BaseEnv):
         res["grid_layout"] = self.grid_layout
         res["name_env"] = self.name
 
+        res["opponent_space_type"] = self._opponent_space_type
         res["opponent_action_class"] = self._opponent_action_class
         res["opponent_class"] = self._opponent_class
         res["opponent_init_budget"] = self._opponent_init_budget

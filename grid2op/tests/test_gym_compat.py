@@ -83,7 +83,7 @@ class TestGymCompatModule(unittest.TestCase):
                 for el in env_gym.action_space.spaces
             ]
         )
-        assert dim_act_space == 160
+        assert dim_act_space == 166, f"{dim_act_space} != 166"
         dim_obs_space = np.sum(
             [
                 np.sum(env_gym.observation_space[el].shape).astype(int)
@@ -119,7 +119,7 @@ class TestGymCompatModule(unittest.TestCase):
                 for el in env_gym.action_space.spaces
             ]
         )
-        assert dim_act_space == 83
+        assert dim_act_space == 89, f"{dim_act_space=} != 89"
 
     def test_keep_only(self):
         """test the keep_only_attr method"""
@@ -205,6 +205,8 @@ class TestGymCompatModule(unittest.TestCase):
         else:
             # it's linux
             res = (1, 2, 0, 0, 0, 0)
+            res = (5, 3, 0, 0, 0, 1)
+        
         assert np.all(
             act_gym["redispatch"] == res
         ), f'wrong action: {act_gym["redispatch"]}'
@@ -214,6 +216,7 @@ class TestGymCompatModule(unittest.TestCase):
         else:
             # it's linux
             res = (0, 1, 0, 0, 0, 4)
+            res = (5, 5, 0, 0, 0, 9)
         assert np.all(
             act_gym["redispatch"] == res
         ), f'wrong action: {act_gym["redispatch"]}'
@@ -238,6 +241,10 @@ class TestGymCompatModule(unittest.TestCase):
             res_disp = np.array(
                 [-3.3333333, -1.666667, 0.0, 0.0, 0.0, 7.5], dtype=dt_float
             )
+            res_tup = (7, 4, 0, 0, 0, 0)
+            res_disp = np.array(
+                [1.666667, -1.666667, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
+            )
         assert (
             act_gym["redispatch"] == res_tup
         ), f'error. redispatch is {act_gym["redispatch"]}'
@@ -255,6 +262,10 @@ class TestGymCompatModule(unittest.TestCase):
             res_tup = (3, 9, 0, 0, 0, 0)
             res_disp = np.array(
                 [-1.6666665, 6.666666, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
+            )
+            res_tup = (8, 6, 0, 0, 0, 0)
+            res_disp = np.array(
+                [2.5, 1.666666, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
             )
         assert (
             act_gym["redispatch"] == res_tup

@@ -12,6 +12,7 @@ import os
 import warnings
 import pkg_resources
 
+from grid2op.Environment import Environment
 from grid2op.MakeEnv.MakeFromPath import make_from_dataset_path, ERR_MSG_KWARGS
 from grid2op.Exceptions import Grid2OpException, UnknownEnv
 import grid2op.MakeEnv.PathUtils
@@ -229,7 +230,7 @@ def _aux_make_multimix(
     _compat_glop_version=None,
     logger=None,
     **kwargs
-):
+) -> Environment:
     # Local import to prevent imports loop
     from grid2op.Environment import MultiMixEnvironment
 
@@ -252,7 +253,7 @@ def make(
     _add_to_name="",
     _compat_glop_version=None,
     **kwargs
-):
+) -> Environment:
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 

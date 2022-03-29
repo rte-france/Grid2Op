@@ -24,6 +24,8 @@ class ActionICAPS2021(PlayableAction):
         "set_bus",
         "change_bus",
         "redispatch",
+        "curtail",
+        "raise_alarm",
         }
 
     attr_list_vect = ['_set_line_status',

@@ -9,6 +9,7 @@
 import tempfile
 import warnings
 import grid2op
+from grid2op.Opponent.OpponentSpace import OpponentSpace
 from grid2op.tests.helper_path_test import *
 from grid2op.Chronics import ChangeNothing
 from grid2op.Opponent import (
@@ -1924,6 +1925,36 @@ class TestGeometricOpponent(unittest.TestCase):
                 obs, reward, done, info = env.step(dn)
                 assert info["opponent_attack_line"] is not None
 
-
+    
+class TestChangeOppSpace(unittest.TestCase):
+    """test i can change the opponent_space_type when creating an environment"""    
+    def test_change_opp_space_type(self):
+        class OpponentSpaceCust(OpponentSpace):
+            pass
+                
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_icaps_2021", test=True)
+            assert isinstance(env._oppSpace, OpponentSpace) 
+            
+            # check i can change it from "make"
+            env = grid2op.make("l2rpn_icaps_2021", opponent_space_type=OpponentSpaceCust, test=True)
+            assert isinstance(env._oppSpace, OpponentSpaceCust) 
+            # check it's properly propagated when copied
+            env_cpy = env.copy()
+            assert isinstance(env_cpy._oppSpace, OpponentSpaceCust)
+            # check it's properly propagated in the kwargs
+            env_params = env.get_kwargs()
+            assert env_params["opponent_space_type"] == OpponentSpaceCust
+            # check it's properly propagated in the runner
+            runner_params = env.get_params_for_runner()
+            assert runner_params["opponent_space_type"] == OpponentSpaceCust
+            runner = Runner(**runner_params)
+            assert runner._opponent_space_type == OpponentSpaceCust
+            # check the runner can make an env with the right opponent space type
+            env_runner = runner.init_env()
+            assert isinstance(env_runner._oppSpace, OpponentSpaceCust)
+            
+            
 if __name__ == "__main__":
     unittest.main()

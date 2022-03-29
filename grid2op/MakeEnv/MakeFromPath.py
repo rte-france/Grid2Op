@@ -14,6 +14,7 @@ import warnings
 
 from grid2op.Environment import Environment
 from grid2op.Backend import Backend, PandaPowerBackend
+from grid2op.Opponent.OpponentSpace import OpponentSpace
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, ChangeNothing, FromNPY
 from grid2op.Chronics import GridStateFromFile, GridValue
@@ -56,6 +57,7 @@ ERR_MSG_KWARGS = {
     "should be dictionary.",
     "chronics_path": 'The path where the data is located (keyword "chronics_path") should be a string.',
     "grid_path": 'The path where the grid is located (keyword "grid_path") should be a string.',
+    "opponent_space_type": 'The argument used to build the opponent space (expects a type / class and not an instance of that type)',
     "opponent_action_class": 'The argument used to build the "opponent_action_class" should be a class that '
     'inherit from "BaseAction"',
     "opponent_class": 'The argument used to build the "opponent_class" should be a class that '
@@ -111,7 +113,7 @@ def make_from_dataset_path(
     _add_to_name="",
     _compat_glop_version=None,
     **kwargs,
-):
+) -> Environment:
     """
     INTERNAL USE ONLY
 
@@ -188,6 +190,9 @@ def make_from_dataset_path(
         most realistic mode). If multiple difficulty levels are available, the most realistic one
         (the "hardest") is the default choice.
 
+    opponent_space_type: ``type``, optional
+        The type of opponent space to use. If provided, it must be a subclass of OpponentSpace.
+        
     opponent_action_class: ``type``, optional
         The action class used for the opponent. The opponent will not be able to use action that are invalid with
         the given action class provided. It defaults to :class:`grid2op.Action.DontAct` which forbid any type
@@ -563,6 +568,18 @@ def make_from_dataset_path(
     )
 
     # Opponent
+    opponent_space_type_cfg = OpponentSpace
+    if "opponent_space_type" in config_data and config_data["opponent_space_type"] is not None:
+        opponent_space_type_cfg = config_data["opponent_space_type"]
+    opponent_space_type = _get_default_aux(
+        "opponent_space_type",
+        kwargs,
+        defaultClassApp=OpponentSpace,
+        defaultClass=opponent_space_type_cfg,
+        msg_error=ERR_MSG_KWARGS["opponent_space_type"],
+        isclass=True,
+    )
+    
     chronics_class_cfg = DontAct
     if (
         "opponent_action_class" in config_data
@@ -758,6 +775,7 @@ def make_from_dataset_path(
         legalActClass=gamerules_class,
         voltagecontrolerClass=volagecontroler_class,
         other_rewards=other_rewards,
+        opponent_space_type=opponent_space_type,
         opponent_action_class=opponent_action_class,
         opponent_class=opponent_class,
         opponent_init_budget=opponent_init_budget,

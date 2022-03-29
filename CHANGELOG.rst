@@ -3,6 +3,7 @@ Change Log
 
 [TODO]
 --------------------
+- [???] use the typing module for type annotation.
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] model better the voltage, include voltage constraints
@@ -67,6 +68,7 @@ Change Log
 - [ADDED] the possibility to shuffle the chronics of a `GymEnv` (the default behavior is now to shuffle them)
 - [ADDED] two attribtues for the observation: `obs.gen_margin_up` and `obs.gen_margin_down`
 - [ADDED] support for hashing chronix2grid related components.
+- [ADDED] possibility to change the type of the opponent space type from the `make(...)` command
 - [IMPROVED] better difference between `env_path` and `grid_path` in environments.
 - [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower
