@@ -2539,7 +2539,7 @@ class BaseObservation(GridObjects):
             self._dictionnarized["curtailment"] = 1.0 * self.curtailment
             self._dictionnarized["curtailment_limit"] = 1.0 * self.curtailment_limit
             self._dictionnarized["curtailment_limit_effective"] = (
-                1.0 * self.curtailmentcurtailment_limit_effective_limit
+                1.0 * self.curtailment_limit_effective
             )
 
             # alarm / attention budget

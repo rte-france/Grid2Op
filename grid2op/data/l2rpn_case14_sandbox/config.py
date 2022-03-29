@@ -1,4 +1,4 @@
-from grid2op.Action import TopologyAndDispatchAction
+from grid2op.Action import PlayableAction
 from grid2op.Reward import RedispReward
 from grid2op.Rules import DefaultRules
 from grid2op.Chronics import Multifolder
@@ -7,7 +7,7 @@ from grid2op.Backend import PandaPowerBackend
 
 config = {
     "backend": PandaPowerBackend,
-    "action_class": TopologyAndDispatchAction,
+    "action_class": PlayableAction,
     "observation_class": None,
     "reward_class": RedispReward,
     "gamerules_class": DefaultRules,

@@ -3,9 +3,6 @@ Change Log
 
 [TODO]
 --------------------
-- [???] have dedicated type of actions / observation for each available 
-  environment, defined in the "conf.py" file (to make possible the use of different
-  grid2op version)
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] model better the voltage, include voltage constraints
@@ -62,6 +59,7 @@ Change Log
   environment and `nb_episode` >= 2.
 - [FIXED] a bug in the hashing of environment in case of storage units (the characteristics of the storage units
   were not taken into account in the hash).
+- [FIXED] a bug in the `obs.as_dict()` method.
 - [ADDED] a function `normalize_attr` allowing to easily scale some data for the
   `BoxGymObsSpace` and `BoxGymActSpace`
 - [ADDED] support for distributed slack in pandapower (if supported)
@@ -78,6 +76,9 @@ Change Log
 - [IMPROVED] when the curtailment / storage is too "strong" at a given step, the environment will now allow 
   every controllable turned-on generators to mitigate it. This should increase the possibility to act on the
   curtailment and storage units without "breaking" the environment. 
+- [IMPROVED] have dedicated type of actions / observation for L2RPN competition environments, 
+  defined in the "conf.py" file (to make possible the use of different
+  grid2op version transparently)
 
 [1.6.5] - 2022-01-19
 ---------------------
