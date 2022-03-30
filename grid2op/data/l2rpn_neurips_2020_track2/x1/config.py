@@ -1,87 +1,18 @@
-from grid2op.Action import PlayableAction
-from grid2op.Observation import CompleteObservation
 from grid2op.Reward import RedispReward
 from grid2op.Rules import DefaultRules
 from grid2op.Chronics import Multifolder
 from grid2op.Chronics import GridStateFromFileWithForecasts
 from grid2op.Backend import PandaPowerBackend
 
-
-class ActionNeurips2020(PlayableAction):
-    authorized_keys = {
-        "set_line_status",
-        "change_line_status",
-        "set_bus",
-        "change_bus",
-        "redispatch",
-        }
-
-    attr_list_vect = ['_set_line_status',
-                      '_set_topo_vect',
-                      '_change_bus_vect',
-                      '_switch_line_status',
-                      '_redispatch']
-    attr_list_set = set(attr_list_vect)
-    pass
-    
-    
-class ObservationNeurips2020(CompleteObservation):
-    attr_list_vect = ['year',
-                      'month',
-                      'day',
-                      'hour_of_day',
-                      'minute_of_hour',
-                      'day_of_week',
-                      'gen_p',
-                      'gen_q',
-                      'gen_v',
-                      'load_p',
-                      'load_q',
-                      'load_v',
-                      'p_or',
-                      'q_or',
-                      'v_or',
-                      'a_or',
-                      'p_ex',
-                      'q_ex',
-                      'v_ex',
-                      'a_ex',
-                      'rho',
-                      'line_status',
-                      'timestep_overflow',
-                      'topo_vect',
-                      'time_before_cooldown_line',
-                      'time_before_cooldown_sub',
-                      'time_next_maintenance',
-                      'duration_next_maintenance',
-                      'target_dispatch',
-                      'actual_dispatch']
-    attr_list_json = [
-        "storage_charge",
-        "storage_power_target",
-        "storage_power",
-        "gen_p_before_curtail",
-        "curtailment",
-        "curtailment_limit",
-        "curtailment_limit_effective",
-        "_shunt_p",
-        "_shunt_q",
-        "_shunt_v",
-        "_shunt_bus",
-        "current_step",
-        "max_step",
-        "delta_time",
-        "gen_margin_up",
-        "gen_margin_down",
-        "_thermal_limit",
-        "support_theta",
-        "theta_or",
-        "theta_ex",
-        "load_theta",
-        "gen_theta",
-        "storage_theta",
-    ]
-    attr_list_set = set(attr_list_vect)
+try:
+    from grid2op.l2rpn_utils import ActionNeurips2020, ObservationNeurips2020
+except ImportError:
+    from grid2op.Action import TopologyAndDispatchAction
+    from grid2op.Observation import CompleteObservation
+    import warnings
+    warnings.warn("The grid2op version you are trying to use is too old for this environment. Please upgrade it.")
+    ActionNeurips2020 = TopologyAndDispatchAction
+    ObservationNeurips2020 = CompleteObservation
     
     
 config = {
