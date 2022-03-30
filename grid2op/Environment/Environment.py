@@ -342,7 +342,8 @@ class Environment(BaseEnv):
             names_chronics_to_backend=names_chronics_to_backend,
         )
         self._names_chronics_to_backend = names_chronics_to_backend
-
+        self.delta_time_seconds = dt_float(self.chronics_handler.time_interval.seconds)
+        
         # this needs to be done after the chronics handler: rewards might need information
         # about the chronics to work properly.
         self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
@@ -357,7 +358,6 @@ class Environment(BaseEnv):
 
         # test to make sure the backend is consistent with the chronics generator
         self.chronics_handler.check_validity(self.backend)
-        self.delta_time_seconds = dt_float(self.chronics_handler.time_interval.seconds)
         self._reset_storage()  # this should be called after the  self.delta_time_seconds is set
 
         # reward function

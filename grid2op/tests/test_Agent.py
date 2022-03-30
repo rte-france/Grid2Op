@@ -109,9 +109,10 @@ class TestAgent(HelperTests):
             i, cum_reward, all_acts = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for do nothing"
         expected_reward = dt_float(35140.027)
+        expected_reward = dt_float(35140.03125 / 12.)
         assert (
             np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one
-        ), "The reward has not been properly computed"
+        ), f"The reward has not been properly computed {cum_reward} instead of {expected_reward}"
 
     def test_1_powerlineswitch(self):
         agent = PowerLineSwitch(self.env.action_space)
@@ -121,13 +122,12 @@ class TestAgent(HelperTests):
         assert (
             i == 31
         ), "The powerflow diverged before step 30 for powerline switch agent"
-        expected_reward = dt_float(
-            35147.55859375
-        )  # switch to using df_float in the reward, change then the results
-        expected_reward = dt_float(35147.76)
+        # switch to using df_float in the reward, change then the results
+        expected_reward = dt_float(35147.55859375)  
+        expected_reward = dt_float(35147.7685546 / 12.)
         assert (
             np.abs(cum_reward - expected_reward) <= self.tol_one
-        ), "The reward has not been properly computed"
+        ), f"The reward has not been properly computed {cum_reward} instead of {expected_reward}"
 
     def test_2_busswitch(self):
         agent = TopologyGreedy(self.env.action_space)
@@ -135,17 +135,14 @@ class TestAgent(HelperTests):
             warnings.filterwarnings("error")
             i, cum_reward, all_acts = self._aux_test_agent(agent, i_max=10)
         assert i == 11, "The powerflow diverged before step 10 for greedy agent"
-        expected_reward = dt_float(
-            12075.389
-        )  # i have more actions now, so this is not correct (though it should be..
+        # i have more actions now, so this is not correct (though it should be..
         # yet a proof that https://github.com/rte-france/Grid2Op/issues/86 is grounded
+        expected_reward = dt_float(12075.389)
         expected_reward = dt_float(12277.632)
-        # 12076.356
-        # 12076.191
-        expected_reward = dt_float(12076.356)
+        expected_reward = dt_float(12076.35644531 / 12.)
         assert (
             np.abs(cum_reward - expected_reward) <= self.tol_one
-        ), "The reward has not been properly computed"
+        ), f"The reward has not been properly computed {cum_reward} instead of {expected_reward}"
 
 
 class TestMake2Agents(HelperTests):

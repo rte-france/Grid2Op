@@ -52,14 +52,14 @@ class EconomicReward(BaseReward):
                 "Impossible to use the EconomicReward reward with an environment without generators"
                 "cost. Please make sure env.redispatching_unit_commitment_availble is available."
             )
-        self.worst_cost = dt_float(np.sum(env.gen_cost_per_MW * env.gen_pmax))
+        self.worst_cost = dt_float(np.sum(env.gen_cost_per_MW * env.gen_pmax) * env.delta_time_seconds / 3600.0)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             res = self.reward_min
         else:
             # compute the cost of the grid
-            res = dt_float(np.sum(env.get_obs().prod_p * env.gen_cost_per_MW))
+            res = dt_float(np.sum(env.get_obs().prod_p * env.gen_cost_per_MW) * env.delta_time_seconds / 3600.0)
             # we want to minimize the cost by maximizing the reward so let's take the opposite
             res *= dt_float(-1.0)
             # to be sure it's positive, add the highest possible cost

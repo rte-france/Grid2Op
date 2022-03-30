@@ -4,6 +4,10 @@ Change Log
 [TODO]
 --------------------
 - [???] use the typing module for type annotation.
+- [???] add a mode to curtail a certain amount of MW (instead of limiting to a certain amount of MW) in the action
+- [???] add a method to "clean the curtailment / storage" depending on the available "juice" offered by the generators
+- [???] add a notebook on curtailment / storage
+- [???] clean the notebook on RL
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] model better the voltage, include voltage constraints
@@ -30,6 +34,8 @@ Change Log
 
 [1.6.6] - 2022-xx-yy
 ---------------------
+- [BREAKING] the `L2RPNSandBoxScore`, `RedispReward` and `EconomicReward` now properly computes the cost of the grid 
+  (there was an error between the conversion from MWh - cost is given in $ / MWh - and MW). This impacts also `ScoreICAPS2021` and `ScoreL2RPN2020`.
 - [BREAKING] in the "gym_compat" module the curtailment action type has 
   for dimension the number of dispatchable generators (as opposed to all generators
   before) this was mandatory to fix issue https://github.com/rte-france/Grid2Op/issues/282

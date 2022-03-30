@@ -151,17 +151,15 @@ class RedispReward(BaseReward):
         worst_load = dt_float(np.sum(env.gen_pmax))
         # it's not the worst, but definitely an upper bound
         worst_losses = dt_float(cls_._worst_losses_ratio) * worst_load
-        worst_redisp = cls_._alpha_redisp * np.sum(
-            env.gen_pmax
-        )  # not realistic, but an upper bound
-        self.max_regret = (worst_losses + worst_redisp) * worst_marginal_cost
+        worst_redisp = cls_._alpha_redisp * np.sum(env.gen_pmax)  # not realistic, but an upper bound
+        self.max_regret = (worst_losses + worst_redisp) * worst_marginal_cost * env.delta_time_seconds / 3600.0
         self.reward_min = dt_float(cls_._min_reward)
 
         least_loads = dt_float(
             worst_load * cls_._min_load_ratio
         )  # half the capacity of the grid
         least_losses = dt_float(
-            cls_._least_losses_ratio * least_loads
+            cls_._least_losses_ratio * least_loads * env.delta_time_seconds / 3600.0
         )  # 1.5% of losses
         least_redisp = dt_float(0.0)  # lower_bound is 0
         base_marginal_cost = np.min(env.gen_cost_per_MW[env.gen_cost_per_MW > 0.0])
@@ -182,7 +180,8 @@ class RedispReward(BaseReward):
             # compute the losses
             gen_p, *_ = env.backend.generators_info()
             load_p, *_ = env.backend.loads_info()
-            losses = np.sum(gen_p) - np.sum(load_p)
+            # don't forget to convert MW to MWh !
+            losses = (np.sum(gen_p) - np.sum(load_p)) * env.delta_time_seconds / 3600.0
 
             # compute the marginal cost
             gen_activeprod_t = env._gen_activeprod_t
@@ -191,14 +190,17 @@ class RedispReward(BaseReward):
             # redispatching amount
             actual_dispatch = env._actual_dispatch
             redisp_cost = (
-                self._alpha_redisp * np.sum(np.abs(actual_dispatch)) * marginal_cost
+                self._alpha_redisp * np.sum(np.abs(actual_dispatch)) * marginal_cost * env.delta_time_seconds / 3600.0
             )
 
             # cost of losses
             losses_cost = losses * marginal_cost
 
+            # cost of storage
+            c_storage = np.sum(np.abs(env._storage_power)) * marginal_cost * env.delta_time_seconds / 3600.0
+            
             # total "regret"
-            regret = losses_cost + redisp_cost
+            regret = losses_cost + redisp_cost + c_storage
 
             # compute reward
             reward = self.max_regret - regret

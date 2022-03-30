@@ -24,7 +24,7 @@ class Issue187Tester(unittest.TestCase):
     """
 
     def setUp(self) -> None:
-        self.tol = 1e-6
+        self.tol = 1e-5  # otherwise issues with converting to / from float32
 
     def test_issue_187(self):
         """test the range of the reward class"""
@@ -89,7 +89,7 @@ class Issue187Tester(unittest.TestCase):
                     worst_redisp = _alpha_redisph * np.sum(
                         env.gen_pmax
                     )  # not realistic, but an upper bound
-                    max_regret = (worst_losses + worst_redisp) * worst_marginal_cost
+                    max_regret = (worst_losses + worst_redisp) * worst_marginal_cost / 12.
                     reward_min = dt_float(_min_reward)
 
                     least_loads = dt_float(
@@ -102,14 +102,14 @@ class Issue187Tester(unittest.TestCase):
                     base_marginal_cost = np.min(
                         env.gen_cost_per_MW[env.gen_cost_per_MW > 0.0]
                     )
-                    min_regret = (least_losses + least_redisp) * base_marginal_cost
+                    min_regret = (least_losses + least_redisp) * base_marginal_cost / 12.
                     reward_max = dt_float((max_regret - min_regret) / least_loads)
                     assert (
                         abs(env.reward_range[1] - reward_max) <= self.tol
-                    ), f"wrong reward max computed for {env_name}"
+                    ), f"wrong reward max computed for {env_name}: {env.reward_range[1]} vs {reward_max}"
                     assert (
                         abs(env.reward_range[0] - reward_min) <= self.tol
-                    ), f"wrong reward min computed for {env_name}"
+                    ), f"wrong reward min computed for {env_name}: {env.reward_range[0]} vs {reward_min}"
 
     def test_custom_reward_runner(self):
         """test i can generate the reward and use it in the envs"""
