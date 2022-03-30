@@ -14,6 +14,7 @@ from multiprocessing import Pool
 from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import Grid2OpException, EnvError
 from grid2op.Observation import CompleteObservation, BaseObservation
+from grid2op.Opponent.OpponentSpace import OpponentSpace
 from grid2op.Reward import FlatReward, BaseReward
 from grid2op.Rules import AlwaysLegal, BaseRules
 from grid2op.Environment import Environment
@@ -247,6 +248,7 @@ class Runner(object):
         thermal_limit_a=None,
         max_iter=-1,
         other_rewards={},
+        opponent_space_type=OpponentSpace,
         opponent_action_class=DontAct,
         opponent_class=BaseOpponent,
         opponent_init_budget=0.0,
@@ -527,6 +529,7 @@ class Runner(object):
         self._other_rewards = other_rewards
 
         # for opponent (should be defined here) after the initialization of BaseEnv
+        self._opponent_space_type = opponent_space_type
         if not issubclass(opponent_action_class, BaseAction):
             raise EnvError(
                 "Impossible to make an environment with an opponent action class not "
@@ -602,6 +605,7 @@ class Runner(object):
                 legalActClass=self.legalActClass,
                 voltagecontrolerClass=self.voltageControlerClass,
                 other_rewards=self._other_rewards,
+                opponent_space_type=self._opponent_space_type,
                 opponent_action_class=self.opponent_action_class,
                 opponent_class=self.opponent_class,
                 opponent_init_budget=self.opponent_init_budget,
@@ -997,6 +1001,7 @@ class Runner(object):
             "thermal_limit_a": self.thermal_limit_a,
             "max_iter": self.max_iter,
             "other_rewards": copy.deepcopy(self._other_rewards),
+            "opponent_space_type": self._opponent_space_type,
             "opponent_action_class": self.opponent_action_class,
             "opponent_class": self.opponent_class,
             "opponent_init_budget": self.opponent_init_budget,

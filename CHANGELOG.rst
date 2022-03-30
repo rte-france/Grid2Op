@@ -3,9 +3,7 @@ Change Log
 
 [TODO]
 --------------------
-- [???] have dedicated type of actions / observation for each available 
-  environment, defined in the "conf.py" file (to make possible the use of different
-  grid2op version)
+- [???] use the typing module for type annotation.
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] model better the voltage, include voltage constraints
@@ -24,10 +22,7 @@ Change Log
 - [???] Code and test the "load from disk" method
 - [???] Make the redispatching data independent from the time step (eg instead of "in MW / step" have it in "MW / h"
   and have grid2op convert it to MW / step
-- [???] Extensive tests for BridgeReward
-- [???] Extensive tests for DistanceReward
 - [???] add a "plot action" method
-- [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parallel and transfer the resulting data.
 - [???] "asynch" multienv
@@ -61,13 +56,20 @@ Change Log
   when curtailment and storage units were heavily modified.
 - [FIXED] now possible to create an environment with the `FromNPY` chronixcs even if the "chronics" folder is absent. 
 - [FIXED] a bug preventing to converte observation as networkx graph with oldest version of numpy and newest version of scipy.
+- [FIXED] a bug when using `max_iter` and `Runner` in case of max_iter being larger than the number of steps in the
+  environment and `nb_episode` >= 2.
+- [FIXED] a bug in the hashing of environment in case of storage units (the characteristics of the storage units
+  were not taken into account in the hash).
+- [FIXED] a bug in the `obs.as_dict()` method.
 - [ADDED] a function `normalize_attr` allowing to easily scale some data for the
   `BoxGymObsSpace` and `BoxGymActSpace`
 - [ADDED] support for distributed slack in pandapower (if supported)
 - [ADDED] an attribute `self.infos` for the BaseEnv that contains the "info" return value of `env.step(...)`
 - [ADDED] the possibility to shuffle the chronics of a `GymEnv` (the default behavior is now to shuffle them)
 - [ADDED] two attribtues for the observation: `obs.gen_margin_up` and `obs.gen_margin_down`
-- [IMPROVED] better difference between env_path and grid_path in environments.
+- [ADDED] support for hashing chronix2grid related components.
+- [ADDED] possibility to change the type of the opponent space type from the `make(...)` command
+- [IMPROVED] better difference between `env_path` and `grid_path` in environments.
 - [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower
 - [IMPROVED] doc of observation module (some attributes were missing)
@@ -76,6 +78,9 @@ Change Log
 - [IMPROVED] when the curtailment / storage is too "strong" at a given step, the environment will now allow 
   every controllable turned-on generators to mitigate it. This should increase the possibility to act on the
   curtailment and storage units without "breaking" the environment. 
+- [IMPROVED] have dedicated type of actions / observation for L2RPN competition environments, 
+  defined in the "conf.py" file (to make possible the use of different
+  grid2op version transparently)
 
 [1.6.5] - 2022-01-19
 ---------------------

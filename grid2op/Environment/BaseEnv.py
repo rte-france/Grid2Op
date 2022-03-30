@@ -237,6 +237,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         tol_poly: float = 1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
         other_rewards: dict = None,
         with_forecast: bool = True,
+        opponent_space_type: type = OpponentSpace,
         opponent_action_class: type = DontAct,
         opponent_class: type = BaseOpponent,
         opponent_init_budget: float = 0.0,
@@ -412,6 +413,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._opponent_action_class = (
             opponent_action_class  # class of the action of the opponent
         )
+        self._opponent_space_type = opponent_space_type  # type of the opponent action space
         self._opponent_class = opponent_class  # class of the opponent
         self._opponent_init_budget = dt_float(opponent_init_budget)
         self._opponent_attack_duration = dt_int(opponent_attack_duration)
@@ -636,6 +638,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj.other_rewards = copy.deepcopy(self.other_rewards)
 
         # opponent
+        new_obj._opponent_space_type = self._opponent_space_type
         new_obj._opponent_action_class = self._opponent_action_class  # const
         new_obj._opponent_class = self._opponent_class  # const
         new_obj._opponent_init_budget = self._opponent_init_budget
@@ -657,7 +660,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             new_obj._opponent, {"partial_env": new_obj, **new_obj._kwargs_opponent}
         )
 
-        new_obj._oppSpace = OpponentSpace(
+        new_obj._oppSpace = new_obj._opponent_space_type(
             compute_budget=new_obj._compute_opp_budget,
             init_budget=new_obj._opponent_init_budget,
             attack_duration=new_obj._opponent_attack_duration,
@@ -946,7 +949,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._opponent_action_space
         )
         self._opponent = self._opponent_class(self._opponent_action_space)
-        self._oppSpace = OpponentSpace(
+        self._oppSpace = self._opponent_space_type(
             compute_budget=self._compute_opp_budget,
             init_budget=self._opponent_init_budget,
             attack_duration=self._opponent_attack_duration,

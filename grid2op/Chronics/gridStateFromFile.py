@@ -628,6 +628,10 @@ class GridStateFromFile(GridValue):
         self.n_ = n_  # the -1 is present because the initial grid state doesn't count as a "time step"
 
         if self.max_iter > 0:
+            if self.n_ is not None:
+                if self.max_iter >= self.n_:
+                    self.max_iter = self.n_ - 1
+                    # TODO: issue warning in this case
             self.n_ = self.max_iter + 1
         else:
             # if the number of maximum time step is not set yet, we set it to be the number of
@@ -938,10 +942,10 @@ class GridStateFromFile(GridValue):
                 if self.chunk_size is None:
                     if arr.shape[0] != self.n_:
                         msg_err = (
-                            "Array {} has not the same number of rows than the maintenance. "
+                            "Array {} has not the same number of rows ({}) than the maintenance ({}). "
                             "The chronics cannot be loaded properly."
                         )
-                        raise EnvError(msg_err.format(name_arr))
+                        raise EnvError(msg_err.format(name_arr, arr.shape[0], self.n_))
 
         if self.max_iter > 0:
             if self.max_iter > self.n_:
