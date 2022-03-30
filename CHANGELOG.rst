@@ -3,11 +3,12 @@ Change Log
 
 [TODO]
 --------------------
-- [???] use the typing module for type annotation.
+- [???] add a "generate data on the fly" kind of method
 - [???] add a mode to curtail a certain amount of MW (instead of limiting to a certain amount of MW) in the action
 - [???] add a method to "clean the curtailment / storage" depending on the available "juice" offered by the generators
 - [???] add a notebook on curtailment / storage
 - [???] clean the notebook on RL
+- [???] use the typing module for type annotation.
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
 - [???] model better the voltage, include voltage constraints
