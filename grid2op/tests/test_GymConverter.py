@@ -114,6 +114,9 @@ class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
                 # assert obs == obs2
                 obs_diff, attr_diff = obs.where_different(obs2)
                 for el in attr_diff:
+                    if el not in env.observation_space.attr_list_set:
+                        # it's normal attribute are different if they are not in the original observation space
+                        continue
                     assert (
                         el in obs.attr_list_json
                     ), f'attribute "{el}" should be equal in obs and obs2'
@@ -131,6 +134,9 @@ class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
                     # assert obs == obs2, "obs and converted obs are not equal for ts {}".format(i)
                     obs_diff, attr_diff = obs.where_different(obs2)
                     for el in attr_diff:
+                        if el not in env.observation_space.attr_list_set:
+                            # it's normal attribute are different if they are not in the original observation space
+                            continue
                         assert (
                             el in obs.attr_list_json
                         ), f"{el} should be equal in obs and obs2 for ts {i}"

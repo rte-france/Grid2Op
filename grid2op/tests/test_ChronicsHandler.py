@@ -13,6 +13,7 @@ import tempfile
 import re
 from grid2op.tests.helper_path_test import *
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.MakeEnv import make
 from grid2op.Exceptions import *
@@ -28,6 +29,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Rules import AlwaysLegal
 from grid2op.Chronics import GridStateFromFileWithForecastsWithoutMaintenance
+from grid2op.Runner import Runner
 
 import warnings
 
@@ -2132,5 +2134,25 @@ class TestDeactivateMaintenance(HelperTests):
                 assert np.all(obs.time_next_maintenance == -1)
 
 
+class TestMaxIter(HelperTests):
+    def test_max_iter(self):
+        nb_episode = 2
+        max_iter = 288*2
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("educ_case14_storage", test=True)
+            
+        runner = Runner(**env.get_params_for_runner())
+        res = runner.run(nb_episode=nb_episode,
+                         pbar=False,
+                         max_iter=max_iter,
+                         env_seeds=[0] * nb_episode)
+        # it crashed above in the creation of the runner
+        # check that the episode has the correct length
+        assert res[0][-1] == 288
+        assert res[0][-2] == 288
+        assert res[1][-1] == 288
+        assert res[1][-2] == 288
+        
 if __name__ == "__main__":
     unittest.main()
