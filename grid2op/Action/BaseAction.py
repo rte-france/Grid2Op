@@ -195,6 +195,12 @@ class BaseAction(GridObjects):
     _curtail: :class:`numpy.ndarray`, dtype:float
         For each renewable generator, allows you to give a maximum value (as ratio of Pmax, *eg* 0.5 =>
         you limit the production of this generator to 50% of its Pmax) to renewable generators.
+        
+        .. warning::
+            In grid2op we decided that the "curtailment" type of actions consists in directly providing the 
+            upper bound you the agent allowed for a given generator. It does not reflect the amount
+            of MW that will be "curtailed" but will rather provide a limit on the number of
+            MW a given generator can produce.
 
     Examples
     --------
@@ -5305,6 +5311,14 @@ class BaseAction(GridObjects):
 
         For more information, feel free to consult the documentation :ref:`generator-mod-el` where more
         details are given about the modeling ot these storage units.
+        
+        .. warnings:
+            We remind that "curtailment" will limit the number of MW produce by renewable energy sources. The agent
+            is asked to provide the limit it wants and not the amount of MW it wants the generator to be cut off.
+            
+            For example, if a generator with a Pmax of 100 produces 55MW and you ask to "curtail_mw = 15" for this generator,
+            its production will be limited to 15 MW (then droping from 55MW to 15MW) so loosing 40MW (and not 15 !)
+            
         """
         res = 1.0 * self._curtail * self.gen_pmax
         res[res < 0.0] = -1.0
@@ -5314,3 +5328,103 @@ class BaseAction(GridObjects):
     @curtail_mw.setter
     def curtail_mw(self, values_mw):
         self.curtail = self.curtailment_mw_to_ratio(values_mw)
+
+    def limit_curtail_storage(self, obs, margin=10., do_copy=False):
+        cls = type(self)
+        if do_copy:
+            res = copy.deepcopy(self)
+        else:
+            res = self
+            
+        res_add_storage = np.zeros(cls.n_storage, dtype=dt_float)
+        res_add_curtailed = np.zeros(cls.n_gen, dtype=dt_float)
+        
+        max_down = np.sum(obs.gen_margin_down)
+        max_up = np.sum(obs.gen_margin_up)
+        
+        # storage
+        total_mw_storage = np.sum(res._storage_power)
+        total_storage_consumed = np.sum(res._storage_power)
+        
+        # curtailment
+        gen_curtailed = (res._curtail != -1) & cls.gen_renewable
+        gen_curtailed &= ( (obs.gen_p > res._curtail * cls.gen_pmax) | (obs.gen_p_before_curtail < res._curtail * cls.gen_pmax))
+        gen_p_after_max = (res._curtail * cls.gen_pmax)[gen_curtailed]
+        
+        # I migbt have a problem because curtailment decreases too rapidly (ie i set a limit too low)
+        prod_after_down = np.minimum(gen_p_after_max, obs.gen_p[gen_curtailed])
+        # I might have a problem because curtailment increase too rapidly (limit was low and I set it too high too
+        # rapidly)
+        prod_after_up = np.minimum(gen_p_after_max, obs.gen_p_before_curtail[gen_curtailed])
+        gen_p_after = np.maximum(prod_after_down, prod_after_up)
+        
+        # mw_curtailed_down = obs.gen_p[gen_curtailed] - prod_after_down
+        # total_mw_curtailed_down = np.sum(mw_curtailed_down)
+        # mw_curtailed_up = obs.gen_p[gen_curtailed] - prod_after_up
+        # total_mw_curtailed_up = np.sum(mw_curtailed_up)
+        # # now compute the resulting curtailment:
+        # total_mw_curtailed = total_mw_curtailed_down - total_mw_curtailed_up
+        mw_curtailed = obs.gen_p[gen_curtailed] - gen_p_after
+        mw_curtailed_down = 1.0 * mw_curtailed
+        mw_curtailed_down[mw_curtailed_down < 0.] = 0.
+        mw_curtailed_up = -1.0 * mw_curtailed
+        mw_curtailed_up[mw_curtailed_up < 0.] = 0.
+        total_mw_curtailed_down = np.sum(mw_curtailed_down)
+        total_mw_curtailed_up = np.sum(mw_curtailed_up)
+        total_mw_curtailed = total_mw_curtailed_down - total_mw_curtailed_up
+        total_mw_act = total_mw_curtailed + total_mw_storage
+        
+        if total_mw_act > max_up - margin:
+            # controlable generators should be asked to increase their production too much, I need to limit
+            # the storage unit (consume too much) or the curtailment (curtailment too strong)
+            if max_up < margin + 0.1:
+                # not enough ramp up anyway so I don't do anything
+                res._storage_power[:] = 0.  # don't act on storage
+                res._curtail[gen_curtailed] = -1  # reset curtailment
+            else:
+                remove_mw = total_mw_act - (max_up - margin)
+                # fix curtailment
+                if total_mw_curtailed_down > 0.: 
+                    remove_curtail_mw = remove_mw * total_mw_curtailed_down / (total_mw_curtailed_down + total_mw_storage)
+                    tmp_ = mw_curtailed_down / total_mw_curtailed_down * remove_curtail_mw / cls.gen_pmax[gen_curtailed]
+                    res_add_curtailed[gen_curtailed] = tmp_
+                    res._curtail[gen_curtailed] += tmp_ 
+                    
+                # fix storage
+                if total_storage_consumed > 0.:
+                    # only consider storage units that consume something (do not attempt to modify the others)
+                    do_storage_consum = res._storage_power > 0. 
+                    remove_storage_mw =  remove_mw * total_mw_storage / (total_mw_curtailed_down + total_mw_storage)
+                    tmp_ = -(res._storage_power[do_storage_consum] * 
+                             remove_storage_mw / np.sum(res._storage_power[do_storage_consum]))
+                    res._storage_power[do_storage_consum] += tmp_
+                    res_add_storage[do_storage_consum] = tmp_
+        
+        elif total_mw_act < -max_down + margin:
+            # controlable generators should be asked to decrease their production too much, I need to limit
+            # the storage unit (produce too much) or the curtailment (curtailment too little)
+            if max_down < margin + 0.1:
+                # not enough ramp down anyway so I don't do anything
+                res._storage_power[:] = 0.  # don't act on storage
+                res._curtail[gen_curtailed] = -1  # reset curtailment
+            else:
+                add_mw = -(total_mw_act + (max_down - margin))
+                # import pdb
+                # pdb.set_trace()
+                # fix curtailment  => does not work at all !
+                if total_mw_curtailed_up > 0.: 
+                    add_curtail_mw = add_mw * total_mw_curtailed_up / (total_mw_curtailed_up + total_mw_storage)
+                    tmp_ = (-mw_curtailed_up / total_mw_curtailed_up * add_curtail_mw + obs.gen_p[gen_curtailed]) / cls.gen_pmax[gen_curtailed] -1.
+                    res_add_curtailed[gen_curtailed] = tmp_
+                    res._curtail[gen_curtailed] += tmp_ 
+                    
+                # fix storage
+                if total_storage_consumed < 0.:
+                    # only consider storage units that consume something (do not attempt to modify the others)
+                    do_storage_prod = res._storage_power < 0. 
+                    remove_storage_mw = add_mw * total_mw_storage / (total_mw_curtailed_up + total_mw_storage)
+                    tmp_ = -(res._storage_power[do_storage_prod] * 
+                             remove_storage_mw / np.sum(res._storage_power[do_storage_prod]))
+                    res._storage_power[do_storage_prod] += tmp_
+                    res_add_storage[do_storage_prod] = tmp_
+        return res, res_add_curtailed, res_add_storage
