@@ -33,10 +33,11 @@ Official documentation: the official documentation is available at
     *   [2 BaseAction Grid Manipulation](getting_started/2_Action_GridManipulation.ipynb)
     *   [3 Training An BaseAgent](getting_started/3_TrainingAnAgent.ipynb)
     *   [4 Study Your BaseAgent](getting_started/4_StudyYourAgent.ipynb)
-*   [4_Citing](#Citing)
+*   [4 Citing](#Citing)
 *   [5 Documentation](#documentation)
-*   [6 Test and known issues](#tests-and-known-issues)
-*   [7 License information](#license-information)
+*   [6 Contribute](#contributing)
+*   [7 Test and known issues](#tests-and-known-issues)
+*   [8 License information](#license-information)
 
 # Installation
 ## Requirements:
@@ -239,6 +240,30 @@ For example, the  "getting started" notebooks referenced some pages of the help.
 
 <!-- sphinx-build -b html docs documentation-->
 
+# Contributing
+
+We welcome contributions from everyone. They can take the form of pull requests for smaller changed. 
+In case of a major change (or if you have a doubt on what is "a small change"), please open an issue first 
+to discuss what you would like to change.
+
+To contribute to this code, you need to:
+
+1. fork the repository located at https://github.com/rte-france/Grid2Op
+2. synch your fork with the latest developement branch of grid2op. For example, if the latest grid2op release
+   on pypi is `1.6.5` you need to synch your repo with the branch named `dev_1.6.6` or `dev_1.7.0` (if 
+   the branch `dev_1.6.6` does not exist)
+3. implement your functionality / code your modifications or anything else
+4. make sure to add tests and documentation if applicable
+5. once it is developed, synch your repo with the last development branch again (see point 2 above) and
+   make sure to solve any possible conflicts
+6. write a pull request and make sure to target the right branch (the "last development branch")
+
+
+Code in the contribution should pass all the tests, have some dedicated tests for the new feature (if applicable)
+and documentation (if applicable).
+
+Before implementing any major feature, please write a github issue first.
+
 # Tests and known issues
 
 ## Tests performed currently
@@ -281,12 +306,3 @@ Copyright 2019-2020 RTE France
 
 This Source Code is subject to the terms of the Mozilla Public License (MPL) v2 also available 
 [here](https://www.mozilla.org/en-US/MPL/2.0/)
-
-# Contributing
-
-We welcom contribution from everyone. They can take the form of pull requests for smaller changed. 
-In case of a major change (or if you have a doubt on what is "a small change"), please open an issue first 
-to discuss what you would like to change.
-
-Code in the contribution should pass all the tests, have some dedicated tests for the new feature
-and documentation.
