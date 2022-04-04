@@ -5348,22 +5348,15 @@ class BaseAction(GridObjects):
         
         # curtailment
         gen_curtailed = (res._curtail != -1) & cls.gen_renewable
-        gen_curtailed &= ( (obs.gen_p > res._curtail * cls.gen_pmax) | (obs.gen_p_before_curtail < res._curtail * cls.gen_pmax))
+        # gen_curtailed &= ( (obs.gen_p > res._curtail * cls.gen_pmax) | (obs.gen_p_before_curtail > res._curtail * cls.gen_pmax))
+        gen_curtailed &= ( (obs.gen_p > res._curtail * cls.gen_pmax) | (obs.gen_p_before_curtail > obs.gen_p ))
         gen_p_after_max = (res._curtail * cls.gen_pmax)[gen_curtailed]
-        
         # I migbt have a problem because curtailment decreases too rapidly (ie i set a limit too low)
         prod_after_down = np.minimum(gen_p_after_max, obs.gen_p[gen_curtailed])
         # I might have a problem because curtailment increase too rapidly (limit was low and I set it too high too
         # rapidly)
         prod_after_up = np.minimum(gen_p_after_max, obs.gen_p_before_curtail[gen_curtailed])
         gen_p_after = np.maximum(prod_after_down, prod_after_up)
-        
-        # mw_curtailed_down = obs.gen_p[gen_curtailed] - prod_after_down
-        # total_mw_curtailed_down = np.sum(mw_curtailed_down)
-        # mw_curtailed_up = obs.gen_p[gen_curtailed] - prod_after_up
-        # total_mw_curtailed_up = np.sum(mw_curtailed_up)
-        # # now compute the resulting curtailment:
-        # total_mw_curtailed = total_mw_curtailed_down - total_mw_curtailed_up
         mw_curtailed = obs.gen_p[gen_curtailed] - gen_p_after
         mw_curtailed_down = 1.0 * mw_curtailed
         mw_curtailed_down[mw_curtailed_down < 0.] = 0.
@@ -5412,7 +5405,7 @@ class BaseAction(GridObjects):
                 # fix curtailment  => does not work at all !
                 if total_mw_curtailed_up > 0.: 
                     add_curtail_mw = add_mw * total_mw_curtailed_up / (total_mw_curtailed_up + total_mw_storage)
-                    tmp_ = (obs.gen_p_before_curtail[gen_curtailed] - mw_curtailed_up / total_mw_curtailed_up * add_curtail_mw )/ cls.gen_pmax[gen_curtailed]
+                    tmp_ = (obs.gen_p_before_curtail[gen_curtailed] * res._curtail[gen_curtailed] - mw_curtailed_up / total_mw_curtailed_up * add_curtail_mw )/ cls.gen_pmax[gen_curtailed]
                     res_add_curtailed[gen_curtailed] = tmp_ - res._curtail[gen_curtailed]
                     res._curtail[gen_curtailed] = tmp_ 
                     
@@ -5421,7 +5414,7 @@ class BaseAction(GridObjects):
                     # only consider storage units that consume something (do not attempt to modify the others)
                     do_storage_prod = res._storage_power < 0. 
                     remove_storage_mw = add_mw * total_mw_storage / (total_mw_curtailed_up + total_mw_storage)
-                    tmp_ = -(res._storage_power[do_storage_prod] * 
+                    tmp_ = (res._storage_power[do_storage_prod] * 
                              remove_storage_mw / np.sum(res._storage_power[do_storage_prod]))
                     res._storage_power[do_storage_prod] += tmp_
                     res_add_storage[do_storage_prod] = tmp_

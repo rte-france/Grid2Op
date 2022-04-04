@@ -152,19 +152,48 @@ class TestLimitAction(unittest.TestCase):
         assert info0["exception"]
         
         obs = self._aux_prep_env_for_tests_down()
-        act5, *_ = act_too_much.limit_curtail_storage(obs, margin=15., do_copy=True)  # not enough "margin"
+        act5, *_ = act_too_much.limit_curtail_storage(obs, margin=15., do_copy=True)  # not enough "margin" => it crashes
         obs, reward, done, info = self.env.step(act5)
         assert done
         assert info["exception"]
         
         obs = self._aux_prep_env_for_tests_down()
-        act6, *_ = act_too_much.limit_curtail_storage(obs, margin=20., do_copy=True)  # just enough "margin"
+        act6, *_ = act_too_much.limit_curtail_storage(obs, margin=20., do_copy=True)  # "just enough" "margin" => it passes
         obs, reward, done, info = self.env.step(act6)
         assert not done
         assert not info["exception"]
     
     def test_storage_limitdown(self):
-        pass
+        """test the action is indeed "capped" when there is not enough storage
+        
+        
+        eg when the available generators could not decrease their power too much 
+        to compensate the increase of storage power (and curtailment because storage unit is too weak on its own).
+        """
+        act_too_much = self.env.action_space()
+        tmp_ = np.zeros(self.env.n_gen, dtype=float) -1
+        tmp_[self.env.gen_renewable] = 0.06
+        act_too_much.storage_p = - act_too_much.storage_max_p_prod
+        act_too_much.curtail = tmp_
+
+        # for storage:
+        self._aux_prep_env_for_tests_down()
+        obs, reward, done, info0 = self.env.step(act_too_much)  # If i do this it crashes
+        assert done
+        assert info0["exception"]
+        
+        obs = self._aux_prep_env_for_tests_down()
+        act7, *_ = act_too_much.limit_curtail_storage(obs, margin=5., do_copy=True)  # not enough "margin" => it crashes
+        obs, reward, done, info = self.env.step(act7)
+        assert done
+        assert info["exception"]
+        
+        obs = self._aux_prep_env_for_tests_down()
+        act8, *_ = act_too_much.limit_curtail_storage(obs, margin=10., do_copy=True)  # "just enough" "margin" => it passes
+        obs, reward, done, info = self.env.step(act8)
+        assert not done
+        assert not info["exception"]
+        
         
 if __name__ == "__main__":
     unittest.main()
