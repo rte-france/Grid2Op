@@ -5409,14 +5409,12 @@ class BaseAction(GridObjects):
                 res._curtail[gen_curtailed] = -1  # reset curtailment
             else:
                 add_mw = -(total_mw_act + (max_down - margin))
-                # import pdb
-                # pdb.set_trace()
                 # fix curtailment  => does not work at all !
                 if total_mw_curtailed_up > 0.: 
                     add_curtail_mw = add_mw * total_mw_curtailed_up / (total_mw_curtailed_up + total_mw_storage)
-                    tmp_ = (-mw_curtailed_up / total_mw_curtailed_up * add_curtail_mw + obs.gen_p[gen_curtailed]) / cls.gen_pmax[gen_curtailed] -1.
-                    res_add_curtailed[gen_curtailed] = tmp_
-                    res._curtail[gen_curtailed] += tmp_ 
+                    tmp_ = (obs.gen_p_before_curtail[gen_curtailed] - mw_curtailed_up / total_mw_curtailed_up * add_curtail_mw )/ cls.gen_pmax[gen_curtailed]
+                    res_add_curtailed[gen_curtailed] = tmp_ - res._curtail[gen_curtailed]
+                    res._curtail[gen_curtailed] = tmp_ 
                     
                 # fix storage
                 if total_storage_consumed < 0.:

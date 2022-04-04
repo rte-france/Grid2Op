@@ -6,10 +6,12 @@ import pdb
 import unittest
 
 class TestLimitAction(unittest.TestCase):
+    
     def _aux_reset_env(self):
         self.env.seed(self.seed_)
         self.env.set_id(self.scen_nm)
         return self.env.reset()
+    
     def setUp(self) -> None:
         self.seed_ = 0
         self.scen_nm = "2050-02-14_0"
@@ -105,11 +107,7 @@ class TestLimitAction(unittest.TestCase):
         self.aux_test_margin_increase_cut(self.act)
         self.aux_test_margin_increase_cut(self.act_stor)
         
-    def test_curtailment_limitdown(self):
-        """test the action is indeed "capped" when there is not enough curtailment, 
-        eg when the available generators could not decrease their power too much 
-        to compensate the increase of renewable energy.
-        """
+    def _aux_prep_env_for_tests_down(self):
         act0 = self.env.action_space()
         tmp_ = np.zeros(self.env.n_gen, dtype=float) -1
         tmp_[self.env.gen_renewable] = 0.15
@@ -125,34 +123,48 @@ class TestLimitAction(unittest.TestCase):
         tmp_[self.env.gen_renewable] = 0.04
         act2.curtail = tmp_
         
+        self._aux_reset_env()
+        obs, reward, done, info = self.env.step(act0)
+        assert not done
+        assert not info["exception"]
+        obs, reward, done, info = self.env.step(act1)
+        assert not done
+        assert not info["exception"]
+        obs, reward, done, info = self.env.step(act2)
+        assert not done
+        assert not info["exception"]
+        return obs
+    
+    def test_curtailment_limitdown(self):
+        """test the action is indeed "capped" when there is not enough curtailment, 
+        eg when the available generators could not decrease their power too much 
+        to compensate the increase of renewable energy.
+        """
         act_too_much = self.env.action_space()
         tmp_ = np.zeros(self.env.n_gen, dtype=float) -1
         tmp_[self.env.gen_renewable] = 1.
         act_too_much.curtail = tmp_
 
         # for curtailment:
-        self._aux_reset_env()
-        obs, reward, done, info = self.env.step(act0)
-        assert not done
-        obs, reward, done, info = self.env.step(act1)
-        assert not done
-        obs, reward, done, info = self.env.step(act2)
-        assert not done
-        
-        obs, reward, done, info0 = self.env.step(act_too_much)
+        self._aux_prep_env_for_tests_down()
+        obs, reward, done, info0 = self.env.step(act_too_much)  # If i do this it crashes
         assert done
         assert info0["exception"]
         
-        self._aux_reset_env()
-        obs, reward, done, info = self.env.step(act0)
-        obs, reward, done, info = self.env.step(act1)
-        obs, reward, done, info = self.env.step(act2)
-        act5, *_ = act_too_much.limit_curtail_storage(obs, margin=35., do_copy=True)  # not enough "margin"
-        pdb.set_trace()
+        obs = self._aux_prep_env_for_tests_down()
+        act5, *_ = act_too_much.limit_curtail_storage(obs, margin=15., do_copy=True)  # not enough "margin"
         obs, reward, done, info = self.env.step(act5)
+        assert done
+        assert info["exception"]
+        
+        obs = self._aux_prep_env_for_tests_down()
+        act6, *_ = act_too_much.limit_curtail_storage(obs, margin=20., do_copy=True)  # just enough "margin"
+        obs, reward, done, info = self.env.step(act6)
         assert not done
         assert not info["exception"]
-        
+    
+    def test_storage_limitdown(self):
+        pass
         
 if __name__ == "__main__":
     unittest.main()
