@@ -249,9 +249,10 @@ to discuss what you would like to change.
 To contribute to this code, you need to:
 
 1. fork the repository located at https://github.com/rte-france/Grid2Op
-2. synch your fork with the latest developement branch of grid2op. For example, if the latest grid2op release
+2. synch your fork with the "latest developement branch of grid2op". For example, if the latest grid2op release
    on pypi is `1.6.5` you need to synch your repo with the branch named `dev_1.6.6` or `dev_1.7.0` (if 
-   the branch `dev_1.6.6` does not exist)
+   the branch `dev_1.6.6` does not exist). It will be the highest number in the branches `dev_*` on
+   grid2op official github repository.
 3. implement your functionality / code your modifications or anything else
 4. make sure to add tests and documentation if applicable
 5. once it is developed, synch your repo with the last development branch again (see point 2 above) and
