@@ -9,6 +9,7 @@
 import copy
 import numpy as np
 import warnings
+from typing import Tuple
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
@@ -467,7 +468,7 @@ class BaseAction(GridObjects):
         self._modif_curtailment = False
         self._modif_alarm = False
 
-    def copy(self):
+    def copy(self) -> "BaseAction":
         # sometimes this method is used...
         return self.__deepcopy__()
 
@@ -507,7 +508,7 @@ class BaseAction(GridObjects):
         for attr_nm in attr_vect:
             getattr(other, attr_nm)[:] = getattr(self, attr_nm)
 
-    def __copy__(self):
+    def __copy__(self) -> "BaseAction":
         res = type(self)()
 
         self._aux_copy(other=res)
@@ -523,7 +524,7 @@ class BaseAction(GridObjects):
 
         return res
 
-    def __deepcopy__(self, memodict={}):
+    def __deepcopy__(self, memodict={}) -> "BaseAction":
         res = type(self)()
 
         self._aux_copy(other=res)
@@ -539,7 +540,7 @@ class BaseAction(GridObjects):
 
         return res
 
-    def as_serializable_dict(self):
+    def as_serializable_dict(self) -> dict:
         """
         This method returns an action as a dictionnary, that can be serialized using the "json" module.
 
@@ -656,11 +657,11 @@ class BaseAction(GridObjects):
             cls.attr_nan_list_set.add("shunt_q")
             cls._update_value_set()
 
-    def alarm_raised(self):
+    def alarm_raised(self) -> np.ndarray:
         """
         INTERNAL
 
-        This function is used to know if the given action has raised an alarm or not.
+        This function is used to know if the given action aimed at raising an alarm or not.
 
         Returns
         -------
@@ -710,7 +711,7 @@ class BaseAction(GridObjects):
         self._modif_curtailment = False
         self._modif_alarm = False
 
-    def can_affect_something(self):
+    def can_affect_something(self) -> bool:
         """
         This functions returns True if the current action has any chance to change the grid.
 
@@ -803,7 +804,7 @@ class BaseAction(GridObjects):
         """
         self._check_for_ambiguity()
 
-    def get_set_line_status_vect(self):
+    def get_set_line_status_vect(self) -> np.ndarray:
         """
         Computes and returns a vector that can be used in the :func:`BaseAction.__call__` with the keyword
         "set_status" if building an :class:`BaseAction`.
@@ -819,7 +820,7 @@ class BaseAction(GridObjects):
         """
         return np.full(shape=self.n_line, fill_value=0, dtype=dt_int)
 
-    def get_change_line_status_vect(self):
+    def get_change_line_status_vect(self) -> np.ndarray:
         """
         Computes and returns a vector that can be used in the :func:`BaseAction.__call__` with the keyword
         "set_status" if building an :class:`BaseAction`.
@@ -962,7 +963,7 @@ class BaseAction(GridObjects):
 
         return True
 
-    def _dont_affect_topology(self):
+    def _dont_affect_topology(self) -> bool:
         return (
             (not self._modif_set_bus)
             and (not self._modif_change_bus)
@@ -970,7 +971,7 @@ class BaseAction(GridObjects):
             and (not self._modif_change_status)
         )
 
-    def get_topological_impact(self, powerline_status=None):
+    def get_topological_impact(self, powerline_status=None) -> Tuple[np.ndarray, np.ndarray]:
         """
         Gives information about the element being impacted by this action.
         **NB** The impacted elements can be used by :class:`grid2op.BaseRules` to determine whether or not an action
@@ -996,12 +997,12 @@ class BaseAction(GridObjects):
 
         Returns
         -------
-        lines_impacted: :class:`numpy.array`, dtype:dt_bool
+        lines_impacted: :class:`numpy.ndarray`, dtype:dt_bool
             A vector with the same size as the number of powerlines in the grid (:attr:`BaseAction.n_line`) with for
             each component ``True`` if the line STATUS is impacted by the action, and ``False`` otherwise. See
             :attr:`BaseAction._lines_impacted` for more information.
 
-        subs_impacted: :class:`numpy.array`, dtype:dt_bool
+        subs_impacted: :class:`numpy.ndarray`, dtype:dt_bool
             A vector with the same size as the number of substations in the grid with for each
             component ``True`` if the substation is impacted by the action, and ``False`` otherwise. See
             :attr:`BaseAction._subs_impacted` for more information.
@@ -1340,7 +1341,7 @@ class BaseAction(GridObjects):
 
         return self
 
-    def __add__(self, other):
+    def __add__(self, other)  -> "BaseAction":
         """
         Implements the `+` operator for the action using the `+=` definition.
 
@@ -1363,7 +1364,7 @@ class BaseAction(GridObjects):
         res += other
         return res
 
-    def __call__(self):
+    def __call__(self) -> Tuple[dict, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict]:
         """
         INTERNAL USE ONLY
 
@@ -1385,16 +1386,16 @@ class BaseAction(GridObjects):
         dict_injection: :class:`dict`
             This dictionnary is :attr:`BaseAction._dict_inj`
 
-        set_line_status: :class:`numpy.array`, dtype:int
+        set_line_status: :class:`numpy.ndarray`, dtype:int
             This array is :attr:`BaseAction._set_line_status`
 
-        switch_line_status: :class:`numpy.array`, dtype:bool
+        switch_line_status: :class:`numpy.ndarray`, dtype:bool
             This array is :attr:`BaseAction._switch_line_status`
 
-        set_topo_vect: :class:`numpy.array`, dtype:int
+        set_topo_vect: :class:`numpy.ndarray`, dtype:int
             This array is :attr:`BaseAction._set_topo_vect`
 
-        change_bus_vect: :class:`numpy.array`, dtype:bool
+        change_bus_vect: :class:`numpy.ndarray`, dtype:bool
             This array is :attr:`BaseAction._change_bus_vect`
 
         redispatch: :class:`numpy.ndarray`, dtype:float
@@ -1910,7 +1911,7 @@ class BaseAction(GridObjects):
 
         return self
 
-    def is_ambiguous(self):
+    def is_ambiguous(self) -> Tuple[bool, AmbiguousAction]:
         """
         Says if the action, as defined is ambiguous *per se* or not.
 
@@ -2465,7 +2466,7 @@ class BaseAction(GridObjects):
         substation_id = array_subid[obj_id]
         return obj_id, objt_type, substation_id
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         This utility allows printing in a human-readable format what objects will be impacted by the action.
 
@@ -2633,14 +2634,15 @@ class BaseAction(GridObjects):
                 res.append("\t - Not raise any alarm")
         return "\n".join(res)
 
-    def impact_on_objects(self):
+    def impact_on_objects(self) -> dict:
         """
         This will return a dictionary which contains details on objects that will be impacted by the action.
 
         Returns
         -------
         dict: :class:`dict`
-            The dictionary representation of an action impact on objects
+            The dictionary representation of an action impact on objects with keys, "has_impact", "injection",
+            "force_line", "switch_line", "topology", "redispatch", "storage", "curtailment".
 
         """
         # handles actions on injections
@@ -2800,7 +2802,7 @@ class BaseAction(GridObjects):
             "curtailment": curtailment,
         }
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         """
         Represent an action "as a" dictionary. This dictionary is useful to further inspect on which elements
         the actions had an impact. It is not recommended to use it as a way to serialize actions. The "do nothing"
@@ -2867,7 +2869,7 @@ class BaseAction(GridObjects):
         # saving the injections
         for k in ["load_p", "prod_p", "load_q", "prod_v"]:
             if k in self._dict_inj:
-                res[k] = self._dict_inj[k]
+                res[k] = 1.0 * self._dict_inj[k]
 
         # handles actions on force line status
         if np.any(self._set_line_status != 0):
@@ -2943,17 +2945,17 @@ class BaseAction(GridObjects):
             res["nb_maintenance"] = np.sum(self._maintenance)
 
         if np.any(self._redispatch != 0.0):
-            res["redispatch"] = self._redispatch
+            res["redispatch"] = 1.0 * self._redispatch
 
         if self._modif_storage:
-            res["storage_power"] = self._storage_power
+            res["storage_power"] = 1.0 * self._storage_power
 
         if self._modif_curtailment:
-            res["curtailment"] = self._curtail
+            res["curtailment"] = 1.0 * self._curtail
 
         return res
 
-    def get_types(self):
+    def get_types(self) -> Tuple[bool, bool, bool, bool, bool, bool, bool]:
         """
         Shorthand to get the type of an action. The type of an action is among:
 
@@ -2963,13 +2965,14 @@ class BaseAction(GridObjects):
         - "line": does this action modifies the line status
         - "redispatching" does this action modifies the redispatching
         - "storage" does this action impact the production / consumption of storage units
+        - "curtailment" does this action impact the non renewable generators through curtailment
 
         Notes
         ------
 
         A single action can be of multiple types.
 
-        The `do nothing` has no type at all.
+        The `do nothing` has no type at all (all flags are ``False``)
 
         If a line only set / change the status of a powerline then it does not count as a topological
         modification.
@@ -2992,6 +2995,8 @@ class BaseAction(GridObjects):
             Does it performs (explicitly) any redispatching
         storage: ``bool``
             Does it performs (explicitly) any action on the storage production / consumption
+        curtailment: ``bool``
+            Does it performs (explicitly) any action on renewable generator
 
         """
         injection = "load_p" in self._dict_inj or "prod_p" in self._dict_inj
@@ -3110,7 +3115,7 @@ class BaseAction(GridObjects):
         line_id=None,
         substation_id=None,
         storage_id=None,
-    ):
+    ) -> dict:
         """
         Return the effect of this action on a unique given load, generator unit, powerline or substation.
         Only one of load, gen, line or substation should be filled.
@@ -3254,7 +3259,7 @@ class BaseAction(GridObjects):
             res = self._aux_effect_on_substation(substation_id)
         return res
 
-    def get_storage_modif(self):
+    def get_storage_modif(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Retrieve the modification that will be performed on all the storage unit
 
@@ -3275,7 +3280,7 @@ class BaseAction(GridObjects):
         )
         return storage_power, storage_set_bus, storage_change_bus
 
-    def get_load_modif(self):
+    def get_load_modif(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Retrieve the modification that will be performed on all the loads
 
@@ -3300,7 +3305,7 @@ class BaseAction(GridObjects):
         load_change_bus = copy.deepcopy(self._change_bus_vect[self.load_pos_topo_vect])
         return load_p, load_q, load_set_bus, load_change_bus
 
-    def get_gen_modif(self):
+    def get_gen_modif(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Retrieve the modification that will be performed on all the generators
 
@@ -3513,7 +3518,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def load_set_bus(self):
+    def load_set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which each storage unit is **set**.
 
@@ -3555,7 +3560,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def gen_set_bus(self):
+    def gen_set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the action **set** the generator units.
 
@@ -3684,7 +3689,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def storage_set_bus(self):
+    def storage_set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which each storage unit is **set**.
 
@@ -3729,7 +3734,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_or_set_bus(self):
+    def line_or_set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the origin side of each powerline is **set**.
 
@@ -3772,7 +3777,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_ex_set_bus(self):
+    def line_ex_set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the extremity side of each powerline is **set**.
 
@@ -3815,7 +3820,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def set_bus(self):
+    def set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which any element is **set**.
 
@@ -3892,7 +3897,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_set_status(self):
+    def line_set_status(self) -> np.ndarray:
         """
         Property to set the status of the powerline.
 
@@ -3962,7 +3967,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def set_line_status(self):
+    def set_line_status(self) -> np.ndarray:
         """another name for :func:`BaseAction.line_set_status`"""
         return self.line_set_status
 
@@ -3971,7 +3976,7 @@ class BaseAction(GridObjects):
         self.line_set_status = values
 
     @property
-    def change_line_status(self):
+    def change_line_status(self) -> np.ndarray:
         """another name for :func:`BaseAction.change_line_status`"""
         return self.line_change_status
 
@@ -4123,7 +4128,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def change_bus(self):
+    def change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which any element is **change**.
 
@@ -4192,7 +4197,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def load_change_bus(self):
+    def load_change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the loads is **changed**.
 
@@ -4227,7 +4232,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def gen_change_bus(self):
+    def gen_change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the action **change** the generator units.
 
@@ -4349,7 +4354,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def storage_change_bus(self):
+    def storage_change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the storage units are **changed**.
 
@@ -4389,7 +4394,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_or_change_bus(self):
+    def line_or_change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the origin side of powerlines are **changed**.
 
@@ -4425,7 +4430,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_ex_change_bus(self):
+    def line_ex_change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the extremity side of powerlines are **changed**.
 
@@ -4461,7 +4466,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_change_status(self):
+    def line_change_status(self) -> np.ndarray:
         """
         Property to set the status of the powerline.
 
@@ -4502,7 +4507,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def raise_alarm(self):
+    def raise_alarm(self) -> np.ndarray:
         """
         Property to raise alarm.
 
@@ -4748,7 +4753,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def redispatch(self):
+    def redispatch(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the redispatching setpoint of the generators.
 
@@ -4871,7 +4876,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def storage_p(self):
+    def storage_p(self) -> np.ndarray:
         """
         Allows to modify the setpoint of the storage units.
 
@@ -4924,7 +4929,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def set_storage(self):
+    def set_storage(self) -> np.ndarray:
         """Another name for the property :func:`BaseAction.storage_p`"""
         return self.storage_p
 
@@ -4933,7 +4938,7 @@ class BaseAction(GridObjects):
         self.storage_p = values
 
     @property
-    def curtail(self):
+    def curtail(self) -> np.ndarray:
         """
         Allows to perfom some curtailment on some generators
 
@@ -5076,7 +5081,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def sub_set_bus(self):
+    def sub_set_bus(self) -> np.ndarray:
         # TODO doc
         res = 1 * self.set_bus
         res.flags.writeable = False
@@ -5238,7 +5243,7 @@ class BaseAction(GridObjects):
         return sub_id
 
     @property
-    def sub_change_bus(self):
+    def sub_change_bus(self) -> np.ndarray:
         res = copy.deepcopy(self.change_bus)
         res.flags.writeable = False
         return res
@@ -5261,7 +5266,7 @@ class BaseAction(GridObjects):
                 f'The error was:\n"{exc_}"'
             )
 
-    def curtailment_mw_to_ratio(self, curtailment_mw):
+    def curtailment_mw_to_ratio(self, curtailment_mw) -> np.ndarray:
         """
         Transform a "curtailment" given as maximum MW to the grid2op formalism (in ratio of gen_pmax)
 
@@ -5302,7 +5307,7 @@ class BaseAction(GridObjects):
         return values
 
     @property
-    def curtail_mw(self):
+    def curtail_mw(self) -> np.ndarray:
         """
         Allows to perfom some curtailment on some generators in MW (by default in grid2Op it should be expressed
         in ratio of gen_pmax)
@@ -5329,7 +5334,7 @@ class BaseAction(GridObjects):
     def curtail_mw(self, values_mw):
         self.curtail = self.curtailment_mw_to_ratio(values_mw)
 
-    def limit_curtail_storage(self, obs, margin=10., do_copy=False):
+    def limit_curtail_storage(self, obs: "BaseObservation", margin: float=10., do_copy: bool=False) -> Tuple["BaseAction", np.ndarray, np.ndarray]:
         """
         This function tries to limit the possibility to end up
         with a "game over" because actions on curtailment or storage units (see the "Notes" section
