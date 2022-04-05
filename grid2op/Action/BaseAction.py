@@ -5330,6 +5330,71 @@ class BaseAction(GridObjects):
         self.curtail = self.curtailment_mw_to_ratio(values_mw)
 
     def limit_curtail_storage(self, obs, margin=10., do_copy=False):
+        """
+        This function tries to limit the possibility to end up
+        with a "game over" because actions on curtailment or storage units (see the "Notes" section
+        for more information).
+        
+        It will modify the action (unless `do_copy` is `True`) from a given observation `obs`.
+        It limits the curtailment / storage unit to ensure that the
+        amount of MW curtailed / taken to-from the storage units
+        are within `-sum(obs.gen_margin_down)` and `sum(obs.gen_margin_up)`
+        
+        The `margin` parameter is here to allows to "take into account" the uncertainties. Indeed, if you 
+        limit only to `-sum(obs.gen_margin_down)` and `sum(obs.gen_margin_up)`, because you don't know 
+        how much the production will vary (due to loads, or intrisinc variability of
+        renewable energy sources). The higher `margin` the less likely you will end up with 
+        a "game over" but the more your action will possibly be affected. The lower
+        this parameter, the more likely you will end up with a game over but the less
+        your action will be impacted. It represents a certain amount of `MW`.
+        
+        Notes
+        -------
+        
+        At each time, the environment ensures that the following equations are met:
+
+        1) for each controlable generators $p^{(c)}_{min} <= p^{(c)}_t <= p^{(c)}_{max}$
+        2) for each controlable generators $-ramp_{min}^{(c)} <= p^{(c)}_t - p^{(c)}_{t-1} <= ramp_{max}^{(c)}$
+        3) at each step the sum of MW curtailed and the total contribution of storage units 
+           is absorbed by the controlable generators so that the total amount of power injected 
+           at this step does not change: 
+           $\sum_{\text{all generators } g} p^{(g, scenario)}_t = \sum_{\text{controlable generators } c}  p^{(c)}_t + \sum_{\text{storage unit } s} p^{s}_t + \sum_{\text{renewable generator} r} p^{(r)}_t$
+           where $p^{(g)}_t$ denotes the productions of generator $g$ in the input data "scenario" 
+           (*ie* "in the current episode", "before any modification", "decided by the market / central authority").
+
+        In the above equations, `\sum_{\text{storage unit } s} p^{s}_t` are controled by the action (thanks to the storage units)
+        and `\sum_{\text{renewable generator} r} p^{(r)}_t` are controlled by the curtailment.
+        
+        `\sum_{\text{all generators } g} p^{(g, scenario)}_t` are input data from the environment (that cannot be modify).
+        
+        The exact value of each `p^{(c)}_t` (for each controlable generator) is computed by an internal routine of the
+        environment. 
+        
+        The constraint comes from the fact that `\sum_{\text{controlable generators } c}  p^{(c)}_t` is determined by the last equation
+        above but at the same time the values of each `p^{(c)}_t` (for each controllable generator) is heavily constrained
+        by equations 1) and 2).
+
+        Parameters
+        ----------
+        obs : ``Observation``
+            The current observation. The main attributes used for the observation are `obs.gen_margin_down` and `obs.gen_margin_up`.
+            
+        margin : ``float``, optional
+            The "margin" taken from the controlable generators "margin" to "take into account" when limiting the action (see description for
+            more information), by default 10.
+            
+        do_copy : ``bool``, optional
+            Whether to make a copy of the current action (if set to ``True``) or to modify it (default, when ``False``), by default False
+
+        Returns
+        -------
+        `Action`, np.ndarray, np.ndarray:
+            
+            - `act`: the action after the storage unit / curtailment are modified (by default it's also `self`)
+            - `res_add_curtailed`: the modification made to the curtailment
+            - `res_add_storage`: the modification made to the storage units
+            
+        """
         cls = type(self)
         if do_copy:
             res = copy.deepcopy(self)

@@ -3,9 +3,8 @@ Change Log
 
 [TODO]
 --------------------
-- [???] add a "generate data on the fly" kind of method
+- [???] add a "generate data on the fly" kind of method (in the chronix using chronix2grid)
 - [???] add a mode to curtail a certain amount of MW (instead of limiting to a certain amount of MW) in the action
-- [???] add a method to "clean the curtailment / storage" depending on the available "juice" offered by the generators
 - [???] add a notebook on curtailment / storage
 - [???] clean the notebook on RL
 - [???] use the typing module for type annotation.
@@ -76,6 +75,8 @@ Change Log
 - [ADDED] two attribtues for the observation: `obs.gen_margin_up` and `obs.gen_margin_down`
 - [ADDED] support for hashing chronix2grid related components.
 - [ADDED] possibility to change the type of the opponent space type from the `make(...)` command
+- [ADDED] a method to "limit the curtailment / storage" action depending on the availability of controllable generators 
+  (see `act.limit_curtail_storage(...)`)
 - [IMPROVED] better difference between `env_path` and `grid_path` in environments.
 - [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower
@@ -128,7 +129,7 @@ Change Log
   sensors.
 - [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
 - [IMRPOVED] docs (and notebooks) for the "split_train_val" https://github.com/rte-france/Grid2Op/issues/269
-- [IMRPOVED] the "split_train_val" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276
+- [IMRPOVED] the "`env.split_train_val(...)`" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276
   
 [1.6.4] - 2021-11-08
 ---------------------
