@@ -3,9 +3,8 @@ Change Log
 
 [TODO]
 --------------------
-- [???] add a "generate data on the fly" kind of method (in the chronix using chronix2grid)
-- [???] add a mode to curtail a certain amount of MW (instead of limiting to a certain amount of MW) in the action
-- [???] add a notebook on curtailment / storage
+- [???] closer integration with `gym` especially the "register env", being able to 
+  create an env from a string etc.
 - [???] clean the notebook on RL
 - [???] use the typing module for type annotation.
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
@@ -77,6 +76,8 @@ Change Log
 - [ADDED] possibility to change the type of the opponent space type from the `make(...)` command
 - [ADDED] a method to "limit the curtailment / storage" action depending on the availability of controllable generators 
   (see `act.limit_curtail_storage(...)`)
+- [ADDED] a class to generate data "on the fly" using chronix2grid (for now really slow and only available for 
+  a single environment)
 - [IMPROVED] better difference between `env_path` and `grid_path` in environments.
 - [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower

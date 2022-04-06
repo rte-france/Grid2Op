@@ -29,6 +29,9 @@ class TestLimitAction(unittest.TestCase):
         tmp_[self.env.gen_renewable] = 0.17
         self.act_stor.curtail = tmp_
 
+    def tearDown(self) -> None:
+        self.env.close()
+        
     def test_curtailment_limitup(self):
         """test the action is indeed "capped" when there is too much curtailment, 
         eg when the available generators could not increase their power too much 
