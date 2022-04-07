@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2022, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -6,16 +6,17 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import pdb
 import warnings
-
-
 import os
 import grid2op
 import numpy as np
-from lightsim2grid import LightSimBackend
 from grid2op.Chronics import FromChronix2grid
-import pdb
 import unittest
+import pkg_resources
+from lightsim2grid import LightSimBackend
+
+DEV_DATA_FOLDER = pkg_resources.resource_filename("grid2op", "data")
 
 class TestFromChronix2Grid(unittest.TestCase):
     def _aux_reset_env(self):
@@ -25,16 +26,19 @@ class TestFromChronix2Grid(unittest.TestCase):
     
     def setUp(self) -> None:
         self.seed_ = 0
-        self.env_nm = "wcci_2022_dev"
-        self.env = grid2op.make(self.env_nm,
-                                backend=LightSimBackend(),
-                                chronics_class=FromChronix2grid,
-                                data_feeding_kwargs={"env_path": os.path.join(grid2op.get_current_local_dir(), self.env_nm),
-                                                     "with_maintenance": True,
-                                                     "max_iter": 10,
-                                                     "with_loss": False
-                                                     }
-                                )
+        self.env_nm = "l2rpn_wcci_2022_dev"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.env_nm,
+                                    test=True,
+                                    backend=LightSimBackend(),
+                                    chronics_class=FromChronix2grid,
+                                    data_feeding_kwargs={"env_path": os.path.join(DEV_DATA_FOLDER, self.env_nm),  # os.path.join(grid2op.get_current_local_dir(), self.env_nm),
+                                                         "with_maintenance": True,
+                                                         "max_iter": 10,
+                                                         "with_loss": False
+                                                        }
+                                    )
     
     
     def test_ok(self):
@@ -77,15 +81,18 @@ class TestFromChronix2Grid(unittest.TestCase):
         assert obs.max_step == 10
     
     def test_maintenance(self):
-        self.env = grid2op.make(self.env_nm,
-                                backend=LightSimBackend(),
-                                chronics_class=FromChronix2grid,
-                                data_feeding_kwargs={"env_path": os.path.join(grid2op.get_current_local_dir(), self.env_nm),
-                                                     "with_maintenance": True,
-                                                     "max_iter": 2 * 288,
-                                                     "with_loss": False
-                                                     }
-                                )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.env_nm,
+                                    test=True,
+                                    # backend=LightSimBackend(),
+                                    chronics_class=FromChronix2grid,
+                                    data_feeding_kwargs={"env_path": os.path.join(DEV_DATA_FOLDER, self.env_nm),
+                                                         "with_maintenance": True,
+                                                         "max_iter": 2 * 288,
+                                                         "with_loss": False
+                                                        }
+                                    )
         self.env.seed(0)
         id_ref = '0@2050-08-08'
         self.env.set_id(id_ref)
@@ -97,5 +104,7 @@ class TestFromChronix2Grid(unittest.TestCase):
         assert self.env.chronics_handler.real_data.maintenance.sum() == 96
         assert self.env.chronics_handler.real_data.maintenance_time is not None
         assert self.env.chronics_handler.real_data.maintenance_duration is not None
+        
+        
 if __name__ == "__main__":
     unittest.main()
