@@ -28,6 +28,7 @@ jobs:
         parallelism: 4
         steps:
             - checkout
+            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
@@ -42,6 +43,7 @@ jobs:
         resource_class: small
         steps:
             - checkout
+            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
@@ -62,6 +64,7 @@ jobs:
         resource_class: small
         steps:
             - checkout
+            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
@@ -94,6 +97,7 @@ jobs:
         resource_class: small
         steps:
             - checkout
+            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
@@ -127,6 +131,7 @@ jobs:
         resource_class: small
         steps:
             - checkout
+            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
@@ -152,6 +157,7 @@ jobs:
         resource_class: small
         steps:
             - checkout
+            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
