@@ -7,19 +7,19 @@ executors:
         working_directory: /Grid2Op
     python36:
         docker:
-            - image: python:3.6-slim-buster
+            - image: python:3.6-buster
     python37:
         docker:
-            - image: python:3.7-slim-buster
+            - image: python:3.7-buster
     python38:
         docker:
-            - image: python:3.8-slim-buster
+            - image: python:3.8-buster
     python39:
         docker:
-            - image: python:3.9-slim-buster
+            - image: python:3.9-buster
     python310:
         docker:
-            - image: python:3.10-slim-buster
+            - image: python:3.10-buster
 
 jobs:
     test:
