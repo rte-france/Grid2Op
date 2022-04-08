@@ -205,12 +205,12 @@ jobs:
 
 workflows:
     version: 2.1
-    # test:
-    #     jobs:
-    #       - test
+    test:
+        jobs:
+          - test
     install:
         jobs:
-      #     - install37
-      #     - install38
+          - install37
+          - install38
           - install39
-      #     - install310
+          - install310
