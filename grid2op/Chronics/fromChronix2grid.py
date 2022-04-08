@@ -265,7 +265,7 @@ class FromChronix2grid(GridValue):
         if self.with_maintenance:
             self.maintenance = GridStateFromFileWithForecastsWithMaintenance._generate_matenance_static(
                 self.env.name_line,
-                self.max_iter,
+                self._load_p.shape[0],
                 self.line_to_maintenance,
                 self.time_interval,
                 self.current_datetime,

@@ -59,8 +59,12 @@ pkgs = {
             "ujson"
         ],
         "plot": ["imageio"],
+        "test": ["lightsim2grid",
+                 "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/bd-dev",
+                 "numba"
+                 ],
         "chronix2grid": [
-            "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/master"
+            "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/bd-dev"
             ]
     }
 }

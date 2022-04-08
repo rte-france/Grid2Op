@@ -350,6 +350,7 @@ test_simulator.py
 !grid2op/tests/test_simulator.py
 venv36/
 bug_jan.py
+venv_test/
 
 # profiling files
 **.prof
