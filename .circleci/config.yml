@@ -30,7 +30,7 @@ jobs:
             - checkout
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
-            - run: python -m pip install -U pip
+            - run: python -m pip install -U pip setuptools wheel
             - run:
                 command: |
                   source venv_test/bin/activate
@@ -45,7 +45,7 @@ jobs:
             - checkout
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
-            - run: python -m pip install -U pip
+            - run: python -m pip install -U pip setuptools wheel
             - run:
                 command: |
                     source venv_test/bin/activate
@@ -66,7 +66,7 @@ jobs:
             - checkout
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
-            - run: python -m pip install -U pip
+            - run: python -m pip install -U pip setuptools wheel
             - run:
                 command: |
                     source venv_test/bin/activate
@@ -99,7 +99,7 @@ jobs:
             - checkout
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
-            - run: python -m pip install -U pip
+            - run: python -m pip install -U pip setuptools wheel
             - run:
                 command: |
                     source venv_test/bin/activate
@@ -133,7 +133,7 @@ jobs:
             - checkout
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
-            - run: python -m pip install -U pip
+            - run: python -m pip install -U pip setuptools wheel
             - run:
                command: |
                    source venv_test/bin/activate
@@ -159,7 +159,7 @@ jobs:
             - checkout
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
-            - run: python -m pip install -U pip
+            - run: python -m pip install -U pip setuptools wheel
             - run:
                command: |
                    source venv_test/bin/activate
