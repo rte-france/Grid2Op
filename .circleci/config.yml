@@ -154,6 +154,9 @@ jobs:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U pip setuptools wheel
+            - run:
+               command: |
+                   source venv_test/bin/activate
                    python -m pip install -U .[test]
             - run:
                command: |
