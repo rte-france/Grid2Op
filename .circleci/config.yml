@@ -28,9 +28,9 @@ jobs:
         parallelism: 4
         steps:
             - checkout
-            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
+            - run: python -m pip install -U pip
             - run:
                 command: |
                   source venv_test/bin/activate
@@ -43,9 +43,9 @@ jobs:
         resource_class: small
         steps:
             - checkout
-            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
+            - run: python -m pip install -U pip
             - run:
                 command: |
                     source venv_test/bin/activate
@@ -64,9 +64,9 @@ jobs:
         resource_class: small
         steps:
             - checkout
-            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
+            - run: python -m pip install -U pip
             - run:
                 command: |
                     source venv_test/bin/activate
@@ -97,9 +97,9 @@ jobs:
         resource_class: small
         steps:
             - checkout
-            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
+            - run: python -m pip install -U pip
             - run:
                 command: |
                     source venv_test/bin/activate
@@ -131,9 +131,9 @@ jobs:
         resource_class: small
         steps:
             - checkout
-            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
+            - run: python -m pip install -U pip
             - run:
                command: |
                    source venv_test/bin/activate
@@ -157,9 +157,9 @@ jobs:
         resource_class: small
         steps:
             - checkout
-            - run: python -m pip install -U pip
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
+            - run: python -m pip install -U pip
             - run:
                command: |
                    source venv_test/bin/activate
