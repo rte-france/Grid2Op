@@ -68,8 +68,8 @@ pkgs = {
             ]
     }
 }
-pkgs["extras"]["tests"] += pkgs["extras"]["optional"]
-pkgs["extras"]["tests"] += pkgs["extras"]["plot"]
+pkgs["extras"]["test"] += pkgs["extras"]["optional"]
+pkgs["extras"]["test"] += pkgs["extras"]["plot"]
 
 
 setup(description='An gym compatible environment to model sequential decision making  for powersystems',
