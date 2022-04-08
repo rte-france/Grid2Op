@@ -47,7 +47,10 @@ jobs:
         resource_class: small
         steps:
             - checkout
-            - run: apt-get install -y coinor-cbc
+            - run: 
+                command: |
+                    apt-get update
+                    apt-get install -y coinor-cbc
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
@@ -72,7 +75,10 @@ jobs:
         resource_class: small
         steps:
             - checkout
-            - run: apt-get install -y coinor-cbc
+            - run: 
+                command: |
+                    apt-get update
+                    apt-get install -y coinor-cbc
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
@@ -109,7 +115,10 @@ jobs:
         resource_class: small
         steps:
             - checkout
-            - run: apt-get install -y coinor-cbc
+            - run: 
+                command: |
+                    apt-get update
+                    apt-get install -y coinor-cbc
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
@@ -152,7 +161,10 @@ jobs:
         resource_class: small
         steps:
             - checkout
-            - run: apt-get install -y coinor-cbc
+            - run: 
+                command: |
+                    apt-get update
+                    apt-get install -y coinor-cbc
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
@@ -189,7 +201,10 @@ jobs:
         resource_class: small
         steps:
             - checkout
-            - run: apt-get install -y coinor-cbc
+            - run: 
+                command: |
+                    apt-get update
+                    apt-get install -y coinor-cbc
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
