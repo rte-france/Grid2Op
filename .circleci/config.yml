@@ -33,8 +33,8 @@ jobs:
             - run:
                 command: |
                   source venv_test/bin/activate
-                  cd grid2op/tests/
                   pip install -U .[test]
+                  cd grid2op/tests/
                   python3 helper_list_test.py | circleci tests split > /tmp/tests_run
                   python3 -m unittest $(cat /tmp/tests_run)
     install36:
