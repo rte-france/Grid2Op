@@ -154,29 +154,26 @@ jobs:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U pip setuptools wheel
+                   python -m pip install -U .[test]
             - run:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.19,<1.20"
-                   python -m pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.20,<1.21"
-                   python -m pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.21,<1.22"
-                   python -m pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.22,<1.23"
-                   python -m pip install -U .[test]
                    grid2op.testinstall
     install310:
         executor: python310
