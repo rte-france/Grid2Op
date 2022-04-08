@@ -111,37 +111,37 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U pip setuptools wheel
+                   python -m pip install -U pip setuptools wheel
             - run:
                 command: |
                     source venv_test/bin/activate
-                    pip install -U numba
-                    pip install -U "numpy>=1.18,<1.19"
-                    pip install -U .[test]
+                    python -m pip install -U numba
+                    python -m pip install -U "numpy>=1.18,<1.19"
+                    python -m pip install -U .[test]
                     grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U "numpy>=1.19,<1.20"
-                   pip install -U .[test]
+                   python -m pip install -U "numpy>=1.19,<1.20"
+                   python -m pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U "numpy>=1.20,<1.21"
-                   pip install -U .[test]
+                   python -m pip install -U "numpy>=1.20,<1.21"
+                   python -m pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U "numpy>=1.21,<1.22"
-                   pip install -U .[test]
+                   python -m pip install -U "numpy>=1.21,<1.22"
+                   python -m pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U "numpy>=1.22,<1.23"
-                   pip install -U .[test]
+                   python -m pip install -U "numpy>=1.22,<1.23"
+                   python -m pip install -U .[test]
                    grid2op.testinstall
     install39:
         executor: python39
@@ -153,30 +153,30 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U pip setuptools wheel
+                   python -m pip install -U pip setuptools wheel
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U "numpy>=1.19,<1.20"
-                   pip install -U .[test]
+                   python -m pip install -U "numpy>=1.19,<1.20"
+                   python -m pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U "numpy>=1.20,<1.21"
-                   pip install -U .[test]
+                   python -m pip install -U "numpy>=1.20,<1.21"
+                   python -m pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U "numpy>=1.21,<1.22"
-                   pip install -U .[test]
+                   python -m pip install -U "numpy>=1.21,<1.22"
+                   python -m pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U "numpy>=1.22,<1.23"
-                   pip install -U .[test]
+                   python -m pip install -U "numpy>=1.22,<1.23"
+                   python -m pip install -U .[test]
                    grid2op.testinstall
     install310:
         executor: python310
@@ -188,18 +188,18 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U pip setuptools wheel
+                   python -m pip install -U pip setuptools wheel
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U "numpy>=1.21,<1.22"
-                   pip install -U .[test]
+                   python -m pip install -U "numpy>=1.21,<1.22"
+                   python -m pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U "numpy>=1.22,<1.23"
-                   pip install -U .[test]
+                   python -m pip install -U "numpy>=1.22,<1.23"
+                   python -m pip install -U .[test]
                    grid2op.testinstall
 
 workflows:
