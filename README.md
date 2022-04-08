@@ -275,11 +275,12 @@ The unit tests includes testing, on linux machines the correct integration of gr
 - python 3.7
 - python 3.8
 - python 3.9
+- python 3.10
 
-Note that, at time of writing, "numba" which accelerates the computation of the powerflow for the default 
-"powerflow solver" is not available for python 3.9 (more information at https://github.com/numba/numba/issues/6345).
+On all of these cases, we tested grid2op on all available numpy version >= 1.18 (**nb** available numpy versions depend
+on python version).
 
-On all of these cases, we tested grid2op on all available numpy version >= 1.18.
+The complete test suit is run on linux with the latest numpy version on python 3.8.
 
 ## Known issue
 
