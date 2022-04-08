@@ -68,6 +68,9 @@ pkgs = {
             ]
     }
 }
+pkgs["extras"]["tests"] += pkgs["extras"]["optional"]
+pkgs["extras"]["tests"] += pkgs["extras"]["plot"]
+
 
 setup(description='An gym compatible environment to model sequential decision making  for powersystems',
       long_description=long_description,
