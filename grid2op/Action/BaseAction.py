@@ -9,6 +9,7 @@
 import copy
 import numpy as np
 import warnings
+from typing import Tuple
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
@@ -195,6 +196,12 @@ class BaseAction(GridObjects):
     _curtail: :class:`numpy.ndarray`, dtype:float
         For each renewable generator, allows you to give a maximum value (as ratio of Pmax, *eg* 0.5 =>
         you limit the production of this generator to 50% of its Pmax) to renewable generators.
+        
+        .. warning::
+            In grid2op we decided that the "curtailment" type of actions consists in directly providing the 
+            upper bound you the agent allowed for a given generator. It does not reflect the amount
+            of MW that will be "curtailed" but will rather provide a limit on the number of
+            MW a given generator can produce.
 
     Examples
     --------
@@ -461,7 +468,7 @@ class BaseAction(GridObjects):
         self._modif_curtailment = False
         self._modif_alarm = False
 
-    def copy(self):
+    def copy(self) -> "BaseAction":
         # sometimes this method is used...
         return self.__deepcopy__()
 
@@ -501,7 +508,7 @@ class BaseAction(GridObjects):
         for attr_nm in attr_vect:
             getattr(other, attr_nm)[:] = getattr(self, attr_nm)
 
-    def __copy__(self):
+    def __copy__(self) -> "BaseAction":
         res = type(self)()
 
         self._aux_copy(other=res)
@@ -517,7 +524,7 @@ class BaseAction(GridObjects):
 
         return res
 
-    def __deepcopy__(self, memodict={}):
+    def __deepcopy__(self, memodict={}) -> "BaseAction":
         res = type(self)()
 
         self._aux_copy(other=res)
@@ -533,7 +540,7 @@ class BaseAction(GridObjects):
 
         return res
 
-    def as_serializable_dict(self):
+    def as_serializable_dict(self) -> dict:
         """
         This method returns an action as a dictionnary, that can be serialized using the "json" module.
 
@@ -650,11 +657,11 @@ class BaseAction(GridObjects):
             cls.attr_nan_list_set.add("shunt_q")
             cls._update_value_set()
 
-    def alarm_raised(self):
+    def alarm_raised(self) -> np.ndarray:
         """
         INTERNAL
 
-        This function is used to know if the given action has raised an alarm or not.
+        This function is used to know if the given action aimed at raising an alarm or not.
 
         Returns
         -------
@@ -704,7 +711,7 @@ class BaseAction(GridObjects):
         self._modif_curtailment = False
         self._modif_alarm = False
 
-    def can_affect_something(self):
+    def can_affect_something(self) -> bool:
         """
         This functions returns True if the current action has any chance to change the grid.
 
@@ -797,7 +804,7 @@ class BaseAction(GridObjects):
         """
         self._check_for_ambiguity()
 
-    def get_set_line_status_vect(self):
+    def get_set_line_status_vect(self) -> np.ndarray:
         """
         Computes and returns a vector that can be used in the :func:`BaseAction.__call__` with the keyword
         "set_status" if building an :class:`BaseAction`.
@@ -813,7 +820,7 @@ class BaseAction(GridObjects):
         """
         return np.full(shape=self.n_line, fill_value=0, dtype=dt_int)
 
-    def get_change_line_status_vect(self):
+    def get_change_line_status_vect(self) -> np.ndarray:
         """
         Computes and returns a vector that can be used in the :func:`BaseAction.__call__` with the keyword
         "set_status" if building an :class:`BaseAction`.
@@ -956,7 +963,7 @@ class BaseAction(GridObjects):
 
         return True
 
-    def _dont_affect_topology(self):
+    def _dont_affect_topology(self) -> bool:
         return (
             (not self._modif_set_bus)
             and (not self._modif_change_bus)
@@ -964,7 +971,7 @@ class BaseAction(GridObjects):
             and (not self._modif_change_status)
         )
 
-    def get_topological_impact(self, powerline_status=None):
+    def get_topological_impact(self, powerline_status=None) -> Tuple[np.ndarray, np.ndarray]:
         """
         Gives information about the element being impacted by this action.
         **NB** The impacted elements can be used by :class:`grid2op.BaseRules` to determine whether or not an action
@@ -990,12 +997,12 @@ class BaseAction(GridObjects):
 
         Returns
         -------
-        lines_impacted: :class:`numpy.array`, dtype:dt_bool
+        lines_impacted: :class:`numpy.ndarray`, dtype:dt_bool
             A vector with the same size as the number of powerlines in the grid (:attr:`BaseAction.n_line`) with for
             each component ``True`` if the line STATUS is impacted by the action, and ``False`` otherwise. See
             :attr:`BaseAction._lines_impacted` for more information.
 
-        subs_impacted: :class:`numpy.array`, dtype:dt_bool
+        subs_impacted: :class:`numpy.ndarray`, dtype:dt_bool
             A vector with the same size as the number of substations in the grid with for each
             component ``True`` if the substation is impacted by the action, and ``False`` otherwise. See
             :attr:`BaseAction._subs_impacted` for more information.
@@ -1334,7 +1341,7 @@ class BaseAction(GridObjects):
 
         return self
 
-    def __add__(self, other):
+    def __add__(self, other)  -> "BaseAction":
         """
         Implements the `+` operator for the action using the `+=` definition.
 
@@ -1357,7 +1364,7 @@ class BaseAction(GridObjects):
         res += other
         return res
 
-    def __call__(self):
+    def __call__(self) -> Tuple[dict, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict]:
         """
         INTERNAL USE ONLY
 
@@ -1379,16 +1386,16 @@ class BaseAction(GridObjects):
         dict_injection: :class:`dict`
             This dictionnary is :attr:`BaseAction._dict_inj`
 
-        set_line_status: :class:`numpy.array`, dtype:int
+        set_line_status: :class:`numpy.ndarray`, dtype:int
             This array is :attr:`BaseAction._set_line_status`
 
-        switch_line_status: :class:`numpy.array`, dtype:bool
+        switch_line_status: :class:`numpy.ndarray`, dtype:bool
             This array is :attr:`BaseAction._switch_line_status`
 
-        set_topo_vect: :class:`numpy.array`, dtype:int
+        set_topo_vect: :class:`numpy.ndarray`, dtype:int
             This array is :attr:`BaseAction._set_topo_vect`
 
-        change_bus_vect: :class:`numpy.array`, dtype:bool
+        change_bus_vect: :class:`numpy.ndarray`, dtype:bool
             This array is :attr:`BaseAction._change_bus_vect`
 
         redispatch: :class:`numpy.ndarray`, dtype:float
@@ -1904,7 +1911,7 @@ class BaseAction(GridObjects):
 
         return self
 
-    def is_ambiguous(self):
+    def is_ambiguous(self) -> Tuple[bool, AmbiguousAction]:
         """
         Says if the action, as defined is ambiguous *per se* or not.
 
@@ -2459,7 +2466,7 @@ class BaseAction(GridObjects):
         substation_id = array_subid[obj_id]
         return obj_id, objt_type, substation_id
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         This utility allows printing in a human-readable format what objects will be impacted by the action.
 
@@ -2627,14 +2634,15 @@ class BaseAction(GridObjects):
                 res.append("\t - Not raise any alarm")
         return "\n".join(res)
 
-    def impact_on_objects(self):
+    def impact_on_objects(self) -> dict:
         """
         This will return a dictionary which contains details on objects that will be impacted by the action.
 
         Returns
         -------
         dict: :class:`dict`
-            The dictionary representation of an action impact on objects
+            The dictionary representation of an action impact on objects with keys, "has_impact", "injection",
+            "force_line", "switch_line", "topology", "redispatch", "storage", "curtailment".
 
         """
         # handles actions on injections
@@ -2794,7 +2802,7 @@ class BaseAction(GridObjects):
             "curtailment": curtailment,
         }
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         """
         Represent an action "as a" dictionary. This dictionary is useful to further inspect on which elements
         the actions had an impact. It is not recommended to use it as a way to serialize actions. The "do nothing"
@@ -2861,7 +2869,7 @@ class BaseAction(GridObjects):
         # saving the injections
         for k in ["load_p", "prod_p", "load_q", "prod_v"]:
             if k in self._dict_inj:
-                res[k] = self._dict_inj[k]
+                res[k] = 1.0 * self._dict_inj[k]
 
         # handles actions on force line status
         if np.any(self._set_line_status != 0):
@@ -2937,17 +2945,17 @@ class BaseAction(GridObjects):
             res["nb_maintenance"] = np.sum(self._maintenance)
 
         if np.any(self._redispatch != 0.0):
-            res["redispatch"] = self._redispatch
+            res["redispatch"] = 1.0 * self._redispatch
 
         if self._modif_storage:
-            res["storage_power"] = self._storage_power
+            res["storage_power"] = 1.0 * self._storage_power
 
         if self._modif_curtailment:
-            res["curtailment"] = self._curtail
+            res["curtailment"] = 1.0 * self._curtail
 
         return res
 
-    def get_types(self):
+    def get_types(self) -> Tuple[bool, bool, bool, bool, bool, bool, bool]:
         """
         Shorthand to get the type of an action. The type of an action is among:
 
@@ -2957,13 +2965,14 @@ class BaseAction(GridObjects):
         - "line": does this action modifies the line status
         - "redispatching" does this action modifies the redispatching
         - "storage" does this action impact the production / consumption of storage units
+        - "curtailment" does this action impact the non renewable generators through curtailment
 
         Notes
         ------
 
         A single action can be of multiple types.
 
-        The `do nothing` has no type at all.
+        The `do nothing` has no type at all (all flags are ``False``)
 
         If a line only set / change the status of a powerline then it does not count as a topological
         modification.
@@ -2986,6 +2995,8 @@ class BaseAction(GridObjects):
             Does it performs (explicitly) any redispatching
         storage: ``bool``
             Does it performs (explicitly) any action on the storage production / consumption
+        curtailment: ``bool``
+            Does it performs (explicitly) any action on renewable generator
 
         """
         injection = "load_p" in self._dict_inj or "prod_p" in self._dict_inj
@@ -3104,7 +3115,7 @@ class BaseAction(GridObjects):
         line_id=None,
         substation_id=None,
         storage_id=None,
-    ):
+    ) -> dict:
         """
         Return the effect of this action on a unique given load, generator unit, powerline or substation.
         Only one of load, gen, line or substation should be filled.
@@ -3248,7 +3259,7 @@ class BaseAction(GridObjects):
             res = self._aux_effect_on_substation(substation_id)
         return res
 
-    def get_storage_modif(self):
+    def get_storage_modif(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Retrieve the modification that will be performed on all the storage unit
 
@@ -3269,7 +3280,7 @@ class BaseAction(GridObjects):
         )
         return storage_power, storage_set_bus, storage_change_bus
 
-    def get_load_modif(self):
+    def get_load_modif(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Retrieve the modification that will be performed on all the loads
 
@@ -3294,7 +3305,7 @@ class BaseAction(GridObjects):
         load_change_bus = copy.deepcopy(self._change_bus_vect[self.load_pos_topo_vect])
         return load_p, load_q, load_set_bus, load_change_bus
 
-    def get_gen_modif(self):
+    def get_gen_modif(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Retrieve the modification that will be performed on all the generators
 
@@ -3507,7 +3518,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def load_set_bus(self):
+    def load_set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which each storage unit is **set**.
 
@@ -3549,7 +3560,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def gen_set_bus(self):
+    def gen_set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the action **set** the generator units.
 
@@ -3678,7 +3689,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def storage_set_bus(self):
+    def storage_set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which each storage unit is **set**.
 
@@ -3723,7 +3734,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_or_set_bus(self):
+    def line_or_set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the origin side of each powerline is **set**.
 
@@ -3766,7 +3777,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_ex_set_bus(self):
+    def line_ex_set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the extremity side of each powerline is **set**.
 
@@ -3809,7 +3820,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def set_bus(self):
+    def set_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which any element is **set**.
 
@@ -3886,7 +3897,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_set_status(self):
+    def line_set_status(self) -> np.ndarray:
         """
         Property to set the status of the powerline.
 
@@ -3956,7 +3967,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def set_line_status(self):
+    def set_line_status(self) -> np.ndarray:
         """another name for :func:`BaseAction.line_set_status`"""
         return self.line_set_status
 
@@ -3965,7 +3976,7 @@ class BaseAction(GridObjects):
         self.line_set_status = values
 
     @property
-    def change_line_status(self):
+    def change_line_status(self) -> np.ndarray:
         """another name for :func:`BaseAction.change_line_status`"""
         return self.line_change_status
 
@@ -4117,7 +4128,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def change_bus(self):
+    def change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which any element is **change**.
 
@@ -4186,7 +4197,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def load_change_bus(self):
+    def load_change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the loads is **changed**.
 
@@ -4221,7 +4232,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def gen_change_bus(self):
+    def gen_change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the action **change** the generator units.
 
@@ -4343,7 +4354,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def storage_change_bus(self):
+    def storage_change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the storage units are **changed**.
 
@@ -4383,7 +4394,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_or_change_bus(self):
+    def line_or_change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the origin side of powerlines are **changed**.
 
@@ -4419,7 +4430,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_ex_change_bus(self):
+    def line_ex_change_bus(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the busbars at which the extremity side of powerlines are **changed**.
 
@@ -4455,7 +4466,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def line_change_status(self):
+    def line_change_status(self) -> np.ndarray:
         """
         Property to set the status of the powerline.
 
@@ -4496,7 +4507,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def raise_alarm(self):
+    def raise_alarm(self) -> np.ndarray:
         """
         Property to raise alarm.
 
@@ -4742,7 +4753,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def redispatch(self):
+    def redispatch(self) -> np.ndarray:
         """
         Allows to retrieve (and affect) the redispatching setpoint of the generators.
 
@@ -4865,7 +4876,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def storage_p(self):
+    def storage_p(self) -> np.ndarray:
         """
         Allows to modify the setpoint of the storage units.
 
@@ -4918,7 +4929,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def set_storage(self):
+    def set_storage(self) -> np.ndarray:
         """Another name for the property :func:`BaseAction.storage_p`"""
         return self.storage_p
 
@@ -4927,7 +4938,7 @@ class BaseAction(GridObjects):
         self.storage_p = values
 
     @property
-    def curtail(self):
+    def curtail(self) -> np.ndarray:
         """
         Allows to perfom some curtailment on some generators
 
@@ -5070,7 +5081,7 @@ class BaseAction(GridObjects):
             )
 
     @property
-    def sub_set_bus(self):
+    def sub_set_bus(self) -> np.ndarray:
         # TODO doc
         res = 1 * self.set_bus
         res.flags.writeable = False
@@ -5232,7 +5243,7 @@ class BaseAction(GridObjects):
         return sub_id
 
     @property
-    def sub_change_bus(self):
+    def sub_change_bus(self) -> np.ndarray:
         res = copy.deepcopy(self.change_bus)
         res.flags.writeable = False
         return res
@@ -5255,7 +5266,7 @@ class BaseAction(GridObjects):
                 f'The error was:\n"{exc_}"'
             )
 
-    def curtailment_mw_to_ratio(self, curtailment_mw):
+    def curtailment_mw_to_ratio(self, curtailment_mw) -> np.ndarray:
         """
         Transform a "curtailment" given as maximum MW to the grid2op formalism (in ratio of gen_pmax)
 
@@ -5296,7 +5307,7 @@ class BaseAction(GridObjects):
         return values
 
     @property
-    def curtail_mw(self):
+    def curtail_mw(self) -> np.ndarray:
         """
         Allows to perfom some curtailment on some generators in MW (by default in grid2Op it should be expressed
         in ratio of gen_pmax)
@@ -5305,6 +5316,14 @@ class BaseAction(GridObjects):
 
         For more information, feel free to consult the documentation :ref:`generator-mod-el` where more
         details are given about the modeling ot these storage units.
+        
+        .. warnings:
+            We remind that "curtailment" will limit the number of MW produce by renewable energy sources. The agent
+            is asked to provide the limit it wants and not the amount of MW it wants the generator to be cut off.
+            
+            For example, if a generator with a Pmax of 100 produces 55MW and you ask to "curtail_mw = 15" for this generator,
+            its production will be limited to 15 MW (then droping from 55MW to 15MW) so loosing 40MW (and not 15 !)
+            
         """
         res = 1.0 * self._curtail * self.gen_pmax
         res[res < 0.0] = -1.0
@@ -5314,3 +5333,159 @@ class BaseAction(GridObjects):
     @curtail_mw.setter
     def curtail_mw(self, values_mw):
         self.curtail = self.curtailment_mw_to_ratio(values_mw)
+
+    def limit_curtail_storage(self, obs: "BaseObservation", margin: float=10., do_copy: bool=False) -> Tuple["BaseAction", np.ndarray, np.ndarray]:
+        """
+        This function tries to limit the possibility to end up
+        with a "game over" because actions on curtailment or storage units (see the "Notes" section
+        for more information).
+        
+        It will modify the action (unless `do_copy` is `True`) from a given observation `obs`.
+        It limits the curtailment / storage unit to ensure that the
+        amount of MW curtailed / taken to-from the storage units
+        are within `-sum(obs.gen_margin_down)` and `sum(obs.gen_margin_up)`
+        
+        The `margin` parameter is here to allows to "take into account" the uncertainties. Indeed, if you 
+        limit only to `-sum(obs.gen_margin_down)` and `sum(obs.gen_margin_up)`, because you don't know 
+        how much the production will vary (due to loads, or intrisinc variability of
+        renewable energy sources). The higher `margin` the less likely you will end up with 
+        a "game over" but the more your action will possibly be affected. The lower
+        this parameter, the more likely you will end up with a game over but the less
+        your action will be impacted. It represents a certain amount of `MW`.
+        
+        Notes
+        -------
+        
+        At each time, the environment ensures that the following equations are met:
+
+        1) for each controlable generators $p^{(c)}_{min} <= p^{(c)}_t <= p^{(c)}_{max}$
+        2) for each controlable generators $-ramp_{min}^{(c)} <= p^{(c)}_t - p^{(c)}_{t-1} <= ramp_{max}^{(c)}$
+        3) at each step the sum of MW curtailed and the total contribution of storage units 
+           is absorbed by the controlable generators so that the total amount of power injected 
+           at this step does not change: 
+           $\sum_{\text{all generators } g} p^{(g, scenario)}_t = \sum_{\text{controlable generators } c}  p^{(c)}_t + \sum_{\text{storage unit } s} p^{s}_t + \sum_{\text{renewable generator} r} p^{(r)}_t$
+           where $p^{(g)}_t$ denotes the productions of generator $g$ in the input data "scenario" 
+           (*ie* "in the current episode", "before any modification", "decided by the market / central authority").
+
+        In the above equations, `\sum_{\text{storage unit } s} p^{s}_t` are controled by the action (thanks to the storage units)
+        and `\sum_{\text{renewable generator} r} p^{(r)}_t` are controlled by the curtailment.
+        
+        `\sum_{\text{all generators } g} p^{(g, scenario)}_t` are input data from the environment (that cannot be modify).
+        
+        The exact value of each `p^{(c)}_t` (for each controlable generator) is computed by an internal routine of the
+        environment. 
+        
+        The constraint comes from the fact that `\sum_{\text{controlable generators } c}  p^{(c)}_t` is determined by the last equation
+        above but at the same time the values of each `p^{(c)}_t` (for each controllable generator) is heavily constrained
+        by equations 1) and 2).
+
+        Parameters
+        ----------
+        obs : ``Observation``
+            The current observation. The main attributes used for the observation are `obs.gen_margin_down` and `obs.gen_margin_up`.
+            
+        margin : ``float``, optional
+            The "margin" taken from the controlable generators "margin" to "take into account" when limiting the action (see description for
+            more information), by default 10.
+            
+        do_copy : ``bool``, optional
+            Whether to make a copy of the current action (if set to ``True``) or to modify it (default, when ``False``), by default False
+
+        Returns
+        -------
+        `Action`, np.ndarray, np.ndarray:
+            
+            - `act`: the action after the storage unit / curtailment are modified (by default it's also `self`)
+            - `res_add_curtailed`: the modification made to the curtailment
+            - `res_add_storage`: the modification made to the storage units
+            
+        """
+        cls = type(self)
+        if do_copy:
+            res = copy.deepcopy(self)
+        else:
+            res = self
+            
+        res_add_storage = np.zeros(cls.n_storage, dtype=dt_float)
+        res_add_curtailed = np.zeros(cls.n_gen, dtype=dt_float)
+        
+        max_down = np.sum(obs.gen_margin_down)
+        max_up = np.sum(obs.gen_margin_up)
+        
+        # storage
+        total_mw_storage = np.sum(res._storage_power)
+        total_storage_consumed = np.sum(res._storage_power)
+        
+        # curtailment
+        gen_curtailed = (res._curtail != -1) & cls.gen_renewable
+        # gen_curtailed &= ( (obs.gen_p > res._curtail * cls.gen_pmax) | (obs.gen_p_before_curtail > res._curtail * cls.gen_pmax))
+        gen_curtailed &= ( (obs.gen_p > res._curtail * cls.gen_pmax) | (obs.gen_p_before_curtail > obs.gen_p ))
+        gen_p_after_max = (res._curtail * cls.gen_pmax)[gen_curtailed]
+        # I migbt have a problem because curtailment decreases too rapidly (ie i set a limit too low)
+        prod_after_down = np.minimum(gen_p_after_max, obs.gen_p[gen_curtailed])
+        # I might have a problem because curtailment increase too rapidly (limit was low and I set it too high too
+        # rapidly)
+        prod_after_up = np.minimum(gen_p_after_max, obs.gen_p_before_curtail[gen_curtailed])
+        gen_p_after = np.maximum(prod_after_down, prod_after_up)
+        mw_curtailed = obs.gen_p[gen_curtailed] - gen_p_after
+        mw_curtailed_down = 1.0 * mw_curtailed
+        mw_curtailed_down[mw_curtailed_down < 0.] = 0.
+        mw_curtailed_up = -1.0 * mw_curtailed
+        mw_curtailed_up[mw_curtailed_up < 0.] = 0.
+        total_mw_curtailed_down = np.sum(mw_curtailed_down)
+        total_mw_curtailed_up = np.sum(mw_curtailed_up)
+        total_mw_curtailed = total_mw_curtailed_down - total_mw_curtailed_up
+        total_mw_act = total_mw_curtailed + total_mw_storage
+        
+        if total_mw_act > max_up - margin:
+            # controlable generators should be asked to increase their production too much, I need to limit
+            # the storage unit (consume too much) or the curtailment (curtailment too strong)
+            if max_up < margin + 0.1:
+                # not enough ramp up anyway so I don't do anything
+                res._storage_power[:] = 0.  # don't act on storage
+                res._curtail[gen_curtailed] = -1  # reset curtailment
+            else:
+                remove_mw = total_mw_act - (max_up - margin)
+                # fix curtailment
+                if total_mw_curtailed_down > 0.: 
+                    remove_curtail_mw = remove_mw * total_mw_curtailed_down / (total_mw_curtailed_down + total_mw_storage)
+                    tmp_ = mw_curtailed_down / total_mw_curtailed_down * remove_curtail_mw / cls.gen_pmax[gen_curtailed]
+                    res_add_curtailed[gen_curtailed] = tmp_
+                    res._curtail[gen_curtailed] += tmp_ 
+                    
+                # fix storage
+                if total_storage_consumed > 0.:
+                    # only consider storage units that consume something (do not attempt to modify the others)
+                    do_storage_consum = res._storage_power > 0. 
+                    remove_storage_mw =  remove_mw * total_mw_storage / (total_mw_curtailed_down + total_mw_storage)
+                    tmp_ = -(res._storage_power[do_storage_consum] * 
+                             remove_storage_mw / np.sum(res._storage_power[do_storage_consum]))
+                    res._storage_power[do_storage_consum] += tmp_
+                    res_add_storage[do_storage_consum] = tmp_
+        
+        elif total_mw_act < -max_down + margin:
+            # controlable generators should be asked to decrease their production too much, I need to limit
+            # the storage unit (produce too much) or the curtailment (curtailment too little)
+            if max_down < margin + 0.1:
+                # not enough ramp down anyway so I don't do anything
+                res._storage_power[:] = 0.  # don't act on storage
+                res._curtail[gen_curtailed] = -1  # reset curtailment
+            else:
+                add_mw = -(total_mw_act + (max_down - margin))
+                # fix curtailment  => does not work at all !
+                if total_mw_curtailed_up > 0.: 
+                    add_curtail_mw = add_mw * total_mw_curtailed_up / (total_mw_curtailed_up + total_mw_storage)
+                    tmp_ = (obs.gen_p_before_curtail[gen_curtailed] * res._curtail[gen_curtailed] - mw_curtailed_up / total_mw_curtailed_up * add_curtail_mw )/ cls.gen_pmax[gen_curtailed]
+                    res_add_curtailed[gen_curtailed] = tmp_ - res._curtail[gen_curtailed]
+                    res._curtail[gen_curtailed] = tmp_ 
+                    
+                # fix storage
+                if total_storage_consumed < 0.:
+                    # only consider storage units that consume something (do not attempt to modify the others)
+                    do_storage_prod = res._storage_power < 0. 
+                    remove_storage_mw = add_mw * total_mw_storage / (total_mw_curtailed_up + total_mw_storage)
+                    tmp_ = (res._storage_power[do_storage_prod] * 
+                             remove_storage_mw / np.sum(res._storage_power[do_storage_prod]))
+                    res._storage_power[do_storage_prod] += tmp_
+                    res_add_storage[do_storage_prod] = tmp_
+        return res, res_add_curtailed, res_add_storage

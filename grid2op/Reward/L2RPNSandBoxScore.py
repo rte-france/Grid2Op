@@ -28,12 +28,16 @@ class L2RPNSandBoxScore(BaseReward):
 
     """
 
-    def __init__(self, alpha_redisph=1.0):
+    def __init__(self, alpha_redisph=1.0, reward_max=1000.):
         BaseReward.__init__(self)
         self.reward_min = dt_float(1.0)  # carefull here between min and max...
-        self.reward_max = dt_float(300.0 * 70.0)
+        self.reward_max = dt_float(reward_max)
         self.alpha_redisph = dt_float(alpha_redisph)
 
+    def initialize(self, env):
+        # TODO compute reward max! 
+        return super().initialize(env)
+    
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error:
             # DO SOMETHING IN THIS CASE
@@ -42,22 +46,26 @@ class L2RPNSandBoxScore(BaseReward):
         # compute the losses
         gen_p, *_ = env.backend.generators_info()
         load_p, *_ = env.backend.loads_info()
-        losses = np.sum(gen_p, dtype=dt_float) - np.sum(load_p, dtype=dt_float)
+        losses = (np.sum(gen_p, dtype=dt_float) - np.sum(load_p, dtype=dt_float)) * env.delta_time_seconds / 3600.0
 
         # compute the marginal cost
         gen_activeprod_t = env._gen_activeprod_t
-        p_t = np.max(env.gen_cost_per_MW[gen_activeprod_t > 0.0]).astype(dt_float)
-
+        p_t = np.max(env.gen_cost_per_MW[gen_activeprod_t > 0.0]).astype(dt_float)  
+        # price is per MWh be sure to convert the MW (of losses and generation) to MWh before multiplying by the cost 
+        
         # redispatching amount
         actual_dispatch = env._actual_dispatch
         c_redispatching = (
-            dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(actual_dispatch)) * p_t
+            dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(actual_dispatch)) * p_t * env.delta_time_seconds / 3600.0
         )
 
         # cost of losses
         c_loss = losses * p_t
 
+        # storage units
+        c_storage = np.sum(np.abs(env._storage_power)) * p_t * env.delta_time_seconds / 3600.0
+        
         # total "operationnal cost"
-        c_operations = dt_float(c_loss + c_redispatching)
+        c_operations = dt_float(c_loss + c_redispatching + c_storage)
 
         return c_operations

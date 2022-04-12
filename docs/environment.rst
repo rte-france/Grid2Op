@@ -371,6 +371,61 @@ episode:
 
 (as always added line compared to the base code are highlighted: they are "circle" with `#####`)
 
+Generating chronics that are always new
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 1.6.6
+    This functionality is only available for some environments, for example "l2rpn_wcci_2022"
+
+.. warning::
+    A much better alternative to this class is to have a "process" generate the data, thanks to the
+    :func:`grid2op.Environment.Environment.generate_data` and then to reload
+    the data in a (separate) training script.
+
+    This is explained in section :ref:`generate_data_flow` of the documentation.
+
+Though it is not recommended at all (for performance reasons), you have, starting from grid2op 1.6.6 (and using
+a compatible environment *eg* "l2rpn_wcci_2022") to generate a possibly infinite amount of data thanks to the
+:class:`grid2op.Chronics.FromChronix2grid` class.
+
+The data generation process is rather slow for different reasons. The main one is that
+the data need to meet a lot of "constraints" to be realistic, some of them are
+given in the :ref:`modeled-elements-module` module. On our machines, it takes roughly
+40-50 seconds to generate a weekly scenario for the `l2rpn_wcci_2022` environment (usually
+an agent will fail in 1 or 2s... This is why we do not recommend to use it)
+
+To generate data "on the fly" you simply need to create the environment with the right
+chronics class as follow:
+
+.. code-block:: python
+
+        import grid2op
+        from grid2op.Chronics import FromChronix2grid
+        env_nm = "l2rpn_wcci_2022"  # only compatible environment at time of writing
+        
+        env = grid2op.make(env_nm,
+                           chronics_class=FromChronix2grid,
+                           data_feeding_kwargs={"env_path": os.path.join(grid2op.get_current_local_dir(), env_nm),
+                                                "with_maintenance": True,  # whether to include maintenance (optional)
+                                                "max_iter": 2 * 288,  # duration (in number of steps) of the data generated (optional)
+                                                }
+                           )
+
+
+And this is it. Each time you call `env.reset()` it will internally call `chronix2grid` package to generate 
+new data for this environment (this is why `env.reset()` will take roughly 50s...).
+
+.. warning::
+    For this class to be available, you need to have the "chronix2grid" package installed and working.
+
+    Please install it with `pip intall grid2op[chronix2grid]` and make sure to have the `coinor-cbc` 
+    solver available on your system (more information at https://github.com/bdonnot/chronix2grid#installation)
+
+.. warning::
+    Because I know from experience warnings are skipped half of the time: **please consult** :ref:`generate_data_flow` **for
+    a better way to generate infinite data** !
+
+
 .. _environment-module-data-pipeline:
 
 Optimize the data pipeline
@@ -529,6 +584,124 @@ This can be achieved with:
 Note that by default the `MultifolderWithCache` class will only load the **first** chronics it sees. You need
 to filter it and call `env.chronics_handler.real_data.reset()` for it to work properly.
 
+.. _generate_data_flow:
+
+Generate and use an "infinite" data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 1.6.6
+
+
+.. warning::
+    For this class to be available, you need to have the "chronix2grid" package installed and working.
+
+    Please install it with `pip intall grid2op[chronix2grid]` and make sure to have the `coinor-cbc` 
+    solver available on your system (more information at https://github.com/bdonnot/chronix2grid#installation)
+
+In this section we present a new way to generate possibly an infinite amount of data for training your agent (
+in case the data shipped with the environment are too limited).
+
+One way to do this is to split the data "generation" process on one python script, and the data "consumption" process
+(for example by training an agent) on another one.
+
+This is much more efficient than using the :class:`grid2op.Chronics.FromChronix2grid` because you will not spend 50s
+waiting the data to be generated at each call to `env.reset()` after the episode is over.
+
+First, create a script to generate all the data that you want. For example in the script "generation.py":
+
+.. code-block:: python
+
+    import grid2op            
+    env_name = "l2rpn_wcci_2022"  # only compatible with what comes next (at time of writing)
+    env = grid2op.make(env_name)
+    nb_year = 50  # or any "big" number...
+    env.generate_data(nb_year=nb_year)  # generates 50 years of data 
+    # (takes roughly 50s per week, around 45mins per year, in this case 50 * 45 mins = 37.5 hours)
+
+Then create a script to "consume" your data, for example by training an agent (say "train.py") 
+[we demonstrate it with l2rpn baselines but you can use whatever you want]:
+
+.. code-block:: python
+
+    import os
+    import grid2op
+    from lightsim2grid import LightSimBackend  # highly recommended for speed !
+    
+    env_name = "l2rpn_wcci_2022"  # only compatible with what comes next (at time of writing)
+    env = grid2op.make(env_name, backend=LightSimBackend())
+    
+    # now train an agent
+    # see l2rpn_baselines package for more information, for example
+    # l2rpn-baselines.readthedocs.io/
+    from l2rpn_baselines.PPO_SB3 import train
+    nb_iter = 10000  # train for that many iterations
+    agent_name = "WhaetverIWant"  # or any other name
+    agent_path = os.path.expand("~")  # or anywhere else on your computer
+    trained_agent = train(env,
+                          iterations=nb_iter,
+                          name=agent_name,
+                          save_path=agent_path)
+    # this agent will be trained only on the data available at the creation of the environment
+
+    # the training loop will take some time, so more data will be generated when it's over
+    # reload them
+    env.chronics_handler.init_subpath()
+    env.chronics_handler.reset()
+
+    # and retrain your agent including the data you just generated
+    trained_agent = train(env,
+                          iterations=nb_iter,
+                          name=agent_name,
+                          save_path=agent_path,
+                          load_path=agent_path
+                          )
+
+    # once it's over, more time has passed, and more data are available
+    # reload them
+    env.chronics_handler.init_subpath()
+    env.chronics_handler.reset()
+
+    # and retrain your agent
+    trained_agent = train(env,
+                          iterations=nb_iter,
+                          name=agent_name,
+                          save_path=agent_path,
+                          load_path=agent_path
+                          )
+
+    # well you got the idea
+    # etc. etc.
+
+.. warning:: 
+    This way of doing things will always increase the size of the data in your hard drive.
+    We do recommend to somehow delete some of the data from time to time
+
+    Deleting the data you be done before the `env.chronics_handler.init_subpath()` for example:
+
+    .. code-block :: python
+
+        ### delete the folder you want to get rid off
+        names_folder_to_delete = ... 
+        # To build `names_folder_to_delete`
+        # you could for examaple:
+        # - remove the `nth` oldest directories
+        #   see: https://stackoverflow.com/questions/47739262/find-remove-oldest-file-in-directory
+        # - or keep only the `kth`` most recent directories
+        # - or keep only `k` folder at random among the one in `grid2op.get_current_local_dir()`
+        # - or delete all the oldest files and keep your directory at a fixed size
+        #   see: https://gist.github.com/ginz/1ba7de8b911651cfc9c85a82a723f952
+        # etc.
+
+        for nm in names_folder_to_delete:
+            shutil.rmtree(os.path.join(grid2op.get_current_local_dir(), nm))
+        ####
+        # reload the remaining data:
+        env.chronics_handler.init_subpath()
+        env.chronics_handler.reset()
+
+        # continue normally
+
+
 .. _environment-module-train-val-test:
 
 Splitting into raining, validation, test scenarios
@@ -592,7 +765,28 @@ Environments can be customized in three major ways:
 - `Rules`: you can affect the operational constraint that your agent must meet. For example you can affect
   more or less powerlines in the same action etc.
 
-TODO
+You can do these at creation time:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = "l2rpn_case14_sandbox"  # or any other name
+
+    # create the regular environment:
+    env_reg = grid2op.make(env_name)
+
+    # to change the backend
+    # (here using the lightsim2grid faster backend)
+    from lightsim2grid import LightSimBackend
+    env_faster = grid2op.make(env_name, backend=LightSimBackend())
+
+    # to change the parameters, for example
+    # to prevent line disconnect when there is overflow
+    param = env_reg.parameters
+    param.NO_OVERFLOW_DISCONNECTION = True
+    env_easier = grid2op.make(env_name, param=param)
+
+Of course you can combine everything. More examples are given in section :ref:`env_cust_makeenv`. 
 
 Detailed Documentation by class
 --------------------------------

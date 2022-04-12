@@ -226,6 +226,8 @@ class BaseObservation(GridObjects):
         Limit (in ratio of gen_pmax) imposed on each renewable generator as set by the agent.
 
         It is always 1. if no curtailment actions is acting on the generator.
+        
+        This is the "curtailment" given in the action by the agent.
 
     curtailment_limit_effective: :class:`numpy.ndarray`, dtype:float
         Limit (in ratio of gen_pmax) imposed on each renewable generator effectively imposed by the environment.
@@ -239,6 +241,8 @@ class BaseObservation(GridObjects):
     curtailment_mw: :class:`numpy.ndarray`, dtype:float
         Gives the amount of power curtailed for each generator (it is 0. for all
         non renewable generators)
+        
+        This is NOT the "curtailment" given in the action by the agent.
 
     curtailment: :class:`numpy.ndarray`, dtype:float
         Give the power curtailed for each generator. It is expressed in
@@ -246,6 +250,8 @@ class BaseObservation(GridObjects):
         generator - to 1.0 - meaning this generator should have produced pmax, but
         a curtailment action limits it to 0.)
 
+        This is NOT the "curtailment" given in the action by the agent.
+        
     current_step: ``int``
         Current number of step performed up until this observation (NB this is not given in the observation if
         it is transformed into a vector)
