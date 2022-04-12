@@ -60,11 +60,11 @@ pkgs = {
         ],
         "plot": ["imageio"],
         "test": ["lightsim2grid",
-                 "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/bd-dev",
+                 "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/master",
                  "numba"
                  ],
         "chronix2grid": [
-            "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/bd-dev"
+            "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/master"
             ]
     }
 }
