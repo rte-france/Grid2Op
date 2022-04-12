@@ -542,7 +542,10 @@ class BasePlot(ABC):
                 continue
             load_value = None
             if load_values is not None:
-                load_value = np.round(float(load_values[stor_idx]), 2)
+                if load_values[stor_idx] is not None:
+                    load_value = np.round(float(load_values[stor_idx]), 2)
+                else:
+                    load_value = None
             sto_x = self._grid_layout[stor_name][0]
             sto_y = self._grid_layout[stor_name][1]
             sto_subid = el_to_subid[stor_idx]

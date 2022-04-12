@@ -292,6 +292,53 @@ class FromNPY(GridValue):
         short_hash = hashlib.md5(long_hash_byte)
         return short_hash.hexdigest()
 
+    @staticmethod
+    def _create_dict_inj(res, obj_with_inj_data):
+        dict_ = {}
+        prod_v = None
+        if obj_with_inj_data._load_p is not None:
+            dict_["load_p"] = 1.0 * obj_with_inj_data._load_p[obj_with_inj_data.current_index, :]
+        if obj_with_inj_data._load_q is not None:
+            dict_["load_q"] = 1.0 * obj_with_inj_data._load_q[obj_with_inj_data.current_index, :]
+            
+        array_gen_p = obj_with_inj_data._gen_p if hasattr(obj_with_inj_data, "_gen_p") else obj_with_inj_data._prod_p
+        if array_gen_p is not None:
+            dict_["prod_p"] = 1.0 * array_gen_p[obj_with_inj_data.current_index, :]
+            
+        array_gen_v = obj_with_inj_data._gen_v if hasattr(obj_with_inj_data, "_gen_v") else obj_with_inj_data._prod_v
+        if array_gen_v is not None:
+            prod_v = 1.0 * array_gen_v[obj_with_inj_data.current_index, :]
+            
+        if dict_:
+            res["injection"] = dict_
+        return prod_v
+    
+    @staticmethod
+    def _create_dict_maintenance_hazards(res, obj_with_inj_data):
+        if obj_with_inj_data.maintenance is not None and obj_with_inj_data.has_maintenance:
+            res["maintenance"] = obj_with_inj_data.maintenance[obj_with_inj_data.current_index, :]
+        if obj_with_inj_data.hazards is not None and obj_with_inj_data.has_hazards:
+            res["hazards"] = obj_with_inj_data.hazards[obj_with_inj_data.current_index, :]
+            
+        if (
+            obj_with_inj_data.maintenance_time is not None
+            and obj_with_inj_data.maintenance_duration is not None
+            and obj_with_inj_data.has_maintenance
+        ):
+            maintenance_time = dt_int(1 * obj_with_inj_data.maintenance_time[obj_with_inj_data.current_index, :])
+            maintenance_duration = dt_int(
+                1 * obj_with_inj_data.maintenance_duration[obj_with_inj_data.current_index, :]
+            )
+        else:
+            maintenance_time = obj_with_inj_data.maintenance_time_nomaint
+            maintenance_duration = obj_with_inj_data.maintenance_duration_nomaint
+
+        if obj_with_inj_data.hazard_duration is not None and obj_with_inj_data.has_hazards:
+            hazard_duration = 1 * obj_with_inj_data.hazard_duration[obj_with_inj_data.current_index, :]
+        else:
+            hazard_duration = obj_with_inj_data.hazard_duration_nohaz
+        return maintenance_time, maintenance_duration, hazard_duration
+    
     def load_next(self):
         self.current_index += 1
 
@@ -302,44 +349,11 @@ class FromNPY(GridValue):
             raise StopIteration
 
         res = {}
-        dict_ = {}
-        prod_v = None
-        if self._load_p is not None:
-            dict_["load_p"] = 1.0 * self._load_p[self.current_index, :]
-        if self._load_q is not None:
-            dict_["load_q"] = 1.0 * self._load_q[self.current_index, :]
-        if self._prod_p is not None:
-            dict_["prod_p"] = 1.0 * self._prod_p[self.current_index, :]
-        if self._prod_v is not None:
-            prod_v = 1.0 * self._prod_v[self.current_index, :]
-        if dict_:
-            res["injection"] = dict_
-
-        if self.maintenance is not None and self.has_maintenance:
-            res["maintenance"] = self.maintenance[self.current_index, :]
-        if self.hazards is not None and self.has_hazards:
-            res["hazards"] = self.hazards[self.current_index, :]
+        prod_v = FromNPY._create_dict_inj(res, self)
+        maintenance_time, maintenance_duration, hazard_duration = FromNPY._create_dict_maintenance_hazards(res, self)
 
         self.current_datetime += self.time_interval
         self.curr_iter += 1
-
-        if (
-            self.maintenance_time is not None
-            and self.maintenance_duration is not None
-            and self.has_maintenance
-        ):
-            maintenance_time = dt_int(1 * self.maintenance_time[self.current_index, :])
-            maintenance_duration = dt_int(
-                1 * self.maintenance_duration[self.current_index, :]
-            )
-        else:
-            maintenance_time = self.maintenance_time_nomaint
-            maintenance_duration = self.maintenance_duration_nomaint
-
-        if self.hazard_duration is not None and self.has_hazards:
-            hazard_duration = 1 * self.hazard_duration[self.current_index, :]
-        else:
-            hazard_duration = self.hazard_duration_nohaz
 
         return (
             self.current_datetime,

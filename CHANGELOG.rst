@@ -3,6 +3,9 @@ Change Log
 
 [TODO]
 --------------------
+- [???] closer integration with `gym` especially the "register env", being able to 
+  create an env from a string etc.
+- [???] clean the notebook on RL
 - [???] use the typing module for type annotation.
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
@@ -30,6 +33,8 @@ Change Log
 
 [1.6.6] - 2022-xx-yy
 ---------------------
+- [BREAKING] the `L2RPNSandBoxScore`, `RedispReward` and `EconomicReward` now properly computes the cost of the grid 
+  (there was an error between the conversion from MWh - cost is given in $ / MWh - and MW). This impacts also `ScoreICAPS2021` and `ScoreL2RPN2020`.
 - [BREAKING] in the "gym_compat" module the curtailment action type has 
   for dimension the number of dispatchable generators (as opposed to all generators
   before) this was mandatory to fix issue https://github.com/rte-france/Grid2Op/issues/282
@@ -69,6 +74,11 @@ Change Log
 - [ADDED] two attribtues for the observation: `obs.gen_margin_up` and `obs.gen_margin_down`
 - [ADDED] support for hashing chronix2grid related components.
 - [ADDED] possibility to change the type of the opponent space type from the `make(...)` command
+- [ADDED] a method to "limit the curtailment / storage" action depending on the availability of controllable generators 
+  (see `act.limit_curtail_storage(...)`)
+- [ADDED] a class to generate data "on the fly" using chronix2grid (for now really slow and only available for 
+  a single environment)
+- [ADDED] a first version (for testing only) for the `l2rpn_wcci_2022` environment.
 - [IMPROVED] better difference between `env_path` and `grid_path` in environments.
 - [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower
@@ -121,7 +131,7 @@ Change Log
   sensors.
 - [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
 - [IMRPOVED] docs (and notebooks) for the "split_train_val" https://github.com/rte-france/Grid2Op/issues/269
-- [IMRPOVED] the "split_train_val" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276
+- [IMRPOVED] the "`env.split_train_val(...)`" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276
   
 [1.6.4] - 2021-11-08
 ---------------------

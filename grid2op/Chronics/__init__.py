@@ -10,6 +10,7 @@ __all__ = [
     "GridStateFromFileWithForecastsWithoutMaintenance",
     "ReadPypowNetData",
     "FromNPY",
+    "FromChronix2grid"
 ]
 
 from grid2op.Chronics.chronicsHandler import ChronicsHandler
@@ -27,3 +28,4 @@ from grid2op.Chronics.fromFileWithoutMaintenance import (
 )
 from grid2op.Chronics.multifolderWithCache import MultifolderWithCache
 from grid2op.Chronics.fromNPY import FromNPY
+from grid2op.Chronics.fromChronix2grid import FromChronix2grid

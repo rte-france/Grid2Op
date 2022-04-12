@@ -117,10 +117,11 @@ class TestAgent(HelperTests):
             warnings.filterwarnings("error")
             i, cum_reward, all_acts = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for do nothing"
-        expected_reward = dt_float(35140.027)
+        expected_reward = dt_float(35140.027 / 12.)
+        expected_reward = dt_float(35140.03125 / 12.)
         assert (
             np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one
-        ), "The reward has not been properly computed"
+        ), f"The reward has not been properly computed {cum_reward} instead of {expected_reward}"
 
     def test_1_random(self):
         agent = RandomTestAgent(self.env.action_space)
@@ -131,6 +132,7 @@ class TestAgent(HelperTests):
             nb_steps, cum_reward, all_acts = self._aux_test_agent(agent)
         assert nb_steps == 16, "The powerflow diverged before step 30 for do nothing"
         expected_reward = dt_float(16441.488)
+        expected_reward = dt_float(16331.4873046875 / 12.)
         assert (
             np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one
-        ), "The reward has not been properly computed"
+        ), f"The reward has not been properly computed {cum_reward * 12.} instead of {expected_reward}"

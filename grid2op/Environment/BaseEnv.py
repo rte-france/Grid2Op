@@ -2023,8 +2023,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Return the observations of the current environment made by the :class:`grid2op.BaseAgent.BaseAgent`.
 
-        .. info::
-            this function is called twice when the env is reset, otherwise once per step
+        .. note::
+            This function is called twice when the env is reset, otherwise once per step
 
         Returns
         -------

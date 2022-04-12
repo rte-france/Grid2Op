@@ -121,6 +121,8 @@ an internet connection)
 will not be removed from your local hard drive. This is why we don't recommend to change this folder unless you have a
 valid reason to do so.
 
+.. _env_cust_makeenv:
+
 Customize your environment
 --------------------------
 When you create it, you can change different parameters of the environments. We summarize all parameters
@@ -136,14 +138,17 @@ context of the L2RPN competition, we don't recommend to modify them.
 - `reward_class`: change the type of reward you want to use for your agent
 - `other_reward`: tell "env.step" to return addition "rewards"
 - `difficulty`, `param`: control the difficulty level of the game (might not always be available)
-- \* `action_class`: which action class your agent is allowed to use.
-- \* `gamerules_class`: the rules that are checked to declare an action legal / illegal
-- \* `chronics_path`, `data_feeding`, `chronics_class`, `data_feeding_kwargs`: the path where the data are located
-- \* `volagecontroler_class`: how the voltages are set on the grid
-- \* `grid_path`: the path where the default powergrid properties are stored
-- \* `observation_class`: which type of observation do you use
+- `chronics_class`, `data_feeding_kwargs`: further customization to how the data will be generated
+- \* `chronics_path`, `data_feeding`, : to overload default path for the data (**not recommended**)
+- \* `action_class`: which action class your agent is allowed to use (**not recommended**).
+- \* `gamerules_class`: the rules that are checked to declare an action legal / illegal (**not recommended**)
+- \* `volagecontroler_class`: how the voltages are set on the grid (**not recommended**)
+- \* `grid_path`: the path where the default powergrid properties are stored (**not recommended**)
+- \* `observation_class`, `kwargs_observation`: which type of observation do you use (**not recommended**)
 - \* `opponent_action_class`, `opponent_class`, `opponent_init_budget`, `opponent_budget_per_ts`,
-  `opponent_budget_class`: all configuration for the opponent.
+  `opponent_budget_class`, `opponent_space_type`, `kwargs_opponent`: all configuration for the opponent. (**not recommended**)
+- \* `has_attention_budget`, `attention_budget_class`, `kwargs_attention_budget`: all configuration
+   for the "alarm" / "attention budget" parameters. (**not recommended**)
 
 More information about the "customization" of the environment, especially to optimize the I/O or to manipulate
 which data you interact with are available in the :ref:`environment-module` module (:ref:`environment-module-usage` section).
@@ -153,6 +158,21 @@ which data you interact with are available in the :ref:`environment-module` modu
 
     We do not recommend to modify the keyword arguments starting with \*, and especially the action_class.
 
+You can customize an environment with:
+
+.. code-block:: python
+
+    import grid2op
+    env = grid2op.make(dataset_path, 
+                       backend=...,  # put a compatible backend here
+                       reward_class=...,  # change the reward function, see BaseReward
+                       other_reward={key: reward_func}, # with `key` being strings and `reward_func` inheriting from BaseReward
+                       difficulty=...,  # str or ints
+                       param=...,  # any Parameters (from grid2op.Parameters import Parameters)
+                       etc.
+                       )
+
+See documentation of :func:`grid2op.MakeEnv.make_from_dataset_path` for more information about all these parameters.
 
 Detailed Documentation by class
 --------------------------------

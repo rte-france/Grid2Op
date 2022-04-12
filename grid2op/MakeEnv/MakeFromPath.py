@@ -16,7 +16,7 @@ from grid2op.Environment import Environment
 from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Opponent.OpponentSpace import OpponentSpace
 from grid2op.Parameters import Parameters
-from grid2op.Chronics import ChronicsHandler, ChangeNothing, FromNPY
+from grid2op.Chronics import ChronicsHandler, ChangeNothing, FromNPY, FromChronix2grid
 from grid2op.Chronics import GridStateFromFile, GridValue
 from grid2op.Action import BaseAction, DontAct
 from grid2op.Exceptions import *
@@ -191,7 +191,7 @@ def make_from_dataset_path(
         (the "hardest") is the default choice.
 
     opponent_space_type: ``type``, optional
-        The type of opponent space to use. If provided, it must be a subclass of OpponentSpace.
+        The type of opponent space to use. If provided, it must be a subclass of `OpponentSpace`.
         
     opponent_action_class: ``type``, optional
         The action class used for the opponent. The opponent will not be able to use action that are invalid with
@@ -540,7 +540,7 @@ def make_from_dataset_path(
         isclass=True,
     )
     if (
-        (chronics_class_used != ChangeNothing) and (chronics_class_used != FromNPY)
+        (chronics_class_used != ChangeNothing) and (chronics_class_used != FromNPY) and (chronics_class_used != FromChronix2grid)
     ) and exc_chronics is not None:
         raise EnvError(
             f"Impossible to find the chronics for your environment. Please make sure to provide "
