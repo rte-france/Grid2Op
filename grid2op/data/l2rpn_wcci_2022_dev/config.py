@@ -13,8 +13,8 @@ except ImportError:
     from grid2op.Observation import CompleteObservation
     import warnings
     warnings.warn("The grid2op version you are trying to use is too old for this environment. Please upgrade it.")
-    ActionICAPS2021 = PlayableAction
-    ObservationICAPS2021 = CompleteObservation
+    ActionWCCI2022 = PlayableAction
+    ObservationWCCI2022 = CompleteObservation
     
 	
 config = {
