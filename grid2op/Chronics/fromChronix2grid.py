@@ -22,6 +22,54 @@ from grid2op.Exceptions import ChronicsError
             
 
 class FromChronix2grid(GridValue):
+    """This class of "chronix" allows to use the `chronix2grid` package to generate data "on the fly" rather
+    than having to read it from the hard drive.
+    
+    .. versionadded:: 1.6.6
+    
+    
+    .. warning::
+        It requires the `chronix2grid` package to be installed, please install it with :
+    
+        `pip install grid2op[chronix2grid]`
+        
+        And visit https://github.com/bdonnot/chronix2grid#installation for more installation details (in particular
+        you need the coinor-cbc software on your machine)
+        
+    As of writing, this class is really slow compared to reading data from the hard drive. Indeed to generate a week of data
+    at the 5 mins time resolution (*ie* to generate the data for a "standard" episode) it takes roughly 40/45 s for
+    the `l2rpn_wcci_2022` environment (based on the IEEE 118).
+    
+    Notes
+    ------
+    It requires lots of extra metadata to use this class. As of writing, only the  `l2rpn_wcci_2022` is compatible with it.
+    
+    
+    Examples
+    ----------
+    To use it (though we do not recommend to use it) you can do:
+    
+    .. code-block:: python
+    
+        import grid2op
+        from grid2op.Chronics import FromChronix2grid
+        env_nm = "l2rpn_wcci_2022"  # only compatible environment at time of writing
+        
+        env = grid2op.make(env_nm,
+                           chronics_class=FromChronix2grid,
+                           data_feeding_kwargs={"env_path": os.path.join(grid2op.get_current_local_dir(), env_nm),
+                                                "with_maintenance": True,  # whether to include maintenance (optional)
+                                                "max_iter": 2 * 288,  # duration (in number of steps) of the data generated (optional)
+                                                }
+                           )
+    
+    Before using it, please consult the :ref:`generate_data_flow` section of the document, that provides a much faster way
+    to do this.
+    
+    """
+    REQUIRED_FILES = ["loads_charac.csv", "params.json", "params_load.json",
+                      "params_loss.json", "params_opf.json", "params_res.json", 
+                      "prods_charac.csv", "scenario_params.json"]
     def __init__(self,
                  env_path: os.PathLike,
                  with_maintenance: bool,
@@ -44,6 +92,13 @@ class FromChronix2grid(GridValue):
 
         self._generate_one_episode = generate_one_episode
         
+        for el in type(self).REQUIRED_FILES:
+            tmp_ = os.path.join(env_path, el)
+            if not (os.path.exists(tmp_) and os.path.isfile(tmp_)):
+                raise ChronicsError(f"The file \"{el}\" is required but is missing from your environment. "
+                                    f"Check data located at \"env_path={env_path}\" and make sure you "
+                                    f"can use this environment to generate data.")
+                
         GridValue.__init__(
             self,
             time_interval=time_interval,

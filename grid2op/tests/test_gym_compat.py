@@ -278,14 +278,14 @@ class TestGymCompatModule(unittest.TestCase):
             )
             res_tup = (7, 6, 0, 0, 0, 4)
             res_disp = np.array(
-                [1.666666, 1.666666, 0.0, 0.0, 0.0, -2.5], dtype=dt_float
+                [1.666667, 1.666666, 0.0, 0.0, 0.0, -2.5], dtype=dt_float
             )
         assert (
             act_gym["redispatch"] == res_tup
         ), f'error. redispatch is {act_gym["redispatch"]}'
         act_glop = env_gym.action_space.from_gym(act_gym)
-        assert np.array_equal(
-            act_glop._redispatch, res_disp
+        assert np.allclose(
+            act_glop._redispatch, res_disp, atol=1e-5
         ), f"error. redispatch is {act_glop._redispatch}"
 
     def test_all_together(self):

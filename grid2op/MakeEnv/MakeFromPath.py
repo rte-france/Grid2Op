@@ -191,7 +191,7 @@ def make_from_dataset_path(
         (the "hardest") is the default choice.
 
     opponent_space_type: ``type``, optional
-        The type of opponent space to use. If provided, it must be a subclass of OpponentSpace.
+        The type of opponent space to use. If provided, it must be a subclass of `OpponentSpace`.
         
     opponent_action_class: ``type``, optional
         The action class used for the opponent. The opponent will not be able to use action that are invalid with

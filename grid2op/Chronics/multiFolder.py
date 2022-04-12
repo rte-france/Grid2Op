@@ -30,6 +30,9 @@ class Multifolder(GridValue):
     the data are always loaded in the same order, regardless of the :class:`grid2op.Backend`, :class:`grid2op.BaseAgent` or
     :class:`grid2op.Environment`.
 
+    .. note::
+        Most grid2op environments, by default, use this type of "chronix", read from the hard drive.
+        
     Attributes
     -----------
     gridvalueClass: ``type``, optional
@@ -74,18 +77,7 @@ class Multifolder(GridValue):
         self.data = None
         self.path = os.path.abspath(path)
         self.sep = sep
-        try:
-            self.subpaths = [
-                os.path.join(self.path, el)
-                for el in os.listdir(self.path)
-                if os.path.isdir(os.path.join(self.path, el))
-            ]
-            self.subpaths.sort()
-            self.subpaths = np.array(self.subpaths)
-        except FileNotFoundError:
-            raise ChronicsError(
-                'Path "{}" doesn\'t exists.'.format(self.path)
-            ) from None
+        self.init_subpath()
 
         if len(self.subpaths) == 0:
             raise ChronicsNotFoundError(
@@ -116,6 +108,116 @@ class Multifolder(GridValue):
         self._prev_cache_id = 0
         self._order = None
 
+    def init_subpath(self):
+        """
+        Read the content of the main directory and initialize the `subpaths` 
+        where the data could be located.
+        
+        This is usefull, for example, if you generated data and want to be able to use them.
+        
+        **NB** this has no effect until :attr:`Multifolder.reset` is called.
+        
+        .. warning::
+            By default, it will only consider data that are present at creation time. If you add data after, you need
+            to call this function (and do a reset)
+            
+        Examples
+        ---------
+        
+        A "typical" usage of this function can be the following workflow.
+        
+        Start a script to train an agent (say "train_agent.py"):
+        
+        .. code-block:: python
+        
+            import os
+            import grid2op
+            from lightsim2grid import LightSimBackend  # highly recommended for speed !
+            
+            env_name = "l2rpn_wcci_2022"  # only compatible with what comes next (at time of writing)
+            env = grid2op.make(env_name, backend=LightSimBackend())
+            
+            # now train an agent
+            # see l2rpn_baselines package for more information, for example
+            # l2rpn-baselines.readthedocs.io/
+            from l2rpn_baselines.PPO_SB3 import train
+            nb_iter = 10000  # train for that many iterations
+            agent_name = "WhaetverIWant"  # or any other name
+            agent_path = os.path.expand("~")  # or anywhere else on your computer
+            trained_agent = train(env,
+                                  iterations=nb_iter,
+                                  name=agent_name,
+                                  save_path=agent_path)
+            
+        On another script (say "generate_data.py"), you can generate more data:
+                
+        .. code-block:: python
+        
+            import grid2op            
+            env_name = "l2rpn_wcci_2022"  # only compatible with what comes next (at time of writing)
+            env = grid2op.make(env_name)
+            env.generate_data(nb_year=50)  # generates 50 years of data 
+            # (takes roughly 50s per week, around 45mins per year, in this case 50 * 45 mins = lots of minutes)
+            
+        Let the script to generate the data run normally (don't interupt it).
+        And from time to time, in the script "train_agent.py" you can do:
+        
+        .. code-block:: python
+            
+            # reload the generated data
+            env.chronics_handler.init_subpath()
+            env.chronics_handler.reset()
+            
+            # retrain the agent taking into account new data
+            trained_agent = train(env,
+                                  iterations=nb_iter,
+                                  name=agent_name,
+                                  save_path=agent_path,
+                                  load_path=agent_path
+                                  )
+            
+            # the script to generate data is still running, you can reload some data again
+            env.chronics_handler.init_subpath()
+            env.chronics_handler.reset()
+            
+            # retrain the agent
+            trained_agent = train(env,
+                                  iterations=nb_iter,
+                                  name=agent_name,
+                                  save_path=agent_path,
+                                  load_path=agent_path
+                                  )
+                                  
+            # etc.
+        
+        Both scripts you run "at the same time" for it to work efficiently.
+        
+        To recap:
+        - script "generate_data.py" will... generate data
+        - these data will be reloaded from time to time by the script "train_agent.py"
+        
+        .. warning:: 
+            Do not delete data between calls to `env.chronics_handler.init_subpath()` and `env.chronics_handler.reset()`,
+            and even less so during training !
+            
+            If you want to delete data (for example not to overload your hard drive) you should remove them 
+            right before calling `env.chronics_handler.init_subpath()`.
+            
+        """
+        try:
+            self.subpaths = [
+                os.path.join(self.path, el)
+                for el in os.listdir(self.path)
+                if os.path.isdir(os.path.join(self.path, el))
+            ]
+            self.subpaths.sort()
+            self.subpaths = np.array(self.subpaths)
+        except FileNotFoundError as exc_:
+            raise ChronicsError(
+                'Path "{}" doesn\'t exists.'.format(self.path)
+            ) from exc_
+        self._order = None  # to trigger a "reset" when chronix will next be loaded
+        
     def get_kwargs(self, dict_):
         if self._filter != self._default_filter:
             dict_["filter_func"] = self._filter
