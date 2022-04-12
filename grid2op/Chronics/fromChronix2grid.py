@@ -14,10 +14,10 @@ import hashlib
 from datetime import datetime, timedelta
 
 import grid2op
-from grid2op.dtypes import dt_bool
-from grid2op.Chronics.GSFFWFWM import GridStateFromFileWithForecastsWithMaintenance
-from grid2op.dtypes import dt_int
+from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Chronics import GridValue, ChangeNothing
+from grid2op.Chronics.GSFFWFWM import GridStateFromFileWithForecastsWithMaintenance
+from grid2op.Chronics.fromNPY import FromNPY
 from grid2op.Exceptions import ChronicsError
             
 
@@ -123,7 +123,7 @@ class FromChronix2grid(GridValue):
         self._gen_p = None
         self._gen_v = None
         
-        self.with_maintenance = with_maintenance
+        self.has_maintenance = with_maintenance
         if with_maintenance:
             # initialize the parameters from the json
             # TODO copy paste from GridStateFromFileWithForecastWithMaintenance
@@ -202,44 +202,11 @@ class FromChronix2grid(GridValue):
             raise StopIteration
 
         res = {}
-        dict_ = {}
-        prod_v = None
-        if self._load_p is not None:
-            dict_["load_p"] = 1.0 * self._load_p[self.current_index, :]
-        if self._load_q is not None:
-            dict_["load_q"] = 1.0 * self._load_q[self.current_index, :]
-        if self._gen_p is not None:
-            dict_["prod_p"] = 1.0 * self._gen_p[self.current_index, :]
-        if self._gen_v is not None:
-            prod_v = 1.0 * self._gen_v[self.current_index, :]
-        if dict_:
-            res["injection"] = dict_
-
-        if self.maintenance is not None and self.with_maintenance:
-            res["maintenance"] = self.maintenance[self.current_index, :]
-        if self.hazards is not None and self.has_hazards:
-            res["hazards"] = self.hazards[self.current_index, :]
+        prod_v = FromNPY._create_dict_inj(res, self)
+        maintenance_time, maintenance_duration, hazard_duration = FromNPY._create_dict_maintenance_hazards(res, self)
 
         self.current_datetime += self.time_interval
         self.curr_iter += 1
-
-        if (
-            self.maintenance_time is not None
-            and self.maintenance_duration is not None
-            and self.with_maintenance
-        ):
-            maintenance_time = dt_int(1 * self.maintenance_time[self.current_index, :])
-            maintenance_duration = dt_int(
-                1 * self.maintenance_duration[self.current_index, :]
-            )
-        else:
-            maintenance_time = self.maintenance_time_nomaint
-            maintenance_duration = self.maintenance_duration_nomaint
-
-        if self.hazard_duration is not None and self.has_hazards:
-            hazard_duration = 1 * self.hazard_duration[self.current_index, :]
-        else:
-            hazard_duration = self.hazard_duration_nohaz
 
         return (
             self.current_datetime,
@@ -317,7 +284,7 @@ class FromChronix2grid(GridValue):
         self._gen_p = res_gen[4].values
         self._gen_p_forecasted = res_gen[5].values
         
-        if self.with_maintenance:
+        if self.has_maintenance:
             self.maintenance = GridStateFromFileWithForecastsWithMaintenance._generate_matenance_static(
                 self.env.name_line,
                 self._load_p.shape[0],
@@ -333,24 +300,7 @@ class FromChronix2grid(GridValue):
             
             ##########
             # same as before in GridStateFromFileWithForecasts
-            self.maintenance_time = (
-                np.zeros(shape=(self.maintenance.shape[0], self.n_line), dtype=dt_int) - 1
-            )
-            self.maintenance_duration = np.zeros(
-                shape=(self.maintenance.shape[0], self.n_line), dtype=dt_int
-            )
-
-            # test that with chunk size
-            for line_id in range(self.n_line):
-                self.maintenance_time[:, line_id] = self.get_maintenance_time_1d(
-                    self.maintenance[:, line_id]
-                )
-                self.maintenance_duration[:, line_id] = self.get_maintenance_duration_1d(
-                    self.maintenance[:, line_id]
-                )
-
-            # there are _maintenance and hazards only if the value in the file is not 0.
-            self.maintenance = self.maintenance != 0.0
-            self.maintenance = self.maintenance.astype(dt_bool)
+            GridStateFromFileWithForecastsWithMaintenance._fix_maintenance_format(self)
+            
         self.check_validity(backend=None)
         

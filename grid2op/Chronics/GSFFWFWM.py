@@ -129,26 +129,30 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
 
         ##########
         # same as before in GridStateFromFileWithForecasts
-        self.maintenance_time = (
-            np.zeros(shape=(self.maintenance.shape[0], self.n_line), dtype=dt_int) - 1
+        GridStateFromFileWithForecastsWithMaintenance._fix_maintenance_format(self)
+
+    @staticmethod
+    def _fix_maintenance_format(obj_with_maintenance):
+        obj_with_maintenance.maintenance_time = (
+            np.zeros(shape=(obj_with_maintenance.maintenance.shape[0], obj_with_maintenance.n_line), dtype=dt_int) - 1
         )
-        self.maintenance_duration = np.zeros(
-            shape=(self.maintenance.shape[0], self.n_line), dtype=dt_int
+        obj_with_maintenance.maintenance_duration = np.zeros(
+            shape=(obj_with_maintenance.maintenance.shape[0], obj_with_maintenance.n_line), dtype=dt_int
         )
 
         # test that with chunk size
-        for line_id in range(self.n_line):
-            self.maintenance_time[:, line_id] = self.get_maintenance_time_1d(
-                self.maintenance[:, line_id]
+        for line_id in range(obj_with_maintenance.n_line):
+            obj_with_maintenance.maintenance_time[:, line_id] = obj_with_maintenance.get_maintenance_time_1d(
+                obj_with_maintenance.maintenance[:, line_id]
             )
-            self.maintenance_duration[:, line_id] = self.get_maintenance_duration_1d(
-                self.maintenance[:, line_id]
+            obj_with_maintenance.maintenance_duration[:, line_id] = obj_with_maintenance.get_maintenance_duration_1d(
+                obj_with_maintenance.maintenance[:, line_id]
             )
 
         # there are _maintenance and hazards only if the value in the file is not 0.
-        self.maintenance = self.maintenance != 0.0
-        self.maintenance = self.maintenance.astype(dt_bool)
-
+        obj_with_maintenance.maintenance = obj_with_maintenance.maintenance != 0.0
+        obj_with_maintenance.maintenance = obj_with_maintenance.maintenance.astype(dt_bool)
+        
     @staticmethod
     def _generate_matenance_static(name_line,
                                    n_,
