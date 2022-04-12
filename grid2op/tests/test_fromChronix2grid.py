@@ -97,11 +97,12 @@ class TestFromChronix2Grid(unittest.TestCase):
         id_ref = '0@2050-08-08'
         self.env.set_id(id_ref)
         obs = self.env.reset()
-        assert np.all(obs.time_next_maintenance[[131]] == 107)
-        assert np.all(obs.time_next_maintenance[:131] == -1)
-        assert np.all(obs.time_next_maintenance[132:] == -1)
+        assert np.all(obs.time_next_maintenance[[43, 126]] == [107, 395])
+        assert np.all(obs.time_next_maintenance[:43] == -1)
+        assert np.all(obs.time_next_maintenance[127:] == -1)
+        assert np.all(obs.time_next_maintenance[44:126] == -1)
         assert self.env.chronics_handler.real_data.maintenance is not None
-        assert self.env.chronics_handler.real_data.maintenance.sum() == 96
+        assert self.env.chronics_handler.real_data.maintenance.sum() == 192
         assert self.env.chronics_handler.real_data.maintenance_time is not None
         assert self.env.chronics_handler.real_data.maintenance_duration is not None
         

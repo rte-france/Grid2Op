@@ -188,7 +188,10 @@ class TestGymCompatModule(unittest.TestCase):
         assert obs_gym in env_gym.observation_space
 
     def test_chain_converter(self):
-        """test i can do two converters on the same key"""
+        """test i can do two converters on the same key
+        
+        this method depends on the version of gym you have installed, tests are made for gym-0.23.1
+        """
 
         from grid2op._glop_platform_info import _IS_LINUX, _IS_WINDOWS, _IS_MACOS
 
@@ -206,6 +209,7 @@ class TestGymCompatModule(unittest.TestCase):
             # it's linux
             res = (1, 2, 0, 0, 0, 0)
             res = (5, 3, 0, 0, 0, 1)
+            res = (2, 2, 0, 0, 0, 9)
         
         assert np.all(
             act_gym["redispatch"] == res
@@ -217,6 +221,7 @@ class TestGymCompatModule(unittest.TestCase):
             # it's linux
             res = (0, 1, 0, 0, 0, 4)
             res = (5, 5, 0, 0, 0, 9)
+            res = (0, 9, 0, 0, 0, 7)
         assert np.all(
             act_gym["redispatch"] == res
         ), f'wrong action: {act_gym["redispatch"]}'
@@ -245,6 +250,10 @@ class TestGymCompatModule(unittest.TestCase):
             res_disp = np.array(
                 [1.666667, -1.666667, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
             )
+            res_tup = (8, 5, 0, 0, 0, 8)
+            res_disp = np.array(
+                [2.5, 0.0, 0.0, 0.0, 0.0, 7.5], dtype=dt_float
+            )
         assert (
             act_gym["redispatch"] == res_tup
         ), f'error. redispatch is {act_gym["redispatch"]}'
@@ -266,6 +275,10 @@ class TestGymCompatModule(unittest.TestCase):
             res_tup = (8, 6, 0, 0, 0, 0)
             res_disp = np.array(
                 [2.5, 1.666666, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
+            )
+            res_tup = (7, 6, 0, 0, 0, 4)
+            res_disp = np.array(
+                [1.666666, 1.666666, 0.0, 0.0, 0.0, -2.5], dtype=dt_float
             )
         assert (
             act_gym["redispatch"] == res_tup
