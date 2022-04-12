@@ -78,6 +78,7 @@ Change Log
   (see `act.limit_curtail_storage(...)`)
 - [ADDED] a class to generate data "on the fly" using chronix2grid (for now really slow and only available for 
   a single environment)
+- [ADDED] a first version (for testing only) for the `l2rpn_wcci_2022` environment.
 - [IMPROVED] better difference between `env_path` and `grid_path` in environments.
 - [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower
