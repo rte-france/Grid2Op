@@ -7,12 +7,10 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 # TODO test the json part but... https://github.com/openai/gym-http-api/issues/62 or https://github.com/openai/gym/issues/1841
-import tempfile
-import json
 from grid2op.tests.helper_path_test import *
 
 import grid2op
-from grid2op.dtypes import dt_float, dt_bool, dt_int
+from grid2op.dtypes import dt_float, dt_int
 from grid2op.tests.helper_path_test import *
 from grid2op.Action import PlayableAction
 

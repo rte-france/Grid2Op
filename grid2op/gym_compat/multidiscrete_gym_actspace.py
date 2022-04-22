@@ -39,15 +39,14 @@ class MultiDiscreteActSpace(MultiDiscrete):
       or "CONNECT TO BUSBAR 2" and affecting to which busbar an object is connected
     - "change_bus": `dim_topo` dimensions, each containing 2 choices: "CHANGE", "DONT CHANGE" and affect
       to which busbar an element is connected
-    - "redispatch": `n_gen` dimensions, each containing a certain number of choices depending on the value
-      of the keyword argument `nb_bins["redispatch"]` (by default 7) and will be 1 for non dispatchable generator
-    - "curtail": `n_gen` dimensions, each containing a certain number of choices depending on the value
-      of the keyword argument `nb_bins["curtail"]` (by default 7) and will be 1 for non renewable generator. This is
+    - "redispatch": `sum(env.gen_redispatchable)` dimensions, each containing a certain number of choices depending on the value
+      of the keyword argument `nb_bins["redispatch"]` (by default 7).
+    - "curtail": `sum(env.gen_renewable)` dimensions, each containing a certain number of choices depending on the value
+      of the keyword argument `nb_bins["curtail"]` (by default 7). This is
       the "conversion to discrete action"
       of the curtailment action.
-    - "curtail_mw": completely equivalent to "curtail" for this representation. This is the "conversion to
-      discrete action"
-      of the curtailment action.
+    - "curtail_mw": `sum(env.gen_renewable)` dimensions, completely equivalent to "curtail" for this representation. 
+      This is the "conversion to discrete action" of the curtailment action.
     - "set_storage": `n_storage` dimensions, each containing a certain number of choices depending on the value
       of the keyword argument `nb_bins["set_storage"]` (by default 7). This is the "conversion to discrete action"
       of the action on storage units.
@@ -72,16 +71,16 @@ class MultiDiscreteActSpace(MultiDiscrete):
         "line_change_status", "one_sub_change" or "change_bus".
 
         Combining a "set" and "change" on the same element will most likely lead to an "ambiguous action". Indeed
-        what grid2op can do if you "tell element A to go to bus 1" and "tell element A2 to go to bus 2 if it was
-        to 1 and to move to bus 1 if it was on bus 2". It's not clear at all.
+        what grid2op can do if you "tell element A to go to bus 1" and "tell the same element A to switch to bus 2 if it was
+        to 1 and to move to bus 1 if it was on bus 2". It's not clear at all (hence the "ambiguous").
 
         No error will be thrown if you mix this, this is your absolute right, be aware it might not
         lead to the result you expect though.
 
-    .. warning::
+    .. note::
 
-        The arguments "set_bus", "sub_set_bus" and "one_sub_set" will all perform "set_bus" action. The only
-        difference if "how you represent this action":
+        The arguments "set_bus", "sub_set_bus" and "one_sub_set" will all perform "set_bus" actions. The only
+        difference if "how you represent these actions":
 
         - In "set_bus" each component represent a single element of the grid. When you sample an action
           with this keyword you will possibly change all the elements of the grid at once (this is likely to

@@ -6,29 +6,23 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import json
-import tempfile
 import warnings
 import pdb
 
 from grid2op.tests.helper_path_test import *
 
-import grid2op
-from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
-from grid2op.Observation import ObservationSpace, CompleteObservation
+from grid2op.Observation import CompleteObservation
 from grid2op.Chronics import (
     ChronicsHandler,
     GridStateFromFile,
     GridStateFromFileWithForecasts,
 )
 from grid2op.Rules import RulesChecker, DefaultRules
-from grid2op.Reward import L2RPNReward, CloseToOverflowReward, RedispReward
+from grid2op.Reward import L2RPNReward
 from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import Environment
-from grid2op.MakeEnv import make
-from grid2op.Action import CompleteAction, PlayableAction
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly

@@ -28,7 +28,6 @@ from grid2op.Episode import EpisodeData
 from grid2op.Environment import SingleEnvMultiProcess
 from grid2op.Exceptions import OpponentError
 
-from grid2op.Agent import BaseAgent
 import pdb
 
 ATTACK_DURATION = 48

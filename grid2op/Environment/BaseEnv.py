@@ -2332,7 +2332,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # cause a problem right now)
             new_act_storage = 1.0 * self._storage_power_prev
             sum_this_step = new_act_storage.sum()
-            modif_storage = new_act_storage * total_storage / sum_this_step
+            if abs(sum_this_step) > 1e-1:
+                modif_storage = new_act_storage * total_storage / sum_this_step
+            else:
+                # TODO: this is not cover by any test :-(
+                # it happens when you do an action too strong, then a do nothing,
+                # then you decrease the limit to rapidly 
+                # (game over would jappen after at least one do nothing)
+                
+                # In this case I reset it completely or do I ? I don't really
+                # know what to do !
+                modif_storage = new_act_storage  # or self._storage_power ???
 
         # handle self._storage_power and self._storage_current_charge
         coeff_p_to_E = (
@@ -2732,7 +2742,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         Actually, it will be in a "game over" state (see :class:`grid2op.Observation.BaseObservation.set_game_over`).
 
         """
-
         if self.__closed:
             raise EnvError("This environment is closed. You cannot use it anymore.")
 

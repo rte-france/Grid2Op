@@ -43,7 +43,7 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
     - 1 encodes all numbers in  [-6, -2)
     - 2 encode all numbers in [-2, 2)
     - 3 encode all numbers in [2, 6)
-    - 3 encode all numbers in [6, 10]
+    - 4 encode all numbers in [6, 10]
 
     And reciprocally, this action with :
 
