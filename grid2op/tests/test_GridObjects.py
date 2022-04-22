@@ -17,8 +17,6 @@ import grid2op
 from grid2op.Backend.EducPandaPowerBackend import EducPandaPowerBackend
 from grid2op.Exceptions import EnvError
 
-import pdb
-
 
 class TestAuxFunctions(unittest.TestCase):
     def setUp(self) -> None:

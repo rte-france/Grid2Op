@@ -8,13 +8,10 @@
 
 import unittest
 import warnings
-import grid2op
 from grid2op.Agent import DeltaRedispatchRandomAgent
 from grid2op.Runner import Runner
 from grid2op import make
 from grid2op.Episode import EpisodeData
-import os
-import numpy as np
 import tempfile
 import pdb
 

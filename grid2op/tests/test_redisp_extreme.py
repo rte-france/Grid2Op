@@ -27,24 +27,12 @@ if hasattr(self, "_debug") and self._debug:
 class TestExtremeCurtail(unittest.TestCase):
     def setUp(self) -> None:
         self.env_name = os.path.join(PATH_DATA_TEST, "l2rpn_icaps_2021_small_test")
-        # path = os.path.join(self.env_name, "chronics", "Scenario_april_000")
-        # import pandas as pd
-        # el = "load_p"
-        # for el in ["load_p", "load_q", "prod_p", "prod_v",
-        #            "load_p_forecasted", "load_q_forecasted",
-        #            "prod_p_forecasted", "prod_v_forecasted"]:
-        #     path_ = os.path.join(path, f"{el}.csv.bz2")
-        #     dt_ = pd.read_csv(path_, sep=";")
-        #     dt_ = dt_.iloc[:10]
-        #     dt_.to_csv(path_, sep=";", header=True, index=False)
-
-        # self.env_name = "l2rpn_icaps_2021_small" # os.path.join(PATH_DATA_TEST, "l2rpn_icaps_2021_small_test")
+        
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
                 self.env_name,
-                test=True,
-                # data_feeding_kwargs={"max_iter": 10}
+                test=True
             )
 
         # retrieve the reference values, without curtailment
@@ -717,6 +705,7 @@ class TestExtremeStorage(unittest.TestCase):
         )
 
         obs2, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
         # assert np.all(obs2.storage_power == 0.)  # this is no more true because i did not get enough "ramp"
         obs2_power_storage = np.sum(obs2.storage_power)
         assert (
