@@ -5,8 +5,7 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-import copy
-import re
+
 import warnings
 from grid2op.tests.helper_path_test import *
 
@@ -16,9 +15,7 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Action import *
 from grid2op.Parameters import Parameters
-from grid2op.Rules import RulesChecker, AlwaysLegal
-from grid2op.Space.space_utils import save_to_dict
-from grid2op.tests.test_Action import _get_action_grid_class
+from grid2op.Rules import  AlwaysLegal
 
 import pdb
 

@@ -12,13 +12,7 @@ import warnings
 
 from grid2op.Exceptions import *
 from grid2op.MakeEnv import make
-from grid2op.Parameters import Parameters
-from grid2op.dtypes import dt_float
 from grid2op.PlotGrid import *
-
-import warnings
-
-warnings.simplefilter("error")
 
 
 class BaseTestPlot(ABC):
