@@ -84,6 +84,13 @@ class DiscreteActSpace(Discrete):
     The possible attribute you can provide in the "attr_to_keep" are:
 
     - "set_line_status"
+    - "set_line_status_simple" (grid2op >= 1.6.6) : set line status adds 5 actions per powerlines: 1) disconnect it
+      2) connect origin side to busbar 1 and extermity side to busbar 1
+      3) connect origin side to busbar 1 and extermity side to busbar 2
+      4) connect origin side to busbar 2 and extermity side to busbar 1
+      5) connect origin side to busbar 2 and extermity side to busbar 2
+      This is "over complex" for most use case where you just want to "connect it"
+      or "disconnect it". If you want the simplest version, just use "set_line_status_simple".
     - "change_line_status"
     - "set_bus": corresponds to changing the topology using the "set_bus" (equivalent to the
       "one_sub_set" keyword in the "attr_to_keep" of the :class:`MultiDiscreteActSpace`)
@@ -182,6 +189,7 @@ class DiscreteActSpace(Discrete):
             "curtail": act_sp.get_all_unitary_curtail,
             "curtail_mw": act_sp.get_all_unitary_curtail,
             "raise_alarm": act_sp.get_all_unitary_alarm,
+            "set_line_status_simple": act_sp.get_all_unitary_line_set_simple,
         }
 
         if action_list is None:
