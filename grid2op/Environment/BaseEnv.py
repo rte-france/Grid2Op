@@ -1715,18 +1715,31 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # choose a good initial point (close to the solution)
         # the idea here is to chose a initial point that would be close to the
         # desired solution (split the (sum of the) dispatch to the available generators)
-        x0 = (
-            self._target_dispatch[gen_participating]
-            - self._actual_dispatch[gen_participating]
-        ) / scale_x
-        can_adjust = x0 == 0.0
-        if np.any(can_adjust):
-            init_sum = np.sum(x0)
-            denom_adjust = np.sum(1.0 / weights[can_adjust])
-            if denom_adjust <= 1e-2:
-                # i don't want to divide by something too cloose to 0.
-                denom_adjust = 1.0
-            x0[can_adjust] = -init_sum / (weights[can_adjust] * denom_adjust)
+        x0 = np.zeros(np.sum(gen_participating))
+        if np.any(self._target_dispatch != 0.) or np.any(already_modified_gen):
+            gen_for_x0 = self._target_dispatch[gen_participating] != 0.
+            gen_for_x0 |= already_modified_gen[gen_participating]
+            x0[gen_for_x0] = (
+                self._target_dispatch[gen_participating][gen_for_x0]
+                - self._actual_dispatch[gen_participating][gen_for_x0]
+            ) / scale_x
+            # at this point x0 is made of the difference between the target and the
+            # actual dispatch for all generators that have a 
+            # target dispatch non 0.
+            
+            # in this "if" block I set the other component of x0 to 
+            # their "right" value
+            can_adjust = (x0 == 0.0)
+            if np.any(can_adjust):
+                init_sum = np.sum(x0)
+                denom_adjust = np.sum(1.0 / weights[can_adjust])
+                if denom_adjust <= 1e-2:
+                    # i don't want to divide by something too cloose to 0.
+                    denom_adjust = 1.0
+                x0[can_adjust] = -init_sum / (weights[can_adjust] * denom_adjust)
+        else:
+            # to "force" the exact reset to 0.0 for all components
+            x0 -= self._actual_dispatch[gen_participating] / scale_x
 
         def target(actual_dispatchable):
             # define my real objective
@@ -1764,7 +1777,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # hess=hess  # not used for SLSQP
             )
             return this_res
-
         res = f(x0)
         if res.success:
             self._actual_dispatch[gen_participating] += res.x * scale_x
