@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.6.6] - 2022-xx-yy
+[1.6.6] - 2022-04-28
 ---------------------
 - [BREAKING] the `L2RPNSandBoxScore`, `RedispReward` and `EconomicReward` now properly computes the cost of the grid 
   (there was an error between the conversion from MWh - cost is given in $ / MWh - and MW). This impacts also `ScoreICAPS2021` and `ScoreL2RPN2020`.
@@ -79,6 +79,8 @@ Change Log
 - [ADDED] a class to generate data "on the fly" using chronix2grid (for now really slow and only available for 
   a single environment)
 - [ADDED] a first version (for testing only) for the `l2rpn_wcci_2022` environment.
+- [ADDED] a method to compute the "simple" line reconnection actions (adding 2 actions per lines instead of 5)
+  in the action space (see `act_space.get_all_unitary_line_set_simple()`)
 - [IMPROVED] better difference between `env_path` and `grid_path` in environments.
 - [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
 - [IMPROVED] clean the warnings issued by pandas when used with pandapower
@@ -91,6 +93,9 @@ Change Log
 - [IMPROVED] have dedicated type of actions / observation for L2RPN competition environments, 
   defined in the "conf.py" file (to make possible the use of different
   grid2op version transparently)
+- [IMPROVED] on some cases, the routine used to compute the redispatching would lead to a "redispatch" that would
+  change even if you don't apply any, for no obvious reasons. This has been adressed, though it's not perfect.
+- [IMPROVED] finer resolution when measuring exectution times
 
 [1.6.5] - 2022-01-19
 ---------------------
