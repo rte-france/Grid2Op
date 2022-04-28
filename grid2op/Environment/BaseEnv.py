@@ -294,6 +294,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_apply_act: float = dt_float(0)
         self._time_powerflow: float = dt_float(0)
         self._time_extract_obs: float = dt_float(0)
+        self._time_create_bk_act: float = dt_float(0)
         self._time_opponent: float = dt_float(0)
         self._time_redisp: float = dt_float(0)
         self._time_step: float = dt_float(0)
@@ -508,6 +509,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._time_apply_act = self._time_apply_act
         new_obj._time_powerflow = self._time_powerflow
         new_obj._time_extract_obs = self._time_extract_obs
+        new_obj._time_create_bk_act = self._time_create_bk_act
         new_obj._time_opponent = self._time_opponent
         new_obj._time_redisp = self._time_redisp
         new_obj._time_step = self._time_step
@@ -2866,8 +2868,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             lines_attacked, subs_attacked, attack_duration = self._aux_handle_attack(
                 action
             )
-            self._time_opponent += time.perf_counter() - tick
-
+            tock = time.perf_counter()
+            self._time_opponent += tock - tick
+            self._time_create_bk_act += tock - beg_
+            
             self.backend.apply_action(self._backend_action)
             self._time_apply_act += time.perf_counter() - beg_
 
@@ -2880,9 +2884,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         except StopIteration:
             # episode is over
             is_done = True
+        self._backend_action.reset()
         end_step = time.perf_counter()
         self._time_step += end_step - beg_step
-        self._backend_action.reset()
         if conv_ is not None:
             except_.append(conv_)
         self.infos = {
@@ -2900,7 +2904,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.backend.detailed_infos_for_cascading_failures:
             self.infos["detailed_infos_for_cascading_failures"] = detailed_info
-
+            
         self.done = self._is_done(has_error, is_done)
         self.current_reward, other_reward = self._get_reward(
             action,
@@ -2919,7 +2923,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.current_obs = self.get_obs(_update_state=False)
             # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
-
         # TODO documentation on all the possible way to be illegal now
         if self.done:
             self.__is_init = False
@@ -2984,6 +2987,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_powerflow = dt_float(0.0)
         self._time_extract_obs = dt_float(0.0)
         self._time_opponent = dt_float(0.0)
+        self._time_create_bk_act = dt_float(0.0)
         self._time_redisp = dt_float(0.0)
         self._time_step = dt_float(0.0)
 
@@ -3092,6 +3096,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_time_apply_act",
             "_time_powerflow",
             "_time_extract_obs",
+            "_time_create_bk_act",
             "_time_opponent",
             "_time_redisp",
             "_time_step",
