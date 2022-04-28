@@ -201,6 +201,7 @@ class BaseTestRedispatch(MakeBackend):
         )
         th_dispatch = np.array([0.0, 10.0, 20.0, 0.0, -30.0])
         th_dispatch = np.array([0.0, 4.0765514, 20.004545, 0.0, -24.081097])
+        th_dispatch = np.array([0., 4.0710216, 20.015802, 0., -24.086824])
         assert self.compare_vect(self.env._actual_dispatch, th_dispatch)
 
         target_val = (
@@ -302,6 +303,7 @@ class BaseTestRedispatch(MakeBackend):
         assert np.all(obs.target_dispatch == np.array([0.0, 0.0, 10.0, 0.0, 0.0]))
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
         th_disp = np.array([0.0, -5.0, 10.0, 0.0, -5.0])
+        th_disp = np.array([0., -2.9629638, 10.,  0., -7.037036 ])
         assert self.compare_vect(obs.actual_dispatch, th_disp)
         assert np.all(obs.prod_p <= self.env.gen_pmax + self.tol_one)
         assert np.all(obs.prod_p - self.env.gen_pmin >= -self.tol_one)
@@ -323,6 +325,7 @@ class BaseTestRedispatch(MakeBackend):
         assert not info["is_dispatching_illegal"]
         assert np.all(obs.target_dispatch == np.array([0.0, 0.0, 60.0, 0.0, 0.0]))
         th_disp = np.array([0.0, -23.5, 50.4, 0.0, -26.900002])
+        th_disp = np.array([0., -12.977809, 50.40005, 0., -37.42224 ])
         assert self.compare_vect(obs.actual_dispatch, th_disp)
         assert np.all(obs.prod_p[:-1] <= self.env.gen_pmax[:-1] + self.tol_one)
         assert np.all(obs.prod_p[:-1] >= self.env.gen_pmin[:-1] - self.tol_one)
