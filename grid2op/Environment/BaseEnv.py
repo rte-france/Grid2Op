@@ -294,6 +294,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_apply_act: float = dt_float(0)
         self._time_powerflow: float = dt_float(0)
         self._time_extract_obs: float = dt_float(0)
+        self._time_create_bk_act: float = dt_float(0)
         self._time_opponent: float = dt_float(0)
         self._time_redisp: float = dt_float(0)
         self._time_step: float = dt_float(0)
@@ -508,6 +509,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._time_apply_act = self._time_apply_act
         new_obj._time_powerflow = self._time_powerflow
         new_obj._time_extract_obs = self._time_extract_obs
+        new_obj._time_create_bk_act = self._time_create_bk_act
         new_obj._time_opponent = self._time_opponent
         new_obj._time_redisp = self._time_redisp
         new_obj._time_step = self._time_step
@@ -1715,18 +1717,31 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # choose a good initial point (close to the solution)
         # the idea here is to chose a initial point that would be close to the
         # desired solution (split the (sum of the) dispatch to the available generators)
-        x0 = (
-            self._target_dispatch[gen_participating]
-            - self._actual_dispatch[gen_participating]
-        ) / scale_x
-        can_adjust = x0 == 0.0
-        if np.any(can_adjust):
-            init_sum = np.sum(x0)
-            denom_adjust = np.sum(1.0 / weights[can_adjust])
-            if denom_adjust <= 1e-2:
-                # i don't want to divide by something too cloose to 0.
-                denom_adjust = 1.0
-            x0[can_adjust] = -init_sum / (weights[can_adjust] * denom_adjust)
+        x0 = np.zeros(np.sum(gen_participating))
+        if np.any(self._target_dispatch != 0.) or np.any(already_modified_gen):
+            gen_for_x0 = self._target_dispatch[gen_participating] != 0.
+            gen_for_x0 |= already_modified_gen[gen_participating]
+            x0[gen_for_x0] = (
+                self._target_dispatch[gen_participating][gen_for_x0]
+                - self._actual_dispatch[gen_participating][gen_for_x0]
+            ) / scale_x
+            # at this point x0 is made of the difference between the target and the
+            # actual dispatch for all generators that have a 
+            # target dispatch non 0.
+            
+            # in this "if" block I set the other component of x0 to 
+            # their "right" value
+            can_adjust = (x0 == 0.0)
+            if np.any(can_adjust):
+                init_sum = np.sum(x0)
+                denom_adjust = np.sum(1.0 / weights[can_adjust])
+                if denom_adjust <= 1e-2:
+                    # i don't want to divide by something too cloose to 0.
+                    denom_adjust = 1.0
+                x0[can_adjust] = -init_sum / (weights[can_adjust] * denom_adjust)
+        else:
+            # to "force" the exact reset to 0.0 for all components
+            x0 -= self._actual_dispatch[gen_participating] / scale_x
 
         def target(actual_dispatchable):
             # define my real objective
@@ -1764,7 +1779,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # hess=hess  # not used for SLSQP
             )
             return this_res
-
         res = f(x0)
         if res.success:
             self._actual_dispatch[gen_participating] += res.x * scale_x
@@ -2854,8 +2868,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             lines_attacked, subs_attacked, attack_duration = self._aux_handle_attack(
                 action
             )
-            self._time_opponent += time.perf_counter() - tick
-
+            tock = time.perf_counter()
+            self._time_opponent += tock - tick
+            self._time_create_bk_act += tock - beg_
+            
             self.backend.apply_action(self._backend_action)
             self._time_apply_act += time.perf_counter() - beg_
 
@@ -2868,9 +2884,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         except StopIteration:
             # episode is over
             is_done = True
+        self._backend_action.reset()
         end_step = time.perf_counter()
         self._time_step += end_step - beg_step
-        self._backend_action.reset()
         if conv_ is not None:
             except_.append(conv_)
         self.infos = {
@@ -2888,7 +2904,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.backend.detailed_infos_for_cascading_failures:
             self.infos["detailed_infos_for_cascading_failures"] = detailed_info
-
+            
         self.done = self._is_done(has_error, is_done)
         self.current_reward, other_reward = self._get_reward(
             action,
@@ -2907,7 +2923,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.current_obs = self.get_obs(_update_state=False)
             # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
-
         # TODO documentation on all the possible way to be illegal now
         if self.done:
             self.__is_init = False
@@ -2972,6 +2987,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_powerflow = dt_float(0.0)
         self._time_extract_obs = dt_float(0.0)
         self._time_opponent = dt_float(0.0)
+        self._time_create_bk_act = dt_float(0.0)
         self._time_redisp = dt_float(0.0)
         self._time_step = dt_float(0.0)
 
@@ -3080,6 +3096,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_time_apply_act",
             "_time_powerflow",
             "_time_extract_obs",
+            "_time_create_bk_act",
             "_time_opponent",
             "_time_redisp",
             "_time_step",

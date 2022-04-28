@@ -841,6 +841,45 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
+    def get_all_unitary_line_set_simple(action_space):
+        """
+        Return all unitary actions that "set" powerline status but in a 
+        more simple way than :func:`SerializableActionSpace.get_all_unitary_line_set`
+
+        For each powerline, there are 2 such actions:
+
+        - disconnect it
+        - connected it (implicitly to the last known busbar where each
+          side used to be connected)
+
+        It has the main advantages to "only" add 2 actions per powerline
+        instead of 5.
+        
+        
+        Parameters
+        ----------
+        action_space: :class:`grid2op.BaseAction.ActionSpace`
+            The action space used.
+
+        Returns
+        -------
+        res: ``list``
+            The list of all "set" action acting on powerline status
+
+        """
+        res = []
+
+        # powerline set: disconnection
+        for i in range(action_space.n_line):
+            res.append(action_space({"set_line_status": [(i,-1)]}))
+        
+        # powerline set: reconnection   
+        for i in range(action_space.n_line):
+            res.append(action_space({"set_line_status": [(i, +1)]}))
+
+        return res
+        
+    @staticmethod
     def get_all_unitary_alarm(action_space):
         res = []
         for i in range(action_space.dim_alarms):

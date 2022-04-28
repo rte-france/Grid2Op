@@ -140,11 +140,7 @@ interesting part of this framework:
 * [04_TrainingAnAgent](getting_started/04_TrainingAnAgent.ipynb)
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/04_TrainingAnAgent.ipynb)
   shows how to get started with 
-  reinforcement learning in the Grid2Op framework. It will use the code provided by Abhinav Sagar
-  available on [his blog](https://towardsdatascience.com/deep-reinforcement-learning-tutorial-with-open-ai-gym-c0de4471f368) 
-  or on [his github repository](https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial). This code will
-  be adapted (only minor changes, most of them to fit the shape of the data) 
-  and a (D)DQN will be trained on this problem.
+  reinforcement learning with the grid2op environment. It shows the basic on how to train a "PPO" model operating the grid relying on "stable baselines 3" PPO implementation.
 * [05_StudyYourAgent](getting_started/05_StudyYourAgent.ipynb)
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/05_StudyYourAgent.ipynb)
   shows how to study an BaseAgent, for example

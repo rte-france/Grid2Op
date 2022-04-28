@@ -21,6 +21,7 @@ ALL_ATTR = (
 
 ATTR_DISCRETE = (
     "set_line_status",
+    "set_line_status_simple",
     "change_line_status",
     "set_bus",
     "change_bus",
@@ -28,7 +29,7 @@ ATTR_DISCRETE = (
     "sub_change_bus",
     "one_sub_set",
     "one_sub_change",
-    "raise_alarm",
+    "raise_alarm"
 )
 
 

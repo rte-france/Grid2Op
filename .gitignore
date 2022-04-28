@@ -352,6 +352,7 @@ test_simulator.py
 venv36/
 bug_jan.py
 venv_test/
+getting_started/saved_agent_PPO_*_results/
 
 # profiling files
 **.prof
