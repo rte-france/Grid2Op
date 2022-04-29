@@ -66,6 +66,8 @@ Change Log
 - [FIXED] a bug in the hashing of environment in case of storage units (the characteristics of the storage units
   were not taken into account in the hash).
 - [FIXED] a bug in the `obs.as_dict()` method.
+- [FIXED] a bug in when using the "env.generate_classe()" https://github.com/rte-france/Grid2Op/issues/310
+- [FIXED] another bug in when using the "env.generate_classe()" on windows https://github.com/rte-france/Grid2Op/issues/311
 - [ADDED] a function `normalize_attr` allowing to easily scale some data for the
   `BoxGymObsSpace` and `BoxGymActSpace`
 - [ADDED] support for distributed slack in pandapower (if supported)

@@ -4071,7 +4071,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     # alarm feature
     # dimension of the alarm "space" (number of alarm that can be raised at each step)
     dim_alarms = {cls.dim_alarms}
-    alarms_area_names = [{alarms_area_names_str}]
+    alarms_area_names = {alarms_area_names_str}
     alarms_lines_area = {alarms_lines_area_str}
     alarms_area_lines = {alarms_area_lines_str}
 
