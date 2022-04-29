@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.6.6] - 2022-04-28
+[1.7.0] - 2022-04-29
 ---------------------
 - [BREAKING] the `L2RPNSandBoxScore`, `RedispReward` and `EconomicReward` now properly computes the cost of the grid 
   (there was an error between the conversion from MWh - cost is given in $ / MWh - and MW). This impacts also `ScoreICAPS2021` and `ScoreL2RPN2020`.

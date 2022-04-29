@@ -71,7 +71,8 @@ if __name__ == "__main__":
             "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1). "
             "Please modify \"--version\" argument")
 
-    regex_version = "[0-9]+\.[0-9]+\.[0-9]+(.post[0-9]+){0,1}(.rc[0-9]+){0,1}"
+    regex_version = "[0-9]+\.[0-9]+\.[0-9]+(.post[0-9]+){0,1}(.rc[0-9]+){0,1}(.pre[0-9]+){0,1}"
+    regex_version_with_str = f"['\"]{regex_version}['\"]"
     if re.match("^{}$".format(regex_version), version) is None:
         raise RuntimeError(
             "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1) and not {}. "
@@ -81,6 +82,10 @@ if __name__ == "__main__":
     if True:
         # setup.py
         setup_path = os.path.join(path, "setup.py")
+        grid2op_init = os.path.join(path, "grid2op", "__init__.py")
+        with open(grid2op_init, "r") as f:
+            old_init = f.read()
+            
         if not os.path.exists(setup_path):
             raise RuntimeError(
                 "script \"update_version\" cannot find the root path of Grid2op. "
@@ -88,20 +93,24 @@ if __name__ == "__main__":
         with open(setup_path, "r") as f:
             new_setup = f.read()
         try:
-            old_version = re.search("version='{}'".format(regex_version), new_setup).group(0)
+            old_version = re.search("__version__ = {}".format(regex_version_with_str), old_init).group(0)
         except Exception as e:
             raise RuntimeError("Impossible to find the old version number. Stopping here")
-        old_version = re.sub("version=", "", old_version)
+        
+        old_version = re.sub("__version__ = ", "", old_version)
         old_version = re.sub("'", "", old_version)
         old_version = re.sub('"', "", old_version)
         old_version = re.sub("\\.rc[0-9]+", "", old_version)
+        old_version = re.sub("\\.post[0-9]+", "", old_version)
+        old_version = re.sub("\\.pre[0-9]+", "", old_version)
         if version < old_version:
             raise RuntimeError("You provided the \"new\" version \"{}\" which is older (or equal) to the current version "
                                "found: \"{}\".".format(version, old_version))
 
-        new_setup = re.sub("version='{}'".format(regex_version),
+        new_setup = re.sub("version={}".format(regex_version_with_str),
                            "version='{}'".format(version),
                            new_setup)
+        
         with open(setup_path, "w") as f:
             f.write(new_setup)
 
@@ -109,14 +118,15 @@ if __name__ == "__main__":
         start_subprocess_print(["git", "add", setup_path])
 
         # grid2op/__init__.py
-        grid2op_init = os.path.join(path, "grid2op", "__init__.py")
         with open(grid2op_init, "r") as f:
             new_setup = f.read()
-        new_setup = re.sub("__version__ = '{}'".format(regex_version),
+        new_setup = re.sub("__version__ = {}".format(regex_version_with_str),
                            "__version__ = '{}'".format(version),
-                           new_setup)
+                           new_setup)     
+        
         with open(grid2op_init, "w") as f:
             f.write(new_setup)
+            
         # Stage in git
         start_subprocess_print(["git", "add", grid2op_init])
 
@@ -124,7 +134,7 @@ if __name__ == "__main__":
         docs_conf = os.path.join(path, "docs", "conf.py")
         with open(docs_conf, "r") as f:
             new_setup = f.read()
-        new_setup = re.sub("release = '{}'".format(regex_version),
+        new_setup = re.sub("release = {}".format(regex_version_with_str),
                            "release = '{}'".format(version),
                            new_setup)
         new_setup = re.sub("version = '[0-9]+\.[0-9]+'",
