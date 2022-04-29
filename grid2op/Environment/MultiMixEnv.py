@@ -459,3 +459,9 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
         if not self.__closed:
             self.close()
+            
+    def generate_classes(self):
+        # TODO this is not really a good idea, as the multi-mix itself is not read from the
+        # files !
+        for mix in self.mix_envs:
+            mix.generate_classes()
