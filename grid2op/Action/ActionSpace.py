@@ -35,12 +35,13 @@ class ActionSpace(SerializableActionSpace):
         Class specifying the rules of the game used to check the legality of the actions.
 
     """
-    
-    def __init__(self,
-                 gridobj,
-                 legal_action,
-                 actionClass=BaseAction  # need to be a base grid2op type (and not a type generated on the fly)
-                 ):
+
+    def __init__(
+        self,
+        gridobj,
+        legal_action,
+        actionClass=BaseAction,  # need to be a base grid2op type (and not a type generated on the fly)
+    ):
         """
         INTERNAL USE ONLY
 
@@ -70,7 +71,9 @@ class ActionSpace(SerializableActionSpace):
         SerializableActionSpace.__init__(self, gridobj, actionClass=actionClass)
         self.legal_action = legal_action
 
-    def __call__(self, dict_=None, check_legal=False, env=None):
+    def __call__(
+        self, dict_: dict = None, check_legal: bool = False, env: "BaseEnv" = None
+    ) -> BaseAction:
         """
         This utility allows you to build a valid action, with the proper sizes if you provide it with a valid
         dictionary.
@@ -148,7 +151,9 @@ class ActionSpace(SerializableActionSpace):
             otherwise.
         """
         if env is None:
-            warnings.warn("Cannot performed legality check because no environment is provided.")
+            warnings.warn(
+                "Cannot performed legality check because no environment is provided."
+            )
             return True, None
         is_legal, reason = self.legal_action(action, env)
         return is_legal, reason

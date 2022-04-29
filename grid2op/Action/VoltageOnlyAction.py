@@ -62,8 +62,10 @@ class VoltageOnlyAction(BaseAction):
         if self._dict_inj:
             for el in self._dict_inj:
                 if el not in self.attr_list_vect:
-                    raise AmbiguousAction("Impossible to modify something different than \"prod_v\" using "
-                                          "\"VoltageOnlyAction\" action.")
+                    raise AmbiguousAction(
+                        'Impossible to modify something different than "prod_v" using '
+                        '"VoltageOnlyAction" action.'
+                    )
 
     def update(self, dict_):
         """
@@ -92,7 +94,7 @@ class VoltageOnlyAction(BaseAction):
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:
-                    warn = "The key \"{}\" used to update an action will be ignored. Valid keys are {}"
+                    warn = 'The key "{}" used to update an action will be ignored. Valid keys are {}'
                     warn = warn.format(kk, self.authorized_keys)
                     warnings.warn(warn)
 

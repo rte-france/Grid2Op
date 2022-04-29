@@ -14,6 +14,7 @@ from gym.spaces import Box
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 
+from grid2op.Exceptions import Grid2OpException
 
 # TODO test that it works normally
 # TODO test the casting in dt_int or dt_float depending on the data
@@ -63,14 +64,14 @@ class BoxGymActSpace(Box):
 
     .. code-block:: python
 
-        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+        gym_env.observation_space = BoxGymActSpace(env.observation_space,
                                                    attr_to_keep=['redispatch', "curtail"])
 
     You can also apply some basic transformation to the attribute of the action. This can be done with:
 
     .. code-block:: python
 
-        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+        gym_env.observation_space = BoxGymActSpace(env.observation_space,
                                                    attr_to_keep=['redispatch', "curtail"],
                                                    multiply={"redispatch": env.gen_max_ramp_up},
                                                    add={"redispatch": 0.5 * env.gen_max_ramp_up})
@@ -110,96 +111,117 @@ class BoxGymActSpace(Box):
                 return TheGymAction_ConvertedTo_Grid2op_Action
                 # eg. return np.concatenate((obs.gen_p * 0.1, np.sqrt(obs.load_p))
 
+        gym_env.action_space.close()
         gym_env.action_space = MyCustomActionSpace(whatever, you, wanted)
 
     And you can implement pretty much anything in the "from_gym" function.
 
     """
-    def __init__(self,
-                 grid2op_action_space,
-                 attr_to_keep=ALL_ATTR,
-                 add=None,
-                 multiply=None,
-                 functs=None):
+
+    def __init__(
+        self,
+        grid2op_action_space,
+        attr_to_keep=ALL_ATTR,
+        add=None,
+        multiply=None,
+        functs=None,
+    ):
         if not isinstance(grid2op_action_space, ActionSpace):
-            raise RuntimeError(f"Impossible to create a BoxGymActSpace without providing a "
-                               f"grid2op action_space. You provided {type(grid2op_action_space)}"
-                               f"as the \"grid2op_action_space\" attribute.")
+            raise RuntimeError(
+                f"Impossible to create a BoxGymActSpace without providing a "
+                f"grid2op action_space. You provided {type(grid2op_action_space)}"
+                f'as the "grid2op_action_space" attribute.'
+            )
         check_gym_version()
         if attr_to_keep == ALL_ATTR:
             # by default, i remove all the attributes that are not supported by the action type
             # i do not do that if the user specified specific attributes to keep. This is his responsibility in
             # in this case
-            attr_to_keep = {el for el in attr_to_keep if grid2op_action_space.supports_type(el)}
+            attr_to_keep = {
+                el for el in attr_to_keep if grid2op_action_space.supports_type(el)
+            }
 
         for el in ATTR_DISCRETE:
             if el in attr_to_keep:
-                warnings.warn(f"The class \"BoxGymActSpace\" should mainly be used to consider only continuous "
-                              f"actions (eg. redispatch, set_storage or curtail). Though it is possible to use "
-                              f"\"{el}\" when building it, be aware that this discrete action will be treated "
-                              f"as continuous. Consider using the \"MultiDiscreteActSpace\" for these attributes."
-                              )
-
+                warnings.warn(
+                    f'The class "BoxGymActSpace" should mainly be used to consider only continuous '
+                    f"actions (eg. redispatch, set_storage or curtail). Though it is possible to use "
+                    f'"{el}" when building it, be aware that this discrete action will be treated '
+                    f'as continuous. Consider using the "MultiDiscreteActSpace" for these attributes.'
+                )
         self._attr_to_keep = sorted(attr_to_keep)
 
         act_sp = grid2op_action_space
         self._act_space = copy.deepcopy(grid2op_action_space)
 
-        low_gen = -1.0 * act_sp.gen_max_ramp_down
-        high_gen = 1.0 * act_sp.gen_max_ramp_up
-        low_gen[~act_sp.gen_redispatchable] = 0.
-        high_gen[~act_sp.gen_redispatchable] = 0.
-        curtail = np.full(shape=(act_sp.n_gen,), fill_value=0., dtype=dt_float)
-        curtail[~act_sp.gen_renewable] = 1.0
-        curtail_mw = np.full(shape=(act_sp.n_gen,), fill_value=0., dtype=dt_float)
-        curtail_mw[~act_sp.gen_renewable] = act_sp.gen_pmax[~act_sp.gen_renewable]
+        low_gen = -1.0 * act_sp.gen_max_ramp_down[act_sp.gen_redispatchable]
+        high_gen = 1.0 * act_sp.gen_max_ramp_up[act_sp.gen_redispatchable]
+        nb_redisp = np.sum(act_sp.gen_redispatchable)
+        nb_curtail = np.sum(act_sp.gen_renewable)
+        curtail = np.full(shape=(nb_curtail,), fill_value=0.0, dtype=dt_float)
+        curtail_mw = np.full(shape=(nb_curtail,), fill_value=0.0, dtype=dt_float)
         self.dict_properties = {
-            "set_line_status": (np.full(shape=(act_sp.n_line,), fill_value=-1, dtype=dt_int),
-                                np.full(shape=(act_sp.n_line,), fill_value=1, dtype=dt_int),
-                                (act_sp.n_line,),
-                                dt_int),
-            "change_line_status": (np.full(shape=(act_sp.n_line,), fill_value=0, dtype=dt_int),
-                                   np.full(shape=(act_sp.n_line,), fill_value=1, dtype=dt_int),
-                                   (act_sp.n_line,),
-                                   dt_int),
-            "set_bus": (np.full(shape=(act_sp.dim_topo,), fill_value=-1, dtype=dt_int),
-                        np.full(shape=(act_sp.dim_topo,), fill_value=1, dtype=dt_int),
-                        (act_sp.dim_topo,),
-                        dt_int),
-            "change_bus": (np.full(shape=(act_sp.dim_topo,), fill_value=0, dtype=dt_int),
-                           np.full(shape=(act_sp.dim_topo,), fill_value=1, dtype=dt_int),
-                           (act_sp.dim_topo,),
-                           dt_int),
-            "redispatch": (low_gen,
-                           high_gen,
-                           (act_sp.n_gen,),
-                           dt_float),
-            "set_storage": (-1.0 * act_sp.storage_max_p_prod,
-                            1.0 * act_sp.storage_max_p_absorb,
-                            (act_sp.n_storage,),
-                            dt_float),
-            "curtail": (curtail,
-                        np.full(shape=(act_sp.n_gen,), fill_value=1., dtype=dt_float),
-                        (act_sp.n_gen,),
-                        dt_float),
-            "curtail_mw": (curtail_mw,
-                           1.0 * act_sp.gen_pmax,
-                           (act_sp.n_gen,),
-                           dt_float),
-            "raise_alarm": (np.full(shape=(act_sp.dim_alarms,), fill_value=0, dtype=dt_int),
-                            np.full(shape=(act_sp.dim_alarms,), fill_value=1, dtype=dt_int),
-                            (act_sp.dim_alarms,),
-                            dt_int)
+            "set_line_status": (
+                np.full(shape=(act_sp.n_line,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(act_sp.n_line,), fill_value=1, dtype=dt_int),
+                (act_sp.n_line,),
+                dt_int,
+            ),
+            "change_line_status": (
+                np.full(shape=(act_sp.n_line,), fill_value=0, dtype=dt_int),
+                np.full(shape=(act_sp.n_line,), fill_value=1, dtype=dt_int),
+                (act_sp.n_line,),
+                dt_int,
+            ),
+            "set_bus": (
+                np.full(shape=(act_sp.dim_topo,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(act_sp.dim_topo,), fill_value=1, dtype=dt_int),
+                (act_sp.dim_topo,),
+                dt_int,
+            ),
+            "change_bus": (
+                np.full(shape=(act_sp.dim_topo,), fill_value=0, dtype=dt_int),
+                np.full(shape=(act_sp.dim_topo,), fill_value=1, dtype=dt_int),
+                (act_sp.dim_topo,),
+                dt_int,
+            ),
+            "redispatch": (low_gen, high_gen, (nb_redisp,), dt_float),
+            "set_storage": (
+                -1.0 * act_sp.storage_max_p_prod,
+                1.0 * act_sp.storage_max_p_absorb,
+                (act_sp.n_storage,),
+                dt_float,
+            ),
+            "curtail": (
+                curtail,
+                np.full(shape=(nb_curtail,), fill_value=1.0, dtype=dt_float),
+                (nb_curtail,),
+                dt_float,
+            ),
+            "curtail_mw": (
+                curtail_mw,
+                1.0 * act_sp.gen_pmax[act_sp.gen_renewable],
+                (nb_curtail,),
+                dt_float,
+            ),
+            "raise_alarm": (
+                np.full(shape=(act_sp.dim_alarms,), fill_value=0, dtype=dt_int),
+                np.full(shape=(act_sp.dim_alarms,), fill_value=1, dtype=dt_int),
+                (act_sp.dim_alarms,),
+                dt_int,
+            ),
         }
-        self._key_dict_to_proptype = {"set_line_status": dt_int,
-                                      "change_line_status": dt_bool,
-                                      "set_bus": dt_int,
-                                      "change_bus": dt_bool,
-                                      "redispatch": dt_float,
-                                      "set_storage": dt_float,
-                                      "curtail": dt_float,
-                                      "curtail_mw": dt_float,
-                                      "raise_alarm": dt_bool}
+        self._key_dict_to_proptype = {
+            "set_line_status": dt_int,
+            "change_line_status": dt_bool,
+            "set_bus": dt_int,
+            "change_bus": dt_bool,
+            "redispatch": dt_float,
+            "set_storage": dt_float,
+            "curtail": dt_float,
+            "curtail_mw": dt_float,
+            "raise_alarm": dt_bool,
+        }
         if add is not None:
             self._add = add
         else:
@@ -236,9 +258,11 @@ class BoxGymActSpace(Box):
                 if dtype_ is None:
                     dtype_ = dt_float
                 if shape_ is None:
-                    raise RuntimeError(f"Error: if you use the \"functs\" keyword for the action space, "
-                                       f"you need to provide the shape of the vector you expect. See some "
-                                       f"examples in the official documentation.")
+                    raise RuntimeError(
+                        f'Error: if you use the "functs" keyword for the action space, '
+                        f"you need to provide the shape of the vector you expect. See some "
+                        f"examples in the official documentation."
+                    )
                 if low_ is None:
                     low_ = np.full(shape_, fill_value=-np.inf, dtype=dtype_)
                 elif isinstance(low_, float):
@@ -255,19 +279,25 @@ class BoxGymActSpace(Box):
                 finite_both = np.isfinite(low_) & np.isfinite(high_)
                 fintte_low = np.isfinite(low_) & ~np.isfinite(high_)
                 fintte_high = ~np.isfinite(low_) & np.isfinite(high_)
-                vect_right_properties[finite_both] = vect_right_properties[finite_both] * \
-                                                     (high_[finite_both] - low_[finite_both]) + \
-                                                     low_[finite_both]
+                vect_right_properties[finite_both] = (
+                    vect_right_properties[finite_both]
+                    * (high_[finite_both] - low_[finite_both])
+                    + low_[finite_both]
+                )
                 vect_right_properties[fintte_high] += low_[fintte_high]
 
                 try:
                     tmp = callable_(vect_right_properties)
                 except Exception as exc_:
-                    raise RuntimeError(f"Error for the function your provided with key \"{el}\". "
-                                       f"The error was :\n {exc_}")
+                    raise RuntimeError(
+                        f'Error for the function your provided with key "{el}". '
+                        f"The error was :\n {exc_}"
+                    )
                 if not isinstance(tmp, BaseAction):
-                    raise RuntimeError(f"The function you provided in the \"functs\" argument for key \"{el}\" "
-                                       f"should take a")
+                    raise RuntimeError(
+                        f'The function you provided in the "functs" argument for key "{el}" '
+                        f"should take a"
+                    )
 
                 self.__func[el] = callable_
 
@@ -275,11 +305,13 @@ class BoxGymActSpace(Box):
                 # el is an attribute of an observation, for example "load_q" or "topo_vect"
                 low_, high_, shape_, dtype_ = self.dict_properties[el]
             else:
-                li_keys = '\n\t- '.join(sorted(list(self.dict_properties.keys()) +
-                                               list(self.__func.keys()))
-                                        )
-                raise RuntimeError(f"Unknown action attributes \"{el}\". Supported attributes are: "
-                                   f"\n\t- {li_keys}")
+                li_keys = "\n\t- ".join(
+                    sorted(list(self.dict_properties.keys()) + list(self.__func.keys()))
+                )
+                raise RuntimeError(
+                    f'Unknown action attributes "{el}". Supported attributes are: '
+                    f"\n\t- {li_keys}"
+                )
 
             # handle the data type
             if dtype is None:
@@ -302,7 +334,7 @@ class BoxGymActSpace(Box):
             if el in self._multiply:
                 # special case if a 0 were entered
                 arr_ = 1.0 * self._multiply[el]
-                is_nzero = arr_ != 0.
+                is_nzero = arr_ != 0.0
                 low_[is_nzero] /= arr_[is_nzero]
                 high_[is_nzero] /= arr_[is_nzero]
 
@@ -316,8 +348,12 @@ class BoxGymActSpace(Box):
                 low = low_
                 high = high_
             else:
-                low = np.concatenate((low.astype(dtype), low_.astype(dtype))).astype(dtype)
-                high = np.concatenate((high.astype(dtype), high_.astype(dtype))).astype(dtype)
+                low = np.concatenate((low.astype(dtype), low_.astype(dtype))).astype(
+                    dtype
+                )
+                high = np.concatenate((high.astype(dtype), high_.astype(dtype))).astype(
+                    dtype
+                )
 
             # remember where this need to be stored
             self._dims.append(shape[0])
@@ -345,6 +381,24 @@ class BoxGymActSpace(Box):
             gym_act_this *= self._multiply[attr_nm]
         if attr_nm in self._add:
             gym_act_this += self._add[attr_nm]
+
+        if attr_nm == "curtail":
+            gym_act_this_ = np.full(
+                self._act_space.n_gen, fill_value=np.NaN, dtype=dt_float
+            )
+            gym_act_this_[self._act_space.gen_renewable] = gym_act_this
+            gym_act_this = gym_act_this_
+        elif attr_nm == "curtail_mw":
+            gym_act_this_ = np.full(
+                self._act_space.n_gen, fill_value=np.NaN, dtype=dt_float
+            )
+            gym_act_this_[self._act_space.gen_renewable] = gym_act_this
+            gym_act_this = gym_act_this_
+        elif attr_nm == "redispatch":
+            gym_act_this_ = np.zeros(self._act_space.n_gen, dtype=dt_float)
+            gym_act_this_[self._act_space.gen_redispatchable] = gym_act_this
+            gym_act_this = gym_act_this_
+
         setattr(res, attr_nm, gym_act_this)
         return res
 
@@ -367,7 +421,9 @@ class BoxGymActSpace(Box):
         """
         res = self._act_space()
         prev = 0
-        for attr_nm, where_to_put, dtype in zip(self._attr_to_keep, self._dims, self._dtypes):
+        for attr_nm, where_to_put, dtype in zip(
+            self._attr_to_keep, self._dims, self._dtypes
+        ):
             this_part = 1 * gym_act[prev:where_to_put]
             if attr_nm in self.__func:
                 glop_act_tmp = self.__func[attr_nm](this_part)
@@ -386,9 +442,56 @@ class BoxGymActSpace(Box):
                     # only update the attribute if there is actually something to update
                     self._handle_attribute(res, this_part, attr_nm)
             else:
-                raise RuntimeError(f"Unknown attribute \"{attr_nm}\".")
+                raise RuntimeError(f'Unknown attribute "{attr_nm}".')
             prev = where_to_put
         return res
-    
+
     def close(self):
         pass
+
+    def normalize_attr(self, attr_nm: str):
+        """
+        This function normalizes the part of the space
+        that corresponds to the attribute `attr_nm`.
+
+        The normalization consists in having a vector between 0. and 1.
+        It is achieved by dividing by the range (high - low)
+        and adding the minimum value (low).
+
+        .. note::
+            It only affects continuous attribute. No error / warnings are
+            raised if you attempt to use it on a discrete attribute.
+
+        Parameters
+        ----------
+        attr_nm : str
+            The name of the attribute to normalize
+        """
+        if attr_nm in self._multiply or attr_nm in self._add:
+            raise Grid2OpException(
+                "Cannot normalize an attribute that you already "
+                "modified with either `add` or `multiply`."
+            )
+        prev = 0
+        for attr_tmp, where_to_put, dtype in zip(
+            self._attr_to_keep, self._dims, self._dtypes
+        ):
+            if attr_tmp == attr_nm and dtype == dt_float:
+                curr_high = 1.0 * self.high[prev:where_to_put]
+                curr_low = 1.0 * self.low[prev:where_to_put]
+                finite_high = np.isfinite(curr_high)
+                finite_low = np.isfinite(curr_high)
+                both_finite = finite_high & finite_low
+                both_finite &= curr_high > curr_low
+
+                self._multiply[attr_nm] = np.ones(curr_high.shape, dtype=dtype)
+                self._add[attr_nm] = np.zeros(curr_high.shape, dtype=dtype)
+
+                self._multiply[attr_nm][both_finite] = (
+                    curr_high[both_finite] - curr_low[both_finite]
+                )
+                self._add[attr_nm][both_finite] += curr_low[both_finite]
+                self.high[prev:where_to_put][both_finite] = 1.0
+                self.low[prev:where_to_put][both_finite] = 0.0
+                break
+            prev = where_to_put

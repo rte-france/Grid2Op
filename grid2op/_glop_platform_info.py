@@ -10,6 +10,7 @@
 # is not handled the same way in all platform.
 
 import sys
-_IS_WINDOWS = sys.platform.startswith('win')
+
+_IS_WINDOWS = sys.platform.startswith("win")
 _IS_LINUX = sys.platform.startswith("linux")
 _IS_MACOS = sys.platform.startswith("darwin")

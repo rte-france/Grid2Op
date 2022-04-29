@@ -19,12 +19,19 @@ from grid2op.tests.helper_path_test import *
 
 from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
-from grid2op.tests.test_Environment import (TestLoadingBackendPandaPower, TestIllegalAmbiguous, TestOtherReward,
-                                            TestResetOk, TestLineChangeLastBus, TestResetAfterCascadingFailure,
-                                            TestCascadingFailure, TestLoading2envDontCrash,
-                                            TestDeactivateForecast, TestMaxIter
-                                            )
-from grid2op.tests.test_Agent import TestAgent
+from grid2op.tests.test_Environment import (
+    TestLoadingBackendPandaPower as Aux_TestLoadingBackendPandaPower,
+    TestIllegalAmbiguous as Aux_TestIllegalAmbiguous,
+    TestOtherReward as Aux_TestOtherReward,
+    TestResetOk as Aux_TestResetOk,
+    TestLineChangeLastBus as Aux_TestLineChangeLastBus,
+    TestResetAfterCascadingFailure as Aux_TestResetAfterCascadingFailure,
+    TestCascadingFailure as Aux_TestCascadingFailure,
+    TestLoading2envDontCrash as Aux_TestLoading2envDontCrash,
+    TestDeactivateForecast as Aux_TestDeactivateForecast,
+    TestMaxIter as Aux_TestMaxIter,
+)
+from grid2op.tests.test_Agent import TestAgent as Aux_TestAgent
 
 DEBUG = False
 PROFILE_CODE = False
@@ -32,28 +39,28 @@ if PROFILE_CODE:
     import cProfile
 
 
-class TestLoadingBackendPandaPowerCopy(TestLoadingBackendPandaPower):
+class TestLoadingBackendPandaPowerCopy(Aux_TestLoadingBackendPandaPower):
     def setUp(self):
         super().setUp()
         self.env_orig = self.env
         self.env = self.env.copy()
 
 
-class TestIllegalAmbiguousCopy(TestIllegalAmbiguous):
+class TestIllegalAmbiguousCopy(Aux_TestIllegalAmbiguous):
     def setUp(self):
         super().setUp()
         self.env_orig = self.env
         self.env = self.env.copy()
 
 
-class TestOtherRewardCopy(TestOtherReward):
+class TestOtherRewardCopy(Aux_TestOtherReward):
     def setUp(self):
         super().setUp()
         self.env_orig = self.env
         self.env = self.env.copy()
 
 
-class TestResetOkCopy(TestResetOk):
+class TestResetOkCopy(Aux_TestResetOk):
     def setUp(self):
         super().setUp()
         self.env_orig = self.env
@@ -64,34 +71,38 @@ class TestResetOkCopy(TestResetOk):
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
-                           other_rewards={"test": L2RPNReward},
-                           backend=backend)
+                env = make(
+                    "rte_case5_example",
+                    test=True,
+                    reward_class=L2RPNReward,
+                    other_rewards={"test": L2RPNReward},
+                    backend=backend,
+                )
         super().test_reset_after_blackout_withdetailed_info(env=env.copy())
 
 
-class TestLineChangeLastBusCopy(TestLineChangeLastBus):
+class TestLineChangeLastBusCopy(Aux_TestLineChangeLastBus):
     def setUp(self):
         super().setUp()
         self.env_orig = self.env
         self.env = self.env.copy()
 
 
-class TestResetAfterCascadingFailureCopy(TestResetAfterCascadingFailure):
+class TestResetAfterCascadingFailureCopy(Aux_TestResetAfterCascadingFailure):
     def setUp(self):
         super().setUp()
         self.env_orig = self.env
         self.env = self.env.copy()
 
 
-class TestCascadingFailureCopy(TestCascadingFailure):
+class TestCascadingFailureCopy(Aux_TestCascadingFailure):
     def setUp(self):
         super().setUp()
         self.env_orig = self.env
         self.env = self.env.copy()
 
 
-class TestLoading2envDontCrashCopy(TestLoading2envDontCrash):
+class TestLoading2envDontCrashCopy(Aux_TestLoading2envDontCrash):
     def setUp(self):
         super().setUp()
         self.env1_orig = self.env1
@@ -100,21 +111,21 @@ class TestLoading2envDontCrashCopy(TestLoading2envDontCrash):
         self.env2 = self.env2.copy()
 
 
-class TestDeactivateForecastCopy(TestDeactivateForecast):
+class TestDeactivateForecastCopy(Aux_TestDeactivateForecast):
     def setUp(self):
         super().setUp()
         self.env1_orig = self.env1
         self.env1 = self.env1.copy()
 
 
-class TestMaxIterCopy(TestMaxIter):
+class TestMaxIterCopy(Aux_TestMaxIter):
     def setUp(self):
         super().setUp()
         self.env_orig = self.env
         self.env = self.env.copy()
 
 
-class TestAgentCopy(TestAgent):
+class TestAgentCopy(Aux_TestAgent):
     def setUp(self):
         super().setUp()
         self.env_orig = self.env

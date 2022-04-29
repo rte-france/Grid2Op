@@ -23,6 +23,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
         for both the action space and the observation space).
 
     """
+
     def __init__(self, dict_gym_space, dict_variables=None):
         check_gym_version()
         spaces.Dict.__init__(self, dict_gym_space)
@@ -43,7 +44,9 @@ class _BaseGymSpaceConverter(spaces.Dict):
             low = -np.inf
             high = +np.inf
         shape = (sh,)
-        my_type = spaces.Box(low=dt.type(low), high=dt.type(high), shape=shape, dtype=dt)
+        my_type = spaces.Box(
+            low=dt.type(low), high=dt.type(high), shape=shape, dtype=dt
+        )
         return my_type
 
     @staticmethod
@@ -53,9 +56,19 @@ class _BaseGymSpaceConverter(spaces.Dict):
     @staticmethod
     def _simplifykeys_for_timestamps(key):
         """some keys are encoded to be returned as scalar, i need to transform them."""
-        res = (key == "year") or (key == "month") or (key == "day") or (key == "hour_of_day") or \
-              (key == "minute_of_hour") or (key == "day_of_week")
-        res = res or (key == "is_alarm_illegal") or (key == "was_alarm_used_after_game_over")
+        res = (
+            (key == "year")
+            or (key == "month")
+            or (key == "day")
+            or (key == "hour_of_day")
+            or (key == "minute_of_hour")
+            or (key == "day_of_week")
+        )
+        res = (
+            res
+            or (key == "is_alarm_illegal")
+            or (key == "was_alarm_used_after_game_over")
+        )
         return res
 
     @staticmethod
@@ -94,7 +107,9 @@ class _BaseGymSpaceConverter(spaces.Dict):
                         continue
                     else:
                         # i need to process the "function" part in the keys
-                        obj_json_cleaned = self._keys_encoding[conv_k].g2op_to_gym(obj_raw)
+                        obj_json_cleaned = self._keys_encoding[conv_k].g2op_to_gym(
+                            obj_raw
+                        )
                 else:
                     obj_json_cleaned = self._extract_obj_grid2op(obj_raw, dtypes[k], k)
             res[k] = obj_json_cleaned
@@ -187,7 +202,9 @@ class _BaseGymSpaceConverter(spaces.Dict):
         -------
 
         """
-        raise NotImplementedError("This should be implemented in the GymActionSpace and GymObservationSpace")
+        raise NotImplementedError(
+            "This should be implemented in the GymActionSpace and GymObservationSpace"
+        )
 
     def reenc(self, key, fun):
         """
@@ -233,7 +250,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
         for i, space_key in enumerate(sorted(self.spaces.keys())):
             sub_seed = self.np_random.randint(max_)
             sub_seeds.append(self.spaces[space_key].seed(sub_seed))
-        return sub_seeds     
-            
+        return sub_seeds
+
     def close(self):
         pass

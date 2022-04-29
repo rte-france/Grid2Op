@@ -1,4 +1,3 @@
-
 import unittest
 import warnings
 from abc import ABC, abstractmethod
@@ -9,11 +8,11 @@ from grid2op.Action import *
 from grid2op.dtypes import dt_float
 
 import warnings
+
 warnings.simplefilter("error")
 
 
 class Test_iadd_Base(ABC):
-
     @abstractmethod
     def _action_setup(self):
         pass
@@ -28,10 +27,11 @@ class Test_iadd_Base(ABC):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             cls.action_t = cls._action_setup()
-            cls.env = grid2op.make("rte_case14_realistic",
-                                   test=True,
-                                   action_class=cls.action_t)
-    @classmethod        
+            cls.env = grid2op.make(
+                "rte_case14_realistic", test=True, action_class=cls.action_t
+            )
+
+    @classmethod
     def tearDownClass(cls):
         cls.env.close()
 
@@ -48,7 +48,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [dn]
         act_oth = self.env.action_space({})
 
@@ -58,7 +58,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -82,11 +82,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_line]
-        act_oth = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_oth = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action oth [set_line]
         assert act_oth._set_line_status[0] == -1
@@ -95,7 +93,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -120,11 +118,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_line]
-        act_oth = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_oth = self.env.action_space({"change_line_status": [0]})
 
         # Test action oth [change_line]
         assert np.all(act_oth._set_line_status == 0)
@@ -133,7 +129,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -158,15 +154,15 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_bus]
-        act_oth = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action oth [set_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -175,7 +171,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect[1:] == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -200,15 +196,17 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_bus]
-        act_oth = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action oth [change_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -217,7 +215,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._change_bus_vect[0] == True
         assert np.all(act_oth._change_bus_vect[1:] == False)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -242,13 +240,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [redisp]
-        act_oth = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_oth = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action oth [redisp]
         assert np.all(act_oth._set_line_status == 0)
@@ -258,7 +252,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._redispatch[2] == dt_float(1.42)
         assert np.all(act_oth._redispatch[:2] == 0.0)
         assert np.all(act_oth._redispatch[3:] == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -276,9 +270,7 @@ class Test_iadd_Base(ABC):
         # No skip for do nothing
 
         # Create action me [set_line]
-        act_me = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_me = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action me [set_line]
         assert act_me._set_line_status[0] == -1
@@ -287,7 +279,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [dn]
         act_oth = self.env.action_space({})
 
@@ -297,7 +289,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -314,9 +306,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_line_status")
 
         # Create action me [set_line]
-        act_me = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_me = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action me [set_line]
         assert act_me._set_line_status[0] == -1
@@ -325,11 +315,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_line]
-        act_oth = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_oth = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action oth [set_line]
         assert act_oth._set_line_status[0] == -1
@@ -338,7 +326,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -355,9 +343,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_line_status")
 
         # Create action me [set_line]
-        act_me = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_me = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action me [set_line]
         assert act_me._set_line_status[0] == -1
@@ -366,11 +352,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_line]
-        act_oth = self.env.action_space({
-            "set_line_status": [(1, -1)]
-        })
+        act_oth = self.env.action_space({"set_line_status": [(1, -1)]})
 
         # Test action oth [set_line]
         assert act_oth._set_line_status[0] == 0
@@ -380,7 +364,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -398,9 +382,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_line_status")
 
         # Create action me [set_line]
-        act_me = self.env.action_space({
-            "set_line_status": [(0, 1)]
-        })
+        act_me = self.env.action_space({"set_line_status": [(0, 1)]})
 
         # Test action me [set_line]
         assert act_me._set_line_status[0] == 1
@@ -409,11 +391,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_line]
-        act_oth = self.env.action_space({
-            "set_line_status": [(1, -1)]
-        })
+        act_oth = self.env.action_space({"set_line_status": [(1, -1)]})
 
         # Test action oth [set_line]
         assert act_oth._set_line_status[0] == 0
@@ -423,7 +403,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -441,9 +421,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_line_status")
 
         # Create action me [set_line]
-        act_me = self.env.action_space({
-            "set_line_status": [(0, 1)]
-        })
+        act_me = self.env.action_space({"set_line_status": [(0, 1)]})
 
         # Test action me [set_line]
         assert act_me._set_line_status[0] == 1
@@ -452,11 +430,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_line]
-        act_oth = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_oth = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action oth [set_line]
         assert act_oth._set_line_status[0] == -1
@@ -465,7 +441,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -482,9 +458,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_line_status")
 
         # Create action me [set_line]
-        act_me = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_me = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action me [set_line]
         assert act_me._set_line_status[0] == -1
@@ -493,11 +467,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_line]
-        act_oth = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_oth = self.env.action_space({"change_line_status": [0]})
 
         # Test action oth [change_line]
         assert np.all(act_oth._set_line_status == 0)
@@ -506,7 +478,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -524,9 +496,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_bus")
 
         # Create action me [set_line]
-        act_me = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_me = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action me [set_line]
         assert act_me._set_line_status[0] == -1
@@ -535,15 +505,15 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_bus]
-        act_oth = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action oth [set_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -552,7 +522,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect[1:] == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -570,9 +540,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_bus")
 
         # Create action me [set_line]
-        act_me = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_me = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action me [set_line]
         assert act_me._set_line_status[0] == -1
@@ -581,15 +549,17 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_bus]
-        act_oth = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action oth [change_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -598,7 +568,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._change_bus_vect[0] == True
         assert np.all(act_oth._change_bus_vect[1:] == False)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -616,9 +586,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("redispatch")
 
         # Create action me [set_line]
-        act_me = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_me = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action me [set_line]
         assert act_me._set_line_status[0] == -1
@@ -627,13 +595,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [redisp]
-        act_oth = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_oth = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action oth [redisp]
         assert np.all(act_oth._set_line_status == 0)
@@ -643,7 +607,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._redispatch[2] == dt_float(1.42)
         assert np.all(act_oth._redispatch[:2] == 0.0)
         assert np.all(act_oth._redispatch[3:] == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -662,9 +626,7 @@ class Test_iadd_Base(ABC):
         # No skip for do nothing
 
         # Create action me [change_line]
-        act_me = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_me = self.env.action_space({"change_line_status": [0]})
 
         # Test action me [change_line]
         assert np.all(act_me._set_line_status == 0)
@@ -673,7 +635,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [dn]
         act_oth = self.env.action_space({})
 
@@ -683,7 +645,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -700,9 +662,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_line_status")
 
         # Create action me [change_line]
-        act_me = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_me = self.env.action_space({"change_line_status": [0]})
 
         # Test action me [change_line]
         assert np.all(act_me._set_line_status == 0)
@@ -711,11 +671,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_line]
-        act_oth = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_oth = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action oth [set_line]
         assert act_oth._set_line_status[0] == -1
@@ -724,7 +682,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -741,9 +699,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_line_status")
 
         # Create action me [change_line]
-        act_me = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_me = self.env.action_space({"change_line_status": [0]})
 
         # Test action me [change_line]
         assert np.all(act_me._set_line_status == 0)
@@ -752,11 +708,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_line]
-        act_oth = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_oth = self.env.action_space({"change_line_status": [0]})
 
         # Test action oth [change_line]
         assert np.all(act_oth._set_line_status == 0)
@@ -765,7 +719,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -781,9 +735,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_line_status")
 
         # Create action me [change_line]
-        act_me = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_me = self.env.action_space({"change_line_status": [0]})
 
         # Test action me [change_line]
         assert np.all(act_me._set_line_status == 0)
@@ -792,11 +744,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_line]
-        act_oth = self.env.action_space({
-            "change_line_status": [3]
-        })
+        act_oth = self.env.action_space({"change_line_status": [3]})
 
         # Test action oth [change_line]
         assert np.all(act_oth._set_line_status == 0)
@@ -806,7 +756,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -824,9 +774,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_bus")
 
         # Create action me [change_line]
-        act_me = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_me = self.env.action_space({"change_line_status": [0]})
 
         # Test action me [change_line]
         assert np.all(act_me._set_line_status == 0)
@@ -835,15 +783,15 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_bus]
-        act_oth = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action oth [set_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -852,7 +800,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect[1:] == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -870,9 +818,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_bus")
 
         # Create action me [change_line]
-        act_me = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_me = self.env.action_space({"change_line_status": [0]})
 
         # Test action me [change_line]
         assert np.all(act_me._set_line_status == 0)
@@ -881,15 +827,17 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_bus]
-        act_oth = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action oth [change_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -898,7 +846,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._change_bus_vect[0] == True
         assert np.all(act_oth._change_bus_vect[1:] == False)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -916,9 +864,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("redispatch")
 
         # Create action me [change_line]
-        act_me = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_me = self.env.action_space({"change_line_status": [0]})
 
         # Test action me [change_line]
         assert np.all(act_me._set_line_status == 0)
@@ -927,13 +873,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [redisp]
-        act_oth = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_oth = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action oth [redisp]
         assert np.all(act_oth._set_line_status == 0)
@@ -943,7 +885,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._redispatch[2] == dt_float(1.42)
         assert np.all(act_oth._redispatch[:2] == 0.0)
         assert np.all(act_oth._redispatch[3:] == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -962,13 +904,13 @@ class Test_iadd_Base(ABC):
         # No skip for do nothing
 
         # Create action me [set_bus]
-        act_me = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action me [set_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -977,7 +919,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect[1:] == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [dn]
         act_oth = self.env.action_space({})
 
@@ -987,7 +929,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1004,13 +946,13 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_line_status")
 
         # Create action me [set_bus]
-        act_me = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action me [set_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1019,11 +961,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect[1:] == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_line]
-        act_oth = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_oth = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action oth [set_line]
         assert act_oth._set_line_status[0] == -1
@@ -1032,7 +972,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1050,13 +990,13 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_line_status")
 
         # Create action me [set_bus]
-        act_me = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action me [set_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1065,11 +1005,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect[1:] == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_line]
-        act_oth = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_oth = self.env.action_space({"change_line_status": [0]})
 
         # Test action oth [change_line]
         assert np.all(act_oth._set_line_status == 0)
@@ -1078,7 +1016,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1096,13 +1034,13 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_bus")
 
         # Create action me [set_bus]
-        act_me = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action me [set_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1111,15 +1049,15 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect[1:] == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_bus]
-        act_oth = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action oth [set_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -1128,7 +1066,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect[1:] == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1145,13 +1083,13 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_bus")
 
         # Create action me [set_bus]
-        act_me = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action me [set_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1160,15 +1098,15 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect[1:] == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_bus]
-        act_oth = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [1] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [1] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action oth [set_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -1177,7 +1115,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect[1:] == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1194,13 +1132,13 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_bus")
 
         # Create action me [set_bus]
-        act_me = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action me [set_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1209,15 +1147,17 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect[1:] == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_bus]
-        act_oth = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action oth [change_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -1226,7 +1166,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._change_bus_vect[0] == True
         assert np.all(act_oth._change_bus_vect[1:] == False)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1244,13 +1184,13 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("redispatch")
 
         # Create action me [set_bus]
-        act_me = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action me [set_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1259,13 +1199,9 @@ class Test_iadd_Base(ABC):
         assert np.all(act_me._set_topo_vect[1:] == 0)
         assert np.all(act_me._change_bus_vect == 0)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [redisp]
-        act_oth = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_oth = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action oth [redisp]
         assert np.all(act_oth._set_line_status == 0)
@@ -1275,7 +1211,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._redispatch[2] == dt_float(1.42)
         assert np.all(act_oth._redispatch[:2] == 0.0)
         assert np.all(act_oth._redispatch[3:] == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1294,13 +1230,15 @@ class Test_iadd_Base(ABC):
         # No skip for do nothing
 
         # Create action me [change_bus]
-        act_me = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action me [change_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1309,7 +1247,7 @@ class Test_iadd_Base(ABC):
         assert act_me._change_bus_vect[0] == True
         assert np.all(act_me._change_bus_vect[1:] == False)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [dn]
         act_oth = self.env.action_space({})
 
@@ -1319,7 +1257,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1336,13 +1274,15 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_line_status")
 
         # Create action me [change_bus]
-        act_me = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action me [change_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1351,11 +1291,9 @@ class Test_iadd_Base(ABC):
         assert act_me._change_bus_vect[0] == True
         assert np.all(act_me._change_bus_vect[1:] == False)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_line]
-        act_oth = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_oth = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action oth [set_line]
         assert act_oth._set_line_status[0] == -1
@@ -1364,7 +1302,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1382,13 +1320,15 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_line_status")
 
         # Create action me [change_bus]
-        act_me = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action me [change_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1397,11 +1337,9 @@ class Test_iadd_Base(ABC):
         assert act_me._change_bus_vect[0] == True
         assert np.all(act_me._change_bus_vect[1:] == False)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_line]
-        act_oth = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_oth = self.env.action_space({"change_line_status": [0]})
 
         # Test action oth [change_line]
         assert np.all(act_oth._set_line_status == 0)
@@ -1410,7 +1348,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1428,13 +1366,15 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_bus")
 
         # Create action me [change_bus]
-        act_me = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action me [change_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1443,15 +1383,15 @@ class Test_iadd_Base(ABC):
         assert act_me._change_bus_vect[0] == True
         assert np.all(act_me._change_bus_vect[1:] == False)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [set_bus]
-        act_oth = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action oth [set_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -1460,7 +1400,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect[1:] == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1477,13 +1417,15 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_bus")
 
         # Create action me [change_bus]
-        act_me = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action me [change_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1492,15 +1434,17 @@ class Test_iadd_Base(ABC):
         assert act_me._change_bus_vect[0] == True
         assert np.all(act_me._change_bus_vect[1:] == False)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [change_bus]
-        act_oth = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action oth [change_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -1509,7 +1453,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._change_bus_vect[0] == True
         assert np.all(act_oth._change_bus_vect[1:] == False)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1525,13 +1469,15 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("redispatch")
 
         # Create action me [change_bus]
-        act_me = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_me = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action me [change_bus]
         assert np.all(act_me._set_line_status == 0)
@@ -1540,13 +1486,9 @@ class Test_iadd_Base(ABC):
         assert act_me._change_bus_vect[0] == True
         assert np.all(act_me._change_bus_vect[1:] == False)
         assert np.all(act_me._redispatch == 0.0)
-    
+
         # Create action oth [redisp]
-        act_oth = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_oth = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action oth [redisp]
         assert np.all(act_oth._set_line_status == 0)
@@ -1556,7 +1498,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._redispatch[2] == dt_float(1.42)
         assert np.all(act_oth._redispatch[:2] == 0.0)
         assert np.all(act_oth._redispatch[3:] == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1575,11 +1517,7 @@ class Test_iadd_Base(ABC):
         # No skip for do nothing
 
         # Create action me [redisp]
-        act_me = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_me = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action me [redisp]
         assert np.all(act_me._set_line_status == 0)
@@ -1589,7 +1527,7 @@ class Test_iadd_Base(ABC):
         assert act_me._redispatch[2] == dt_float(1.42)
         assert np.all(act_me._redispatch[:2] == 0.0)
         assert np.all(act_me._redispatch[3:] == 0.0)
-    
+
         # Create action oth [dn]
         act_oth = self.env.action_space({})
 
@@ -1599,7 +1537,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1617,11 +1555,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_line_status")
 
         # Create action me [redisp]
-        act_me = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_me = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action me [redisp]
         assert np.all(act_me._set_line_status == 0)
@@ -1631,11 +1565,9 @@ class Test_iadd_Base(ABC):
         assert act_me._redispatch[2] == dt_float(1.42)
         assert np.all(act_me._redispatch[:2] == 0.0)
         assert np.all(act_me._redispatch[3:] == 0.0)
-    
+
         # Create action oth [set_line]
-        act_oth = self.env.action_space({
-            "set_line_status": [(0, -1)]
-        })
+        act_oth = self.env.action_space({"set_line_status": [(0, -1)]})
 
         # Test action oth [set_line]
         assert act_oth._set_line_status[0] == -1
@@ -1644,7 +1576,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1663,11 +1595,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_line_status")
 
         # Create action me [redisp]
-        act_me = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_me = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action me [redisp]
         assert np.all(act_me._set_line_status == 0)
@@ -1677,11 +1605,9 @@ class Test_iadd_Base(ABC):
         assert act_me._redispatch[2] == dt_float(1.42)
         assert np.all(act_me._redispatch[:2] == 0.0)
         assert np.all(act_me._redispatch[3:] == 0.0)
-    
+
         # Create action oth [change_line]
-        act_oth = self.env.action_space({
-            "change_line_status": [0]
-        })
+        act_oth = self.env.action_space({"change_line_status": [0]})
 
         # Test action oth [change_line]
         assert np.all(act_oth._set_line_status == 0)
@@ -1690,7 +1616,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1709,11 +1635,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("set_bus")
 
         # Create action me [redisp]
-        act_me = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_me = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action me [redisp]
         assert np.all(act_me._set_line_status == 0)
@@ -1723,15 +1645,15 @@ class Test_iadd_Base(ABC):
         assert act_me._redispatch[2] == dt_float(1.42)
         assert np.all(act_me._redispatch[:2] == 0.0)
         assert np.all(act_me._redispatch[3:] == 0.0)
-    
+
         # Create action oth [set_bus]
-        act_oth = self.env.action_space({
-            "set_bus": {
-                "substations_id": [
-                    (0, [2] + [0] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "set_bus": {
+                    "substations_id": [(0, [2] + [0] * (self.env.sub_info[0] - 1))]
+                }
             }
-        })
+        )
 
         # Test action oth [set_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -1740,7 +1662,7 @@ class Test_iadd_Base(ABC):
         assert np.all(act_oth._set_topo_vect[1:] == 0)
         assert np.all(act_oth._change_bus_vect == 0)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1759,11 +1681,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("change_bus")
 
         # Create action me [redisp]
-        act_me = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_me = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action me [redisp]
         assert np.all(act_me._set_line_status == 0)
@@ -1773,15 +1691,17 @@ class Test_iadd_Base(ABC):
         assert act_me._redispatch[2] == dt_float(1.42)
         assert np.all(act_me._redispatch[:2] == 0.0)
         assert np.all(act_me._redispatch[3:] == 0.0)
-    
+
         # Create action oth [change_bus]
-        act_oth = self.env.action_space({
-            "change_bus": {
-                "substations_id": [
-                    (0, [True] + [False] * (self.env.sub_info[0] - 1))
-                ]
+        act_oth = self.env.action_space(
+            {
+                "change_bus": {
+                    "substations_id": [
+                        (0, [True] + [False] * (self.env.sub_info[0] - 1))
+                    ]
+                }
             }
-        })
+        )
 
         # Test action oth [change_bus]
         assert np.all(act_oth._set_line_status == 0)
@@ -1790,7 +1710,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._change_bus_vect[0] == True
         assert np.all(act_oth._change_bus_vect[1:] == False)
         assert np.all(act_oth._redispatch == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 
@@ -1809,11 +1729,7 @@ class Test_iadd_Base(ABC):
         self._skipMissingKey("redispatch")
 
         # Create action me [redisp]
-        act_me = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_me = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action me [redisp]
         assert np.all(act_me._set_line_status == 0)
@@ -1823,13 +1739,9 @@ class Test_iadd_Base(ABC):
         assert act_me._redispatch[2] == dt_float(1.42)
         assert np.all(act_me._redispatch[:2] == 0.0)
         assert np.all(act_me._redispatch[3:] == 0.0)
-    
+
         # Create action oth [redisp]
-        act_oth = self.env.action_space({
-            "redispatch": {
-                2: 1.42
-            }
-        })
+        act_oth = self.env.action_space({"redispatch": {2: 1.42}})
 
         # Test action oth [redisp]
         assert np.all(act_oth._set_line_status == 0)
@@ -1839,7 +1751,7 @@ class Test_iadd_Base(ABC):
         assert act_oth._redispatch[2] == dt_float(1.42)
         assert np.all(act_oth._redispatch[:2] == 0.0)
         assert np.all(act_oth._redispatch[3:] == 0.0)
-    
+
         # Iadd actions
         act_me += act_oth
 

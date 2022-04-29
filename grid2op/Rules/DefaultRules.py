@@ -23,6 +23,7 @@ class DefaultRules(LookParam, PreventDiscoStorageModif, PreventReconnection):
       - It doesn't attempt to modify the power produce by a turned off storage unit
 
     """
+
     def __call__(self, action, env):
         """
         See :func:`BaseRules.__call__` for a definition of the _parameters of this function.
@@ -38,4 +39,6 @@ class DefaultRules(LookParam, PreventDiscoStorageModif, PreventReconnection):
         return PreventReconnection.__call__(self, action, env)
 
     def can_use_simulate(self, nb_simulate_call_step, nb_simulate_call_episode, param):
-      return LookParam.can_use_simulate(self, nb_simulate_call_step, nb_simulate_call_episode, param)
+        return LookParam.can_use_simulate(
+            self, nb_simulate_call_step, nb_simulate_call_episode, param
+        )

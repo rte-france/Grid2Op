@@ -38,37 +38,27 @@ class Test_iadd_Base(ABC):
     def tearDownClass(cls):
         cls.env.close()
 """
-print (base_content)
+print(base_content)
 
-actions_names = [
-    "dn",
-    "set_line",
-    "change_line",
-    "set_bus",
-    "change_bus",
-    "redisp"
-]
+actions_names = ["dn", "set_line", "change_line", "set_bus", "change_bus", "redisp"]
 
 actions_skip = [
-    """        # No skip for do nothing""",    
+    """        # No skip for do nothing""",
     """        self._skipMissingKey("set_line_status")""",
     """        self._skipMissingKey("change_line_status")""",
     """        self._skipMissingKey("set_bus")""",
     """        self._skipMissingKey("change_bus")""",
-    """        self._skipMissingKey("redispatch")"""
+    """        self._skipMissingKey("redispatch")""",
 ]
 
 actions = [
     """self.env.action_space({})""",
-    
     """self.env.action_space({
             "set_line_status": [(0, -1)]
         })""",
-    
     """self.env.action_space({
             "change_line_status": [0]
         })""",
-    
     """self.env.action_space({
             "set_bus": {
                 "substations_id": [
@@ -76,7 +66,6 @@ actions = [
                 ]
             }
         })""",
-    
     """self.env.action_space({
             "change_bus": {
                 "substations_id": [
@@ -84,12 +73,11 @@ actions = [
                 ]
             }
         })""",
-    
     """self.env.action_space({
             "redispatch": {
                 2: 1.42
             }
-        })"""
+        })""",
 ]
 
 actions_test = [
@@ -100,7 +88,6 @@ actions_test = [
         assert np.all({1}._change_bus_vect == 0)
         assert np.all({1}._redispatch == 0.0)
     """,
-    
     """
         assert {1}._set_line_status[0] == -1
         assert np.all({1}._set_line_status[1:] == 0)
@@ -109,7 +96,6 @@ actions_test = [
         assert np.all({1}._change_bus_vect == 0)
         assert np.all({1}._redispatch == 0.0)
     """,
-    
     """
         assert np.all({1}._set_line_status == 0)
         assert {1}._switch_line_status[0] == True
@@ -118,7 +104,6 @@ actions_test = [
         assert np.all({1}._change_bus_vect == 0)
         assert np.all({1}._redispatch == 0.0)
     """,
-    
     """
         assert np.all({1}._set_line_status == 0)
         assert np.all({1}._switch_line_status == False)
@@ -127,7 +112,6 @@ actions_test = [
         assert np.all({1}._change_bus_vect == 0)
         assert np.all({1}._redispatch == 0.0)
     """,
-    
     """
         assert np.all({1}._set_line_status == 0)
         assert np.all({1}._switch_line_status == False)
@@ -136,7 +120,6 @@ actions_test = [
         assert np.all({1}._change_bus_vect[1:] == False)
         assert np.all({1}._redispatch == 0.0)
     """,
-    
     """
         assert np.all({1}._set_line_status == 0)
         assert np.all({1}._switch_line_status == False)
@@ -145,7 +128,7 @@ actions_test = [
         assert {1}._redispatch[2] == dt_float(1.42)
         assert np.all({1}._redispatch[:2] == 0.0)
         assert np.all({1}._redispatch[3:] == 0.0)
-    """
+    """,
 ]
 
 fn_name = "    def test_{0}_iadd_{1}(self):"
@@ -168,6 +151,7 @@ test_content = """        # Test combination:
         assert False, "TODO {} += {} test dumdumb"
 """
 import sys
+
 sys.exit(0)  # because of the above it do not WORK  !!!!!!!!!!!!!!!!!!
 
 for c in itertools.product(range(len(actions)), repeat=2):
@@ -209,7 +193,7 @@ classes_names = [
     "TopologyChangeAction",
     "TopologyChangeAndDispatchAction",
     "TopologySetAction",
-    "TopologySetAndDispatchAction"
+    "TopologySetAndDispatchAction",
 ]
 
 class_suite = """
@@ -224,11 +208,11 @@ class Test_iadd_{0}(Test_iadd_Base, unittest.TestCase):
 """
 
 for c_name in classes_names:
-    print (class_suite.format(c_name))
+    print(class_suite.format(c_name))
 
 
 main_content = """
 if __name__ == "__main__":
     unittest.main()"""
 
-print (main_content)
+print(main_content)

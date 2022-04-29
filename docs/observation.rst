@@ -50,6 +50,14 @@
 .. _max_step: ./observation.html#grid2op.Observation.BaseObservation.max_step
 .. _current_step: ./observation.html#grid2op.Observation.BaseObservation.current_step
 .. _delta_time: ./observation.html#grid2op.Observation.BaseObservation.delta_time
+.. _gen_margin_up: ./observation.html#grid2op.Observation.BaseObservation.gen_margin_up
+.. _gen_margin_down: ./observation.html#grid2op.Observation.BaseObservation.gen_margin_down
+.. _curtailment_mw: ./observation.html#grid2op.Observation.BaseObservation.curtailment_mw
+.. _theta_or: ./observation.html#grid2op.Observation.BaseObservation.theta_or
+.. _theta_ex: ./observation.html#grid2op.Observation.BaseObservation.theta_ex
+.. _gen_theta: ./observation.html#grid2op.Observation.BaseObservation.gen_theta
+.. _load_theta: ./observation.html#grid2op.Observation.BaseObservation.load_theta
+.. _storage_theta: ./observation.html#grid2op.Observation.BaseObservation.storage_theta
 
 .. _observation_module:
 
@@ -108,10 +116,10 @@ with `obs.XXX` [*eg* `obs.rho`])
 Name(s)                                                                          Type      Size (each)
 =============================================================================    ========= ============
 `year`_, `month`_, `day`_, `hour_of_day`_, `minute_of_hour`_, `day_of_week`_     int       1
-`gen_p`_, `gen_q`_, `gen_v`_                                                     float     `n_gen`_
-`load_p`_, `load_q`_, `load_v`_                                                  float     `n_load`_
-`p_or`_, `q_or`_, `v_or`_, `a_or`_                                               float     `n_line`_
-`p_ex`_, `q_ex`_, `v_ex`_, `a_ex`_                                               float     `n_line`_
+`gen_p`_, `gen_q`_, `gen_v`_, `gen_theta`_                                       float     `n_gen`_
+`load_p`_, `load_q`_, `load_v`_ , `load_theta`_                                  float     `n_load`_
+`p_or`_, `q_or`_, `v_or`_, `a_or`_, `theta_or`_                                  float     `n_line`_
+`p_ex`_, `q_ex`_, `v_ex`_, `a_ex`_, `theta_ex`_                                  float     `n_line`_
 `rho`_                                                                           float     `n_line`_
 `topo_vect`_                                                                     int       `dim_topo`_
 `line_status`_                                                                   bool      `n_line`_
@@ -125,8 +133,10 @@ Name(s)                                                                         
 `storage_charge`_                                                                float     `n_storage`_
 `storage_power_target`_                                                          float     `n_storage`_
 `storage_power`_                                                                 float     `n_storage`_
+`storage_theta`_                                                                 float     `n_storage`_
 `gen_p_before_curtail`_                                                          float     `n_gen`_
-`curtailment`_, `curtailment_limit`_                                             float     `n_gen`_
+`curtailment_mw`_, `curtailment`_, `curtailment_limit`_                          float     `n_gen`_
+`gen_margin_up`_, `gen_margin_down`_                                             float     `n_gen`_
 `is_alarm_illegal`_                                                              bool       1
 `time_since_last_alarm`_                                                         int        1
 `last_alarm`_                                                                    int        `dim_alarms`_

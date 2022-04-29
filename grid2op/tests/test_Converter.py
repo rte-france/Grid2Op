@@ -20,6 +20,7 @@ import tempfile
 import pdb
 
 import warnings
+
 warnings.simplefilter("error")
 
 
@@ -33,8 +34,12 @@ class TestConnectivityConverter(HelperTests):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("educ_case14_storage", test=True, param=param,
-                            action_class=PlayableAction)
+            self.env = make(
+                "educ_case14_storage",
+                test=True,
+                param=param,
+                action_class=PlayableAction,
+            )
         np.random.seed(0)
 
     def tearDown(self):
@@ -45,12 +50,100 @@ class TestConnectivityConverter(HelperTests):
         converter.seed(0)
         converter.init_converter()
 
-        res = np.array([ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,
-                         2,  2,  2,  2,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,
-                         3,  3,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  5,  5,  5,  5,  5,
-                         5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,
-                         5,  5,  5,  5,  5,  5,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8, 12,
-                         12, 12, 12, 12, 12])
+        res = np.array(
+            [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                2,
+                2,
+                2,
+                2,
+                2,
+                2,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                5,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                8,
+                12,
+                12,
+                12,
+                12,
+                12,
+                12,
+            ]
+        )
 
         assert np.array_equal(converter.subs_ids, res)
         assert len(converter.obj_type) == converter.n
@@ -61,7 +154,7 @@ class TestConnectivityConverter(HelperTests):
         n_trial = 100
         preds = np.zeros(n_trial)
         for i in range(n_trial):
-            coded_act = np.random.rand(converter.n) * 2. - 1.
+            coded_act = np.random.rand(converter.n) * 2.0 - 1.0
             preds[i] = converter._compute_disagreement(coded_act, np.ones(converter.n))
             # check the formula is properly implemented in case of "everything connected together"
             assert np.abs(preds[i] - 0.5 * (1 - np.mean(coded_act))) <= self.tol_one
@@ -89,14 +182,18 @@ class TestConnectivityConverter(HelperTests):
             # and not test i can produce an action that can be implemented
             act = converter.convert_act(encoded_act=coded_act)
             lines_impacted, subs_impacted = act.get_topological_impact()
-            assert np.sum(subs_impacted) == ms_sub, "wrong number of substations affected. It should be {}".format(ms_sub)
+            assert (
+                np.sum(subs_impacted) == ms_sub
+            ), "wrong number of substations affected. It should be {}".format(ms_sub)
             obs, reward, done, info = self.env.step(act)
 
             # test sample
             obs = self.env.reset()
             act = converter.sample()
             lines_impacted, subs_impacted = act.get_topological_impact()
-            assert np.sum(subs_impacted) == ms_sub, "wrong number of substations affected. It should be {}".format(ms_sub)
+            assert (
+                np.sum(subs_impacted) == ms_sub
+            ), "wrong number of substations affected. It should be {}".format(ms_sub)
             obs, reward, done, info = self.env.step(act)
 
     def test_can_make_action(self):
@@ -131,9 +228,9 @@ class TestConnectivityConverter(HelperTests):
         # encode the topology [1,1 ,2,2] at sub 12, meaning: line_ex 9 / line_ex 13 together,
         # and line or 14 / load 9 together
         complex_act = 1.0 * dn_enc
-        complex_act[84] = 1.  # line ex 9 and line ex 13 together
-        complex_act[85] = -1.  # line ex 9 and line or 14 not together
-        complex_act[86] = -1.  # line ex 9 and load 9 not together
+        complex_act[84] = 1.0  # line ex 9 and line ex 13 together
+        complex_act[85] = -1.0  # line ex 9 and line or 14 not together
+        complex_act[86] = -1.0  # line ex 9 and load 9 not together
 
         glop_act = converter.convert_act(complex_act)
         aff_line, aff_sub = glop_act.get_topological_impact()
@@ -156,23 +253,29 @@ class TestConnectivityConverter(HelperTests):
         complex_act[85] = -0.9  # line ex 9 and line or 14 not together
         complex_act[86] = -0.9  # line ex 9 and load 9 not together
         glop_act2 = converter.convert_act(complex_act)
-        assert abs(converter.last_disagreement - 0.5 * (0.2 + 0.1 + 0.1) / size_) <= self.tol_one
+        assert (
+            abs(converter.last_disagreement - 0.5 * (0.2 + 0.1 + 0.1) / size_)
+            <= self.tol_one
+        )
         assert glop_act == glop_act2
 
         # now tricky stuff, such that the greedy do not work and i need to explore a bit
         # line_ex 9 / line_ex 13 together and line or 14 / load 9 together
         complex_act = 1.0 * dn_enc
-        complex_act[84] = 0.6   # line ex 9 and line ex 13 together
+        complex_act[84] = 0.6  # line ex 9 and line ex 13 together
         complex_act[85] = -0.9  # line ex 9 and line or 14 not together
         complex_act[86] = -0.9  # line ex 9 and load 9 not together
         complex_act[87] = 0.61  # "line_ex id 13" and the "line_or id 14" together
         complex_act[88] = -0.2  # "line_ex id 13" and the "load id 9" together
-        complex_act[89] = 0.    # "line_or id 14" and the "load id 9" no preferences
+        complex_act[89] = 0.0  # "line_or id 14" and the "load id 9" no preferences
         glop_act3 = converter.convert_act(complex_act)
         # this gives : [ 1     2     2      2   ], which is sub optimal
         #               Lex9 Lex13  lor14  loa9
         frst_disag = converter.last_disagreement
-        assert abs(frst_disag - 0.5 * (1.6 + 0.1 + 0.1 + 0.39 + 1.2) / size_) <= self.tol_one
+        assert (
+            abs(frst_disag - 0.5 * (1.6 + 0.1 + 0.1 + 0.39 + 1.2) / size_)
+            <= self.tol_one
+        )
         assert glop_act != glop_act3  # but glop_act should be better !
 
         glop_act4 = converter.convert_act(complex_act, explore=3)
@@ -180,7 +283,10 @@ class TestConnectivityConverter(HelperTests):
         assert this_disag < frst_disag, "this disagreement should always be lower !"
         assert converter.indx_sel != 0, "the first has been selected, it should not !"
         assert glop_act == glop_act4, "the same action first action should be optimal"
-        assert abs(this_disag - 0.5 * (0.4 + 0.1 + 0.1 + 1.61 + 0.8) / size_) <= self.tol_one
+        assert (
+            abs(this_disag - 0.5 * (0.4 + 0.1 + 0.1 + 1.61 + 0.8) / size_)
+            <= self.tol_one
+        )
 
     def test_bug_in_doc(self):
 
@@ -195,13 +301,17 @@ class TestConnectivityConverter(HelperTests):
 
         encoded_act = np.zeros(converter.n)
         encoded_act[0] = 1  # i want to connect  "line_ex id 0" and the "line_or id 2"
-        encoded_act[1] = -1  # i don't want to connect "line_ex id 0" and the "line_or id 3"
-        encoded_act[2] = -1  # i don't want to connect "line_ex id 0" and the "line_or id 4"
+        encoded_act[
+            1
+        ] = -1  # i don't want to connect "line_ex id 0" and the "line_or id 3"
+        encoded_act[
+            2
+        ] = -1  # i don't want to connect "line_ex id 0" and the "line_or id 4"
         encoded_act[3] = -1  # i don't want to connect "line_ex id 0" and the "gen id 0"
         encoded_act[4] = 1  # i want to connect "line_ex id 0" and the "load id 0"
         # and now retrieve the corresponding grid2op action:
         grid2op_act = converter.convert_act(encoded_act)
-        assert converter.last_disagreement == 0.
+        assert converter.last_disagreement == 0.0
         assert np.array_equal(grid2op_act.set_bus[3:9], [1, 1, 2, 2, 2, 1])
 
         # second way to express the same action
@@ -216,7 +326,7 @@ class TestConnectivityConverter(HelperTests):
 
         # and now retrieve the corresponding grid2op action:
         grid2op_act2 = converter.convert_act(encoded_act2)
-        assert converter.last_disagreement == 0.
+        assert converter.last_disagreement == 0.0
         assert np.array_equal(grid2op_act2.set_bus[3:9], [1, 1, 2, 2, 2, 1])
 
         # trick it: i don't specified enough constraints (used to be infinite loop)
@@ -227,7 +337,7 @@ class TestConnectivityConverter(HelperTests):
         encoded_act3[9] = 1  # i want to connect "line_or id 3" and the "line_or id 4"
         encoded_act3[10] = 1  # i want to connect "line_or id 3" and the "gen id 0"
         grid2op_act3 = converter.convert_act(encoded_act3)
-        assert converter.last_disagreement == 0.
+        assert converter.last_disagreement == 0.0
         assert np.array_equal(grid2op_act3.set_bus[3:9], [1, 1, 1, 1, 1, 1])
 
         size_ = converter.n
@@ -237,19 +347,19 @@ class TestConnectivityConverter(HelperTests):
         missing[3] = 0  # encodes for line_ex id O
         disag0 = converter._compute_disagreement(encoded_act3, missing)
         # 2 constraints not met because the line_ex id O is not set in the action
-        assert abs(disag0 - 2./size_) <= self.tol_one
+        assert abs(disag0 - 2.0 / size_) <= self.tol_one
 
         missing2 = np.ones(converter.n)
         missing2[8] = 0  # encodes for load id 0
         disag2 = converter._compute_disagreement(encoded_act3, missing2)
         # 1 constraints not met because the load id 0 O is not set in the action
-        assert abs(disag2 - 1./size_) <= self.tol_one
+        assert abs(disag2 - 1.0 / size_) <= self.tol_one
 
         missing3 = np.ones(converter.n)
         missing3[3:9] = 0  # all constraints not met
         disag3 = converter._compute_disagreement(encoded_act3, missing3)
         # one component not set in the "action candidate" among 4 constraints
-        assert abs(disag3 - 4. / size_) <= self.tol_one
+        assert abs(disag3 - 4.0 / size_) <= self.tol_one
 
 
 class TestIdToAct(HelperTests):
@@ -262,9 +372,12 @@ class TestIdToAct(HelperTests):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("educ_case14_storage",
-                            test=True, param=param,
-                            action_class=PlayableAction)
+            self.env = make(
+                "educ_case14_storage",
+                test=True,
+                param=param,
+                action_class=PlayableAction,
+            )
         np.random.seed(0)
         self.filenamedict = "test_action_json_educ_case14_storage.json"
 
@@ -290,29 +403,34 @@ class TestIdToAct(HelperTests):
         assert act_ == act2_
 
     def test_specific_attr(self):
-        dict_orig = {"set_line_status": False,
-                     "change_line_status": False,
-                     "set_topo_vect": False,
-                     "change_bus_vect": False,
-                     "redispatch": False,
-                     "curtail": False,
-                     "storage": False}
+        dict_orig = {
+            "set_line_status": False,
+            "change_line_status": False,
+            "set_topo_vect": False,
+            "change_bus_vect": False,
+            "redispatch": False,
+            "curtail": False,
+            "storage": False,
+        }
 
-        dims = {"set_line_status": 101,
-                "change_line_status": 21,
-                "set_topo_vect": 235,
-                "change_bus_vect": 255,
-                "redispatch": 25,
-                "curtail": 31,
-                "storage": 17}
+        dims = {
+            "set_line_status": 101,
+            "change_line_status": 21,
+            "set_topo_vect": 235,
+            "change_bus_vect": 255,
+            "redispatch": 25,
+            "curtail": 31,
+            "storage": 17,
+        }
 
         for attr in dict_orig.keys():
             kwargs = dict_orig.copy()
             kwargs[attr] = True
             converter = IdToAct(self.env.action_space)
             converter.init_converter(**kwargs)
-            assert converter.n == dims[attr], f"dim for \"{attr}\" should be {dims[attr]} but is " \
-                                              f"{converter.n}"
+            assert converter.n == dims[attr], (
+                f'dim for "{attr}" should be {dims[attr]} but is ' f"{converter.n}"
+            )
 
     def test_init_from_list_of_dict(self):
         path_input = os.path.join(PATH_DATA_TEST, self.filenamedict)
@@ -323,6 +441,7 @@ class TestIdToAct(HelperTests):
         assert converter.n == 255
         assert isinstance(converter.all_actions[-1], BaseAction)
         assert isinstance(converter.all_actions[0], BaseAction)
+
 
 if __name__ == "__main__":
     unittest.main()

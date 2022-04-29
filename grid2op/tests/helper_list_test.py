@@ -4,7 +4,7 @@ import unittest
 
 
 def print_suite(suite):
-    if hasattr(suite, '__iter__'):
+    if hasattr(suite, "__iter__"):
         for x in suite:
             print_suite(x)
     else:
@@ -12,7 +12,7 @@ def print_suite(suite):
         testsuite = suite.__class__.__name__
         testmethod = suite._testMethodName
         test_name = "{}.{}.{}".format(testmodule, testsuite, testmethod)
-        print (test_name)
+        print(test_name)
 
 
-print_suite(unittest.defaultTestLoader.discover('.'))
+print_suite(unittest.defaultTestLoader.discover("."))

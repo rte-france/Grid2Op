@@ -3,7 +3,7 @@ __all__ = [
     "ToVect",
     "IdToAct",
     "ConnectivityConverter",
-    "AnalogStateConverter"
+    "AnalogStateConverter",
 ]
 
 from grid2op.Converter.BackendConverter import BackendConverter
@@ -15,6 +15,7 @@ from grid2op.Converter.ConnectivityConverter import ConnectivityConverter
 
 try:
     from grid2op.Converter.GymConverter import GymObservationSpace, GymActionSpace
+
     __all__.append("GymObservationSpace")
     __all__.append("GymActionSpace")
 except ImportError:

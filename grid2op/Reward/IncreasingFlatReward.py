@@ -35,6 +35,7 @@ class IncreasingFlatReward(BaseReward):
         # the reward is computed with the IncreasingFlatReward class
 
     """
+
     def __init__(self, per_timestep=1):
         BaseReward.__init__(self)
         self.per_timestep = dt_float(per_timestep)

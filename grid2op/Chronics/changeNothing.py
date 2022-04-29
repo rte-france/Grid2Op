@@ -57,30 +57,54 @@ class ChangeNothing(GridValue):
                            action_class=TopologyAndDispatchAction)
         
     """
-    def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
-                 start_datetime=datetime(year=2019, month=1, day=1),
-                 chunk_size=None, **kargs):
-        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime,
-                           chunk_size=chunk_size)
+
+    def __init__(
+        self,
+        time_interval=timedelta(minutes=5),
+        max_iter=-1,
+        start_datetime=datetime(year=2019, month=1, day=1),
+        chunk_size=None,
+        **kargs
+    ):
+        GridValue.__init__(
+            self,
+            time_interval=time_interval,
+            max_iter=max_iter,
+            start_datetime=start_datetime,
+            chunk_size=chunk_size,
+        )
         self.n_gen = None
         self.n_load = None
         self.n_line = None
 
-    def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
-                   names_chronics_to_backend=None):
+    def initialize(
+        self,
+        order_backend_loads,
+        order_backend_prods,
+        order_backend_lines,
+        order_backend_subs,
+        names_chronics_to_backend=None,
+    ):
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
         self.n_line = len(order_backend_lines)
         self.curr_iter = 0
 
-        self.maintenance_time = np.zeros(shape=(self.n_line, ), dtype=dt_int) - 1
-        self.maintenance_duration = np.zeros(shape=(self.n_line, ), dtype=dt_int)
-        self.hazard_duration = np.zeros(shape=(self.n_line, ), dtype=dt_int)
+        self.maintenance_time = np.zeros(shape=(self.n_line,), dtype=dt_int) - 1
+        self.maintenance_duration = np.zeros(shape=(self.n_line,), dtype=dt_int)
+        self.hazard_duration = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
     def load_next(self):
         self.current_datetime += self.time_interval
         self.curr_iter += 1
-        return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration, None
+        return (
+            self.current_datetime,
+            {},
+            self.maintenance_time,
+            self.maintenance_duration,
+            self.hazard_duration,
+            None,
+        )
 
     def check_validity(self, backend):
         return True

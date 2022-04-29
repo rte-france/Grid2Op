@@ -14,7 +14,7 @@ from grid2op.dtypes import dt_float
 
 class CombinedScaledReward(CombinedReward):
     """
-    This class allows to combine multiple rewards. 
+    This class allows to combine multiple rewards.
     It will compute a scaled reward of the weighted sum of the registered rewards.
     Scaling is done by linearly interpolating the weighted sum,
     from the range [min_sum; max_sum] to [reward_min; reward_max]
@@ -71,7 +71,9 @@ class CombinedScaledReward(CombinedReward):
         # Get weighted sum from parent
         ws = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
         # Scale to range
-        res = np.interp(ws, [self._sum_min, self._sum_max], [self.reward_min, self.reward_max])
+        res = np.interp(
+            ws, [self._sum_min, self._sum_max], [self.reward_min, self.reward_max]
+        )
         return dt_float(res)
 
     def close(self):

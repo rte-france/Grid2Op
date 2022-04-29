@@ -21,9 +21,12 @@ import sys
 
 try:
     import ujson
+
     requests.models.complexjson = ujson
 except ImportError as exc_:
-    warnings.warn("usjon is not installed. You could potentially get huge benefit if installing it")
+    warnings.warn(
+        "usjon is not installed. You could potentially get huge benefit if installing it"
+    )
 
 ERROR_NO_200 = "error due to not receiving 200 status"
 
@@ -33,24 +36,28 @@ SYNCH = True
 NB_step = 300
 
 
-PORTS = [3000+i for i in range(NB_SUB_ENV)]  # TODO start them on the fly
+PORTS = [3000 + i for i in range(NB_SUB_ENV)]  # TODO start them on the fly
 
 
 class MultiEnvServer:
-    def __init__(self,
-                 ports=PORTS,
-                 env_name=ENV_NAME,
-                 address="http://127.0.0.1"):
-        warnings.warn("This is an alpha feature and has absolutely not interest at the moment. Do not use unless "
-                      "you want to improve this feature yourself (-:")
+    def __init__(self, ports=PORTS, env_name=ENV_NAME, address="http://127.0.0.1"):
+        warnings.warn(
+            "This is an alpha feature and has absolutely not interest at the moment. Do not use unless "
+            "you want to improve this feature yourself (-:"
+        )
         self.my_procs = []
         for port in ports:
-            p_ = subprocess.Popen([sys.executable, "/home/benjamin/Documents/grid2op_dev/grid2op/rest_server/app.py",
-                                   "--port", f"{port}"],
-                                  env=os.environ,
-                                  # stdout=subprocess.DEVNULL,  # TODO logger
-                                  # stderr=subprocess.DEVNULL  # TODO logger
-                                  )
+            p_ = subprocess.Popen(
+                [
+                    sys.executable,
+                    "/home/benjamin/Documents/grid2op_dev/grid2op/rest_server/app.py",
+                    "--port",
+                    f"{port}",
+                ],
+                env=os.environ,
+                # stdout=subprocess.DEVNULL,  # TODO logger
+                # stderr=subprocess.DEVNULL  # TODO logger
+            )
             self.my_procs.append(p_)
 
         self.nb_env = len(ports)
@@ -82,6 +89,7 @@ class MultiEnvServer:
             resp = self.session.get(f"{url}/make/{self.env_name}")
             answs.append(resp)
         import pdb
+
         pdb.set_trace()
         assert np.all(np.array([el.status_code for el in answs]) == 200), ERROR_NO_200
         answ_json = [el.json() for el in answs]
@@ -100,7 +108,9 @@ class MultiEnvServer:
     def _step_synch(self, acts):
         answs = []
         for url, id_env, act in zip(self.li_urls, self.env_id, acts):
-            resp = self.session.post(f"{url}/step/{self.env_name}/{id_env}", json={"action": act.to_json()})
+            resp = self.session.post(
+                f"{url}/step/{self.env_name}/{id_env}", json={"action": act.to_json()}
+            )
             answs.append(resp)
         answs = [el.json() for el in answs]
         return answs
@@ -109,8 +119,10 @@ class MultiEnvServer:
         answs = []
         async with aiohttp.ClientSession() as session:
             for url, id_env, act in zip(self.li_urls, self.env_id, acts):
-                async with session.post(f"{url}/step/{self.env_name}/{id_env}",
-                                        json={"action": act.to_json()}) as resp:
+                async with session.post(
+                    f"{url}/step/{self.env_name}/{id_env}",
+                    json={"action": act.to_json()},
+                ) as resp:
                     if resp.status != 200:
                         raise RuntimeError(ERROR_NO_200)
                     answs.append(await resp.json())
@@ -140,9 +152,13 @@ if __name__ == "__main__":
     try:
         beg = time.perf_counter()
         for _ in tqdm(range(NB_step)):
-            obs, reward, done, info = multi_env.step([multi_env.action_space() for _ in range(multi_env.nb_env)])
+            obs, reward, done, info = multi_env.step(
+                [multi_env.action_space() for _ in range(multi_env.nb_env)]
+            )
         end = time.perf_counter()
     finally:
         multi_env.close()
-    print(f"Using {'synchronous' if SYNCH else 'asyncio'}, it took {end-beg:.2f}s to make {NB_step} steps "
-          f"on {ENV_NAME} using {len(PORTS)} sub environment(s).")
+    print(
+        f"Using {'synchronous' if SYNCH else 'asyncio'}, it took {end-beg:.2f}s to make {NB_step} steps "
+        f"on {ENV_NAME} using {len(PORTS)} sub environment(s)."
+    )

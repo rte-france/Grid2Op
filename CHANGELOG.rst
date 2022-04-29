@@ -3,8 +3,13 @@ Change Log
 
 [TODO]
 --------------------
+- [???] closer integration with `gym` especially the "register env", being able to 
+  create an env from a string etc.
+- [???] clean the notebook on RL
+- [???] use the typing module for type annotation.
 - [???] use some kind of "env.get_state()" when simulating instead of recoding everything "by hand"
 - [???] use "backend.get_action_to_set()" in simulate
+- [???] model better the voltage, include voltage constraints
 - [???] use the prod_p_forecasted and co in the "next_chronics" of simulate
 - [???] add a "_cst_" or something in the `const` member of all the classes
 - [???] in deepcopy of env, make tests that the "pointers" are properly propagated in the attributes (for example
@@ -20,14 +25,79 @@ Change Log
 - [???] Code and test the "load from disk" method
 - [???] Make the redispatching data independent from the time step (eg instead of "in MW / step" have it in "MW / h"
   and have grid2op convert it to MW / step
-- [???] Extensive tests for BridgeReward
-- [???] Extensive tests for DistanceReward
 - [???] add a "plot action" method
-- [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parallel and transfer the resulting data.
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
+
+[1.6.6] - 2022-04-28
+---------------------
+- [BREAKING] the `L2RPNSandBoxScore`, `RedispReward` and `EconomicReward` now properly computes the cost of the grid 
+  (there was an error between the conversion from MWh - cost is given in $ / MWh - and MW). This impacts also `ScoreICAPS2021` and `ScoreL2RPN2020`.
+- [BREAKING] in the "gym_compat" module the curtailment action type has 
+  for dimension the number of dispatchable generators (as opposed to all generators
+  before) this was mandatory to fix issue https://github.com/rte-france/Grid2Op/issues/282
+- [BREAKING] the size of the continuous action space for the redispatching in
+  case of gym compatibility has also been adjusted to be consistent with curtailment.
+  Before it has the size of `env.n_gen` now `np.sum(env.gen_redispatchable)`.
+- [BREAKING] move the `_ObsEnv` module to `Environment` (was before in `Observation`).
+- [BREAKING] adding the `curtailment_limit_effective` in the observation converted to gym. This changes
+  the sizes of the gym observation.
+- [FIXED] a bug preventing to use `backend.update_from_obs` when there are shunts on the grid for `PandapowerBackend`
+- [FIXED] a bug in the gym action space: see issue https://github.com/rte-france/Grid2Op/issues/281
+- [FIXED] a bug in the gym box action space: see issue https://github.com/rte-france/Grid2Op/issues/283
+- [FIXED] a bug when using `MultifolderWithCache` and `Runner` (see issue https://github.com/rte-france/Grid2Op/issues/285)
+- [FIXED] a bug in the `env.train_val_split_random` where sometimes some wrong chronics
+  name were sampled.
+- [FIXED] the `max` value of the observation space is now 1.3 * pmax to account for the slack bus (it was
+  1.01 of pmax before and was not sufficient in some cases)
+- [FIXED] a proper exception is added to the "except" kwargs of the "info" return argument of `env.step(...)`
+  (previously it was only a string) when redispatching was illegal.
+- [FIXED] a bug in `env.train_val_split_random` when some non chronics files where present in the
+  "chronics" folder of the environment.
+- [FIXED] an error in the redispatching: in some cases, the environment detected that the redispatching was infeasible when it
+  was not and in some others it did not detect when it while it was infeasible. This was mainly the case
+  when curtailment and storage units were heavily modified.
+- [FIXED] now possible to create an environment with the `FromNPY` chronixcs even if the "chronics" folder is absent. 
+- [FIXED] a bug preventing to converte observation as networkx graph with oldest version of numpy and newest version of scipy.
+- [FIXED] a bug when using `max_iter` and `Runner` in case of max_iter being larger than the number of steps in the
+  environment and `nb_episode` >= 2.
+- [FIXED] a bug in the hashing of environment in case of storage units (the characteristics of the storage units
+  were not taken into account in the hash).
+- [FIXED] a bug in the `obs.as_dict()` method.
+- [FIXED] a bug in when using the "env.generate_classe()" https://github.com/rte-france/Grid2Op/issues/310
+- [FIXED] another bug in when using the "env.generate_classe()" on windows https://github.com/rte-france/Grid2Op/issues/311
+- [ADDED] a function `normalize_attr` allowing to easily scale some data for the
+  `BoxGymObsSpace` and `BoxGymActSpace`
+- [ADDED] support for distributed slack in pandapower (if supported)
+- [ADDED] an attribute `self.infos` for the BaseEnv that contains the "info" return value of `env.step(...)`
+- [ADDED] the possibility to shuffle the chronics of a `GymEnv` (the default behavior is now to shuffle them)
+- [ADDED] two attribtues for the observation: `obs.gen_margin_up` and `obs.gen_margin_down`
+- [ADDED] support for hashing chronix2grid related components.
+- [ADDED] possibility to change the type of the opponent space type from the `make(...)` command
+- [ADDED] a method to "limit the curtailment / storage" action depending on the availability of controllable generators 
+  (see `act.limit_curtail_storage(...)`)
+- [ADDED] a class to generate data "on the fly" using chronix2grid (for now really slow and only available for 
+  a single environment)
+- [ADDED] a first version (for testing only) for the `l2rpn_wcci_2022` environment.
+- [ADDED] a method to compute the "simple" line reconnection actions (adding 2 actions per lines instead of 5)
+  in the action space (see `act_space.get_all_unitary_line_set_simple()`)
+- [IMPROVED] better difference between `env_path` and `grid_path` in environments.
+- [IMPROVED] addition of a flag to control whether pandapower can use lightsim2grid (to solve the powerflows) or not
+- [IMPROVED] clean the warnings issued by pandas when used with pandapower
+- [IMPROVED] doc of observation module (some attributes were missing)
+- [IMPROVED] officially drop python 3.6 supports (which could not benefit from all the features)
+- [IMPROVED] add support for setting the maximum number of iteration in the `PandaPowerBackend`
+- [IMPROVED] when the curtailment / storage is too "strong" at a given step, the environment will now allow 
+  every controllable turned-on generators to mitigate it. This should increase the possibility to act on the
+  curtailment and storage units without "breaking" the environment. 
+- [IMPROVED] have dedicated type of actions / observation for L2RPN competition environments, 
+  defined in the "conf.py" file (to make possible the use of different
+  grid2op version transparently)
+- [IMPROVED] on some cases, the routine used to compute the redispatching would lead to a "redispatch" that would
+  change even if you don't apply any, for no obvious reasons. This has been adressed, though it's not perfect.
+- [IMPROVED] finer resolution when measuring exectution times
 
 [1.6.5] - 2022-01-19
 ---------------------
@@ -68,7 +138,7 @@ Change Log
   sensors.
 - [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
 - [IMRPOVED] docs (and notebooks) for the "split_train_val" https://github.com/rte-france/Grid2Op/issues/269
-- [IMRPOVED] the "split_train_val" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276
+- [IMRPOVED] the "`env.split_train_val(...)`" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276
   
 [1.6.4] - 2021-11-08
 ---------------------

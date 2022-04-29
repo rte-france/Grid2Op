@@ -166,6 +166,7 @@ grid2op/data/*/*.csv
 !grid2op/data/test_PandaPower/prods_charac.csv
 !grid2op/data/case14_redisp/prods_charac.csv
 !grid2op/data/*/prods_charac.csv
+!grid2op/data/*/loads_charac.csv
 !grid2op/data/*/storage_units_charac.csv
 **token.json
 getting_started/study_agent_getting_started/
@@ -345,6 +346,14 @@ test_n1_reward.py
 test_copy_env_close.py
 !grid2op/tests/test_copy_env_close.py
 grid2op/tests/output_unittest.txt
+test_utils_multiproc.py
+test_simulator.py
+!grid2op/tests/test_simulator.py
+venv36/
+bug_jan.py
+venv_test/
+getting_started/saved_agent_PPO_*_results/
+grid2op/data/**/_grid2op_classes/
 
 # profiling files
 **.prof

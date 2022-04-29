@@ -45,14 +45,16 @@ class GeometricOpponent(BaseOpponent):
         # this is the constructor:
         # it should have the exact same signature as here
 
-    def init(self,
-             partial_env,
-             lines_attacked=(),
-             attack_every_xxx_hour=24,
-             average_attack_duration_hour=4,
-             minimum_attack_duration_hour=2,
-             pmax_pmin_ratio=4,
-             **kwargs):
+    def init(
+        self,
+        partial_env,
+        lines_attacked=(),
+        attack_every_xxx_hour=24,
+        average_attack_duration_hour=4,
+        minimum_attack_duration_hour=2,
+        pmax_pmin_ratio=4,
+        **kwargs,
+    ):
         """
         Generic function used to initialize the derived classes. For example, if an opponent reads from a file, the
         path where is the file is located should be pass with this method.
@@ -98,9 +100,11 @@ class GeometricOpponent(BaseOpponent):
         self._env = partial_env
 
         if len(lines_attacked) == 0:
-            warnings.warn(f'The opponent is deactivated as there is no information as to which line to attack. '
-                          f'You can set the argument "kwargs_opponent" to the list of the line names you want '
-                          f' the opponent to attack in the "make" function.')
+            warnings.warn(
+                f"The opponent is deactivated as there is no information as to which line to attack. "
+                f'You can set the argument "kwargs_opponent" to the list of the line names you want '
+                f' the opponent to attack in the "make" function.'
+            )
 
         # Store attackable lines IDs
         self._lines_ids = []
@@ -109,33 +113,45 @@ class GeometricOpponent(BaseOpponent):
             if len(l_id) and len(l_id[0]):
                 self._lines_ids.append(l_id[0][0])
             else:
-                raise OpponentError("Unable to find the powerline named \"{}\" on the grid. For "
-                                    "information, powerlines on the grid are : {}"
-                                    "".format(l_name, sorted(self.action_space.name_line)))
+                raise OpponentError(
+                    'Unable to find the powerline named "{}" on the grid. For '
+                    "information, powerlines on the grid are : {}"
+                    "".format(l_name, sorted(self.action_space.name_line))
+                )
 
         # Pre-build attacks actions
         self._do_nothing = self.action_space({})
         self._attacks = []
         for l_id in self._lines_ids:
-            a = self.action_space({
-                'set_line_status': [(l_id, -1)]
-            })
+            a = self.action_space({"set_line_status": [(l_id, -1)]})
             self._attacks.append(a)
         self._attacks = np.array(self._attacks)
 
         # Opponent's attack and recovery rates and minimum duration
         # number of steps per hour
-        ts_per_hour = 3600. / partial_env.delta_time_seconds
-        self._recovery_minimum_duration = int(minimum_attack_duration_hour * ts_per_hour)
+        ts_per_hour = 3600.0 / partial_env.delta_time_seconds
+        self._recovery_minimum_duration = int(
+            minimum_attack_duration_hour * ts_per_hour
+        )
         if average_attack_duration_hour < minimum_attack_duration_hour:
-            raise OpponentError("The average duration of an attack cannot be lower than the minimum time of an attack")
+            raise OpponentError(
+                "The average duration of an attack cannot be lower than the minimum time of an attack"
+            )
         elif average_attack_duration_hour == minimum_attack_duration_hour:
-            raise OpponentError("Case average_attack_duration_hour == minimum_attack_duration_hour is not supported "
-                                "at the moment")
-        self._recovery_rate = 1. / (ts_per_hour * (average_attack_duration_hour - minimum_attack_duration_hour))
+            raise OpponentError(
+                "Case average_attack_duration_hour == minimum_attack_duration_hour is not supported "
+                "at the moment"
+            )
+        self._recovery_rate = 1.0 / (
+            ts_per_hour * (average_attack_duration_hour - minimum_attack_duration_hour)
+        )
         if attack_every_xxx_hour <= average_attack_duration_hour:
-            raise OpponentError("attack_every_xxx_hour <= average_attack_duration_hour is not supported at the moment.")
-        self._attack_hazard_rate = 1. / (ts_per_hour * (attack_every_xxx_hour - average_attack_duration_hour))
+            raise OpponentError(
+                "attack_every_xxx_hour <= average_attack_duration_hour is not supported at the moment."
+            )
+        self._attack_hazard_rate = 1.0 / (
+            ts_per_hour * (attack_every_xxx_hour - average_attack_duration_hour)
+        )
 
         # Opponent's pmax pmin ratio
         self._pmax_pmin_ratio = pmax_pmin_ratio
@@ -152,7 +168,9 @@ class GeometricOpponent(BaseOpponent):
     def _get_episode_duration(self):
         tmp = self._env.max_episode_duration()
         if (not np.isfinite(tmp)) or (tmp == np.iinfo(tmp).max):
-            raise OpponentError("Geometric opponent only works (for now) with a known finite episode duration.")
+            raise OpponentError(
+                "Geometric opponent only works (for now) with a known finite episode duration."
+            )
         return tmp
 
     def reset(self, initial_budget):
@@ -185,7 +203,10 @@ class GeometricOpponent(BaseOpponent):
                 self._attack_times.append(t_of_attack)
                 self._number_of_attacks += 1
                 # Sampling the attack duration
-                attack_duration = self._recovery_minimum_duration + self.space_prng.geometric(p=self._recovery_rate)
+                attack_duration = (
+                    self._recovery_minimum_duration
+                    + self.space_prng.geometric(p=self._recovery_rate)
+                )
                 self._attack_durations.append(attack_duration)
                 t = t + attack_duration
             # TODO : Log these times and durations in a log.file
@@ -197,8 +218,7 @@ class GeometricOpponent(BaseOpponent):
     def tell_attack_continues(self, observation, agent_action, env_action, budget):
         self._next_attack_time = None
 
-    def attack(self, observation, agent_action, env_action,
-               budget, previous_fails):
+    def attack(self, observation, agent_action, env_action, budget, previous_fails):
         """
         This method is the equivalent of "attack" for a regular agent.
         Opponent, in this framework can have more information than a regular agent (in particular it can
@@ -236,12 +256,16 @@ class GeometricOpponent(BaseOpponent):
 
         if previous_fails:
             # i cannot do the attack, it failed (so self._attack_counter >= 1)
-            self._next_attack_time = self._attack_waiting_times[self._attack_counter] + \
-                                     self._attack_durations[self._attack_counter - 1]
+            self._next_attack_time = (
+                self._attack_waiting_times[self._attack_counter]
+                + self._attack_durations[self._attack_counter - 1]
+            )
 
         # Set the time of the next attack
         if self._next_attack_time is None:
-            self._next_attack_time = 1 + self._attack_waiting_times[self._attack_counter]
+            self._next_attack_time = (
+                1 + self._attack_waiting_times[self._attack_counter]
+            )
 
         attack_duration = self._attack_durations[self._attack_counter]
         self._next_attack_time -= 1
@@ -288,10 +312,20 @@ class GeometricOpponent(BaseOpponent):
         return attack, attack_duration
 
     def get_state(self):
-        return self._attack_times,  self._attack_waiting_times, self._attack_durations, self._number_of_attacks
+        return (
+            self._attack_times,
+            self._attack_waiting_times,
+            self._attack_durations,
+            self._number_of_attacks,
+        )
 
     def set_state(self, my_state):
-        _attack_times, _attack_waiting_times, _attack_durations, _number_of_attacks = my_state
+        (
+            _attack_times,
+            _attack_waiting_times,
+            _attack_durations,
+            _number_of_attacks,
+        ) = my_state
         self._attack_times = 1 * _attack_times
         self._attack_waiting_times = 1 * _attack_waiting_times
         self._attack_durations = 1 * _attack_durations
@@ -306,9 +340,13 @@ class GeometricOpponent(BaseOpponent):
         new_obj._lines_ids = copy.deepcopy(self._lines_ids)
         new_obj._next_attack_time = copy.deepcopy(self._next_attack_time)
         new_obj._attack_hazard_rate = copy.deepcopy(self._attack_hazard_rate)
-        new_obj._recovery_minimum_duration = copy.deepcopy(self._recovery_minimum_duration)
+        new_obj._recovery_minimum_duration = copy.deepcopy(
+            self._recovery_minimum_duration
+        )
         new_obj._recovery_rate = copy.deepcopy(self._recovery_rate)
         new_obj._pmax_pmin_ratio = copy.deepcopy(self._pmax_pmin_ratio)
         new_obj._attack_counter = copy.deepcopy(self._attack_counter)
         new_obj._episode_max_time = copy.deepcopy(self._episode_max_time)
-        new_obj._env = dict_["partial_env"]  # I need to keep a pointer to the environment for computing the maximum length of the episode
+        new_obj._env = dict_[
+            "partial_env"
+        ]  # I need to keep a pointer to the environment for computing the maximum length of the episode

@@ -25,8 +25,9 @@ from grid2op.Plot.BasePlot import BasePlot
 from grid2op.Exceptions.PlotExceptions import PyGameQuit, PlotError
 
 try:
-    os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+    os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
     import pygame
+
     can_plot = True
 except Exception as e:
     can_plot = False
@@ -36,7 +37,7 @@ except Exception as e:
 class Point:
     # https://codereview.stackexchange.com/questions/70143/drawing-a-dashed-line-with-pygame
     # constructed using a normal tupple
-    def __init__(self, point_t = (0,0)):
+    def __init__(self, point_t=(0, 0)):
         self.x = float(point_t[0])
         self.y = float(point_t[1])
 
@@ -48,16 +49,16 @@ class Point:
         return Point((self.x - other.x, self.y - other.y))
 
     def __mul__(self, scalar):
-        return Point((self.x*scalar, self.y*scalar))
+        return Point((self.x * scalar, self.y * scalar))
 
     def __div__(self, scalar):
-        return Point((self.x/scalar, self.y/scalar))
+        return Point((self.x / scalar, self.y / scalar))
 
     def __floordiv__(self, scalar):
-        return Point((self.x/scalar, self.y/scalar))
+        return Point((self.x / scalar, self.y / scalar))
 
     def __truediv__(self, scalar):
-        return Point((self.x/scalar, self.y/scalar))
+        return Point((self.x / scalar, self.y / scalar))
 
     def __len__(self):
         return int(math.sqrt(self.x**2 + self.y**2))
@@ -80,16 +81,25 @@ def _draw_dashed_line(surf, color, start_pos, end_pos, width=1, dash_length=10):
     target = Point(end_pos)
     displacement = target - origin
     length = len(displacement)
-    slope = displacement/length
+    slope = displacement / length
 
-    for index in range(0, int(length/dash_length), 2):
-        start = origin + (slope *    index    * dash_length)
-        end   = origin + (slope * (index + 1) * dash_length)
+    for index in range(0, int(length / dash_length), 2):
+        start = origin + (slope * index * dash_length)
+        end = origin + (slope * (index + 1) * dash_length)
         pygame.draw.line(surf, color, start.get(), end.get(), width)
 
 
-def _draw_arrow(surf, color, start_pos, end_pos, positive_flow, width=1, num_arrows=10,
-                length_arrow=10, angle_arrow=30):
+def _draw_arrow(
+    surf,
+    color,
+    start_pos,
+    end_pos,
+    positive_flow,
+    width=1,
+    num_arrows=10,
+    length_arrow=10,
+    angle_arrow=30,
+):
     if positive_flow:
         origin = Point(start_pos)
         target = Point(end_pos)
@@ -99,27 +109,27 @@ def _draw_arrow(surf, color, start_pos, end_pos, positive_flow, width=1, num_arr
 
     displacement = target - origin
     length = len(displacement)
-    slope = displacement/length
+    slope = displacement / length
 
     # phi = cmath.phase(slope.to_cplx()) * 360 / 2*cmath.pi
-    phi = cmath.phase(displacement.to_cplx()) * 360 / (2*cmath.pi)
-    cste_ = 2*cmath.pi / 360 * 1j
-    rotatedown = cmath.exp(cste_ * (180 + phi + angle_arrow) )
-    rotateup = cmath.exp(cste_ * (180 + phi - angle_arrow) )
+    phi = cmath.phase(displacement.to_cplx()) * 360 / (2 * cmath.pi)
+    cste_ = 2 * cmath.pi / 360 * 1j
+    rotatedown = cmath.exp(cste_ * (180 + phi + angle_arrow))
+    rotateup = cmath.exp(cste_ * (180 + phi - angle_arrow))
 
-    first_arrow_part = length_arrow*rotateup
-    second_arrow_part = length_arrow*rotatedown
+    first_arrow_part = length_arrow * rotateup
+    second_arrow_part = length_arrow * rotatedown
 
-    per_displ = displacement / (num_arrows+1)
+    per_displ = displacement / (num_arrows + 1)
 
     for index in range(0, int(num_arrows)):
-        mid   = origin + (per_displ * (index + 1) )
+        mid = origin + (per_displ * (index + 1))
         start_arrow = Point.from_cplx(mid.to_cplx() + first_arrow_part)
         end_arrow = Point.from_cplx(mid.to_cplx() + second_arrow_part)
         # , end_arrow.get()
-        pygame.draw.lines(surf, color, False,
-                            [start_arrow.get(), mid.get(), end_arrow.get()],
-                            width)
+        pygame.draw.lines(
+            surf, color, False, [start_arrow.get(), mid.get(), end_arrow.get()], width
+        )
 
 
 class PlotPyGame(BasePlot):
@@ -131,14 +141,17 @@ class PlotPyGame(BasePlot):
     This renderer should be used only for "online" representation of a powergrid.
 
     """
-    def __init__(self,
-                 observation_space,
-                 substation_layout=None,
-                 radius_sub=20.,
-                 load_prod_dist=70.,
-                 bus_radius=5.,
-                 timestep_duration_seconds=1.,
-                 fontsize=20):
+
+    def __init__(
+        self,
+        observation_space,
+        substation_layout=None,
+        radius_sub=20.0,
+        load_prod_dist=70.0,
+        bus_radius=5.0,
+        timestep_duration_seconds=1.0,
+        fontsize=20,
+    ):
         """
 
         Parameters
@@ -174,12 +187,14 @@ class PlotPyGame(BasePlot):
         self.lag_x = 150
         self.lag_y = 100
 
-        BasePlot.__init__(self,
-                          substation_layout=substation_layout,
-                          observation_space=observation_space,
-                          radius_sub=radius_sub,
-                          load_prod_dist=load_prod_dist,
-                          bus_radius=bus_radius)
+        BasePlot.__init__(
+            self,
+            substation_layout=substation_layout,
+            observation_space=observation_space,
+            radius_sub=radius_sub,
+            load_prod_dist=load_prod_dist,
+            bus_radius=bus_radius,
+        )
 
         # pygame
         self.__is_init = False
@@ -201,10 +216,10 @@ class PlotPyGame(BasePlot):
         self.text_paused = self.font_pause.render("Game Paused", True, self.color_text)
 
         # maximum overflow possible
-        self.rho_max = 2.
+        self.rho_max = 2.0
 
         # utilities
-        self.cum_reward = 0.
+        self.cum_reward = 0.0
         self.nb_timestep = 0
 
         # colors
@@ -231,7 +246,9 @@ class PlotPyGame(BasePlot):
         if self.__is_init is False:
             pygame.init()
             self.display_called = False
-            self.screen = pygame.display.set_mode((self.video_width, self.video_height), pygame.RESIZABLE)
+            self.screen = pygame.display.set_mode(
+                (self.video_width, self.video_height), pygame.RESIZABLE
+            )
             self.font = pygame.font.Font(None, self.fontsize)
             self.__is_init = True
 
@@ -250,7 +267,7 @@ class PlotPyGame(BasePlot):
         -------
 
         """
-        self.cum_reward = 0.
+        self.cum_reward = 0.0
         self.nb_timestep = 0
         self.rho_max = env.parameters.HARD_OVERFLOW_THRESHOLD
 
@@ -264,9 +281,15 @@ class PlotPyGame(BasePlot):
         max_ = tmp_arr.max(axis=0)
         b = min_
         a = max_ - min_
-        res = [(int((el1- b[0]) / a[0] * (self.window_grid[0]  - 2*self.lag_x)) + self.lag_x,
-                int((el2 - b[1]) / a[1] * (self.window_grid[1] - 2*self.lag_y)) + self.lag_y)
-               for el1, el2 in tmp]
+        res = [
+            (
+                int((el1 - b[0]) / a[0] * (self.window_grid[0] - 2 * self.lag_x))
+                + self.lag_x,
+                int((el2 - b[1]) / a[1] * (self.window_grid[1] - 2 * self.lag_y))
+                + self.lag_y,
+            )
+            for el1, el2 in tmp
+        ]
         return res
 
     def _event_looper(self, force=False):
@@ -337,16 +360,20 @@ class PlotPyGame(BasePlot):
         y_text_left = self.window_grid[0] + 100
         self.screen.blit(self.text_paused, (y_text_left, 300))
 
-        pygame.draw.line(self.screen,
-                         self.color_text,
-                         (y_text_left+self.text_paused.get_width()//2-10, start_pause),
-                         (y_text_left+self.text_paused.get_width()//2-10, end_pause),
-                         10)
-        pygame.draw.line(self.screen,
-                         self.color_text,
-                         (y_text_left+self.text_paused.get_width()//2+10, start_pause),
-                         (y_text_left + self.text_paused.get_width()//2+10, end_pause),
-                         10)
+        pygame.draw.line(
+            self.screen,
+            self.color_text,
+            (y_text_left + self.text_paused.get_width() // 2 - 10, start_pause),
+            (y_text_left + self.text_paused.get_width() // 2 - 10, end_pause),
+            10,
+        )
+        pygame.draw.line(
+            self.screen,
+            self.color_text,
+            (y_text_left + self.text_paused.get_width() // 2 + 10, start_pause),
+            (y_text_left + self.text_paused.get_width() // 2 + 10, end_pause),
+            10,
+        )
         pygame.display.flip()
 
     def _draw_final_information(self, reward, done, timestamp):
@@ -354,13 +381,13 @@ class PlotPyGame(BasePlot):
             if done:
                 text_label = "GAME OVER, press any key to continue to next episode."
                 text_graphic = self.font.render(text_label, True, self.color_text)
-                self.screen.blit(text_graphic, (self.window_grid[0]+100, 100))
+                self.screen.blit(text_graphic, (self.window_grid[0] + 100, 100))
                 text_label = "Total cumulated reward: {:.1f}".format(self.cum_reward)
                 text_graphic = self.font.render(text_label, True, self.color_text)
-                self.screen.blit(text_graphic, (self.window_grid[0]+100, 130))
+                self.screen.blit(text_graphic, (self.window_grid[0] + 100, 130))
                 text_label = "Total number timesteps: {:.1f}".format(self.nb_timestep)
                 text_graphic = self.font.render(text_label, True, self.color_text)
-                self.screen.blit(text_graphic, (self.window_grid[0]+100, 160))
+                self.screen.blit(text_graphic, (self.window_grid[0] + 100, 160))
 
     def _quit_and_close(self):
         # pygame.reset_vars()
@@ -414,7 +441,7 @@ class PlotPyGame(BasePlot):
         if not self.display_called:
             self.display_called = True
             self.screen.fill(self.background_color)
-            pygame.display.set_caption('Grid2Op Renderer')  # Window title
+            pygame.display.set_caption("Grid2Op Renderer")  # Window title
 
         force, has_quit = self._event_looper(force=False)
         while force:
@@ -433,7 +460,9 @@ class PlotPyGame(BasePlot):
         if self.time_last is not None and self._deactivate_display is False:
             tmp = time.perf_counter()  # in second
             if tmp - self.time_last < self.timestep_duration_seconds:
-                nb_sec_wait = int(1000 * (self.timestep_duration_seconds - (tmp - self.time_last)))
+                nb_sec_wait = int(
+                    1000 * (self.timestep_duration_seconds - (tmp - self.time_last))
+                )
                 pygame.time.wait(nb_sec_wait)  # it's in ms
             self.time_last = time.perf_counter()
         else:
@@ -448,7 +477,9 @@ class PlotPyGame(BasePlot):
                 # inform user that it's over
                 self._draw_final_information(reward, done, timestamp)
 
-    def _post_process_obs(self, fig, reward, done, timestamp, subs, lines, loads, gens, topos):
+    def _post_process_obs(
+        self, fig, reward, done, timestamp, subs, lines, loads, gens, topos
+    ):
         """
         INTERNAL
 
@@ -484,36 +515,38 @@ class PlotPyGame(BasePlot):
         if reward is not None:
             text_label = "Instantaneous reward: {:.1f}".format(reward)
             text_graphic = self.font.render(text_label, True, self.color_text)
-            self.screen.blit(text_graphic, (self.window_grid[0]+100, 100))
+            self.screen.blit(text_graphic, (self.window_grid[0] + 100, 100))
             text_label = "Cumulated reward: {:.1f}".format(self.cum_reward)
             text_graphic = self.font.render(text_label, True, self.color_text)
-            self.screen.blit(text_graphic, (self.window_grid[0]+100, 130))
+            self.screen.blit(text_graphic, (self.window_grid[0] + 100, 130))
             text_label = "Number timesteps: {:.1f}".format(self.nb_timestep)
             text_graphic = self.font.render(text_label, True, self.color_text)
-            self.screen.blit(text_graphic, (self.window_grid[0]+100, 160))
+            self.screen.blit(text_graphic, (self.window_grid[0] + 100, 160))
 
         if timestamp is not None:
             text_label = "Date : {:%Y-%m-%d %H:%M}".format(timestamp)
             text_graphic = self.font.render(text_label, True, self.color_text)
-            self.screen.blit(text_graphic, (self.window_grid[0]+100, 200))
+            self.screen.blit(text_graphic, (self.window_grid[0] + 100, 200))
 
     def _draw_subs_one_sub(self, fig, sub_id, center, this_col, text):
-        pygame.draw.circle(self.screen,
-                           self.color_text,
-                           [int(el) for el in center],
-                           int(self.radius_sub),
-                           2)
+        pygame.draw.circle(
+            self.screen,
+            self.color_text,
+            [int(el) for el in center],
+            int(self.radius_sub),
+            2,
+        )
 
         text_graphic = self.font.render(text, True, this_col)
         self._aligned_text(center, text_graphic, center)
 
     def _get_default_cmap(self, normalized_val):
         # step 0: compute thickness and color
-        max_val = 1.
+        max_val = 1.0
         ratio_ok = 0.7
         start_red = 0.5
-        amount_green = 235 - int(235. * (normalized_val / (max_val * ratio_ok))**4)
-        amount_red = int(255 * (normalized_val/ (max_val * ratio_ok))**4)
+        amount_green = 235 - int(235.0 * (normalized_val / (max_val * ratio_ok)) ** 4)
+        amount_red = int(255 * (normalized_val / (max_val * ratio_ok)) ** 4)
 
         # if normalized_val < ratio_ok * max_val:
         #    amount_green = 100 - int(100. * normalized_val / (max_val * ratio_ok))
@@ -536,9 +569,14 @@ class PlotPyGame(BasePlot):
         color = pygame.Color(amount_red, amount_green, 20)
         return color
 
-    def _draw_powerlines_one_powerline(self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col):
+    def _draw_powerlines_one_powerline(
+        self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col
+    ):
         text_graphic = self.font.render(txt_, True, this_col)
-        pos_txt = [int((pos_or[0] + pos_ex[0]) * 0.5), int((pos_or[1] + pos_ex[1]) * 0.5)]
+        pos_txt = [
+            int((pos_or[0] + pos_ex[0]) * 0.5),
+            int((pos_or[1] + pos_ex[1]) * 0.5),
+        ]
         how_center = "center|center"
         self._aligned_text(how_center, text_graphic, pos_txt)
 
@@ -551,7 +589,7 @@ class PlotPyGame(BasePlot):
             width = 1
             if value > self.rho_max:
                 width = 4
-            elif value > 1.:
+            elif value > 1.0:
                 width = 3
             elif value > 0.9:
                 width = 2
@@ -561,10 +599,15 @@ class PlotPyGame(BasePlot):
             pygame.draw.line(self.screen, this_col, pos_or, pos_ex, width)
 
             # step 2: draw arrows indicating current flows
-            _draw_arrow(self.screen, this_col, pos_or, pos_ex,
-                        or_to_ex,
-                        num_arrows=width,
-                        width=width)
+            _draw_arrow(
+                self.screen,
+                this_col,
+                pos_or,
+                pos_ex,
+                or_to_ex,
+                num_arrows=width,
+                width=width,
+            )
 
     def _aligned_text(self, pos, text_graphic, pos_text):
         if isinstance(pos_text, complex):
@@ -591,15 +634,39 @@ class PlotPyGame(BasePlot):
             pos_y -= height // 2
         self.screen.blit(text_graphic, (pos_x, pos_y))
 
-    def _draw_loads_one_load(self, fig, l_id, pos_load, txt_, pos_end_line, pos_load_sub, how_center, this_col):
+    def _draw_loads_one_load(
+        self,
+        fig,
+        l_id,
+        pos_load,
+        txt_,
+        pos_end_line,
+        pos_load_sub,
+        how_center,
+        this_col,
+    ):
         width = 2
-        pygame.draw.line(self.screen, this_col, pos_load_sub, (pos_end_line.real, pos_end_line.imag), width)
+        pygame.draw.line(
+            self.screen,
+            this_col,
+            pos_load_sub,
+            (pos_end_line.real, pos_end_line.imag),
+            width,
+        )
         text_graphic = self.font.render(txt_, True, this_col)
         self._aligned_text(how_center, text_graphic, pos_load)
 
-    def _draw_gens_one_gen(self, fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col):
+    def _draw_gens_one_gen(
+        self, fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col
+    ):
         width = 2
-        pygame.draw.line(self.screen, this_col, pos_gen_sub, (pos_end_line.real, pos_end_line.imag), width)
+        pygame.draw.line(
+            self.screen,
+            this_col,
+            pos_gen_sub,
+            (pos_end_line.real, pos_end_line.imag),
+            width,
+        )
         text_graphic = self.font.render(txt_, True, this_col)
         self._aligned_text(how_center, text_graphic, pos_gen)
         return None
@@ -609,19 +676,23 @@ class PlotPyGame(BasePlot):
 
         # I plot the buses
         for bus_id, z_bus in enumerate(buses_z):
-            pygame.draw.circle(self.screen,
-                               colors[bus_id],
-                               [int(z_bus.real), int(z_bus.imag)],
-                               int(self.bus_radius),
-                               0)
+            pygame.draw.circle(
+                self.screen,
+                colors[bus_id],
+                [int(z_bus.real), int(z_bus.imag)],
+                int(self.bus_radius),
+                0,
+            )
 
         # i connect every element to the proper bus with the proper color
         for el_nm, dict_el in elements.items():
-            this_el_bus = bus_vect[dict_el["sub_pos"]] -1
+            this_el_bus = bus_vect[dict_el["sub_pos"]] - 1
             if this_el_bus >= 0:
-                pygame.draw.line(self.screen,
-                                 colors[this_el_bus],
-                                 [int(dict_el["z"].real), int(dict_el["z"].imag)],
-                                 [int(buses_z[this_el_bus].real), int(buses_z[this_el_bus].imag)],
-                                 2)
+                pygame.draw.line(
+                    self.screen,
+                    colors[this_el_bus],
+                    [int(dict_el["z"].real), int(dict_el["z"].imag)],
+                    [int(buses_z[this_el_bus].real), int(buses_z[this_el_bus].imag)],
+                    2,
+                )
         return []

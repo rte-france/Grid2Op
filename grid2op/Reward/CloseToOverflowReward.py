@@ -34,6 +34,7 @@ class CloseToOverflowReward(BaseReward):
         # the reward is computed with this class (computing the penalty based on the number of overflow)
 
     """
+
     def __init__(self, max_lines=5):
         BaseReward.__init__(self)
         self.reward_min = dt_float(0.0)
@@ -42,9 +43,8 @@ class CloseToOverflowReward(BaseReward):
 
     def initialize(self, env):
         pass
-        
-    def __call__(self,  action, env, has_error,
-                 is_done, is_illegal, is_ambiguous):
+
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min
 
@@ -57,9 +57,12 @@ class CloseToOverflowReward(BaseReward):
             if (limit < 400.00 and ratio >= 0.95) or ratio >= 0.975:
                 close_to_overflow += dt_float(1.0)
 
-        close_to_overflow = np.clip(close_to_overflow,
-                                    dt_float(0.0), self.max_overflowed)
-        reward = np.interp(close_to_overflow,
-                           [dt_float(0.0), self.max_overflowed],
-                           [self.reward_max, self.reward_min])
+        close_to_overflow = np.clip(
+            close_to_overflow, dt_float(0.0), self.max_overflowed
+        )
+        reward = np.interp(
+            close_to_overflow,
+            [dt_float(0.0), self.max_overflowed],
+            [self.reward_max, self.reward_min],
+        )
         return reward

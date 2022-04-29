@@ -24,15 +24,13 @@ class Issue131Tester(unittest.TestCase):
         obs = env.reset()
         obs.simulate(env.action_space({}))
         prod_p_fa, prod_v_fa, load_p_fa, load_q_fa = obs.get_forecasted_inj()
-        shapes_a = (prod_p_fa.shape, prod_v_fa.shape,
-                    load_p_fa.shape, load_q_fa.shape)
+        shapes_a = (prod_p_fa.shape, prod_v_fa.shape, load_p_fa.shape, load_q_fa.shape)
 
         # Get forecast before any simulate doesnt work
         env.set_id(1)
         obs = env.reset()
         prod_p_fb, prod_v_fb, load_p_fb, load_q_fb = obs.get_forecasted_inj()
-        shapes_b = (prod_p_fb.shape, prod_v_fb.shape,
-                    load_p_fb.shape, load_q_fb.shape)
+        shapes_b = (prod_p_fb.shape, prod_v_fb.shape, load_p_fb.shape, load_q_fb.shape)
 
         assert shapes_a == shapes_b
         assert np.all(prod_p_fa == prod_p_fb)

@@ -17,13 +17,9 @@ class DispatchAction(PlayableAction):
 
     """
 
-    authorized_keys = {
-        "redispatch"
-    }
+    authorized_keys = {"redispatch"}
 
-    attr_list_vect = [
-        "_redispatch"
-    ]
+    attr_list_vect = ["_redispatch"]
     attr_list_set = set(attr_list_vect)
 
     def __init__(self):

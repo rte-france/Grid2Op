@@ -22,9 +22,13 @@ import pdb
 
 
 class TestSuitePandaPowerBackend(PandaPowerBackend):
-    """Only work for the case 14 !!! """
+    """Only work for the case 14 !!!"""
+
     def __init__(self, detailed_infos_for_cascading_failures=False):
-        PandaPowerBackend.__init__(self, detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        PandaPowerBackend.__init__(
+            self,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         # just for the test
         self._nb_bus_before_for_test = 14
         self._nb_line_for_test = 15
@@ -35,7 +39,12 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
             return
 
         # TODO
-        active_bus, (prod_p, prod_v, load_p, load_q, storage), _, shunts__ = backendAction()
+        (
+            active_bus,
+            (prod_p, prod_v, load_p, load_q, storage),
+            _,
+            shunts__,
+        ) = backendAction()
 
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if np.any(prod_p.changed):
@@ -43,7 +52,9 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
 
         tmp_prod_v = self._get_vector_inj["prod_v"](self._grid)
         if np.any(prod_v.changed):
-            tmp_prod_v.iloc[prod_v.changed] = prod_v.values[prod_v.changed] / self.prod_pu_to_kv[prod_v.changed]
+            tmp_prod_v.iloc[prod_v.changed] = (
+                prod_v.values[prod_v.changed] / self.prod_pu_to_kv[prod_v.changed]
+            )
 
         if self._id_bus_added is not None and prod_v.changed[self._id_bus_added]:
             # handling of the slack bus, where "2" generators are present.
@@ -61,18 +72,28 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
             shunt_p, shunt_q, shunt_bus = shunts__
 
             if np.any(shunt_p.changed):
-                self._grid.shunt["p_mw"].iloc[shunt_p.changed] = shunt_p.values[shunt_p.changed]
+                self._grid.shunt["p_mw"].iloc[shunt_p.changed] = shunt_p.values[
+                    shunt_p.changed
+                ]
             if np.any(shunt_q.changed):
-                self._grid.shunt["q_mvar"].iloc[shunt_q.changed] = shunt_q.values[shunt_q.changed]
+                self._grid.shunt["q_mvar"].iloc[shunt_q.changed] = shunt_q.values[
+                    shunt_q.changed
+                ]
             if np.any(shunt_bus.changed):
                 sh_service = shunt_bus.values[shunt_bus.changed] != -1
                 self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service
-                sh_bus1 = np.arange(len(shunt_bus))[shunt_bus.changed & shunt_bus.values == 1]
-                sh_bus2 = np.arange(len(shunt_bus))[shunt_bus.changed & shunt_bus.values == 2]
+                sh_bus1 = np.arange(len(shunt_bus))[
+                    shunt_bus.changed & shunt_bus.values == 1
+                ]
+                sh_bus2 = np.arange(len(shunt_bus))[
+                    shunt_bus.changed & shunt_bus.values == 2
+                ]
                 if len(sh_bus1) > 0:
                     self._grid.shunt["bus"][sh_bus1] = self.shunt_to_subid[sh_bus1]
                 if len(sh_bus2) > 0:
-                    self._grid.shunt["bus"][sh_bus2] = self.shunt_to_subid[sh_bus2] + self._nb_bus_before_for_test
+                    self._grid.shunt["bus"][sh_bus2] = (
+                        self.shunt_to_subid[sh_bus2] + self._nb_bus_before_for_test
+                    )
 
         # i made at least a real change, so i implement it in the backend
         loads_bus = backendAction.get_loads_bus()
@@ -81,7 +102,10 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
                 self._grid.load["in_service"][load_id] = False
             else:
                 self._grid.load["in_service"][load_id] = True
-                self._grid.load["bus"][load_id] = self.load_to_subid[load_id] + (new_bus - 1) * self._nb_bus_before_for_test
+                self._grid.load["bus"][load_id] = (
+                    self.load_to_subid[load_id]
+                    + (new_bus - 1) * self._nb_bus_before_for_test
+                )
 
         gens_bus = backendAction.get_gens_bus()
         for gen_id, new_bus in gens_bus:
@@ -89,10 +113,19 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
                 self._grid.gen["in_service"][gen_id] = False
             else:
                 self._grid.gen["in_service"][gen_id] = True
-                self._grid.gen["bus"][gen_id] = self.gen_to_subid[gen_id] + (new_bus - 1) * self._nb_bus_before_for_test
+                self._grid.gen["bus"][gen_id] = (
+                    self.gen_to_subid[gen_id]
+                    + (new_bus - 1) * self._nb_bus_before_for_test
+                )
 
-                if gen_id == (self._grid.gen.shape[0] - 1) and self._iref_slack is not None:
-                    self._grid.ext_grid["bus"].iat[0] = self.gen_to_subid[gen_id] + (new_bus - 1) * self._nb_bus_before_for_test
+                if (
+                    gen_id == (self._grid.gen.shape[0] - 1)
+                    and self._iref_slack is not None
+                ):
+                    self._grid.ext_grid["bus"].iat[0] = (
+                        self.gen_to_subid[gen_id]
+                        + (new_bus - 1) * self._nb_bus_before_for_test
+                    )
 
         lines_or_bus = backendAction.get_lines_or_bus()
         for line_id, new_bus in lines_or_bus:
@@ -109,7 +142,10 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
                 dt["in_service"][line_id_db] = False
             else:
                 dt["in_service"][line_id_db] = True
-                dt[key][line_id_db] = self.line_or_to_subid[line_id] + (new_bus - 1) * self._nb_bus_before_for_test
+                dt[key][line_id_db] = (
+                    self.line_or_to_subid[line_id]
+                    + (new_bus - 1) * self._nb_bus_before_for_test
+                )
 
         lines_ex_bus = backendAction.get_lines_ex_bus()
         for line_id, new_bus in lines_ex_bus:
@@ -126,7 +162,10 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
                 dt["in_service"][line_id_db] = False
             else:
                 dt["in_service"][line_id_db] = True
-                dt[key][line_id_db] = self.line_ex_to_subid[line_id] + (new_bus - 1) * self._nb_bus_before_for_test
+                dt[key][line_id_db] = (
+                    self.line_ex_to_subid[line_id]
+                    + (new_bus - 1) * self._nb_bus_before_for_test
+                )
 
         bus_is = self._grid.bus["in_service"]
         for i, (bus1_status, bus2_status) in enumerate(active_bus):
@@ -138,22 +177,26 @@ class TestXXXBus(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.envtest = grid2op.make("rte_case14_realistic",
-                                        test=True,
-                                        backend=TestSuitePandaPowerBackend(),
-                                        _add_to_name="test_get_xxx_bus_test")
+            self.envtest = grid2op.make(
+                "rte_case14_realistic",
+                test=True,
+                backend=TestSuitePandaPowerBackend(),
+                _add_to_name="test_get_xxx_bus_test",
+            )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.envref = grid2op.make("rte_case14_realistic",
-                                       test=True,
-                                       _add_to_name="test_get_xxx_bus_ref")
+            self.envref = grid2op.make(
+                "rte_case14_realistic", test=True, _add_to_name="test_get_xxx_bus_ref"
+            )
         seed = 0
         self.nb_test = 10
         self.max_iter = 30
 
         self.envref.seed(seed)
         self.envtest.seed(seed)
-        self.seeds = [i for i in range(self.nb_test)]  # used for seeding environment and agent
+        self.seeds = [
+            i for i in range(self.nb_test)
+        ]  # used for seeding environment and agent
 
     def tearDown(self) -> None:
         self.envref.close()
@@ -163,9 +206,9 @@ class TestXXXBus(unittest.TestCase):
         """
         test the methods get_load_bus works
         """
-        act_load = self.envref.action_space({"set_bus": {"loads_id": [(0, 2)],
-                                                         "lines_or_id": [(2, 2)]}}
-                                       )
+        act_load = self.envref.action_space(
+            {"set_bus": {"loads_id": [(0, 2)], "lines_or_id": [(2, 2)]}}
+        )
         obs_ref, reward_ref, done_ref, info_ref = self.envref.step(act_load)
         obs_test, reward_test, done_test, info_test = self.envtest.step(act_load)
         assert not done_ref
@@ -179,9 +222,9 @@ class TestXXXBus(unittest.TestCase):
         do an action on the generator where the slack bus is, it "broke" the "code" i used for testing
         (TestSuitePandaPowerBackend)
         """
-        act_load = self.envref.action_space({"set_bus": {"generators_id": [(4, 2)],
-                                                         "lines_or_id": [(0, 2), (1, 1)]}}
-                                       )
+        act_load = self.envref.action_space(
+            {"set_bus": {"generators_id": [(4, 2)], "lines_or_id": [(0, 2), (1, 1)]}}
+        )
         obs_ref, reward_ref, done_ref, info_ref = self.envref.step(act_load)
         obs_test, reward_test, done_test, info_test = self.envtest.step(act_load)
         assert not done_ref
@@ -193,9 +236,9 @@ class TestXXXBus(unittest.TestCase):
         """
         test the methods get_gen_bus works
         """
-        act_gen = self.envref.action_space({"set_bus": {"generators_id": [(0, 2)],
-                                                        "lines_or_id": [(2, 2)]}}
-                                            )
+        act_gen = self.envref.action_space(
+            {"set_bus": {"generators_id": [(0, 2)], "lines_or_id": [(2, 2)]}}
+        )
         obs_ref, reward_ref, done_ref, info_ref = self.envref.step(act_gen)
         obs_test, reward_test, done_test, info_test = self.envtest.step(act_gen)
 
@@ -209,9 +252,9 @@ class TestXXXBus(unittest.TestCase):
         """
         test the methods get_line_or_bus works (for line and transformer)
         """
-        act_gen = self.envref.action_space({"set_bus": {"generators_id": [(0, 2)],
-                                                        "lines_or_id": [(2, 2)]}}
-                                            )
+        act_gen = self.envref.action_space(
+            {"set_bus": {"generators_id": [(0, 2)], "lines_or_id": [(2, 2)]}}
+        )
         obs_ref, reward_ref, done_ref, info_ref = self.envref.step(act_gen)
         obs_test, reward_test, done_test, info_test = self.envtest.step(act_gen)
 
@@ -224,9 +267,9 @@ class TestXXXBus(unittest.TestCase):
         # for trafo
         self.envref.reset()
         self.envtest.reset()
-        act_gen = self.envref.action_space({"set_bus": {"lines_ex_id": [(3, 2)],
-                                                        "lines_or_id": [(16, 2)]}}
-                                            )
+        act_gen = self.envref.action_space(
+            {"set_bus": {"lines_ex_id": [(3, 2)], "lines_or_id": [(16, 2)]}}
+        )
         obs_ref, reward_ref, done_ref, info_ref = self.envref.step(act_gen)
         obs_test, reward_test, done_test, info_test = self.envtest.step(act_gen)
 
@@ -240,9 +283,9 @@ class TestXXXBus(unittest.TestCase):
         """
         test the methods get_line_or_bus works (for line and transformer)
         """
-        act_gen = self.envref.action_space({"set_bus": {"lines_ex_id": [(0, 2)],
-                                                        "lines_or_id": [(2, 2)]}}
-                                          )
+        act_gen = self.envref.action_space(
+            {"set_bus": {"lines_ex_id": [(0, 2)], "lines_or_id": [(2, 2)]}}
+        )
         obs_ref, reward_ref, done_ref, info_ref = self.envref.step(act_gen)
         obs_test, reward_test, done_test, info_test = self.envtest.step(act_gen)
 
@@ -255,9 +298,9 @@ class TestXXXBus(unittest.TestCase):
         # for trafo
         self.envref.reset()
         self.envtest.reset()
-        act_gen = self.envref.action_space({"set_bus": {"lines_ex_id": [(16, 2)],
-                                                        "lines_or_id": [(10, 2)]}}
-                                            )
+        act_gen = self.envref.action_space(
+            {"set_bus": {"lines_ex_id": [(16, 2)], "lines_or_id": [(10, 2)]}}
+        )
         obs_ref, reward_ref, done_ref, info_ref = self.envref.step(act_gen)
         obs_test, reward_test, done_test, info_test = self.envtest.step(act_gen)
 
@@ -272,17 +315,25 @@ class TestXXXBus(unittest.TestCase):
         test the methods get_load_bus, get_gen_bus, get_lines_or_bus and get_lines_ex_bus works with do
         nothing agent (more examples)
         """
-        runner_ref = Runner(**self.envref.get_params_for_runner(), agentClass=DoNothingAgent)
-        runner_test = Runner(**self.envtest.get_params_for_runner(), agentClass=DoNothingAgent)
+        runner_ref = Runner(
+            **self.envref.get_params_for_runner(), agentClass=DoNothingAgent
+        )
+        runner_test = Runner(
+            **self.envtest.get_params_for_runner(), agentClass=DoNothingAgent
+        )
 
-        res_ref = runner_ref.run(nb_episode=self.nb_test, max_iter=self.max_iter,
-                                 agent_seeds=self.seeds,
-                                 env_seeds=self.seeds,
-                                 )
-        res_test = runner_test.run(nb_episode=self.nb_test, max_iter=self.max_iter,
-                                   agent_seeds=self.seeds,
-                                   env_seeds=self.seeds,
-                                   )
+        res_ref = runner_ref.run(
+            nb_episode=self.nb_test,
+            max_iter=self.max_iter,
+            agent_seeds=self.seeds,
+            env_seeds=self.seeds,
+        )
+        res_test = runner_test.run(
+            nb_episode=self.nb_test,
+            max_iter=self.max_iter,
+            agent_seeds=self.seeds,
+            env_seeds=self.seeds,
+        )
 
         assert res_ref == res_test
 
@@ -291,17 +342,25 @@ class TestXXXBus(unittest.TestCase):
         test the methods get_load_bus, get_gen_bus, get_lines_or_bus and get_lines_ex_bus works with random
         agent (more tests)
         """
-        runner_ref = Runner(**self.envref.get_params_for_runner(), agentClass=RandomAgent)
-        runner_test = Runner(**self.envtest.get_params_for_runner(), agentClass=RandomAgent)
+        runner_ref = Runner(
+            **self.envref.get_params_for_runner(), agentClass=RandomAgent
+        )
+        runner_test = Runner(
+            **self.envtest.get_params_for_runner(), agentClass=RandomAgent
+        )
 
-        res_ref = runner_ref.run(nb_episode=self.nb_test, max_iter=self.max_iter,
-                                 agent_seeds=self.seeds,
-                                 env_seeds=self.seeds,
-                                 )
-        res_test = runner_test.run(nb_episode=self.nb_test, max_iter=self.max_iter,
-                                   agent_seeds=self.seeds,
-                                   env_seeds=self.seeds,
-                                   )
+        res_ref = runner_ref.run(
+            nb_episode=self.nb_test,
+            max_iter=self.max_iter,
+            agent_seeds=self.seeds,
+            env_seeds=self.seeds,
+        )
+        res_test = runner_test.run(
+            nb_episode=self.nb_test,
+            max_iter=self.max_iter,
+            agent_seeds=self.seeds,
+            env_seeds=self.seeds,
+        )
         assert res_ref == res_test
 
 

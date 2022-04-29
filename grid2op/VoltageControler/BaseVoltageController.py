@@ -22,6 +22,7 @@ class BaseVoltageController(RandomObject, ABC):
 
     If the voltages are not on the chronics (missing files), it will not change the voltage setpoints at all.
     """
+
     def __init__(self, gridobj, controler_backend, actionSpace_cls):
         """
 
@@ -37,17 +38,19 @@ class BaseVoltageController(RandomObject, ABC):
         RandomObject.__init__(self)
         legal_act = AlwaysLegal()
         self._actionSpace_cls = actionSpace_cls
-        self.action_space = actionSpace_cls(gridobj=gridobj,
-                                            actionClass=VoltageOnlyAction,
-                                            legal_action=legal_act)
+        self.action_space = actionSpace_cls(
+            gridobj=gridobj, actionClass=VoltageOnlyAction, legal_action=legal_act
+        )
 
     def _custom_deepcopy_for_copy(self, new_obj):
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
         new_obj._actionSpace_cls = self._actionSpace_cls
         legal_act = AlwaysLegal()
-        new_obj.action_space = new_obj._actionSpace_cls(gridobj=self._actionSpace_cls,
-                                                        actionClass=VoltageOnlyAction,
-                                                        legal_action=legal_act)
+        new_obj.action_space = new_obj._actionSpace_cls(
+            gridobj=self._actionSpace_cls,
+            actionClass=VoltageOnlyAction,
+            legal_action=legal_act,
+        )
 
     def copy(self):
         """
@@ -129,7 +132,7 @@ class BaseVoltageController(RandomObject, ABC):
         pass
 
     def close(self):
-        """If you require some "backend" to control the voltages, then you need to implement this 
+        """If you require some "backend" to control the voltages, then you need to implement this
         (and also some specific things for the copy) to have it working correctly
         """
         pass

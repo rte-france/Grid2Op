@@ -15,5 +15,5 @@ config = {
     "grid_value_class": GridStateFromFileWithForecasts,
     "volagecontroler_class": None,
     "thermal_limits": None,
-    "names_chronics_to_grid": None
+    "names_chronics_to_grid": None,
 }

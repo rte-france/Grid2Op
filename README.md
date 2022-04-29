@@ -33,10 +33,11 @@ Official documentation: the official documentation is available at
     *   [2 BaseAction Grid Manipulation](getting_started/2_Action_GridManipulation.ipynb)
     *   [3 Training An BaseAgent](getting_started/3_TrainingAnAgent.ipynb)
     *   [4 Study Your BaseAgent](getting_started/4_StudyYourAgent.ipynb)
-*   [4_Citing](#Citing)
+*   [4 Citing](#Citing)
 *   [5 Documentation](#documentation)
-*   [6 Test and known issues](#tests-and-known-issues)
-*   [7 License information](#license-information)
+*   [6 Contribute](#contributing)
+*   [7 Test and known issues](#tests-and-known-issues)
+*   [8 License information](#license-information)
 
 # Installation
 ## Requirements:
@@ -139,11 +140,7 @@ interesting part of this framework:
 * [04_TrainingAnAgent](getting_started/04_TrainingAnAgent.ipynb)
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/04_TrainingAnAgent.ipynb)
   shows how to get started with 
-  reinforcement learning in the Grid2Op framework. It will use the code provided by Abhinav Sagar
-  available on [his blog](https://towardsdatascience.com/deep-reinforcement-learning-tutorial-with-open-ai-gym-c0de4471f368) 
-  or on [his github repository](https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial). This code will
-  be adapted (only minor changes, most of them to fit the shape of the data) 
-  and a (D)DQN will be trained on this problem.
+  reinforcement learning with the grid2op environment. It shows the basic on how to train a "PPO" model operating the grid relying on "stable baselines 3" PPO implementation.
 * [05_StudyYourAgent](getting_started/05_StudyYourAgent.ipynb)
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/05_StudyYourAgent.ipynb)
   shows how to study an BaseAgent, for example
@@ -239,6 +236,31 @@ For example, the  "getting started" notebooks referenced some pages of the help.
 
 <!-- sphinx-build -b html docs documentation-->
 
+# Contributing
+
+We welcome contributions from everyone. They can take the form of pull requests for smaller changed. 
+In case of a major change (or if you have a doubt on what is "a small change"), please open an issue first 
+to discuss what you would like to change.
+
+To contribute to this code, you need to:
+
+1. fork the repository located at https://github.com/rte-france/Grid2Op
+2. synch your fork with the "latest developement branch of grid2op". For example, if the latest grid2op release
+   on pypi is `1.6.5` you need to synch your repo with the branch named `dev_1.6.6` or `dev_1.7.0` (if 
+   the branch `dev_1.6.6` does not exist). It will be the highest number in the branches `dev_*` on
+   grid2op official github repository.
+3. implement your functionality / code your modifications or anything else
+4. make sure to add tests and documentation if applicable
+5. once it is developed, synch your repo with the last development branch again (see point 2 above) and
+   make sure to solve any possible conflicts
+6. write a pull request and make sure to target the right branch (the "last development branch")
+
+
+Code in the contribution should pass all the tests, have some dedicated tests for the new feature (if applicable)
+and documentation (if applicable).
+
+Before implementing any major feature, please write a github issue first.
+
 # Tests and known issues
 
 ## Tests performed currently
@@ -249,11 +271,12 @@ The unit tests includes testing, on linux machines the correct integration of gr
 - python 3.7
 - python 3.8
 - python 3.9
+- python 3.10
 
-Note that, at time of writing, "numba" which accelerates the computation of the powerflow for the default 
-"powerflow solver" is not available for python 3.9 (more information at https://github.com/numba/numba/issues/6345).
+On all of these cases, we tested grid2op on all available numpy version >= 1.18 (**nb** available numpy versions depend
+on python version).
 
-On all of these cases, we tested grid2op on all available numpy version >= 1.18.
+The complete test suit is run on linux with the latest numpy version on python 3.8.
 
 ## Known issue
 
@@ -281,12 +304,3 @@ Copyright 2019-2020 RTE France
 
 This Source Code is subject to the terms of the Mozilla Public License (MPL) v2 also available 
 [here](https://www.mozilla.org/en-US/MPL/2.0/)
-
-# Contributing
-
-We welcom contribution from everyone. They can take the form of pull requests for smaller changed. 
-In case of a major change (or if you have a doubt on what is "a small change"), please open an issue first 
-to discuss what you would like to change.
-
-Code in the contribution should pass all the tests, have some dedicated tests for the new feature
-and documentation.

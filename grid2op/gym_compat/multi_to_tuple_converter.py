@@ -46,10 +46,10 @@ class MultiToTupleConverter(BaseGymAttrConverter):
 
     TODO add code example
     """
+
     def __init__(self, init_space=None):
         self.size = None
-        BaseGymAttrConverter.__init__(self,
-                                      space=None)
+        BaseGymAttrConverter.__init__(self, space=None)
         if init_space is not None:
             self.initialize_space(init_space)
 
@@ -71,11 +71,15 @@ class MultiToTupleConverter(BaseGymAttrConverter):
             if isinstance(init_space.my_space, (MultiBinary, MultiDiscrete)):
                 init_space = init_space.my_space
             else:
-                raise RuntimeError("Bad converter used. It should be of type MultiBinary or MultiDiscrete")
+                raise RuntimeError(
+                    "Bad converter used. It should be of type MultiBinary or MultiDiscrete"
+                )
         else:
-            raise RuntimeError("Impossible to convert a gym space of type {} to a Tuple (it should be of "
-                               "type space.MultiBinary or space.MultiDiscrete)"
-                               "".format(type(init_space)))
+            raise RuntimeError(
+                "Impossible to convert a gym space of type {} to a Tuple (it should be of "
+                "type space.MultiBinary or space.MultiDiscrete)"
+                "".format(type(init_space))
+            )
         if isinstance(init_space, MultiBinary):
             self.size = init_space.n
         else:
@@ -87,9 +91,7 @@ class MultiToTupleConverter(BaseGymAttrConverter):
             if isinstance(init_space, MultiDiscrete):
                 tmp_sz = init_space.nvec[i]
             li.append(Discrete(tmp_sz))
-        self.base_initialize(space=FixedTuple(li),
-                             g2op_to_gym=None,
-                             gym_to_g2op=None)
+        self.base_initialize(space=FixedTuple(li), g2op_to_gym=None, gym_to_g2op=None)
 
     def gym_to_g2op(self, gym_object):
         tmp = np.array(gym_object).astype(dt_int)
@@ -98,6 +100,6 @@ class MultiToTupleConverter(BaseGymAttrConverter):
     def g2op_to_gym(self, g2op_object):
         tmp = self.previous_fun(g2op_object)  # TODO
         return tuple(tmp.astype(dt_int))
-        
+
     def close(self):
         pass

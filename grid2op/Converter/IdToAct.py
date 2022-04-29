@@ -65,6 +65,7 @@ class IdToAct(Converter):
     which makes it rather difficult to handle for most machine learning algorithm. Be carefull with that !
 
     """
+
     def __init__(self, action_space):
         Converter.__init__(self, action_space)
         self.__class__ = IdToAct.init_grid(action_space)
@@ -128,11 +129,11 @@ class IdToAct(Converter):
             curtail: ``bool``
                 Whether you want to include the "curtailment" in your action space
                 (in case the original action space allows it)
-            
+
             storage: ``bool``
                 Whether you want to include the "storage unit" in your action space
                 (in case the original action space allows it)
-                
+
         Examples
         --------
         Here is an example of a code that will: make a converter by selecting some action. Save it, and then restore
@@ -229,20 +230,26 @@ class IdToAct(Converter):
         elif isinstance(all_actions, str):
             # load the path from the path provided
             if not os.path.exists(all_actions):
-                raise FileNotFoundError("No file located at \"{}\" where the actions should have been stored."
-                                        "".format(all_actions))
+                raise FileNotFoundError(
+                    'No file located at "{}" where the actions should have been stored.'
+                    "".format(all_actions)
+                )
             try:
                 all_act = np.load(all_actions)
             except Exception as e:
-                raise RuntimeError("Impossible to load the data located at \"{}\" with error\n{}."
-                                   "".format(all_actions, e))
+                raise RuntimeError(
+                    'Impossible to load the data located at "{}" with error\n{}.'
+                    "".format(all_actions, e)
+                )
             try:
                 self.all_actions = np.array([self.__call__() for _ in all_act])
                 for i, el in enumerate(all_act):
                     self.all_actions[i].from_vect(el)
             except Exception as e:
-                raise RuntimeError("Impossible to convert the data located at \"{}\" into valid grid2op action. "
-                                   "The error was:\n{}".format(all_actions, e))
+                raise RuntimeError(
+                    'Impossible to convert the data located at "{}" into valid grid2op action. '
+                    "The error was:\n{}".format(all_actions, e)
+                )
         elif isinstance(all_actions, (list, np.ndarray)):
             # assign the action to my actions
             possible_act = all_actions[0]
@@ -259,8 +266,10 @@ class IdToAct(Converter):
                     for i, el in enumerate(all_actions):
                         self.all_actions[i].from_vect(el)
                 except Exception as exc_:
-                    raise Grid2OpException("Impossible to convert the data provided in \"all_actions\" into valid "
-                                           "grid2op action. The error was:\n{}".format(e)) from exc_
+                    raise Grid2OpException(
+                        'Impossible to convert the data provided in "all_actions" into valid '
+                        "grid2op action. The error was:\n{}".format(e)
+                    ) from exc_
         else:
             raise RuntimeError("Impossible to load the action provided.")
         self.n = len(self.all_actions)
@@ -279,7 +288,9 @@ class IdToAct(Converter):
             ``False`` meaning "this action will be dropped.
 
         """
-        self.all_actions = np.array([el for el in self.all_actions if filtering_fun(el)])
+        self.all_actions = np.array(
+            [el for el in self.all_actions if filtering_fun(el)]
+        )
         self.n = len(self.all_actions)
 
     def save(self, path, name="action_space_vect.npy"):
@@ -330,12 +341,20 @@ class IdToAct(Converter):
 
         """
         if not os.path.exists(path):
-            raise FileNotFoundError("Impossible to save the action space as the directory \"{}\" does not exist."
-                                    "".format(path))
+            raise FileNotFoundError(
+                'Impossible to save the action space as the directory "{}" does not exist.'
+                "".format(path)
+            )
         if not os.path.isdir(path):
-            raise NotADirectoryError("The path to save the action space provided \"{}\" is not a directory."
-                                     "".format(path))
-        saved_npy = np.array([el.to_vect() for el in self.all_actions]).astype(dtype=dt_float).reshape(self.n, -1)
+            raise NotADirectoryError(
+                'The path to save the action space provided "{}" is not a directory.'
+                "".format(path)
+            )
+        saved_npy = (
+            np.array([el.to_vect() for el in self.all_actions])
+            .astype(dtype=dt_float)
+            .reshape(self.n, -1)
+        )
         np.save(file=os.path.join(path, name), arr=saved_npy)
 
     def sample(self):
@@ -391,6 +410,7 @@ class IdToAct(Converter):
         """
         # lazy import gym
         from gym import spaces
+
         res = {"action": spaces.Discrete(n=self.n)}
         return res
 
@@ -474,5 +494,6 @@ class IdToAct(Converter):
 
         """
         from gym import spaces
+
         res = spaces.dict.OrderedDict({"action": int(action)})
         return res

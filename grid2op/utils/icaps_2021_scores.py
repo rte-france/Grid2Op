@@ -82,43 +82,50 @@ class ScoreICAPS2021(ScoreL2RPN2020):
     # NAME_DN_NO_OVERFLOW = "icaps2021_no_overflow"
     NAME_RP_NO_OVERWLOW = "icaps2021_no_overflow_reco"
 
-    def __init__(self,
-                 env,
-                 env_seeds=None,
-                 agent_seeds=None,
-                 nb_scenario=16,
-                 min_losses_ratio=0.8,
-                 verbose=0,
-                 max_step=-1,
-                 nb_process_stats=1,
-                 scale_alarm_score=100.,
-                 weight_op_score=0.7,
-                 weight_alarm_score=0.3,
-                 ):
+    def __init__(
+        self,
+        env,
+        env_seeds=None,
+        agent_seeds=None,
+        nb_scenario=16,
+        min_losses_ratio=0.8,
+        verbose=0,
+        max_step=-1,
+        nb_process_stats=1,
+        scale_alarm_score=100.0,
+        weight_op_score=0.7,
+        weight_alarm_score=0.3,
+    ):
 
-        ScoreL2RPN2020.__init__(self,
-                                env=env,
-                                env_seeds=env_seeds,
-                                agent_seeds=agent_seeds,
-                                nb_scenario=nb_scenario,
-                                min_losses_ratio=min_losses_ratio,
-                                verbose=verbose,
-                                max_step=max_step,
-                                nb_process_stats=nb_process_stats,
-                                scores_func={"grid_operational_cost": L2RPNSandBoxScore,
-                                             "alarm_cost": _AlarmScore},
-                                score_names=["grid_operational_cost_scores", "alarm_cost_scores"])
+        ScoreL2RPN2020.__init__(
+            self,
+            env=env,
+            env_seeds=env_seeds,
+            agent_seeds=agent_seeds,
+            nb_scenario=nb_scenario,
+            min_losses_ratio=min_losses_ratio,
+            verbose=verbose,
+            max_step=max_step,
+            nb_process_stats=nb_process_stats,
+            scores_func={
+                "grid_operational_cost": L2RPNSandBoxScore,
+                "alarm_cost": _AlarmScore,
+            },
+            score_names=["grid_operational_cost_scores", "alarm_cost_scores"],
+        )
         self.scale_alarm_score = scale_alarm_score
         self.weight_op_score = weight_op_score
         self.weight_alarm_score = weight_alarm_score
 
-    def _compute_episode_score(self,
-                               ep_id,  # the ID here, which is an integer and is not the ID from chronics balblabla
-                               meta,
-                               other_rewards,
-                               dn_metadata,
-                               no_ov_metadata,
-                               score_file_to_use=None):
+    def _compute_episode_score(
+        self,
+        ep_id,  # the ID here, which is an integer and is not the ID from chronics balblabla
+        meta,
+        other_rewards,
+        dn_metadata,
+        no_ov_metadata,
+        score_file_to_use=None,
+    ):
         """
         Performs the rescaling of the score given the information stored in the "statistics" of this
         environment.
@@ -128,16 +135,17 @@ class ScoreICAPS2021(ScoreL2RPN2020):
         """
 
         # compute the operational score
-        op_score, n_played, total_ts = super()._compute_episode_score(ep_id,
-                                                                      meta,
-                                                                      other_rewards,
-                                                                      dn_metadata,
-                                                                      no_ov_metadata,
-                                                                      # score_file_to_use should match the
-                                                                      # L2RPNSandBoxScore key in
-                                                                      # self.scores_func
-                                                                      score_file_to_use="grid_operational_cost_scores",
-                                                                      )
+        op_score, n_played, total_ts = super()._compute_episode_score(
+            ep_id,
+            meta,
+            other_rewards,
+            dn_metadata,
+            no_ov_metadata,
+            # score_file_to_use should match the
+            # L2RPNSandBoxScore key in
+            # self.scores_func
+            score_file_to_use="grid_operational_cost_scores",
+        )
         # should match underlying_statistics.run_env `dict_kwg["other_rewards"][XXX] = ...`
         # XXX is right now f"{EpisodeStatistics.KEY_SCORE}_{nm}" [this should match the XXX]
         alarm_score_nm = "alarm_cost_scores"
@@ -147,7 +155,9 @@ class ScoreICAPS2021(ScoreL2RPN2020):
         alarm_score = float(other_rewards[-1][key_score_file])
         alarm_score = self.scale_alarm_score * alarm_score
 
-        ep_score = self.weight_op_score * op_score + self.weight_alarm_score * alarm_score
+        ep_score = (
+            self.weight_op_score * op_score + self.weight_alarm_score * alarm_score
+        )
         return (ep_score, op_score, alarm_score), n_played, total_ts
 
 
@@ -155,17 +165,20 @@ if __name__ == "__main__":
     import grid2op
     from lightsim2grid import LightSimBackend
     from grid2op.Agent import RandomAgent, DoNothingAgent
-    env = grid2op.make("/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alert",
-                       backend=LightSimBackend())
+
+    env = grid2op.make(
+        "/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alert",
+        backend=LightSimBackend(),
+    )
     # env = grid2op.make("l2rpn_case14_sandbox", backend=LightSimBackend())
     nb_scenario = 2
-    my_score = ScoreICAPS2021(env,
-                              nb_scenario=nb_scenario,
-                              env_seeds=[0 for _ in range(nb_scenario)],
-                              agent_seeds=[0 for _ in range(nb_scenario)]
-                              )
+    my_score = ScoreICAPS2021(
+        env,
+        nb_scenario=nb_scenario,
+        env_seeds=[0 for _ in range(nb_scenario)],
+        agent_seeds=[0 for _ in range(nb_scenario)],
+    )
 
     my_agent = RandomAgent(env.action_space)
     my_agent = DoNothingAgent(env.action_space)
     print(my_score.get(my_agent))
-

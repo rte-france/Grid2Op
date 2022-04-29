@@ -4,7 +4,7 @@ __all__ = [
     "BaseMultiProcessEnvironment",
     "SingleEnvMultiProcess",
     "MultiEnvMultiProcess",
-    "MultiMixEnvironment"
+    "MultiMixEnvironment",
 ]
 
 from grid2op.Environment.BaseEnv import BaseEnv
