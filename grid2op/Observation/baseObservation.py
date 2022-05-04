@@ -2908,6 +2908,11 @@ class BaseObservation(GridObjects):
                 self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down
             )
             self.gen_margin_down[type(self).gen_renewable] = 0.0
+            
+            # because of the slack, sometimes it's negative...
+            # see https://github.com/rte-france/Grid2Op/issues/313
+            self.gen_margin_up[self.gen_margin_up < 0.] = 0.
+            self.gen_margin_down[self.gen_margin_down < 0.] = 0.
         else:
             self.gen_margin_up[:] = 0.0
             self.gen_margin_down[:] = 0.0
