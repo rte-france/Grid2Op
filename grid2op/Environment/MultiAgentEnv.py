@@ -36,7 +36,7 @@ class MultiAgentEnv :
                  env_name,
                  agents_names,
                  env_test : bool = False,
-                 agent_order = random_order
+                 agent_order_fn = random_order
                  ) :
         
         self.env = grid2op.make(env_name, test = env_test)
@@ -46,7 +46,7 @@ class MultiAgentEnv :
                 self.agents, [0. for _ in range(len(self.agents))]
             )
         )
-        self.select_agent = AgentSelector(len(self.agents), agent_order)
+        self.select_agent = AgentSelector(len(self.agents), agent_order_fn)
         
     def reset(self):
         observation = self.env.reset()
