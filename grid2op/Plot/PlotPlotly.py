@@ -53,6 +53,7 @@ from grid2op.Exceptions import PlotError
 try:
     import plotly.graph_objects as go
     import seaborn as sns
+
     can_plot = True
 except Exception as e:
     can_plot = False
@@ -94,7 +95,7 @@ def draw_sub(pos, radius=50, line_color="LightSeaGreen"):
         x1=pos_x + radius,
         y1=pos_y + radius,
         line_color=line_color,
-        layer="below"
+        layer="below",
     )
     return res
 
@@ -174,10 +175,7 @@ def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status, line_color="gr
         x1=x_1,
         y1=y_1,
         layer="below",
-        line=dict(
-            color=line_color,
-            dash=None if status else "dash"
-        )
+        line=dict(color=line_color, dash=None if status else "dash"),
     )
     return res
 
@@ -232,12 +230,15 @@ class PlotPlotly(BasePlot):
 
 
     """
-    def __init__(self,
-                 observation_space,
-                 substation_layout=None,
-                 radius_sub=25.,
-                 load_prod_dist=70.,
-                 bus_radius=4.):
+
+    def __init__(
+        self,
+        observation_space,
+        substation_layout=None,
+        radius_sub=25.0,
+        load_prod_dist=70.0,
+        bus_radius=4.0,
+    ):
         """
 
         Parameters
@@ -249,15 +250,19 @@ class PlotPlotly(BasePlot):
             BaseObservation space
 
         """
-        BasePlot.__init__(self,
-                          substation_layout=substation_layout,
-                          observation_space=observation_space,
-                          radius_sub=radius_sub,
-                          load_prod_dist=load_prod_dist,
-                          bus_radius=bus_radius)
+        BasePlot.__init__(
+            self,
+            substation_layout=substation_layout,
+            observation_space=observation_space,
+            radius_sub=radius_sub,
+            load_prod_dist=load_prod_dist,
+            bus_radius=bus_radius,
+        )
         if not can_plot:
-            raise PlotError("Impossible to plot as plotly cannot be imported. Please install \"plotly\" and "
-                            "\"seaborn\" with \"pip install --update plotly seaborn\"")
+            raise PlotError(
+                'Impossible to plot as plotly cannot be imported. Please install "plotly" and '
+                '"seaborn" with "pip install --update plotly seaborn"'
+            )
 
         # define a color palette, whatever...
         sns.set()
@@ -275,11 +280,15 @@ class PlotPlotly(BasePlot):
         if fig is None:
             fig = go.Figure()
         elif not isinstance(fig, self.type_fig_allowed):
-            raise PlotError("PlotPlotly cannot plot on figure of type {}. The accepted type is {}. You provided an "
-                            "invalid argument for \"fig\"".format(type(fig), self.type_fig_allowed))
+            raise PlotError(
+                "PlotPlotly cannot plot on figure of type {}. The accepted type is {}. You provided an "
+                'invalid argument for "fig"'.format(type(fig), self.type_fig_allowed)
+            )
         return fig
 
-    def _post_process_obs(self, fig, reward, done, timestamp, subs, lines, loads, gens, topos):
+    def _post_process_obs(
+        self, fig, reward, done, timestamp, subs, lines, loads, gens, topos
+    ):
         # update the figure with all these information
         traces = []
         subs_el = []
@@ -309,42 +318,48 @@ class PlotPlotly(BasePlot):
             fig.add_trace(trace_)
 
         # update legend, background color, size of the plot etc.
-        fig.update_xaxes(range=[np.min([el for el, _ in self._layout["substations"]]) - 1.5 * (self.radius_sub +
-                                                                                               self.load_prod_dist),
-                                np.max([el for el, _ in self._layout["substations"]]) + 1.5 * (self.radius_sub +
-                                                                                               self.load_prod_dist)],
-                         zeroline=False)
-        fig.update_yaxes(range=[np.min([el for _, el in self._layout["substations"]]) - 1.5 * (self.radius_sub +
-                                                                                               self.load_prod_dist),
-                                np.max([el for _, el in self._layout["substations"]]) + 1.5 * (self.radius_sub +
-                                                                                               self.load_prod_dist)])
+        fig.update_xaxes(
+            range=[
+                np.min([el for el, _ in self._layout["substations"]])
+                - 1.5 * (self.radius_sub + self.load_prod_dist),
+                np.max([el for el, _ in self._layout["substations"]])
+                + 1.5 * (self.radius_sub + self.load_prod_dist),
+            ],
+            zeroline=False,
+        )
+        fig.update_yaxes(
+            range=[
+                np.min([el for _, el in self._layout["substations"]])
+                - 1.5 * (self.radius_sub + self.load_prod_dist),
+                np.max([el for _, el in self._layout["substations"]])
+                + 1.5 * (self.radius_sub + self.load_prod_dist),
+            ]
+        )
         fig.update_layout(
-            margin=dict(
-                l=20,
-                r=20,
-                b=100
-            ),
+            margin=dict(l=20, r=20, b=100),
             height=600,
             width=800,
             plot_bgcolor="white",
-            yaxis={'showgrid': False, "showline": False, "zeroline": False},
-            xaxis={'showgrid': False, "showline": False, "zeroline": False}
+            yaxis={"showgrid": False, "showline": False, "zeroline": False},
+            xaxis={"showgrid": False, "showline": False, "zeroline": False},
         )
         return fig
 
     def _draw_subs_one_sub(self, fig, sub_id, center, this_col, txt_):
-        trace = go.Scatter(x=[center[0]],
-                           y=[center[1]],
-                           text=[txt_],
-                           mode="text",
-                           showlegend=False,
-                           textfont=dict(
-                               color=this_col
-                           ))
+        trace = go.Scatter(
+            x=[center[0]],
+            y=[center[1]],
+            text=[txt_],
+            mode="text",
+            showlegend=False,
+            textfont=dict(color=this_col),
+        )
         res = draw_sub(center, radius=self.radius_sub, line_color=this_col)
         return res, trace
 
-    def _draw_powerlines_one_powerline(self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col):
+    def _draw_powerlines_one_powerline(
+        self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col
+    ):
         """
         INTERNAL
 
@@ -363,33 +378,44 @@ class PlotPlotly(BasePlot):
         -------
 
         """
-        tmp = draw_line(pos_or,
-                        pos_ex,
-                        rho=value,
-                        color_palette=self.cols,
-                        status=status,
-                        line_color=this_col
-                        )
-        trace = go.Scatter(x=[(pos_or[0] + pos_ex[0]) / 2],
-                           y=[(pos_or[1] + pos_ex[1]) / 2],
-                           text=[txt_],
-                           mode="text",
-                           showlegend=False,
-                           textfont=dict(
-                               color=this_col
-                           ))
+        tmp = draw_line(
+            pos_or,
+            pos_ex,
+            rho=value,
+            color_palette=self.cols,
+            status=status,
+            line_color=this_col,
+        )
+        trace = go.Scatter(
+            x=[(pos_or[0] + pos_ex[0]) / 2],
+            y=[(pos_or[1] + pos_ex[1]) / 2],
+            text=[txt_],
+            mode="text",
+            showlegend=False,
+            textfont=dict(color=this_col),
+        )
         return tmp, trace
 
-    def _draw_loads_one_load(self, fig, l_id, pos_load, txt_, pos_end_line, pos_load_sub, how_center, this_col):
+    def _draw_loads_one_load(
+        self,
+        fig,
+        l_id,
+        pos_load,
+        txt_,
+        pos_end_line,
+        pos_load_sub,
+        how_center,
+        this_col,
+    ):
         # add the MW load
-        trace = go.Scatter(x=[pos_load.real],
-                           y=[pos_load.imag],
-                           text=[txt_],
-                           mode="text",
-                           showlegend=False,
-                           textfont=dict(
-                               color=this_col
-                           ))
+        trace = go.Scatter(
+            x=[pos_load.real],
+            y=[pos_load.imag],
+            text=[txt_],
+            mode="text",
+            showlegend=False,
+            textfont=dict(color=this_col),
+        )
         # add the line between the MW display and the substation
         # TODO later one, add something that looks like a load, a house for example
         res = go.layout.Shape(
@@ -401,21 +427,22 @@ class PlotPlotly(BasePlot):
             x1=pos_load_sub[0],
             y1=pos_load_sub[1],
             layer="below",
-            line=dict(color=this_col
-            )
+            line=dict(color=this_col),
         )
         return res, trace
 
-    def _draw_gens_one_gen(self, fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col):
+    def _draw_gens_one_gen(
+        self, fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col
+    ):
         # add the MW load
-        trace = go.Scatter(x=[pos_gen.real],
-                           y=[pos_gen.imag],
-                           text=[txt_],
-                           mode="text",
-                           showlegend=False,
-                           textfont=dict(
-                               color=this_col
-                           ))
+        trace = go.Scatter(
+            x=[pos_gen.real],
+            y=[pos_gen.imag],
+            text=[txt_],
+            mode="text",
+            showlegend=False,
+            textfont=dict(color=this_col),
+        )
         # add the line between the MW display and the substation
         # TODO later one, add something that looks like a generator, and could depend on the type of it!
         res = go.layout.Shape(
@@ -427,8 +454,7 @@ class PlotPlotly(BasePlot):
             x1=pos_gen_sub[0],
             y1=pos_gen_sub[1],
             layer="below",
-            line=dict(color=this_col
-            )
+            line=dict(color=this_col),
         )
         return res, trace
 
@@ -436,7 +462,7 @@ class PlotPlotly(BasePlot):
         res_sub = []
         # I plot the buses
         for bus_id, z_bus in enumerate(buses_z):
-            bus_color = '#ff7f0e' if bus_id == 0 else '#1f77b4'
+            bus_color = "#ff7f0e" if bus_id == 0 else "#1f77b4"
             res = go.layout.Shape(
                 type="circle",
                 xref="x",
@@ -451,7 +477,7 @@ class PlotPlotly(BasePlot):
             res_sub.append((res, None))
         # i connect every element to the proper bus with the proper color
         for el_nm, dict_el in elements.items():
-            this_el_bus = bus_vect[dict_el["sub_pos"]] -1
+            this_el_bus = bus_vect[dict_el["sub_pos"]] - 1
             if this_el_bus >= 0:
                 res = go.layout.Shape(
                     type="line",
@@ -461,7 +487,8 @@ class PlotPlotly(BasePlot):
                     y0=dict_el["z"].imag,
                     x1=buses_z[this_el_bus].real,
                     y1=buses_z[this_el_bus].imag,
-                    line=dict(color='#ff7f0e' if this_el_bus == 0 else '#1f77b4'))
+                    line=dict(color="#ff7f0e" if this_el_bus == 0 else "#1f77b4"),
+                )
                 res_sub.append((res, None))
         return res_sub
 

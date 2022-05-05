@@ -6,17 +6,19 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-__all__ = ["BaseGymAttrConverter",
-           "GymEnv",
-           "GymObservationSpace",
-           "GymActionSpace",
-           "ScalerAttrConverter",
-           "MultiToTupleConverter",
-           "ContinuousToDiscreteConverter",
-           "BoxGymObsSpace",
-           "BoxGymActSpace",
-           "MultiDiscreteActSpace",
-           "DiscreteActSpace"]
+__all__ = [
+    "BaseGymAttrConverter",
+    "GymEnv",
+    "GymObservationSpace",
+    "GymActionSpace",
+    "ScalerAttrConverter",
+    "MultiToTupleConverter",
+    "ContinuousToDiscreteConverter",
+    "BoxGymObsSpace",
+    "BoxGymActSpace",
+    "MultiDiscreteActSpace",
+    "DiscreteActSpace",
+]
 
 from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 from grid2op.gym_compat.gymenv import GymEnv

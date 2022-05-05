@@ -5,7 +5,7 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
+import os
 import numpy as np
 
 from grid2op.Exceptions import OpponentError
@@ -39,19 +39,24 @@ class OpponentSpace(object):
     budget_per_timestep: ``float``
         The increase of the opponent budget per time step (if any)
     """
-    def __init__(self,
-                 compute_budget,
-                 init_budget,
-                 opponent,
-                 attack_duration,  # maximum duration of an attack
-                 attack_cooldown,  # minimum duration between two consecutive attack
-                 budget_per_timestep=0.,
-                 action_space=None):
+
+    def __init__(
+        self,
+        compute_budget,
+        init_budget,
+        opponent,
+        attack_duration,  # maximum duration of an attack
+        attack_cooldown,  # minimum duration between two consecutive attack
+        budget_per_timestep=0.0,
+        action_space=None,
+    ):
 
         if action_space is not None:
             if not isinstance(action_space, compute_budget.action_space):
-                raise OpponentError("BaseAction space provided to build the agent is not a subclass from the"
-                                    "action space to compute the cost of each action.")
+                raise OpponentError(
+                    "BaseAction space provided to build the agent is not a subclass from the"
+                    "action space to compute the cost of each action."
+                )
             self.action_space = action_space
         else:
             self.action_space = compute_budget.action_space
@@ -68,10 +73,12 @@ class OpponentSpace(object):
         self.current_attack_cooldown = attack_cooldown
         self.last_attack = None
 
-        if init_budget < 0.:
-            raise OpponentError("An opponent should at least have a positive (or null) budget. If you "
-                                "want to deactivate the opponent set its budget to 0 and use the"
-                                "DontAct class as the \"opponent_class\"")
+        if init_budget < 0.0:
+            raise OpponentError(
+                "An opponent should at least have a positive (or null) budget. If you "
+                "want to deactivate the opponent set its budget to 0 and use the"
+                'DontAct class as the "opponent_class"'
+            )
 
         # TODO do i add it back
         # if not isinstance(opponent_reward_class, BaseReward):
@@ -99,8 +106,13 @@ class OpponentSpace(object):
 
     def _get_state(self):
         # used for simulate
-        state_me = self.budget, self.previous_fails, self.current_attack_duration,  \
-                 self.current_attack_cooldown, self.last_attack
+        state_me = (
+            self.budget,
+            self.previous_fails,
+            self.current_attack_duration,
+            self.current_attack_cooldown,
+            self.last_attack,
+        )
         state_opp = self.opponent.get_state()
         return state_me, state_opp
 
@@ -108,7 +120,13 @@ class OpponentSpace(object):
         # used for simulate (and for deep copy)
         if opp_state is not None:
             self.opponent.set_state(opp_state)
-        budget, previous_fails, current_attack_duration, current_attack_cooldown, last_attack = my_state
+        (
+            budget,
+            previous_fails,
+            current_attack_duration,
+            current_attack_cooldown,
+            last_attack,
+        ) = my_state
         self.budget = budget
         self.previous_fails = previous_fails
         self.current_attack_duration = current_attack_duration
@@ -174,14 +192,12 @@ class OpponentSpace(object):
             # minimum time between two consecutive attack not met
             attack = None
 
-        # If the opponent can attack  
+        # If the opponent can attack
         else:
             attack_called = True
-            attack, duration = self.opponent.attack(observation,
-                                                    agent_action,
-                                                    env_action,
-                                                    self.budget,
-                                                    self.previous_fails)
+            attack, duration = self.opponent.attack(
+                observation, agent_action, env_action, self.budget, self.previous_fails
+            )
             if duration is None:
                 if np.isfinite(self.attack_max_duration):
                     duration = self.attack_max_duration
@@ -196,7 +212,9 @@ class OpponentSpace(object):
                 self.previous_fails = True
 
             # If the cost is too high
-            final_budget = self.budget  # TODO add the: + self.budget_per_timestep * (self.attack_duration - 1)
+            final_budget = (
+                self.budget
+            )  # TODO add the: + self.budget_per_timestep * (self.attack_duration - 1)
 
             # i did not do it in case an attack is ok at the beginning, ok at the end, but at some point in the attack
             # process it is not (but i'm not sure this can happen, and don't have time to think about it right now)
@@ -211,7 +229,9 @@ class OpponentSpace(object):
                 self.current_attack_cooldown += self.attack_cooldown
 
         if not attack_called:
-            self.opponent.tell_attack_continues(observation, agent_action, env_action, self.budget)
+            self.opponent.tell_attack_continues(
+                observation, agent_action, env_action, self.budget
+            )
             self.previous_fails = False
 
         self.budget -= self.compute_budget(attack)

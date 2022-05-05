@@ -40,16 +40,17 @@ class CombinedReward(BaseReward):
         # given `GameplayReward` and the one from `FlatReward`
 
     """
+
     def __init__(self):
         BaseReward.__init__(self)
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(0.0)
         self.rewards = {}
 
-    def addReward(self, reward_name, reward_instance, reward_weight = 1.0):
+    def addReward(self, reward_name, reward_instance, reward_weight=1.0):
         self.rewards[reward_name] = {
             "instance": reward_instance,
-            "weight": dt_float(reward_weight)
+            "weight": dt_float(reward_weight),
         }
         return True
 
@@ -97,7 +98,7 @@ class CombinedReward(BaseReward):
             res += dt_float(r) * w
         # Return total sum
         return res
-    
+
     def close(self):
         for key, reward in self.rewards.items():
             reward["instance"].close()

@@ -72,13 +72,17 @@ class LinearAttentionBudget:
         """
         return self._last_successful_alarm_raised
 
-    def init(self, partial_env, init_budget, max_budget, budget_per_ts, alarm_cost, **kwargs):
+    def init(
+        self, partial_env, init_budget, max_budget, budget_per_ts, alarm_cost, **kwargs
+    ):
         self._max_budget = dt_float(max_budget)
         self._budget_per_ts = dt_float(budget_per_ts)
         self._alarm_cost = dt_float(alarm_cost)
         self._init_budget = dt_float(init_budget)
         self._last_alarm_raised = np.empty(partial_env.dim_alarms, dtype=dt_int)
-        self._last_successful_alarm_raised = np.empty(partial_env.dim_alarms, dtype=dt_int)
+        self._last_successful_alarm_raised = np.empty(
+            partial_env.dim_alarms, dtype=dt_int
+        )
         self.reset()
 
     def reset(self):
@@ -98,22 +102,26 @@ class LinearAttentionBudget:
 
     def get_state(self):
         """used to retrieve the sate in simulate"""
-        res = (self._time_last_alarm_raised,
-               self._last_alarm_raised,
-               self._current_budget,
-               self._time_last_successful_alarm_raised,
-               self._last_successful_alarm_raised,
-               self._all_successful_alarms)
+        res = (
+            self._time_last_alarm_raised,
+            self._last_alarm_raised,
+            self._current_budget,
+            self._time_last_successful_alarm_raised,
+            self._last_successful_alarm_raised,
+            self._all_successful_alarms,
+        )
         return res
 
     def set_state(self, state):
         """used to update the internal state of the budget, for simulate"""
-        (_time_last_alarm_raised,
-         _last_alarm_raised,
-         _current_budget,
-         _time_last_successful_alarm_raised,
-         _last_successful_alarm_raised,
-         _all_successful_alarms) = state
+        (
+            _time_last_alarm_raised,
+            _last_alarm_raised,
+            _current_budget,
+            _time_last_successful_alarm_raised,
+            _last_successful_alarm_raised,
+            _all_successful_alarms,
+        ) = state
 
         self._time_last_alarm_raised = _time_last_alarm_raised
         self._last_alarm_raised[:] = _last_alarm_raised
@@ -154,15 +162,23 @@ class LinearAttentionBudget:
                 # i could raise it
                 self._current_budget -= self._alarm_cost
                 self._time_last_successful_alarm_raised = env.nb_time_step
-                self._last_successful_alarm_raised[action.raise_alarm] = env.nb_time_step
-                self._all_successful_alarms.append((env.nb_time_step, copy.deepcopy(action.raise_alarm)))
+                self._last_successful_alarm_raised[
+                    action.raise_alarm
+                ] = env.nb_time_step
+                self._all_successful_alarms.append(
+                    (env.nb_time_step, copy.deepcopy(action.raise_alarm))
+                )
             else:
                 # not enough budget
                 current_budget = self._current_budget
                 # self._current_budget = 0
-                return NotEnoughAttentionBudget(f"You need a budget of {self._alarm_cost} to raise an alarm "
-                                                f"but you had only {current_budget}. Nothing is done.")
+                return NotEnoughAttentionBudget(
+                    f"You need a budget of {self._alarm_cost} to raise an alarm "
+                    f"but you had only {current_budget}. Nothing is done."
+                )
         else:
             # no alarm has been raised, budget increases
-            self._current_budget = min(self._max_budget, self._budget_per_ts + self._current_budget)
+            self._current_budget = min(
+                self._max_budget, self._budget_per_ts + self._current_budget
+            )
         return None

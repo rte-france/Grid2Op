@@ -150,14 +150,17 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                        path_save=os.path.join(PATH,mix.name))
 
     """
-    def __init__(self,
-                 envs_dir,
-                 logger=None,
-                 experimental_read_from_local_dir=False,
-                 _add_to_name="",  # internal, for test only, do not use !
-                 _compat_glop_version=None,  # internal, for test only, do not use !
-                 _test=False,
-                 **kwargs):
+
+    def __init__(
+        self,
+        envs_dir,
+        logger=None,
+        experimental_read_from_local_dir=False,
+        _add_to_name="",  # internal, for test only, do not use !
+        _compat_glop_version=None,  # internal, for test only, do not use !
+        _test=False,
+        **kwargs,
+    ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
         self.current_env = None
@@ -178,28 +181,36 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         # TODO reuse same observation_space and action_space in all the envs maybe ?
         try:
             for env_dir in sorted(os.listdir(envs_dir)):
-                env_path = os.path.join(envs_dir, env_dir)            
+                env_path = os.path.join(envs_dir, env_dir)
                 if not os.path.isdir(env_path):
                     continue
-                this_logger = logger.getChild(f"MultiMixEnvironment_{env_dir}") if logger is not None else None
+                this_logger = (
+                    logger.getChild(f"MultiMixEnvironment_{env_dir}")
+                    if logger is not None
+                    else None
+                )
                 # Special case for backend
                 if backendClass is not None:
-                    env = make(env_path,
-                               backend=backendClass(),
-                               _add_to_name=_add_to_name,
-                               _compat_glop_version=_compat_glop_version,
-                               test=_test,
-                               logger=this_logger,
-                               experimental_read_from_local_dir=experimental_read_from_local_dir,
-                               **kwargs)
+                    env = make(
+                        env_path,
+                        backend=backendClass(),
+                        _add_to_name=_add_to_name,
+                        _compat_glop_version=_compat_glop_version,
+                        test=_test,
+                        logger=this_logger,
+                        experimental_read_from_local_dir=experimental_read_from_local_dir,
+                        **kwargs,
+                    )
                 else:
-                    env = make(env_path,
-                               _add_to_name=_add_to_name,
-                               _compat_glop_version=_compat_glop_version,
-                               test=_test,
-                               logger=this_logger,
-                               experimental_read_from_local_dir=experimental_read_from_local_dir,
-                               **kwargs)
+                    env = make(
+                        env_path,
+                        _add_to_name=_add_to_name,
+                        _compat_glop_version=_compat_glop_version,
+                        test=_test,
+                        logger=this_logger,
+                        experimental_read_from_local_dir=experimental_read_from_local_dir,
+                        **kwargs,
+                    )
                 self.mix_envs.append(env)
         except Exception as exc_:
             err_msg = "MultiMix environment creation failed: {}".format(exc_)
@@ -249,7 +260,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             from grid2op.Runner import Runner
 
             mm_env = MultiMixEnvironment("/path/to/multi/dataset/folder")
-            
+
             for env in mm_env:
                 run_p = env.get_params_for_runner()
                 runner = Runner(**run_p)
@@ -330,7 +341,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
         # Not found by name
         raise KeyError
-    
+
     def reset(self, random=False):
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
@@ -365,9 +376,11 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         try:
             seed = np.array(seed).astype(dt_int)
         except Exception as e:
-            raise Grid2OpException("Cannot to seed with the seed provided." \
-                                   "Make sure it can be converted to a" \
-                                   "numpy 32 bits integer.")
+            raise Grid2OpException(
+                "Cannot to seed with the seed provided."
+                "Make sure it can be converted to a"
+                "numpy 32 bits integer."
+            )
 
         s = super().seed(seed)
         seeds = [s]
@@ -446,3 +459,9 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
         if not self.__closed:
             self.close()
+            
+    def generate_classes(self):
+        # TODO this is not really a good idea, as the multi-mix itself is not read from the
+        # files !
+        for mix in self.mix_envs:
+            mix.generate_classes()

@@ -6,16 +6,11 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
 import unittest
 import tempfile
-import warnings
 import json
 
 from grid2op.Parameters import Parameters
-
-import warnings
-warnings.simplefilter("error")
 
 
 class TestParameters(unittest.TestCase):
@@ -130,7 +125,7 @@ class TestParameters(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             p.check_valid()
         p.IGNORE_MIN_UP_DOWN_TIME = True
-        p.ACTIVATE_STORAGE_LOSS = 42.
+        p.ACTIVATE_STORAGE_LOSS = 42.0
         with self.assertRaises(RuntimeError):
             p.check_valid()
         p.ACTIVATE_STORAGE_LOSS = False
@@ -145,18 +140,24 @@ class TestParameters(unittest.TestCase):
         p.check_valid()  # everything valid again
 
         # int types
-        for attr_nm in ["NB_TIMESTEP_OVERFLOW_ALLOWED", "NB_TIMESTEP_RECONNECTION", "NB_TIMESTEP_COOLDOWN_LINE",
-                        "NB_TIMESTEP_COOLDOWN_SUB", "MAX_SUB_CHANGED", "MAX_LINE_STATUS_CHANGED"]:
+        for attr_nm in [
+            "NB_TIMESTEP_OVERFLOW_ALLOWED",
+            "NB_TIMESTEP_RECONNECTION",
+            "NB_TIMESTEP_COOLDOWN_LINE",
+            "NB_TIMESTEP_COOLDOWN_SUB",
+            "MAX_SUB_CHANGED",
+            "MAX_LINE_STATUS_CHANGED",
+        ]:
             try:
                 self._aux_check_attr_int(p, attr_nm)
             except Exception as exc_:
-                raise RuntimeError(f"Exception \"{exc_}\" for attribute \"{attr_nm}\"")
+                raise RuntimeError(f'Exception "{exc_}" for attribute "{attr_nm}"')
         # float types
         for attr_nm in ["HARD_OVERFLOW_THRESHOLD", "INIT_STORAGE_CAPACITY"]:
             try:
                 self._aux_check_attr_float(p, attr_nm)
             except Exception as exc_:
-                raise RuntimeError(f"Exception \"{exc_}\" for attribute \"{attr_nm}\"")
+                raise RuntimeError(f'Exception "{exc_}" for attribute "{attr_nm}"')
 
         p.HARD_OVERFLOW_THRESHOLD = 0.5  # should not validate
         with self.assertRaises(RuntimeError):

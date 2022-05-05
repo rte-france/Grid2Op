@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import gym
+from grid2op.Chronics import Multifolder
 from grid2op.gym_compat.gym_obs_space import GymObservationSpace
 from grid2op.gym_compat.gym_act_space import GymActionSpace
 from grid2op.gym_compat.utils import check_gym_version
@@ -39,13 +40,15 @@ class GymEnv(gym.Env):
 
 
     """
-    def __init__(self, env_init):
+
+    def __init__(self, env_init, shuffle_chronics=True):
         check_gym_version()
         self.init_env = env_init.copy()
         self.action_space = GymActionSpace(self.init_env)
         self.observation_space = GymObservationSpace(self.init_env)
         self.reward_range = self.init_env.reward_range
         self.metadata = self.init_env.metadata
+        self._shuffle_chronics = shuffle_chronics
 
     def step(self, gym_action):
         g2op_act = self.action_space.from_gym(gym_action)
@@ -53,18 +56,27 @@ class GymEnv(gym.Env):
         gym_obs = self.observation_space.to_gym(g2op_obs)
         return gym_obs, float(reward), done, info
 
-    def reset(self):
+    def reset(self, seed=None, return_info=False, options=None):
+        if self._shuffle_chronics and isinstance(
+            self.init_env.chronics_handler.real_data, Multifolder
+        ):
+            self.init_env.chronics_handler.sample_next_chronics()
+        if seed is not None:
+            self.init_env.seed(seed)
         g2op_obs = self.init_env.reset()
         gym_obs = self.observation_space.to_gym(g2op_obs)
-        return gym_obs
+        if return_info:
+            return gym_obs, {}
+        else:
+            return gym_obs
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         """for compatibility with open ai gym render function"""
         super(GymEnv, self).render(mode=mode)
         self.init_env.render(mode=mode)
 
     def close(self):
-        if hasattr(self, "init_env") and self.init_env is None:
+        if hasattr(self, "init_env") and self.init_env is not None:
             self.init_env.close()
             del self.init_env
         self.init_env = None

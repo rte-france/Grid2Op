@@ -35,7 +35,14 @@ class WeightedRandomOpponent(BaseOpponent):
         # this is the constructor:
         # it should have the exact same signature as here
 
-    def init(self, partial_env, lines_attacked=[], rho_normalization=[], attack_period=12*24, **kwargs):
+    def init(
+        self,
+        partial_env,
+        lines_attacked=[],
+        rho_normalization=[],
+        attack_period=12 * 24,
+        **kwargs,
+    ):
         """
         Generic function used to initialize the derived classes. For example, if an opponent reads from a file, the
         path where is the file is located should be pass with this method.
@@ -57,9 +64,11 @@ class WeightedRandomOpponent(BaseOpponent):
         """
 
         if len(lines_attacked) == 0:
-            warnings.warn(f'The opponent is deactivated as there is no information as to which line to attack. '
-                          f'You can set the argument "kwargs_opponent" to the list of the line names you want '
-                          f' the opponent to attack in the "make" function.')
+            warnings.warn(
+                f"The opponent is deactivated as there is no information as to which line to attack. "
+                f'You can set the argument "kwargs_opponent" to the list of the line names you want '
+                f' the opponent to attack in the "make" function.'
+            )
 
         # Store attackable lines IDs
         self._lines_ids = []
@@ -68,27 +77,31 @@ class WeightedRandomOpponent(BaseOpponent):
             if len(l_id) and len(l_id[0]):
                 self._lines_ids.append(l_id[0][0])
             else:
-                raise OpponentError("Unable to find the powerline named \"{}\" on the grid. For "
-                                    "information, powerlines on the grid are : {}"
-                                    "".format(l_name, sorted(self.action_space.name_line)))
+                raise OpponentError(
+                    'Unable to find the powerline named "{}" on the grid. For '
+                    "information, powerlines on the grid are : {}"
+                    "".format(l_name, sorted(self.action_space.name_line))
+                )
 
         # Pre-build attacks actions
         self._do_nothing = self.action_space({})
         self._attacks = []
         for l_id in self._lines_ids:
-            a = self.action_space({
-                'set_line_status': [(l_id, -1)]
-            })
+            a = self.action_space({"set_line_status": [(l_id, -1)]})
             self._attacks.append(a)
         self._attacks = np.array(self._attacks)
 
         # Usage rates normalization
         self._rho_normalization = np.ones_like(lines_attacked)
         if len(rho_normalization) == 0:
-            warnings.warn('The usage rate normalization is not specified. No normalization will be performed.')
+            warnings.warn(
+                "The usage rate normalization is not specified. No normalization will be performed."
+            )
         elif len(rho_normalization) != len(lines_attacked):
-            raise Warning(f'The usage rate normalization must have the same length as the number '
-                          f'of attacked lines. No normalization will be performed.')
+            raise Warning(
+                f"The usage rate normalization must have the same length as the number "
+                f"of attacked lines. No normalization will be performed."
+            )
         else:
             self._rho_normalization = np.array(rho_normalization)
 
@@ -103,8 +116,7 @@ class WeightedRandomOpponent(BaseOpponent):
     def tell_attack_continues(self, observation, agent_action, env_action, budget):
         self._next_attack_time = None
 
-    def attack(self, observation, agent_action, env_action,
-               budget, previous_fails):
+    def attack(self, observation, agent_action, env_action, budget, previous_fails):
         """
         This method is the equivalent of "attack" for a regular agent.
 
@@ -166,7 +178,7 @@ class WeightedRandomOpponent(BaseOpponent):
         available_attacks = self._attacks[status]
         rho = observation.rho[self._lines_ids][status] / self._rho_normalization[status]
         rho_sum = rho.sum()
-        if rho_sum <= 0.:
+        if rho_sum <= 0.0:
             # this case can happen if a powerline has a flow of 0.0 but is connected, and it's the only one
             # that can be attacked... Pretty rare hey !
             return None, 0

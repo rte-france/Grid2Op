@@ -15,7 +15,13 @@ from grid2op.tests.helper_path_test import *
 import grid2op
 from grid2op.Exceptions import *
 from grid2op.MakeEnv import make
-from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent, RecoPowerlineAgent, FromActionsListAgent
+from grid2op.Agent import (
+    PowerLineSwitch,
+    TopologyGreedy,
+    DoNothingAgent,
+    RecoPowerlineAgent,
+    FromActionsListAgent,
+)
 from grid2op.Parameters import Parameters
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
@@ -49,8 +55,8 @@ class TestAgent(HelperTests):
         beg_ = time.perf_counter()
         cum_reward = dt_float(0.0)
         obs = self.env.get_obs()
-        reward = 0.
-        time_act = 0.
+        reward = 0.0
+        time_act = 0.0
         all_acts = []
         while not done:
             # print("_______________")
@@ -58,7 +64,9 @@ class TestAgent(HelperTests):
             act = agent.act(obs, reward, done)
             all_acts.append(act)
             end__ = time.perf_counter()
-            obs, reward, done, info = self.env.step(act)  # should load the first time stamp
+            obs, reward, done, info = self.env.step(
+                act
+            )  # should load the first time stamp
             time_act += end__ - beg__
             cum_reward += reward
             i += 1
@@ -67,21 +75,31 @@ class TestAgent(HelperTests):
 
         end_ = time.perf_counter()
         if DEBUG:
-            li_text = ["Env: {:.2f}s",
-                       "\t - apply act {:.2f}s",
-                       "\t - run pf: {:.2f}s",
-                       "\t - env update + observation: {:.2f}s",
-                       "\t - time env obs space: {:.2f}s",
-                       "BaseAgent: {:.2f}s", "Total time: {:.2f}s",
-                       "Cumulative reward: {:1f}"]
+            li_text = [
+                "Env: {:.2f}s",
+                "\t - apply act {:.2f}s",
+                "\t - run pf: {:.2f}s",
+                "\t - env update + observation: {:.2f}s",
+                "\t - time env obs space: {:.2f}s",
+                "BaseAgent: {:.2f}s",
+                "Total time: {:.2f}s",
+                "Cumulative reward: {:1f}",
+            ]
             msg_ = "\n".join(li_text)
-            print(msg_.format(
-                self.env._time_apply_act+self.env._time_powerflow+self.env._time_extract_obs,  # env
-                self.env._time_apply_act,  # apply act
-                self.env._time_powerflow,  # run pf
-                self.env._time_extract_obs,  # env update + obs
-                self.env.observation_space._update_env_time,  # time get topo vect
-                time_act, end_-beg_, cum_reward))
+            print(
+                msg_.format(
+                    self.env._time_apply_act
+                    + self.env._time_powerflow
+                    + self.env._time_extract_obs,  # env
+                    self.env._time_apply_act,  # apply act
+                    self.env._time_powerflow,  # run pf
+                    self.env._time_extract_obs,  # env update + obs
+                    self.env.observation_space._update_env_time,  # time get topo vect
+                    time_act,
+                    end_ - beg_,
+                    cum_reward,
+                )
+            )
         return i, cum_reward, all_acts
 
     def test_0_donothing(self):
@@ -91,17 +109,25 @@ class TestAgent(HelperTests):
             i, cum_reward, all_acts = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for do nothing"
         expected_reward = dt_float(35140.027)
-        assert np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one, "The reward has not been properly computed"
+        expected_reward = dt_float(35140.03125 / 12.)
+        assert (
+            np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one
+        ), f"The reward has not been properly computed {cum_reward} instead of {expected_reward}"
 
     def test_1_powerlineswitch(self):
         agent = PowerLineSwitch(self.env.action_space)
         with warnings.catch_warnings():
             warnings.filterwarnings("error")
             i, cum_reward, all_acts = self._aux_test_agent(agent)
-        assert i == 31, "The powerflow diverged before step 30 for powerline switch agent"
-        expected_reward = dt_float(35147.55859375)  # switch to using df_float in the reward, change then the results
-        expected_reward = dt_float(35147.76)
-        assert np.abs(cum_reward - expected_reward) <= self.tol_one, "The reward has not been properly computed"
+        assert (
+            i == 31
+        ), "The powerflow diverged before step 30 for powerline switch agent"
+        # switch to using df_float in the reward, change then the results
+        expected_reward = dt_float(35147.55859375)  
+        expected_reward = dt_float(35147.7685546 / 12.)
+        assert (
+            np.abs(cum_reward - expected_reward) <= self.tol_one
+        ), f"The reward has not been properly computed {cum_reward} instead of {expected_reward}"
 
     def test_2_busswitch(self):
         agent = TopologyGreedy(self.env.action_space)
@@ -109,13 +135,14 @@ class TestAgent(HelperTests):
             warnings.filterwarnings("error")
             i, cum_reward, all_acts = self._aux_test_agent(agent, i_max=10)
         assert i == 11, "The powerflow diverged before step 10 for greedy agent"
-        expected_reward = dt_float(12075.389)  # i have more actions now, so this is not correct (though it should be..
+        # i have more actions now, so this is not correct (though it should be..
         # yet a proof that https://github.com/rte-france/Grid2Op/issues/86 is grounded
+        expected_reward = dt_float(12075.389)
         expected_reward = dt_float(12277.632)
-        # 12076.356
-        # 12076.191
-        expected_reward = dt_float(12076.356)
-        assert np.abs(cum_reward - expected_reward) <= self.tol_one, "The reward has not been properly computed"
+        expected_reward = dt_float(12076.35644531 / 12.)
+        assert (
+            np.abs(cum_reward - expected_reward) <= self.tol_one
+        ), f"The reward has not been properly computed {cum_reward} instead of {expected_reward}"
 
 
 class TestMake2Agents(HelperTests):
@@ -130,8 +157,8 @@ class TestMake2Agents(HelperTests):
         obs = env.reset()
         obs2 = env2.reset()
         # test the agent can act
-        act = agent.act(obs, 0., False)
-        act2 = agent2.act(obs2, 0., False)
+        act = agent.act(obs, 0.0, False)
+        act2 = agent2.act(obs2, 0.0, False)
         # test the env can step
         _ = env.step(act)
         _ = env2.step(act2)
@@ -152,13 +179,13 @@ class TestSeeding(HelperTests):
                 res2 = np.zeros(nb_test, dtype=np.int)
                 res3 = np.zeros(nb_test, dtype=np.int)
                 for i in range(nb_test):
-                    res[i] = my_agent.my_act(obs, 0., False)
+                    res[i] = my_agent.my_act(obs, 0.0, False)
                 my_agent.seed(0)
                 for i in range(nb_test):
-                    res2[i] = my_agent.my_act(obs, 0., False)
+                    res2[i] = my_agent.my_act(obs, 0.0, False)
                 my_agent.seed(1)
                 for i in range(nb_test):
-                    res3[i] = my_agent.my_act(obs, 0., False)
+                    res3[i] = my_agent.my_act(obs, 0.0, False)
 
                 # the same seeds should produce the same sequence
                 assert np.all(res == res2)
@@ -177,7 +204,9 @@ class TestRecoPowerlineAgent(HelperTests):
                 my_agent = RecoPowerlineAgent(env.action_space)
                 obs = env.reset()
                 assert np.sum(obs.time_before_cooldown_line) == 0
-                obs, reward, done, info = env.step(env.action_space({'set_line_status': [(1, -1)]}))
+                obs, reward, done, info = env.step(
+                    env.action_space({"set_line_status": [(1, -1)]})
+                )
                 assert np.sum(obs.time_before_cooldown_line) == 1
                 # the agent should do nothing, as the line is still in cooldown
                 act = my_agent.act(obs, reward, done)
@@ -202,8 +231,12 @@ class TestRecoPowerlineAgent(HelperTests):
             with grid2op.make("rte_case5_example", test=True, param=param) as env:
                 my_agent = RecoPowerlineAgent(env.action_space)
                 obs = env.reset()
-                obs, reward, done, info = env.step(env.action_space({'set_line_status': [(1, -1)]}))
-                obs, reward, done, info = env.step(env.action_space({'set_line_status': [(2, -1)]}))
+                obs, reward, done, info = env.step(
+                    env.action_space({"set_line_status": [(1, -1)]})
+                )
+                obs, reward, done, info = env.step(
+                    env.action_space({"set_line_status": [(2, -1)]})
+                )
 
                 # the agent should do nothing, as the line is still in cooldown
                 act = my_agent.act(obs, reward, done)
@@ -259,11 +292,11 @@ class TestFromList(HelperTests):
                 obs = env.reset()
 
                 # should do nothing
-                act = agent.act(obs, 0., False)
+                act = agent.act(obs, 0.0, False)
                 obs, reward, done, info = env.step(act)
                 assert act.can_affect_something() is False
 
-                act = agent.act(obs, 0., False)
+                act = agent.act(obs, 0.0, False)
                 obs, reward, done, info = env.step(act)
                 assert act.can_affect_something() is False
 
@@ -274,16 +307,18 @@ class TestFromList(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with grid2op.make("rte_case5_example", test=True, param=param) as env:
-                agent = FromActionsListAgent(env.action_space,
-                                             action_list=[env.action_space({"set_line_status": [(0, +1)]})])
+                agent = FromActionsListAgent(
+                    env.action_space,
+                    action_list=[env.action_space({"set_line_status": [(0, +1)]})],
+                )
                 obs = env.reset()
 
                 # should do nothing
-                act = agent.act(obs, 0., False)
+                act = agent.act(obs, 0.0, False)
                 obs, reward, done, info = env.step(act)
                 assert act == env.action_space({"set_line_status": [(0, +1)]})
 
-                act = agent.act(obs, 0., False)
+                act = agent.act(obs, 0.0, False)
                 obs, reward, done, info = env.step(act)
                 assert act.can_affect_something() is False
 
@@ -301,16 +336,26 @@ class TestFromList(HelperTests):
                     # action_list should contain only actions
                     agent = FromActionsListAgent(env.action_space, action_list=[1])
 
-                with grid2op.make("l2rpn_case14_sandbox", test=True, param=param) as env2:
+                with grid2op.make(
+                    "l2rpn_case14_sandbox", test=True, param=param
+                ) as env2:
                     with self.assertRaises(AgentError):
                         # action_list should contain only actions from a compatible environment
-                        agent = FromActionsListAgent(env.action_space,
-                                                     action_list=[env2.action_space({"set_line_status": [(0, +1)]})])
+                        agent = FromActionsListAgent(
+                            env.action_space,
+                            action_list=[
+                                env2.action_space({"set_line_status": [(0, +1)]})
+                            ],
+                        )
 
-                with grid2op.make("rte_case5_example", test=True, param=param, _add_to_name="toto") as env3:
+                with grid2op.make(
+                    "rte_case5_example", test=True, param=param, _add_to_name="toto"
+                ) as env3:
                     # this should work because it's the same underlying grid
-                    agent = FromActionsListAgent(env.action_space,
-                                                 action_list=[env3.action_space({"set_line_status": [(0, +1)]})])
+                    agent = FromActionsListAgent(
+                        env.action_space,
+                        action_list=[env3.action_space({"set_line_status": [(0, +1)]})],
+                    )
 
 
 if __name__ == "__main__":

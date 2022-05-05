@@ -17,8 +17,9 @@ from grid2op.Plot.PlotPyGame import PlotPyGame
 from grid2op.Exceptions.PlotExceptions import PyGameQuit
 
 try:
-    os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+    os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
     import pygame
+
     can_plot = True
 except Exception as e:
     can_plot = False
@@ -28,6 +29,7 @@ try:
     # from array2gif import write_gif
     import imageio
     import imageio_ffmpeg
+
     can_save_gif = True
 except:
     can_save_gif = False
@@ -72,18 +74,29 @@ class EpisodeReplay(object):
     episode_data: :class:`grid2op.EpisodeData.EpisodeData`, optional
         The last data of the episode inspected.
     """
+
     def __init__(self, agent_path):
-        warnings.warn("This whole class has been deprecated. Use `grid2op.PlotGrid module instead`",
-                      category=DeprecationWarning)
+        warnings.warn(
+            "This whole class has been deprecated. Use `grid2op.PlotGrid module instead`",
+            category=DeprecationWarning,
+        )
 
         if not os.path.exists(agent_path):
-            raise Grid2OpException("Nothing is found at \"{}\" where an agent path should have been.".format(agent_path))
+            raise Grid2OpException(
+                'Nothing is found at "{}" where an agent path should have been.'.format(
+                    agent_path
+                )
+            )
         self.agent_path = agent_path
         self.episode_data = None
 
         if not can_save_gif:
-            warnings.warn("The final video will not be saved as \"imageio\" and \"imageio_ffmpeg\" packages cannot be "
-                          "imported. Please try \"{} -m pip install imageio imageio-ffmpeg\"".format(sys.executable))
+            warnings.warn(
+                'The final video will not be saved as "imageio" and "imageio_ffmpeg" packages cannot be '
+                'imported. Please try "{} -m pip install imageio imageio-ffmpeg"'.format(
+                    sys.executable
+                )
+            )
 
     def replay_episode(self, episode_id, max_fps=10, video_name=None, display=True):
         """
@@ -111,37 +124,57 @@ class EpisodeReplay(object):
         """
         path_ep = os.path.join(self.agent_path, episode_id)
         if not os.path.exists(path_ep):
-            raise Grid2OpException("No episode is found at \"{}\" where the episode should have been.".format(path_ep))
+            raise Grid2OpException(
+                'No episode is found at "{}" where the episode should have been.'.format(
+                    path_ep
+                )
+            )
         if video_name is None:
             if not can_save_gif:
-                raise Grid2OpException("The final video cannot be saved as \"imageio\" and \"imageio_ffmpeg\" "
-                                       "packages cannot be imported. Please try "
-                                       "\"{} -m pip install imageio imageio-ffmpeg\"".format(sys.executable))
+                raise Grid2OpException(
+                    'The final video cannot be saved as "imageio" and "imageio_ffmpeg" '
+                    "packages cannot be imported. Please try "
+                    '"{} -m pip install imageio imageio-ffmpeg"'.format(sys.executable)
+                )
 
-        self.episode_data = EpisodeData.from_disk(agent_path=self.agent_path, name=episode_id)
-        plot_runner = PlotPyGame(self.episode_data.observation_space,
-                                 timestep_duration_seconds=1./max_fps)
+        self.episode_data = EpisodeData.from_disk(
+            agent_path=self.agent_path, name=episode_id
+        )
+        plot_runner = PlotPyGame(
+            self.episode_data.observation_space, timestep_duration_seconds=1.0 / max_fps
+        )
         nb_timestep_played = int(self.episode_data.meta["nb_timestep_played"])
         all_obs = [el for el in self.episode_data.observations]
         all_reward = [el for el in self.episode_data.rewards]
         if video_name is not None:
-            total_array = np.zeros((nb_timestep_played+1, plot_runner.video_width, plot_runner.video_height, 3),
-                                   dtype=np.uint8)
+            total_array = np.zeros(
+                (
+                    nb_timestep_played + 1,
+                    plot_runner.video_width,
+                    plot_runner.video_height,
+                    3,
+                ),
+                dtype=np.uint8,
+            )
 
         if display is False:
             plot_runner.deactivate_display()
 
         for i, (obs, reward) in enumerate(zip(all_obs, all_reward)):
-            timestamp = datetime(year=obs.year,
-                                 month=obs.month,
-                                 day=obs.day,
-                                 hour=obs.hour_of_day,
-                                 minute=obs.minute_of_hour)
+            timestamp = datetime(
+                year=obs.year,
+                month=obs.month,
+                day=obs.day,
+                hour=obs.hour_of_day,
+                minute=obs.minute_of_hour,
+            )
             try:
-                plot_runner.plot_obs(observation=obs,
-                                     reward=reward,
-                                     timestamp=timestamp,
-                                     done=i == nb_timestep_played-1)
+                plot_runner.plot_obs(
+                    observation=obs,
+                    reward=reward,
+                    timestamp=timestamp,
+                    done=i == nb_timestep_played - 1,
+                )
                 array_ = pygame.surfarray.array3d(plot_runner.screen)
                 if video_name is not None:
                     total_array[i, :, :, :] = array_.astype(np.uint8)
@@ -149,5 +182,5 @@ class EpisodeReplay(object):
                 break
 
         if video_name is not None:
-            imageio.mimwrite(video_name, np.swapaxes(total_array, 1,2), fps=max_fps)
+            imageio.mimwrite(video_name, np.swapaxes(total_array, 1, 2), fps=max_fps)
         plot_runner.close()

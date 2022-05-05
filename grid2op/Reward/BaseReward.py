@@ -102,13 +102,14 @@ class BaseReward(ABC):
             return res
 
     """
+
     def __init__(self):
         """
         Initializes :attr:`BaseReward.reward_min` and :attr:`BaseReward.reward_max`
 
         """
-        self.reward_min = dt_float(0.)
-        self.reward_max = dt_float(0.)
+        self.reward_min = dt_float(0.0)
+        self.reward_max = dt_float(0.0)
 
     def initialize(self, env):
         """
@@ -239,7 +240,7 @@ class BaseReward(ABC):
         yield ("name", self.__class__.__name__)
         yield ("reward_min", float(self.reward_min))
         yield ("reward_max", float(self.reward_max))
-    
+
     def close(self):
         """overide this for certain reward that might need specific behaviour"""
         pass

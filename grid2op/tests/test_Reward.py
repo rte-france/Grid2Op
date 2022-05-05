@@ -21,6 +21,7 @@ from grid2op.Reward import *
 from grid2op.MakeEnv import make
 
 import warnings
+
 warnings.simplefilter("error")
 
 
@@ -28,7 +29,9 @@ class TestLoadingReward(ABC):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case5_example", test=True, reward_class=self._reward_type())
+            self.env = make(
+                "rte_case5_example", test=True, reward_class=self._reward_type()
+            )
 
         self.action = self.env.action_space()
         self.has_error = False
@@ -95,16 +98,16 @@ class TestDistanceReward(TestLoadingReward, unittest.TestCase):
 
     def test_do_nothing(self):
         self.env.reset()
-              
+
         dn_action = self.env.action_space({})
 
         obs, r, d, info = self.env.step(dn_action)
         max_reward = self.env._reward_helper.range()[1]
         assert r == max_reward
-    
+
     def test_disconnect(self):
         self.env.reset()
-              
+
         set_status = self.env.action_space.get_set_line_status_vect()
         set_status[1] = -1
         disconnect_action = self.env.action_space({"set_line_status": set_status})
@@ -115,7 +118,7 @@ class TestDistanceReward(TestLoadingReward, unittest.TestCase):
     def test_setBus2(self):
         self.env.reset()
 
-        set_action = self.env.action_space({"set_bus": {"lines_or_id": [(0,2)]}})
+        set_action = self.env.action_space({"set_bus": {"lines_or_id": [(0, 2)]}})
 
         obs, r, d, info = self.env.step(set_action)
         assert r != 1.0
@@ -168,7 +171,7 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
         self.env.reset()
         cr.initialize(self.env)
 
-        set_action = self.env.action_space({"set_bus": {"lines_or_id": [(1,2)]}})
+        set_action = self.env.action_space({"set_bus": {"lines_or_id": [(1, 2)]}})
         obs, r, d, info = self.env.step(set_action)
         assert r < 1.0
 
@@ -192,7 +195,9 @@ class TestIncreaseFlatReward(unittest.TestCase):
     def test_ok(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("l2rpn_case14_sandbox", reward_class=IncreasingFlatReward, test=True)
+            env = make(
+                "l2rpn_case14_sandbox", reward_class=IncreasingFlatReward, test=True
+            )
 
         assert env.nb_time_step == 0
         obs, reward, done, info = env.step(env.action_space())
@@ -212,7 +217,9 @@ class TestEpisodeDurationReward(unittest.TestCase):
     def test_ok(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("l2rpn_case14_sandbox", reward_class=EpisodeDurationReward, test=True)
+            env = make(
+                "l2rpn_case14_sandbox", reward_class=EpisodeDurationReward, test=True
+            )
 
         assert env.nb_time_step == 0
         obs, reward, done, info = env.step(env.action_space())
@@ -223,10 +230,12 @@ class TestEpisodeDurationReward(unittest.TestCase):
         assert env.nb_time_step == 2
         assert reward == 0
 
-        obs, reward, done, info = env.step(env.action_space({"set_bus": {"generators_id": [(0, -1)]}}))
+        obs, reward, done, info = env.step(
+            env.action_space({"set_bus": {"generators_id": [(0, -1)]}})
+        )
         assert done
         assert env.nb_time_step == 3
-        assert reward == 3. / 575.
+        assert reward == 3.0 / 575.0
 
         obs = env.reset()
         assert env.nb_time_step == 0
@@ -238,7 +247,7 @@ class TestEpisodeDurationReward(unittest.TestCase):
         obs, reward, done, info = env.step(env.action_space())
         assert done
         assert env.nb_time_step == 575
-        assert reward == 1.
+        assert reward == 1.0
 
 
 class TestN1Reward(unittest.TestCase):
@@ -246,27 +255,39 @@ class TestN1Reward(unittest.TestCase):
         L_ID = 2
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True)
+            env = make(
+                "l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True
+            )
 
         obs = env.reset()
         obs, reward, *_ = env.step(env.action_space())
-        obs_n1, *_ = obs.simulate(env.action_space({"set_line_status": [(L_ID, -1)]}), time_step=0)
+        obs_n1, *_ = obs.simulate(
+            env.action_space({"set_line_status": [(L_ID, -1)]}), time_step=0
+        )
 
-        assert abs(reward - obs_n1.rho.max()) <= 1e-5, "the correct reward has not been computed"
+        assert (
+            abs(reward - obs_n1.rho.max()) <= 1e-5
+        ), "the correct reward has not been computed"
         env.close()
 
         L_IDS = [0, 1]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("l2rpn_case14_sandbox",
-                                other_rewards={f"line_{l_id}": N1Reward(l_id=l_id)  for l_id in L_IDS},
-                                test=True
-                                )
+            env = grid2op.make(
+                "l2rpn_case14_sandbox",
+                other_rewards={f"line_{l_id}": N1Reward(l_id=l_id) for l_id in L_IDS},
+                test=True,
+            )
         obs, reward, done, info = env.step(env.action_space())
         for l_id in L_IDS:
-            obs_n1, *_ = obs.simulate(env.action_space({"set_line_status": [(l_id, -1)]}), time_step=0)
-            assert abs(info["rewards"][f"line_{l_id}"] - obs_n1.rho.max()) <= 1e-5, f"the correct reward has not been computed for line {l_id}"
+            obs_n1, *_ = obs.simulate(
+                env.action_space({"set_line_status": [(l_id, -1)]}), time_step=0
+            )
+            assert (
+                abs(info["rewards"][f"line_{l_id}"] - obs_n1.rho.max()) <= 1e-5
+            ), f"the correct reward has not been computed for line {l_id}"
         env.close()
+
 
 if __name__ == "__main__":
     unittest.main()

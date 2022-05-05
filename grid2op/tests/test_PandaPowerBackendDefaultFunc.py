@@ -29,10 +29,12 @@ from grid2op.tests.BaseBackendTest import BaseTestVoltageOWhenDisco
 from grid2op.tests.BaseBackendTest import BaseTestChangeBusSlack
 from grid2op.tests.BaseBackendTest import BaseIssuesTest
 from grid2op.tests.BaseBackendTest import BaseStatusActions
+
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
 import warnings
+
 warnings.simplefilter("error")
 
 
@@ -41,8 +43,12 @@ class PandaPowerBackendDefault(PandaPowerBackend):
     test the class for pandapower, if the default implementation of the backend are used, instead of the
     more optimized pandapower implementation.
     """
+
     def __init__(self, detailed_infos_for_cascading_failures=False):
-        PandaPowerBackend.__init__(self, detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        PandaPowerBackend.__init__(
+            self,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
 
     def copy(self):
         return Backend.copy(self)
@@ -62,15 +68,24 @@ class PandaPowerBackendDefault(PandaPowerBackend):
         """
         res = np.full(self.dim_topo, fill_value=np.NaN, dtype=dt_int)
 
-        line_status = np.concatenate((self._grid.line["in_service"].values, self._grid.trafo["in_service"].values)).astype(dt_bool)
+        line_status = np.concatenate(
+            (
+                self._grid.line["in_service"].values,
+                self._grid.trafo["in_service"].values,
+            )
+        ).astype(dt_bool)
 
         i = 0
         for row in self._grid.line[["from_bus", "to_bus"]].values:
             bus_or_id = row[0]
             bus_ex_id = row[1]
             if line_status[i]:
-                res[self.line_or_pos_topo_vect[i]] = 1 if bus_or_id == self.line_or_to_subid[i] else 2
-                res[self.line_ex_pos_topo_vect[i]] = 1 if bus_ex_id == self.line_ex_to_subid[i] else 2
+                res[self.line_or_pos_topo_vect[i]] = (
+                    1 if bus_or_id == self.line_or_to_subid[i] else 2
+                )
+                res[self.line_ex_pos_topo_vect[i]] = (
+                    1 if bus_ex_id == self.line_ex_to_subid[i] else 2
+                )
             else:
                 res[self.line_or_pos_topo_vect[i]] = -1
                 res[self.line_ex_pos_topo_vect[i]] = -1
@@ -84,8 +99,12 @@ class PandaPowerBackendDefault(PandaPowerBackend):
 
             j = i + nb
             if line_status[j]:
-                res[self.line_or_pos_topo_vect[j]] = 1 if bus_or_id == self.line_or_to_subid[j] else 2
-                res[self.line_ex_pos_topo_vect[j]] = 1 if bus_ex_id == self.line_ex_to_subid[j] else 2
+                res[self.line_or_pos_topo_vect[j]] = (
+                    1 if bus_or_id == self.line_or_to_subid[j] else 2
+                )
+                res[self.line_ex_pos_topo_vect[j]] = (
+                    1 if bus_ex_id == self.line_ex_to_subid[j] else 2
+                )
             else:
                 res[self.line_or_pos_topo_vect[j]] = -1
                 res[self.line_ex_pos_topo_vect[j]] = -1
@@ -98,20 +117,26 @@ class PandaPowerBackendDefault(PandaPowerBackend):
 
         i = 0
         for bus_id in self._grid.load["bus"].values:
-            res[self.load_pos_topo_vect[i]] = 1 if bus_id == self.load_to_subid[i] else 2
+            res[self.load_pos_topo_vect[i]] = (
+                1 if bus_id == self.load_to_subid[i] else 2
+            )
             i += 1
-            
+
         # do not forget storage units !
         i = 0
         for bus_id in self._grid.storage["bus"].values:
-            res[self.storage_pos_topo_vect[i]] = 1 if bus_id == self.storage_to_subid[i] else 2
+            res[self.storage_pos_topo_vect[i]] = (
+                1 if bus_id == self.storage_to_subid[i] else 2
+            )
             i += 1
         return res
 
 
 class TestNames(HelperTests, BaseTestNames):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
     def get_path(self):
         return PATH_DATA_TEST_INIT
@@ -119,7 +144,9 @@ class TestNames(HelperTests, BaseTestNames):
 
 class TestLoadingCase(HelperTests, BaseTestLoadingCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
     def get_path(self):
         return PATH_DATA_TEST
@@ -138,7 +165,9 @@ class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc):
         BaseTestLoadingBackendFunc.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
     def get_path(self):
         return PATH_DATA_TEST
@@ -156,7 +185,9 @@ class TestTopoAction(HelperTests, BaseTestTopoAction):
         BaseTestTopoAction.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
     def get_path(self):
         return PATH_DATA_TEST
@@ -165,7 +196,9 @@ class TestTopoAction(HelperTests, BaseTestTopoAction):
         return "test_case14.json"
 
 
-class TestEnvPerformsCorrectCascadingFailures(HelperTests, BaseTestEnvPerformsCorrectCascadingFailures):
+class TestEnvPerformsCorrectCascadingFailures(
+    HelperTests, BaseTestEnvPerformsCorrectCascadingFailures
+):
     def setUp(self):
         BaseTestEnvPerformsCorrectCascadingFailures.setUp(self)
 
@@ -174,7 +207,9 @@ class TestEnvPerformsCorrectCascadingFailures(HelperTests, BaseTestEnvPerformsCo
         BaseTestEnvPerformsCorrectCascadingFailures.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
     def get_casefile(self):
         return "test_case14.json"
@@ -185,12 +220,16 @@ class TestEnvPerformsCorrectCascadingFailures(HelperTests, BaseTestEnvPerformsCo
 
 class TestChangeBusAffectRightBus(HelperTests, BaseTestChangeBusAffectRightBus):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
 
 class TestShuntAction(HelperTests, BaseTestShuntAction):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
 
 class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
@@ -198,27 +237,37 @@ class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
         BaseTestResetEqualsLoadGrid.setUp(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
 
 class TestVoltageOWhenDisco(HelperTests, BaseTestVoltageOWhenDisco):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
 
 class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
 
 class TestIssuesTest(HelperTests, BaseIssuesTest):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
 
 class TestStatusAction(HelperTests, BaseStatusActions):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackendDefault(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
 
 # Specific to pandapower power

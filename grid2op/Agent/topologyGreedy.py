@@ -21,6 +21,7 @@ class TopologyGreedy(GreedyAgent):
     To choose, it will simulate the outcome of all actions, and then chose the action leading to the best rewards.
 
     """
+
     def __init__(self, action_space):
         GreedyAgent.__init__(self, action_space)
         self.tested_action = None

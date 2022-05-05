@@ -19,10 +19,10 @@ class Issue224Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_nm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
-            self.env = grid2op.make(env_nm,
-                                    test=True,
-                                    chronics_class=ChangeNothing)
+            env_nm = os.path.join(
+                PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"
+            )
+            self.env = grid2op.make(env_nm, test=True, chronics_class=ChangeNothing)
             self.env.seed(0)
             self.env.reset()
 
@@ -41,11 +41,12 @@ class Issue224Tester(unittest.TestCase):
         param.ALARM_WINDOW_SIZE = 99
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_nm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
-            env = grid2op.make(env_nm,
-                               test=True,
-                               chronics_class=ChangeNothing,
-                               param=param)
+            env_nm = os.path.join(
+                PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"
+            )
+            env = grid2op.make(
+                env_nm, test=True, chronics_class=ChangeNothing, param=param
+            )
         assert env.parameters.ALARM_WINDOW_SIZE == 99
         assert env.parameters.ALARM_BEST_TIME == 12
         runner = Runner(**env.get_params_for_runner())
@@ -57,11 +58,12 @@ class Issue224Tester(unittest.TestCase):
         param.ALARM_BEST_TIME = 42
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_nm = os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert")
-            env = grid2op.make(env_nm,
-                               test=True,
-                               chronics_class=ChangeNothing,
-                               param=param)
+            env_nm = os.path.join(
+                PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"
+            )
+            env = grid2op.make(
+                env_nm, test=True, chronics_class=ChangeNothing, param=param
+            )
         assert env.parameters.ALARM_WINDOW_SIZE == 12
         assert env.parameters.ALARM_BEST_TIME == 42
         runner = Runner(**env.get_params_for_runner())

@@ -42,13 +42,16 @@ class BasePlot(ABC):
     grid_layout: ``dict`` A grid layout dict to use
 
     """
-    def __init__(self,
-                 observation_space,
-                 width=800,
-                 height=600,
-                 scale=2000.0,
-                 grid_layout=None,
-                 parallel_spacing=3.0):
+
+    def __init__(
+        self,
+        observation_space,
+        width=800,
+        height=600,
+        scale=2000.0,
+        grid_layout=None,
+        parallel_spacing=3.0,
+    ):
 
         self.observation_space = observation_space
         self.width = width
@@ -56,12 +59,7 @@ class BasePlot(ABC):
         self.scale = scale
         self._parallel_spacing = parallel_spacing
 
-        self._info_to_units = {
-            "rho": "%",
-            "a": "A",
-            "p": "MW",
-            "v":"kV"
-        }
+        self._info_to_units = {"rho": "%", "a": "A", "p": "MW", "v": "kV"}
         self._lines_info = ["rho", "a", "p", "v", None]
         self._loads_info = ["p", "v", None]
         self._gens_info = ["p", "v", None]
@@ -70,8 +68,12 @@ class BasePlot(ABC):
 
         # Augment observation_space with dummy observation data
         # so we can use it as an observation for plotting just the layout or custom infos
-        self.observation_space.topo_vect = np.ones(self.observation_space.dim_topo, dtype=dt_int)
-        self.observation_space.line_status = np.full(self.observation_space.n_line, True)
+        self.observation_space.topo_vect = np.ones(
+            self.observation_space.dim_topo, dtype=dt_int
+        )
+        self.observation_space.line_status = np.full(
+            self.observation_space.n_line, True
+        )
         self.observation_space.rho = np.full(self.observation_space.n_line, 0.0)
         self.observation_space.p_or = np.ones(self.observation_space.n_line)
 
@@ -82,7 +84,7 @@ class BasePlot(ABC):
     def create_figure(self):
         """
         Creates a new figure to draw into.
-        Depending on the library can also be called Plot, canvas, screen .. 
+        Depending on the library can also be called Plot, canvas, screen ..
         """
         pass
 
@@ -90,7 +92,7 @@ class BasePlot(ABC):
     def clear_figure(self, figure):
         """
         Clears a figure
-        Depending on the library can also be called Plot, canvas, screen .. 
+        Depending on the library can also be called Plot, canvas, screen ..
         """
         pass
 
@@ -98,16 +100,16 @@ class BasePlot(ABC):
     def convert_figure_to_numpy_HWC(self, figure):
         """
         Given a figure as returned by `BasePlot.create_figure`
-        Convert it to a numpy array of dtype uint8 
+        Convert it to a numpy array of dtype uint8
         and data layed out in the HWC format
         """
         pass
 
-    def compute_grid_layout(self, observation_space, grid_layout = None):
+    def compute_grid_layout(self, observation_space, grid_layout=None):
         """
         Compute the grid layout from the observation space
 
-        This should return a native python ``dict`` 
+        This should return a native python ``dict``
         in the same format as observation_space.grid_layout :
 
         .. code-block:: python
@@ -117,15 +119,15 @@ class BasePlot(ABC):
               "substation2_name": [x_coord, y_coord],
               [...],
               "load1_name": [x_coord, y_coord],
-              [...], 
+              [...],
               "gen1_name": [x_coord, y_coord],
               [...]
             }
-        
-        Note that is must contain at least the positions for the substations.
-        The loads and generators will be skipped if missing. 
 
-        By default, if `grid_layout` is provided this is returned, 
+        Note that is must contain at least the positions for the substations.
+        The loads and generators will be skipped if missing.
+
+        By default, if `grid_layout` is provided this is returned,
         otherwise returns observation_space.grid_layout
 
         Parameters
@@ -148,22 +150,22 @@ class BasePlot(ABC):
 
         # Compute loads and gens positions using a default implementation
         observation_space.grid_layout = use_grid_layout
-        return layout_obs_sub_load_and_gen(observation_space, scale=self.scale, use_initial=True)
+        return layout_obs_sub_load_and_gen(
+            observation_space, scale=self.scale, use_initial=True
+        )
 
     @abstractmethod
-    def draw_substation(self, figure, observation,
-                        sub_id, sub_name,
-                        pos_x, pos_y):
+    def draw_substation(self, figure, observation, sub_id, sub_name, pos_x, pos_y):
         """
         Draws a substation into the figure
 
         Parameters
         ----------
 
-        figure: :object: Figure to draw to. 
+        figure: :object: Figure to draw to.
         This is the object returned by create_figure
 
-        observation: :grid2op.Observation.BaseObservation: 
+        observation: :grid2op.Observation.BaseObservation:
         Current state of the grid being drawn
 
         sub_id: :int: Id of the substation, Index in the observation
@@ -176,9 +178,7 @@ class BasePlot(ABC):
         """
         pass
 
-    def update_substation(self, figure, observation,
-                        sub_id, sub_name,
-                        pos_x, pos_y):
+    def update_substation(self, figure, observation, sub_id, sub_name, pos_x, pos_y):
         """
         INTERNAL
 
@@ -189,18 +189,27 @@ class BasePlot(ABC):
         pass
 
     @abstractmethod
-    def draw_load(self, figure, observation,
-                  load_name, load_id, load_bus,
-                  load_value, load_unit,
-                  pos_x, pos_y,
-                  sub_x, sub_y):
+    def draw_load(
+        self,
+        figure,
+        observation,
+        load_name,
+        load_id,
+        load_bus,
+        load_value,
+        load_unit,
+        pos_x,
+        pos_y,
+        sub_x,
+        sub_y,
+    ):
         """
         Draws a load into the figure
 
         Parameters
         ----------
 
-        figure: :object: Figure to draw to. 
+        figure: :object: Figure to draw to.
         This is the object returned by create_figure
 
         observation: :grid2op.Observation.BaseObservation:
@@ -226,11 +235,20 @@ class BasePlot(ABC):
         """
         pass
 
-    def update_load(self, figure, observation,
-                    load_name, load_id, load_bus,
-                    load_value, load_unit,
-                    pos_x, pos_y,
-                    sub_x, sub_y):
+    def update_load(
+        self,
+        figure,
+        observation,
+        load_name,
+        load_id,
+        load_bus,
+        load_value,
+        load_unit,
+        pos_x,
+        pos_y,
+        sub_x,
+        sub_y,
+    ):
         """
         INTERNAL
 
@@ -241,11 +259,20 @@ class BasePlot(ABC):
         pass
 
     @abstractmethod
-    def draw_gen(self, figure, observation,
-                 gen_name, gen_id, gen_bus,
-                 gen_value, gen_unit,
-                 pos_x, pos_y,
-                 sub_x, sub_y):
+    def draw_gen(
+        self,
+        figure,
+        observation,
+        gen_name,
+        gen_id,
+        gen_bus,
+        gen_value,
+        gen_unit,
+        pos_x,
+        pos_y,
+        sub_x,
+        sub_y,
+    ):
         """
         Draws a generator into the figure
 
@@ -255,7 +282,7 @@ class BasePlot(ABC):
         figure: :object: Figure to draw to.
         This is the object returned by create_figure
 
-        observation: `grid2op.Observation.BaseObservation` 
+        observation: `grid2op.Observation.BaseObservation`
         Current state of the grid being drawn
 
         gen_name: ``str`` Name of the load
@@ -279,11 +306,20 @@ class BasePlot(ABC):
         """
         pass
 
-    def update_gen(self, figure, observation,
-                   gen_name, gen_id, gen_bus,
-                   gen_value, gen_unit,
-                   pos_x, pos_y,
-                   sub_x, sub_y):
+    def update_gen(
+        self,
+        figure,
+        observation,
+        gen_name,
+        gen_id,
+        gen_bus,
+        gen_value,
+        gen_unit,
+        pos_x,
+        pos_y,
+        sub_x,
+        sub_y,
+    ):
         """
         INTERNAL
 
@@ -294,18 +330,29 @@ class BasePlot(ABC):
         pass
 
     @abstractmethod
-    def draw_powerline(self, figure, observation,
-                       line_id, line_name, connected,
-                       line_value, line_unit,
-                       or_bus, pos_or_x, pos_or_y,
-                       ex_bus, pos_ex_x, pos_ex_y):
+    def draw_powerline(
+        self,
+        figure,
+        observation,
+        line_id,
+        line_name,
+        connected,
+        line_value,
+        line_unit,
+        or_bus,
+        pos_or_x,
+        pos_or_y,
+        ex_bus,
+        pos_ex_x,
+        pos_ex_y,
+    ):
         """
         Draws a powerline into the figure
 
         Parameters
         ----------
 
-        figure: ``object`` Figure to draw to. 
+        figure: ``object`` Figure to draw to.
         This is the object returned by `create_figure`
 
         observation: ``grid2op.Observation.BaseObservation``
@@ -335,11 +382,22 @@ class BasePlot(ABC):
         """
         pass
 
-    def update_powerline(self, figure, observation,
-                         line_id, line_name, connected,
-                         line_value, line_unit,
-                         or_bus, pos_or_x, pos_or_y,
-                         ex_bus, pos_ex_x, pos_ex_y):
+    def update_powerline(
+        self,
+        figure,
+        observation,
+        line_id,
+        line_name,
+        connected,
+        line_value,
+        line_unit,
+        or_bus,
+        pos_or_x,
+        pos_or_y,
+        ex_bus,
+        pos_ex_x,
+        pos_ex_y,
+    ):
         """
         INTERNAL
 
@@ -350,11 +408,20 @@ class BasePlot(ABC):
         pass
 
     @abstractmethod
-    def draw_storage(self, figure, observation,
-                     storage_name, storage_id, storage_bus,
-                     storage_value, storage_unit,
-                     pos_x, pos_y,
-                     sub_x, sub_y):
+    def draw_storage(
+        self,
+        figure,
+        observation,
+        storage_name,
+        storage_id,
+        storage_bus,
+        storage_value,
+        storage_unit,
+        pos_x,
+        pos_y,
+        sub_x,
+        sub_y,
+    ):
         """
         Draws a storage unit into the figure
 
@@ -387,11 +454,20 @@ class BasePlot(ABC):
         """
         pass
 
-    def update_storage(self, figure, observation,
-                       storage_name, storage_id, storage_bus,
-                       storage_value, storage_unit,
-                       pos_x, pos_y,
-                       sub_x, sub_y):
+    def update_storage(
+        self,
+        figure,
+        observation,
+        storage_name,
+        storage_id,
+        storage_bus,
+        storage_value,
+        storage_unit,
+        pos_x,
+        pos_y,
+        sub_x,
+        sub_y,
+    ):
         """
         INTERNAL
 
@@ -408,14 +484,14 @@ class BasePlot(ABC):
 
         Parameters
         ----------
-        figure: ``object`` Figure to draw to. 
+        figure: ``object`` Figure to draw to.
         This is the object returned by `create_figure`
 
         observation: ``grid2op.Observation.BaseObservation``
         Current state of the grid being drawn
         """
         pass
-    
+
     def update_legend(self, figure, observation):
         """
         INTERNAL
@@ -442,12 +518,19 @@ class BasePlot(ABC):
             sub_name = observation.name_sub[sub_idx]
             sub_x = self._grid_layout[sub_name][0]
             sub_y = self._grid_layout[sub_name][1]
-            draw_fn(figure, observation,
-                    sub_idx, sub_name,
-                    sub_x, sub_y)
+            draw_fn(figure, observation, sub_idx, sub_name, sub_x, sub_y)
 
-    def _aux_draw_elements(self, figure, observation, load_values, load_unit, draw_fn,
-                           el_names, el_to_subid, el_pos_topo_vect):
+    def _aux_draw_elements(
+        self,
+        figure,
+        observation,
+        load_values,
+        load_unit,
+        draw_fn,
+        el_names,
+        el_to_subid,
+        el_pos_topo_vect,
+    ):
         """
         generic method to loop through all elements of a given type and call the draw function
         on them
@@ -459,7 +542,10 @@ class BasePlot(ABC):
                 continue
             load_value = None
             if load_values is not None:
-                load_value = np.round(float(load_values[stor_idx]), 2)
+                if load_values[stor_idx] is not None:
+                    load_value = np.round(float(load_values[stor_idx]), 2)
+                else:
+                    load_value = None
             sto_x = self._grid_layout[stor_name][0]
             sto_y = self._grid_layout[stor_name][1]
             sto_subid = el_to_subid[stor_idx]
@@ -468,19 +554,35 @@ class BasePlot(ABC):
             sto_bus = sto_bus if sto_bus > 0 else 0
             sub_x = self._grid_layout[subname][0]
             sub_y = self._grid_layout[subname][1]
-            draw_fn(figure, observation,
-                    stor_idx, stor_name, sto_bus,
-                    load_value, load_unit,
-                    sto_x, sto_y, sub_x, sub_y)
+            draw_fn(
+                figure,
+                observation,
+                stor_idx,
+                stor_name,
+                sto_bus,
+                load_value,
+                load_unit,
+                sto_x,
+                sto_y,
+                sub_x,
+                sub_y,
+            )
 
     def _plot_loads(self, figure, observation, load_values, load_unit, redraw):
         draw_fn = self.draw_load
         if not redraw:
             draw_fn = self.update_load
 
-        self._aux_draw_elements(figure, observation, load_values, load_unit,
-                                draw_fn, observation.name_load, observation.load_to_subid,
-                                observation.load_pos_topo_vect)
+        self._aux_draw_elements(
+            figure,
+            observation,
+            load_values,
+            load_unit,
+            draw_fn,
+            observation.name_load,
+            observation.load_to_subid,
+            observation.load_pos_topo_vect,
+        )
 
     def _plot_storages(self, figure, observation, storage_values, storage_unit, redraw):
         if observation.n_storage == 0:
@@ -488,24 +590,38 @@ class BasePlot(ABC):
         draw_fn = self.draw_storage
         if not redraw:
             draw_fn = self.update_storage
-        self._aux_draw_elements(figure, observation, storage_values, storage_unit,
-                                draw_fn, observation.name_storage, observation.storage_to_subid,
-                                observation.storage_pos_topo_vect)
+        self._aux_draw_elements(
+            figure,
+            observation,
+            storage_values,
+            storage_unit,
+            draw_fn,
+            observation.name_storage,
+            observation.storage_to_subid,
+            observation.storage_pos_topo_vect,
+        )
 
     def _plot_gens(self, figure, observation, gen_values, gen_unit, redraw):
         draw_fn = self.draw_gen
         if not redraw:
             draw_fn = self.update_gen
 
-        self._aux_draw_elements(figure, observation, gen_values, gen_unit,
-                                draw_fn, observation.name_gen, observation.gen_to_subid,
-                                observation.gen_pos_topo_vect)
+        self._aux_draw_elements(
+            figure,
+            observation,
+            gen_values,
+            gen_unit,
+            draw_fn,
+            observation.name_gen,
+            observation.gen_to_subid,
+            observation.gen_pos_topo_vect,
+        )
 
     def _plot_lines(self, figure, observation, line_values, line_unit, redraw):
         draw_fn = self.draw_powerline
         if not redraw:
             draw_fn = self.update_powerline
-            
+
         topo = observation.topo_vect
         line_or_pos = observation.line_or_pos_topo_vect
         line_ex_pos = observation.line_ex_pos_topo_vect
@@ -538,11 +654,13 @@ class BasePlot(ABC):
             line_ex_y = self._grid_layout[line_ex_sub_name][1]
 
             # Special case for parralel lines
-            tmp = self.observation_space.get_lines_id(from_=line_or_sub,
-                                                      to_=line_ex_sub)
+            tmp = self.observation_space.get_lines_id(
+                from_=line_or_sub, to_=line_ex_sub
+            )
             if len(tmp) > 1:
-                ox, oy = pltu.orth_norm_from_points(line_or_x, line_or_y,
-                                                    line_ex_x, line_ex_y)
+                ox, oy = pltu.orth_norm_from_points(
+                    line_or_x, line_or_y, line_ex_x, line_ex_y
+                )
                 if line_idx == tmp[0]:
                     line_or_x += ox * self._parallel_spacing
                     line_or_y += oy * self._parallel_spacing
@@ -554,11 +672,21 @@ class BasePlot(ABC):
                     line_ex_x -= ox * self._parallel_spacing
                     line_ex_y -= oy * self._parallel_spacing
 
-            draw_fn(figure, observation,
-                    line_idx, line_name, line_status,
-                    line_value, line_unit,
-                    line_or_bus, line_or_x, line_or_y,
-                    line_ex_bus, line_ex_x, line_ex_y)
+            draw_fn(
+                figure,
+                observation,
+                line_idx,
+                line_name,
+                line_status,
+                line_value,
+                line_unit,
+                line_or_bus,
+                line_or_x,
+                line_or_y,
+                line_ex_bus,
+                line_ex_x,
+                line_ex_y,
+            )
 
     def _plot_legend(self, fig, observation, redraw):
         draw_fn = self.draw_legend
@@ -572,32 +700,34 @@ class BasePlot(ABC):
         This function plot the layout of the grid, as well as the object. You will see the name of each elements and
         their id.
         """
-        return self.plot_info(observation=self.observation_space,
-                              figure=None, redraw=True)
-        
-    def plot_obs(self,
-                 observation,
-                 figure=None,
-                 redraw=True,
-                 line_info="rho",
-                 load_info="p",
-                 gen_info="p",
-                 storage_info="p",
-                 ):
+        return self.plot_info(
+            observation=self.observation_space, figure=None, redraw=True
+        )
+
+    def plot_obs(
+        self,
+        observation,
+        figure=None,
+        redraw=True,
+        line_info="rho",
+        load_info="p",
+        gen_info="p",
+        storage_info="p",
+    ):
         """
         Plot an observation.
-        
+
         Parameters
         ----------
         observation: :class:`grid2op.Observation.BaseObservation`
             The observation to plot
 
         figure: ``object``
-            The figure on which to plot the observation. 
+            The figure on which to plot the observation.
             If figure is ``None``, a new figure is created.
 
         line_info: ``str``
-            One of "rho", "a", or "p" or "v" 
+            One of "rho", "a", or "p" or "v"
             The information that will be plotted on the powerline.
             By default "rho".
             All flow are taken "origin" side.
@@ -623,21 +753,26 @@ class BasePlot(ABC):
         # TODO add line_info=cooldown
 
         # Start by checking arguments are valid
-        if not isinstance(observation, BaseObservation):            
-            err_msg = "Observation is not a derived type of " \
-                      "grid2op.Observation.BaseObservation"
+        if not isinstance(observation, BaseObservation):
+            err_msg = (
+                "Observation is not a derived type of "
+                "grid2op.Observation.BaseObservation"
+            )
             raise PlotError(err_msg)
         if line_info not in self._lines_info:
-            err_msg = "Impossible to plot line info \"{}\" for line." \
-                      " Possible values are {}"
+            err_msg = (
+                'Impossible to plot line info "{}" for line.' " Possible values are {}"
+            )
             raise PlotError(err_msg.format(line_info, str(self._lines_info)))
         if load_info not in self._loads_info:
-            err_msg = "Impossible to plot load info \"{}\" for line." \
-                      " Possible values are {}"
+            err_msg = (
+                'Impossible to plot load info "{}" for line.' " Possible values are {}"
+            )
             raise PlotError(err_msg.format(load_info, str(self._loads_info)))
         if gen_info not in self._gens_info:
-            err_msg = "Impossible to plot gen info \"{}\" for line." \
-                      " Possible values are {}"
+            err_msg = (
+                'Impossible to plot gen info "{}" for line.' " Possible values are {}"
+            )
             raise PlotError(err_msg.format(gen_info, str(self._gens_info)))
 
         line_values = None
@@ -655,8 +790,10 @@ class BasePlot(ABC):
         elif line_info is None:
             pass
         else:
-            raise PlotError(f"Impossible to understand the keyword argument \"{line_info}\" "
-                            f"provided as \"line_info\"")
+            raise PlotError(
+                f'Impossible to understand the keyword argument "{line_info}" '
+                f'provided as "line_info"'
+            )
 
         load_values = None
         load_unit = ""
@@ -669,8 +806,10 @@ class BasePlot(ABC):
         elif load_info is None:
             pass
         else:
-            raise PlotError(f"Impossible to understand the keyword argument \"{load_info}\" "
-                            f"provided as \"load_info\"")
+            raise PlotError(
+                f'Impossible to understand the keyword argument "{load_info}" '
+                f'provided as "load_info"'
+            )
 
         gen_values = None
         gen_unit = ""
@@ -683,8 +822,10 @@ class BasePlot(ABC):
         elif gen_info is None:
             pass
         else:
-            raise PlotError(f"Impossible to understand the keyword argument \"{gen_info}\" "
-                            f"provided as \"gen_info\"")
+            raise PlotError(
+                f'Impossible to understand the keyword argument "{gen_info}" '
+                f'provided as "gen_info"'
+            )
 
         storage_values = None
         storage_unit = ""
@@ -695,35 +836,47 @@ class BasePlot(ABC):
         elif storage_info is None:
             pass
         else:
-            raise PlotError(f"Impossible to understand the keyword argument \"{storage_info}\" "
-                            f"provided as \"storage_info\"")
+            raise PlotError(
+                f'Impossible to understand the keyword argument "{storage_info}" '
+                f'provided as "storage_info"'
+            )
 
-        return self.plot_info(observation=observation, figure=figure, redraw=redraw,
-                              line_values=line_values, line_unit=line_unit,
-                              load_values=load_values, load_unit=load_unit,
-                              gen_values=gen_values, gen_unit=gen_unit,
-                              storage_values=storage_values, storage_unit=storage_unit)
+        return self.plot_info(
+            observation=observation,
+            figure=figure,
+            redraw=redraw,
+            line_values=line_values,
+            line_unit=line_unit,
+            load_values=load_values,
+            load_unit=load_unit,
+            gen_values=gen_values,
+            gen_unit=gen_unit,
+            storage_values=storage_values,
+            storage_unit=storage_unit,
+        )
 
-    def plot_info(self,
-                  figure=None,
-                  redraw=True,
-                  line_values=None,
-                  line_unit="",
-                  load_values=None,
-                  load_unit="",
-                  storage_values=None,
-                  storage_unit="",
-                  gen_values=None,
-                  gen_unit="",
-                  observation=None,
-                  coloring=None):
+    def plot_info(
+        self,
+        figure=None,
+        redraw=True,
+        line_values=None,
+        line_unit="",
+        load_values=None,
+        load_unit="",
+        storage_values=None,
+        storage_unit="",
+        gen_values=None,
+        gen_unit="",
+        observation=None,
+        coloring=None,
+    ):
         """
         Plot an observation with custom values
-        
+
         Parameters
         ----------
         figure: ``object``
-            The figure on which to plot the observation. 
+            The figure on which to plot the observation.
             If figure is ``None`` a new figure is created.
 
         line_values: ``list``
@@ -794,22 +947,43 @@ class BasePlot(ABC):
             The figure updated with the data from the new observation.
         """
         # Check values are in the correct format
-        if line_values is not None and len(line_values) != self.observation_space.n_line:
-            raise PlotError("Impossible to display these values on the powerlines: there are {} values"
-                            "provided for {} powerlines in the grid".format(len(line_values),
-                                                                            self.observation_space.n_line))
-        if load_values is not None and len(load_values) != self.observation_space.n_load:
-            raise PlotError("Impossible to display these values on the loads: there are {} values"
-                            "provided for {} loads in the grid".format(len(load_values),
-                                                                       self.observation_space.n_load))
+        if (
+            line_values is not None
+            and len(line_values) != self.observation_space.n_line
+        ):
+            raise PlotError(
+                "Impossible to display these values on the powerlines: there are {} values"
+                "provided for {} powerlines in the grid".format(
+                    len(line_values), self.observation_space.n_line
+                )
+            )
+        if (
+            load_values is not None
+            and len(load_values) != self.observation_space.n_load
+        ):
+            raise PlotError(
+                "Impossible to display these values on the loads: there are {} values"
+                "provided for {} loads in the grid".format(
+                    len(load_values), self.observation_space.n_load
+                )
+            )
         if gen_values is not None and len(gen_values) != self.observation_space.n_gen:
-            raise PlotError("Impossible to display these values on the generators: there are {} values"
-                            "provided for {} generators in the grid".format(len(gen_values),
-                                                                            self.observation_space.n_gen))
-        if storage_values is not None and len(storage_values) != self.observation_space.n_storage:
-            raise PlotError("Impossible to display these values on the storage units: there are {} values"
-                            "provided for {} generators in the grid".format(len(storage_values),
-                                                                            self.observation_space.n_storage))
+            raise PlotError(
+                "Impossible to display these values on the generators: there are {} values"
+                "provided for {} generators in the grid".format(
+                    len(gen_values), self.observation_space.n_gen
+                )
+            )
+        if (
+            storage_values is not None
+            and len(storage_values) != self.observation_space.n_storage
+        ):
+            raise PlotError(
+                "Impossible to display these values on the storage units: there are {} values"
+                "provided for {} generators in the grid".format(
+                    len(storage_values), self.observation_space.n_storage
+                )
+            )
 
         # Get a valid figure to draw into
         if figure is None:
@@ -829,42 +1003,56 @@ class BasePlot(ABC):
                 observation = copy.deepcopy(observation)
                 if coloring == "line":
                     if line_values is None:
-                        raise PlotError("Impossible to color the grid based on the line information (key word argument "
-                                        "\"line_values\") if this argument is None.")
+                        raise PlotError(
+                            "Impossible to color the grid based on the line information (key word argument "
+                            '"line_values") if this argument is None.'
+                        )
 
                     observation.rho = copy.deepcopy(line_values)
                     try:
                         observation.rho = np.array(observation.rho).astype(dt_float)
                     except:
-                        raise PlotError("Impossible to convert the input values (line_values) to floating point")
+                        raise PlotError(
+                            "Impossible to convert the input values (line_values) to floating point"
+                        )
 
                     # rescaling to have range 0 - 1.0
                     tmp = observation.rho[np.isfinite(observation.rho)]
-                    observation.rho -= (np.min(tmp) - 1e-1)  # so the min is 1e-1 otherwise 0.0 is plotted as black
+                    observation.rho -= (
+                        np.min(tmp) - 1e-1
+                    )  # so the min is 1e-1 otherwise 0.0 is plotted as black
                     tmp = observation.rho[np.isfinite(observation.rho)]
                     observation.rho /= np.max(tmp)
                 elif coloring == "load":
                     # TODO
-                    warnings.warn("ooloring = loads is not available at the moment")
+                    warnings.warn("coloring = loads is not available at the moment")
                 elif coloring == "gen":
                     if gen_values is None:
-                        raise PlotError("Impossible to color the grid based on the gen information (key word argument "
-                                        "\"gen_values\") if this argument is None.")
+                        raise PlotError(
+                            "Impossible to color the grid based on the gen information (key word argument "
+                            '"gen_values") if this argument is None.'
+                        )
 
                     observation.prod_p = copy.deepcopy(gen_values)
                     try:
-                        observation.prod_p = np.array(observation.prod_p).astype(dt_float)
+                        observation.prod_p = np.array(observation.prod_p).astype(
+                            dt_float
+                        )
                     except:
-                        raise PlotError("Impossible to convert the input values (gen_values) to floating point")
+                        raise PlotError(
+                            "Impossible to convert the input values (gen_values) to floating point"
+                        )
 
                     # rescaling to have range 0 - 1.0
                     tmp = observation.prod_p[np.isfinite(observation.prod_p)]
                     if np.any(np.isfinite(observation.prod_p)):
-                        observation.prod_p -= (np.min(tmp) - 1e-1)  # so the min is 1e-1 otherwise 0.0 is plotted as black
+                        observation.prod_p -= (
+                            np.min(tmp) - 1e-1
+                        )  # so the min is 1e-1 otherwise 0.0 is plotted as black
                         tmp = observation.prod_p[np.isfinite(observation.prod_p)]
                         observation.prod_p /= np.max(tmp)
                 else:
-                    raise PlotError("coloring must be one of \"line\", \"load\" or \"gen\"")
+                    raise PlotError('coloring must be one of "line", "load" or "gen"')
 
         # Trigger draw calls
         self._plot_lines(fig, observation, line_values, line_unit, redraw)
@@ -876,6 +1064,6 @@ class BasePlot(ABC):
 
         # Some implementations may need postprocessing
         self.plot_postprocess(fig, observation, not redraw)
-        
+
         # Return updated figure
         return fig

@@ -8,6 +8,7 @@
 
 import grid2op
 import numpy as np
+
 #!/usr/bin/env python3
 
 import grid2op
@@ -32,20 +33,28 @@ class Issue147Tester(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True, param=param)
 
-        action = env.action_space({"set_bus": {"substations_id": [(1, [2, 2, 1, 1, 2, 2])]}})
+        action = env.action_space(
+            {"set_bus": {"substations_id": [(1, [2, 2, 1, 1, 2, 2])]}}
+        )
 
-        obs, reward, done, info = env.step(env.action_space({"set_line_status": [(0, -1)]}))
+        obs, reward, done, info = env.step(
+            env.action_space({"set_line_status": [(0, -1)]})
+        )
         env.step(env.action_space())
         sim_o, sim_r, sim_d, info = obs.simulate(env.action_space())
         env.step(env.action_space())
         sim_o, sim_r, sim_d, info = obs.simulate(env.action_space())
         env.step(env.action_space())
         sim_o, sim_r, sim_d, info = obs.simulate(env.action_space())
-        obs, reward, done, info = env.step(env.action_space({"set_line_status": [(0, 1)]}))
+        obs, reward, done, info = env.step(
+            env.action_space({"set_line_status": [(0, 1)]})
+        )
         assert obs.time_before_cooldown_line[0] == 3
         sim_o, sim_r, sim_d, sim_info = obs.simulate(action)
         assert not sim_d
-        assert not sim_info["is_illegal"]  # this was declared as "illegal" due to an issue with updating
+        assert not sim_info[
+            "is_illegal"
+        ]  # this was declared as "illegal" due to an issue with updating
         # the line status in the observation of the _ObsEnv
         obs, reward, done, info = obs.simulate(action)
         assert not info["is_illegal"]

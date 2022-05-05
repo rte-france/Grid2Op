@@ -27,6 +27,7 @@ from grid2op.tests.BaseBackendTest import BaseTestVoltageOWhenDisco
 from grid2op.tests.BaseBackendTest import BaseTestChangeBusSlack
 from grid2op.tests.BaseBackendTest import BaseIssuesTest
 from grid2op.tests.BaseBackendTest import BaseStatusActions
+
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
@@ -34,14 +35,17 @@ BKclass1 = PandaPowerBackend
 BKclass2 = PandaPowerBackend
 
 import warnings
+
 warnings.simplefilter("error")
 
 
 class TestLoading(HelperTests):
     def test_init(self):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+        )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
@@ -49,10 +53,12 @@ class TestLoading(HelperTests):
 
 class TestNames(HelperTests, BaseTestNames):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
     def get_path(self):
@@ -61,10 +67,12 @@ class TestNames(HelperTests, BaseTestNames):
 
 class TestLoadingCase(HelperTests, BaseTestLoadingCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
     def get_path(self):
@@ -84,10 +92,12 @@ class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc):
         BaseTestLoadingBackendFunc.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
     def get_path(self):
@@ -106,10 +116,12 @@ class TestTopoAction(HelperTests, BaseTestTopoAction):
         BaseTestTopoAction.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
     def get_path(self):
@@ -119,7 +131,9 @@ class TestTopoAction(HelperTests, BaseTestTopoAction):
         return "test_case14.json"
 
 
-class TestEnvPerformsCorrectCascadingFailures(HelperTests, BaseTestEnvPerformsCorrectCascadingFailures):
+class TestEnvPerformsCorrectCascadingFailures(
+    HelperTests, BaseTestEnvPerformsCorrectCascadingFailures
+):
     def setUp(self):
         BaseTestEnvPerformsCorrectCascadingFailures.setUp(self)
 
@@ -128,10 +142,12 @@ class TestEnvPerformsCorrectCascadingFailures(HelperTests, BaseTestEnvPerformsCo
         BaseTestEnvPerformsCorrectCascadingFailures.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
     def get_casefile(self):
@@ -143,19 +159,23 @@ class TestEnvPerformsCorrectCascadingFailures(HelperTests, BaseTestEnvPerformsCo
 
 class TestChangeBusAffectRightBus(HelperTests, BaseTestChangeBusAffectRightBus):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
 
 class TestShuntAction(HelperTests, BaseTestShuntAction):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
 
@@ -164,46 +184,56 @@ class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
         BaseTestResetEqualsLoadGrid.setUp(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
 
 class TestVoltageOWhenDisco(HelperTests, BaseTestVoltageOWhenDisco):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
 
 class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
 
 class TestIssuesTest(HelperTests, BaseIssuesTest):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
 
 class TestStatusAction(HelperTests, BaseStatusActions):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        backend = BackendConverter(source_backend_class=BKclass1,
-                                   target_backend_class=BKclass2,
-                                   target_backend_grid_path=None,
-                                   detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        backend = BackendConverter(
+            source_backend_class=BKclass1,
+            target_backend_class=BKclass2,
+            target_backend_grid_path=None,
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+        )
         return backend
 
 

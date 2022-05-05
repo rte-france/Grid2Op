@@ -35,6 +35,7 @@ class RewardHelper:
         An object of class :attr:`RewardHelper.rewardClass` used to compute the rewards.
 
     """
+
     def __init__(self, reward_func=ConstantReward):
         self.rewardClass = None
         self.template_reward = None
@@ -102,7 +103,9 @@ class RewardHelper:
             The computed reward
 
         """
-        res = self.template_reward(action, env, has_error, is_done, is_illegal, is_ambiguous)
+        res = self.template_reward(
+            action, env, has_error, is_done, is_illegal, is_ambiguous
+        )
         return res
 
     def change_reward(self, reward_func):
@@ -123,10 +126,12 @@ class RewardHelper:
             self.rewardClass = reward_func
             self.template_reward = reward_func()
         else:
-            raise Grid2OpException(f"Impossible to build a reward with input reward_func={reward_func}. "
-                                   f"NB `reward_func` should be either an object of type `BaseReward` (or "
-                                   f"one of its derivative) "
-                                   f"or a class that inherit from `BaseReward`")
+            raise Grid2OpException(
+                f"Impossible to build a reward with input reward_func={reward_func}. "
+                f"NB `reward_func` should be either an object of type `BaseReward` (or "
+                f"one of its derivative) "
+                f"or a class that inherit from `BaseReward`"
+            )
 
     def close(self):
         """clsoe the reward helper (in case there are specific behaviour for certain rewards"""

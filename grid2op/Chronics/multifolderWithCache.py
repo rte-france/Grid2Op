@@ -58,26 +58,36 @@ class MultifolderWithCache(Multifolder):
             obs, reward, done, info = env.step(act)  # and step will NOT load any data from disk.
 
     """
-    def __init__(self, path,
-                 time_interval=timedelta(minutes=5),
-                 start_datetime=datetime(year=2019, month=1, day=1),
-                 gridvalueClass=GridStateFromFile,
-                 sep=";",
-                 max_iter=-1,
-                 chunk_size=None):
-        Multifolder.__init__(self,
-                             path=path,
-                             time_interval=time_interval,
-                             start_datetime=start_datetime,
-                             gridvalueClass=gridvalueClass,
-                             sep=sep,
-                             max_iter=max_iter,
-                             chunk_size=None)
+
+    def __init__(
+        self,
+        path,
+        time_interval=timedelta(minutes=5),
+        start_datetime=datetime(year=2019, month=1, day=1),
+        gridvalueClass=GridStateFromFile,
+        sep=";",
+        max_iter=-1,
+        chunk_size=None,
+        filter_func=None,
+    ):
+        Multifolder.__init__(
+            self,
+            path=path,
+            time_interval=time_interval,
+            start_datetime=start_datetime,
+            gridvalueClass=gridvalueClass,
+            sep=sep,
+            max_iter=max_iter,
+            chunk_size=None,
+            filter_func=filter_func,
+        )
         self._cached_data = None
         self.cache_size = 0
         if not issubclass(self.gridvalueClass, GridStateFromFile):
-            raise RuntimeError("MultifolderWithCache does not work when \"gridvalueClass\" does not inherit from "
-                               "\"GridStateFromFile\".")
+            raise RuntimeError(
+                'MultifolderWithCache does not work when "gridvalueClass" does not inherit from '
+                '"GridStateFromFile".'
+            )
         self.__i = 0
 
     def _default_filter(self, x):
@@ -102,21 +112,25 @@ class MultifolderWithCache(Multifolder):
         for i in self._order:
             # everything in "_order" need to be put in cache
             path = self.subpaths[i]
-            data = self.gridvalueClass(time_interval=self.time_interval,
-                                       sep=self.sep,
-                                       path=path,
-                                       max_iter=self.max_iter,
-                                       chunk_size=None)
+            data = self.gridvalueClass(
+                time_interval=self.time_interval,
+                sep=self.sep,
+                path=path,
+                max_iter=self.max_iter,
+                chunk_size=None,
+            )
             if self.seed is not None:
                 max_int = np.iinfo(dt_int).max
                 seed_chronics = self.space_prng.randint(max_int)
                 data.seed(seed_chronics)
 
-            data.initialize(self._order_backend_loads,
-                            self._order_backend_prods,
-                            self._order_backend_lines,
-                            self._order_backend_subs,
-                            self._names_chronics_to_backend)
+            data.initialize(
+                self._order_backend_loads,
+                self._order_backend_prods,
+                self._order_backend_lines,
+                self._order_backend_subs,
+                self._names_chronics_to_backend,
+            )
             self._cached_data[i] = data
             self.cache_size += 1
 
@@ -125,8 +139,14 @@ class MultifolderWithCache(Multifolder):
 
         return self.subpaths[self._order]
 
-    def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
-                   names_chronics_to_backend=None):
+    def initialize(
+        self,
+        order_backend_loads,
+        order_backend_prods,
+        order_backend_lines,
+        order_backend_subs,
+        names_chronics_to_backend=None,
+    ):
         self._order_backend_loads = order_backend_loads
         self._order_backend_prods = order_backend_prods
         self._order_backend_lines = order_backend_lines

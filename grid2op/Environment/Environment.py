@@ -12,8 +12,15 @@ import numpy as np
 import re
 
 import grid2op
+from grid2op.Opponent.OpponentSpace import OpponentSpace
 from grid2op.dtypes import dt_float, dt_bool, dt_int
-from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
+from grid2op.Action import (
+    ActionSpace,
+    BaseAction,
+    TopologyAction,
+    DontAct,
+    CompleteAction,
+)
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, ObservationSpace, BaseObservation
 from grid2op.Reward import FlatReward, RewardHelper, BaseReward
@@ -60,68 +67,78 @@ class Environment(BaseEnv):
 
     REGEX_SPLIT = r"^[a-zA-Z0-9]*$"
 
-    def __init__(self,
-                 init_grid_path: str,
-                 chronics_handler,
-                 backend,
-                 parameters,
-                 name="unknown",
-                 names_chronics_to_backend=None,
-                 actionClass=TopologyAction,
-                 observationClass=CompleteObservation,
-                 rewardClass=FlatReward,
-                 legalActClass=AlwaysLegal,
-                 voltagecontrolerClass=ControlVoltageFromFile,
-                 other_rewards={},
-                 thermal_limit_a=None,
-                 with_forecast=True,
-                 epsilon_poly=1e-4,  # precision of the redispatching algorithm we don't recommend to go above 1e-4
-                 tol_poly=1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
-                 opponent_action_class=DontAct,
-                 opponent_class=BaseOpponent,
-                 opponent_init_budget=0.,
-                 opponent_budget_per_ts=0.,
-                 opponent_budget_class=NeverAttackBudget,
-                 opponent_attack_duration=0,
-                 opponent_attack_cooldown=99999,
-                 kwargs_opponent={},
-                 attention_budget_cls=LinearAttentionBudget,
-                 kwargs_attention_budget={},
-                 has_attention_budget=False,
-                 logger=None,
-                 kwargs_observation=None,
-                 _raw_backend_class=None,
-                 _compat_glop_version=None,
-                 _read_from_local_dir=True,  # TODO runner and all here !
-                 _is_test=False
-                 ):
-        BaseEnv.__init__(self,
-                         init_grid_path=init_grid_path,
-                         parameters=parameters,
-                         thermal_limit_a=thermal_limit_a,
-                         epsilon_poly=epsilon_poly,
-                         tol_poly=tol_poly,
-                         other_rewards=other_rewards,
-                         with_forecast=with_forecast,
-                         voltagecontrolerClass=voltagecontrolerClass,
-                         opponent_action_class=opponent_action_class,
-                         opponent_class=opponent_class,
-                         opponent_budget_class=opponent_budget_class,
-                         opponent_init_budget=opponent_init_budget,
-                         opponent_budget_per_ts=opponent_budget_per_ts,
-                         opponent_attack_duration=opponent_attack_duration,
-                         opponent_attack_cooldown=opponent_attack_cooldown,
-                         kwargs_opponent=kwargs_opponent,
-                         has_attention_budget=has_attention_budget,
-                         attention_budget_cls=attention_budget_cls,
-                         kwargs_attention_budget=kwargs_attention_budget,
-                         logger=logger.getChild("grid2op_Environment") if logger is not None else None,
-                         kwargs_observation=kwargs_observation,
-                         _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
-                         )
+    def __init__(
+        self,
+        init_env_path: str,
+        init_grid_path: str,
+        chronics_handler,
+        backend,
+        parameters,
+        name="unknown",
+        names_chronics_to_backend=None,
+        actionClass=TopologyAction,
+        observationClass=CompleteObservation,
+        rewardClass=FlatReward,
+        legalActClass=AlwaysLegal,
+        voltagecontrolerClass=ControlVoltageFromFile,
+        other_rewards={},
+        thermal_limit_a=None,
+        with_forecast=True,
+        epsilon_poly=1e-4,  # precision of the redispatching algorithm we don't recommend to go above 1e-4
+        tol_poly=1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
+        opponent_space_type=OpponentSpace,
+        opponent_action_class=DontAct,
+        opponent_class=BaseOpponent,
+        opponent_init_budget=0.0,
+        opponent_budget_per_ts=0.0,
+        opponent_budget_class=NeverAttackBudget,
+        opponent_attack_duration=0,
+        opponent_attack_cooldown=99999,
+        kwargs_opponent={},
+        attention_budget_cls=LinearAttentionBudget,
+        kwargs_attention_budget={},
+        has_attention_budget=False,
+        logger=None,
+        kwargs_observation=None,
+        _raw_backend_class=None,
+        _compat_glop_version=None,
+        _read_from_local_dir=True,  # TODO runner and all here !
+        _is_test=False,
+    ):
+        BaseEnv.__init__(
+            self,
+            init_env_path=init_env_path,
+            init_grid_path=init_grid_path,
+            parameters=parameters,
+            thermal_limit_a=thermal_limit_a,
+            epsilon_poly=epsilon_poly,
+            tol_poly=tol_poly,
+            other_rewards=other_rewards,
+            with_forecast=with_forecast,
+            voltagecontrolerClass=voltagecontrolerClass,
+            opponent_space_type=opponent_space_type,
+            opponent_action_class=opponent_action_class,
+            opponent_class=opponent_class,
+            opponent_budget_class=opponent_budget_class,
+            opponent_init_budget=opponent_init_budget,
+            opponent_budget_per_ts=opponent_budget_per_ts,
+            opponent_attack_duration=opponent_attack_duration,
+            opponent_attack_cooldown=opponent_attack_cooldown,
+            kwargs_opponent=kwargs_opponent,
+            has_attention_budget=has_attention_budget,
+            attention_budget_cls=attention_budget_cls,
+            kwargs_attention_budget=kwargs_attention_budget,
+            logger=logger.getChild("grid2op_Environment")
+            if logger is not None
+            else None,
+            kwargs_observation=kwargs_observation,
+            _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
+        )
         if name == "unknown":
-            warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
-                          "to use an environment without a name...")
+            warnings.warn(
+                'It is NOT recommended to create an environment without "make" and EVEN LESS '
+                "to use an environment without a name..."
+            )
         self.name = name
         self._read_from_local_dir = _read_from_local_dir
 
@@ -141,15 +158,28 @@ class Environment(BaseEnv):
         self._compat_glop_version = _compat_glop_version
 
         # for plotting
-        self._init_backend(chronics_handler, backend,
-                           names_chronics_to_backend, actionClass, observationClass,
-                           rewardClass, legalActClass)
+        self._init_backend(
+            chronics_handler,
+            backend,
+            names_chronics_to_backend,
+            actionClass,
+            observationClass,
+            rewardClass,
+            legalActClass,
+        )
         self._actionClass_orig = actionClass
         self._observationClass_orig = observationClass
 
-    def _init_backend(self, chronics_handler, backend,
-                      names_chronics_to_backend, actionClass, observationClass,
-                      rewardClass, legalActClass):
+    def _init_backend(
+        self,
+        chronics_handler,
+        backend,
+        names_chronics_to_backend,
+        actionClass,
+        observationClass,
+        rewardClass,
+        legalActClass,
+    ):
         """
         INTERNAL
 
@@ -160,21 +190,33 @@ class Environment(BaseEnv):
 
         if isinstance(rewardClass, type):
             if not issubclass(rewardClass, BaseReward):
-                raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
-                                       "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
+                raise Grid2OpException(
+                    'Parameter "rewardClass" used to build the Environment should derived form '
+                    'the grid2op.BaseReward class, type provided is "{}"'.format(
+                        type(rewardClass)
+                    )
+                )
         else:
             if not isinstance(rewardClass, BaseReward):
-                raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
-                                       "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
+                raise Grid2OpException(
+                    'Parameter "rewardClass" used to build the Environment should derived form '
+                    'the grid2op.BaseReward class, type provided is "{}"'.format(
+                        type(rewardClass)
+                    )
+                )
 
         # backend
         if not isinstance(backend, Backend):
-            raise Grid2OpException("Parameter \"backend\" used to build the Environment should derived form the "
-                                   "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
+            raise Grid2OpException(
+                'Parameter "backend" used to build the Environment should derived form the '
+                'grid2op.Backend class, type provided is "{}"'.format(type(backend))
+            )
         self.backend = backend
         if self.backend.is_loaded:
-            raise EnvError("Impossible to use the same backend twice. Please create your environment with a "
-                           "new backend instance.")
+            raise EnvError(
+                "Impossible to use the same backend twice. Please create your environment with a "
+                "new backend instance (new object)."
+            )
 
         if self._read_from_local_dir:
             # test to support pickle conveniently
@@ -183,13 +225,17 @@ class Environment(BaseEnv):
         # all the above should be done in this exact order, otherwise some weird behaviour might occur
         # this is due to the class attribute
         self.backend.set_env_name(self.name)
-        self.backend.load_grid(self._init_grid_path)  # the real powergrid of the environment
+        self.backend.load_grid(
+            self._init_grid_path
+        )  # the real powergrid of the environment
         self.backend.load_redispacthing_data(self.get_path_env())
         self.backend.load_storage_data(self.get_path_env())
         exc_ = self.backend.load_grid_layout(self.get_path_env())
         if exc_ is not None:
-            warnings.warn(f"No layout have been found for you grid (or the layout provided was corrupted). You will "
-                          f"not be able to use the renderer, plot the grid etc. The error was \"{exc_}\"")
+            warnings.warn(
+                f"No layout have been found for you grid (or the layout provided was corrupted). You will "
+                f'not be able to use the renderer, plot the grid etc. The error was "{exc_}"'
+            )
         self.backend.is_loaded = True
 
         # alarm set up
@@ -212,39 +258,52 @@ class Environment(BaseEnv):
 
         # rules of the game
         if not isinstance(legalActClass, type):
-            raise Grid2OpException("Parameter \"legalActClass\" used to build the Environment should be a type "
-                                   "(a class) and not an object (an instance of a class). "
-                                   "It is currently \"{}\"".format(type(legalActClass)))
+            raise Grid2OpException(
+                'Parameter "legalActClass" used to build the Environment should be a type '
+                "(a class) and not an object (an instance of a class). "
+                'It is currently "{}"'.format(type(legalActClass))
+            )
         if not issubclass(legalActClass, BaseRules):
             raise Grid2OpException(
-                "Parameter \"legalActClass\" used to build the Environment should derived form the "
-                "grid2op.BaseRules class, type provided is \"{}\"".format(
-                    type(legalActClass)))
+                'Parameter "legalActClass" used to build the Environment should derived form the '
+                'grid2op.BaseRules class, type provided is "{}"'.format(
+                    type(legalActClass)
+                )
+            )
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._legalActClass = legalActClass
 
         # action helper
         if not isinstance(actionClass, type):
-            raise Grid2OpException("Parameter \"actionClass\" used to build the Environment should be a type (a class) "
-                                   "and not an object (an instance of a class). "
-                                   "It is currently \"{}\"".format(type(legalActClass)))
+            raise Grid2OpException(
+                'Parameter "actionClass" used to build the Environment should be a type (a class) '
+                "and not an object (an instance of a class). "
+                'It is currently "{}"'.format(type(legalActClass))
+            )
         if not issubclass(actionClass, BaseAction):
             raise Grid2OpException(
-                "Parameter \"actionClass\" used to build the Environment should derived form the "
-                "grid2op.BaseAction class, type provided is \"{}\"".format(
-                    type(actionClass)))
+                'Parameter "actionClass" used to build the Environment should derived form the '
+                'grid2op.BaseAction class, type provided is "{}"'.format(
+                    type(actionClass)
+                )
+            )
 
         if not isinstance(observationClass, type):
-            raise Grid2OpException(f"Parameter \"observationClass\" used to build the Environment should be a type (a class) "
-                                   f"and not an object (an instance of a class). "
-                                   f"It is currently : {observationClass} (type \"{type(observationClass)}\")")
+            raise Grid2OpException(
+                f'Parameter "observationClass" used to build the Environment should be a type (a class) '
+                f"and not an object (an instance of a class). "
+                f'It is currently : {observationClass} (type "{type(observationClass)}")'
+            )
         if not issubclass(observationClass, BaseObservation):
             raise Grid2OpException(
-                f"Parameter \"observationClass\" used to build the Environment should derived form the "
-                f"grid2op.BaseObservation class, type provided is \"{type(observationClass)}\"")
+                f'Parameter "observationClass" used to build the Environment should derived form the '
+                f'grid2op.BaseObservation class, type provided is "{type(observationClass)}"'
+            )
 
         # action affecting the grid that will be made by the agent
-        bk_type = type(self.backend)  # be careful here: you need to initialize from the class, and not from the object
+        bk_type = type(
+            self.backend
+        )  # be careful here: you need to initialize from the class, and not from the object
         self._rewardClass = rewardClass
         self._actionClass = actionClass.init_grid(gridobj=bk_type)
         self._actionClass._add_shunt_data()
@@ -254,39 +313,51 @@ class Environment(BaseEnv):
         self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type)
 
         self._helper_action_class = ActionSpace.init_grid(gridobj=bk_type)
-        self._action_space = self._helper_action_class(gridobj=bk_type,
-                                                       actionClass=actionClass,
-                                                       legal_action=self._game_rules.legal_action)
+        self._action_space = self._helper_action_class(
+            gridobj=bk_type,
+            actionClass=actionClass,
+            legal_action=self._game_rules.legal_action,
+        )
         # action that affect the grid made by the environment.
-        self._helper_action_env = self._helper_action_class(gridobj=bk_type,
-                                                            actionClass=CompleteAction,
-                                                            legal_action=self._game_rules.legal_action)
+        self._helper_action_env = self._helper_action_class(
+            gridobj=bk_type,
+            actionClass=CompleteAction,
+            legal_action=self._game_rules.legal_action,
+        )
 
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
             raise Grid2OpException(
-                "Parameter \"chronics_handler\" used to build the Environment should derived form the "
-                "grid2op.ChronicsHandler class, type provided is \"{}\"".format(
-                    type(chronics_handler)))
+                'Parameter "chronics_handler" used to build the Environment should derived form the '
+                'grid2op.ChronicsHandler class, type provided is "{}"'.format(
+                    type(chronics_handler)
+                )
+            )
         self.chronics_handler = chronics_handler
-        self.chronics_handler.initialize(self.name_load, self.name_gen,
-                                         self.name_line, self.name_sub,
-                                         names_chronics_to_backend=names_chronics_to_backend)
+        self.chronics_handler.initialize(
+            self.name_load,
+            self.name_gen,
+            self.name_line,
+            self.name_sub,
+            names_chronics_to_backend=names_chronics_to_backend,
+        )
         self._names_chronics_to_backend = names_chronics_to_backend
-
+        self.delta_time_seconds = dt_float(self.chronics_handler.time_interval.seconds)
+        
         # this needs to be done after the chronics handler: rewards might need information
         # about the chronics to work properly.
         self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
-        self._observation_space = self._helper_observation_class(gridobj=bk_type,
-                                                                 observationClass=observationClass,
-                                                                 actionClass=actionClass,
-                                                                 rewardClass=rewardClass,
-                                                                 env=self,
-                                                                 kwargs_observation=self._kwargs_observation)
+        self._observation_space = self._helper_observation_class(
+            gridobj=bk_type,
+            observationClass=observationClass,
+            actionClass=actionClass,
+            rewardClass=rewardClass,
+            env=self,
+            kwargs_observation=self._kwargs_observation,
+        )
 
         # test to make sure the backend is consistent with the chronics generator
         self.chronics_handler.check_validity(self.backend)
-        self.delta_time_seconds = dt_float(self.chronics_handler.time_interval.seconds)
         self._reset_storage()  # this should be called after the  self.delta_time_seconds is set
 
         # reward function
@@ -297,11 +368,15 @@ class Environment(BaseEnv):
 
         # controller for voltage
         if not issubclass(self._voltagecontrolerClass, BaseVoltageController):
-            raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
+            raise Grid2OpException(
+                'Parameter "voltagecontrolClass" should derive from "ControlVoltageFromFile".'
+            )
 
-        self._voltage_controler = self._voltagecontrolerClass(gridobj=bk_type,
-                                                              controler_backend=self.backend,
-                                                              actionSpace_cls=self._helper_action_class)
+        self._voltage_controler = self._voltagecontrolerClass(
+            gridobj=bk_type,
+            controler_backend=self.backend,
+            actionSpace_cls=self._helper_action_class,
+        )
 
         # create the opponent
         # At least the 3 following attributes should be set before calling _create_opponent
@@ -317,8 +392,10 @@ class Environment(BaseEnv):
         do_nothing = self._helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
-            raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
-                                   "Available information are: {}".format(info))
+            raise Grid2OpException(
+                "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
+                "Available information are: {}".format(info)
+            )
 
         # test the backend returns object of the proper size
         self.backend.assert_grid_correct_after_powerflow()
@@ -328,7 +405,7 @@ class Environment(BaseEnv):
         self.viewer = None
         self.viewer_fig = None
 
-        self.metadata = {'render.modes': []}
+        self.metadata = {"render.modes": []}
         self.spec = None
 
         self.current_reward = self.reward_range[0]
@@ -379,11 +456,16 @@ class Environment(BaseEnv):
         return self._action_space
 
     def _handle_compat_glop_version(self):
-        if self._compat_glop_version is not None and self._compat_glop_version != grid2op.__version__:
-            warnings.warn("You are using a grid2op \"compatibility\" environment. This means that some "
-                          "feature will not be available. This feature is absolutely NOT recommended except to "
-                          "read back data (for example with EpisodeData) that were stored with previous "
-                          "grid2op version.")
+        if (
+            self._compat_glop_version is not None
+            and self._compat_glop_version != grid2op.__version__
+        ):
+            warnings.warn(
+                'You are using a grid2op "compatibility" environment. This means that some '
+                "feature will not be available. This feature is absolutely NOT recommended except to "
+                "read back data (for example with EpisodeData) that were stored with previous "
+                "grid2op version."
+            )
             self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")
             cls_bk = type(self.backend)
             cls_bk.glop_version = self._compat_glop_version
@@ -393,8 +475,12 @@ class Environment(BaseEnv):
                 # recompute the topology vector (more or less everything need to be adjusted...
                 stor_locs = [pos for pos in cls_bk.storage_pos_topo_vect]
                 for stor_loc in sorted(stor_locs, reverse=True):
-                    for vect in [cls_bk.load_pos_topo_vect, cls_bk.gen_pos_topo_vect,
-                                 cls_bk.line_or_pos_topo_vect, cls_bk.line_ex_pos_topo_vect]:
+                    for vect in [
+                        cls_bk.load_pos_topo_vect,
+                        cls_bk.gen_pos_topo_vect,
+                        cls_bk.line_or_pos_topo_vect,
+                        cls_bk.line_ex_pos_topo_vect,
+                    ]:
                         vect[vect >= stor_loc] -= 1
 
                 # deals with the "sub_pos" vector
@@ -403,10 +489,20 @@ class Environment(BaseEnv):
                         stor_ids = np.where(cls_bk.storage_to_subid == sub_id)[0]
                         stor_locs = cls_bk.storage_to_sub_pos[stor_ids]
                         for stor_loc in sorted(stor_locs, reverse=True):
-                            for vect, sub_id_me in zip([cls_bk.load_to_sub_pos, cls_bk.gen_to_sub_pos,
-                                                        cls_bk.line_or_to_sub_pos, cls_bk.line_ex_to_sub_pos],
-                                                       [cls_bk.load_to_subid, cls_bk.gen_to_subid,
-                                                        cls_bk.line_or_to_subid, cls_bk.line_ex_to_subid]):
+                            for vect, sub_id_me in zip(
+                                [
+                                    cls_bk.load_to_sub_pos,
+                                    cls_bk.gen_to_sub_pos,
+                                    cls_bk.line_or_to_sub_pos,
+                                    cls_bk.line_ex_to_sub_pos,
+                                ],
+                                [
+                                    cls_bk.load_to_subid,
+                                    cls_bk.gen_to_subid,
+                                    cls_bk.line_or_to_subid,
+                                    cls_bk.line_ex_to_subid,
+                                ],
+                            ):
                                 vect[(vect >= stor_loc) & (sub_id_me == sub_id)] -= 1
 
                 # remove storage from the number of element in the substation
@@ -416,11 +512,17 @@ class Environment(BaseEnv):
                 cls_bk.dim_topo -= cls_bk.n_storage
 
                 # recompute this private member
-                cls_bk._topo_vect_to_sub = np.repeat(np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info)
-                self.backend._topo_vect_to_sub = np.repeat(np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info)
+                cls_bk._topo_vect_to_sub = np.repeat(
+                    np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
+                )
+                self.backend._topo_vect_to_sub = np.repeat(
+                    np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
+                )
 
                 new_grid_objects_types = cls_bk.grid_objects_types
-                new_grid_objects_types = new_grid_objects_types[new_grid_objects_types[:, cls_bk.STORAGE_COL] == -1,:]
+                new_grid_objects_types = new_grid_objects_types[
+                    new_grid_objects_types[:, cls_bk.STORAGE_COL] == -1, :
+                ]
                 cls_bk.grid_objects_types = 1 * new_grid_objects_types
                 self.backend.grid_objects_types = 1 * new_grid_objects_types
 
@@ -433,7 +535,9 @@ class Environment(BaseEnv):
 
                 # and recomputes everything while making sure everything is consistent
                 self.backend.assert_grid_correct()
-                type(self.backend)._topo_vect_to_sub = np.repeat(np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info)
+                type(self.backend)._topo_vect_to_sub = np.repeat(
+                    np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
+                )
                 type(self.backend).grid_objects_types = new_grid_objects_types
 
     def _voltage_control(self, agent_action, prod_v_chronics):
@@ -456,10 +560,9 @@ class Environment(BaseEnv):
             The voltages that has been specified in the chronics
 
         """
-        volt_control_act = self._voltage_controler.fix_voltage(self.current_obs,
-                                                               agent_action,
-                                                               self._env_modification,
-                                                               prod_v_chronics)
+        volt_control_act = self._voltage_controler.fix_voltage(
+            self.current_obs, agent_action, self._env_modification, prod_v_chronics
+        )
         return volt_control_act
 
     def set_chunk_size(self, new_chunk_size):
@@ -508,12 +611,16 @@ class Environment(BaseEnv):
         try:
             new_chunk_size = int(new_chunk_size)
         except Exception as exc_:
-            raise Grid2OpException("Impossible to set the chunk size. It should be convertible a integer, and not"
-                                   "{}. The error was: \n\"{}\"".format(new_chunk_size, exc_))
+            raise Grid2OpException(
+                "Impossible to set the chunk size. It should be convertible a integer, and not"
+                '{}. The error was: \n"{}"'.format(new_chunk_size, exc_)
+            )
 
         if new_chunk_size <= 0:
-            raise Grid2OpException("Impossible to read less than 1 data at a time. Please make sure \"new_chunk_size\""
-                                   "is a positive integer.")
+            raise Grid2OpException(
+                'Impossible to read less than 1 data at a time. Please make sure "new_chunk_size"'
+                "is a positive integer."
+            )
 
         self.chronics_handler.set_chunk_size(new_chunk_size)
 
@@ -603,10 +710,12 @@ class Environment(BaseEnv):
         try:
             id_ = int(id_)
         except Exception as exc_:
-            raise EnvError("the \"id_\" parameters should be convertible to integer and not be of type {}"
-                           "with error \n\"{}\"".format(type(id_), exc_))
+            raise EnvError(
+                'the "id_" parameters should be convertible to integer and not be of type {}'
+                'with error \n"{}"'.format(type(id_), exc_)
+            )
 
-        self.chronics_handler.tell_id(id_-1)
+        self.chronics_handler.tell_id(id_ - 1)
 
     def attach_renderer(self, graph_layout=None):
         """
@@ -662,17 +771,19 @@ class Environment(BaseEnv):
         try:
             from grid2op.PlotGrid import PlotMatplot
         except ImportError:
-            err_msg = "Cannot attach renderer: missing dependency\n" \
-                      "Please install matplotlib or run pip install grid2op[optional]"
+            err_msg = (
+                "Cannot attach renderer: missing dependency\n"
+                "Please install matplotlib or run pip install grid2op[optional]"
+            )
             raise Grid2OpException(err_msg) from None
 
         self.viewer = PlotMatplot(self._observation_space)
         self.viewer_fig = None
         # Set renderer modes
-        self.metadata = {'render.modes': ["human", "silent"]}
+        self.metadata = {"render.modes": ["human", "silent"]}
 
     def __str__(self):
-        return '<{} instance named {}>'.format(type(self).__name__, self.name)
+        return "<{} instance named {}>".format(type(self).__name__, self.name)
         # TODO be closer to original gym implementation
 
     def reset_grid(self):
@@ -689,7 +800,9 @@ class Environment(BaseEnv):
         If the thermal has been modified, it also modify them into the new backend.
 
         """
-        self.backend.reset(self._init_grid_path)  # the real powergrid of the environment
+        self.backend.reset(
+            self._init_grid_path
+        )  # the real powergrid of the environment
         self.backend.assert_grid_correct()
 
         if self._thermal_limit_a is not None:
@@ -699,8 +812,10 @@ class Environment(BaseEnv):
         do_nothing = self._helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
-            raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
-                                   "Available information are: {}".format(info))
+            raise Grid2OpException(
+                "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
+                "Available information are: {}".format(info)
+            )
 
     def add_text_logger(self, logger=None):
         """
@@ -748,9 +863,13 @@ class Environment(BaseEnv):
         """
         super().reset()
         self.chronics_handler.next_chronics()
-        self.chronics_handler.initialize(self.backend.name_load, self.backend.name_gen,
-                                         self.backend.name_line, self.backend.name_sub,
-                                         names_chronics_to_backend=self._names_chronics_to_backend)
+        self.chronics_handler.initialize(
+            self.backend.name_load,
+            self.backend.name_gen,
+            self.backend.name_line,
+            self.backend.name_sub,
+            names_chronics_to_backend=self._names_chronics_to_backend,
+        )
         self._env_modification = None
         self._reset_maintenance()
         self._reset_redispatching()
@@ -772,11 +891,11 @@ class Environment(BaseEnv):
 
         # and reset also the "simulated env" in the observation space
         self._observation_space.reset(self)
-        
+
         self._last_obs = None  # force the first observation to be generated properly
         return self.get_obs()
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         """
         Render the state of the environment on the screen, using matplotlib
         Also returns the Matplotlib figure
@@ -808,19 +927,21 @@ class Environment(BaseEnv):
         # Does nothing if viewer exists
         # Raises if matplot is not installed
         self.attach_renderer()
-        
+
         # Check mode is correct
         if mode not in self.metadata["render.modes"]:
-            err_msg = "Renderer mode \"{}\" not supported. Available modes are {}."
+            err_msg = 'Renderer mode "{}" not supported. Available modes are {}.'
             raise Grid2OpException(err_msg.format(mode, self.metadata["render.modes"]))
 
         # Render the current observation
-        fig = self.viewer.plot_obs(self.current_obs, figure=self.viewer_fig, redraw=True)
+        fig = self.viewer.plot_obs(
+            self.current_obs, figure=self.viewer_fig, redraw=True
+        )
 
         # First time show for human mode
         if self.viewer_fig is None and mode == "human":
             fig.show()
-        else: # Update the figure content
+        else:  # Update the figure content
             fig.canvas.draw()
 
         # Store to re-use the figure
@@ -902,13 +1023,16 @@ class Environment(BaseEnv):
 
         """
         res = {}
+        res["init_env_path"] = self._init_env_path
         res["init_grid_path"] = self._init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
             res["backend"] = self.backend.copy()
             res["backend"]._is_loaded = False  # i can reload a copy of an environment
         res["parameters"] = copy.deepcopy(self._parameters)
-        res["names_chronics_to_backend"] = copy.deepcopy(self._names_chronics_to_backend)
+        res["names_chronics_to_backend"] = copy.deepcopy(
+            self._names_chronics_to_backend
+        )
         res["actionClass"] = self._actionClass_orig
         res["observationClass"] = self._observationClass_orig
         res["rewardClass"] = self._rewardClass
@@ -922,6 +1046,7 @@ class Environment(BaseEnv):
         res["_raw_backend_class"] = self._raw_backend_class
         res["with_forecast"] = self.with_forecast
 
+        res["opponent_space_type"] = self._opponent_space_type
         res["opponent_action_class"] = self._opponent_action_class
         res["opponent_class"] = self._opponent_class
         res["opponent_init_budget"] = self._opponent_init_budget
@@ -942,14 +1067,16 @@ class Environment(BaseEnv):
     def _chronics_folder_name(self):
         return "chronics"
 
-    def train_val_split(self,
-                        val_scen_id,
-                        add_for_train="train",
-                        add_for_val="val",
-                        add_for_test=None,
-                        test_scen_id=None,
-                        remove_from_name=None,
-                        deep_copy=False):
+    def train_val_split(
+        self,
+        val_scen_id,
+        add_for_train="train",
+        add_for_val="val",
+        add_for_test=None,
+        test_scen_id=None,
+        remove_from_name=None,
+        deep_copy=False,
+    ):
         """
         This function is used as :func:`Environment.train_val_split_random`.
 
@@ -960,7 +1087,7 @@ class Environment(BaseEnv):
         ----------
         val_scen_id: ``list``
             List of the scenario names that will be placed in the validation set
-        
+
         test_scen_id: ``list``
 
             .. versionadded:: 2.6.5
@@ -977,7 +1104,7 @@ class Environment(BaseEnv):
         add_for_test: ``str``
 
             .. versionadded:: 2.6.5
-            
+
             See :func:`Environment.train_val_split_random` for more information
 
         remove_from_name: ``str``
@@ -986,7 +1113,7 @@ class Environment(BaseEnv):
         deep_copy: ``bool``
 
             .. versionadded:: 2.6.5
-           
+
             See :func:`Environment.train_val_split_random` for more information
 
         Returns
@@ -1008,7 +1135,7 @@ class Environment(BaseEnv):
 
         A full example on a training / validation / test split with explicit specification of which
         chronics goes in which scenarios is:
-        
+
         .. code-block:: python
 
             import grid2op
@@ -1065,7 +1192,7 @@ class Environment(BaseEnv):
             It will also be significantly slower !
 
         As an "historical curiosity", this is what you needed to do in grid2op version < 1.6.5:
-        
+
         .. code-block:: python
 
             import grid2op
@@ -1112,72 +1239,91 @@ class Environment(BaseEnv):
         """
         # define all the locations
         if re.match(self.REGEX_SPLIT, add_for_train) is None:
-            raise EnvError(f"The suffixes you can use for training data (add_for_train) "
-                           f"should match the regex \"{self.REGEX_SPLIT}\"")
+            raise EnvError(
+                f"The suffixes you can use for training data (add_for_train) "
+                f'should match the regex "{self.REGEX_SPLIT}"'
+            )
         if re.match(self.REGEX_SPLIT, add_for_val) is None:
-            raise EnvError(f"The suffixes you can use for validation data (add_for_val)"
-                           f"should match the regex \"{self.REGEX_SPLIT}\"")
+            raise EnvError(
+                f"The suffixes you can use for validation data (add_for_val)"
+                f'should match the regex "{self.REGEX_SPLIT}"'
+            )
         if add_for_test is not None:
             if re.match(self.REGEX_SPLIT, add_for_test) is None:
-                raise EnvError(f"The suffixes you can use for test data (add_for_test)"
-                               f"should match the regex \"{self.REGEX_SPLIT}\"")
+                raise EnvError(
+                    f"The suffixes you can use for test data (add_for_test)"
+                    f'should match the regex "{self.REGEX_SPLIT}"'
+                )
 
         if add_for_test is None and test_scen_id is not None:
             raise EnvError(f"add_for_test is None and test_scen_id is not None.")
-        
+
         if add_for_test is not None and test_scen_id is None:
             raise EnvError(f"add_for_test is not None and test_scen_id is None.")
-        
+
         from grid2op.Chronics import MultifolderWithCache, Multifolder
-        if not isinstance(self.chronics_handler.real_data, (MultifolderWithCache, Multifolder)):
-            raise EnvError("It does not make sense to split a environment between training / validation "
-                           "if the chronics are not read from directories.")
+
+        if not isinstance(
+            self.chronics_handler.real_data, (MultifolderWithCache, Multifolder)
+        ):
+            raise EnvError(
+                "It does not make sense to split a environment between training / validation "
+                "if the chronics are not read from directories."
+            )
 
         my_path = self.get_path_env()
         path_train = os.path.split(my_path)
         my_name = path_train[1]
         if remove_from_name is not None:
             if re.match(r"^[a-zA-Z0-9\\^\\$_]*$", remove_from_name) is None:
-                raise EnvError("The suffixes you can remove from the name of the environment (remove_from_name)"
-                               "should match the regex \"^[a-zA-Z0-9^$_]*$\"")
+                raise EnvError(
+                    "The suffixes you can remove from the name of the environment (remove_from_name)"
+                    'should match the regex "^[a-zA-Z0-9^$_]*$"'
+                )
             my_name = re.sub(remove_from_name, "", my_name)
-        nm_train = f'{my_name}_{add_for_train}'
+        nm_train = f"{my_name}_{add_for_train}"
         path_train = os.path.join(path_train[0], nm_train)
 
         path_val = os.path.split(my_path)
-        nm_val = f'{my_name}_{add_for_val}'
+        nm_val = f"{my_name}_{add_for_val}"
         path_val = os.path.join(path_val[0], nm_val)
 
         nm_test = None
         path_test = None
         if add_for_test is not None:
             path_test = os.path.split(my_path)
-            nm_test = f'{my_name}_{add_for_test}'
+            nm_test = f"{my_name}_{add_for_test}"
             path_test = os.path.join(path_test[0], nm_test)
 
         chronics_dir = self._chronics_folder_name()
 
         # create the folder
         if os.path.exists(path_val):
-            raise RuntimeError(f"Impossible to create the validation environment that should have the name "
-                               f"\"{nm_val}\" because an environment is already named this way. If you want to "
-                               f"continue either delete the folder \"{path_val}\" or name your validation environment "
-                               f"differently "
-                               f"using the \"add_for_val\" keyword argument of this function.")
+            raise RuntimeError(
+                f"Impossible to create the validation environment that should have the name "
+                f'"{nm_val}" because an environment is already named this way. If you want to '
+                f'continue either delete the folder "{path_val}" or name your validation environment '
+                f"differently "
+                f'using the "add_for_val" keyword argument of this function.'
+            )
         if os.path.exists(path_train):
-            raise RuntimeError(f"Impossible to create the training environment that should have the name "
-                               f"\"{nm_train}\" because an environment is already named this way. If you want to "
-                               f"continue either delete the folder \"{path_train}\" or name your training environment "
-                               f" differently "
-                               f"using the \"add_for_train\" keyword argument of this function.")
-        
+            raise RuntimeError(
+                f"Impossible to create the training environment that should have the name "
+                f'"{nm_train}" because an environment is already named this way. If you want to '
+                f'continue either delete the folder "{path_train}" or name your training environment '
+                f" differently "
+                f'using the "add_for_train" keyword argument of this function.'
+            )
+
         if nm_test is not None and os.path.exists(path_test):
-            raise RuntimeError(f"Impossible to create the test environment that should have the name "
-                               f"\"{nm_test}\" because an environment is already named this way. If you want to "
-                               f"continue either delete the folder \"{path_test}\" or name your test environment "
-                               f" differently "
-                               f"using the \"add_for_test\" keyword argument of this function.")
-        
+            raise RuntimeError(
+                f"Impossible to create the test environment that should have the name "
+                f'"{nm_test}" because an environment is already named this way. If you want to '
+                f'continue either delete the folder "{path_test}" or name your test environment '
+                f" differently "
+                f'using the "add_for_test" keyword argument of this function.'
+            )
+
         os.mkdir(path_val)
         os.mkdir(path_train)
         if nm_test is not None:
@@ -1193,12 +1339,13 @@ class Environment(BaseEnv):
 
         if deep_copy:
             import shutil
+
             copy_file_fun = shutil.copy2
             copy_dir_fun = shutil.copytree
         else:
             copy_file_fun = os.symlink
             copy_dir_fun = os.symlink
-        
+
         # "copy" the files
         for el in os.listdir(my_path):
             tmp_path = os.path.join(my_path, el)
@@ -1218,25 +1365,36 @@ class Environment(BaseEnv):
                     for chron_name in all_chron:
                         tmp_path_chron = os.path.join(tmp_path, chron_name)
                         if chron_name in to_val:
-                            copy_dir_fun(tmp_path_chron, os.path.join(path_val, chronics_dir, chron_name))
+                            copy_dir_fun(
+                                tmp_path_chron,
+                                os.path.join(path_val, chronics_dir, chron_name),
+                            )
                         elif chron_name in to_test:
-                            copy_dir_fun(tmp_path_chron, os.path.join(path_test, chronics_dir, chron_name))
+                            copy_dir_fun(
+                                tmp_path_chron,
+                                os.path.join(path_test, chronics_dir, chron_name),
+                            )
                         else:
-                            copy_dir_fun(tmp_path_chron, os.path.join(path_train, chronics_dir, chron_name))
+                            copy_dir_fun(
+                                tmp_path_chron,
+                                os.path.join(path_train, chronics_dir, chron_name),
+                            )
         if add_for_test is None:
             res = nm_train, nm_val
         else:
             res = nm_train, nm_val, nm_test
         return res
 
-    def train_val_split_random(self,
-                               pct_val=10.,
-                               add_for_train="train",
-                               add_for_val="val",
-                               add_for_test=None,
-                               pct_test=None,
-                               remove_from_name=None,
-                               deep_copy=False):
+    def train_val_split_random(
+        self,
+        pct_val=10.0,
+        add_for_train="train",
+        add_for_val="val",
+        add_for_test=None,
+        pct_test=None,
+        remove_from_name=None,
+        deep_copy=False,
+    ):
         """
         By default a grid2op environment contains multiple "scenarios" containing values for all the producers
         and consumers representing multiple days. In a "game like" environment, you can think of the scenarios as
@@ -1277,7 +1435,7 @@ class Environment(BaseEnv):
 
             .. versionadded:: 2.6.5
 
-            Suffix that will be added to the name of the environment for the test set. By default, 
+            Suffix that will be added to the name of the environment for the test set. By default,
             it only splits into training and validation, so this is ignored. We recommend
             to assign it to "test" if you want to split into training / validation and test.
             If it is set, then the `pct_test` must also be set.
@@ -1298,7 +1456,7 @@ class Environment(BaseEnv):
         deep_copy: ``bool``
 
             .. versionadded:: 2.6.5
-           
+
             A function to specify to "copy" the elements of the original
             environment to the created one. By default it will save as
             much memory as possible using symbolic links (rather than performing
@@ -1312,10 +1470,10 @@ class Environment(BaseEnv):
             .. warning::
                 On windows based system, you will most likely run into issues
                 if you don't set this parameters.
-                Indeed, Windows does not link symbolink links 
+                Indeed, Windows does not link symbolink links
                 (https://docs.python.org/3/library/os.html#os.symlink).
                 In this case, you can use the ``deep_copy=True`` and
-                it will work fine (examples in the function 
+                it will work fine (examples in the function
                 :func:`Environment.train_val_split`)
 
         Returns
@@ -1329,8 +1487,8 @@ class Environment(BaseEnv):
         nm_test: ``str``, optionnal
 
             .. versionadded:: 2.6.5
-            
-            Complete name of the "test" environment. It is only returned if 
+
+            Complete name of the "test" environment. It is only returned if
             `add_for_test` and `pct_test` are not `None`.
 
         Examples
@@ -1363,7 +1521,7 @@ class Environment(BaseEnv):
 
         .. versionadded:: 2.6.5
             Possibility to create a training, validation AND test set.
-        
+
         If you have grid2op version >= 1.6.5, you can also use the following:
 
         .. code-block:: python
@@ -1384,7 +1542,7 @@ class Environment(BaseEnv):
 
         .. warning::
             In this case this function returns 3 elements and not 2 !
-            
+
         Notes
         -----
         This function will fail if an environment already exists with one of the name that would be given
@@ -1392,38 +1550,51 @@ class Environment(BaseEnv):
 
         """
         if re.match(self.REGEX_SPLIT, add_for_train) is None:
-            raise EnvError("The suffixes you can use for training data (add_for_train) "
-                           "should match the regex \"{self.REGEX_SPLIT}\"")
+            raise EnvError(
+                "The suffixes you can use for training data (add_for_train) "
+                'should match the regex "{self.REGEX_SPLIT}"'
+            )
         if re.match(self.REGEX_SPLIT, add_for_val) is None:
-            raise EnvError("The suffixes you can use for validation data (add_for_val)"
-                           "should match the regex \"{self.REGEX_SPLIT}\"")
+            raise EnvError(
+                "The suffixes you can use for validation data (add_for_val)"
+                'should match the regex "{self.REGEX_SPLIT}"'
+            )
 
         if add_for_test is None and pct_test is not None:
             raise EnvError(f"add_for_test is None and pct_test is not None.")
-        
+
         if add_for_test is not None and pct_test is None:
             raise EnvError(f"add_for_test is not None and pct_test is None.")
-        
 
         my_path = self.get_path_env()
         chronics_path = os.path.join(my_path, self._chronics_folder_name())
         all_chron = sorted(os.listdir(chronics_path))
+        all_chron = [
+            el for el in all_chron if os.path.isdir(os.path.join(chronics_path, el))
+        ]
         nb_init = len(all_chron)
-        to_val = self.space_prng.choice(all_chron, int(nb_init * pct_val * 0.01), replace=False)
-        
+
+        to_val = self.space_prng.choice(
+            all_chron, size=int(nb_init * pct_val * 0.01), replace=False
+        )
+
         test_scen_id = None
         if pct_test is not None:
             all_chron = set(all_chron) - set(to_val)
             all_chron = list(all_chron)
-            test_scen_id = self.space_prng.choice(all_chron, int(nb_init * pct_test * 0.01), replace=False)
-        
-        return self.train_val_split(to_val,
-                                    add_for_train=add_for_train,
-                                    add_for_val=add_for_val,
-                                    remove_from_name=remove_from_name,
-                                    add_for_test=add_for_test,
-                                    test_scen_id=test_scen_id,
-                                    deep_copy=deep_copy)
+            test_scen_id = self.space_prng.choice(
+                all_chron, size=int(nb_init * pct_test * 0.01), replace=False
+            )
+
+        return self.train_val_split(
+            to_val,
+            add_for_train=add_for_train,
+            add_for_val=add_for_val,
+            remove_from_name=remove_from_name,
+            add_for_test=add_for_test,
+            test_scen_id=test_scen_id,
+            deep_copy=deep_copy,
+        )
 
     def get_params_for_runner(self):
         """
@@ -1448,6 +1619,7 @@ class Environment(BaseEnv):
 
         """
         res = {}
+        res["init_env_path"] = self._init_env_path
         res["init_grid_path"] = self._init_grid_path
         res["path_chron"] = self.chronics_handler.path
         res["parameters_path"] = self._parameters.to_dict()
@@ -1460,8 +1632,9 @@ class Environment(BaseEnv):
         res["gridStateclass"] = self.chronics_handler.chronicsClass
         res["backendClass"] = self._raw_backend_class
         res["verbose"] = False
+
         dict_ = copy.deepcopy(self.chronics_handler.kwargs)
-        if 'path' in dict_:
+        if "path" in dict_:
             # path is handled elsewhere
             del dict_["path"]
         if self.chronics_handler.max_iter is not None:
@@ -1473,6 +1646,7 @@ class Environment(BaseEnv):
         res["grid_layout"] = self.grid_layout
         res["name_env"] = self.name
 
+        res["opponent_space_type"] = self._opponent_space_type
         res["opponent_action_class"] = self._opponent_action_class
         res["opponent_class"] = self._opponent_class
         res["opponent_init_budget"] = self._opponent_init_budget
@@ -1490,3 +1664,64 @@ class Environment(BaseEnv):
         res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
         res["_is_test"] = self._is_test  # TODO not implemented !!
         return res
+
+    def generate_data(self, nb_year=1, nb_core=1, seed=None):
+        """This function uses the chronix2grid package to generate more data that will then
+        be available locally. You need to install it independently (see https://github.com/BDonnot/ChroniX2Grid#installation
+        for more information)
+
+        I also requires the lightsim2grid simulator.
+
+        This is only available for some environment (only the environment used for wcci 2022 competition at
+        time of writing).
+
+        Generating data takes some time (around 1 - 2 minutes to generate a weekly scenario) and this why we recommend
+        to do it "offline" and then use the generated data for training or evaluation.
+
+        .. warning::
+
+            You should not start this function twice. Before starting a new run, make sure the previous one has terminated (otherwise you might
+            erase some previously generated scenario)
+
+        Examples
+        ---------
+
+        The recommended process when you want to use this function is to first generate some more data:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make("l2rpn_wcci_2022")
+            env.generate_data(nb_year=XXX)  # replace XXX by the amount of data you want. If you put 1 you will have 52 different
+            # scenarios
+
+        Then, later on, you can use it as you please, transparently:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make("l2rpn_wcci_2022")
+
+            obs = env.reset()  # obs might come from the data you have generated
+
+        Parameters
+        ----------
+        nb_year : int, optional
+            the number of "year" you want to generate. Each "year" is made of 52 weeks meaning that if you
+            ask to generate one year, you have 52 more scenarios, by default 1
+        nb_core : int, optional
+            number of computer cores to use, by default 1.
+        seed: int, optional
+            If the same seed is given, then the same data will be generated.
+        """
+        try:
+            from chronix2grid.grid2op_utils import add_data
+        except ImportError as exc_:
+            raise ImportError(
+                f"Chronix2grid package is not installed. Install it with `pip install grid2op[chronix2grid]`"
+                f"Please visit https://github.com/bdonnot/chronix2grid#installation "
+                f"for further install instructions."
+            ) from exc_
+        add_data(
+            env=self, seed=seed, nb_scenario=nb_year, nb_core=nb_core, with_loss=True
+        )

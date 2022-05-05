@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import pdb
 import warnings
 from grid2op.tests.helper_path_test import *
 
@@ -28,7 +27,9 @@ class TestBaseMultiProcessEnvironment(unittest.TestCase):
                 envs = [env for _ in range(nb_env)]
                 multi_envs = BaseMultiProcessEnvironment(envs)
 
-                obss, rewards, dones, infos = multi_envs.step([env.action_space() for _ in range(multi_envs.nb_env)])
+                obss, rewards, dones, infos = multi_envs.step(
+                    [env.action_space() for _ in range(multi_envs.nb_env)]
+                )
                 for ob in obss:
                     assert isinstance(ob, CompleteObservation)
 
@@ -37,7 +38,7 @@ class TestBaseMultiProcessEnvironment(unittest.TestCase):
                     assert isinstance(ob, CompleteObservation)
 
                 # test some actions will not throw errors
-                multi_envs.set_ff(7*288)
+                multi_envs.set_ff(7 * 288)
                 multi_envs.set_chunk_size(128)
                 obss = multi_envs.reset()
                 seeds = multi_envs.get_seeds()
@@ -89,7 +90,9 @@ class TestSingleEnvMultiProcess(unittest.TestCase):
             with make("rte_case5_example", test=True) as env:
                 multi_envs = SingleEnvMultiProcess(env=env, nb_env=nb_env)
 
-                obss, rewards, dones, infos = multi_envs.step([env.action_space() for _ in range(multi_envs.nb_env)])
+                obss, rewards, dones, infos = multi_envs.step(
+                    [env.action_space() for _ in range(multi_envs.nb_env)]
+                )
                 for ob in obss:
                     assert isinstance(ob, CompleteObservation)
 
@@ -98,7 +101,7 @@ class TestSingleEnvMultiProcess(unittest.TestCase):
                     assert isinstance(ob, CompleteObservation)
 
                 # test some actions will not throw errors
-                multi_envs.set_ff(7*288)
+                multi_envs.set_ff(7 * 288)
                 multi_envs.set_chunk_size(128)
                 obss = multi_envs.reset()
                 seeds = multi_envs.get_seeds()
@@ -123,6 +126,7 @@ class TestSingleEnvMultiProcess(unittest.TestCase):
                 assert np.all(seeds_1 == seeds_3)
                 assert np.any(seeds_1 != seeds_2)
 
+
 class TestMultiEnvMultiProcess(unittest.TestCase):
     def test_creation_multienv(self):
         nb_envs = [1, 1]
@@ -132,7 +136,9 @@ class TestMultiEnvMultiProcess(unittest.TestCase):
                 envs = [env for _ in range(len(nb_envs))]
                 multi_envs = MultiEnvMultiProcess(envs, nb_envs)
 
-                obss, rewards, dones, infos = multi_envs.step([env.action_space() for _ in range(multi_envs.nb_env)])
+                obss, rewards, dones, infos = multi_envs.step(
+                    [env.action_space() for _ in range(multi_envs.nb_env)]
+                )
                 for ob in obss:
                     assert isinstance(ob, CompleteObservation)
 
@@ -141,7 +147,7 @@ class TestMultiEnvMultiProcess(unittest.TestCase):
                     assert isinstance(ob, CompleteObservation)
 
                 # test some actions will not throw errors
-                multi_envs.set_ff(7*288)
+                multi_envs.set_ff(7 * 288)
                 multi_envs.set_chunk_size(128)
                 obss = multi_envs.reset()
                 seeds = multi_envs.get_seeds()

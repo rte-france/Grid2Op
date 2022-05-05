@@ -12,10 +12,17 @@ from tarfile import ENCODING
 from grid2op.Exceptions import *
 
 
-def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
-                     msg_error="Error when building the default parameter",
-                     defaultinstance=None, defaultClass=None, build_kwargs={},
-                     isclass=False):
+def _get_default_aux(
+    name,
+    kwargs,
+    defaultClassApp,
+    _sentinel=None,
+    msg_error="Error when building the default parameter",
+    defaultinstance=None,
+    defaultClass=None,
+    build_kwargs={},
+    isclass=False,
+):
     """
     INTERNAL
 
@@ -70,7 +77,7 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
         The parameters, either read from kwargs, or with its default value.
 
     """
-    err_msg = "Impossible to create the parameter \"{}\": "
+    err_msg = 'Impossible to create the parameter "{}": '
     if _sentinel is not None:
         err_msg += "Impossible to get default parameters for building the environment. Please use keywords arguments."
         raise RuntimeError(err_msg)
@@ -85,29 +92,31 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
             res = None
             try:
                 # I try to build it as an object
-                res = _get_default_aux(name,
-                                       kwargs=kwargs,
-                                       defaultClassApp=defaultClassApp,
-                                       _sentinel=_sentinel,
-                                       msg_error=msg_error,
-                                       defaultinstance=defaultinstance,
-                                       defaultClass=defaultClass,
-                                       build_kwargs=build_kwargs,
-                                       isclass=False
-                                       )
+                res = _get_default_aux(
+                    name,
+                    kwargs=kwargs,
+                    defaultClassApp=defaultClassApp,
+                    _sentinel=_sentinel,
+                    msg_error=msg_error,
+                    defaultinstance=defaultinstance,
+                    defaultClass=defaultClass,
+                    build_kwargs=build_kwargs,
+                    isclass=False,
+                )
             except EnvError as exc1_:
                 # I try to build it as a class
                 try:
-                    res = _get_default_aux(name,
-                                           kwargs=kwargs,
-                                           defaultClassApp=defaultClassApp,
-                                           _sentinel=_sentinel,
-                                           msg_error=msg_error,
-                                           defaultinstance=defaultinstance,
-                                           defaultClass=defaultClass,
-                                           build_kwargs=build_kwargs,
-                                           isclass=True
-                                           )
+                    res = _get_default_aux(
+                        name,
+                        kwargs=kwargs,
+                        defaultClassApp=defaultClassApp,
+                        _sentinel=_sentinel,
+                        msg_error=msg_error,
+                        defaultinstance=defaultinstance,
+                        defaultClass=defaultClass,
+                        build_kwargs=build_kwargs,
+                        isclass=True,
+                    )
                 except EnvError as exc2_:
                     # both fails !
                     error_msg_here = f"{exc1_} AND {exc2_}"
@@ -132,14 +141,18 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
         elif isclass is True:
             # so it should be a class
             if not isinstance(res, type):
-                raise EnvError("Parameter \"{}\" should be a type and not an instance. It means that you provided an "
-                               "object instead of the class to build it.".format(name))
+                raise EnvError(
+                    'Parameter "{}" should be a type and not an instance. It means that you provided an '
+                    "object instead of the class to build it.".format(name)
+                )
             # I must create a class, i check whether it's a subclass
             if not issubclass(res, defaultClassApp):
                 raise EnvError(msg_error)
         else:
-            raise EnvError("Impossible to use the \"_get_default_aux\" function with \"isclass\" kwargs being different "
-                           "from None, True and False")
+            raise EnvError(
+                'Impossible to use the "_get_default_aux" function with "isclass" kwargs being different '
+                "from None, True and False"
+            )
 
     if res is None:
         # build the default parameter if not found
@@ -153,7 +166,11 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                 try:
                     res = defaultClass(**build_kwargs)
                 except Exception as e:
-                    e.args = e.args + ("Cannot create and instance of {} with parameters \"{}\"".format(defaultClass, build_kwargs),)
+                    e.args = e.args + (
+                        'Cannot create and instance of {} with parameters "{}"'.format(
+                            defaultClass, build_kwargs
+                        ),
+                    )
                     raise
             elif defaultinstance is not None:
                 if len(build_kwargs):
@@ -161,12 +178,14 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                     raise EnvError(err_msg.format(name))
                 res = defaultinstance
             else:
-                err_msg = " None of \"defaultClass\" and \"defaultinstance\" is provided."
+                err_msg = ' None of "defaultClass" and "defaultinstance" is provided.'
                 raise EnvError(err_msg.format(name))
         else:
             # I returning a class
             if len(build_kwargs):
-                err_msg += "A class must be returned, yet kwargs to build it is also provided"
+                err_msg += (
+                    "A class must be returned, yet kwargs to build it is also provided"
+                )
                 raise EnvError(err_msg.format(name))
             if defaultinstance is not None:
                 err_msg += "A class must be returned yet a default instance is provided"

@@ -12,14 +12,21 @@ from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
 from grid2op.Backend import PandaPowerBackend
 
 from grid2op.tests.helper_path_test import HelperTests
-from grid2op.tests.BaseRedispTest import BaseTestRedispatch, BaseTestRedispatchChangeNothingEnvironment
-from grid2op.tests.BaseRedispTest import BaseTestRedispTooLowHigh, BaseTestDispatchRampingIllegalETC
+from grid2op.tests.BaseRedispTest import (
+    BaseTestRedispatch,
+    BaseTestRedispatchChangeNothingEnvironment,
+)
+from grid2op.tests.BaseRedispTest import (
+    BaseTestRedispTooLowHigh,
+    BaseTestDispatchRampingIllegalETC,
+)
 from grid2op.tests.BaseRedispTest import BaseTestLoadingAcceptAlmostZeroSumRedisp
 
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
 import warnings
+
 warnings.simplefilter("error")
 
 
@@ -33,7 +40,9 @@ class TestRedispatch(HelperTests, BaseTestRedispatch):
         BaseTestRedispatch.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackend(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
     def get_path(self):
         return PATH_DATA_TEST_PP
@@ -42,7 +51,9 @@ class TestRedispatch(HelperTests, BaseTestRedispatch):
         return "test_case14.json"
 
 
-class TestRedispatchChangeNothingEnvironment(HelperTests, BaseTestRedispatchChangeNothingEnvironment):
+class TestRedispatchChangeNothingEnvironment(
+    HelperTests, BaseTestRedispatchChangeNothingEnvironment
+):
     def setUp(self):
         # TODO find something more elegant
         BaseTestRedispatchChangeNothingEnvironment.setUp(self)
@@ -52,7 +63,9 @@ class TestRedispatchChangeNothingEnvironment(HelperTests, BaseTestRedispatchChan
         BaseTestRedispatchChangeNothingEnvironment.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackend(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
     def get_path(self):
         return PATH_DATA_TEST_PP
@@ -71,7 +84,9 @@ class TestRedispTooLowHigh(HelperTests, BaseTestRedispTooLowHigh):
         BaseTestRedispTooLowHigh.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackend(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
 
 class TestDispatchRampingIllegalETC(HelperTests, BaseTestDispatchRampingIllegalETC):
@@ -84,10 +99,14 @@ class TestDispatchRampingIllegalETC(HelperTests, BaseTestDispatchRampingIllegalE
         BaseTestDispatchRampingIllegalETC.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackend(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
 
-class TestLoadingAcceptAlmostZeroSumRedisp(HelperTests, BaseTestLoadingAcceptAlmostZeroSumRedisp):
+class TestLoadingAcceptAlmostZeroSumRedisp(
+    HelperTests, BaseTestLoadingAcceptAlmostZeroSumRedisp
+):
     def setUp(self):
         # TODO find something more elegant
         BaseTestLoadingAcceptAlmostZeroSumRedisp.setUp(self)
@@ -97,7 +116,9 @@ class TestLoadingAcceptAlmostZeroSumRedisp(HelperTests, BaseTestLoadingAcceptAlm
         BaseTestLoadingAcceptAlmostZeroSumRedisp.tearDown(self)
 
     def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        return PandaPowerBackend(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
 
 
 if __name__ == "__main__":

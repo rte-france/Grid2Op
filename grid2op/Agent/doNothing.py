@@ -17,6 +17,7 @@ class DoNothingAgent(BaseAgent):
     the best solution.
 
     """
+
     def __init__(self, action_space):
         BaseAgent.__init__(self, action_space)
 

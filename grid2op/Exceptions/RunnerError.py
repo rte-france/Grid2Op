@@ -19,4 +19,5 @@ class UsedRunnerError(Grid2OpException):
 
     The best solution is to recreate a runner, and then use this new one.
     """
+
     pass

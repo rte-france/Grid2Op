@@ -23,27 +23,27 @@ class Issue196Tester(unittest.TestCase):
             env = grid2op.make("l2rpn_neurips_2020_track1", test=True)
             env_gym = GymEnv(env)
             ob_space = env_gym.observation_space
-            ob_space = ob_space.keep_only_attr(["rho", "gen_p", "load_p", "topo_vect", "actual_dispatch"])
-            ob_space = ob_space.reencode_space("actual_dispatch",
-                                               ScalerAttrConverter(substract=0.,
-                                                                   divide=env.gen_pmax
-                                                                   )
-                                               )
-            ob_space = ob_space.reencode_space("gen_p",
-                                               ScalerAttrConverter(substract=0.,
-                                                                   divide=env.gen_pmax
-                                                                   )
-                                               )
-            ob_space = ob_space.reencode_space("load_p",
-                                               ScalerAttrConverter(substract=0.,
-                                                                   divide=-1.0
-                                                                   )
-                                               )
+            ob_space = ob_space.keep_only_attr(
+                ["rho", "gen_p", "load_p", "topo_vect", "actual_dispatch"]
+            )
+            ob_space = ob_space.reencode_space(
+                "actual_dispatch",
+                ScalerAttrConverter(substract=0.0, divide=env.gen_pmax),
+            )
+            ob_space = ob_space.reencode_space(
+                "gen_p", ScalerAttrConverter(substract=0.0, divide=env.gen_pmax)
+            )
+            ob_space = ob_space.reencode_space(
+                "load_p", ScalerAttrConverter(substract=0.0, divide=-1.0)
+            )
             env_gym.observation_space = ob_space
             self.env_gym = env_gym
 
     def test_issue_196_loadp(self):
-        assert np.all(self.env_gym.observation_space["load_p"].low <= self.env_gym.observation_space["load_p"].high)
+        assert np.all(
+            self.env_gym.observation_space["load_p"].low
+            <= self.env_gym.observation_space["load_p"].high
+        )
 
     def test_issue_196_genp(self):
         # not great test as it passes with the bug... but just in the case... cannot hurt

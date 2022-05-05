@@ -20,7 +20,7 @@ __all__ = [
     "N1Reward",
     "_AlarmScore",
     # TODO it would be better to have a specific package for this, but in the mean time i put it here
-    "L2RPNSandBoxScore"
+    "L2RPNSandBoxScore",
 ]
 
 from grid2op.Reward.ConstantReward import ConstantReward
@@ -51,6 +51,8 @@ import warnings
 class Reward(BaseReward):
     def __init__(self, *args, **kwargs):
         BaseReward.__init__(self, *args, **kwargs)
-        warnings.warn("Reward class has been renamed \"BaseReward\". "
-                      "This class Action will be removed in future versions.",
-                      category=PendingDeprecationWarning)
+        warnings.warn(
+            'Reward class has been renamed "BaseReward". '
+            "This class Action will be removed in future versions.",
+            category=PendingDeprecationWarning,
+        )

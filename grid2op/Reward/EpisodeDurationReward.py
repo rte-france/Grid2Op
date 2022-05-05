@@ -42,12 +42,13 @@ class EpisodeDurationReward(BaseReward):
 
 
     """
+
     def __init__(self, per_timestep=1):
         BaseReward.__init__(self)
         self.per_timestep = dt_float(per_timestep)
         self.total_time_steps = dt_float(0.0)
-        self.reward_min = dt_float(0.)
-        self.reward_max = dt_float(1.)
+        self.reward_min = dt_float(0.0)
+        self.reward_max = dt_float(1.0)
 
     def initialize(self, env):
         self.reset(env)

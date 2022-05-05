@@ -28,6 +28,7 @@ if DEBUG:
     print("pandapower version : {}".format(pp.__version__))
 
 import warnings
+
 warnings.simplefilter("error")
 
 
@@ -57,8 +58,8 @@ class TestAgent(HelperTests):
         beg_ = time.perf_counter()
         cum_reward = dt_float(0.0)
         obs = self.env.get_obs()
-        reward = 0.
-        time_act = 0.
+        reward = 0.0
+        time_act = 0.0
         all_acts = []
         while not done:
             # print("_______________")
@@ -66,7 +67,9 @@ class TestAgent(HelperTests):
             act = agent.act(obs, reward, done)
             all_acts.append(act)
             end__ = time.perf_counter()
-            obs, reward, done, info = self.env.step(act)  # should load the first time stamp
+            obs, reward, done, info = self.env.step(
+                act
+            )  # should load the first time stamp
             time_act += end__ - beg__
             cum_reward += reward
             # print("reward: {}".format(reward))
@@ -79,23 +82,33 @@ class TestAgent(HelperTests):
 
         end_ = time.perf_counter()
         if DEBUG:
-            li_text = ["Env: {:.2f}s",
-                       "\t - apply act {:.2f}s",
-                       "\t - run pf: {:.2f}s",
-                       "\t - env update + observation: {:.2f}s",
-                       "\t - time get topo vect: {:.2f}s",
-                       "\t - time env obs space: {:.2f}s",
-                       "BaseAgent: {:.2f}s", "Total time: {:.2f}s",
-                       "Cumulative reward: {:1f}"]
+            li_text = [
+                "Env: {:.2f}s",
+                "\t - apply act {:.2f}s",
+                "\t - run pf: {:.2f}s",
+                "\t - env update + observation: {:.2f}s",
+                "\t - time get topo vect: {:.2f}s",
+                "\t - time env obs space: {:.2f}s",
+                "BaseAgent: {:.2f}s",
+                "Total time: {:.2f}s",
+                "Cumulative reward: {:1f}",
+            ]
             msg_ = "\n".join(li_text)
-            print(msg_.format(
-                self.env._time_apply_act+self.env._time_powerflow+self.env._time_extract_obs,  # env
-                self.env._time_apply_act,  # apply act
-                self.env._time_powerflow,  # run pf
-                self.env._time_extract_obs,  # env update + obs
-                self.env.backend._time_topo_vect,  # time get topo vect
-                self.env.observation_space._update_env_time,  # time get topo vect
-                time_act, end_-beg_, cum_reward))
+            print(
+                msg_.format(
+                    self.env._time_apply_act
+                    + self.env._time_powerflow
+                    + self.env._time_extract_obs,  # env
+                    self.env._time_apply_act,  # apply act
+                    self.env._time_powerflow,  # run pf
+                    self.env._time_extract_obs,  # env update + obs
+                    self.env.backend._time_topo_vect,  # time get topo vect
+                    self.env.observation_space._update_env_time,  # time get topo vect
+                    time_act,
+                    end_ - beg_,
+                    cum_reward,
+                )
+            )
         return i, cum_reward, all_acts
 
     def test_0_donothing(self):
@@ -104,9 +117,11 @@ class TestAgent(HelperTests):
             warnings.filterwarnings("error")
             i, cum_reward, all_acts = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for do nothing"
-        expected_reward = dt_float(35140.027)
-        assert np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one, \
-            "The reward has not been properly computed"
+        expected_reward = dt_float(35140.027 / 12.)
+        expected_reward = dt_float(35140.03125 / 12.)
+        assert (
+            np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one
+        ), f"The reward has not been properly computed {cum_reward} instead of {expected_reward}"
 
     def test_1_random(self):
         agent = RandomTestAgent(self.env.action_space)
@@ -115,7 +130,10 @@ class TestAgent(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("error")
             nb_steps, cum_reward, all_acts = self._aux_test_agent(agent)
-        assert nb_steps == 16, "The powerflow diverged before step 30 for do nothing"
+        assert nb_steps == 16, "The powerflow diverged before step 16 for RandomTestAgent"
         expected_reward = dt_float(16441.488)
-        assert np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one, \
-            "The reward has not been properly computed"
+        expected_reward = dt_float(16331.4873046875 / 12.)
+        expected_reward = dt_float(16331.54296875 / 12.)
+        assert (
+            np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one
+        ), f"The reward has not been properly computed {cum_reward} instead of {expected_reward}"

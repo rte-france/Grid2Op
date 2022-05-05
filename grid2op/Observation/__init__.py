@@ -7,17 +7,14 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 __all__ = [
-    # private
-    "_ObsEnv",
     # real export
     "CompleteObservation",
     "NoisyObservation",
     "BaseObservation",
-    "ObservationSpace"
+    "ObservationSpace",
 ]
 
 from grid2op.Observation.completeObservation import CompleteObservation
 from grid2op.Observation.noisyObservation import NoisyObservation
-from grid2op.Observation._ObsEnv import _ObsEnv
 from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Observation.observationSpace import ObservationSpace

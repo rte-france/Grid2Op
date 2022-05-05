@@ -11,12 +11,10 @@ import warnings
 import copy
 from multiprocessing import Pool
 
-from numpy.lib.arraysetops import isin
-from scipy.sparse.sputils import isintlike
-
 from grid2op.Action import BaseAction, TopologyAction, DontAct
-from grid2op.Exceptions import UsedRunnerError, Grid2OpException, EnvError
+from grid2op.Exceptions import Grid2OpException, EnvError
 from grid2op.Observation import CompleteObservation, BaseObservation
+from grid2op.Opponent.OpponentSpace import OpponentSpace
 from grid2op.Reward import FlatReward, BaseReward
 from grid2op.Rules import AlwaysLegal, BaseRules
 from grid2op.Environment import Environment
@@ -28,7 +26,11 @@ from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.dtypes import dt_float
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
-from grid2op.Runner.aux_fun import _aux_run_one_episode, _aux_make_progress_bar, _aux_one_process_parrallel
+from grid2op.Runner.aux_fun import (
+    _aux_run_one_episode,
+    _aux_make_progress_bar,
+    _aux_one_process_parrallel,
+)
 from grid2op.Runner.basic_logger import DoNothingLog, ConsoleLog
 
 # on windows if i start using sequential, i need to continue using sequential
@@ -218,50 +220,54 @@ class Runner(object):
     for more information and possible way to disable this feature.
 
     """
+
     FORCE_SEQUENTIAL = "GRID2OP_RUNNER_FORCE_SEQUENTIAL"
 
-    def __init__(self,
-                 init_grid_path: str,
-                 path_chron,  # path where chronics of injections are stored
-                 name_env="unknown",
-                 parameters_path=None,
-                 names_chronics_to_backend=None,
-                 actionClass=TopologyAction,
-                 observationClass=CompleteObservation,
-                 rewardClass=FlatReward,
-                 legalActClass=AlwaysLegal,
-                 envClass=Environment,
-                 gridStateclass=GridStateFromFile,
-                 # type of chronics to use. For example GridStateFromFile if forecasts are not used,
-                 # or GridStateFromFileWithForecasts otherwise
-                 backendClass=PandaPowerBackend,
-                 agentClass=DoNothingAgent,  # class used to build the agent
-                 agentInstance=None,
-                 verbose=False,
-                 gridStateclass_kwargs={},
-                 voltageControlerClass=ControlVoltageFromFile,
-                 thermal_limit_a=None,
-                 max_iter=-1,
-                 other_rewards={},
-                 opponent_action_class=DontAct,
-                 opponent_class=BaseOpponent,
-                 opponent_init_budget=0.,
-                 opponent_budget_per_ts=0.,
-                 opponent_budget_class=NeverAttackBudget,
-                 opponent_attack_duration=0,
-                 opponent_attack_cooldown=99999,
-                 opponent_kwargs={},
-                 grid_layout=None,
-                 with_forecast=True,
-                 attention_budget_cls=LinearAttentionBudget,
-                 kwargs_attention_budget=None,
-                 has_attention_budget=False,
-                 logger=None,
-                 kwargs_observation=None,
-                 # experimental: whether to read from local dir or generate the classes on the fly:
-                 _read_from_local_dir=False,
-                 _is_test=False  # TODO not implemented !!
-                 ):
+    def __init__(
+        self,
+        init_env_path: str,
+        init_grid_path: str,
+        path_chron,  # path where chronics of injections are stored
+        name_env="unknown",
+        parameters_path=None,
+        names_chronics_to_backend=None,
+        actionClass=TopologyAction,
+        observationClass=CompleteObservation,
+        rewardClass=FlatReward,
+        legalActClass=AlwaysLegal,
+        envClass=Environment,
+        gridStateclass=GridStateFromFile,
+        # type of chronics to use. For example GridStateFromFile if forecasts are not used,
+        # or GridStateFromFileWithForecasts otherwise
+        backendClass=PandaPowerBackend,
+        agentClass=DoNothingAgent,  # class used to build the agent
+        agentInstance=None,
+        verbose=False,
+        gridStateclass_kwargs={},
+        voltageControlerClass=ControlVoltageFromFile,
+        thermal_limit_a=None,
+        max_iter=-1,
+        other_rewards={},
+        opponent_space_type=OpponentSpace,
+        opponent_action_class=DontAct,
+        opponent_class=BaseOpponent,
+        opponent_init_budget=0.0,
+        opponent_budget_per_ts=0.0,
+        opponent_budget_class=NeverAttackBudget,
+        opponent_attack_duration=0,
+        opponent_attack_cooldown=99999,
+        opponent_kwargs={},
+        grid_layout=None,
+        with_forecast=True,
+        attention_budget_cls=LinearAttentionBudget,
+        kwargs_attention_budget=None,
+        has_attention_budget=False,
+        logger=None,
+        kwargs_observation=None,
+        # experimental: whether to read from local dir or generate the classes on the fly:
+        _read_from_local_dir=False,
+        _is_test=False,  # TODO not implemented !!
+    ):
         """
         Initialize the Runner.
 
@@ -325,97 +331,131 @@ class Runner(object):
         self.name_env = name_env
         if not isinstance(envClass, type):
             raise Grid2OpException(
-                "Parameter \"envClass\" used to build the Runner should be a type (a class) and not an object "
-                "(an instance of a class). It is currently \"{}\"".format(
-                    type(envClass)))
+                'Parameter "envClass" used to build the Runner should be a type (a class) and not an object '
+                '(an instance of a class). It is currently "{}"'.format(type(envClass))
+            )
         if not issubclass(envClass, Environment):
-            raise RuntimeError("Impossible to create a runner without an evnrionment derived from grid2op.Environement"
-                               " class. Please modify \"envClass\" parameter.")
+            raise RuntimeError(
+                "Impossible to create a runner without an evnrionment derived from grid2op.Environement"
+                ' class. Please modify "envClass" parameter.'
+            )
         self.envClass = envClass
 
         if not isinstance(actionClass, type):
             raise Grid2OpException(
-                "Parameter \"actionClass\" used to build the Runner should be a type (a class) and not an object "
-                "(an instance of a class). It is currently \"{}\"".format(
-                    type(actionClass)))
+                'Parameter "actionClass" used to build the Runner should be a type (a class) and not an object '
+                '(an instance of a class). It is currently "{}"'.format(
+                    type(actionClass)
+                )
+            )
         if not issubclass(actionClass, BaseAction):
-            raise RuntimeError("Impossible to create a runner without an action class derived from grid2op.BaseAction. "
-                               "Please modify \"actionClass\" parameter.")
+            raise RuntimeError(
+                "Impossible to create a runner without an action class derived from grid2op.BaseAction. "
+                'Please modify "actionClass" parameter.'
+            )
         self.actionClass = actionClass
 
         if not isinstance(observationClass, type):
             raise Grid2OpException(
-                "Parameter \"observationClass\" used to build the Runner should be a type (a class) and not an object "
-                "(an instance of a class). It is currently \"{}\"".format(
-                    type(observationClass)))
+                'Parameter "observationClass" used to build the Runner should be a type (a class) and not an object '
+                '(an instance of a class). It is currently "{}"'.format(
+                    type(observationClass)
+                )
+            )
         if not issubclass(observationClass, BaseObservation):
-            raise RuntimeError("Impossible to create a runner without an observation class derived from "
-                               "grid2op.BaseObservation. Please modify \"observationClass\" parameter.")
+            raise RuntimeError(
+                "Impossible to create a runner without an observation class derived from "
+                'grid2op.BaseObservation. Please modify "observationClass" parameter.'
+            )
         self.observationClass = observationClass
         if isinstance(rewardClass, type):
             if not issubclass(rewardClass, BaseReward):
-                raise RuntimeError("Impossible to create a runner without an observation class derived from "
-                                "grid2op.BaseReward. Please modify \"rewardClass\" parameter.")
+                raise RuntimeError(
+                    "Impossible to create a runner without an observation class derived from "
+                    'grid2op.BaseReward. Please modify "rewardClass" parameter.'
+                )
         else:
             if not isinstance(rewardClass, BaseReward):
-                raise RuntimeError("Impossible to create a runner without an observation class derived from "
-                                   "grid2op.BaseReward. Please modify \"rewardClass\" parameter.")
+                raise RuntimeError(
+                    "Impossible to create a runner without an observation class derived from "
+                    'grid2op.BaseReward. Please modify "rewardClass" parameter.'
+                )
 
         self.rewardClass = rewardClass
 
         if not isinstance(gridStateclass, type):
             raise Grid2OpException(
-                "Parameter \"gridStateclass\" used to build the Runner should be a type (a class) and not an object "
-                "(an instance of a class). It is currently \"{}\"".format(
-                    type(gridStateclass)))
+                'Parameter "gridStateclass" used to build the Runner should be a type (a class) and not an object '
+                '(an instance of a class). It is currently "{}"'.format(
+                    type(gridStateclass)
+                )
+            )
         if not issubclass(gridStateclass, GridValue):
-            raise RuntimeError("Impossible to create a runner without an chronics class derived from "
-                               "grid2op.GridValue. Please modify \"gridStateclass\" parameter.")
+            raise RuntimeError(
+                "Impossible to create a runner without an chronics class derived from "
+                'grid2op.GridValue. Please modify "gridStateclass" parameter.'
+            )
         self.gridStateclass = gridStateclass
 
         if not isinstance(legalActClass, type):
             raise Grid2OpException(
-                "Parameter \"legalActClass\" used to build the Runner should be a type (a class) and not an object "
-                "(an instance of a class). It is currently \"{}\"".format(
-                    type(legalActClass)))
+                'Parameter "legalActClass" used to build the Runner should be a type (a class) and not an object '
+                '(an instance of a class). It is currently "{}"'.format(
+                    type(legalActClass)
+                )
+            )
         if not issubclass(legalActClass, BaseRules):
 
-            raise RuntimeError("Impossible to create a runner without a class defining legal actions derived "
-                               "from grid2op.BaseRules. Please modify \"legalActClass\" parameter.")
+            raise RuntimeError(
+                "Impossible to create a runner without a class defining legal actions derived "
+                'from grid2op.BaseRules. Please modify "legalActClass" parameter.'
+            )
         self.legalActClass = legalActClass
 
         if not isinstance(backendClass, type):
             raise Grid2OpException(
-                "Parameter \"legalActClass\" used to build the Runner should be a type (a class) and not an object "
-                "(an instance of a class). It is currently \"{}\"".format(
-                    type(backendClass)))
+                'Parameter "legalActClass" used to build the Runner should be a type (a class) and not an object '
+                '(an instance of a class). It is currently "{}"'.format(
+                    type(backendClass)
+                )
+            )
         if not issubclass(backendClass, Backend):
-            raise RuntimeError("Impossible to create a runner without a backend class derived from grid2op.GridValue. "
-                               "Please modify \"backendClass\" parameter.")
+            raise RuntimeError(
+                "Impossible to create a runner without a backend class derived from grid2op.GridValue. "
+                'Please modify "backendClass" parameter.'
+            )
         self.backendClass = backendClass
 
         self.__can_copy_agent = True
         if agentClass is not None:
             if agentInstance is not None:
-                raise RuntimeError("Impossible to build the backend. Only one of AgentClass or agentInstance can be "
-                                   "used (both are not None).")
+                raise RuntimeError(
+                    "Impossible to build the backend. Only one of AgentClass or agentInstance can be "
+                    "used (both are not None)."
+                )
             if not isinstance(agentClass, type):
                 raise Grid2OpException(
-                    "Parameter \"agentClass\" used to build the Runner should be a type (a class) and not an object "
-                    "(an instance of a class). It is currently \"{}\"".format(
-                        type(agentClass)))
+                    'Parameter "agentClass" used to build the Runner should be a type (a class) and not an object '
+                    '(an instance of a class). It is currently "{}"'.format(
+                        type(agentClass)
+                    )
+                )
             if not issubclass(agentClass, BaseAgent):
-                raise RuntimeError("Impossible to create a runner without an agent class derived from "
-                                   "grid2op.BaseAgent. "
-                                   "Please modify \"agentClass\" parameter.")
+                raise RuntimeError(
+                    "Impossible to create a runner without an agent class derived from "
+                    "grid2op.BaseAgent. "
+                    'Please modify "agentClass" parameter.'
+                )
             self.agentClass = agentClass
             self._useclass = True
             self.agent = None
         elif agentInstance is not None:
             if not isinstance(agentInstance, BaseAgent):
-                raise RuntimeError("Impossible to create a runner without an agent class derived from "
-                                   "grid2op.BaseAgent. "
-                                   "Please modify \"agentInstance\" parameter.")
+                raise RuntimeError(
+                    "Impossible to create a runner without an agent class derived from "
+                    "grid2op.BaseAgent. "
+                    'Please modify "agentInstance" parameter.'
+                )
             self.agentClass = None
             self._useclass = False
             self.agent = agentInstance
@@ -425,16 +465,18 @@ class Runner(object):
             except:
                 self.__can_copy_agent = False
         else:
-            raise RuntimeError("Impossible to build the backend. Either AgentClass or agentInstance must be provided "
-                               "and both are None.")
+            raise RuntimeError(
+                "Impossible to build the backend. Either AgentClass or agentInstance must be provided "
+                "and both are None."
+            )
         self.agentInstance = agentInstance
 
         self._read_from_local_dir = _read_from_local_dir
 
-        self.logger = ConsoleLog(
-            DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
+        self.logger = ConsoleLog(DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
         if logger is None:
             import logging
+
             self.logger = logging.getLogger(__name__)
             if verbose:
                 self.logger.setLevel("debug")
@@ -444,6 +486,7 @@ class Runner(object):
             self.logger = logger.getChild("grid2op_Runner")
 
         # store _parameters
+        self.init_env_path = init_env_path
         self.init_grid_path = init_grid_path
         self.names_chronics_to_backend = names_chronics_to_backend
 
@@ -457,8 +500,10 @@ class Runner(object):
         elif parameters_path is None:
             self.parameters = Parameters()
         else:
-            raise RuntimeError("Impossible to build the parameters. The argument \"parameters_path\" should either "
-                               "be a string or a dictionary.")
+            raise RuntimeError(
+                'Impossible to build the parameters. The argument "parameters_path" should either '
+                "be a string or a dictionary."
+            )
 
         # chronics of grid state
         self.path_chron = path_chron
@@ -466,33 +511,48 @@ class Runner(object):
         self.max_iter = max_iter
         if max_iter > 0:
             self.gridStateclass_kwargs["max_iter"] = max_iter
-        self.chronics_handler = ChronicsHandler(chronicsClass=self.gridStateclass,
-                                                path=self.path_chron,
-                                                **self.gridStateclass_kwargs)
+        self.chronics_handler = ChronicsHandler(
+            chronicsClass=self.gridStateclass,
+            path=self.path_chron,
+            **self.gridStateclass_kwargs
+        )
 
         self.verbose = verbose
         self.thermal_limit_a = thermal_limit_a
 
         # controler for voltage
         if not issubclass(voltageControlerClass, ControlVoltageFromFile):
-            raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
+            raise Grid2OpException(
+                'Parameter "voltagecontrolClass" should derive from "ControlVoltageFromFile".'
+            )
         self.voltageControlerClass = voltageControlerClass
         self._other_rewards = other_rewards
 
         # for opponent (should be defined here) after the initialization of BaseEnv
+        self._opponent_space_type = opponent_space_type
         if not issubclass(opponent_action_class, BaseAction):
-            raise EnvError("Impossible to make an environment with an opponent action class not "
-                           "derived from BaseAction")
+            raise EnvError(
+                "Impossible to make an environment with an opponent action class not "
+                "derived from BaseAction"
+            )
         try:
             self.opponent_init_budget = dt_float(opponent_init_budget)
         except Exception as e:
-            raise EnvError("Impossible to convert \"opponent_init_budget\" to a float with error {}".format(e))
-        if self.opponent_init_budget < 0.:
-            raise EnvError("If you want to deactive the opponent, please don't set its budget to a negative number."
-                           "Prefer the use of the DontAct action type (\"opponent_action_class=DontAct\" "
-                           "and / or set its budget to 0.")
+            raise EnvError(
+                'Impossible to convert "opponent_init_budget" to a float with error {}'.format(
+                    e
+                )
+            )
+        if self.opponent_init_budget < 0.0:
+            raise EnvError(
+                "If you want to deactive the opponent, please don't set its budget to a negative number."
+                'Prefer the use of the DontAct action type ("opponent_action_class=DontAct" '
+                "and / or set its budget to 0."
+            )
         if not issubclass(opponent_class, BaseOpponent):
-            raise EnvError("Impossible to make an opponent with a type that does not inherit from BaseOpponent.")
+            raise EnvError(
+                "Impossible to make an opponent with a type that does not inherit from BaseOpponent."
+            )
         self.opponent_action_class = opponent_action_class
         self.opponent_class = opponent_class
         self.opponent_init_budget = opponent_init_budget
@@ -520,43 +580,49 @@ class Runner(object):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 with self.init_env() as env:
-                   bk_class = type(env.backend)
-                   pass
+                    bk_class = type(env.backend)
+                    pass
+
+        # not implemented !
+        self._is_test = _is_test
 
         self.__used = False
 
     def _new_env(self, chronics_handler, parameters):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            res = self.envClass(init_grid_path=self.init_grid_path,
-                                chronics_handler=chronics_handler,
-                                backend=self.backendClass(),
-                                parameters=parameters,
-                                name=self.name_env,
-                                names_chronics_to_backend=self.names_chronics_to_backend,
-                                actionClass=self.actionClass,
-                                observationClass=self.observationClass,
-                                rewardClass=self.rewardClass,
-                                legalActClass=self.legalActClass,
-                                voltagecontrolerClass=self.voltageControlerClass,
-                                other_rewards=self._other_rewards,
-                                opponent_action_class=self.opponent_action_class,
-                                opponent_class=self.opponent_class,
-                                opponent_init_budget=self.opponent_init_budget,
-                                opponent_budget_per_ts=self.opponent_budget_per_ts,
-                                opponent_budget_class=self.opponent_budget_class,
-                                opponent_attack_duration=self.opponent_attack_duration,
-                                opponent_attack_cooldown=self.opponent_attack_cooldown,
-                                kwargs_opponent=self.opponent_kwargs,
-                                with_forecast=self.with_forecast,
-                                attention_budget_cls=self._attention_budget_cls,
-                                kwargs_attention_budget=self._kwargs_attention_budget,
-                                has_attention_budget=self._has_attention_budget,
-                                logger=self.logger,
-                                kwargs_observation=self._kwargs_observation,
-                                _raw_backend_class=self.backendClass,
-                                _read_from_local_dir=self._read_from_local_dir
-                                )
+            res = self.envClass(
+                init_env_path=self.init_env_path,
+                init_grid_path=self.init_grid_path,
+                chronics_handler=chronics_handler,
+                backend=self.backendClass(),
+                parameters=parameters,
+                name=self.name_env,
+                names_chronics_to_backend=self.names_chronics_to_backend,
+                actionClass=self.actionClass,
+                observationClass=self.observationClass,
+                rewardClass=self.rewardClass,
+                legalActClass=self.legalActClass,
+                voltagecontrolerClass=self.voltageControlerClass,
+                other_rewards=self._other_rewards,
+                opponent_space_type=self._opponent_space_type,
+                opponent_action_class=self.opponent_action_class,
+                opponent_class=self.opponent_class,
+                opponent_init_budget=self.opponent_init_budget,
+                opponent_budget_per_ts=self.opponent_budget_per_ts,
+                opponent_budget_class=self.opponent_budget_class,
+                opponent_attack_duration=self.opponent_attack_duration,
+                opponent_attack_cooldown=self.opponent_attack_cooldown,
+                kwargs_opponent=self.opponent_kwargs,
+                with_forecast=self.with_forecast,
+                attention_budget_cls=self._attention_budget_cls,
+                kwargs_attention_budget=self._kwargs_attention_budget,
+                has_attention_budget=self._has_attention_budget,
+                logger=self.logger,
+                kwargs_observation=self._kwargs_observation,
+                _raw_backend_class=self.backendClass,
+                _read_from_local_dir=self._read_from_local_dir,
+            )
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)
@@ -596,15 +662,17 @@ class Runner(object):
         """
         pass
 
-    def run_one_episode(self,
-                        indx=0,
-                        path_save=None,
-                        pbar=False,
-                        env_seed=None,
-                        max_iter=None,
-                        agent_seed=None,
-                        episode_id=None,
-                        detailed_output=False):
+    def run_one_episode(
+        self,
+        indx=0,
+        path_save=None,
+        pbar=False,
+        env_seed=None,
+        max_iter=None,
+        agent_seed=None,
+        episode_id=None,
+        detailed_output=False,
+    ):
         """
         INTERNAL
 
@@ -634,27 +702,31 @@ class Runner(object):
         """
         self.reset()
         with self.init_env() as env:
-            res = _aux_run_one_episode(env,
-                                       self.agent,
-                                       self.logger,
-                                       indx,
-                                       path_save,
-                                       pbar=pbar,
-                                       env_seed=env_seed,
-                                       max_iter=max_iter,
-                                       agent_seed=agent_seed,
-                                       detailed_output=detailed_output)
+            res = _aux_run_one_episode(
+                env,
+                self.agent,
+                self.logger,
+                indx,
+                path_save,
+                pbar=pbar,
+                env_seed=env_seed,
+                max_iter=max_iter,
+                agent_seed=agent_seed,
+                detailed_output=detailed_output,
+            )
         return res
 
-    def _run_sequential(self,
-                        nb_episode,
-                        path_save=None,
-                        pbar=False,
-                        env_seeds=None,
-                        agent_seeds=None,
-                        max_iter=None,
-                        episode_id=None,
-                        add_detailed_output=False):
+    def _run_sequential(
+        self,
+        nb_episode,
+        path_save=None,
+        pbar=False,
+        env_seeds=None,
+        agent_seeds=None,
+        max_iter=None,
+        episode_id=None,
+        add_detailed_output=False,
+    ):
         """
         INTERNAL
 
@@ -721,32 +793,53 @@ class Runner(object):
                 ep_id = i  # if no "episode_id" is provided i used the i th one
                 if episode_id is not None:
                     ep_id = episode_id[i]  # otherwise i use the provided one
-                name_chron, cum_reward, nb_time_step, episode_data = \
-                    self.run_one_episode(path_save=path_save,
-                                         indx=ep_id,
-                                         pbar=next_pbar[0],
-                                         env_seed=env_seed,
-                                         agent_seed=agt_seed,
-                                         max_iter=max_iter,
-                                         detailed_output=add_detailed_output)
+                (
+                    name_chron,
+                    cum_reward,
+                    nb_time_step,
+                    episode_data,
+                ) = self.run_one_episode(
+                    path_save=path_save,
+                    indx=ep_id,
+                    pbar=next_pbar[0],
+                    env_seed=env_seed,
+                    agent_seed=agt_seed,
+                    max_iter=max_iter,
+                    detailed_output=add_detailed_output,
+                )
                 id_chron = self.chronics_handler.get_id()
                 max_ts = self.chronics_handler.max_timestep()
                 if add_detailed_output:
-                    res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts, episode_data)
+                    res[i] = (
+                        id_chron,
+                        name_chron,
+                        float(cum_reward),
+                        nb_time_step,
+                        max_ts,
+                        episode_data,
+                    )
                 else:
-                    res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
+                    res[i] = (
+                        id_chron,
+                        name_chron,
+                        float(cum_reward),
+                        nb_time_step,
+                        max_ts,
+                    )
                 pbar_.update(1)
         return res
 
-    def _run_parrallel(self,
-                       nb_episode,
-                       nb_process=1,
-                       path_save=None,
-                       env_seeds=None,
-                       agent_seeds=None,
-                       max_iter=None,
-                       episode_id=None,
-                       add_detailed_output=False):
+    def _run_parrallel(
+        self,
+        nb_episode,
+        nb_process=1,
+        path_save=None,
+        env_seeds=None,
+        agent_seeds=None,
+        max_iter=None,
+        episode_id=None,
+        add_detailed_output=False,
+    ):
         """
         INTERNAL
 
@@ -802,8 +895,7 @@ class Runner(object):
 
         """
         if nb_process <= 0:
-            raise RuntimeError(
-                "Runner: you need at least 1 process to run episodes")
+            raise RuntimeError("Runner: you need at least 1 process to run episodes")
         force_sequential = False
         tmp = os.getenv(Runner.FORCE_SEQUENTIAL)
         if tmp is not None:
@@ -812,14 +904,18 @@ class Runner(object):
             # on windows if i start using sequential, i need to continue using sequential
             # if i start using parallel i need to continue using parallel
             # so i force the usage of the sequential mode
-            self.logger.warn("Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
-            return self._run_sequential(nb_episode,
-                                        path_save=path_save,
-                                        env_seeds=env_seeds,
-                                        max_iter=max_iter,
-                                        agent_seeds=agent_seeds,
-                                        episode_id=episode_id,
-                                        add_detailed_output=add_detailed_output)
+            self.logger.warn(
+                "Runner.run_parrallel: number of process set to 1. Failing back into sequential mod."
+            )
+            return self._run_sequential(
+                nb_episode,
+                path_save=path_save,
+                env_seeds=env_seeds,
+                max_iter=max_iter,
+                agent_seeds=agent_seeds,
+                episode_id=episode_id,
+                add_detailed_output=add_detailed_output,
+            )
         else:
             self._clean_up()
 
@@ -849,13 +945,33 @@ class Runner(object):
 
             res = []
             if _IS_LINUX:
-               lists = [(self, pn, i, path_save, seeds_env_res[i], seeds_agt_res[i],
-                         max_iter, add_detailed_output)
-                         for i, pn in enumerate(process_ids)]
+                lists = [
+                    (
+                        self,
+                        pn,
+                        i,
+                        path_save,
+                        seeds_env_res[i],
+                        seeds_agt_res[i],
+                        max_iter,
+                        add_detailed_output,
+                    )
+                    for i, pn in enumerate(process_ids)
+                ]
             else:
-                lists = [(Runner(**self._get_params()), pn, i, path_save, seeds_env_res[i], seeds_agt_res[i],
-                          max_iter, add_detailed_output)
-                         for i, pn in enumerate(process_ids)]
+                lists = [
+                    (
+                        Runner(**self._get_params()),
+                        pn,
+                        i,
+                        path_save,
+                        seeds_env_res[i],
+                        seeds_agt_res[i],
+                        max_iter,
+                        add_detailed_output,
+                    )
+                    for i, pn in enumerate(process_ids)
+                ]
             with Pool(nb_process) as p:
                 tmp = p.starmap(_aux_one_process_parrallel, lists)
             for el in tmp:
@@ -863,37 +979,46 @@ class Runner(object):
         return res
 
     def _get_params(self):
-        res = {"init_grid_path": self.init_grid_path,
-               "path_chron": self.path_chron,  # path where chronics of injections are stored
-               "name_env": self.name_env,
-               "parameters_path": self.parameters_path,
-               "names_chronics_to_backend": self.names_chronics_to_backend,
-               "actionClass": self.actionClass,
-               "observationClass": self.observationClass,
-               "rewardClass": self.rewardClass,
-               "legalActClass": self.legalActClass,
-               "envClass": self.envClass,
-               "gridStateclass": self.gridStateclass,
-               "backendClass": self.backendClass,
-               "agentClass": self.agentClass,
-               "agentInstance": self.agentInstance,
-               "verbose": self.verbose,
-               "gridStateclass_kwargs": copy.deepcopy(self.gridStateclass_kwargs),
-               "voltageControlerClass": self.voltageControlerClass,
-               "thermal_limit_a": self.thermal_limit_a,
-               "max_iter": self.max_iter,
-               "other_rewards": copy.deepcopy(self._other_rewards),
-               "opponent_action_class": self.opponent_action_class,
-               "opponent_class": self.opponent_class,
-               "opponent_init_budget": self.opponent_init_budget,
-               "opponent_budget_per_ts": self.opponent_budget_per_ts,
-               "opponent_budget_class": self.opponent_budget_class,
-               "opponent_attack_duration": self.opponent_attack_duration,
-               "opponent_attack_cooldown": self.opponent_attack_cooldown,
-               "opponent_kwargs": copy.deepcopy(self.opponent_kwargs),
-               "grid_layout": copy.deepcopy(self.grid_layout),
-               "with_forecast": self.with_forecast
-               # TODO kwargs_observation here ! (but require kwargs_observation to be json serializable)
+        res = {
+            "init_grid_path": self.init_grid_path,
+            "init_env_path": self.init_env_path,
+            "path_chron": self.path_chron,  # path where chronics of injections are stored
+            "name_env": self.name_env,
+            "parameters_path": self.parameters_path,
+            "names_chronics_to_backend": self.names_chronics_to_backend,
+            "actionClass": self.actionClass,
+            "observationClass": self.observationClass,
+            "rewardClass": self.rewardClass,
+            "legalActClass": self.legalActClass,
+            "envClass": self.envClass,
+            "gridStateclass": self.gridStateclass,
+            "backendClass": self.backendClass,
+            "agentClass": self.agentClass,
+            "agentInstance": self.agentInstance,
+            "verbose": self.verbose,
+            "gridStateclass_kwargs": copy.deepcopy(self.gridStateclass_kwargs),
+            "voltageControlerClass": self.voltageControlerClass,
+            "thermal_limit_a": self.thermal_limit_a,
+            "max_iter": self.max_iter,
+            "other_rewards": copy.deepcopy(self._other_rewards),
+            "opponent_space_type": self._opponent_space_type,
+            "opponent_action_class": self.opponent_action_class,
+            "opponent_class": self.opponent_class,
+            "opponent_init_budget": self.opponent_init_budget,
+            "opponent_budget_per_ts": self.opponent_budget_per_ts,
+            "opponent_budget_class": self.opponent_budget_class,
+            "opponent_attack_duration": self.opponent_attack_duration,
+            "opponent_attack_cooldown": self.opponent_attack_cooldown,
+            "opponent_kwargs": copy.deepcopy(self.opponent_kwargs),
+            "grid_layout": copy.deepcopy(self.grid_layout),
+            "with_forecast": self.with_forecast,
+            "attention_budget_cls": self._attention_budget_cls,
+            "kwargs_attention_budget": self._kwargs_attention_budget,
+            "has_attention_budget": self._has_attention_budget,
+            "logger": self.logger,
+            "kwargs_observation": self._kwargs_observation,
+            "_read_from_local_dir": self._read_from_local_dir,
+            "_is_test": self._is_test,
         }
         return res
 
@@ -908,16 +1033,18 @@ class Runner(object):
         """
         pass
 
-    def run(self,
-            nb_episode,
-            nb_process=1,
-            path_save=None,
-            max_iter=None,
-            pbar=False,
-            env_seeds=None,
-            agent_seeds=None,
-            episode_id=None,
-            add_detailed_output=False):
+    def run(
+        self,
+        nb_episode,
+        nb_process=1,
+        path_save=None,
+        max_iter=None,
+        pbar=False,
+        env_seeds=None,
+        agent_seeds=None,
+        episode_id=None,
+        add_detailed_output=False,
+    ):
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner._run_sequential` if "nb_process" is
         1 or :func:`Runner._run_parrallel` if nb_process >= 2.
@@ -1029,19 +1156,25 @@ class Runner(object):
 
         if env_seeds is not None:
             if len(env_seeds) != nb_episode:
-                raise RuntimeError("You want to compute \"{}\" run(s) but provide only \"{}\" different seeds "
-                                   "(environment)."
-                                   "".format(nb_episode, len(env_seeds)))
+                raise RuntimeError(
+                    'You want to compute "{}" run(s) but provide only "{}" different seeds '
+                    "(environment)."
+                    "".format(nb_episode, len(env_seeds))
+                )
 
         if agent_seeds is not None:
             if len(agent_seeds) != nb_episode:
-                raise RuntimeError("You want to compute \"{}\" run(s) but provide only \"{}\" different seeds (agent)."
-                                   "".format(nb_episode, len(agent_seeds)))
+                raise RuntimeError(
+                    'You want to compute "{}" run(s) but provide only "{}" different seeds (agent).'
+                    "".format(nb_episode, len(agent_seeds))
+                )
 
         if episode_id is not None:
             if len(episode_id) != nb_episode:
-                raise RuntimeError("You want to compute \"{}\" run(s) but provide only \"{}\" different ids."
-                                   "".format(nb_episode, len(episode_id)))
+                raise RuntimeError(
+                    'You want to compute "{}" run(s) but provide only "{}" different ids.'
+                    "".format(nb_episode, len(episode_id))
+                )
 
         if max_iter is not None:
             max_iter = int(max_iter)
@@ -1055,37 +1188,45 @@ class Runner(object):
                 self.__used = True
                 if nb_process == 1:
                     self.logger.info("Sequential runner used.")
-                    res = self._run_sequential(nb_episode,
-                                               path_save=path_save,
-                                               pbar=pbar,
-                                               env_seeds=env_seeds,
-                                               max_iter=max_iter,
-                                               agent_seeds=agent_seeds,
-                                               episode_id=episode_id,
-                                               add_detailed_output=add_detailed_output)
+                    res = self._run_sequential(
+                        nb_episode,
+                        path_save=path_save,
+                        pbar=pbar,
+                        env_seeds=env_seeds,
+                        max_iter=max_iter,
+                        agent_seeds=agent_seeds,
+                        episode_id=episode_id,
+                        add_detailed_output=add_detailed_output,
+                    )
                 else:
                     if add_detailed_output and (_IS_WINDOWS or _IS_MACOS):
-                        self.logger.warn("Parallel run are not fully supported on windows or macos when "
-                                         "\"add_detailed_output\" is True. So we decided "
-                                         "to fully deactivate them.")
-                        res = self._run_sequential(nb_episode,
-                                                   path_save=path_save,
-                                                   pbar=pbar,
-                                                   env_seeds=env_seeds,
-                                                   max_iter=max_iter,
-                                                   agent_seeds=agent_seeds,
-                                                   episode_id=episode_id,
-                                                   add_detailed_output=add_detailed_output)
+                        self.logger.warn(
+                            "Parallel run are not fully supported on windows or macos when "
+                            '"add_detailed_output" is True. So we decided '
+                            "to fully deactivate them."
+                        )
+                        res = self._run_sequential(
+                            nb_episode,
+                            path_save=path_save,
+                            pbar=pbar,
+                            env_seeds=env_seeds,
+                            max_iter=max_iter,
+                            agent_seeds=agent_seeds,
+                            episode_id=episode_id,
+                            add_detailed_output=add_detailed_output,
+                        )
                     else:
                         self.logger.info("Parallel runner used.")
-                        res = self._run_parrallel(nb_episode,
-                                                  nb_process=nb_process,
-                                                  path_save=path_save,
-                                                  env_seeds=env_seeds,
-                                                  max_iter=max_iter,
-                                                  agent_seeds=agent_seeds,
-                                                  episode_id=episode_id,
-                                                  add_detailed_output=add_detailed_output)
+                        res = self._run_parrallel(
+                            nb_episode,
+                            nb_process=nb_process,
+                            path_save=path_save,
+                            env_seeds=env_seeds,
+                            max_iter=max_iter,
+                            agent_seeds=agent_seeds,
+                            episode_id=episode_id,
+                            add_detailed_output=add_detailed_output,
+                        )
             finally:
                 self._clean_up()
         return res

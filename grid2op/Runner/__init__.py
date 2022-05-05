@@ -1,6 +1,3 @@
-__all__ = [
-    "Runner"
-]
+__all__ = ["Runner"]
 
 from grid2op.Runner.runner import Runner
-

@@ -27,8 +27,9 @@ def _create_path_folder(data_path):
         try:
             os.mkdir(data_path)
         except Exception as exc_:
-            raise RuntimeError("Impossible to create a directory in \"{}\". Make sure you can write here. If you don't "
-                               "have writing permissions there, you can edit / create a config file in \"{}\""
-                               "and set the \"data_path\" to point to a path where you can store data."
-                               "".format(data_path, DEFAULT_PATH_CONFIG))
-
+            raise RuntimeError(
+                'Impossible to create a directory in "{}". Make sure you can write here. If you don\'t '
+                'have writing permissions there, you can edit / create a config file in "{}"'
+                'and set the "data_path" to point to a path where you can store data.'
+                "".format(data_path, DEFAULT_PATH_CONFIG)
+            )

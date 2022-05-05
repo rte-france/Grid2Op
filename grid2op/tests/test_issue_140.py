@@ -8,6 +8,7 @@
 
 import grid2op
 import numpy as np
+
 #!/usr/bin/env python3
 
 import grid2op
@@ -30,23 +31,28 @@ class Issue140Tester(unittest.TestCase):
 
         param = Parameters()
         # test was originally designed with these values
-        param.init_from_dict({
-            "NO_OVERFLOW_DISCONNECTION":  False,
-            "NB_TIMESTEP_OVERFLOW_ALLOWED": 3,
-            "NB_TIMESTEP_COOLDOWN_SUB": 3,
-            "NB_TIMESTEP_COOLDOWN_LINE": 3,
-            "HARD_OVERFLOW_THRESHOLD": 200.,
-            "NB_TIMESTEP_RECONNECTION": 12,
-            "IGNORE_MIN_UP_DOWN_TIME": True,
-            "ALLOW_DISPATCH_GEN_SWITCH_OFF": True,
-            "ENV_DC": False,
-            "FORECAST_DC": False,
-            "MAX_SUB_CHANGED": 1,
-            "MAX_LINE_STATUS_CHANGED": 1
-        })
+        param.init_from_dict(
+            {
+                "NO_OVERFLOW_DISCONNECTION": False,
+                "NB_TIMESTEP_OVERFLOW_ALLOWED": 3,
+                "NB_TIMESTEP_COOLDOWN_SUB": 3,
+                "NB_TIMESTEP_COOLDOWN_LINE": 3,
+                "HARD_OVERFLOW_THRESHOLD": 200.0,
+                "NB_TIMESTEP_RECONNECTION": 12,
+                "IGNORE_MIN_UP_DOWN_TIME": True,
+                "ALLOW_DISPATCH_GEN_SWITCH_OFF": True,
+                "ENV_DC": False,
+                "FORECAST_DC": False,
+                "MAX_SUB_CHANGED": 1,
+                "MAX_LINE_STATUS_CHANGED": 1,
+            }
+        )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make(env_name, param=param,)
+            env = grid2op.make(
+                env_name,
+                param=param,
+            )
         ts_per_chronics = 2016
 
         seed = 725
@@ -71,25 +77,59 @@ class Issue140Tester(unittest.TestCase):
             obs, reward, done, info = env.step(do_nothing)
             assert not done
 
-        act0 = env.action_space({"set_bus": {"lines_ex_id": [(41, 2), (42, 1), (57, 1)],
-                                             "lines_or_id": [(44, 2)],
-                                             "generators_id": [(16, 2)]}})
-        act1 = env.action_space({"set_bus": {"lines_ex_id": [(17, 2), (18, 1), (19, 1), (20, 2), (21, 2),
-                                                             ],
-                                             "lines_or_id": [(22, 2), (23, 2), (27, 1), (28, 1), (48, 2),
-                                                             (49, 2), (54, 1)],
-                                             "generators_id": [(5, 2), (6, 1), (7, 1), (8, 1)],
-                                             "loads_id": [(17, 2)]}})
-        act2 = env.action_space({"set_bus": {"lines_ex_id": [(36, 2), (37, 2), (38, 2), (39, 2)],
-                                             "lines_or_id": [(40, 1), (41, 1)],
-                                             "generators_id": [(14, 1)],
-                                             "loads_id": [(27, 1)]}})
+        act0 = env.action_space(
+            {
+                "set_bus": {
+                    "lines_ex_id": [(41, 2), (42, 1), (57, 1)],
+                    "lines_or_id": [(44, 2)],
+                    "generators_id": [(16, 2)],
+                }
+            }
+        )
+        act1 = env.action_space(
+            {
+                "set_bus": {
+                    "lines_ex_id": [
+                        (17, 2),
+                        (18, 1),
+                        (19, 1),
+                        (20, 2),
+                        (21, 2),
+                    ],
+                    "lines_or_id": [
+                        (22, 2),
+                        (23, 2),
+                        (27, 1),
+                        (28, 1),
+                        (48, 2),
+                        (49, 2),
+                        (54, 1),
+                    ],
+                    "generators_id": [(5, 2), (6, 1), (7, 1), (8, 1)],
+                    "loads_id": [(17, 2)],
+                }
+            }
+        )
+        act2 = env.action_space(
+            {
+                "set_bus": {
+                    "lines_ex_id": [(36, 2), (37, 2), (38, 2), (39, 2)],
+                    "lines_or_id": [(40, 1), (41, 1)],
+                    "generators_id": [(14, 1)],
+                    "loads_id": [(27, 1)],
+                }
+            }
+        )
         obs, reward, done, info = env.step(act0)
         obs, reward, done, info = env.step(act1)
         assert not done
 
-        simulate_obs0, simulate_reward0, simulate_done0, simulate_info0 = obs.simulate(do_nothing)
-        simulate_obs1, simulate_reward1, simulate_done1, simulate_info1 = obs.simulate(act2)
+        simulate_obs0, simulate_reward0, simulate_done0, simulate_info0 = obs.simulate(
+            do_nothing
+        )
+        simulate_obs1, simulate_reward1, simulate_done1, simulate_info1 = obs.simulate(
+            act2
+        )
         obs, reward, done, info = env.step(act2)
 
         assert simulate_done0 is False

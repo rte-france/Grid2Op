@@ -11,13 +11,17 @@ import unittest
 import warnings
 import copy
 from grid2op.Parameters import Parameters
-from grid2op.Exceptions import SimulateUsedTooMuchThisStep, SimulateUsedTooMuchThisEpisode
+from grid2op.Exceptions import (
+    SimulateUsedTooMuchThisStep,
+    SimulateUsedTooMuchThisEpisode,
+)
 
 
 class TestSimulateCount(unittest.TestCase):
     """
     This class tests the possibility in grid2op to limit the number of call to "obs.simulate"
     """
+
     def _aux_make_env(self, param=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -130,7 +134,7 @@ class TestSimulateCount(unittest.TestCase):
 
         # should be OK now
         obs, *_ = env.step(env.action_space())
-        obs.simulate(env.action_space())   # I can simulate on the original env correctly
+        obs.simulate(env.action_space())  # I can simulate on the original env correctly
         with self.assertRaises(SimulateUsedTooMuchThisStep):
             obs_cpy.simulate(env.action_space())  # raises a SimulateUsedTooMuchThisStep
 
@@ -157,13 +161,17 @@ class TestSimulateCount(unittest.TestCase):
             obs_cpy.simulate(env.action_space())  # should not raise
             obs_cpy, *_ = env_cpy.step(env.action_space())
         with self.assertRaises(SimulateUsedTooMuchThisEpisode):
-            obs_cpy.simulate(env.action_space())  # raises a SimulateUsedTooMuchThisEpisode
+            obs_cpy.simulate(
+                env.action_space()
+            )  # raises a SimulateUsedTooMuchThisEpisode
 
         obs = env.reset()
         for i in range(MAX_SIMULATE_PER_EPISODE):
             obs.simulate(env.action_space())  # should work now (reset called)
         with self.assertRaises(SimulateUsedTooMuchThisEpisode):
-            obs_cpy.simulate(env.action_space())  # raises a SimulateUsedTooMuchThisEpisode (copy not reset)
+            obs_cpy.simulate(
+                env.action_space()
+            )  # raises a SimulateUsedTooMuchThisEpisode (copy not reset)
 
     def test_no_limit(self):
         MAX_SIMULATE_PER_EPISODE = 7
@@ -181,7 +189,10 @@ class TestSimulateCount(unittest.TestCase):
             obs.simulate(env.action_space())
 
         with self.assertRaises(SimulateUsedTooMuchThisEpisode):
-            obs.simulate(env.action_space())  # raises a SimulateUsedTooMuchThisEpisode (copy not reset)
+            obs.simulate(
+                env.action_space()
+            )  # raises a SimulateUsedTooMuchThisEpisode (copy not reset)
+
 
 if __name__ == "__main__":
     unittest.main()

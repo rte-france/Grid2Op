@@ -39,6 +39,7 @@ class EconomicReward(BaseReward):
         # the reward is computed with the EconomicReward class
 
     """
+
     def __init__(self):
         BaseReward.__init__(self)
         self.reward_min = dt_float(0.0)
@@ -47,20 +48,24 @@ class EconomicReward(BaseReward):
 
     def initialize(self, env):
         if not env.redispatching_unit_commitment_availble:
-            raise Grid2OpException("Impossible to use the EconomicReward reward with an environment without generators"
-                                   "cost. Please make sure env.redispatching_unit_commitment_availble is available.")
-        self.worst_cost = dt_float(np.sum(env.gen_cost_per_MW * env.gen_pmax))
+            raise Grid2OpException(
+                "Impossible to use the EconomicReward reward with an environment without generators"
+                "cost. Please make sure env.redispatching_unit_commitment_availble is available."
+            )
+        self.worst_cost = dt_float(np.sum(env.gen_cost_per_MW * env.gen_pmax) * env.delta_time_seconds / 3600.0)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             res = self.reward_min
         else:
             # compute the cost of the grid
-            res = dt_float(np.sum(env.get_obs().prod_p * env.gen_cost_per_MW))
+            res = dt_float(np.sum(env.get_obs().prod_p * env.gen_cost_per_MW) * env.delta_time_seconds / 3600.0)
             # we want to minimize the cost by maximizing the reward so let's take the opposite
             res *= dt_float(-1.0)
             # to be sure it's positive, add the highest possible cost
             res += self.worst_cost
 
-        res = np.interp(res, [dt_float(0.0), self.worst_cost], [self.reward_min, self.reward_max])
+        res = np.interp(
+            res, [dt_float(0.0), self.worst_cost], [self.reward_min, self.reward_max]
+        )
         return dt_float(res)

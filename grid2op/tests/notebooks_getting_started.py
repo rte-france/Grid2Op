@@ -18,6 +18,7 @@ try:
     import unittest
     import time
     import warnings
+
     CAN_COMPUTE = None
 except ImportError as exc_:
     CAN_COMPUTE = exc_
@@ -47,7 +48,7 @@ def delete_all(folder):
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
+            print("Failed to delete %s. Reason: %s" % (file_path, e))
 
 
 def export_all_notebook(folder_in):
@@ -75,33 +76,38 @@ def export_all_notebook(folder_in):
     return res
 
 
-class RAII_tf_log():
+class RAII_tf_log:
     def __init__(self):
         self.previous = None
         if "TF_CPP_MIN_LOG_LEVEL" in os.environ:
-            self.previous = copy.deepcopy(os.environ['TF_CPP_MIN_LOG_LEVEL'])
-        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+            self.previous = copy.deepcopy(os.environ["TF_CPP_MIN_LOG_LEVEL"])
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
     def __del__(self):
         if self.previous is not None:
-            os.environ['TF_CPP_MIN_LOG_LEVEL'] = self.previous
+            os.environ["TF_CPP_MIN_LOG_LEVEL"] = self.previous
+
+
 # notebook names are hard coded because if i change them, i need also to change the
 # readme and the documentation
 
 
-class RAII_Timer():
+class RAII_Timer:
     """
     class to have an approximation of the runtime of the notebook.
     This is a rough approximation to reduce time spent in certain notebooks and should not be
     used for another purpose.
     """
+
     def __init__(self, str_=""):
         self._time = time.perf_counter()
         self.str_ = str_
 
     def __del__(self):
         if VERBOSE_TIMER:
-            print(f"Execution time for {self.str_}: {time.perf_counter() - self._time:.3f} s")
+            print(
+                f"Execution time for {self.str_}: {time.perf_counter() - self._time:.3f} s"
+            )
 
 
 class TestNotebook(unittest.TestCase):
@@ -112,7 +118,7 @@ class TestNotebook(unittest.TestCase):
         try:
             ep = ExecutePreprocessor(timeout=60, store_widget_state=True)
             try:
-                ep.preprocess(nb, {'metadata': {'path': NOTEBOOK_PATHS}})
+                ep.preprocess(nb, {"metadata": {"path": NOTEBOOK_PATHS}})
             except CellExecutionError as exc_:
                 raise
             except Exception as exc_:
@@ -178,7 +184,9 @@ class TestNotebook(unittest.TestCase):
         if CAN_COMPUTE is not None:
             self.skipTest(f"{CAN_COMPUTE}")
         timer = RAII_Timer("test_notebook6")
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "06_Redispatching_Curtailment.ipynb")
+        notebook_filename = os.path.join(
+            NOTEBOOK_PATHS, "06_Redispatching_Curtailment.ipynb"
+        )
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook7(self):
@@ -197,7 +205,9 @@ class TestNotebook(unittest.TestCase):
         # display notebook, might not be super useful to test it in the unit test (saves another 1-2 minutes)
         return
         timer = RAII_Timer("test_notebook8")
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "08_PlottingCapabilities.ipynb")
+        notebook_filename = os.path.join(
+            NOTEBOOK_PATHS, "08_PlottingCapabilities.ipynb"
+        )
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook9(self):
@@ -205,7 +215,9 @@ class TestNotebook(unittest.TestCase):
             self.skipTest(f"{CAN_COMPUTE}")
         return  # test the opponent and the maintenance, not much there but takes 80s so... not a lot to do
         timer = RAII_Timer("test_notebook9")
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "09_EnvironmentModifications.ipynb")
+        notebook_filename = os.path.join(
+            NOTEBOOK_PATHS, "09_EnvironmentModifications.ipynb"
+        )
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook10(self):
@@ -220,7 +232,10 @@ class TestNotebook(unittest.TestCase):
             self.skipTest(f"{CAN_COMPUTE}")
         raii_ = RAII_tf_log()
         timer = RAII_Timer("test_notebook_aub")
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "AUB_EECE699_20201103_ReinforcementLearningApplication.ipynb")
+        notebook_filename = os.path.join(
+            NOTEBOOK_PATHS,
+            "AUB_EECE699_20201103_ReinforcementLearningApplication.ipynb",
+        )
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook_ieeebda(self):
@@ -231,7 +246,9 @@ class TestNotebook(unittest.TestCase):
         return
         self._check_for_baselines()
         timer = RAII_Timer("test_notebook_ieeebda")
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "IEEE BDA Tutorial Series.ipynb")
+        notebook_filename = os.path.join(
+            NOTEBOOK_PATHS, "IEEE BDA Tutorial Series.ipynb"
+        )
         self._aux_funct_notebook(notebook_filename)
 
 
