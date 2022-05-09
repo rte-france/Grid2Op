@@ -590,9 +590,13 @@ class BoxGymObsSpace(Box):
 
             # handle low / high
             if el in self._subtract:
+                low_ =  low_.astype(dtype)
+                high_ =  high_.astype(dtype)
                 low_ -= self._subtract[el]
                 high_ -= self._subtract[el]
             if el in self._divide:
+                low_ =  low_.astype(dtype)
+                high_ =  high_.astype(dtype)
                 low_ /= self._divide[el]
                 high_ /= self._divide[el]
             if low is None:
@@ -671,13 +675,13 @@ class BoxGymObsSpace(Box):
         """
         if attr_nm in self._divide or attr_nm in self._subtract:
             raise Grid2OpException(
-                "Cannot normalize an attribute that you already "
-                "modified with either `_divide` or `_subtract`."
+                f"Cannot normalize attribute {attr_nm} that you already "
+                f"modified with either `_divide` or `_subtract`."
             )
         prev = 0
         if self.dtype != dt_float:
             raise Grid2OpException(
-                "Cannot normalize an attribute with a observation "
+                "Cannot normalize attribute with a observation "
                 "space that is not float !"
             )
         for attr_tmp, where_to_put in zip(self._attr_to_keep, self._dims):
