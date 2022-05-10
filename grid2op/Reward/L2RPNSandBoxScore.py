@@ -28,8 +28,8 @@ class L2RPNSandBoxScore(BaseReward):
 
     """
 
-    def __init__(self, alpha_redisph=1.0, reward_max=1000.):
-        BaseReward.__init__(self)
+    def __init__(self, alpha_redisph=1.0, reward_max=1000., logger=None):
+        BaseReward.__init__(self, logger=logger)
         self.reward_min = dt_float(1.0)  # carefull here between min and max...
         self.reward_max = dt_float(reward_max)
         self.alpha_redisph = dt_float(alpha_redisph)

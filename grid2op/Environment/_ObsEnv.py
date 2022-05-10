@@ -66,6 +66,7 @@ class _ObsEnv(BaseEnv):
         has_attention_budget=False,
         attention_budget_cls=LinearAttentionBudget,
         kwargs_attention_budget={},
+        logger=None,
         _complete_action_cls=None,
         _ptr_orig_obs_space=None,
     ):
@@ -82,6 +83,7 @@ class _ObsEnv(BaseEnv):
             attention_budget_cls=attention_budget_cls,
             kwargs_attention_budget=kwargs_attention_budget,
             kwargs_observation=None,
+            logger=logger,
         )
         self._reward_helper = reward_helper
         self._helper_action_class = helper_action_class

@@ -8,6 +8,7 @@
 
 import sys
 import copy
+import logging
 
 from grid2op.Observation.serializableObservationSpace import (
     SerializableObservationSpace,
@@ -65,6 +66,7 @@ class ObservationSpace(SerializableObservationSpace):
         actionClass=None,
         with_forecast=True,
         kwargs_observation=None,
+        logger=None,
     ):
         """
         INTERNAL
@@ -82,7 +84,13 @@ class ObservationSpace(SerializableObservationSpace):
             from grid2op.Action import CompleteAction
 
             actionClass = CompleteAction
-
+            
+        if logger is None:
+            self.logger = logging.getLogger(__name__)
+            self.logger.disabled = True
+        else:
+            self.logger: logging.Logger = logger.getChild("grid2op_ObsSpace")
+            
         SerializableObservationSpace.__init__(
             self, gridobj, observationClass=observationClass
         )
@@ -98,7 +106,7 @@ class ObservationSpace(SerializableObservationSpace):
 
         # helpers
         self.action_helper_env = env._helper_action_env
-        self.reward_helper = RewardHelper(reward_func=self._reward_func)
+        self.reward_helper = RewardHelper(reward_func=self._reward_func, logger=self.logger)
         self.reward_helper.initialize(env)
 
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
@@ -129,6 +137,7 @@ class ObservationSpace(SerializableObservationSpace):
             attention_budget_cls=env._attention_budget_cls,
             kwargs_attention_budget=env._kwargs_attention_budget,
             max_episode_duration=env.max_episode_duration(),
+            logger=self.logger,
             _complete_action_cls=env._complete_action_cls,
             _ptr_orig_obs_space=self,
         )

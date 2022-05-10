@@ -5379,6 +5379,16 @@ class BaseAction(GridObjects):
         above but at the same time the values of each `p^{(c)}_t` (for each controllable generator) is heavily constrained
         by equations 1) and 2).
 
+        .. note::
+            This argument and the :func:`grid2op.Parameters.Parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION` have the same objective:
+            prevent an agent to do some curtailment too strong for the grid.
+            
+            When using  :func:`grid2op.Parameters.Parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION`, 
+            the environment will do it knowing exactly what will happen next (its a bit "cheating") and limit 
+            exactly the action to exactly right amount.
+            
+            Using :func:`grid2op.Aciton.BaseAction.limit_curtail_storage` is always feasible, but less precise.
+            
         Parameters
         ----------
         obs : ``Observation``

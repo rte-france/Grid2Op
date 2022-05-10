@@ -408,7 +408,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 raise Grid2OpException(
                     'All keys of "rewards" should be of string type.'
                 )
-            self.other_rewards[k] = RewardHelper(v)
+            self.other_rewards[k] = RewardHelper(v, self.logger)
 
         # opponent
         self._opponent_action_class = (

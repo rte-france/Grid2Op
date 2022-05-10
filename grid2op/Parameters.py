@@ -94,6 +94,18 @@ class Parameters:
         then the curtailment action is limited so that it does not exceed 100 MW.
 
         Setting it to ``True`` might help the learning of agent using redispatching.
+        
+        If you want a similar behaviour, when you don't have access to the parameters of the environment, you can
+        have a look at :func:`grid2op.Aciton.BaseAction.limit_curtail_storage`. 
+        
+        .. note::
+            This argument and the :func:`grid2op.Action.BaseAction.limit_curtail_storage` have the same objective:
+            prevent an agent to do some curtailment too strong for the grid.
+            
+            When using this parameter, the environment will do it knowing exactly what will happen next (
+                its a bit "cheating")  and limit exactly the action to exactly right amount.
+            
+            Using :func:`grid2op.Aciton.BaseAction.limit_curtail_storage` is always feasible, but less precise.
 
     INIT_STORAGE_CAPACITY: ``float``
         Between 0. and 1. Specify, at the beginning of each episode, what is the storage capacity of each storage unit.

@@ -361,7 +361,7 @@ class Environment(BaseEnv):
         self._reset_storage()  # this should be called after the  self.delta_time_seconds is set
 
         # reward function
-        self._reward_helper = RewardHelper(self._rewardClass)
+        self._reward_helper = RewardHelper(self._rewardClass, logger=self.logger)
         self._reward_helper.initialize(self)
         for k, v in self.other_rewards.items():
             v.initialize(self)

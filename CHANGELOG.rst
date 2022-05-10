@@ -31,6 +31,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.7.1] - 2022-xx-yy
+-----------------------
+- [FIXED] a documentation issue https://github.com/rte-france/Grid2Op/issues/281
+- [IMPROVED] adding the compatibility with logger in the reward functions.
+
 [1.7.0] - 2022-04-29
 ---------------------
 - [BREAKING] the `L2RPNSandBoxScore`, `RedispReward` and `EconomicReward` now properly computes the cost of the grid 
