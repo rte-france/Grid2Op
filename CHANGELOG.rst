@@ -34,6 +34,8 @@ Change Log
 [1.7.1] - 2022-xx-yy
 -----------------------
 - [FIXED] a documentation issue https://github.com/rte-france/Grid2Op/issues/281
+- [FIXED] a bug preventing to use the `FromChronix2grid` chronics class when 
+  there is an opponent on the grid.
 - [IMPROVED] adding the compatibility with logger in the reward functions.
 
 [1.7.0] - 2022-04-29
