@@ -28,7 +28,7 @@ class EducPandaPowerBackend(Backend):
 
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        This class do not work.
+        This class does not work.
 
         It is mainly presented for educational purpose as example on coding your own backend.
 
