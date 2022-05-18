@@ -39,6 +39,8 @@ Change Log
 - [FIXED] a documentation issue https://github.com/rte-france/Grid2Op/issues/319
   on notebook 11
 - [IMPROVED] adding the compatibility with logger in the reward functions.
+- [IMPROVED] when there is a game over caused by redispatching, the observation is
+  not updated, as it is the case for other type of game over (improved consistency)
 
 [1.7.0] - 2022-04-29
 ---------------------

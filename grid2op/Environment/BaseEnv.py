@@ -2555,6 +2555,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     "a generator would be damaged in real life. This is a game over."
                 )
             )
+            return action, is_illegal_redisp, is_illegal_reco, is_done
 
         # check the validity of min downtime and max uptime
         except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
@@ -2847,39 +2848,39 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # this computes the "optimal" redispatching
                 # and it is also in this function that the limiting of the curtailment / storage actions
                 # is perform to make the state "feasible"
-                (
-                    action,
-                    is_illegal_redisp,
-                    is_illegal_reco,
-                    is_done,
-                ) = self._aux_apply_redisp(
+                res_disp = self._aux_apply_redisp(
                     action, new_p, new_p_th, gen_curtailed, except_
                 )
+                action, is_illegal_redisp, is_illegal_reco, is_done = res_disp
+                
             self._time_redisp += time.perf_counter() - beg__redisp
-
-            self._aux_update_backend_action(action, action_storage_power, init_disp)
-
-            # now get the new generator voltage setpoint
-            voltage_control_act = self._voltage_control(action, prod_v_chronics)
-            self._backend_action += voltage_control_act
-
-            # handle the opponent here
-            tick = time.perf_counter()
-            lines_attacked, subs_attacked, attack_duration = self._aux_handle_attack(
-                action
-            )
-            tock = time.perf_counter()
-            self._time_opponent += tock - tick
-            self._time_create_bk_act += tock - beg_
             
-            self.backend.apply_action(self._backend_action)
-            self._time_apply_act += time.perf_counter() - beg_
+            if not is_done:
+                self._aux_update_backend_action(action, action_storage_power, init_disp)
 
-            # now it's time to run the powerflow properly
-            # and to update the time dependant properties
-            detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
-                action, init_line_status, new_p, except_
-            )
+                # now get the new generator voltage setpoint
+                voltage_control_act = self._voltage_control(action, prod_v_chronics)
+                self._backend_action += voltage_control_act
+
+                # handle the opponent here
+                tick = time.perf_counter()
+                lines_attacked, subs_attacked, attack_duration = self._aux_handle_attack(
+                    action
+                )
+                tock = time.perf_counter()
+                self._time_opponent += tock - tick
+                self._time_create_bk_act += tock - beg_
+                
+                self.backend.apply_action(self._backend_action)
+                self._time_apply_act += time.perf_counter() - beg_
+
+                # now it's time to run the powerflow properly
+                # and to update the time dependant properties
+                detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
+                    action, init_line_status, new_p, except_
+                )
+            else:
+                has_error = True
 
         except StopIteration:
             # episode is over
@@ -2923,6 +2924,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.current_obs = self.get_obs(_update_state=False)
             # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
+            
         # TODO documentation on all the possible way to be illegal now
         if self.done:
             self.__is_init = False
