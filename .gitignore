@@ -357,3 +357,4 @@ grid2op/data/**/_grid2op_classes/
 
 # profiling files
 **.prof
+grid2op/multi_agent/test.ipynb
