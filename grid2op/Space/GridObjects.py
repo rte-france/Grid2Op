@@ -2573,7 +2573,10 @@ class GridObjects:
         name_res = "{}_{}".format(cls.__name__, gridobj.env_name)
         if gridobj.glop_version != grid2op.__version__:
             name_res += f"_{gridobj.glop_version}"
-
+            
+        if extra_name is not None:
+            name_res += f"_{extra_name}"
+            
         if gridobj._PATH_ENV is not None:
             # the configuration equires to initialize the classes from the local environment path
             # this might be usefull when using pickle module or multiprocessing on Windows for example
