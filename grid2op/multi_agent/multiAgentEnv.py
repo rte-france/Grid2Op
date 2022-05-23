@@ -5,6 +5,7 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import os
 import copy
 from typing import Optional, Tuple
@@ -14,25 +15,13 @@ import re
 from getting_started.grid2op.Environment.Environment import Environment
 
 import grid2op
-from grid2op.dtypes import dt_float, dt_bool, dt_int
-from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
-from grid2op.Exceptions import *
-from grid2op.Observation import CompleteObservation, ObservationSpace, BaseObservation
-from grid2op.Reward import FlatReward, RewardHelper, BaseReward
-from grid2op.Rules import RulesChecker, AlwaysLegal, BaseRules
-from grid2op.Backend import Backend
-from grid2op.Chronics import ChronicsHandler
-from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
-from grid2op.Environment.BaseEnv import BaseEnv
-from grid2op.Opponent import BaseOpponent, NeverAttackBudget
+from grid2op.dtypes import dt_bool, dt_int
+from grid2op.Action import ActionSpace
 from grid2op.multi_agent.subGridObjects import SubGridObjects
-from grid2op.operator_attention import LinearAttentionBudget
-from grid2op.multi_agent.utils import AgentSelector, random_order, ObservationDomain, ActionDomain
-from grid2op.multi_agent.typing import MADict
+from grid2op.multi_agent.utils import AgentSelector  #, random_order, ObservationDomain, ActionDomain
+from grid2op.multi_agent.ma_typing import MADict
 
-from grid2op.Backend import PandaPowerBackend
-
-
+import pdb
 
 
 class MultiAgentEnv :
@@ -76,6 +65,8 @@ class MultiAgentEnv :
         self._verify_domains(action_domains)
         self._verify_domains(observation_domains)
         
+        self.num_agents = len(action_domains)
+        
         self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
         self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
         self.agents = list(action_domains.keys())
@@ -110,6 +101,8 @@ class MultiAgentEnv :
         self.observations = self._update_observations(observation)
         return self.observations
     
+    # TODO have a more usefull typing !
+    # this is close to useless here
     def step(self, action : MADict) -> Tuple[MADict, MADict, MADict, MADict]:
         """_summary_#TODO
 
@@ -126,11 +119,15 @@ class MultiAgentEnv :
         )
         
         order = self.select_agent.get_order(reinit=True)
-        for agent in order :
+        for agent in order:
+            # TODO agent is an "agent_id" or an "agent_name" not clear
             converted_action = action[agent] # TODO should be converted into grid2op action
             proposed_action = global_action + converted_action
+            
+            # TODO are you sure it's possible here ? Are you sure it's what you want to do ?
+            # How did you define "illegal" for a partial action ? I'm not sure that's how
+            # it's implemented.
             is_legal, reason = self._cent_env._game_rules(action=proposed_action, env=self._cent_env)
-            ambiguous, except_tmp = proposed_action.is_ambiguous()
             if not is_legal:
                 # action is replace by do nothing
                 # action = self._action_space({})
@@ -141,6 +138,8 @@ class MultiAgentEnv :
                 #is_illegal = True
                 self.rewards[agent] -= self.illegal_action_pen
 
+            ambiguous, except_tmp = proposed_action.is_ambiguous()
+            # TODO can you think of other type of "ambiguous" actions maybe ?
             if ambiguous:
                 ## action is replace by do nothing
                 #action = self._action_space({})
@@ -162,7 +161,7 @@ class MultiAgentEnv :
             #    )
             #    self._is_alarm_illegal = reason_alarm_illegal is not None
                 
-        observation, reward, done, info = self.env.step(global_action)
+        observation, reward, done, info = self._cent_env.step(global_action)
         # TODO update agents' info
         self.rewards = {
             agent : r + reward
@@ -198,83 +197,83 @@ class MultiAgentEnv :
             'action' : dict(),
             'observation' : dict()
         }
-        for agent in self.agents : 
+        for agent_nm in self.agents : 
+            self._build_subgrid_from_domain(agent_nm, self._action_domains[agent_nm])
+            subgrid_obj = self._build_subgrid_obj_from_domain(self._action_domains[agent_nm])
+            self._subgrids_cls['action'][agent_nm] = subgrid_obj
             
-            self._subgrids_cls['action'][agent] = self._build_subgrid_from_domain(self._action_domains[agent])
-            self._subgrids_cls['observation'][agent] = self._build_subgrid_from_domain(self._observation_domains[agent])
-            
-                
-                
-                
-                
-    
-        #self._action_domains['name_load'] = self.grid.name_load[self.mask_load]
-        #self._action_domains['n_load = len(self.name_load)
-        #self._action_domains['name_gen = self.grid.name_gen[self.mask_gen]
-        #self._action_domains['n_gen = len(self.name_gen)
-        #self._action_domains['name_storage = self.grid.name_storage[self.mask_storage]
-        #self._action_domains['n_storage = len(self.name_storage)
+            self._build_subgrid_from_domain(agent_nm, self._observation_domains[agent_nm])
+            subgrid_obj = self._build_subgrid_obj_from_domain(self._observation_domains[agent_nm])
+            self._subgrids_cls['observation'][agent_nm] = subgrid_obj
         
-    def _build_subgrid_from_domain(self, domain):
+        
+    def _build_subgrid_from_domain(self, agent_nm, domain):
+        # TODO: rename the function ! (do not forget the tests)
         """_summary_#TODO
 
         Args:
             domain (_type_): _description_
-        """
-        tmp_cls = SubGridObjects()
-        tmp_cls.sub_orig_ids = domain['sub_id']
+        """        
+        is_sub_in = np.full(self._cent_env.n_sub, fill_value=False, 
+                            dtype=dt_bool)
+        is_sub_in[domain['sub_id']] = True
+        domain['mask_sub'] = is_sub_in
         
         domain['mask_load'] = np.isin(
             self._cent_env.load_to_subid, domain['sub_id'] 
         )
-        tmp_cls.mask_load = domain['mask_load']
-        
         domain['mask_gen'] = np.isin(
             self._cent_env.gen_to_subid, domain['sub_id'] 
         )
-        tmp_cls.mask_gen = domain['mask_gen']
-        
         domain['mask_storage'] = np.isin(
             self._cent_env.storage_to_subid, domain['sub_id'] 
         )
-        tmp_cls.mask_storage = domain['mask_storage']
-        
         domain['mask_shunt'] = np.isin(
             self._cent_env.shunt_to_subid, domain['sub_id'] 
         )
-        tmp_cls.mask_shunt = domain['mask_shunt']
-        
         domain['mask_line_or'] = np.isin(
             self._cent_env.line_or_to_subid, domain['sub_id'] 
         )
-        tmp_cls.mask_line_or = domain['mask_line_or']
-        
         domain['mask_line_ex'] = np.isin(
             self._cent_env.line_ex_to_subid, domain['sub_id'] 
         )
-        tmp_cls.mask_line_ex = domain['mask_line_ex']
+        domain["agent_name"] = agent_nm
+    
+    def _relabel_subid(self, mask, new_label, id_full_grid):
+        tmp_ = id_full_grid[mask]
+        return new_label[tmp_]
+    
+    def _build_subgrid_obj_from_domain(self, domain):
+        cent_env_cls = type(self._cent_env)
+        tmp_cls = SubGridObjects()
+        tmp_cls.sub_orig_ids = copy.deepcopy(domain['sub_id'])
+        tmp_cls.mask_load = copy.deepcopy(domain['mask_load'])
+        tmp_cls.mask_gen = copy.deepcopy(domain['mask_gen'])
+        tmp_cls.mask_storage = copy.deepcopy(domain['mask_storage'])
+        tmp_cls.mask_shunt = copy.deepcopy(domain['mask_shunt'])
+        tmp_cls.mask_line_or = copy.deepcopy(domain['mask_line_or'])
+        tmp_cls.mask_line_ex = copy.deepcopy(domain['mask_line_ex'])
+        tmp_cls.agent_name = copy.deepcopy(domain["agent_name"])
+        tmp_cls.mask_sub = copy.deepcopy(domain["mask_sub"])
         
-        tmp_cls.glop_version = type(self._cent_env).glop_version
-        tmp_cls._PATH_ENV = type(self._cent_env)._PATH_ENV
-
-        # class been init
-        # __is_init = False
+        tmp_cls.glop_version = cent_env_cls.glop_version
+        tmp_cls._PATH_ENV = cent_env_cls._PATH_ENV
 
         # name of the objects
-        tmp_cls.env_name = type(self._cent_env).env_name
-        tmp_cls.name_load = self._cent_env.name_load[
-            tmp_cls.mask_line_or + tmp_cls.mask_line_ex
-        ]
-        tmp_cls.name_gen = self._cent_env.name_gen[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.name_line = self._cent_env.name_line[
+        tmp_cls.env_name = cent_env_cls.env_name
+        tmp_cls.name_load = cent_env_cls.name_load[
             tmp_cls.mask_load
         ]
-        tmp_cls.name_sub = self._cent_env.name_sub[
-            tmp_cls.sub_id
+        tmp_cls.name_gen = cent_env_cls.name_gen[
+            tmp_cls.mask_gen
         ]
-        tmp_cls.name_storage = self._cent_env.name_storage[
+        tmp_cls.name_line = cent_env_cls.name_line[
+            tmp_cls.mask_line_or | tmp_cls.mask_line_ex
+        ]
+        tmp_cls.name_sub = cent_env_cls.name_sub[
+            tmp_cls.mask_sub
+        ]
+        tmp_cls.name_storage = cent_env_cls.name_storage[
             tmp_cls.mask_storage
         ]
 
@@ -286,159 +285,166 @@ class MultiAgentEnv :
         tmp_cls.n_sub = len(tmp_cls.name_sub)
         tmp_cls.n_storage = len(tmp_cls.name_storage)
 
-        tmp_cls.sub_info = self._cent_env.sub_info[
+        tmp_cls.sub_info = cent_env_cls.sub_info[
             tmp_cls.sub_orig_ids
         ]
         tmp_cls.dim_topo = tmp_cls.n_line_ex + tmp_cls.n_line_or + \
             tmp_cls.n_load + tmp_cls.n_gen + tmp_cls.n_storage
 
         # to which substation is connected each element 
-        tmp_cls.load_to_subid = np.zeros(len(tmp_cls.n_load), dtype=np.int8)
-        tmp_cls.gen_to_subid = np.zeros(len(tmp_cls.n_gen), dtype=np.int8)
-        tmp_cls.line_or_to_subid = np.zeros(len(tmp_cls.n_line_or), dtype=np.int8)
-        tmp_cls.line_ex_to_subid = np.zeros(len(tmp_cls.n_line_ex), dtype=np.int8)
-        tmp_cls.storage_to_subid = np.zeros(len(tmp_cls.n_storage), dtype=np.int8)
+        # this is a bit "tricky" because I have to
+        # re label the substation in the subgrid
+        tmp_cls.load_to_subid = np.zeros(tmp_cls.n_load, dtype=dt_int)
+        tmp_cls.gen_to_subid = np.zeros(tmp_cls.n_gen, dtype=dt_int)
+        tmp_cls.line_or_to_subid = np.zeros(tmp_cls.n_line, dtype=dt_int)
+        tmp_cls.line_ex_to_subid = np.zeros(tmp_cls.n_line, dtype=dt_int)
+        tmp_cls.storage_to_subid = np.zeros(tmp_cls.n_storage, dtype=dt_int)
         
-        for i, subid in enumerate(tmp_cls.sub_orig_ids):
-            indices = np.where(self._cent_env.load_to_subid == subid)[0]
-            for indice in indices :
-                tmp_cls.load_to_sub_id[indice] = i
-                
-            indices = np.where(self._cent_env.gen_to_subid == subid)[0]
-            for indice in indices :
-                tmp_cls.gen_to_subid[indice] = i
-                
-            indices = np.where(self._cent_env.line_or_to_subid == subid)[0]
-            for indice in indices :
-                tmp_cls.line_or_to_subid[indice] = i
-                
-            indices = np.where(self._cent_env.line_ex_to_subid == subid)[0]
-            for indice in indices :
-                tmp_cls.line_ex_to_subid[indice] = i
-                
-            indices = np.where(self._cent_env.sotrage_to_subid == subid)[0]
-            for indice in indices :
-                tmp_cls.sotrage_to_subid[indice] = i
-
-        # which index has this element in the substation vector#TODO
+        # new_label[orig_grid_sub_id] = new_grid_sub_id
+        new_label = np.zeros(cent_env_cls.n_sub, dtype=dt_int) - 1
+        new_label[tmp_cls.sub_orig_ids] = np.arange(tmp_cls.n_sub)
         
-        tmp_cls.load_to_sub_pos = None
-        tmp_cls.gen_to_sub_pos = None
-        tmp_cls.line_or_to_sub_pos = None
-        tmp_cls.line_ex_to_sub_pos = None
-        tmp_cls.storage_to_sub_pos = None
+        tmp_cls.load_to_subid  = self._relabel_subid(tmp_cls.mask_load,
+                                                     new_label,
+                                                     cent_env_cls.load_to_subid
+                                                     )
+        tmp_cls.gen_to_subid  = self._relabel_subid(tmp_cls.mask_gen,
+                                                     new_label,
+                                                     cent_env_cls.gen_to_subid
+                                                     )
+        tmp_cls.shunt_to_subid  = self._relabel_subid(tmp_cls.mask_shunt,
+                                                      new_label,
+                                                      cent_env_cls.shunt_to_subid
+                                                      )
+        tmp_cls.storage_to_subid  = self._relabel_subid(tmp_cls.mask_storage,
+                                                        new_label,
+                                                        cent_env_cls.storage_to_subid
+                                                        )
+        
+        # TODO: when we'll thought about it more in depth 
+        # tmp_cls.line_to_subid  = self._relabel_subid(tmp_cls.mask_line,
+        #                                              new_label,
+        #                                              self._cent_env.line_to_subid
+        #                                              )
+
+        # which index has this element in the substation vector  #TODO
+        tmp_cls.load_to_sub_pos = cent_env_cls.load_to_sub_pos[tmp_cls.mask_load]
+        tmp_cls.gen_to_sub_pos = cent_env_cls.gen_to_sub_pos[tmp_cls.mask_gen]
+        tmp_cls.storage_to_sub_pos = cent_env_cls.storage_to_sub_pos[tmp_cls.mask_storage]
+        # tmp_cls.line_or_to_sub_pos = None
+        # tmp_cls.line_ex_to_sub_pos = None
 
         
-        # which index has this element in the topology vector
-        # "convenient" way to retrieve information of the grid
-        # to which substation each element of the topovect is connected
-        #tmp_cls_action.load_pos_topo_vect = None
-        #tmp_cls_action.gen_pos_topo_vect = None
-        #tmp_cls_action.line_or_pos_topo_vect = None
-        #tmp_cls_action.line_ex_pos_topo_vect = None
-        #tmp_cls_action.storage_pos_topo_vect = None
+        # # which index has this element in the topology vector
+        # # "convenient" way to retrieve information of the grid
+        # # to which substation each element of the topovect is connected
+        # #tmp_cls_action.load_pos_topo_vect = None
+        # #tmp_cls_action.gen_pos_topo_vect = None
+        # #tmp_cls_action.line_or_pos_topo_vect = None
+        # #tmp_cls_action.line_ex_pos_topo_vect = None
+        # #tmp_cls_action.storage_pos_topo_vect = None
 
-        #
-        #tmp_cls_action.grid_objects_types = None
-        #
-        #tmp_cls_action._topo_vect_to_sub = None
-        tmp_cls._compute_pos_big_topo_cls()
+        # #
+        # #tmp_cls_action.grid_objects_types = None
+        # #
+        # #tmp_cls_action._topo_vect_to_sub = None
+        # tmp_cls._compute_pos_big_topo_cls()
 
 
 
-        # redispatch data, not available in all environment
-        tmp_cls.redispatching_unit_commitment_availble = False
-        tmp_cls.gen_type = self._cent_env.gen_type[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_pmin = self._cent_env.gen_pmin[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_pmax = self._cent_env.gen_pmax[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_redispatchable = self._cent_env.gen_redispatchable[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_max_ramp_up = self._cent_env.gen_max_ramp_up[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_max_ramp_down = self._cent_env.gen_max_ramp_down[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_min_uptime = self._cent_env.gen_min_uptime[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_min_downtime = self._cent_env.gen_min_downtime[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_cost_per_MW = self._cent_env.gen_cost_per_MW[
-            tmp_cls.mask_gen
-        ]  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
-        tmp_cls.gen_startup_cost = self._cent_env.gen_startup_cost[
-            tmp_cls.mask_gen
-        ]  # start cost (in currency)
-        tmp_cls.gen_shutdown_cost = self._cent_env.gen_shutdown_cost[
-            tmp_cls.mask_gen
-        ]  # shutdown cost (in currency)
-        tmp_cls.gen_renewable = self._cent_env.gen_renewable[
-            tmp_cls.mask_gen
-        ]
+        # # redispatch data, not available in all environment
+        # tmp_cls.redispatching_unit_commitment_availble = False
+        # tmp_cls.gen_type = self._cent_env.gen_type[
+        #     tmp_cls.mask_gen
+        # ]
+        # tmp_cls.gen_pmin = self._cent_env.gen_pmin[
+        #     tmp_cls.mask_gen
+        # ]
+        # tmp_cls.gen_pmax = self._cent_env.gen_pmax[
+        #     tmp_cls.mask_gen
+        # ]
+        # tmp_cls.gen_redispatchable = self._cent_env.gen_redispatchable[
+        #     tmp_cls.mask_gen
+        # ]
+        # tmp_cls.gen_max_ramp_up = self._cent_env.gen_max_ramp_up[
+        #     tmp_cls.mask_gen
+        # ]
+        # tmp_cls.gen_max_ramp_down = self._cent_env.gen_max_ramp_down[
+        #     tmp_cls.mask_gen
+        # ]
+        # tmp_cls.gen_min_uptime = self._cent_env.gen_min_uptime[
+        #     tmp_cls.mask_gen
+        # ]
+        # tmp_cls.gen_min_downtime = self._cent_env.gen_min_downtime[
+        #     tmp_cls.mask_gen
+        # ]
+        # tmp_cls.gen_cost_per_MW = self._cent_env.gen_cost_per_MW[
+        #     tmp_cls.mask_gen
+        # ]  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
+        # tmp_cls.gen_startup_cost = self._cent_env.gen_startup_cost[
+        #     tmp_cls.mask_gen
+        # ]  # start cost (in currency)
+        # tmp_cls.gen_shutdown_cost = self._cent_env.gen_shutdown_cost[
+        #     tmp_cls.mask_gen
+        # ]  # shutdown cost (in currency)
+        # tmp_cls.gen_renewable = self._cent_env.gen_renewable[
+        #     tmp_cls.mask_gen
+        # ]
 
-        # storage unit static data 
-        tmp_cls.storage_type = self._cent_env.storage_type[
-            tmp_cls.mask_storage
-        ]
-        tmp_cls.storage_Emax = self._cent_env.storage_Emax[
-            tmp_cls.mask_storage
-        ]
-        tmp_cls.storage_Emin = self._cent_env.storage_Emin[
-            tmp_cls.mask_storage
-        ]
-        tmp_cls.storage_max_p_prod = self._cent_env.storage_max_p_prod[
-            tmp_cls.mask_storage
-        ]
-        tmp_cls.storage_max_p_absorb = self._cent_env.storage_max_p_absorb[
-            tmp_cls.mask_storage
-        ]
-        tmp_cls.storage_marginal_cost = self._cent_env.storage_marginal_cost[
-            tmp_cls.mask_storage
-        ]
-        tmp_cls.storage_loss = self._cent_env.storage_loss[
-            tmp_cls.mask_storage
-        ]
-        tmp_cls.storage_charging_efficiency = self._cent_env.storage_charging_efficiency[
-            tmp_cls.mask_storage
-        ]
-        tmp_cls.storage_discharging_efficiency = self._cent_env.storage_discharging_efficiency[
-            tmp_cls.mask_storage
-        ]
+        # # storage unit static data 
+        # tmp_cls.storage_type = self._cent_env.storage_type[
+        #     tmp_cls.mask_storage
+        # ]
+        # tmp_cls.storage_Emax = self._cent_env.storage_Emax[
+        #     tmp_cls.mask_storage
+        # ]
+        # tmp_cls.storage_Emin = self._cent_env.storage_Emin[
+        #     tmp_cls.mask_storage
+        # ]
+        # tmp_cls.storage_max_p_prod = self._cent_env.storage_max_p_prod[
+        #     tmp_cls.mask_storage
+        # ]
+        # tmp_cls.storage_max_p_absorb = self._cent_env.storage_max_p_absorb[
+        #     tmp_cls.mask_storage
+        # ]
+        # tmp_cls.storage_marginal_cost = self._cent_env.storage_marginal_cost[
+        #     tmp_cls.mask_storage
+        # ]
+        # tmp_cls.storage_loss = self._cent_env.storage_loss[
+        #     tmp_cls.mask_storage
+        # ]
+        # tmp_cls.storage_charging_efficiency = self._cent_env.storage_charging_efficiency[
+        #     tmp_cls.mask_storage
+        # ]
+        # tmp_cls.storage_discharging_efficiency = self._cent_env.storage_discharging_efficiency[
+        #     tmp_cls.mask_storage
+        # ]
 
-        # grid layout
-        tmp_cls.grid_layout = None if self._cent_env.grid_layout is None else {
-            k : self._cent_env.grid_layout[k]
-            for k in tmp_cls.name_sub
-        }
+        # # grid layout
+        # tmp_cls.grid_layout = None if self._cent_env.grid_layout is None else {
+        #     k : self._cent_env.grid_layout[k]
+        #     for k in tmp_cls.name_sub
+        # }
 
-        # shunt data, not available in every backend 
-        tmp_cls.shunts_data_available = self._cent_env.shunts_data_available[
-            tmp_cls.mask_shunt
-        ]
-        tmp_cls.n_shunt = self._cent_env.n_shunt[
-            tmp_cls.mask_shunt
-        ]
-        tmp_cls.name_shunt = self._cent_env.name_shunt[
-            tmp_cls.mask_shunt
-        ]
-        tmp_cls.shunt_to_subid = self._cent_env.shunt_to_subid[
-            tmp_cls.mask_shunt
-        ]
+        # # shunt data, not available in every backend 
+        # tmp_cls.shunts_data_available = self._cent_env.shunts_data_available[
+        #     tmp_cls.mask_shunt
+        # ]
+        # tmp_cls.n_shunt = self._cent_env.n_shunt[
+        #     tmp_cls.mask_shunt
+        # ]
+        # tmp_cls.name_shunt = self._cent_env.name_shunt[
+        #     tmp_cls.mask_shunt
+        # ]
+        # tmp_cls.shunt_to_subid = self._cent_env.shunt_to_subid[
+        #     tmp_cls.mask_shunt
+        # ]
 
-        # alarms #TODO
-        tmp_cls.dim_alarms = 0
-        tmp_cls.alarms_area_names = []
-        tmp_cls.alarms_lines_area = {}
-        tmp_cls.alarms_area_lines = []
+        # # alarms #TODO
+        # tmp_cls.dim_alarms = 0
+        # tmp_cls.alarms_area_names = []
+        # tmp_cls.alarms_lines_area = {}
+        # tmp_cls.alarms_area_lines = []
         
         return tmp_cls
         
@@ -457,13 +463,13 @@ class MultiAgentEnv :
         The action class is the same as 
         """
         for agent_name in self.agents: 
-            _cls_agent_action_space = ActionSpace.init_grid(gridobj=self._subgrids_cls['action'][agent_name], extra_name=agent_name)
-            self.action_spaces[agent_name] = _cls_agent_action_space(
-                gridobj=self._subgrids_cls[agent_name],
-                actionClass=self._cent_env._actionClass,
-                legal_action=self._cent_env._game_rules.legal_action,
-            )
-    
+            pass
+            # _cls_agent_action_space = ActionSpace.init_grid(gridobj=self._subgrids_cls['action'][agent_name], extra_name=agent_name)
+            # self.action_spaces[agent_name] = _cls_agent_action_space(
+            #     gridobj=self._subgrids_cls[agent_name],
+            #     actionClass=self._cent_env._actionClass,
+            #     legal_action=self._cent_env._game_rules.legal_action,
+            # )
     
     def _update_observations(self, observation):
         """Update agents' observations from the global observation given by the self._cent_env
@@ -482,17 +488,19 @@ class MultiAgentEnv :
                 - key : agents' names
                 - value : list of substation ids
         """
-        for agent in domains.keys():
-            if not isinstance(domains[agent], list) :
+        for agent, domain in domains.items():
+            if not isinstance(domain, list) :
+                # TODO what if it's a "set" or a "numpy array" ? 
+                # This should work too !
                 raise("The domain must be a list of substation indices")
-            for id in domains[agent] : 
-                if not isinstance(id, int) :
-                    raise(f"The id must be of type int. Type {type(id)} is not valid")
-                if domains[agent][id] < 0 or domains[agent][id] > len(self._cent_env.name_sub) :
-                    raise(f"The substation's id must be between 0 and {len(self._cent_env.name_sub)}, but {domains[agent][id]} has been given")
-    
-    
-    
+            
+            for sub_id in domain: 
+                if not isinstance(sub_id, int):
+                    # TODO same here, what if it's "dt_int" or "int32" or "int64" ?
+                    raise(f"The id must be of type int. Type {type(sub_id)} is not valid")
+                if sub_id < 0 or sub_id > self._cent_env.n_sub:
+                    raise(f"The substation's id must be between 0 and {self._cent_env.n_sub - 1}, but {domains[agent][sub_id]} has been given")
+                
     def observation_space(self, agent):
         """
         Takes in agent and returns the observation space for that agent.

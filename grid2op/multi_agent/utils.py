@@ -72,80 +72,80 @@ class AgentSelector:
         
         
    
-@dataclass     
-class ActionDomain :
-    gen_id : list
-    load_id : list
-    line_id : list
-    substaion_id : list
-    storage_id : list
-    shunt_id : list
+# @dataclass     
+# class ActionDomain :
+#     gen_id : list
+#     load_id : list
+#     line_id : list
+#     substaion_id : list
+#     storage_id : list
+#     shunt_id : list
 
-@dataclass 
-class ObservationDomain :
-    storage_theta : list
-    gen_theta : list
-    load_theta : list
-    theta_ex : list
-    theta_or : list
-    line_status : list
-    topo_vect : list
-    timestep_overflow : list
-    rho : list
-    gen_p : list
-    gen_q : list
-    gen_v : list
-    load_p : list
-    load_q : list
-    load_v : list
-    p_or : list
-    q_or : list
-    v_or : list
-    a_or : list
-    p_ex : list
-    q_ex : list
-    v_ex : list
-    a_ex : list
-    rho : list
-    time_before_cooldown_line : list
-    time_before_cooldown_sub : list
-    time_next_maintenance : list
-    duration_next_maintenance : list
-    target_dispatch : list
-    actual_dispatch : list
-    _shunt_p : list
-    _shunt_q : list
-    _shunt_v : list
-    _shunt_bus : list
-    # storage
-    storage_charge : list
-    storage_power_target : list
-    storage_power : list
-    # curtailment
-    gen_p_before_curtail : list
-    curtailment : list
-    curtailment_limit : list
-    curtailment_limit_effective : list
-    curtailment_mw : list
-    # attention budget
-    time_since_last_alarm : list
-    last_alarm : list
-    # gen up / down
-    gen_margin_up : list
-    gen_margin_down : list
-    # Observable by default
-    year : bool = True
-    month : bool = True
-    day : bool = True
-    hour_of_day : bool = True
-    minute_of_hour : bool = True
-    day_of_week : bool = True
-    support_theta : bool = True
-    current_step : bool = True
-    max_step : bool = True
-    max_step : bool = True
-    time_since_last_alarm : bool = True
-    is_alarm_illegal : bool = True
-    attention_budget : bool = True
-    was_alarm_used_after_game_over : bool = True
+# @dataclass 
+# class ObservationDomain :
+#     storage_theta : list
+#     gen_theta : list
+#     load_theta : list
+#     theta_ex : list
+#     theta_or : list
+#     line_status : list
+#     topo_vect : list
+#     timestep_overflow : list
+#     rho : list
+#     gen_p : list
+#     gen_q : list
+#     gen_v : list
+#     load_p : list
+#     load_q : list
+#     load_v : list
+#     p_or : list
+#     q_or : list
+#     v_or : list
+#     a_or : list
+#     p_ex : list
+#     q_ex : list
+#     v_ex : list
+#     a_ex : list
+#     rho : list
+#     time_before_cooldown_line : list
+#     time_before_cooldown_sub : list
+#     time_next_maintenance : list
+#     duration_next_maintenance : list
+#     target_dispatch : list
+#     actual_dispatch : list
+#     _shunt_p : list
+#     _shunt_q : list
+#     _shunt_v : list
+#     _shunt_bus : list
+#     # storage
+#     storage_charge : list
+#     storage_power_target : list
+#     storage_power : list
+#     # curtailment
+#     gen_p_before_curtail : list
+#     curtailment : list
+#     curtailment_limit : list
+#     curtailment_limit_effective : list
+#     curtailment_mw : list
+#     # attention budget
+#     time_since_last_alarm : list
+#     last_alarm : list
+#     # gen up / down
+#     gen_margin_up : list
+#     gen_margin_down : list
+#     # Observable by default
+#     year : bool = True
+#     month : bool = True
+#     day : bool = True
+#     hour_of_day : bool = True
+#     minute_of_hour : bool = True
+#     day_of_week : bool = True
+#     support_theta : bool = True
+#     current_step : bool = True
+#     max_step : bool = True
+#     max_step : bool = True
+#     time_since_last_alarm : bool = True
+#     is_alarm_illegal : bool = True
+#     attention_budget : bool = True
+#     was_alarm_used_after_game_over : bool = True
     

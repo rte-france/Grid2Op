@@ -2593,7 +2593,7 @@ class GridObjects:
                 del globals()[name_res]
 
         cls_attr_as_dict = {}
-        GridObjects._make_cls_dict_extended(gridobj, cls_attr_as_dict, as_list=False)
+        cls._make_cls_dict_extended(gridobj, cls_attr_as_dict, as_list=False)
         res_cls = type(name_res, (cls,), cls_attr_as_dict)
         if hasattr(cls, "_INIT_GRID_CLS") and cls._INIT_GRID_CLS is not None:
             # original class is already from an initialized environment, i keep track of it
@@ -2798,15 +2798,19 @@ class GridObjects:
 
         dict_ = cls.get_obj_connect_to(substation_id=substation_id)
         res = np.full((dict_["nb_elements"], 6), fill_value=-1, dtype=dt_int)
-        # 0 -> load, 1-> gen, 2 -> lines_or, 3 -> lines_ex
         res[:, cls.SUB_COL] = substation_id
         res[cls.load_to_sub_pos[dict_["loads_id"]], cls.LOA_COL] = dict_["loads_id"]
         res[cls.gen_to_sub_pos[dict_["generators_id"]], cls.GEN_COL] = dict_[
             "generators_id"
         ]
-        res[cls.line_or_to_sub_pos[dict_["lines_or_id"]], cls.LOR_COL] = dict_[
-            "lines_or_id"
-        ]
+        try:
+            res[cls.line_or_to_sub_pos[dict_["lines_or_id"]], cls.LOR_COL] = dict_[
+                "lines_or_id"
+            ]
+        except Exception as exc_:
+            import pdb
+            pdb.set_trace()
+            print("toto")
         res[cls.line_ex_to_sub_pos[dict_["lines_ex_id"]], cls.LEX_COL] = dict_[
             "lines_ex_id"
         ]

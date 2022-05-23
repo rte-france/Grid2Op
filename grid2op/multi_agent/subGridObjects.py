@@ -14,6 +14,7 @@ class SubGridObjects(GridObjects) :
 
     sub_orig_ids = None
     local2global = dict()
+    mask_sub = None
     mask_load = None
     mask_gen = None
     mask_storage = None
@@ -26,33 +27,19 @@ class SubGridObjects(GridObjects) :
     
     def __init__(self):
         super().__init__()
-        
-        
-        #self.mask_load = np.isin(self.grid.load_to_subid, self.sub_ids)
-        #self.mask_gen = np.isin(self.grid.gen_to_subid, self.sub_ids)
-        #self.mask_storage = np.isin(self.grid.storage_to_subid, self.sub_ids)
-        #
-        #self.name_load = self.grid.name_load[self.mask_load]
-        #self.n_load = len(self.name_load)
-        #self.name_gen = self.grid.name_gen[self.mask_gen]
-        #self.n_gen = len(self.name_gen)
-        #self.name_storage = self.grid.name_storage[self.mask_storage]
-        #self.n_storage = len(self.name_storage)
-        #
-        #self.local2global['sub'] = dict(
-        #    zip(
-        #        list(range(len(self.name_sub))), self.sub_ids
-        #    )
-        #)
-        #self.local2global['gen'] = dict(
-        #    zip(
-        #        list(range(len(self.name_gen))), list(np.where(np.array(self.mask_gen) == True))
-        #    )
-        #)
-        #self.local2global['storage'] = dict(
-        #    zip(
-        #        list(range(len(self.name_storage))), list(np.where(np.array(self.mask_storage) == True))
-        #    )
-        #)
     
-    
+    @staticmethod
+    def _make_cls_dict_extended(cls, res, as_list=True, copy_=True):
+        super()._make_cls_dict_extended(cls, res, as_list=as_list, copy_=copy_)
+        res["sub_orig_ids"] = cls.sub_orig_ids
+        res["local2global"] = cls.local2global
+        res["mask_sub"] = cls.mask_sub
+        res["mask_load"] = cls.mask_load
+        res["mask_gen"] = cls.mask_gen
+        res["mask_storage"] = cls.mask_storage
+        res["mask_line_or"] = cls.mask_line_or
+        res["mask_line_ex"] = cls.mask_line_ex
+        res["mask_shunt"] = cls.mask_shunt
+        res["agent_name"] = cls.agent_name
+        res["n_line_or"] = cls.n_line_or
+        res["n_line_ex"] = cls.n_line_ex

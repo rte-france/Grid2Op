@@ -10,4 +10,5 @@ from typing import Any, Optional, Dict, Tuple
 
 AgentID = str
 
-MADict = Dict[AgentID, Any]
+MADict = Dict[AgentID, Any]  # TODO slit it in more things to be more precise
+# this is close to useless this way
