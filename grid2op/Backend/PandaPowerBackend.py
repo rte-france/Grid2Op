@@ -119,7 +119,10 @@ class PandaPowerBackend(Backend):
         Backend.__init__(
             self,
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
-            can_be_copied=can_be_copied
+            can_be_copied=can_be_copied,
+            ligthsim2grid=ligthsim2grid,
+            dist_slack=dist_slack,
+            max_iter=max_iter
         )
         self.prod_pu_to_kv = None
         self.load_pu_to_kv = None

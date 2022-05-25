@@ -159,6 +159,16 @@ There are 4 **__main__** types of method you need to implement if you want to us
   to export some internal value of the backend in a "grid2op compliant format".
 
 
+.. warning::
+    With grid2op version before <1.7.1, you were also required to implement the 
+    :func:`grid2op.Backend.Backend.copy` method.
+
+    As of grid2op >= 1.7.1 this is no longer required. Note however that if you 
+    don't implement it, some features might not be available. This will
+    be the case for *eg* :func:`grid2op.Observation.BaseObservation.simulate` or
+    for :class:`grid2op.simulator.Simulator`.
+
+
 .. _grid-description:
 
 Grid description
@@ -235,7 +245,7 @@ Name                       See paragraph   Type         Size       Description
 `line_ex_pos_topo_vect`_    :ref:`subtv`   vect, int    `n_line`_   Automatically set with a call to `self._compute_pos_big_topo`
 =========================  ==============  ===========  =========  =========================================================
 
-TODO storage doc
+**TODO** storage doc and shunts doc !
 
 Example on how to set them
 +++++++++++++++++++++++++++
