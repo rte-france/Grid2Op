@@ -121,7 +121,9 @@ class Backend(GridObjects, ABC):
     _complete_action_class = None
 
     ERR_INIT_POWERFLOW = "Power cannot be computed on the first time step, please check your data."
-    def __init__(self, detailed_infos_for_cascading_failures=False):
+    def __init__(self,
+                 detailed_infos_for_cascading_failures: bool=False,
+                 can_be_copied: bool=True):
         """
         Initialize an instance of Backend. This does nothing per se. Only the call to :func:`Backend.load_grid`
         should guarantee the backend is properly configured.
@@ -154,6 +156,8 @@ class Backend(GridObjects, ABC):
         # to prevent the use of the same backend instance in different environment.
         self._is_loaded = False
 
+        self._can_be_copied = can_be_copied
+        
     @property
     def is_loaded(self):
         return self._is_loaded
@@ -291,12 +295,16 @@ class Backend(GridObjects, ABC):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-            Prefer using :attr:`grid2op.Observation.BaseObservation.prod_p`,
-            :attr:`grid2op.Observation.BaseObservation.prod_q` and
-            :attr:`grid2op.Observation.BaseObservation.prod_v` instead.
+            Prefer using :attr:`grid2op.Observation.BaseObservation.gen_p`,
+            :attr:`grid2op.Observation.BaseObservation.gen_q` and
+            :attr:`grid2op.Observation.BaseObservation.gen_v` instead.
 
         This method is used to retrieve information about the generators (active, reactive production
         and voltage magnitude of the bus to which it is connected).
+        
+        .. note:: 
+            The values returned here are the values AFTER the powerflow has been computed and not 
+            the target values.
 
         Returns
         -------
@@ -323,6 +331,10 @@ class Backend(GridObjects, ABC):
         This method is used to retrieve information about the loads (active, reactive consumption
         and voltage magnitude of the bus to which it is connected).
 
+        .. note:: 
+            The values returned here are the values AFTER the powerflow has been computed and not 
+            the target values.
+            
         Returns
         -------
         load_p ``numpy.ndarray``
@@ -435,13 +447,14 @@ class Backend(GridObjects, ABC):
         In the default implementation we explicitly called the deepcopy operator on `self._grid` to make the
         error message more explicit in case there is a problem with this part.
 
-        The implementation is equivalent to:
+        The implementation is **equivalent** to:
 
         .. code-block:: python
 
-            return copy.deepcopy(self)
+            def copy(self):
+                return copy.deepcopy(self)
 
-        :return: An instance of Backend equal to :attr:`.self`, but deep copied.
+        :return: An instance of Backend equal to :attr:`self`, but deep copied.
         :rtype: :class:`Backend`
         """
         start_grid = self._grid
