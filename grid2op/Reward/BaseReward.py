@@ -5,6 +5,8 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
+import logging
 from abc import ABC, abstractmethod
 from grid2op.dtypes import dt_float
 
@@ -103,14 +105,19 @@ class BaseReward(ABC):
 
     """
 
-    def __init__(self):
+    def __init__(self, logger: logging.Logger=None):
         """
         Initializes :attr:`BaseReward.reward_min` and :attr:`BaseReward.reward_max`
 
         """
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(0.0)
-
+        if logger is None:
+            self.logger = logging.getLogger(__name__)
+            self.logger.disabled = True
+        else:
+            self.logger: logging.Logger = logger.getChild(f"{type(self).__name__}")
+            
     def initialize(self, env):
         """
         If :attr:`BaseReward.reward_min`, :attr:`BaseReward.reward_max` or other custom attributes require to have a

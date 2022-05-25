@@ -347,6 +347,9 @@ class Environment(BaseEnv):
         # this needs to be done after the chronics handler: rewards might need information
         # about the chronics to work properly.
         self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
+        # FYI: this try to copy the backend if it fails it will modify the backend
+        # and the environment to force the deactivation of the
+        # forecasts
         self._observation_space = self._helper_observation_class(
             gridobj=bk_type,
             observationClass=observationClass,
@@ -361,7 +364,7 @@ class Environment(BaseEnv):
         self._reset_storage()  # this should be called after the  self.delta_time_seconds is set
 
         # reward function
-        self._reward_helper = RewardHelper(self._rewardClass)
+        self._reward_helper = RewardHelper(self._rewardClass, logger=self.logger)
         self._reward_helper.initialize(self)
         for k, v in self.other_rewards.items():
             v.initialize(self)
@@ -1027,6 +1030,9 @@ class Environment(BaseEnv):
         res["init_grid_path"] = self._init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
+            if not self.backend._can_be_copied:
+                raise RuntimeError("Impossible to get the kwargs for this "
+                                   "environment, the backend cannot be copied.")
             res["backend"] = self.backend.copy()
             res["backend"]._is_loaded = False  # i can reload a copy of an environment
         res["parameters"] = copy.deepcopy(self._parameters)

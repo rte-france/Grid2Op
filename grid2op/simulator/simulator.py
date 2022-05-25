@@ -49,7 +49,11 @@ class Simulator(object):
                     "When building a simulator with a grid2op backend "
                     'make sure you set the kwarg "env=None"'
                 )
-            self.backend: Backend = backend.copy()
+            if backend._can_be_copied:
+                self.backend: Backend = backend.copy()
+            else:
+                raise SimulatorError("Impossible to make a Simulator when you "
+                                     "cannot copy the backend.")
         else:
             if env is None:
                 raise SimulatorError(
@@ -62,7 +66,11 @@ class Simulator(object):
                     f"a grid2op Environment (an object of a type "
                     f"inheriting from BaseEnv"
                 )
-            self.backend = env.backend.copy()
+            if env.backend._can_be_copied:
+                self.backend = env.backend.copy()
+            else:
+                raise SimulatorError("Impossible to make a Simulator when you "
+                                     "cannot copy the backend of the environment.")
 
         self.current_obs: BaseObservation = None
         self._converged: Optional[bool] = None

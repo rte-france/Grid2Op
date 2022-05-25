@@ -553,7 +553,7 @@ class _BackendAction(GridObjects):
         """
         if np.any(powerline_disconnected >= 0):
             arr_ = np.zeros(powerline_disconnected.shape, dtype=dt_int)
-            arr_[powerline_disconnected] = -1
+            arr_[powerline_disconnected >= 0] = -1
             self.current_topo.set_status(
                 arr_,
                 self.line_or_pos_topo_vect,

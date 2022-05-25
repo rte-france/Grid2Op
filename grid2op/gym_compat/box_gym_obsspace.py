@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-
+import warnings
 import numpy as np
 from gym.spaces import Box
 
@@ -590,9 +590,13 @@ class BoxGymObsSpace(Box):
 
             # handle low / high
             if el in self._subtract:
+                low_ =  low_.astype(dtype)
+                high_ =  high_.astype(dtype)
                 low_ -= self._subtract[el]
                 high_ -= self._subtract[el]
             if el in self._divide:
+                low_ =  low_.astype(dtype)
+                high_ =  high_.astype(dtype)
                 low_ /= self._divide[el]
                 high_ /= self._divide[el]
             if low is None:
@@ -657,27 +661,34 @@ class BoxGymObsSpace(Box):
         that corresponds to the attribute `attr_nm`.
 
         The normalization consists in having a vector between 0. and 1.
-        It is achieved by dividing by the range (high - low)
-        and adding the minimum value (low).
+        It is achieved by:
+        
+        - dividing by the range (high - low)
+        - adding the minimum value (low).
 
         .. note::
             It only affects continuous attribute. No error / warnings are
             raised if you attempt to use it on a discrete attribute.
 
+        .. warning::
+            This normalization relies on the `high` and `low` attribute. It cannot be done if
+            the attribute is not bounded (for example when its maximum limit is `np.inf`). A warning
+            is raised in this case.
+            
         Parameters
         ----------
-        attr_nm : str
+        attr_nm : `str`
             The name of the attribute to normalize
         """
         if attr_nm in self._divide or attr_nm in self._subtract:
             raise Grid2OpException(
-                "Cannot normalize an attribute that you already "
-                "modified with either `_divide` or `_subtract`."
+                f"Cannot normalize attribute \"{attr_nm}\" that you already "
+                f"modified with either `divide` or `subtract` (observation space)."
             )
         prev = 0
         if self.dtype != dt_float:
             raise Grid2OpException(
-                "Cannot normalize an attribute with a observation "
+                "Cannot normalize attribute with a observation "
                 "space that is not float !"
             )
         for attr_tmp, where_to_put in zip(self._attr_to_keep, self._dims):
@@ -689,6 +700,11 @@ class BoxGymObsSpace(Box):
                 both_finite = finite_high & finite_low
                 both_finite &= curr_high > curr_low
 
+                if np.any(~both_finite):
+                    warnings.warn(f"The normalization of attribute \"{both_finite}\" cannot be performed entirely as "
+                                  f"there are some non finite value, or `high == `low` "
+                                  f"for some components.")
+                    
                 self._divide[attr_nm] = np.ones(curr_high.shape, dtype=self.dtype)
                 self._subtract[attr_nm] = np.zeros(curr_high.shape, dtype=self.dtype)
 

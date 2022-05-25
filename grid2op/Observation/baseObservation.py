@@ -851,7 +851,23 @@ class BaseObservation(GridObjects):
             }
 
         return res
-
+    
+    @classmethod
+    def process_shunt_data(cls):
+        if not cls.shunts_data_available:
+            # this is really important, otherwise things from grid2op base types will be affected
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+            # remove the shunts from the list to vector
+            for el in ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]:
+                if el in cls.attr_list_vect:
+                    try:
+                        cls.attr_list_vect.remove(el)
+                    except ValueError:
+                        pass
+            cls.attr_list_set = set(cls.attr_list_vect)
+        return super().process_shunt_data()
+    
     @classmethod
     def process_grid2op_compat(cls):
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
@@ -2198,12 +2214,13 @@ class BaseObservation(GridObjects):
                 "and no simulated environment are set)."
             )
         if self._obs_env is None:
-            raise EnvError(
+            raise BaseObservationError(
                 'This observation has no "environment used for simulation" (_obs_env) is not created. '
                 "This is the case if you loaded this observation from a disk (for example using "
                 "EpisodeData) "
                 'or used a Runner with multi processing with the "add_detailed_output=True" '
-                "flag. This is a feature of grid2op: you cannot serialize backends."
+                "flag or even if you use an environment with a non serializable backend. "
+                "This is a feature of grid2op: it does not require backends to be serializable."
             )
 
         if time_step < 0:
@@ -2908,6 +2925,11 @@ class BaseObservation(GridObjects):
                 self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down
             )
             self.gen_margin_down[type(self).gen_renewable] = 0.0
+            
+            # because of the slack, sometimes it's negative...
+            # see https://github.com/rte-france/Grid2Op/issues/313
+            self.gen_margin_up[self.gen_margin_up < 0.] = 0.
+            self.gen_margin_down[self.gen_margin_down < 0.] = 0.
         else:
             self.gen_margin_up[:] = 0.0
             self.gen_margin_down[:] = 0.0
@@ -3032,16 +3054,25 @@ class BaseObservation(GridObjects):
         You can find more information about simulator on the dedicated page of the
         documentation.
         """
-        from grid2op.simulator import (
-            Simulator,
-        )  # lazy import to prevent circular references
-
         # BaseObservation is only used for typing in the simulator...
         if self._obs_env is None:
             raise BaseObservationError(
                 "Impossible to build a simulator is the "
-                "observation space does not support it. "
+                "observation space does not support it. This can be the case if the "
+                "observation is loaded from disk or if the backend cannot be copied "
+                "for example."
             )
+            
+        if not self._obs_env.is_valid():
+            raise BaseObservationError("Impossible to use a Simulator backend with an "
+                                       "environment that cannot be copied (most "
+                                       "liekly due to the backend that cannot be "
+                                       "copied).")
+            
+        from grid2op.simulator import (
+            Simulator,
+        )  # lazy import to prevent circular references
+
         res = Simulator(backend=self._obs_env.backend)
         res.set_state(self)
         return res
