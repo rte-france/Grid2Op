@@ -3,8 +3,6 @@ Change Log
 
 [TODO]
 --------------------
-- [???] do not require "copy" for the backend (make something in case we cannot copy it)
-- [???] allow some extra arguments in creation of backend in the env and the runner
 - [???] closer integration with `gym` especially the "register env", being able to 
   create an env from a string etc.
 - [???] clean the notebook on RL
@@ -25,7 +23,7 @@ Change Log
 - [???] model delay in observations
 - [???] model delay in action
 - [???] Code and test the "load from disk" method
-- [???] Make the redispatching data independent from the time step (eg instead of "in MW / step" have it in "MW / h"
+- [???] Make the redispatching data independent from the time step (eg instead of "in MW / step" have it in "MW / h")
   and have grid2op convert it to MW / step
 - [???] add a "plot action" method
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
@@ -279,7 +277,7 @@ Change Log
   signature by adding an object in the return value. All code provided with grid2op are compatible with this
   new change. (for previously coded opponent, the only thing you have to do to make it compliant with
   the new interface is, in the `opponent.attack(...)` function return `whatever_you_returned_before, None` instead
-  of simply `whatever_you_returned_before`
+  of simply `whatever_you_returned_before`)
 - [FIXED]: `Issue#196 <https://github.com/rte-france/Grid2Op/issues/196>`_ an issue related to the
   low / high of the observation if using the gym_compat module. Some more protections
   are enforced now.
@@ -394,7 +392,7 @@ Change Log
 - [ADDED] more consistent behaviour when using the action space across the different type of actions.
   Now it should understand much more way to interact with it.
 - [ADDED] lots of action properties to manipulate action in a more pythonic way, for example using
-  `act.load_set_bus = ...` instead of the previously way more verbose `act.update({"set_bus": {"loads_id": ...}}`
+  `act.load_set_bus = ...` instead of the previously way more verbose `act.update({"set_bus": {"loads_id": ...}})`
   (this applies for `load`, `gen`, `storage`, `line_or` and `line_ex` and to `set_bus` and `change_bus` and
   also to `storage_p` and `redispatch` so making 12 "properties" in total)
 - [ADDED] an option to retrieve in memory the `EpisodeData` of each episode computed when using the runner.
@@ -483,7 +481,7 @@ Change Log
 - [FIXED] `Issue #147 <https://github.com/rte-france/Grid2Op/issues/147>`_: un consistency between step and simulate
   when cooldowns where applied (rule checking was not using the right method).
 - [FIXED] An error preventing the loading of an Ambiguous Action (in case an agent took such action, the `EpisodeData`
-  would not load it properly.
+  would not load it properly).
 - [IMPROVED] overall documentation of `BaseEnv` and `Environment`
 - [IMPROVED] rationalize the public and private part of the API for `Environment` and `BaseEnv`.
   Some members have been moved to private attribute (their modification would largely alterate the
@@ -503,7 +501,7 @@ Change Log
 - [FIXED] out dated documentation in some classes
 - [FIXED] `Issue #140<https://github.com/rte-france/Grid2Op/issues/140>`_: illegal action were
   not properly computed in some cases, especially in case of divergence of the powerflow. Also now
-  the "why" the action is illegal is displayed (instead of a generic "this action is illegal".
+  the "why" the action is illegal is displayed (instead of a generic "this action is illegal").
 - [FIXED] `LightSim Issue #10<https://github.com/BDonnot/lightsim2grid/issues/10>`_:
   copy of whole environments without needing pickle module.
 - [UPDATED] a missing class documentation `Chronics.Multifolder` in that case.
@@ -631,7 +629,8 @@ Change Log
 - [FIXED] a problem on the grid name import on some version of pandas
 - [ADDED] a function that returns the types of the action see `action.get_types()`
 - [ADDED] a class to "cache" the data in memory instead of reading it over an over again from disk (see
-  `grid2op.chronics.MultifolderWithCache` (related to `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_)
+  `grid2op.chronics.MultifolderWithCache` (related to
+  `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_) )
 - [ADDED] improve the documentation of the observation class.
 - [UPDATED] Reward `LinesReconnectedReward` to take into account maintenances downtimes
 - [UPDATED] Adds an option to disable plotting load and generators names when using `PlotMatplot`
