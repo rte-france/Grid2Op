@@ -291,12 +291,16 @@ class Backend(GridObjects, ABC):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-            Prefer using :attr:`grid2op.Observation.BaseObservation.prod_p`,
-            :attr:`grid2op.Observation.BaseObservation.prod_q` and
-            :attr:`grid2op.Observation.BaseObservation.prod_v` instead.
+            Prefer using :attr:`grid2op.Observation.BaseObservation.gen_p`,
+            :attr:`grid2op.Observation.BaseObservation.gen_q` and
+            :attr:`grid2op.Observation.BaseObservation.gen_v` instead.
 
         This method is used to retrieve information about the generators (active, reactive production
         and voltage magnitude of the bus to which it is connected).
+        
+        .. note:: 
+            The values returned here are the values AFTER the powerflow has been computed and not 
+            the target values.
 
         Returns
         -------
@@ -323,6 +327,10 @@ class Backend(GridObjects, ABC):
         This method is used to retrieve information about the loads (active, reactive consumption
         and voltage magnitude of the bus to which it is connected).
 
+        .. note:: 
+            The values returned here are the values AFTER the powerflow has been computed and not 
+            the target values.
+            
         Returns
         -------
         load_p ``numpy.ndarray``
@@ -435,13 +443,14 @@ class Backend(GridObjects, ABC):
         In the default implementation we explicitly called the deepcopy operator on `self._grid` to make the
         error message more explicit in case there is a problem with this part.
 
-        The implementation is equivalent to:
+        The implementation is **equivalent** to:
 
         .. code-block:: python
 
-            return copy.deepcopy(self)
+            def copy(self):
+                return copy.deepcopy(self)
 
-        :return: An instance of Backend equal to :attr:`.self`, but deep copied.
+        :return: An instance of Backend equal to :attr:`self`, but deep copied.
         :rtype: :class:`Backend`
         """
         start_grid = self._grid

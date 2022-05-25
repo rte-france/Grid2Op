@@ -2580,7 +2580,13 @@ class GridObjects:
             my_class = GridObjects._build_cls_from_import(name_res, gridobj._PATH_ENV)
             if my_class is not None:
                 return my_class
-
+            
+        if not gridobj.shunts_data_available:
+            # if you import env for backend
+            # with shunt and without shunt, then
+            # there might be issues
+            name_res += "_noshunt"
+            
         if name_res in globals():
             if not force:
                 # no need to recreate the class, it already exists
@@ -2600,6 +2606,7 @@ class GridObjects:
             res_cls._INIT_GRID_CLS = cls
 
         res_cls._compute_pos_big_topo_cls()
+        res_cls.process_shunt_data()
         if res_cls.glop_version != grid2op.__version__:
             res_cls.process_grid2op_compat()
 
@@ -3573,7 +3580,9 @@ class GridObjects:
         else:
             # backward compatibility: no storage were supported
             cls.set_no_storage()
-
+            
+        cls.process_grid2op_shunt_data()
+        
         if cls.glop_version != grid2op.__version__:
             # change name of the environment, this is done in Environment.py for regular environment
             # see `self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")`
@@ -3595,6 +3604,11 @@ class GridObjects:
         cls = cls.init_grid(obj_, force=True)
         return cls()
 
+    @classmethod
+    def process_shunt_data(cls):
+        """remove possible shunts data from the classes, if shunts are deactivated"""
+        pass
+    
     @classmethod
     def set_no_storage(cls):
         """
@@ -3725,7 +3739,7 @@ class GridObjects:
             res_cls._compute_pos_big_topo_cls()
             if res_cls.glop_version != grid2op.__version__:
                 res_cls.process_grid2op_compat()
-
+            res_cls.process_grid2op_shunt_data()
             # add the class in the "globals" for reuse later
             globals()[name_res] = res_cls
 

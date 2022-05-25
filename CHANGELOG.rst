@@ -3,6 +3,8 @@ Change Log
 
 [TODO]
 --------------------
+- [???] do not require "copy" for the backend (make something in case we cannot copy it)
+- [???] allow some extra arguments in creation of backend in the env and the runner
 - [???] closer integration with `gym` especially the "register env", being able to 
   create an env from a string etc.
 - [???] clean the notebook on RL
@@ -38,6 +40,9 @@ Change Log
   there is an opponent on the grid.
 - [FIXED] a documentation issue https://github.com/rte-france/Grid2Op/issues/319
   on notebook 11
+- [FIXED] some issues when the backend does not support shunts data (caused during the
+  computation of the size of the observation) Tests are now performed in
+  `grid2op/tests/test_educpp_backend.py`
 - [IMPROVED] adding the compatibility with logger in the reward functions.
 - [IMPROVED] when there is a game over caused by redispatching, the observation is
   not updated, as it is the case for other type of game over (improved consistency)
