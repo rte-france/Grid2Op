@@ -48,6 +48,8 @@ Change Log
   not updated, as it is the case for other type of game over (improved consistency)
 - [IMPROVED] it is now possible to make an environment with a backend that
   cannot be copied.
+- [IMPROVED] the arguments used to create a backend can be (if used properly)
+  re used (without copy !) when making a `Runner` from an environment for example.
 
 [1.7.0] - 2022-04-29
 ---------------------

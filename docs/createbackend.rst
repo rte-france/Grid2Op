@@ -245,7 +245,7 @@ Name                       See paragraph   Type         Size       Description
 `line_ex_pos_topo_vect`_    :ref:`subtv`   vect, int    `n_line`_   Automatically set with a call to `self._compute_pos_big_topo`
 =========================  ==============  ===========  =========  =========================================================
 
-TODO storage doc
+**TODO** storage doc and shunts doc !
 
 Example on how to set them
 +++++++++++++++++++++++++++
