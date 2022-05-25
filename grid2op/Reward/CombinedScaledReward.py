@@ -45,8 +45,8 @@ class CombinedScaledReward(CombinedReward):
 
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, logger=None):
+        super().__init__(logger=logger)
         self.reward_min = dt_float(-0.5)
         self.reward_max = dt_float(0.5)
         self._sum_max = dt_float(0.0)

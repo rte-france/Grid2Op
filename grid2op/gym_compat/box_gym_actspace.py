@@ -222,15 +222,16 @@ class BoxGymActSpace(Box):
             "curtail_mw": dt_float,
             "raise_alarm": dt_bool,
         }
+
         if add is not None:
-            self._add = add
+            self._add = {k: np.array(v) for k, v in add.items()}
         else:
             self._add = {}
         if multiply is not None:
-            self._multiply = multiply
+            self._multiply = {k: np.array(v) for k, v in multiply.items()}
         else:
             self._multiply = {}
-
+            
         # handle the "functional" part
         self.__func = {}
 
@@ -242,7 +243,11 @@ class BoxGymActSpace(Box):
 
         # initialize the base container
         Box.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
-
+        
+        # convert data in `_add` and `_multiply` to the right type
+        self._add = {k: v.astype(dtype) for k, v in self._add.items()}
+        self._multiply = {k: v.astype(dtype) for k, v in self._multiply.items()}
+            
     def _get_info(self, functs):
         low = None
         high = None
@@ -331,6 +336,7 @@ class BoxGymActSpace(Box):
             if el in self._add:
                 low_ -= self._add[el]
                 high_ -= self._add[el]
+                
             if el in self._multiply:
                 # special case if a 0 were entered
                 arr_ = 1.0 * self._multiply[el]
@@ -455,22 +461,30 @@ class BoxGymActSpace(Box):
         that corresponds to the attribute `attr_nm`.
 
         The normalization consists in having a vector between 0. and 1.
-        It is achieved by dividing by the range (high - low)
-        and adding the minimum value (low).
+        It is achieved by:
+        
+        - dividing by the range (high - low)
+        - adding the minimum value (low).
 
         .. note::
             It only affects continuous attribute. No error / warnings are
             raised if you attempt to use it on a discrete attribute.
 
+        .. warning::
+            This normalization relies on the `high` and `low` attribute. It cannot be done if
+            the attribute is not bounded (for example when its maximum limit is `np.inf`). A warning
+            is raised in this case.
+            
         Parameters
         ----------
         attr_nm : str
             The name of the attribute to normalize
+            
         """
         if attr_nm in self._multiply or attr_nm in self._add:
             raise Grid2OpException(
-                "Cannot normalize an attribute that you already "
-                "modified with either `add` or `multiply`."
+                f"Cannot normalize attribute \"{attr_nm}\" that you already "
+                "modified with either `add` or `multiply` (action space)."
             )
         prev = 0
         for attr_tmp, where_to_put, dtype in zip(
@@ -484,6 +498,11 @@ class BoxGymActSpace(Box):
                 both_finite = finite_high & finite_low
                 both_finite &= curr_high > curr_low
 
+                if np.any(~both_finite):
+                    warnings.warn(f"The normalization of attribute \"{both_finite}\" cannot be performed entirely as "
+                                  f"there are some non finite value, or `high == `low` "
+                                  f"for some components.")
+                    
                 self._multiply[attr_nm] = np.ones(curr_high.shape, dtype=dtype)
                 self._add[attr_nm] = np.zeros(curr_high.shape, dtype=dtype)
 

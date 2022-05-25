@@ -43,8 +43,8 @@ class EpisodeDurationReward(BaseReward):
 
     """
 
-    def __init__(self, per_timestep=1):
-        BaseReward.__init__(self)
+    def __init__(self, per_timestep=1, logger=None):
+        BaseReward.__init__(self, logger=logger)
         self.per_timestep = dt_float(per_timestep)
         self.total_time_steps = dt_float(0.0)
         self.reward_min = dt_float(0.0)
