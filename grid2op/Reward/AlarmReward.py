@@ -45,8 +45,8 @@ class AlarmReward(BaseReward):
 
     """
 
-    def __init__(self):
-        BaseReward.__init__(self)
+    def __init__(self, logger=None):
+        BaseReward.__init__(self, logger=logger)
         # required if you want to design a custom reward taking into account the
         # alarm feature
         self.has_alarm_component = True

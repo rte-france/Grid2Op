@@ -53,8 +53,8 @@ class _AlarmScore(AlarmReward):
 
     """
 
-    def __init__(self):
-        AlarmReward.__init__(self)
+    def __init__(self, logger=None):
+        AlarmReward.__init__(self, logger=logger)
         # required if you want to design a custom reward taking into account the
         # alarm feature
         self.reward_min = dt_float(-2.0)

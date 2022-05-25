@@ -107,7 +107,11 @@ class FromChronix2grid(GridValue):
             chunk_size=chunk_size,
         )
         import grid2op
-        self.env = grid2op.make(env_path, _add_to_name="_fromChronix2grid", chronics_class=ChangeNothing)
+        self.env = grid2op.make(env_path,
+                                _add_to_name="_fromChronix2grid",
+                                chronics_class=ChangeNothing,
+                                data_feeding_kwargs={"max_iter": 5}  # otherwise for some opponent I might run into trouble
+                                )
     
         # required parameters
         with open(os.path.join(self.env.get_path_env(), "scenario_params.json"), "r", encoding="utf-8") as f:

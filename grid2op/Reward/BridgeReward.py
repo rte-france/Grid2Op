@@ -37,8 +37,8 @@ class BridgeReward(BaseReward):
 
     """
 
-    def __init__(self, min_pen_lte=0.0, max_pen_gte=1.0):
-        BaseReward.__init__(self)
+    def __init__(self, min_pen_lte=0.0, max_pen_gte=1.0, logger=None):
+        BaseReward.__init__(self, logger=logger)
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(1.0)
         self.min_pen_lte = dt_float(min_pen_lte)
