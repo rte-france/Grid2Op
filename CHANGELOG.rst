@@ -33,6 +33,11 @@ Change Log
 
 [1.7.1] - 2022-xx-yy
 -----------------------
+- [BREAKING] The possibility to propagate keyword arguments between the environment
+  and the runner implied adding some arguments in the constructor of 
+  `PandapowerBackend`. So if you made a class that inherit from it, you should
+  add these arguments in the constructor (otherwise you will not be able to use
+  the runner) [This should not impact lot of codes, if any]
 - [FIXED] a documentation issue https://github.com/rte-france/Grid2Op/issues/281
 - [FIXED] a bug preventing to use the `FromChronix2grid` chronics class when 
   there is an opponent on the grid.
