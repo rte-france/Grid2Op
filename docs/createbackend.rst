@@ -159,6 +159,16 @@ There are 4 **__main__** types of method you need to implement if you want to us
   to export some internal value of the backend in a "grid2op compliant format".
 
 
+.. warning::
+    With grid2op version before <1.7.1, you were also required to implement the 
+    :func:`grid2op.Backend.Backend.copy` method.
+
+    As of grid2op >= 1.7.1 this is no longer required. Note however that if you 
+    don't implement it, some features might not be available. This will
+    be the case for *eg* :func:`grid2op.Observation.BaseObservation.simulate` or
+    for :class:`grid2op.simulator.Simulator`.
+
+
 .. _grid-description:
 
 Grid description

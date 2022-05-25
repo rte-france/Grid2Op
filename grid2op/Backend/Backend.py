@@ -442,6 +442,18 @@ class Backend(GridObjects, ABC):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
+        .. note::
+            As of grid2op 1.7.1 you it is not mandatory to implement this function
+            when creating a backend.
+            
+            If it is not available, then grid2op will automatically
+            deactivate the forecast capability and will not use the "backend.copy()"
+            function.
+            
+            When this function is not implement, you will not be able to use (for 
+            example) :func:`grid2op.Observation.BaseObservation.simulate` nor
+            the :class:`grid2op.simulator.Simulator` for example.
+
         Performs a deep copy of the backend.
 
         In the default implementation we explicitly called the deepcopy operator on `self._grid` to make the
