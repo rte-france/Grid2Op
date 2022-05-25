@@ -9,6 +9,7 @@
 import sys
 import copy
 import logging
+from grid2op.Exceptions.EnvExceptions import EnvError
 
 from grid2op.Observation.serializableObservationSpace import (
     SerializableObservationSpace,
@@ -112,7 +113,18 @@ class ObservationSpace(SerializableObservationSpace):
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
 
         # TODO here: have another backend class maybe
-        self._backend_obs = env.backend.copy()
+        if env.backend._can_be_copied:
+            try:
+                self._backend_obs = env.backend.copy()
+            except Exception as exc_:
+                self._backend_obs = None
+                self.logger.warn(f"Backend cannot be copied, simulate feature will "
+                                 f"be unsusable. Error was: {exc_}")
+                self._deactivate_simulate(env)
+        else:
+            self._backend_obs = None
+            self._deactivate_simulate(env)
+            
         _ObsEnv_class = _ObsEnv.init_grid(
             type(env.backend), force_module=_ObsEnv.__module__
         )
@@ -154,6 +166,14 @@ class ObservationSpace(SerializableObservationSpace):
             kwargs_observation = {}
         self._ptr_kwargs_observation = kwargs_observation
 
+    def _deactivate_simulate(self, env):
+        self._backend_obs = None
+        self.with_forecast = False
+        env.deactivate_forecast()
+        env.backend._can_be_copied = False
+        self.logger.warn("Forecasts have been deactivated because "
+                         "the backend cannot be copied.")
+        
     def simulate_called(self):
         """
         INTERNAL
@@ -243,11 +263,21 @@ class ObservationSpace(SerializableObservationSpace):
             v.initialize(self.obs_env)
 
     def change_reward(self, reward_func):
-        self.obs_env._reward_helper.change_reward(reward_func)
+        if self.obs_env.is_valid():
+            self.obs_env._reward_helper.change_reward(reward_func)
+        else:
+            raise EnvError("Impossible to change the reward of the simulate "
+                           "function when you cannot simulate (because the "
+                           "backend could not be copied)")
 
     def reset_space(self):
         if self.with_forecast:
-            self.obs_env.reset_space()
+            if self.obs_env.is_valid():
+                self.obs_env.reset_space()
+            else:
+                raise EnvError("Impossible to reset_space "
+                               "function when you cannot simulate (because the "
+                               "backend could not be copied)")
         self.action_helper_env.actionClass.reset_space()
 
     def __call__(self, env, _update_state=True):
@@ -255,7 +285,7 @@ class ObservationSpace(SerializableObservationSpace):
             self.obs_env.update_grid(env)
 
         res = self.observationClass(
-            obs_env=self.obs_env,
+            obs_env=self.obs_env if self.obs_env.is_valid() else None,
             action_helper=self.action_helper_env,
             random_prng=self.space_prng,
             **self._ptr_kwargs_observation

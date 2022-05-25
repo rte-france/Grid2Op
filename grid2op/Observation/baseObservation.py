@@ -2214,12 +2214,13 @@ class BaseObservation(GridObjects):
                 "and no simulated environment are set)."
             )
         if self._obs_env is None:
-            raise EnvError(
+            raise BaseObservationError(
                 'This observation has no "environment used for simulation" (_obs_env) is not created. '
                 "This is the case if you loaded this observation from a disk (for example using "
                 "EpisodeData) "
                 'or used a Runner with multi processing with the "add_detailed_output=True" '
-                "flag. This is a feature of grid2op: you cannot serialize backends."
+                "flag or even if you use an environment with a non serializable backend. "
+                "This is a feature of grid2op: it does not require backends to be serializable."
             )
 
         if time_step < 0:
@@ -3053,16 +3054,25 @@ class BaseObservation(GridObjects):
         You can find more information about simulator on the dedicated page of the
         documentation.
         """
-        from grid2op.simulator import (
-            Simulator,
-        )  # lazy import to prevent circular references
-
         # BaseObservation is only used for typing in the simulator...
         if self._obs_env is None:
             raise BaseObservationError(
                 "Impossible to build a simulator is the "
-                "observation space does not support it. "
+                "observation space does not support it. This can be the case if the "
+                "observation is loaded from disk or if the backend cannot be copied "
+                "for example."
             )
+            
+        if not self._obs_env.is_valid():
+            raise BaseObservationError("Impossible to use a Simulator backend with an "
+                                       "environment that cannot be copied (most "
+                                       "liekly due to the backend that cannot be "
+                                       "copied).")
+            
+        from grid2op.simulator import (
+            Simulator,
+        )  # lazy import to prevent circular references
+
         res = Simulator(backend=self._obs_env.backend)
         res.set_state(self)
         return res

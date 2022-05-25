@@ -3581,7 +3581,7 @@ class GridObjects:
             # backward compatibility: no storage were supported
             cls.set_no_storage()
             
-        cls.process_grid2op_shunt_data()
+        cls.process_shunt_data()
         
         if cls.glop_version != grid2op.__version__:
             # change name of the environment, this is done in Environment.py for regular environment

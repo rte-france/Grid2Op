@@ -121,7 +121,9 @@ class Backend(GridObjects, ABC):
     _complete_action_class = None
 
     ERR_INIT_POWERFLOW = "Power cannot be computed on the first time step, please check your data."
-    def __init__(self, detailed_infos_for_cascading_failures=False):
+    def __init__(self,
+                 detailed_infos_for_cascading_failures: bool=False,
+                 can_be_copied: bool=True):
         """
         Initialize an instance of Backend. This does nothing per se. Only the call to :func:`Backend.load_grid`
         should guarantee the backend is properly configured.
@@ -154,6 +156,8 @@ class Backend(GridObjects, ABC):
         # to prevent the use of the same backend instance in different environment.
         self._is_loaded = False
 
+        self._can_be_copied = can_be_copied
+        
     @property
     def is_loaded(self):
         return self._is_loaded

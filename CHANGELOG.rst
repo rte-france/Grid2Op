@@ -46,6 +46,8 @@ Change Log
 - [IMPROVED] adding the compatibility with logger in the reward functions.
 - [IMPROVED] when there is a game over caused by redispatching, the observation is
   not updated, as it is the case for other type of game over (improved consistency)
+- [IMPROVED] it is now possible to make an environment with a backend that
+  cannot be copied.
 
 [1.7.0] - 2022-04-29
 ---------------------

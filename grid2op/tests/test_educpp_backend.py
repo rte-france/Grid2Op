@@ -18,7 +18,6 @@ import pdb
 
 class EducPPTester(unittest.TestCase):
     def test_make(self):
-        env_name = "l2rpn_case14_sandbox"
         for env_name in grid2op.list_available_test_env():
             if (env_name == "l2rpn_icaps_2021" or 
                 env_name == "l2rpn_neurips_2020_track1" or
@@ -35,6 +34,7 @@ class EducPPTester(unittest.TestCase):
                 env = grid2op.make(env_name, test=True, backend=EducPandaPowerBackend())
                 assert type(env).n_shunt is None, f"error for {env_name}"
                 assert not type(env).shunts_data_available, f"error for {env_name}"
+            
             
 if __name__ == "__main__":
     unittest.main()
