@@ -6,12 +6,11 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from typing import Any, Optional, Dict, Tuple
+from grid2op.Exceptions.Grid2OpException import Grid2OpException
 
-from grid2op.Action.BaseAction import BaseAction
-
-AgentID = str
-
-MADict = Dict[AgentID, Any]
-
-ActionProfile = Dict[AgentID, BaseAction]
+class DomainException(Grid2OpException):
+    """This class represents the exceptions that occur in the
+    _verify_domains method of MultiAgentEnv. It occurs when 
+    the given domain by the user is not valid.
+    """
+    pass

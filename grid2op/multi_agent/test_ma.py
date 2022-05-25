@@ -5,13 +5,22 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
+import sys
+import pathlib
+filepath = pathlib.Path(__file__).resolve().parent.parent.parent
+print(filepath)
+print()
+sys.path.insert(0, str(filepath))
+print(sys.path)
 import unittest
 import warnings
 from grid2op import make
 from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
 import pdb
 import numpy as np
+from grid2op.multi_agent.multi_agentExceptions import *
+
+
 
 class MATester(unittest.TestCase):
     def setUp(self) -> None:
@@ -29,6 +38,20 @@ class MATester(unittest.TestCase):
         # run redispatch agent on one scenario for 100 timesteps
         self.ma_env = MultiAgentEnv(self.env, self.observation_domains, self.action_domains)
         return super().setUp()
+    
+    def test_verify_domains(self):
+        action_domains = {
+            'agent_0' : 0,
+            'agent_1' : [5,6,7,8,9,10,11,12,13]
+        }
+        observation_domains = action_domains
+        try:
+            MultiAgentEnv(self.env, observation_domains, action_domains)
+            
+        except DomainException :
+            assert True
+            
+        assert False
     
     def test_build_subgrids_action_domains(self):
         """Tests that the action_domains are correctly defined 

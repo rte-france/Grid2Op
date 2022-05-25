@@ -11,7 +11,7 @@ from typing import Optional, Tuple
 import warnings
 import numpy as np
 import re
-from getting_started.grid2op.Environment.Environment import Environment
+from grid2op.Environment.Environment import Environment
 
 import grid2op
 from grid2op.dtypes import dt_float, dt_bool, dt_int
@@ -27,8 +27,9 @@ from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.multi_agent.subGridObjects import SubGridObjects
 from grid2op.operator_attention import LinearAttentionBudget
-from grid2op.multi_agent.utils import AgentSelector, random_order, ObservationDomain, ActionDomain
-from grid2op.multi_agent.typing import MADict
+from grid2op.multi_agent.utils import AgentSelector, random_order  
+from grid2op.multi_agent.typing import ActionProfile, MADict
+from grid2op.multi_agent.multi_agentExceptions import *
 
 from grid2op.Backend import PandaPowerBackend
 
@@ -38,8 +39,8 @@ from grid2op.Backend import PandaPowerBackend
 class MultiAgentEnv :
     def __init__(self,
                  env : Environment,
-                 observation_domains : dict,
-                 action_domains : dict,
+                 observation_domains : MADict,
+                 action_domains : MADict,
                  agent_order_fn = lambda x : x,
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
@@ -49,12 +50,12 @@ class MultiAgentEnv :
         multi-agent environment.
 
         Args:
-            * env (Environment): The Grid2Op classical 
-            * action_domains (dict):
+            * env (Environment): The Grid2Op classical environment
+            * action_domains (MADict):
                 - keys : agents' names 
                 - values : list of substations' (or lines) id under the control of the agent. Note that these ids imply
                     also generators and storage units in charge of the agent.
-            * observation_domains (dict): 
+            * observation_domains (MADict): 
                 - keys : agents' names 
                 - values : list of attributes of a Grid2Op observation that the agent can observe. It is represented by 
                     the ObservationDomain class.
@@ -65,7 +66,48 @@ class MultiAgentEnv :
                                                         Defaults to 0..
                                                         
         Attributes:
-            * _cent_env
+            * _cent_env : The Grid2Op classical environment
+            
+            * _action_domains (MADict): a dictionary with agents' names as keys and different masks as values.
+                These masks are used to filter elements of the env in which the agent in key is in charge.
+                
+            * _observation_domains (MADict): a dictionary with agents' names as keys and different masks as values.
+                These masks are used to filter elements of the env in which the agent in key can observe.
+                
+            * illegal_action_pen : The penalization received by an agent in case of an illegal action.
+            
+            * ambiguous_action_pen : The penalization received by an agent in case of an ambiguous action.
+            
+            * rewards (MADict) : 
+                - keys : agents' names
+                - values : agent's reward
+            
+            * _cumulative_rewards (MADict) :
+                - keys : agents' names
+                - values : agent's cumulative reward in the episode
+                
+            * observation (MADict) :
+                - keys : agents' names
+                - values : agent's observation
+            
+            * agent_order : 
+                Gives the order (priority) of agents. If there’s a conflict, the action of the agent with higher
+                priority (smaller index in the list) is kept.
+                
+            * _subgrids (MADIct):
+                - keys : agents’ names
+                - values : created subgrids of type SubGridObjects by _build_subgrids method
+
+                
+            * action_spaces (MADict) :
+                - keys: agents’ names
+                - values : action spaces created from _action_domains and _subgrids
+            
+            * action_spaces (MADict) :
+                - keys: agents’ names
+                - values : observation spaces created from _observation_domains and _subgrids
+                      
+ 
         """
         
         self._cent_env = env
@@ -79,6 +121,7 @@ class MultiAgentEnv :
         self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
         self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
         self.agents = list(action_domains.keys())
+        self.num_agents = len(self.agents)
 
         
         self.illegal_action_pen = illegal_action_pen
@@ -110,7 +153,7 @@ class MultiAgentEnv :
         self.observations = self._update_observations(observation)
         return self.observations
     
-    def step(self, action : MADict) -> Tuple[MADict, MADict, MADict, MADict]:
+    def step(self, action : ActionProfile) -> Tuple[MADict, MADict, MADict, MADict]:
         """_summary_#TODO
 
         Args:
@@ -122,6 +165,11 @@ class MultiAgentEnv :
         self.rewards = dict(
             zip(
                 self.agents, [0. for _ in range(self.num_agents)]
+            )
+        )
+        self.info = dict(
+            zip(
+                self.agents, [{} for _ in range(self.num_agents)]
             )
         )
         
@@ -140,6 +188,7 @@ class MultiAgentEnv :
                 #)  # battery information
                 #is_illegal = True
                 self.rewards[agent] -= self.illegal_action_pen
+                self.info[agent]['is_illegal_local'] = True
 
             if ambiguous:
                 ## action is replace by do nothing
@@ -151,6 +200,7 @@ class MultiAgentEnv :
                 #is_ambiguous = True
                 #except_.append(except_tmp)
                 self.rewards[agent] -= self.ambiguous_action_pen
+                self.info[agent]['is_ambiguous_local'] = True
                 
             if is_legal and not ambiguous :
                 global_action = proposed_action
@@ -163,15 +213,12 @@ class MultiAgentEnv :
             #    self._is_alarm_illegal = reason_alarm_illegal is not None
                 
         observation, reward, done, info = self.env.step(global_action)
-        # TODO update agents' info
-        self.rewards = {
-            agent : r + reward
-            for agent, r in self.rewards.items()
-        }
-        self.dones = {
-            agent : done
-            for agent in self.agents
-        }
+        # update agents' observation, reward, done, info
+        for agent in self.agents:
+            self.rewards[agent] += reward
+            self.dones[agent] = done
+            self.info[agent].update(info)
+            
         self.observations = self._update_observations(observation)
         
         return self.observations, self.rewards, self.dones, self.info 
@@ -263,16 +310,16 @@ class MultiAgentEnv :
         # name of the objects
         tmp_cls.env_name = type(self._cent_env).env_name
         tmp_cls.name_load = self._cent_env.name_load[
-            tmp_cls.mask_line_or + tmp_cls.mask_line_ex
+            tmp_cls.mask_load
         ]
         tmp_cls.name_gen = self._cent_env.name_gen[
             tmp_cls.mask_gen
         ]
         tmp_cls.name_line = self._cent_env.name_line[
-            tmp_cls.mask_load
+            tmp_cls.mask_line_or | tmp_cls.mask_line_ex
         ]
         tmp_cls.name_sub = self._cent_env.name_sub[
-            tmp_cls.sub_id
+            tmp_cls.sub_orig_ids
         ]
         tmp_cls.name_storage = self._cent_env.name_storage[
             tmp_cls.mask_storage
@@ -293,11 +340,11 @@ class MultiAgentEnv :
             tmp_cls.n_load + tmp_cls.n_gen + tmp_cls.n_storage
 
         # to which substation is connected each element 
-        tmp_cls.load_to_subid = np.zeros(len(tmp_cls.n_load), dtype=np.int8)
-        tmp_cls.gen_to_subid = np.zeros(len(tmp_cls.n_gen), dtype=np.int8)
-        tmp_cls.line_or_to_subid = np.zeros(len(tmp_cls.n_line_or), dtype=np.int8)
-        tmp_cls.line_ex_to_subid = np.zeros(len(tmp_cls.n_line_ex), dtype=np.int8)
-        tmp_cls.storage_to_subid = np.zeros(len(tmp_cls.n_storage), dtype=np.int8)
+        tmp_cls.load_to_subid = np.zeros(tmp_cls.n_load, dtype=np.int8)
+        tmp_cls.gen_to_subid = np.zeros(tmp_cls.n_gen, dtype=np.int8)
+        tmp_cls.line_or_to_subid = np.zeros(tmp_cls.n_line_or, dtype=np.int8)
+        tmp_cls.line_ex_to_subid = np.zeros(tmp_cls.n_line_ex, dtype=np.int8)
+        tmp_cls.storage_to_subid = np.zeros(tmp_cls.n_storage, dtype=np.int8)
         
         for i, subid in enumerate(tmp_cls.sub_orig_ids):
             indices = np.where(self._cent_env.load_to_subid == subid)[0]
@@ -449,17 +496,28 @@ class MultiAgentEnv :
         Args:
             observation_domains (_type_): _description_
         """
-        #TODO
-        pass
+        #TODO (Is it good ??)
+        for agent in self.agents: 
+            _cls_agent_action_space = ObservationSpace.init_grid(gridobj=self._subgrids_cls['observation'][agent], extra_name=agent)
+            self.observation_spaces[agent] = _cls_agent_action_space(
+                gridobj = self._subgrids_cls['observation'][agent],
+                env = self._cent_env,
+                rewardClass=self._cent_env._rewardClass,
+                observationClass=self._cent_env._observationClass,
+                actionClass=self._cent_env._actionClass,
+                #TODO following parameters
+                with_forecast=True,
+                kwargs_observation=None,
+            )
     
     def _build_action_spaces(self):
         """Build action spaces from given domains for each agent
         The action class is the same as 
         """
-        for agent_name in self.agents: 
-            _cls_agent_action_space = ActionSpace.init_grid(gridobj=self._subgrids_cls['action'][agent_name], extra_name=agent_name)
-            self.action_spaces[agent_name] = _cls_agent_action_space(
-                gridobj=self._subgrids_cls[agent_name],
+        for agent in self.agents: 
+            _cls_agent_action_space = ActionSpace.init_grid(gridobj=self._subgrids_cls['action'][agent], extra_name=agent)
+            self.action_spaces[agent] = _cls_agent_action_space(
+                gridobj=self._subgrids_cls['action'][agent],
                 actionClass=self._cent_env._actionClass,
                 legal_action=self._cent_env._game_rules.legal_action,
             )
@@ -474,7 +532,7 @@ class MultiAgentEnv :
         #TODO
         pass
     
-    def _verify_domains(self, domains : dict) :
+    def _verify_domains(self, domains : MADict) :
         """It verifies if substation ids are valid
 
         Args:
@@ -483,13 +541,14 @@ class MultiAgentEnv :
                 - value : list of substation ids
         """
         for agent in domains.keys():
-            if not isinstance(domains[agent], list) :
-                raise("The domain must be a list of substation indices")
-            for id in domains[agent] : 
-                if not isinstance(id, int) :
-                    raise(f"The id must be of type int. Type {type(id)} is not valid")
-                if domains[agent][id] < 0 or domains[agent][id] > len(self._cent_env.name_sub) :
-                    raise(f"The substation's id must be between 0 and {len(self._cent_env.name_sub)}, but {domains[agent][id]} has been given")
+            if not isinstance(domains[agent], list) \
+                and not isinstance(domains[agent], set):
+                raise DomainException("The domain must be a list or a set of substation indices")
+            for sub_id in domains[agent] : 
+                if not isinstance(sub_id, int) :
+                    raise DomainException(f"The id must be of type int. Type {type(sub_id)} is not valid")
+                if sub_id < 0 or sub_id > len(self._cent_env.name_sub) :
+                    raise DomainException(f"The substation's id must be between 0 and {len(self._cent_env.name_sub)}, but {sub_id} has been given")
     
     
     

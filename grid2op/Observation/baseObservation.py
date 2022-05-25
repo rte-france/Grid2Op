@@ -130,7 +130,7 @@ class BaseObservation(GridObjects):
 
     theta_ex: :class:`numpy.ndarray`, dtype:float
         The voltage angle at the bus to which the extremity end of each powerline
-        is connected (expressed in degree). Only availble if the backend supports the retrieval of
+        is connected (expressed in degree). Only available if the backend supports the retrieval of
         voltage angles (see :attr:`BaseObservation.support_theta`).
 
     a_ex: :class:`numpy.ndarray`, dtype:float
