@@ -8,6 +8,7 @@
 
 import copy
 import numpy as np
+from grid2op.Exceptions.EnvExceptions import EnvError
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.BaseEnv import BaseEnv
@@ -66,6 +67,7 @@ class _ObsEnv(BaseEnv):
         has_attention_budget=False,
         attention_budget_cls=LinearAttentionBudget,
         kwargs_attention_budget={},
+        logger=None,
         _complete_action_cls=None,
         _ptr_orig_obs_space=None,
     ):
@@ -82,7 +84,10 @@ class _ObsEnv(BaseEnv):
             attention_budget_cls=attention_budget_cls,
             kwargs_attention_budget=kwargs_attention_budget,
             kwargs_observation=None,
+            logger=logger,
         )
+        self.__unusable = False  # unsuable if backend cannot be copied
+        
         self._reward_helper = reward_helper
         self._helper_action_class = helper_action_class
 
@@ -143,7 +148,11 @@ class _ObsEnv(BaseEnv):
         self._helper_action_env = helper_action_env
         self.env_modification = self._helper_action_env()
         self._do_nothing_act = self._helper_action_env()
-        self._backend_action_set = self._backend_action_class()
+        
+        if self.__unusable:
+            self._backend_action_set = None
+        else:
+            self._backend_action_set = self._backend_action_class()
 
         # opponent
         self.opp_space_state = None
@@ -158,16 +167,28 @@ class _ObsEnv(BaseEnv):
         self._storage_power_init = None
 
         # storage unit
-        self._storage_current_charge_init = np.zeros(self.n_storage, dtype=dt_float)
-        self._storage_previous_charge_init = np.zeros(self.n_storage, dtype=dt_float)
-        self._action_storage_init = np.zeros(self.n_storage, dtype=dt_float)
-        self._storage_power_init = np.zeros(self.n_storage, dtype=dt_float)
+        if self.__unusable:
+            self._storage_current_charge_init = np.zeros(0, dtype=dt_float)
+            self._storage_previous_charge_init = np.zeros(0, dtype=dt_float)
+            self._action_storage_init = np.zeros(0, dtype=dt_float)
+            self._storage_power_init = np.zeros(0, dtype=dt_float)
+        else:
+            self._storage_current_charge_init = np.zeros(self.n_storage, dtype=dt_float)
+            self._storage_previous_charge_init = np.zeros(self.n_storage, dtype=dt_float)
+            self._action_storage_init = np.zeros(self.n_storage, dtype=dt_float)
+            self._storage_power_init = np.zeros(self.n_storage, dtype=dt_float)
+            
         self._amount_storage_init = 0.0
         self._amount_storage_prev_init = 0.0
+            
 
         # curtailment
-        self._limit_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
-        self._gen_before_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
+        if self.__unusable:
+            self._limit_curtailment_init = np.zeros(0, dtype=dt_float)
+            self._gen_before_curtailment_init = np.zeros(0, dtype=dt_float)
+        else:
+            self._limit_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
+            self._gen_before_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
         self._sum_curtailment_mw_init = 0.0
         self._sum_curtailment_mw_prev_init = 0.0
 
@@ -177,7 +198,11 @@ class _ObsEnv(BaseEnv):
         # alarm / attention budget
         self._attention_budget_state_init = None
 
-        self._disc_lines = np.zeros(shape=self.n_line, dtype=dt_int) - 1
+        if self.__unusable:
+            self._disc_lines = np.zeros(shape=0, dtype=dt_int) - 1
+        else:
+            self._disc_lines = np.zeros(shape=self.n_line, dtype=dt_int) - 1
+            
         self._max_episode_duration = max_episode_duration
 
     def max_episode_duration(self):
@@ -197,6 +222,11 @@ class _ObsEnv(BaseEnv):
         rewardClass,
         legalActClass,
     ):
+        if backend is None:
+            self.__unusable = True
+            return
+        
+        self.__unusable = False
         self._env_dc = self.parameters.ENV_DC
         self.chronics_handler = chronics_handler
         self.backend = backend
@@ -269,6 +299,9 @@ class _ObsEnv(BaseEnv):
         res: :class:`ObsEnv`
             A deep copy of this instance.
         """
+        if self.__unusable:
+            raise EnvError("Impossible to use a Observation backend with an "
+                           "environment that cannot be copied.")
         backend = self.backend
         self.backend = None
         res = copy.deepcopy(self)
@@ -305,6 +338,10 @@ class _ObsEnv(BaseEnv):
         ``None``
 
         """
+        if self.__unusable:
+            raise EnvError("Impossible to use a Observation backend with an "
+                           "environment that cannot be copied.")
+            
         self._reset_to_orig_state()
         self._reset_vect()
         self._topo_vect[:] = topo_vect
@@ -405,6 +442,9 @@ class _ObsEnv(BaseEnv):
         return still_in_maintenance, reconnected, first_ts_maintenance
 
     def reset(self):
+        if self.__unusable:
+            raise EnvError("Impossible to use a Observation backend with an "
+                           "environment that cannot be copied.")
         super().reset()
         self.current_obs = self.current_obs_init
 
@@ -504,6 +544,9 @@ class _ObsEnv(BaseEnv):
                 - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
+        if self.__unusable:
+            raise EnvError("Impossible to use a Observation backend with an "
+                           "environment that cannot be copied.")
         self._ptr_orig_obs_space.simulate_called()
         maybe_exc = self._ptr_orig_obs_space.can_use_simulate()
         if maybe_exc is not None:
@@ -525,6 +568,9 @@ class _ObsEnv(BaseEnv):
         res: :class:`grid2op.Observation.Observation`
             The observation available.
         """
+        if self.__unusable:
+            raise EnvError("Impossible to use a Observation backend with an "
+                           "environment that cannot be copied.")
         if _update_state:
             self.current_obs.update(self, with_forecast=False)
         res = self.current_obs.copy()
@@ -546,6 +592,9 @@ class _ObsEnv(BaseEnv):
         env: :class:`grid2op.Environment.BaseEnv`
             A reference to the environment
         """
+        if self.__unusable:
+            raise EnvError("Impossible to use a Observation backend with an "
+                           "environment that cannot be copied.")
         real_backend = env.backend
 
         self._load_p, self._load_q, self._load_v = real_backend.loads_info()
@@ -607,8 +656,16 @@ class _ObsEnv(BaseEnv):
             self._attention_budget_state_init = env._attention_budget.get_state()
 
     def get_current_line_status(self):
+        if self.__unusable:
+            raise EnvError("Impossible to use a Observation backend with an "
+                           "environment that cannot be copied.")
         return self._line_status == 1
 
+    def is_valid(self):
+        """return whether or not the obs_env is valid, *eg* whether
+        we could copy the backend of the environment."""
+        return not self.__unusable
+    
     def close(self):
         """close this environment, once and for all"""
         super().close()

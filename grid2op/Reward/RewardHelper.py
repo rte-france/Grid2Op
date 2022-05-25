@@ -36,9 +36,10 @@ class RewardHelper:
 
     """
 
-    def __init__(self, reward_func=ConstantReward):
+    def __init__(self, reward_func=ConstantReward, logger=None):
         self.rewardClass = None
         self.template_reward = None
+        self.logger = logger
         self.change_reward(reward_func)
 
     def initialize(self, env):
@@ -124,7 +125,12 @@ class RewardHelper:
         elif issubclass(reward_func, BaseReward):
             # reward is provided as a class
             self.rewardClass = reward_func
-            self.template_reward = reward_func()
+            try:
+                self.template_reward = reward_func(logger=self.logger)
+            except TypeError as exc_:
+                self.logger.warn(f"Reward \"{reward_func.__name__}\" does not support the logger feature. Error was : {exc_}")
+                # old (<= 1.7.0) behaviour
+                self.template_reward = reward_func()
         else:
             raise Grid2OpException(
                 f"Impossible to build a reward with input reward_func={reward_func}. "
