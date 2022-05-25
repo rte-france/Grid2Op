@@ -46,6 +46,10 @@ Change Log
 - [FIXED] some issues when the backend does not support shunts data (caused during the
   computation of the size of the observation) Tests are now performed in
   `grid2op/tests/test_educpp_backend.py`
+- [FIXED] a bug when downloading an environment when the archive name is not the 
+  same as the environment names (attempt to delete a non existing folder). This 
+  is the case for `l2rpn_wcci_2022` env. For this env, your are forced to use
+  grid2op version >= 1.7.1
 - [IMPROVED] adding the compatibility with logger in the reward functions.
 - [IMPROVED] when there is a game over caused by redispatching, the observation is
   not updated, as it is the case for other type of game over (improved consistency)

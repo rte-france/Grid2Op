@@ -125,7 +125,14 @@ def _aux_download(url, dataset_name, path_data, ds_name_dl=None):
 
     # rename the file if necessary
     if ds_name_dl != dataset_name:
-        os.rename(final_path, os.path.join(path_data, dataset_name))
+        try:
+            os.rename(final_path, os.path.join(path_data, dataset_name))
+        except FileNotFoundError as exc_:
+            # the try catch is added because for some environments, the
+            # archive name does not match the env name.
+            # so the folder cannot be deleted properly.
+            print(f"WARN: file \"{final_path}\" could not be found. You might need to manually delete it.")
+            pass
 
     # and rm the tar bz2
     # bug in the AWS file... named ".tar.tar.bz2" ...
