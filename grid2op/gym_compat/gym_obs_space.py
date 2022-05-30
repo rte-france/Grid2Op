@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
+import attr
 import numpy as np
 from gym import spaces
 
@@ -74,8 +75,53 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         self._init_env = env
         self.initial_obs_space = self._init_env.observation_space
         dict_ = {}  # will represent the gym.Dict space
+        
         if dict_variables is None:
-            dict_variables = {}
+            # get the extra variables in the gym space I want to get
+            dict_variables = {"thermal_limit":
+                spaces.Box(
+                        low=0.,
+                        high=np.inf,
+                        shape=(self._init_env.n_line, ),
+                        dtype=dt_float,
+                    ),
+                "theta_or":
+                     spaces.Box(
+                        low=-180.,
+                        high=180.,
+                        shape=(self._init_env.n_line, ),
+                        dtype=dt_float,
+                    ),
+                "theta_ex":
+                     spaces.Box(
+                        low=-180.,
+                        high=180.,
+                        shape=(self._init_env.n_line, ),
+                        dtype=dt_float,
+                    ),
+                "load_theta":
+                     spaces.Box(
+                        low=-180.,
+                        high=180.,
+                        shape=(self._init_env.n_load, ),
+                        dtype=dt_float,
+                    ),
+                "gen_theta":
+                     spaces.Box(
+                        low=-180.,
+                        high=180.,
+                        shape=(self._init_env.n_gen, ),
+                        dtype=dt_float,
+                    )
+                }
+            if self._init_env.n_storage:
+                dict_variables["storage_theta"] = spaces.Box(
+                        low=-180.,
+                        high=180.,
+                        shape=(self._init_env.n_storage, ),
+                        dtype=dt_float,
+                    )
+                
         self._fill_dict_obs_space(
             dict_, env.observation_space, env.parameters, env._oppSpace, dict_variables
         )
@@ -139,6 +185,19 @@ class GymObservationSpace(_BaseGymSpaceConverter):
     def _fill_dict_obs_space(
         self, dict_, observation_space, env_params, opponent_space, dict_variables={}
     ):
+        for attr_nm in dict_variables:
+            # case where the user specified a dedicated encoding
+            if dict_variables[attr_nm] is None:
+                # none is by default to disable this feature
+                continue
+            if isinstance(dict_variables[attr_nm], spaces.Space):
+                if hasattr(observation_space._template_obj, attr_nm):
+                    # add it only if attribute exists in the observation
+                    dict_[attr_nm] = dict_variables[attr_nm]
+            else:
+                dict_[attr_nm] = dict_variables[attr_nm].my_space
+        
+        # by default consider all attributes that are vectorized    
         for attr_nm, sh, dt in zip(
             observation_space.attr_list_vect,
             observation_space.shape,
@@ -147,15 +206,15 @@ class GymObservationSpace(_BaseGymSpaceConverter):
             if sh == 0:
                 # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
                 continue
+            
+            if (attr_nm in dict_ or 
+                (attr_nm in dict_variables and dict_variables[attr_nm] is None)):
+                # variable already treated somewhere
+                continue
+            
             my_type = None
             shape = (sh,)
-            if attr_nm in dict_variables:
-                # case where the user specified a dedicated encoding
-                if dict_variables[attr_nm] is None:
-                    # none is by default to disable this feature
-                    continue
-                my_type = dict_variables[attr_nm].my_space
-            elif dt == dt_int:
+            if dt == dt_int:
                 # discrete observation space
                 if attr_nm == "year":
                     my_type = spaces.Discrete(n=2100)
@@ -268,7 +327,6 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     low = 0.0
                     high = np.inf
                 # curtailment, curtailment_limit, gen_p_before_curtail
-
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)
 
             if my_type is None:

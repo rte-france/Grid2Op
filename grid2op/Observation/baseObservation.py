@@ -1154,13 +1154,17 @@ class BaseObservation(GridObjects):
             self.minute_of_hour = dt_int(env.time_stamp.minute)
             self.day_of_week = dt_int(env.time_stamp.weekday())
 
-        if self.support_theta:
-            # by convention, I say it's 0 if the grid is in total blackout
-            self.theta_or[:] = 0.0
-            self.theta_ex[:] = 0.0
-            self.load_theta[:] = 0.0
-            self.gen_theta[:] = 0.0
-            self.storage_theta[:] = 0.0
+        if env is not None:
+            self._thermal_limit[:] = env.get_thermal_limit()
+        else:
+            self._thermal_limit[:] = 0. 
+        
+        # by convention, I say it's 0 if the grid is in total blackout
+        self.theta_or[:] = 0.0
+        self.theta_ex[:] = 0.0
+        self.load_theta[:] = 0.0
+        self.gen_theta[:] = 0.0
+        self.storage_theta[:] = 0.0
 
         # counter
         if env is not None:
@@ -2951,6 +2955,13 @@ class BaseObservation(GridObjects):
                 self.gen_theta[:],
                 self.storage_theta[:],
             ) = backend.get_theta()
+        else:
+            # theta will be always 0. by convention
+            self.theta_or[:] = 0.
+            self.theta_ex[:] = 0.
+            self.load_theta[:] = 0.
+            self.gen_theta[:] = 0.
+            self.storage_theta[:] = 0.
 
     def _update_obs_complete(self, env, with_forecast=True):
         """
