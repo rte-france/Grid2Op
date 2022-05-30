@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
+import warnings
 import attr
 import numpy as np
 from gym import spaces
@@ -350,7 +351,11 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         """
         res = self.initial_obs_space.get_empty_observation()
         for k, v in gymlike_observation.items():
-            res._assign_attr_from_name(k, v)
+            try:
+                res._assign_attr_from_name(k, v)
+            except ValueError as exc_:
+                warnings.warn(f"Cannot set attribute \"{k}\" in grid2op. "
+                              f"This key is ignored.")
         return res
 
     def to_gym(self, grid2op_observation: BaseObservation) -> spaces.dict.OrderedDict:
