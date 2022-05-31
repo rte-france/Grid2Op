@@ -172,6 +172,8 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U pip setuptools wheel
                    python -m pip uninstall pathlib
+                   python -m pip install chronix2grid>=1.1.0.post1
+                   python -m pip uninstall grid2op
             - run:
                command: |
                    source venv_test/bin/activate
