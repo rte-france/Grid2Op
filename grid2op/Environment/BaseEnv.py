@@ -3191,7 +3191,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_storage_power_prev",
             "_limit_curtailment",
             "_limit_curtailment_prev",
-            "_limit_curtailment_target",
             "_gen_before_curtailment",
             "_sum_curtailment_mw",
             "_sum_curtailment_mw_prev",
