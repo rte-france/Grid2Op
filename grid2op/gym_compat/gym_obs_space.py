@@ -327,6 +327,13 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "delta_time":
                     low = 0.0
                     high = np.inf
+                elif attr_nm == "gen_margin_up":
+                    low = 0.0
+                    high = observation_space.gen_max_ramp_up
+                elif attr_nm == "gen_margin_down":
+                    low = 0.0
+                    high = observation_space.gen_max_ramp_down
+                    
                 # curtailment, curtailment_limit, gen_p_before_curtail
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)
 
