@@ -3026,10 +3026,16 @@ class BaseObservation(GridObjects):
             self.curtailment[~self.gen_renewable] = 0.0
             self.curtailment_limit[:] = env._limit_curtailment
             self.curtailment_limit[self.curtailment_limit >= 1.0] = 1.0
-            gen_curtailed = self.gen_renewable & (self.curtailment_limit != 1)
-            self.curtailment_limit_effective[gen_curtailed] = (
-                self.gen_p[gen_curtailed] / self.gen_pmax[gen_curtailed]
+            
+            gen_curtailed = self.gen_renewable
+            is_acted = (self.gen_p_before_curtail != self.gen_p)
+            self.curtailment_limit_effective[gen_curtailed & is_acted] = (
+                self.gen_p[gen_curtailed & is_acted] / self.gen_pmax[gen_curtailed & is_acted]
             )
+            self.curtailment_limit_effective[gen_curtailed & ~is_acted] = (
+               self.curtailment_limit[gen_curtailed & ~is_acted]
+            )
+            
             self.curtailment_limit_effective[~gen_curtailed] = 1.0
         else:
             self.curtailment[:] = 0.0
