@@ -57,6 +57,8 @@ Change Log
   cannot be copied.
 - [IMPROVED] the arguments used to create a backend can be (if used properly)
   re used (without copy !) when making a `Runner` from an environment for example.
+- [IMPROVED] description and definition of `obs.curtailment_limit_effective` are now
+  consistent (issue https://github.com/rte-france/Grid2Op/issues/321)
 
 [1.7.0] - 2022-04-29
 ---------------------
