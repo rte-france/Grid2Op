@@ -80,6 +80,10 @@ class EducPandaPowerBackend(Backend):
             self,
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
             can_be_copied=can_be_copied,
+            # extra arguments that might be needed for building such a backend 
+            # these extra kwargs will be stored (without copy) in the
+            # base class and used when another backend will be created
+            # for example in the Runner class.
         )
         warnings.warn(
             "This backend is used for demonstration purpose only, you should not use it under any "

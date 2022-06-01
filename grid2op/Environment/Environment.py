@@ -1637,6 +1637,7 @@ class Environment(BaseEnv):
         res["envClass"] = Environment
         res["gridStateclass"] = self.chronics_handler.chronicsClass
         res["backendClass"] = self._raw_backend_class
+        res["backend_kwargs"] = self.backend._my_kwargs
         res["verbose"] = False
 
         dict_ = copy.deepcopy(self.chronics_handler.kwargs)

@@ -110,7 +110,7 @@ env name                          grid size     maintenance    opponent    redis
 :ref:`l2rpn_neurips_2020_track1`   36 sub.       ✔️  ️         ✔️ ️       ✔️ ️                 ❌
 :ref:`l2rpn_neurips_2020_track2`   118 sub.      ✔️  ️         ❌   ️         ✔️ ️                 ❌
 :ref:`l2rpn_icaps_2021`            36 sub.       ✔️  ️         ✔️ ️       ✔️ ️                 ❌
-:ref:`l2rpn_wcci_2022_dev`         118 sub.      ✔️  ️         ✔️ ️       ✔️ ️                 ✔️ ️
+:ref:`l2rpn_wcci_2022`             118 sub.      ✔️  ️         ✔️ ️       ✔️ ️                 ✔️ ️
 \* educ_case14_redisp \*           14 sub.       ❌️             ❌  ️ ️       ✔️ ️                 ❌
 \* educ_case14_storage \*          14 sub.       ❌️             ❌   ️         ✔️ ️                 ✔️
 \* rte_case5_example \*            5 sub.        ❌️             ❌  ️ ️        ❌ ️ ️                  ❌
@@ -204,14 +204,34 @@ This environment will come in two "variations":
 
 - `l2rpn_wcci_2022_dev`: development version (might not be totally finished at time of writing), to be used for
   test only, only a few snapshots are available.
-- `l2rpn_wcci_2022` (coming soon): (equivalent of 32 years of powergrid data at 5 mins interval)
+- `l2rpn_wcci_2022` : (equivalent of 32 years of powergrid data at 5 mins interval) weights ~1.7 GB
 
 You have the possibility, provided that you installed `chronix2grid` (with `pip install grid2op[chronix2grid]`), to generate as
 much data as you want with the :func:`grid2op.Environment.Environment.generate_data` function. See its documentation for more information.
 
+.. code-block:: python
+
+    import grid2op
+    env_name  = "l2rpn_wcci_2022"
+    env = grid2op.make(env_name)
+
 It counts 118 substations, 186 powerlines, 91 loads and 62 loads. It will be used for the L2RPN competitions at WCCI in 2022.
 
 |l2rpn_wcci_2022_layout|
+
+You can add as many chronics as you want to this environment with the code:
+
+.. code-block:: python
+
+    import grid2op
+    env_name  = "l2rpn_wcci_2022"
+    env = grid2op.make(env_name)
+
+    nb_year = 1 # or any postive integer
+    env.generate_data(nb_year=nb_year)
+
+It might take a while (so we advise you to get a nice cup of tea, coffee or anything)
+and will only work if you installed chronix2grid package.
 
 
 .. _l2rpn_icaps_2021:

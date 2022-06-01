@@ -129,6 +129,11 @@ class Runner(object):
         Like every "\\.*Class" attributes the type should be pass and not an intance (object) of this type.
         Its default is :class:`grid2op.PandaPowerBackend` and it must be a subclass of :class:`grid2op.Backend`.
 
+    backend_kwargs: ``dict``
+        Optional arguments used to build the backend. These arguments will not 
+        be copied to create the backend used by the runner. They might
+        required to be pickeable on some plateform when using multi processing.
+        
     agentClass: ``type``
         This types control the type of BaseAgent, *eg.* the bot / controler that will take :class:`grid2op.BaseAction`
         and
@@ -240,6 +245,7 @@ class Runner(object):
         # type of chronics to use. For example GridStateFromFile if forecasts are not used,
         # or GridStateFromFileWithForecasts otherwise
         backendClass=PandaPowerBackend,
+        backend_kwargs=None,
         agentClass=DoNothingAgent,  # class used to build the agent
         agentInstance=None,
         verbose=False,
@@ -425,7 +431,11 @@ class Runner(object):
                 'Please modify "backendClass" parameter.'
             )
         self.backendClass = backendClass
-
+        if backend_kwargs is not None:
+            self._backend_kwargs = backend_kwargs
+        else:
+            self._backend_kwargs = {}
+        
         self.__can_copy_agent = True
         if agentClass is not None:
             if agentInstance is not None:
@@ -595,7 +605,7 @@ class Runner(object):
                 init_env_path=self.init_env_path,
                 init_grid_path=self.init_grid_path,
                 chronics_handler=chronics_handler,
-                backend=self.backendClass(),
+                backend=self.backendClass(**self._backend_kwargs),
                 parameters=parameters,
                 name=self.name_env,
                 names_chronics_to_backend=self.names_chronics_to_backend,
@@ -993,6 +1003,7 @@ class Runner(object):
             "envClass": self.envClass,
             "gridStateclass": self.gridStateclass,
             "backendClass": self.backendClass,
+            "backend_kwargs": self._backend_kwargs,
             "agentClass": self.agentClass,
             "agentInstance": self.agentInstance,
             "verbose": self.verbose,

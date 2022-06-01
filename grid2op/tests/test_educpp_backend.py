@@ -17,6 +17,9 @@ from grid2op.Backend.EducPandaPowerBackend import EducPandaPowerBackend
 import pdb
 
 class EducPPTester(unittest.TestCase):
+    """mainly to test that a backend that do not support shunts_data can
+    be loaded properly.
+    """
     def test_make(self):
         for env_name in grid2op.list_available_test_env():
             if (env_name == "l2rpn_icaps_2021" or 

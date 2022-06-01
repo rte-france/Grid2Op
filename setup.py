@@ -60,16 +60,16 @@ pkgs = {
         ],
         "plot": ["imageio"],
         "test": ["lightsim2grid",
-                 "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/master",
                  "numba"
                  ],
         "chronix2grid": [
-            "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/master"
+            "ChroniX2Grid>=1.1.0.post1"
             ]
     }
 }
 pkgs["extras"]["test"] += pkgs["extras"]["optional"]
 pkgs["extras"]["test"] += pkgs["extras"]["plot"]
+pkgs["extras"]["test"] += pkgs["extras"]["chronix2grid"]
 
 
 setup(description='An gym compatible environment to model sequential decision making  for powersystems',

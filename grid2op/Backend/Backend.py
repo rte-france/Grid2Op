@@ -76,7 +76,8 @@ class Backend(GridObjects, ABC):
     - :func:`Backend.close` (this is mandatory if your backend implementation (`self._grid`) is relying on some
       c / c++ code that do not free memory automatically.
     - :func:`Backend.copy` (not that this is mandatory if your backend implementation (in `self._grid`) cannot be
-      deep copied using the python copy.deepcopy function)
+      deep copied using the python copy.deepcopy function) [as of grid2op >= 1.7.1 it is no more
+      required. If not implemented, you won't be able to use some of grid2op feature however]
     - :func:`Backend.get_line_status`: the default implementation uses the "get_topo_vect()" and then check
       if buses at both ends of powerline are positive. This is rather slow and can most likely be optimized.
     - :func:`Backend.get_line_flow`: the default implementation will retrieve all powerline information
@@ -123,7 +124,8 @@ class Backend(GridObjects, ABC):
     ERR_INIT_POWERFLOW = "Power cannot be computed on the first time step, please check your data."
     def __init__(self,
                  detailed_infos_for_cascading_failures: bool=False,
-                 can_be_copied: bool=True):
+                 can_be_copied: bool=True,
+                 **kwargs):
         """
         Initialize an instance of Backend. This does nothing per se. Only the call to :func:`Backend.load_grid`
         should guarantee the backend is properly configured.
@@ -157,6 +159,11 @@ class Backend(GridObjects, ABC):
         self._is_loaded = False
 
         self._can_be_copied = can_be_copied
+        
+        self._my_kwargs = {"detailed_infos_for_cascading_failures": detailed_infos_for_cascading_failures,
+                           "can_be_copied": self._can_be_copied}
+        for k, v in kwargs.items():
+            self._my_kwargs[k] = v
         
     @property
     def is_loaded(self):
@@ -442,6 +449,18 @@ class Backend(GridObjects, ABC):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
+        .. note::
+            As of grid2op 1.7.1 you it is not mandatory to implement this function
+            when creating a backend.
+            
+            If it is not available, then grid2op will automatically
+            deactivate the forecast capability and will not use the "backend.copy()"
+            function.
+            
+            When this function is not implement, you will not be able to use (for 
+            example) :func:`grid2op.Observation.BaseObservation.simulate` nor
+            the :class:`grid2op.simulator.Simulator` for example.
+
         Performs a deep copy of the backend.
 
         In the default implementation we explicitly called the deepcopy operator on `self._grid` to make the
@@ -457,6 +476,9 @@ class Backend(GridObjects, ABC):
         :return: An instance of Backend equal to :attr:`self`, but deep copied.
         :rtype: :class:`Backend`
         """
+        if not self._can_be_copied:
+            raise BackendError("This backend cannot be copied.")
+
         start_grid = self._grid
         self._grid = None
         res = copy.deepcopy(self)
