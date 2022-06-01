@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import copy
 import warnings
 import numpy as np
 from gym.spaces import Box
@@ -26,8 +27,11 @@ ALL_ATTR_OBS = (
     "minute_of_hour",
     "day_of_week",
     "gen_p",
+    "gen_p_before_curtail",
     "gen_q",
     "gen_v",
+    "gen_margin_up",
+    "gen_margin_down",
     "load_p",
     "load_q",
     "load_v",
@@ -61,6 +65,12 @@ ALL_ATTR_OBS = (
     "last_alarm",
     "attention_budget",
     "was_alarm_used_after_game_over",
+    "current_step",
+    "max_step",
+    "theta_or",
+    "theta_ex",
+    "load_theta",
+    "gen_theta",
 )
 
 # TODO add the alarm stuff
@@ -182,7 +192,7 @@ class BoxGymObsSpace(Box):
             ob_sp.obs_env._tol_poly
         )  # add to gen_p otherwise ... well it can crash
         extra_for_losses = _compute_extra_power_for_losses(ob_sp)
-
+        
         self.dict_properties = {
             "year": (
                 np.zeros(1, dtype=dt_int),
@@ -220,6 +230,12 @@ class BoxGymObsSpace(Box):
                 (1,),
                 dt_int,
             ),
+            "current_step": (
+                np.zeros(1, dtype=dt_int),
+                np.zeros(1, dtype=dt_int) + np.iinfo(dt_int).max,
+                (1,),
+                dt_int,
+            ),
             "gen_p": (
                 np.full(shape=(ob_sp.n_gen,), fill_value=0.0, dtype=dt_float)
                 - tol_redisp
@@ -240,6 +256,24 @@ class BoxGymObsSpace(Box):
                 (ob_sp.n_gen,),
                 dt_float,
             ),
+            "gen_margin_up": (
+                np.full(shape=(ob_sp.n_gen,), fill_value=0.0, dtype=dt_float),
+                1.0 * ob_sp.gen_max_ramp_up,
+                (ob_sp.n_gen,),
+                dt_float,
+            ),
+            "gen_margin_down": (
+                np.full(shape=(ob_sp.n_gen,), fill_value=0.0, dtype=dt_float),
+                1.0 * ob_sp.gen_max_ramp_down,
+                (ob_sp.n_gen,),
+                dt_float,
+            ),
+            "gen_theta": (
+                np.full(shape=(ob_sp.n_gen,), fill_value=-180., dtype=dt_float),
+                np.full(shape=(ob_sp.n_gen,), fill_value=180., dtype=dt_float),
+                (ob_sp.n_gen,),
+                dt_float,
+            ),
             "load_p": (
                 np.full(shape=(ob_sp.n_load,), fill_value=-np.inf, dtype=dt_float),
                 np.full(shape=(ob_sp.n_load,), fill_value=+np.inf, dtype=dt_float),
@@ -255,6 +289,12 @@ class BoxGymObsSpace(Box):
             "load_v": (
                 np.full(shape=(ob_sp.n_load,), fill_value=0.0, dtype=dt_float),
                 np.full(shape=(ob_sp.n_load,), fill_value=np.inf, dtype=dt_float),
+                (ob_sp.n_load,),
+                dt_float,
+            ),
+            "load_theta": (
+                np.full(shape=(ob_sp.n_load,), fill_value=-180., dtype=dt_float),
+                np.full(shape=(ob_sp.n_load,), fill_value=180., dtype=dt_float),
                 (ob_sp.n_load,),
                 dt_float,
             ),
@@ -282,6 +322,12 @@ class BoxGymObsSpace(Box):
                 (ob_sp.n_line,),
                 dt_float,
             ),
+            "theta_or": (
+                np.full(shape=(ob_sp.n_line,), fill_value=-180., dtype=dt_float),
+                np.full(shape=(ob_sp.n_line,), fill_value=180., dtype=dt_float),
+                (ob_sp.n_line,),
+                dt_float,
+            ),
             "p_ex": (
                 np.full(shape=(ob_sp.n_line,), fill_value=-np.inf, dtype=dt_float),
                 np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
@@ -303,6 +349,12 @@ class BoxGymObsSpace(Box):
             "v_ex": (
                 np.full(shape=(ob_sp.n_line,), fill_value=0.0, dtype=dt_float),
                 np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                (ob_sp.n_line,),
+                dt_float,
+            ),
+            "theta_ex": (
+                np.full(shape=(ob_sp.n_line,), fill_value=-180., dtype=dt_float),
+                np.full(shape=(ob_sp.n_line,), fill_value=180., dtype=dt_float),
                 (ob_sp.n_line,),
                 dt_float,
             ),
@@ -396,6 +448,12 @@ class BoxGymObsSpace(Box):
                 (ob_sp.n_storage,),
                 dt_float,
             ),
+            "storage_theta": (
+                np.full(shape=(ob_sp.n_storage,), fill_value=-180., dtype=dt_float),
+                np.full(shape=(ob_sp.n_storage,), fill_value=180., dtype=dt_float),
+                (ob_sp.n_storage,),
+                dt_float,
+            ),
             "curtailment": (
                 np.full(shape=(ob_sp.n_gen,), fill_value=0.0, dtype=dt_float),
                 np.full(shape=(ob_sp.n_gen,), fill_value=1.0, dtype=dt_float),
@@ -467,16 +525,19 @@ class BoxGymObsSpace(Box):
                 dt_float,
             ),
         }
-        self.dict_properties["prod_p"] = self.dict_properties["gen_p"]
-        self.dict_properties["prod_q"] = self.dict_properties["gen_q"]
-        self.dict_properties["prod_v"] = self.dict_properties["gen_v"]
-        self.dict_properties["gen_p_before_curtail"] = self.dict_properties["gen_p"]
-        self.dict_properties["curtailment_limit_effective"] = self.dict_properties[
+        self.dict_properties["max_step"] = copy.deepcopy(self.dict_properties["current_step"])
+        self.dict_properties["delta_time"] = copy.deepcopy(self.dict_properties["current_step"])
+        self.dict_properties["prod_p"] = copy.deepcopy(self.dict_properties["gen_p"])
+        self.dict_properties["prod_q"] = copy.deepcopy(self.dict_properties["gen_q"])
+        self.dict_properties["prod_v"] = copy.deepcopy(self.dict_properties["gen_v"])
+        self.dict_properties["gen_p_before_curtail"] = copy.deepcopy(self.dict_properties["gen_p"])
+        self.dict_properties["curtailment_limit_effective"] = copy.deepcopy(self.dict_properties[
             "curtailment_limit"
-        ]
-
+        ])
+        
         if functs is None:
             functs = {}
+            
         for key in functs.keys():
             if key not in self._attr_to_keep:
                 raise RuntimeError(

@@ -68,22 +68,35 @@ Default Observations space
 ******************************
 For example, an observation space will look like:
 
+- "_shunt_p": Box(`env.n_shunt`,) [type: float, low: -inf, high: inf]
+- "_shunt_q": Box(`env.n_shunt`,) [type: float, low: -inf, high: inf]
+- "_shunt_v": Box(`env.n_shunt`,) [type: float, low: -inf, high: inf]
+- "_shunt_bus": Box(`env.n_shunt`,) [type: int, low: -inf, high: inf]
 - "a_ex": Box(`env.n_line`,) [type: float, low: 0, high: inf]
 - "a_or": Box(`env.n_line`,) [type: float, low: 0, high: inf]
 - "actual_dispatch": Box(`env.n_gen`,)
+- "attention_budget": Box(1,) [type: float, low: 0, high: inf]
+- "current_step": Box(1,) [type: int, low: -inf, high: inf]
 - "curtailment": Box(`env.n_gen`,)  [type: float, low: 0., high: 1.0]
 - "curtailment_limit": Box(`env.n_gen`,)  [type: float, low: 0., high: 1.0]
-- "gen_p": Box(`env.n_gen`,)  [type: float, low: `env.gen_pmin`, high: `env.gen_pmax * 1.2`]
-- "gen_q": Box(`env.n_gen`,)  [type: float, low: -inf, high: inf]
-- "gen_v": Box(`env.n_gen`,)  [type: float, low: 0, high: inf]
+- "curtailment_limit_effective": Box(`env.n_gen`,)  [type: float, low: 0., high: 1.0]
 - "day": Discrete(32)
 - "day_of_week": Discrete(8)
+- "delta_time": Box(0.0, inf, (1,), float32)
 - "duration_next_maintenance": Box(`env.n_line`,)  [type: int, low: -1, high: inf]
+- "gen_p": Box(`env.n_gen`,)  [type: float, low: `env.gen_pmin`, high: `env.gen_pmax * 1.2`]
+- "gen_p_before_curtail": Box(`env.n_gen`,)  [type: float, low: `env.gen_pmin`, high: `env.gen_pmax * 1.2`]
+- "gen_q": Box(`env.n_gen`,)  [type: float, low: -inf, high: inf]
+- "gen_v": Box(`env.n_gen`,)  [type: float, low: 0, high: inf]
+- "gen_margin_up": Box(`env.n_gen`,)  [type: float, low: 0, high: `env.gen_max_ramp_up`]
+- "gen_margin_down": Box(`env.n_gen`,)  [type: float, low: 0, high: `env.gen_max_ramp_down`]
 - "hour_of_day": Discrete(24)
+- "is_alarm_illegal": Discrete(2)
 - "line_status": MultiBinary(`env.n_line`)
 - "load_p": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
 - "load_q": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
 - "load_v": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
+- "max_step": Box(1,) [type: int, low: -inf, high: inf]
 - "minute_of_hour": Discrete(60)
 - "month": Discrete(13)
 - "p_ex": Box(`env.n_line`,)  [type: float, low: -inf, high: inf]
@@ -95,15 +108,22 @@ For example, an observation space will look like:
 - "storage_power": Box(`env.n_storage`,)  [type: float, low: `-env.storage_max_p_prod`, high: `env.storage_max_p_absorb`]
 - "storage_power_target": Box(`env.n_storage`,)  [type: float, low: `-env.storage_max_p_prod`, high: `env.storage_max_p_absorb`]
 - "target_dispatch": Box(`env.n_gen`,)
+- "theta_or": Box(`env.n_line`,)  [type: float, low: -180., high: 180.]
+- "theta_ex": Box(`env.n_line`,)  [type: float, low: -180., high: 180.]
+- "load_theta": Box(`env.n_load`,)  [type: float, low: -180., high: 180.]
+- "gen_theta": Box(`env.n_gen`,)  [type: float, low: -180., high: 180.]
+- "storage_theta": : Box(`env.n_storage`,)  [type: float, low: -180., high: 180.]
 - "time_before_cooldown_line": Box(`env.n_line`,) [type: int, low: 0, high: depending on parameters]
 - "time_before_cooldown_sub": Box(`env.n_sub`,)  [type: int, low: 0, high: depending on parameters]
 - "time_next_maintenance": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
+- "time_since_last_alarm": Box(1,)  [type: int, low: -1, high: inf]
 - "timestep_overflow": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
+- "thermal_limit": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
 - "topo_vect": Box(`env.dim_topo`,)  [type: int, low: -1, high: 2]
 - "v_ex": Box(`env.n_line`,)  [type: float, low: 0, high: inf]
 - "v_or": Box(`env.n_line`,)  [type: flaot, low: 0, high: inf]
+- "was_alarm_used_after_game_over": Discrete(2)
 - "year": Discrete(2100)
-- "delta_time": Box(0.0, inf, (1,), float32)
 
 Each keys correspond to an attribute of the observation. In this example `"line_status": MultiBinary(20)`
 represents the attribute `obs.line_status` which is a boolean vector (for each powerline
