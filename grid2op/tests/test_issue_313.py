@@ -14,7 +14,6 @@ import warnings
 import numpy as np
 
 
-
 class Issu313Tester(unittest.TestCase):
     def setUp(self):
         param = Parameters()
