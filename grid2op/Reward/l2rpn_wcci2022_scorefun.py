@@ -8,11 +8,11 @@
 
 import numpy as np
 
-from grid2op.Reward.BaseReward import BaseReward
+from grid2op.Reward.L2RPNSandBoxScore import L2RPNSandBoxScore
 from grid2op.dtypes import dt_float
 
 
-class L2RPNWCCI2022Score(BaseReward):
+class L2RPNWCCI2022ScoreFun(L2RPNSandBoxScore):
     """
     INTERNAL
 
@@ -33,7 +33,7 @@ class L2RPNWCCI2022Score(BaseReward):
                  alpha_storage=1.0,
                  reward_max=1000.,
                  logger=None):
-        super.__init__(alpha_redisp, alpha_loss, alpha_storage, reward_max, logger)
+        super().__init__(alpha_redisp, alpha_loss, alpha_storage, reward_max, logger)
         self.storage_cost = dt_float(storage_cost)
         
     def _get_storage_cost(self, env, p_t):

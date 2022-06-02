@@ -70,7 +70,7 @@ class L2RPNSandBoxScore(BaseReward):
         return c_redispatching
 
     def _get_loss_cost(self, env, p_t):
-        gen_p = self._get_gen_p()
+        gen_p = self._get_gen_p(env)
         load_p = self._get_load_p(env)
         losses = self._get_losses(env, gen_p, load_p)
         c_loss = losses * p_t
@@ -86,7 +86,7 @@ class L2RPNSandBoxScore(BaseReward):
             return self.reward_min
 
         # compute the marginal cost
-        p_t = self._get_marginal_cost()
+        p_t = self._get_marginal_cost(env)
         
         # redispatching amount
         c_redispatching = self._get_redisp_cost(env, p_t)

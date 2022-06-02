@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.utils.l2rpn_2020_scores import ScoreL2RPN2020
-from grid2op.Reward import L2RPNWCCI2022Score
+from grid2op.Reward import L2RPNWCCI2022ScoreFun
 
 
 class ScoreL2RPN2022(ScoreL2RPN2020):
@@ -22,6 +22,6 @@ class ScoreL2RPN2022(ScoreL2RPN2020):
                  min_losses_ratio=0.8,
                  verbose=0, max_step=-1,
                  nb_process_stats=1,
-                 scores_func=...,
+                 scores_func=L2RPNWCCI2022ScoreFun,
                  score_names=None):
         super().__init__(env, env_seeds, agent_seeds, nb_scenario, min_losses_ratio, verbose, max_step, nb_process_stats, scores_func, score_names)
