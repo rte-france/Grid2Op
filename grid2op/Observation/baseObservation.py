@@ -481,6 +481,7 @@ class BaseObservation(GridObjects):
             "month",
             "year",
             "delta_time",
+            "_is_done",
         ]
 
         attr_vect = [
