@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.7.1] - 2022-06-yy
+[1.7.1] - 2022-06-03
 -----------------------
 - [BREAKING] The possibility to propagate keyword arguments between the environment
   and the runner implied adding some arguments in the constructor of 
