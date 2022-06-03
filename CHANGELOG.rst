@@ -50,6 +50,8 @@ Change Log
   same as the environment names (attempt to delete a non existing folder). This 
   is the case for `l2rpn_wcci_2022` env. For this env, your are forced to use
   grid2op version >= 1.7.1
+- [FIXED] an issue when converting a "done" action as a graph, see
+  https://github.com/rte-france/Grid2Op/issues/327
 - [ADDED] score function for the L2RPN WCCI 2022 competition
 - [IMPROVED] adding the compatibility with logger in the reward functions.
 - [IMPROVED] when there is a game over caused by redispatching, the observation is
