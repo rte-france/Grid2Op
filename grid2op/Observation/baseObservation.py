@@ -363,6 +363,7 @@ class BaseObservation(GridObjects):
 
     def __init__(self, obs_env=None, action_helper=None, random_prng=None):
         GridObjects.__init__(self)
+        self._is_done = True
         self.random_prng = random_prng
 
         self.action_helper = action_helper
@@ -480,6 +481,7 @@ class BaseObservation(GridObjects):
             "month",
             "year",
             "delta_time",
+            "_is_done",
         ]
 
         attr_vect = [
@@ -978,6 +980,9 @@ class BaseObservation(GridObjects):
         value.
 
         """
+        
+        self._is_done = True
+        
         # 0. (line is disconnected) / 1. (line is connected)
         self.line_status[:] = True
 
@@ -1076,6 +1081,7 @@ class BaseObservation(GridObjects):
         As some attributes are initialized with `np.empty` it is recommended to reset here all attributes to avoid
         non deterministic behaviour.
         """
+        self._is_done = True
         self.gen_p[:] = 0.0
         self.gen_q[:] = 0.0
         self.gen_v[:] = 0.0
@@ -1595,6 +1601,21 @@ class BaseObservation(GridObjects):
             # (of course you can replace 0 with any integer `0 <= l_id < obs.n_line`
 
         """
+        if self._is_done:
+            self._bus_connectivity_matrix_ = None
+            nb_bus = 1
+            if as_csr_matrix:
+                tmp_ = csr_matrix((1,1), dtype=dt_float)
+            else:
+                tmp_ = np.zeros(shape=(nb_bus, nb_bus), dtype=dt_float)
+            if not return_lines_index:
+                res = tmp_
+            else:
+                cls = type(self)
+                lor_bus = np.zeros(cls.n_line, dtype=dt_int)
+                lex_bus = np.zeros(cls.n_line, dtype=dt_int)
+                res = (tmp_, lor_bus, lex_bus)
+            return res
         if (
             self._bus_connectivity_matrix_ is None
             or (
@@ -1667,13 +1688,21 @@ class BaseObservation(GridObjects):
     def flow_bus_matrix(self, active_flow=True, as_csr_matrix=False):
         """
         A matrix of size "nb bus" "nb bus". Each row and columns represent a "bus" of the grid ("bus" is a power
-        system word that for computer scientist means "nodes" if the powergrid is represented as a graph)
+        system word that for computer scientist means "nodes" if the powergrid is represented as a graph).
+        See the note in case of a grid in "game over" mode.
 
         The diagonal will sum the power produced and consumed at each bus.
 
         The other  element of each **row** of this matrix will be the flow of power from the bus represented
         by the line i to the bus represented by column j.
 
+        Notes
+        ------
+        When the observation is in a "done" state (*eg* there has been a game over) then this function returns a 
+        "matrix" of dimension (1,1) [yes, yes it's a scalar] with only one element that is 0.
+        
+        In this case, `load_bus`, `prod_bus`, `stor_bus`, `lor_bus` and `lex_bus` are vectors full of 0.
+        
         Parameters
         ----------
         active_flow: ``bool``
@@ -1690,7 +1719,7 @@ class BaseObservation(GridObjects):
 
         mappings: ``tuple``
             The mapping that makes the correspondence between each object and the bus to which it is connected.
-            It is made of 4 elements: (load_bus, prod_bus, lor_bus, lex_bus).
+            It is made of 4 elements: (load_bus, prod_bus, stor_bus, lor_bus, lex_bus).
 
             For example if `load_bus[i] = 14` it means that the load with id `i` is connected to the
             bus 14. If `load_bus[i] = -1` then the object is disconnected.
@@ -1721,6 +1750,18 @@ class BaseObservation(GridObjects):
         matrix. `flow_mat.sum(axis=1)`
 
         """
+        if self._is_done:
+            flow_mat = csr_matrix((1,1), dtype=dt_float)
+            if not as_csr_matrix:
+                flow_mat = flow_mat.toarray()
+            cls = type(self)
+            load_bus = np.zeros(cls.n_load, dtype=dt_int)
+            prod_bus = np.zeros(cls.n_gen, dtype=dt_int)
+            stor_bus = np.zeros(cls.n_storage, dtype=dt_int)
+            lor_bus = np.zeros(cls.n_line, dtype=dt_int)
+            lex_bus = np.zeros(cls.n_line, dtype=dt_int)
+            return flow_mat, (load_bus, prod_bus, stor_bus, lor_bus, lex_bus)
+        
         nb_bus, unique_bus, bus_or, bus_ex = self._aux_fun_get_bus()
         prod_bus, prod_conn = self._get_bus_id(
             self.gen_pos_topo_vect, self.gen_to_subid
@@ -1987,6 +2028,10 @@ class BaseObservation(GridObjects):
             active_flow=True, as_csr_matrix=True
         )
         mat_q, *_ = self.flow_bus_matrix(active_flow=False, as_csr_matrix=True)
+        
+        # for efficiency
+        mat_p = mat_p.tocoo()
+        
         # bus voltage
         bus_v = np.zeros(mat_p.shape[0])
         bus_v[lor_bus] = self.v_or
@@ -2968,6 +3013,8 @@ class BaseObservation(GridObjects):
         update all the observation attributes as if it was a complete, fully
         observable and without noise observation
         """
+        self._is_done = False
+        
         # counter
         self.current_step = dt_int(env.nb_time_step)
         self.max_step = dt_int(env.max_episode_duration())
