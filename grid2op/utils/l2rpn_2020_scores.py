@@ -77,7 +77,6 @@ class ScoreL2RPN2020(object):
     """
 
     NAME_DN = "l2rpn_dn"
-    # NAME_DN_NO_OVERFLOW = "l2rpn_no_overflow"
     NAME_RP_NO_OVERFLOW = "l2rpn_no_overflow_reco"
 
     def __init__(
@@ -118,21 +117,6 @@ class ScoreL2RPN2020(object):
         # check if i need to compute that for do nothing without overflow disconnection
         param_no_overflow = copy.deepcopy(env.parameters)
         param_no_overflow.NO_OVERFLOW_DISCONNECTION = True
-        if False:
-            # deprecated
-            self.stat_no_overflow = EpisodeStatistics(
-                self.env, self.NAME_DN_NO_OVERWLOW
-            )
-            self.env.reset()  # for the parameters to take effect
-            self._recomputed_no_ov = self._init_stat(
-                self.stat_no_overflow,
-                self.NAME_DN_NO_OVERWLOW,
-                computed_scenarios,
-                parameters=param_no_overflow,
-                nb_process_stats=nb_process_stats,
-                score_names=score_names,
-            )
-
         # check if i need to compute that for reco powerline without overflow disconnection
         self.stat_no_overflow_rp = EpisodeStatistics(self.env, self.NAME_RP_NO_OVERFLOW)
         agent_reco = RecoPowerlineAgent(self.env.action_space)
