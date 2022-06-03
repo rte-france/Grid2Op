@@ -56,8 +56,8 @@ class N1Reward(BaseReward):
 
     """
 
-    def __init__(self, l_id=0):
-        BaseReward.__init__(self)
+    def __init__(self, l_id=0, logger=None):
+        BaseReward.__init__(self, logger=logger)
         self.backend = None
         self.l_id = l_id
 

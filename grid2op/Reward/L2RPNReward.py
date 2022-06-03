@@ -45,8 +45,8 @@ class L2RPNReward(BaseReward):
 
     """
 
-    def __init__(self):
-        BaseReward.__init__(self)
+    def __init__(self, logger=None):
+        BaseReward.__init__(self, logger=logger)
 
     def initialize(self, env):
         self.reward_min = dt_float(0.0)

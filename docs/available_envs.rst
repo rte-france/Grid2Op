@@ -3,6 +3,7 @@
 .. |R2_full_grid| image:: ./img/R2_full_grid.png
 .. |l2rpn_neurips_2020_track1_layout| image:: ./img/l2rpn_neurips_2020_track1_layout.png
 .. |l2rpn_neurips_2020_track2_layout| image:: ./img/l2rpn_neurips_2020_track2_layout.png
+.. |l2rpn_wcci_2022_layout| image:: ./img/l2rpn_wcci_2022_layout.png
 
 
 Available environments
@@ -26,19 +27,19 @@ Inside each folder / environment there are a few files (as of writing):
   this environment will not be compatible with the default backend.
 - "**config.py**" (a file): this file is imported when the environment is loaded. It is used to parametrize the way
   the environment is made. It should define a "config" variable. This "config" is dictionary that is used to initialize
-  the environment. They key should be variable names. See example of such "*config.py*" file in provided environment
-- "**chronics**" (a folder): this folder contains the information to generate the production / loads at each steps.
+  the environment. They key should be variable names. See example of such "*config.py*" file in provided environment.
+
+It can of course contain other information, among them:
+
+- "**chronics**" (a folder) [recommended]: this folder contains the information to generate the production / loads at each steps.
   It can
   itself contain multiple folder, depending on the :class:`grid2op.Chronics.GridValue` class used. In most available
   environment, the class :class:`grid2op.Chronics.Multifolder` is used. This folder is optional, though it is present
   in most grid2op environment provided by default.
-- "**grid_layout.json**" (a file): gives, for each substation its coordinate *(x,y)* when plotted. It is optional, but
+- "**grid_layout.json**" (a file) [recommended]: gives, for each substation its coordinate *(x,y)* when plotted. It is optional, but
   we
   strongly encourage to have such. Otherwise, some tools might not work (including all the tool to represent it, such
   as the renderer (`env.render`), the `EpisodeReplay` or even some other dependency package, such as Grid2Viz).
-
-It can of course contain other information, among them:
-
 - "**prods_charac.csv**" (file): [see :func:`grid2op.Backend.Backend.load_redispacthing_data` for a
   description of this file]
   This contains all the information related to "ramps", "pmin / pmax", etc. This file is optional (grid2op can
@@ -51,8 +52,8 @@ It can of course contain other information, among them:
   This is optional if you don't have any storage units on the grid but required if there are (otherwise a
   `BackendError` will be raised).
 - "**difficulty_levels.json**" (file): This file is useful is you want to define different "difficulty" for your
-  environment. It should be a valid json with keys being difficulty levels ("0" for easiest to "1", "2", "3", "4", "5",
-  ..., "10", ..., "100", ... or "competition" for the hardest / closest to reality difficulty).
+  environment. It should be a valid json with keys being difficulty levels ("0" for easiest to "1", "2", "3", "4", "5"
+  , ..., "10", ..., "100", ... or "competition" for the hardest / closest to reality difficulty).
 
 And this is it for default environment.
 
@@ -89,7 +90,7 @@ And the list of environment that can be downloaded is given by:
     import grid2op
     grid2op.list_available_remote_env()
 
-In this case, remember that the data will be downloaded with:
+In this case, remember that the data will be downloaded in:
 
 .. code-block:: python
 
@@ -109,11 +110,10 @@ env name                          grid size     maintenance    opponent    redis
 :ref:`l2rpn_neurips_2020_track1`   36 sub.       ✔️  ️         ✔️ ️       ✔️ ️                 ❌
 :ref:`l2rpn_neurips_2020_track2`   118 sub.      ✔️  ️         ❌   ️         ✔️ ️                 ❌
 :ref:`l2rpn_icaps_2021`            36 sub.       ✔️  ️         ✔️ ️       ✔️ ️                 ❌
+:ref:`l2rpn_wcci_2022`             118 sub.      ✔️  ️         ✔️ ️       ✔️ ️                 ✔️ ️
 \* educ_case14_redisp \*           14 sub.       ❌️             ❌  ️ ️       ✔️ ️                 ❌
 \* educ_case14_storage \*          14 sub.       ❌️             ❌   ️         ✔️ ️                 ✔️
 \* rte_case5_example \*            5 sub.        ❌️             ❌  ️ ️        ❌ ️ ️                  ❌
-\* educ_case14_redisp \*           14 sub.       ❌️             ❌   ️         ✔️ ️                  ❌
-\* educ_case14_storage \*          14 sub.       ❌️             ❌  ️          ✔️      ️             ❌
 \* rte_case14_opponent \*          14 sub.       ❌️             ✔️ ️        ❌ ️ ️                  ❌
 \* rte_case14_realistic \*         14 sub.       ❌️             ❌ ️  ️        ✔️      ️             ❌
 \* rte_case14_redisp \*            14 sub.       ❌️             ❌ ️  ️        ✔️ ️                  ❌
@@ -194,6 +194,46 @@ This grid looks like:
 
 |l2rpn_case14_sandbox_layout|
 
+
+.. _l2rpn_wcci_2022_dev:
+
+l2rpn_wcci_2022
+++++++++++++++++
+
+This environment will come in two "variations":
+
+- `l2rpn_wcci_2022_dev`: development version (might not be totally finished at time of writing), to be used for
+  test only, only a few snapshots are available.
+- `l2rpn_wcci_2022` : (equivalent of 32 years of powergrid data at 5 mins interval) weights ~1.7 GB
+
+You have the possibility, provided that you installed `chronix2grid` (with `pip install grid2op[chronix2grid]`), to generate as
+much data as you want with the :func:`grid2op.Environment.Environment.generate_data` function. See its documentation for more information.
+
+.. code-block:: python
+
+    import grid2op
+    env_name  = "l2rpn_wcci_2022"
+    env = grid2op.make(env_name)
+
+It counts 118 substations, 186 powerlines, 91 loads and 62 loads. It will be used for the L2RPN competitions at WCCI in 2022.
+
+|l2rpn_wcci_2022_layout|
+
+You can add as many chronics as you want to this environment with the code:
+
+.. code-block:: python
+
+    import grid2op
+    env_name  = "l2rpn_wcci_2022"
+    env = grid2op.make(env_name)
+
+    nb_year = 1 # or any postive integer
+    env.generate_data(nb_year=nb_year)
+
+It might take a while (so we advise you to get a nice cup of tea, coffee or anything)
+and will only work if you installed chronix2grid package.
+
+
 .. _l2rpn_icaps_2021:
 
 l2rpn_icaps_2021
@@ -217,7 +257,10 @@ We recommend to create this environment with:
 
 It is based on the same powergrid as the :ref:`l2rpn_neurips_2020_track1` environment
 and was used for the L2RPN ICAPS 2021 competition. It counts 36 substations, 59
-powerlines, 22 generators and 37 loads.
+powerlines, 22 generators and 37 loads (some of which represents interconnection with 
+another grid).
+
+|l2rpn_neurips_2020_track1_layout|
 
 
 .. _l2rpn_neurips_2020_track1:
@@ -245,7 +288,8 @@ It was the environment used as a training set of the neurips 2020 "L2RPN" compet
 see https://competitions.codalab.org/competitions/25426 .
 
 This environment is part of the IEEE 118 grid, where some generators have been added. It counts 36 substations, 59
-powerlines, 22 generators and 37 loads. The grid is represented in the figure below:
+powerlines, 22 generators and 37 loads (some of which represents interconnection with 
+another grid). The grid is represented in the figure below:
 
 |l2rpn_neurips_2020_track1_layout|
 

@@ -90,8 +90,8 @@ class RedispReward(BaseReward):
         0.015
     )  # least_losses = least_losses_ratio * least_loads
 
-    def __init__(self):
-        BaseReward.__init__(self)
+    def __init__(self, logger=None):
+        BaseReward.__init__(self, logger=logger)
         self.reward_min = None
         self.reward_max = None
         self.max_regret = dt_float(0.0)

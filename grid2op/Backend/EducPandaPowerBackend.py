@@ -28,7 +28,7 @@ class EducPandaPowerBackend(Backend):
 
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        This class do not work.
+        This class does not work.
 
         It is mainly presented for educational purpose as example on coding your own backend.
 
@@ -62,7 +62,9 @@ class EducPandaPowerBackend(Backend):
 
     """
 
-    def __init__(self, detailed_infos_for_cascading_failures=False):
+    def __init__(self,
+                 detailed_infos_for_cascading_failures=False,
+                 can_be_copied=True):
         """
         Nothing much to do here except initializing what you would need (a tensorflow session, link to some
         external dependencies etc.)
@@ -77,6 +79,11 @@ class EducPandaPowerBackend(Backend):
         Backend.__init__(
             self,
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+            can_be_copied=can_be_copied,
+            # extra arguments that might be needed for building such a backend 
+            # these extra kwargs will be stored (without copy) in the
+            # base class and used when another backend will be created
+            # for example in the Runner class.
         )
         warnings.warn(
             "This backend is used for demonstration purpose only, you should not use it under any "
@@ -200,7 +207,7 @@ class EducPandaPowerBackend(Backend):
         self._compute_pos_big_topo()  # we highly recommend you to call this !
 
         # and now the thermal limit
-        self.thermal_limit_a = 1000 * np.concatenate(
+        self.thermal_limit_a = 1000. * np.concatenate(
             (
                 self._grid.line["max_i_ka"].values,
                 self._grid.trafo["sn_mva"].values
@@ -211,8 +218,8 @@ class EducPandaPowerBackend(Backend):
 
         # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
         # neither shunt nor storage unit.
-        self.shunts_data_available = False
-        self.set_no_storage()
+        type(self).shunts_data_available = False
+        type(self).set_no_storage()
 
     ###### modify the grid
     def apply_action(self, backendAction=None):
@@ -398,14 +405,6 @@ class EducPandaPowerBackend(Backend):
                 1 if bus_id == self.load_to_subid[i] else 2
             )
             i += 1
-
-        # do not forget storage units !
-        i = 0
-        for bus_id in self._grid.storage["bus"].values:
-            res[self.storage_pos_topo_vect[i]] = (
-                1 if bus_id == self.storage_to_subid[i] else 2
-            )
-            i += 1
         return res
 
     def generators_info(self):
@@ -433,7 +432,7 @@ class EducPandaPowerBackend(Backend):
         ].values.astype(
             dt_float
         )  # in pu
-        load_v *= self._grid.res_bus.loc[self._grid.load["bus"].values][
+        load_v *= self._grid.bus.loc[self._grid.load["bus"].values][
             "vn_kv"
         ].values.astype(
             dt_float

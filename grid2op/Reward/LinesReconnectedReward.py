@@ -37,8 +37,8 @@ class LinesReconnectedReward(BaseReward):
 
     """
 
-    def __init__(self):
-        BaseReward.__init__(self)
+    def __init__(self, logger=None):
+        BaseReward.__init__(self, logger=logger)
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(1.0)
         self.penalty_max_at_n_lines = dt_float(2.0)

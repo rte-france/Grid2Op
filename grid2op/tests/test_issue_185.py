@@ -88,6 +88,7 @@ class Issue185Tester(unittest.TestCase):
                 warnings.filterwarnings("ignore")
                 with grid2op.make(env_name, test=True) as env:
                     gym_env = GymEnv(env)
+                    gym_env.observation_space.close()
                     gym_env.observation_space = BoxGymObsSpace(
                         gym_env.init_env.observation_space
                     )

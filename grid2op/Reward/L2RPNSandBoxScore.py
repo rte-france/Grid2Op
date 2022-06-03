@@ -17,7 +17,7 @@ class L2RPNSandBoxScore(BaseReward):
     INTERNAL
 
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-            It **must not** serve as a reward. This scored needs to be minimized,
+            It **must not** serve as a reward. This scored needs to be **MINIMIZED**,
             and a reward needs to be maximized! Also, this "reward" is not scaled or anything. Use it as your
             own risk.
 
@@ -28,44 +28,76 @@ class L2RPNSandBoxScore(BaseReward):
 
     """
 
-    def __init__(self, alpha_redisph=1.0, reward_max=1000.):
-        BaseReward.__init__(self)
+    def __init__(self,
+                 alpha_redisp=1.0,
+                 alpha_loss=1.0,
+                 alpha_storage=1.0,
+                 reward_max=1000.,
+                 logger=None):
+        BaseReward.__init__(self, logger=logger)
         self.reward_min = dt_float(1.0)  # carefull here between min and max...
         self.reward_max = dt_float(reward_max)
-        self.alpha_redisph = dt_float(alpha_redisph)
+        self.alpha_redisp = dt_float(alpha_redisp)
+        self.alpha_loss = dt_float(alpha_loss)
+        self.alpha_storage = dt_float(alpha_storage)
 
     def initialize(self, env):
         # TODO compute reward max! 
         return super().initialize(env)
+    
+    def _get_load_p(self, env):
+        load_p, *_ = env.backend.loads_info()
+        return load_p
+    
+    def _get_gen_p(self, env):
+        gen_p, *_ = env.backend.generators_info()
+        return gen_p
+    
+    def _get_losses(self, env, gen_p, load_p):
+        return (np.sum(gen_p, dtype=dt_float) - np.sum(load_p, dtype=dt_float)) * env.delta_time_seconds / 3600.0
+    
+    def _get_marginal_cost(self, env):
+        gen_activeprod_t = env._gen_activeprod_t
+        p_t = np.max(env.gen_cost_per_MW[gen_activeprod_t > 0.0]).astype(dt_float)  
+        # price is per MWh be sure to convert the MW (of losses and generation) to MWh before multiplying by the cost 
+        return p_t
+    
+    def _get_redisp_cost(self, env, p_t):
+        actual_dispatch = env._actual_dispatch
+        c_redispatching = (
+            dt_float(2.0) * np.sum(np.abs(actual_dispatch)) * p_t * env.delta_time_seconds / 3600.0
+        )
+        return c_redispatching
+
+    def _get_loss_cost(self, env, p_t):
+        gen_p = self._get_gen_p(env)
+        load_p = self._get_load_p(env)
+        losses = self._get_losses(env, gen_p, load_p)
+        c_loss = losses * p_t
+        return c_loss
+        
+    def _get_storage_cost(self, env, p_t):
+        c_storage = np.sum(np.abs(env._storage_power)) * p_t * env.delta_time_seconds / 3600.0
+        return c_storage
     
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error:
             # DO SOMETHING IN THIS CASE
             return self.reward_min
 
-        # compute the losses
-        gen_p, *_ = env.backend.generators_info()
-        load_p, *_ = env.backend.loads_info()
-        losses = (np.sum(gen_p, dtype=dt_float) - np.sum(load_p, dtype=dt_float)) * env.delta_time_seconds / 3600.0
-
         # compute the marginal cost
-        gen_activeprod_t = env._gen_activeprod_t
-        p_t = np.max(env.gen_cost_per_MW[gen_activeprod_t > 0.0]).astype(dt_float)  
-        # price is per MWh be sure to convert the MW (of losses and generation) to MWh before multiplying by the cost 
+        p_t = self._get_marginal_cost(env)
         
         # redispatching amount
-        actual_dispatch = env._actual_dispatch
-        c_redispatching = (
-            dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(actual_dispatch)) * p_t * env.delta_time_seconds / 3600.0
-        )
-
+        c_redispatching = self._get_redisp_cost(env, p_t)
+        
         # cost of losses
-        c_loss = losses * p_t
-
+        c_loss = self._get_loss_cost(env, p_t)
+        
         # storage units
-        c_storage = np.sum(np.abs(env._storage_power)) * p_t * env.delta_time_seconds / 3600.0
+        c_storage = self._get_storage_cost(env, p_t)
         
         # total "operationnal cost"
-        c_operations = dt_float(c_loss + c_redispatching + c_storage)
+        c_operations = dt_float(self.alpha_loss * c_loss + self.alpha_redisp * c_redispatching + self.alpha_storage * c_storage)
 
         return c_operations

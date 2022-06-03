@@ -24,10 +24,14 @@ import pdb
 class TestSuitePandaPowerBackend(PandaPowerBackend):
     """Only work for the case 14 !!!"""
 
-    def __init__(self, detailed_infos_for_cascading_failures=False):
+    def __init__(self, detailed_infos_for_cascading_failures=False,
+                 can_be_copied=True,
+                 **kwargs):
         PandaPowerBackend.__init__(
             self,
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+            can_be_copied=can_be_copied,
+            **kwargs
         )
         # just for the test
         self._nb_bus_before_for_test = 14
@@ -186,7 +190,9 @@ class TestXXXBus(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.envref = grid2op.make(
-                "rte_case14_realistic", test=True, _add_to_name="test_get_xxx_bus_ref"
+                "rte_case14_realistic",
+                test=True,
+                _add_to_name="test_get_xxx_bus_ref"
             )
         seed = 0
         self.nb_test = 10

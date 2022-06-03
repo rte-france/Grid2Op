@@ -114,10 +114,15 @@ class PandaPowerBackend(Backend):
         ligthsim2grid=False,  # use lightsim2grid as pandapower powerflow solver
         dist_slack=False,
         max_iter=10,
+        can_be_copied=True,
     ):
         Backend.__init__(
             self,
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+            can_be_copied=can_be_copied,
+            ligthsim2grid=ligthsim2grid,
+            dist_slack=dist_slack,
+            max_iter=max_iter
         )
         self.prod_pu_to_kv = None
         self.load_pu_to_kv = None

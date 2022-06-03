@@ -37,8 +37,8 @@ class ConstantReward(BaseReward):
 
     """
 
-    def __init__(self):
-        BaseReward.__init__(self)
+    def __init__(self, logger=None):
+        BaseReward.__init__(self, logger=logger)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         return dt_float(0.0)
