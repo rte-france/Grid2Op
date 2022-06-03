@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.7.1] - 2022-xx-yy
+[1.7.1] - 2022-06-yy
 -----------------------
 - [BREAKING] The possibility to propagate keyword arguments between the environment
   and the runner implied adding some arguments in the constructor of 
@@ -50,6 +50,7 @@ Change Log
   same as the environment names (attempt to delete a non existing folder). This 
   is the case for `l2rpn_wcci_2022` env. For this env, your are forced to use
   grid2op version >= 1.7.1
+- [ADDED] score function for the L2RPN WCCI 2022 competition
 - [IMPROVED] adding the compatibility with logger in the reward functions.
 - [IMPROVED] when there is a game over caused by redispatching, the observation is
   not updated, as it is the case for other type of game over (improved consistency)
