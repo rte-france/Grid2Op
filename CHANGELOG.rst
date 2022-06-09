@@ -35,6 +35,7 @@ Change Log
 [1.7.2] - 2022-xx-yy
 --------------------
 - [FIXED] seeding issue https://github.com/rte-france/Grid2Op/issues/331
+- [FIXED] clarify doc about fixed size matrices / graphs https://github.com/rte-france/Grid2Op/issues/330
 - [IMPROVED] possibility to pass the env variable `_GRID2OP_FORCE_TEST` to force the flag
    of "test=True" when creating an environment. This is especially useful when testing to prevent
    downloading of data.

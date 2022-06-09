@@ -1565,6 +1565,14 @@ class BaseObservation(GridObjects):
         If `bus_connectivity_matrix[i,j] = 1` then at least a power line connects bus i and bus j.
         Otherwise, nothing connects it.
 
+        .. warning::
+            The matrix returned by this function has not a fixed size. Its
+            number of nodes and edges can change depending on the state of the grid.
+            See :ref:`get-the-graph-gridgraph` for more information.
+            
+            Also, note that when "done=True" this matrix has size (1, 1)
+            and contains only 0.
+            
         Parameters
         ----------
         as_csr_matrix: ``bool``
@@ -1696,6 +1704,14 @@ class BaseObservation(GridObjects):
         The other  element of each **row** of this matrix will be the flow of power from the bus represented
         by the line i to the bus represented by column j.
 
+        .. warning::
+            The matrix returned by this function has not a fixed size. Its
+            number of nodes and edges can change depending on the state of the grid.
+            See :ref:`get-the-graph-gridgraph` for more information.
+            
+            Also, note that when "done=True" this matrix has size (1, 1)
+            and contains only 0.
+            
         Notes
         ------
         When the observation is in a "done" state (*eg* there has been a game over) then this function returns a 
@@ -1971,6 +1987,14 @@ class BaseObservation(GridObjects):
             injected at node 6 from this edge will be *p_or*) and the "extremity" side is bus 8
             (**eg** the active power injected at node 8 from this edge will be *p_ex*).
 
+        .. warning::
+            The graph returned by this function has not a fixed size. Its
+            number of nodes and edges can change depending on the state of the grid.
+            See :ref:`get-the-graph-gridgraph` for more information.
+            
+            Also, note that when "done=True" this graph has only one node and
+            no edge.
+            
         .. note::
             The graph returned by this function is "frozen" to prevent its modification. If you really want to modify
             it you can "unfroze" it.

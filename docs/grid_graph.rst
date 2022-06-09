@@ -366,8 +366,7 @@ You can retrieve it with:
 
 This graph varies in size: the number of nodes on this graph is the number of bus on the grid !
 
-Effect of an action on this graph
-----------------------------------------------------------------
+Effect of an action on this graph:
 
 Now, let's do a topological action on this graph, and print the results:
 
@@ -502,3 +501,4 @@ In the mean time, some documentation are available at :func:`grid2op.Observation
     This graph is not represented as a networkx graph, but rather as a (sparse) matrix.
 
 .. include:: final.rst
+  
