@@ -31,6 +31,14 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+
+[1.7.2] - 2022-xx-yy
+--------------------
+- [FIXED] seeding issue https://github.com/rte-france/Grid2Op/issues/331
+- [IMPROVED] possibility to pass the env variable `_GRID2OP_FORCE_TEST` to force the flag
+   of "test=True" when creating an environment. This is especially useful when testing to prevent
+   downloading of data.
+
 [1.7.1] - 2022-06-03
 -----------------------
 - [BREAKING] The possibility to propagate keyword arguments between the environment

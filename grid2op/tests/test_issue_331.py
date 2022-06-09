@@ -12,15 +12,17 @@ import unittest
 import grid2op
 from grid2op.Exceptions import Grid2OpException
 
+
 class Issue331Tester(unittest.TestCase):
     def test_seed(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            
         with self.assertRaises(Grid2OpException):
             env.seed(2735729614)  # crashes !
             
-        env.seed(2147483647)
+        env.seed(2147483647)  # just the limit
         
         with self.assertRaises(Grid2OpException):
             env.seed(2147483648)  # crashes !
