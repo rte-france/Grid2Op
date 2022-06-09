@@ -1187,9 +1187,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed. You cannot use it anymore.")
-
-        if seed is None:
-            self.logger.warn("env.seed(None) has no effect. Please use a valid seed.")
         
         seed_init = None
         seed_chron = None
@@ -1199,11 +1196,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         seed_volt_cont = None
         seed_opponent = None
             
-        max_int = np.iinfo(dt_int).max
-        if seed > max_int:
-            raise Grid2OpException("Seed is too big. Max value is {}, provided value is {}".format(max_int, seed))
-        
         if _seed_me:
+            max_int = np.iinfo(dt_int).max 
+            if seed > max_int:
+                raise Grid2OpException("Seed is too big. Max value is {}, provided value is {}".format(max_int, seed))
+
             try:
                 seed = np.array(seed).astype(dt_int)
             except Exception as exc_:
