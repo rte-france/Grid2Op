@@ -35,8 +35,11 @@ Description of a powergrid adopting the "graph" representation
 A powergrid can be represented as a "graph" (in the mathematical meaning) where:
 
 - nodes / vertices are represented by "buses" (or "busbars"): that is the place that different elements of the grid
-  are interconnected
-- links / edges are represented by "powerlines".
+  are interconnected. Only "connected" buses are represented in this graph. This means that if no element (*eg* no lines, 
+  no loads, no generators, no storage units etc.) is connected to a busbar, then it will not be present in this graph.
+- links / edges are represented by "powerlines". Usually, for a graph, it is convenient that there is no "parallel edges".
+  This is a property we want to ensure here and this is why when there is 2 powerlines connecting the same buses, they are 
+  merged into one edges in this graph.
 
 Nodes attributes
 ~~~~~~~~~~~~~~~~~~
@@ -85,11 +88,23 @@ The edges of this graph have attributes:
 - "theta_or": (optional) the voltage angle at the origin side of the powerline
 - "theta_ex": (optional) the voltage angle at the extremity side of the powerline
 
-**NB** A convention needs to be chosen (without loss of generality) for the orientation of the powerlines. When
-adopting the "graph representation" powerlines are oriented in this manner: if a powerline is connected at substation
-`j` on one side and at substation `k` on the other and `j < k`, then its origin side will be on the `j` side
-and its extremity side will be attached to `k`. To make it clear: if a powerline connects substation 12 to 14, then
-its origin side will be connected to 12 and it's origin side to 14.
+.. warning::
+  A convention needs to be chosen (without loss of generality) for the orientation of the powerlines. When
+  adopting the "graph representation" powerlines are oriented in this manner: if a powerline is connected at substation
+  `j` on one side and at substation `k` on the other and `j < k`, then its origin side will be on the `j` side
+  and its extremity side will be attached to `k`. To make it clear: if an edges connects substation 12 to 14, then
+  its origin side will be connected to 12 and it's origin side to 14.
+
+.. alertblock::
+  The size of this graph (both numuber of edges and number of nodes) can change during the same episode. This will be
+  the case if you perform a topological action (for example assigning some elements to the busbar 2 of a substation and
+  no elements were connected to this busbar beforehand): in this case, the graph will count one more node.
+
+.. warning::
+  By convention, if the observation corresponds to a "game over", then this graph will have only one node and no edge at all.
+
+  This is a convention made in grid2op to ensure some properties about the returned value of the function `obs.as_networkx()`.
+  Mathematically speaking, in such case, the graph would be empty (no connected bus).
 
 Some clarifications
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,14 +131,15 @@ Physical equations
 +++++++++++++++++++++
 All these variables are not independant from one another regardless of the "power system modeling" adopted.
 
-Generally speaking:
+Generally speaking, the graph meets the KCL (Kirchhoff Current Law):
 
 - if you know "v" and "theta" at both sides of the powerline, you can deduce all the "p_or", "q_or",
-  "v_or", "theta_or", "p_ex", "q_ex", "v_ex" and "theta_ex"
--  at each bus, the sum of all the "p_or" and "p_ex" and "p" is equal to 0.
+  "v_or", "theta_or", "p_ex", "q_ex", "v_ex" and "theta_ex" (knowing some "physical" parameters of the powerlines 
+  that are not known directly in the grid2op observation but are "somewhere" in the backend.)
+- at each bus, the sum of all the "p_or" and "p_ex" and "p" is equal to 0.
 - at each bus, the sum of all the "q_or" and "q_ex" and "q" is equal to 0.
 
-Actually, it is by solving these constraints that everything is computed.
+Actually, it is by solving these constraints that "everything" is computed by the backend.
 
 .. note::
 
@@ -145,26 +161,33 @@ The grid is immutable
 +++++++++++++++++++++++
 Grid2op aims at modeling grid2op operation close to real time.
 
-This is why the powergrid is considered as "fixed" or "immutable". For example, if for a given environment load
+This is why the powergrid is considered as "fixed" or "immutable" (in the sense that you cannot build new equipment). 
+For example, if for a given environment load
 with id `j` is connected to substation with id `k` then for all the episodes on this environment, this will
-be the case (load cannot be magically connected to another substation).
+be the case (load cannot be magically connected to another substation), but of course, in this case, this load 
+can be switched to either busbar 1 or busbar 2 of its substation `k`. 
 
 This is a property of power system: a load representing a city, in real time, it is not possible to move completly
-a city from one place of a state to another. And even if it was possible, it is definitely not desirable.
+a city from one place of a State to another. And even if it was possible, it is definitely not desirable (imagine the 
+situation: you get back from work to your home, but your house has moved 250km / 200 miles North ...)
 
 This applies to all elements of the grid. For the same environment:
 
-- load will always be connected at the same substation
-- generator will always be connected at the same substation
-- storage units will always be connected at the same substation
+- no load will appear / disappear on the grid (=> `type(env).n_load` never change)
+- load will always be connected at the same substation (=> `type(env).load_to_subid` never change)
+- no generator will appear / disappear on the grid (=> `type(env).n_gen` never change)
+- generator will always be connected at the same substation  (=> `type(env).gen_to_subid` never change)
+- no storage units will appear / disappear on the grid (=> `type(env).n_storage` never change)
+- storage units will always be connected at the same substation (=> `type(env).storage_to_subid` never change)
+- no powerline will appear / disappear on the grid (=> `type(env).n_line` never change)
 - powerlines will always connects the same substations, and in this case, grid2op also offer the guarantee that
   origin side will always be connected at the same substation AND extremity side will always be connected at
   the same substation. In other words, the orientation convention adopted to define "origin side" and
-  "extremity side" is part of the environment.
+  "extremity side" is part of the environment. (=> `type(env).line_or_to_subid` and `type(env).line_ex_to_subid` never change)
 
 .. warning::
 
-    If you decide to code a new Backend class, then you need to meet this property. Otherwise things might break.
+    If you decide to code a new `Backend` class, then you need to meet this property. Otherwise things might break.
 
 Not everything can be connected together
 +++++++++++++++++++++++++++++++++++++++++++
@@ -176,12 +199,13 @@ production unit at the South West of the same sate.
 To adopt a more precise vocabulary, only elements (load, generator, storage unit, origin side of a powerline,
 extremity side of a powerline) that are at the same substation can be directly connected together.
 
-If an element of the grid is connected at substation `j` and another one at substation `k` for a given environment,
-in absolutely no circumstances these two objects can be directly connected together, they will never be connected at
-the same bus.
+If an element of the grid is connected at substation `j` and another one at substation `k` (with `j` different `k`) 
+for a given environment, in absolutely no circumstances these two objects can be directly connected together, 
+they will never be connected at the same bus.
 
 To state this constraint a bit differently, a substation can be split in independent buses (multiple nodes
-at the same substation) but a nodes can only connect elements of the same substation.
+at the same substation) but a bus can only connect elements of the same substation: substation `j` and 
+substation `k` (with `j` different `k`) will never have a "bus" in common.
 
 .. note::
 
@@ -189,16 +213,18 @@ at the same substation) but a nodes can only connect elements of the same substa
     given substation at time of writing (April 2021).
 
     Changing this would not be too difficult on grid2op side, but would make the action space even bigger. If you
-    really need to use more than 2 buses at the same substation, do not hesitate to fill a feature request.
+    really need to use more than 2 buses at the same substation, do not hesitate to fill a feature request: 
+    https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=
+
 
 The graph is dynamic
 ++++++++++++++++++++++
 Even though an element is always, under all circumstances, connected at the same substation, it can be connected
-at different buses (of this substation) at different step. This is even the main "flexibility" that is studied
+at different buses (of its substation) at different step. This is even the main "flexibility" that is studied
 with grid2op.
 
 This implies that "the" graph representing the powergrid does not always have the same number of nodes depending
-on the time, nor the same number of edges, for example if powerlines are disconnected.
+on the step, nor the same number of edges, for example if powerlines are disconnected.
 
 .. note::
 
@@ -213,17 +239,19 @@ on the time, nor the same number of edges, for example if powerlines are disconn
     powergrid. The removal of breaker is another simplification made for clarity.
 
     If you want to model these, it is perfectly possible without too much trouble. You can fill a feature request
-    for this if that is interesting to you.
+    for this if that is interesting to you :
+    https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=
 
-.. note::
+.. warning::
 
-    The graph of the grid has also the property that more than one edge can connect the same pair of buses (it is
-    the case for parallel powerlines)
+    The graph of the grid has also the property that more than one powerline can connect the same pair of buses (it is
+    the case for parallel powerlines). In this case, these powerlines are "merged" together to get a graph without 
+    parralel edges.
 
 Wrapping it up
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The "sequential decision making" modeled by the grid2op aims then at finding good actions to keep the grid in safety
-(flows <= thermal limits on all powerlines) while allowing consumer to consume as much power as they want.
+(`flows <= thermal limits` on all powerlines) while allowing consumer to consume as much power as they want.
 
 The possible actions are:
 
@@ -231,6 +259,7 @@ The possible actions are:
 - changing the "topology" of some substations, which consists in merging or splitting buses at some substations
 - changing the amount of power some storage units produce / absorb
 - changing the production setpoint of the generators (aka redispatching or curtailment)
+- producing or absorbing power from storage units.
 
 For more information, technical details are provided in page :ref:`action-module`
 
@@ -270,8 +299,8 @@ And then, in the observation, you can retrieve the state of each object in the "
 (see :attr:`grid2op.Observation.BaseObservation.topo_vect` for more information).
 
 As an exemple, say `obs.topo_vect[42] = 2` it means that the "42nd" element (remember in python index are 0 based,
-this is why i put quote on "42nd", this is actually the 43rd... but writing 43rd is more confusing, so we will
-stick to "42nd") of the grid is connected to bus 2.
+this is why I put quote on "42nd", this is actually the 43rd... but writing 43rd is more confusing, so we will
+stick to "42nd") of the grid is connected to busbar 2 at its substation.
 
 To know what element of the grid is the "42nd", you can:
 
@@ -286,6 +315,12 @@ To know what element of the grid is the "42nd", you can:
    is not of that type, and otherwise and id > 0. Taking the same example as for the above bullet point!
    `env.grid_objects_types[42,:] = [sub_id, -1, -1, -1, line_id, -1]` meaning the "42nd" element of the grid
    if the extremity end (because it's the 5th column) of id `line_id` (the other element being marked as "-1").
+
+.. note::
+  As of a few versions of grid2op, if you are interested at the busbar to which (say) load 5 is connected, then Instead
+  of having to write `obs.topo_vect[obs.load_pos_topo_vect[5]]` you can directly call `obs.load_bus[5]` (the same applies
+  naturally to the other types of objects: *eg* `obs.gen_bus[...]`, `obs.line_or_bus` etc.).
+
 
 .. _get-the-graph-gridgraph:
 
@@ -333,8 +368,17 @@ Graph1: the "normal graph"
 Because we don't really find fancy name for it, let's call it the "normal" graph of the grid. This graph, you
 might have guessed is the graph defined at the very top of this page of the documentation.
 
-Each edge is a powerline and each node is a "bus" (remember: by definition two objects are directly
+Each edge is "a" powerline and each node is a "bus" (remember: by definition two objects are directly
 connected together if they are connected at the same "bus").
+
+.. note:: 
+  As stated in the first paragraph of this page:
+  
+  - an edge of this graph is actually made of multiple powerline "fused" together to avoid issues with "parallele edge"
+  - if a bus is disconnected, it is not present on this graph. The number of nodes can change.
+  - this graph should be "empty" if the observation comes from a "game over", but it is actually a graph with no
+    edge and one single node.
+     
 
 This graph can be retrieved using the `obs.as_networkx()` command that returns a networkx graph for the entire
 observation, that has all the attributes described in :ref:`powersystem-desc-gridgraph`.
@@ -359,14 +403,7 @@ You can retrieve it with:
     first_edge = next(iter(state_as_graph.edges))
     print(state_as_graph.edges[first_edge])
 
-.. note::
-
-    The main difference with the "graph of the grid" showed in the first section is that it is a "simple
-    graph" (as opposed to "multi graph"): two parallel edges are merged together.
-
 This graph varies in size: the number of nodes on this graph is the number of bus on the grid !
-
-Effect of an action on this graph:
 
 Now, let's do a topological action on this graph, and print the results:
 
@@ -450,14 +487,14 @@ And this gives:
 |grid_graph_1| |grid_graph_2|
 
 As you see, this action have for effect to split the substation 4 on 2 independent buses (one where there are
-the two red powerline, another where there are the two green)
+the two red powerlines, another where there are the two green)
 
 .. note::
 
     On this example, for this visualization, lots of elements of the grid are not displayed. This is the case
     for the load, generator and storage units for example.
 
-    For an easier to read (and to get! ) representation, feel free to consult the :ref:`grid2op-plot-module`
+    For an easier to read representation, feel free to consult the :ref:`grid2op-plot-module`
 
 .. _graph2-gg:
 
@@ -486,7 +523,9 @@ In the mean time, some documentation are available at :func:`grid2op.Observation
 
     This graph is not represented as a networkx graph, but rather as a symmetrical (sparse) matrix.
 
-    It has no information about flows, but simply about the presence / abscence of powerlines between two buses.
+    It has no information about flows, but simply about the presence / abscence of powerlines between two buses. 
+    
+    Its size can change.
 
 .. _graph4-gg:
 
@@ -499,6 +538,8 @@ In the mean time, some documentation are available at :func:`grid2op.Observation
 .. note::
 
     This graph is not represented as a networkx graph, but rather as a (sparse) matrix.
+
+    Its size can change.
 
 .. include:: final.rst
   
