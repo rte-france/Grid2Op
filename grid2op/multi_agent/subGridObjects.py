@@ -24,6 +24,9 @@ class SubGridObjects(GridObjects) :
     n_line_or = -1
     n_line_ex = -1
     
+    interco_to_subid = None
+    interco_to_lineid = None
+    
     def __init__(self):
         super().__init__()
         
