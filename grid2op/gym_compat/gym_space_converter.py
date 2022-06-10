@@ -105,6 +105,8 @@ class _BaseGymSpaceConverter(spaces.Dict):
                     if self._keys_encoding[conv_k] is None:
                         # keys is deactivated
                         continue
+                    elif isinstance(self._keys_encoding[conv_k], spaces.Space):
+                        obj_json_cleaned = getattr(obj, conv_k)
                     else:
                         # i need to process the "function" part in the keys
                         obj_json_cleaned = self._keys_encoding[conv_k].g2op_to_gym(

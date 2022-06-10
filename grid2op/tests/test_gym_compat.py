@@ -88,7 +88,7 @@ class TestGymCompatModule(unittest.TestCase):
                 for el in env_gym.observation_space.spaces
             ]
         )
-        size_th = 459
+        size_th = 536  # as of grid2Op 1.7.1 (where all obs attributes are there)
         assert (
             dim_obs_space == size_th
         ), f"Size should be {size_th} but is {dim_obs_space}"
@@ -1814,7 +1814,79 @@ class TestGOObsInRange(unittest.TestCase):
         )
         assert done
         gym_obs = self.env_gym.observation_space.to_gym(obs)
-        assert gym_obs in self.env_gym.observation_space
+        for key in self.env_gym.observation_space.spaces.keys():
+            assert key in gym_obs, f"key: {key} no in the observation"
+        for key in gym_obs.keys():
+            assert gym_obs[key] in self.env_gym.observation_space.spaces[key], f"error for {key}"
+            
+
+class ObsAllAttr(unittest.TestCase):
+    def test_all_attr_in_obs(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("educ_case14_storage", test=True,
+                               action_class=PlayableAction)
+        gym_env = GymEnv(env)
+        obs = gym_env.reset()
+        all_attrs = ["year",
+                     "month",
+                     "day",
+                     "hour_of_day",
+                     "minute_of_hour",
+                     "day_of_week",
+                     "timestep_overflow",
+                     "line_status",
+                     "topo_vect",
+                     "gen_p",
+                     "gen_q",
+                     "gen_v",
+                     "gen_margin_up",
+                     "gen_margin_down",
+                     "load_p",
+                     "load_q",
+                     "load_v",
+                     "p_or",
+                     "q_or",
+                     "v_or",
+                     "a_or",
+                     "p_ex",
+                     "q_ex",
+                     "v_ex",
+                     "a_ex",
+                     "rho",
+                     "time_before_cooldown_line",
+                     "time_before_cooldown_sub",
+                     "time_next_maintenance",
+                     "duration_next_maintenance",
+                     "target_dispatch",
+                     "actual_dispatch",
+                     "storage_charge",
+                     "storage_power_target",
+                     "storage_power",
+                     "is_alarm_illegal",
+                     "time_since_last_alarm",
+                    #  "last_alarm",
+                    #  "attention_budget",
+                    #  "was_alarm_used_after_game_over",
+                     "_shunt_p",
+                     "_shunt_q",
+                     "_shunt_v",
+                     "_shunt_bus",
+                     "thermal_limit",
+                     "gen_p_before_curtail",
+                     "curtailment",
+                     "curtailment_limit",
+                     "curtailment_limit_effective",
+                     "theta_or",
+                     "theta_ex",
+                     "load_theta",
+                     "gen_theta",
+                     "storage_theta",
+                     "current_step",
+                     "max_step",
+                     "delta_time"]
+        for el in all_attrs:
+            assert el in obs.keys(), f"\"{el}\" not in obs.keys()"
 
 
 if __name__ == "__main__":

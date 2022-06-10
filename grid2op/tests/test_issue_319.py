@@ -60,5 +60,6 @@ class Issue319Tester(unittest.TestCase):
         assert np.all(self.env._backend_action.current_topo.values[self.env.line_or_pos_topo_vect[[10, 19]]] == -1)
         assert np.all(self.env._backend_action.current_topo.values[self.env.line_ex_pos_topo_vect[[10, 19]]] == -1)
     
+    
 if __name__ == '__main__':
     unittest.main()
