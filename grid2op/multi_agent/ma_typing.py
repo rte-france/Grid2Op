@@ -12,6 +12,6 @@ from grid2op.Action.BaseAction import BaseAction
 
 AgentID = str
 
-MADict = Dict[AgentID, Any]
-
 ActionProfile = Dict[AgentID, BaseAction]
+MADict = Dict[AgentID, Any]  # TODO slit it in more things to be more precise
+# this is close to useless this way

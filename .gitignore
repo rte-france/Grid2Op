@@ -354,6 +354,7 @@ bug_jan.py
 venv_test/
 getting_started/saved_agent_PPO_*_results/
 grid2op/data/**/_grid2op_classes/
+grid2op/multi_agent/my_test.py
 test_issue_glop.py
 
 # profiling files
