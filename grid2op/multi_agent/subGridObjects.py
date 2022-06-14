@@ -26,6 +26,11 @@ class SubGridObjects(GridObjects) :
     
     interco_to_subid = None
     interco_to_lineid = None
+    interco_to_sub_pos = None
+    interco_is_origine = None
+    interco_pos_topo_vect = None
+    name_interco = None
+    n_interco = -1
     
     def __init__(self):
         super().__init__()

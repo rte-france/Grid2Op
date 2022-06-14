@@ -328,8 +328,8 @@ class MultiAgentEnv :
         tmp_cls.n_gen = len(tmp_cls.name_gen)
         tmp_cls.n_load = len(tmp_cls.name_load)
         tmp_cls.n_line = len(tmp_cls.name_line)
-        tmp_cls.n_line_or = np.count_nonzero(tmp_cls.mask_line_or)
-        tmp_cls.n_line_ex = np.count_nonzero(tmp_cls.mask_line_ex)
+        #tmp_cls.n_line_or = np.count_nonzero(tmp_cls.mask_line_or)
+        #tmp_cls.n_line_ex = np.count_nonzero(tmp_cls.mask_line_ex)
         tmp_cls.n_sub = len(tmp_cls.name_sub)
         tmp_cls.n_storage = len(tmp_cls.name_storage)
 
