@@ -49,12 +49,35 @@ class MATester(unittest.TestCase):
         observation_domains = action_domains
         try:
             MultiAgentEnv(self.env, observation_domains, action_domains)
+            assert False
             
         except DomainException :
             assert True
-            return
+        
+        action_domains = {
+            'agent_0' : [0],
+            'agent_1' : [5,6,7,8,9,10,11,12,13]
+        }
+        observation_domains = action_domains
+        try:
+            MultiAgentEnv(self.env, observation_domains, action_domains)
+            assert False
             
-        assert False
+        except DomainException :
+            assert True
+            
+        action_domains = {
+            'agent_0' : [],
+            'agent_1' : list(range(self.env.n_sub))
+        }
+        observation_domains = action_domains
+        try:
+            MultiAgentEnv(self.env, observation_domains, action_domains)
+            assert False
+            
+        except DomainException :
+            assert True
+        
     
     # TODO Test in case subs are not connex
 
@@ -97,7 +120,7 @@ class MATester(unittest.TestCase):
         
         assert (self.ma_env._action_domains['agent_0']['interco_is_origin'] == [True, True, True]).all()
         assert (self.ma_env._action_domains['agent_1']['interco_is_origin'] == np.invert([True, True, True])).all()
-        
+                
         
     #def test_build_subgrids_observation_domains(self):
     #    """Tests that the observation_domains are correctly defined 
@@ -148,7 +171,44 @@ class MATester(unittest.TestCase):
         # TODO test that this function creates an object with the right
         # attributes and the right values from the action / observation
         # domain
-        pass
+        
+        # 1
+        action_domains = {
+            'agent_0' : [0,1,2,3, 4],
+            'agent_1' : [5,6,7,8,9,10,11,12,13]
+        }
+        observation_domains = {
+            'agent_0' : self.action_domains['agent_1'],
+            'agent_1' : self.action_domains['agent_0']
+        }
+        # run redispatch agent on one scenario for 100 timesteps
+        ma_env = MultiAgentEnv(self.env, observation_domains, action_domains)
+        
+        assert ma_env._subgrids_cls['action']['agent_0'].n_gen +  ma_env._subgrids_cls['action']['agent_1'].n_gen == self.env.n_gen
+        assert ma_env._subgrids_cls['action']['agent_0'].n_load +  ma_env._subgrids_cls['action']['agent_1'].n_load == self.env.n_load
+        assert ma_env._subgrids_cls['action']['agent_0'].n_interco ==  ma_env._subgrids_cls['action']['agent_1'].n_interco
+        assert ma_env._subgrids_cls['action']['agent_0'].n_line \
+            + ma_env._subgrids_cls['action']['agent_1'].n_line \
+            + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
+            
+        # 2
+        action_domains = {
+            'agent_0' : [0,1,6,3, 4],
+            'agent_1' : [5,2,7,8,9,10,11,12,13]
+        }
+        observation_domains = {
+            'agent_0' : self.action_domains['agent_1'],
+            'agent_1' : self.action_domains['agent_0']
+        }
+        # run redispatch agent on one scenario for 100 timesteps
+        ma_env = MultiAgentEnv(self.env, observation_domains, action_domains)
+        
+        assert ma_env._subgrids_cls['action']['agent_0'].n_gen +  ma_env._subgrids_cls['action']['agent_1'].n_gen == self.env.n_gen
+        assert ma_env._subgrids_cls['action']['agent_0'].n_load +  ma_env._subgrids_cls['action']['agent_1'].n_load == self.env.n_load
+        assert ma_env._subgrids_cls['action']['agent_0'].n_interco ==  ma_env._subgrids_cls['action']['agent_1'].n_interco
+        assert ma_env._subgrids_cls['action']['agent_0'].n_line \
+            + ma_env._subgrids_cls['action']['agent_1'].n_line \
+            + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
     
     def test_action_space(self):
         """test for the action spaces created for agents
@@ -190,14 +250,14 @@ class MATester(unittest.TestCase):
         except Exception as e:
             assert False
         
-        try:
-            #action on an interconnection
-            print(self.ma_env.action_spaces['agent_0']({
-                'change_bus' : self.ma_env.action_spaces['agent_0'].interco_pos_topo_vect[0]
-            }))
-            assert True
-        except Exception as e:
-            assert False
+        #try:
+        #    #action on an interconnection
+        #    print(self.ma_env.action_spaces['agent_0']({
+        #        'change_bus' : self.ma_env.action_spaces['agent_0'].interco_pos_topo_vect[0]
+        #    }))
+        #    assert True
+        #except Exception as e:
+        #    assert False
     
 if __name__ == "__main__":
     unittest.main()

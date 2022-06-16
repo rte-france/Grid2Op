@@ -591,22 +591,30 @@ class MultiAgentEnv :
                 - key : agents' names
                 - value : list of substation ids
         """
+        sum_subs = 0
         for agent in domains.keys():
             if not (isinstance(domains[agent], list)
                     or isinstance(domains[agent], set)
                     or isinstance(domains[agent], np.ndarray)
             ):
                 raise DomainException("The domain must be a list or a set of substation indices")
+            
+            if len(domains[agent]) == 0:
+                raise DomainException(f"{agent} : The domain is empty !")
+            
             for sub_id in domains[agent] : 
                 if not (isinstance(sub_id, int) 
                         or isinstance(sub_id, dt_int) 
                         or isinstance(sub_id, np.int32) 
                         or isinstance(sub_id, np.int64)
                 ):
-                    raise DomainException(f"The id must be of type int. Type {type(sub_id)} is not valid")
+                    raise DomainException(f"{agent} : The id must be of type int. Type {type(sub_id)} is not valid")
                 if sub_id < 0 or sub_id > len(self._cent_env.name_sub) :
-                    raise DomainException(f"The substation's id must be between 0 and {len(self._cent_env.name_sub)-1}, but {sub_id} has been given")
-    
+                    raise DomainException(f"{agent} : The substation's id must be between 0 and {len(self._cent_env.name_sub)-1}, but {sub_id} has been given")
+            sum_subs += len(domains[agent])
+
+        if sum_subs != self._cent_env.n_sub:
+            raise DomainException(f"The sum of sub id lists' length must be equal to _cent_env.n_sub = {self._cent_env.n_sub} but is {sum_subs}")
     
     
     def observation_space(self, agent):
