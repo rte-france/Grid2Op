@@ -150,5 +150,54 @@ class MATester(unittest.TestCase):
         # domain
         pass
     
+    def test_action_space(self):
+        """test for the action spaces created for agents
+        """
+        try:
+            #Simple do nothing action
+            print(self.ma_env.action_spaces['agent_0']({}))
+            assert True
+        except Exception as e:
+            assert False
+            
+        try:
+            #action on a line
+            print(self.ma_env.action_spaces['agent_0']({
+                'change_bus' : self.ma_env.action_spaces['agent_0'].line_or_pos_topo_vect[0]
+            }))
+            print(self.ma_env.action_spaces['agent_1']({
+                'change_bus' : self.ma_env.action_spaces['agent_0'].line_ex_pos_topo_vect[0]
+            }))
+            assert True
+        except Exception as e:
+            assert False
+            
+        try:
+            #action on a gen
+            print(self.ma_env.action_spaces['agent_0']({
+                'change_bus' : self.ma_env.action_spaces['agent_0'].gen_pos_topo_vect[0]
+            }))
+            assert True
+        except Exception as e:
+            assert False
+            
+        try:
+            #action on a load
+            print(self.ma_env.action_spaces['agent_0']({
+                'change_bus' : self.ma_env.action_spaces['agent_0'].load_pos_topo_vect[0]
+            }))
+            assert True
+        except Exception as e:
+            assert False
+        
+        try:
+            #action on an interconnection
+            print(self.ma_env.action_spaces['agent_0']({
+                'change_bus' : self.ma_env.action_spaces['agent_0'].interco_pos_topo_vect[0]
+            }))
+            assert True
+        except Exception as e:
+            assert False
+    
 if __name__ == "__main__":
     unittest.main()
