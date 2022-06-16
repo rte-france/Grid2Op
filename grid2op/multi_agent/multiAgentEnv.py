@@ -15,6 +15,7 @@ import re
 from grid2op.Environment.Environment import Environment
 
 import grid2op
+from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Observation.observationSpace import ObservationSpace
 from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Action import ActionSpace
@@ -224,10 +225,6 @@ class MultiAgentEnv :
         
         return self.observations, self.rewards, self.dones, self.info 
     
-    def last(self):
-        #TODO
-        pass
-    
     #def agent_iter(self, max_iter=2 ** 63):
     #    """Agent iterator : it interacts with agents
     #    Take the global observation, reward, 
@@ -247,17 +244,16 @@ class MultiAgentEnv :
             'observation' : dict()
         }
         for agent_nm in self.agents : 
-            self._build_subgrid_from_domain(agent_nm, self._action_domains[agent_nm])
+            self._build_agent_domain(agent_nm, self._action_domains[agent_nm])
             subgrid_obj = self._build_subgrid_obj_from_domain(self._action_domains[agent_nm])
             self._subgrids_cls['action'][agent_nm] = subgrid_obj
             
-            self._build_subgrid_from_domain(agent_nm, self._observation_domains[agent_nm])
+            self._build_agent_domain(agent_nm, self._observation_domains[agent_nm])
             subgrid_obj = self._build_subgrid_obj_from_domain(self._observation_domains[agent_nm])
             self._subgrids_cls['observation'][agent_nm] = subgrid_obj
         
         
-    def _build_subgrid_from_domain(self, agent_nm, domain):
-        # TODO: rename the function ! (do not forget the tests)
+    def _build_agent_domain(self, agent_nm, domain):
         """_summary_#TODO
 
         Args:
@@ -281,16 +277,24 @@ class MultiAgentEnv :
             self._cent_env.shunt_to_subid, domain['sub_id'] 
         )
         domain['mask_line_or'] = np.isin(
-            self._cent_env.line_or_to_subid, domain['sub_id'] 
+            self._cent_env.line_or_to_subid, domain['sub_id']
         )
         domain['mask_line_ex'] = np.isin(
             self._cent_env.line_ex_to_subid, domain['sub_id'] 
         )
+        domain['mask_interco'] = domain['mask_line_or']^domain['mask_line_ex']
+        domain['interco_is_origin'] = domain['mask_line_or'][domain['mask_interco']]
+        domain['mask_line_or'] = domain['mask_line_or']&domain['mask_line_ex']
+        domain['mask_line_ex'] = domain['mask_line_or'].copy()
         domain["agent_name"] = agent_nm
     
     def _relabel_subid(self, mask, new_label, id_full_grid):
         tmp_ = id_full_grid[mask]
         return new_label[tmp_]
+    
+    def _get_interco_subid(self):
+        pass
+    
     
     def _build_subgrid_obj_from_domain(self, domain):
         cent_env_cls = type(self._cent_env)
@@ -304,6 +308,8 @@ class MultiAgentEnv :
         tmp_cls.mask_line_ex = copy.deepcopy(domain['mask_line_ex'])
         tmp_cls.agent_name = copy.deepcopy(domain["agent_name"])
         tmp_cls.mask_sub = copy.deepcopy(domain["mask_sub"])
+        tmp_cls.mask_interco = copy.deepcopy(domain["mask_interco"])
+        tmp_cls.interco_is_origin = copy.deepcopy(domain["interco_is_origin"])
         
         tmp_cls.glop_version = cent_env_cls.glop_version
         tmp_cls._PATH_ENV = cent_env_cls._PATH_ENV
@@ -317,7 +323,7 @@ class MultiAgentEnv :
             tmp_cls.mask_gen
         ]
         tmp_cls.name_line = cent_env_cls.name_line[
-            tmp_cls.mask_line_or | tmp_cls.mask_line_ex
+            tmp_cls.mask_line_or & tmp_cls.mask_line_ex
         ]
         tmp_cls.name_sub = cent_env_cls.name_sub[
             tmp_cls.mask_sub
@@ -325,19 +331,25 @@ class MultiAgentEnv :
         tmp_cls.name_storage = cent_env_cls.name_storage[
             tmp_cls.mask_storage
         ]
+        tmp_cls.name_interco = np.array([
+            f'interco_{i}' for i in range(len(tmp_cls.interco_is_origin))
+        ])
+        
 
         tmp_cls.n_gen = len(tmp_cls.name_gen)
         tmp_cls.n_load = len(tmp_cls.name_load)
         tmp_cls.n_line = len(tmp_cls.name_line)
-        #tmp_cls.n_line_or = np.count_nonzero(tmp_cls.mask_line_or)
-        #tmp_cls.n_line_ex = np.count_nonzero(tmp_cls.mask_line_ex)
         tmp_cls.n_sub = len(tmp_cls.name_sub)
         tmp_cls.n_storage = len(tmp_cls.name_storage)
+        tmp_cls.n_interco = len(tmp_cls.name_interco)
+        
 
         tmp_cls.sub_info = cent_env_cls.sub_info[
             tmp_cls.sub_orig_ids
         ]
-        tmp_cls.dim_topo = tmp_cls.n_line_ex + tmp_cls.n_line_or + \
+        
+        #TODO correct ?
+        tmp_cls.dim_topo = 2*tmp_cls.n_line + tmp_cls.n_interco + \
             tmp_cls.n_load + tmp_cls.n_gen + tmp_cls.n_storage
 
         # to which substation is connected each element 
@@ -356,42 +368,50 @@ class MultiAgentEnv :
         tmp_cls.load_to_subid  = self._relabel_subid(tmp_cls.mask_load,
                                                      new_label,
                                                      cent_env_cls.load_to_subid
-                                                     )
+        )
         tmp_cls.gen_to_subid  = self._relabel_subid(tmp_cls.mask_gen,
                                                      new_label,
                                                      cent_env_cls.gen_to_subid
-                                                     )
+        )
         tmp_cls.shunt_to_subid  = self._relabel_subid(tmp_cls.mask_shunt,
                                                       new_label,
                                                       cent_env_cls.shunt_to_subid
-                                                      )
+        )
         tmp_cls.storage_to_subid  = self._relabel_subid(tmp_cls.mask_storage,
                                                         new_label,
                                                         cent_env_cls.storage_to_subid
-                                                        )
+        )
         
-        # TODO: when we'll thought about it more in depth 
-        # tmp_cls.line_to_subid  = self._relabel_subid(tmp_cls.mask_line,
-        #                                              new_label,
-        #                                              self._cent_env.line_to_subid
-        #                                              )
+        
+        tmp_cls.interco_to_subid = new_label[
+            np.array([
+                cent_env_cls.line_or_to_subid[tmp_cls.mask_interco][i] if tmp_cls.interco_is_origin[i] 
+                else cent_env_cls.line_ex_to_subid[tmp_cls.mask_interco][i] for i in range(tmp_cls.n_interco)
+            ])
+        ]
 
-        # which index has this element in the substation vector  #TODO
+        # which index has this element in the substation vector 
         tmp_cls.load_to_sub_pos = cent_env_cls.load_to_sub_pos[tmp_cls.mask_load]
         tmp_cls.gen_to_sub_pos = cent_env_cls.gen_to_sub_pos[tmp_cls.mask_gen]
         tmp_cls.storage_to_sub_pos = cent_env_cls.storage_to_sub_pos[tmp_cls.mask_storage]
-        # tmp_cls.line_or_to_sub_pos = None
-        # tmp_cls.line_ex_to_sub_pos = None
+        tmp_cls.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_cls.mask_line_or]
+        tmp_cls.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_cls.mask_line_ex]
+        tmp_cls.interco_to_sub_pos = np.array([
+            cent_env_cls.line_or_to_sub_pos[tmp_cls.mask_interco][i] if tmp_cls.interco_is_origin[i] 
+            else cent_env_cls.line_ex_to_sub_pos[tmp_cls.mask_interco][i] for i in range(tmp_cls.n_interco)
+        ])
 
         
         # # which index has this element in the topology vector
         # # "convenient" way to retrieve information of the grid
         # # to which substation each element of the topovect is connected
-        # #tmp_cls_action.load_pos_topo_vect = None
-        # #tmp_cls_action.gen_pos_topo_vect = None
-        # #tmp_cls_action.line_or_pos_topo_vect = None
-        # #tmp_cls_action.line_ex_pos_topo_vect = None
-        # #tmp_cls_action.storage_pos_topo_vect = None
+        sub_info_cum_sum = np.cumsum(tmp_cls.sub_info)
+        tmp_cls.load_pos_topo_vect = sub_info_cum_sum[tmp_cls.load_to_subid-1] + tmp_cls.load_to_sub_pos
+        tmp_cls.gen_pos_topo_vect = sub_info_cum_sum[tmp_cls.gen_to_subid-1] + tmp_cls.gen_to_sub_pos
+        tmp_cls.line_or_pos_topo_vect = sub_info_cum_sum[tmp_cls.line_or_to_subid-1] + tmp_cls.line_or_to_sub_pos
+        tmp_cls.line_ex_pos_topo_vect = sub_info_cum_sum[tmp_cls.line_ex_to_subid-1] + tmp_cls.line_ex_to_sub_pos
+        tmp_cls.storage_pos_topo_vect = sub_info_cum_sum[tmp_cls.storage_to_subid-1] + tmp_cls.storage_to_sub_pos
+        tmp_cls.interco_pos_topo_vect = sub_info_cum_sum[tmp_cls.interco_to_subid-1] + tmp_cls.interco_to_sub_pos
 
         # #
         # #tmp_cls_action.grid_objects_types = None
@@ -498,25 +518,35 @@ class MultiAgentEnv :
         return tmp_cls
         
     
-    def _build_observation_spaces(self):
+    def _build_observation_spaces(self, global_obs = True):
         """Build observation spaces from given domains for each agent
 
         Args:
-            observation_domains (_type_): _description_
+            global_obs (bool, optional): The agent can observe the whole grid. Defaults to True.
+
+        Raises:
+            NotImplementedError: Local observations are not implemented yet
         """
-        #TODO (Is it good ??)
-        for agent in self.agents: 
-            _cls_agent_action_space = ObservationSpace.init_grid(gridobj=self._subgrids_cls['observation'][agent], extra_name=agent)
-            self.observation_spaces[agent] = _cls_agent_action_space(
-                gridobj = self._subgrids_cls['observation'][agent],
-                env = self._cent_env,
-                rewardClass=self._cent_env._rewardClass,
-                observationClass=self._cent_env._observationClass,
-                actionClass=self._cent_env._actionClass,
-                #TODO following parameters
-                with_forecast=True,
-                kwargs_observation=None,
-            )
+        
+        if global_obs:
+            self.global_obs = True
+            for agent in self.agents:
+                self.observation_spaces[agent] = self._cent_env.observation_space
+        else:
+            raise NotImplementedError("Local observations are not available yet !")
+        #TODO Local observations
+        #for agent in self.agents: 
+        #    _cls_agent_action_space = ObservationSpace.init_grid(gridobj=self._subgrids_cls['observation'][agent], extra_name=agent)
+        #    self.observation_spaces[agent] = _cls_agent_action_space(
+        #        gridobj = self._subgrids_cls['observation'][agent],
+        #        env = self._cent_env,
+        #        rewardClass=self._cent_env._rewardClass,
+        #        observationClass=self._cent_env._observationClass,
+        #        actionClass=self._cent_env._actionClass,
+        #        #TODO following parameters
+        #        with_forecast=True,
+        #        kwargs_observation=None,
+        #    )
     
     def _build_action_spaces(self):
         """Build action spaces from given domains for each agent
@@ -531,14 +561,18 @@ class MultiAgentEnv :
             )
     
     
-    def _update_observations(self, observation):
+    def _update_observations(self, observation : BaseObservation):
         """Update agents' observations from the global observation given by the self._cent_env
 
         Args:
-            observation (_type_): _description_
+            observation (BaseObservation): _description_
         """
-        #TODO
-        pass
+        if self.global_obs:
+            for agent in self.agents:
+                self.observations[agent] = observation.copy()
+        else:
+            #TODO
+            raise NotImplementedError("Local observations are not available yet !")
     
     def _verify_domains(self, domains : MADict) :
         """It verifies if substation ids are valid
@@ -549,11 +583,17 @@ class MultiAgentEnv :
                 - value : list of substation ids
         """
         for agent in domains.keys():
-            if not isinstance(domains[agent], Union[list, np.ndarray, set]) \
-                and not isinstance(domains[agent], set):
+            if not (isinstance(domains[agent], list)
+                    or isinstance(domains[agent], set)
+                    or isinstance(domains[agent], np.ndarray)
+            ):
                 raise DomainException("The domain must be a list or a set of substation indices")
             for sub_id in domains[agent] : 
-                if not isinstance(sub_id, Union[int, dt_int, np.int32, np.int64]) :
+                if not (isinstance(sub_id, int) 
+                        or isinstance(sub_id, dt_int) 
+                        or isinstance(sub_id, np.int32) 
+                        or isinstance(sub_id, np.int64)
+                ):
                     raise DomainException(f"The id must be of type int. Type {type(sub_id)} is not valid")
                 if sub_id < 0 or sub_id > len(self._cent_env.name_sub) :
                     raise DomainException(f"The substation's id must be between 0 and {len(self._cent_env.name_sub)-1}, but {sub_id} has been given")

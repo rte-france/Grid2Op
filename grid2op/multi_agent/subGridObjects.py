@@ -21,6 +21,7 @@ class SubGridObjects(GridObjects) :
     mask_line_or = None
     mask_line_ex = None
     mask_shunt = None
+    mask_interco = None
     agent_name : str = None
     n_line_or = -1
     n_line_ex = -1
@@ -28,7 +29,7 @@ class SubGridObjects(GridObjects) :
     interco_to_subid = None
     interco_to_lineid = None
     interco_to_sub_pos = None
-    interco_is_origine = None
+    interco_is_origin = None
     interco_pos_topo_vect = None
     name_interco = None
     n_interco = -1

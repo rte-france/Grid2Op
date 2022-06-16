@@ -52,8 +52,13 @@ class MATester(unittest.TestCase):
             
         except DomainException :
             assert True
+            return
             
         assert False
+    
+    # TODO Test in case subs are not connex
+
+    # TODO 
     
     def test_build_subgrids_action_domains(self):
         """Tests that the action_domains are correctly defined 
@@ -71,39 +76,63 @@ class MATester(unittest.TestCase):
         assert (self.ma_env._action_domains['agent_0']['mask_storage'] == []).all()
         assert (self.ma_env._action_domains['agent_1']['mask_storage'] == []).all()
         
-        assert (self.ma_env._action_domains['agent_0']['mask_line_ex'] == [ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False, False, False, False,False, False]).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_line_ex'] == np.invert([ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False, False, False, False,False, False])).all()
+        assert (self.ma_env._action_domains['agent_0']['mask_line_ex'] == [ True,  True,  True,  True,  True,  True,  True, False, False,False, False, False, False, False, False, False, False, False,False, False]).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_line_ex'] == np.invert([ True,  True,  True,  True,  True,  True,  True, False, False,False, False, False, False, False, False, True, True, True,False, False])).all()
         
-        assert (self.ma_env._action_domains['agent_0']['mask_line_or'] == [ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False,  True,  True,  True, False, False]).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_line_or'] == np.invert([ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False,  True,  True,  True, False, False])).all()
+        assert (self.ma_env._action_domains['agent_0']['mask_line_or'] == self.ma_env._action_domains['agent_0']['mask_line_ex']).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_line_or'] == 
+                np.invert(self.ma_env._action_domains['agent_0']['mask_line_ex'])
+                & self.ma_env._action_domains['agent_1']['mask_line_ex']
+        ).all()
         
         assert (self.ma_env._action_domains['agent_0']['mask_shunt'] == [False]).all()
         assert (self.ma_env._action_domains['agent_1']['mask_shunt'] == [True]).all()
         
-    def test_build_subgrids_observation_domains(self):
-        """Tests that the observation_domains are correctly defined 
-            in MultiAgentEnv._build_subgrid_from_domain method
-        """
-        assert self.ma_env._observation_domains['agent_1']['sub_id'] == self.action_domains['agent_0']
-        assert self.ma_env._observation_domains['agent_0']['sub_id'] == self.action_domains['agent_1']
+        assert (self.ma_env._action_domains['agent_0']['mask_interco'] == [False, False, False, False, False, False, False, False, False,
+                                                                            False, False, False, False, False, False,  True,  True,  True,
+                                                                            False, False]).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_interco'] == [False, False, False, False, False, False, False, False, False,
+                                                                            False, False, False, False, False, False,  True,  True,  True,
+                                                                            False, False]).all()
         
-        assert (self.ma_env._observation_domains['agent_1']['mask_load'] == [True,  True,  True,  True, False, False, False, False, False, False, False]).all()
-        assert (self.ma_env._observation_domains['agent_0']['mask_load'] == np.invert([True,  True,  True,  True, False, False, False, False, False, False, False])).all()
+        assert (self.ma_env._action_domains['agent_0']['interco_is_origin'] == [True, True, True]).all()
+        assert (self.ma_env._action_domains['agent_1']['interco_is_origin'] == np.invert([True, True, True])).all()
         
-        assert (self.ma_env._observation_domains['agent_1']['mask_gen'] == [ True,  True, False, False, False,  True]).all()
-        assert (self.ma_env._observation_domains['agent_0']['mask_gen'] == np.invert([ True,  True, False, False, False,  True])).all()
         
-        assert (self.ma_env._observation_domains['agent_1']['mask_storage'] == []).all()
-        assert (self.ma_env._observation_domains['agent_0']['mask_storage'] == []).all()
-        
-        assert (self.ma_env._observation_domains['agent_1']['mask_line_ex'] == [ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False, False, False, False,False, False]).all()
-        assert (self.ma_env._observation_domains['agent_0']['mask_line_ex'] == np.invert([ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False, False, False, False,False, False])).all()
-        
-        assert (self.ma_env._observation_domains['agent_1']['mask_line_or'] == [True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False,  True,  True,  True, False, False]).all()
-        assert (self.ma_env._observation_domains['agent_0']['mask_line_or'] == np.invert([ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False,  True,  True,  True, False, False])).all()
-        
-        assert (self.ma_env._observation_domains['agent_1']['mask_shunt'] == [False]).all()
-        assert (self.ma_env._observation_domains['agent_0']['mask_shunt'] == [True]).all()
+    #def test_build_subgrids_observation_domains(self):
+    #    """Tests that the observation_domains are correctly defined 
+    #        in MultiAgentEnv._build_subgrid_from_domain method
+    #    """
+    #    assert self.ma_env._observation_domains['agent_1']['sub_id'] == self.action_domains['agent_0']
+    #    assert self.ma_env._observation_domains['agent_0']['sub_id'] == self.action_domains['agent_1']
+    #    
+    #    assert (self.ma_env._observation_domains['agent_1']['mask_load'] == [True,  True,  True,  True, False, False, False, False, False, False, False]).all()
+    #    assert (self.ma_env._observation_domains['agent_0']['mask_load'] == np.invert([True,  True,  True,  True, False, False, False, False, False, False, False])).all()
+    #    
+    #    assert (self.ma_env._observation_domains['agent_1']['mask_gen'] == [True,  True, False, False, False,  True]).all()
+    #    assert (self.ma_env._observation_domains['agent_0']['mask_gen'] == np.invert([ True,  True, False, False, False,  True])).all()
+    #    
+    #    assert (self.ma_env._observation_domains['agent_1']['mask_storage'] == []).all()
+    #    assert (self.ma_env._observation_domains['agent_0']['mask_storage'] == []).all()
+    #    
+    #    assert (self.ma_env._observation_domains['agent_1']['mask_line_ex'] == [ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False, False, False, False,False, False]).all()
+    #    assert (self.ma_env._observation_domains['agent_0']['mask_line_ex'] == np.invert([ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False, False, False, False,False, False])).all()
+    #    
+    #    assert (self.ma_env._observation_domains['agent_1']['mask_line_or'] == self.ma_env._observation_domains['agent_1']['mask_line_ex'] ).all()
+    #    assert (self.ma_env._observation_domains['agent_0']['mask_line_or'] == np.invert(self.ma_env._observation_domains['agent_1']['mask_line_ex'])).all()
+    #    
+    #    assert (self.ma_env._observation_domains['agent_1']['mask_shunt'] == [False]).all()
+    #    assert (self.ma_env._observation_domains['agent_0']['mask_shunt'] == [True]).all()
+    #    
+    #    assert (self.ma_env._observation_domains['agent_0']['mask_interco'] == [False, False, False, False, False, False, False, False, False,
+    #                                                                        False, False, False, False, False, False,  True,  True,  True,
+    #                                                                        False, False]).all()
+    #    assert (self.ma_env._observation_domains['agent_1']['mask_interco'] == [False, False, False, False, False, False, False, False, False,
+    #                                                                        False, False, False, False, False, False,  True,  True,  True,
+    #                                                                        False, False]).all()
+    #    
+    #    assert (self.ma_env._observation_domains['agent_1']['interco_is_origin'] == [True, True, True]).all()
+    #    assert (self.ma_env._observation_domains['agent_0']['interco_is_origin'] == np.invert([True, True, True])).all()
     
     # TODO
     def test_validate_action_domain(self):
