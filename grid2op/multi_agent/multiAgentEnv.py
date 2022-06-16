@@ -136,7 +136,8 @@ class MultiAgentEnv :
             )
         )
         self.agent_order = AgentSelector(self.agents, agent_order_fn)
-        
+        self.action_spaces = dict()
+        self.observation_spaces = dict()
         self._build_subgrids()
         self._build_action_spaces()
         self._build_observation_spaces()
@@ -381,6 +382,14 @@ class MultiAgentEnv :
                                                         new_label,
                                                         cent_env_cls.storage_to_subid
         )
+        tmp_cls.line_or_to_subid = self._relabel_subid(tmp_cls.mask_line_or,
+                                                        new_label,
+                                                        cent_env_cls.line_or_to_subid
+        )
+        tmp_cls.line_ex_to_subid = self._relabel_subid(tmp_cls.mask_line_ex,
+                                                        new_label,
+                                                        cent_env_cls.line_ex_to_subid
+        )
         
         
         tmp_cls.interco_to_subid = new_label[
@@ -610,7 +619,7 @@ class MultiAgentEnv :
         """
         return self.observation_spaces[agent]
 
-    def action_spaces(self, agent):
+    def action_space(self, agent):
         """
         Takes in agent and returns the action space for that agent.
 
