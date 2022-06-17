@@ -246,12 +246,12 @@ class MultiAgentEnv :
         }
         for agent_nm in self.agents : 
             self._build_agent_domain(agent_nm, self._action_domains[agent_nm])
-            subgrid_obj = self._build_subgrid_obj_from_domain(self._action_domains[agent_nm])
-            self._subgrids_cls['action'][agent_nm] = subgrid_obj
+            subgridobj = self._build_subgrid_obj_from_domain(self._action_domains[agent_nm])
+            self._subgrids_cls['action'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=agent_nm)
             
             self._build_agent_domain(agent_nm, self._observation_domains[agent_nm])
-            subgrid_obj = self._build_subgrid_obj_from_domain(self._observation_domains[agent_nm])
-            self._subgrids_cls['observation'][agent_nm] = subgrid_obj
+            subgridobj = self._build_subgrid_obj_from_domain(self._observation_domains[agent_nm])
+            self._subgrids_cls['observation'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=agent_nm)
         
         
     def _build_agent_domain(self, agent_nm, domain):
@@ -293,13 +293,11 @@ class MultiAgentEnv :
         tmp_ = id_full_grid[mask]
         return new_label[tmp_]
     
-    def _get_interco_subid(self):
-        pass
-    
     
     def _build_subgrid_obj_from_domain(self, domain):
         cent_env_cls = type(self._cent_env)
-        tmp_cls = SubGridObjects()
+        tmp_subgrid = SubGridObjects()
+        tmp_cls = type(tmp_subgrid)
         tmp_cls.sub_orig_ids = copy.deepcopy(domain['sub_id'])
         tmp_cls.mask_load = copy.deepcopy(domain['mask_load'])
         tmp_cls.mask_gen = copy.deepcopy(domain['mask_gen'])
@@ -332,17 +330,28 @@ class MultiAgentEnv :
         tmp_cls.name_storage = cent_env_cls.name_storage[
             tmp_cls.mask_storage
         ]
+        tmp_cls.name_shunt = cent_env_cls.name_shunt[
+            tmp_cls.mask_shunt
+        ]
         tmp_cls.name_interco = np.array([
             f'interco_{i}' for i in range(len(tmp_cls.interco_is_origin))
         ])
         
-
+        n_col_grid_objects_types = 5
         tmp_cls.n_gen = len(tmp_cls.name_gen)
         tmp_cls.n_load = len(tmp_cls.name_load)
         tmp_cls.n_line = len(tmp_cls.name_line)
         tmp_cls.n_sub = len(tmp_cls.name_sub)
+        tmp_cls.n_shunt = len(tmp_cls.name_shunt)
+        if tmp_cls.n_shunt > 0:
+            n_col_grid_objects_types += 1
+            #n_line_grid_objects_types += tmp_cls.n_shunt #TODO should I add shunt ?
         tmp_cls.n_storage = len(tmp_cls.name_storage)
+        if tmp_cls.n_storage > 0:
+            n_col_grid_objects_types += 1
         tmp_cls.n_interco = len(tmp_cls.name_interco)
+        if tmp_cls.n_interco > 0:
+            n_col_grid_objects_types += 1
         
 
         tmp_cls.sub_info = cent_env_cls.sub_info[
@@ -361,6 +370,7 @@ class MultiAgentEnv :
         tmp_cls.line_or_to_subid = np.zeros(tmp_cls.n_line, dtype=dt_int)
         tmp_cls.line_ex_to_subid = np.zeros(tmp_cls.n_line, dtype=dt_int)
         tmp_cls.storage_to_subid = np.zeros(tmp_cls.n_storage, dtype=dt_int)
+        tmp_cls.shunt_to_subid = np.zeros(tmp_cls.n_shunt, dtype=dt_int)
         
         # new_label[orig_grid_sub_id] = new_grid_sub_id
         new_label = np.zeros(cent_env_cls.n_sub, dtype=dt_int) - 1
@@ -405,28 +415,70 @@ class MultiAgentEnv :
         tmp_cls.storage_to_sub_pos = cent_env_cls.storage_to_sub_pos[tmp_cls.mask_storage]
         tmp_cls.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_cls.mask_line_or]
         tmp_cls.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_cls.mask_line_ex]
+        #tmp_cls.shunt_to_sub_pos = cent_env_cls.shunt_to_sub_pos[tmp_cls.mask_shunt]
         tmp_cls.interco_to_sub_pos = np.array([
             cent_env_cls.line_or_to_sub_pos[tmp_cls.mask_interco][i] if tmp_cls.interco_is_origin[i] 
             else cent_env_cls.line_ex_to_sub_pos[tmp_cls.mask_interco][i] for i in range(tmp_cls.n_interco)
         ])
 
+        # #TODO
+        tmp_cls.grid_objects_types = -np.ones((tmp_cls.dim_topo, n_col_grid_objects_types))
         
         # # which index has this element in the topology vector
         # # "convenient" way to retrieve information of the grid
         # # to which substation each element of the topovect is connected
         sub_info_cum_sum = np.cumsum(tmp_cls.sub_info)
-        tmp_cls.load_pos_topo_vect = sub_info_cum_sum[tmp_cls.load_to_subid-1] + tmp_cls.load_to_sub_pos
-        tmp_cls.gen_pos_topo_vect = sub_info_cum_sum[tmp_cls.gen_to_subid-1] + tmp_cls.gen_to_sub_pos
-        tmp_cls.line_or_pos_topo_vect = sub_info_cum_sum[tmp_cls.line_or_to_subid-1] + tmp_cls.line_or_to_sub_pos
-        tmp_cls.line_ex_pos_topo_vect = sub_info_cum_sum[tmp_cls.line_ex_to_subid-1] + tmp_cls.line_ex_to_sub_pos
-        tmp_cls.storage_pos_topo_vect = sub_info_cum_sum[tmp_cls.storage_to_subid-1] + tmp_cls.storage_to_sub_pos
-        tmp_cls.interco_pos_topo_vect = sub_info_cum_sum[tmp_cls.interco_to_subid-1] + tmp_cls.interco_to_sub_pos
-
-        # #
-        # #tmp_cls_action.grid_objects_types = None
-        # #
-        # #tmp_cls_action._topo_vect_to_sub = None
-        # tmp_cls._compute_pos_big_topo_cls()
+        tmp_cls.load_pos_topo_vect = np.where(tmp_cls.load_to_subid == 0, 
+            tmp_cls.load_to_sub_pos, 
+            sub_info_cum_sum[tmp_cls.load_to_subid-1] + tmp_cls.load_to_sub_pos
+        )
+        tmp_cls.grid_objects_types[tmp_cls.load_pos_topo_vect, 0] = tmp_cls.load_to_subid
+        tmp_cls.grid_objects_types[tmp_cls.load_pos_topo_vect, 1] = np.arange(len(tmp_cls.load_pos_topo_vect))
+        
+        tmp_cls.gen_pos_topo_vect = np.where(tmp_cls.gen_to_subid == 0, 
+            tmp_cls.gen_to_sub_pos, 
+            sub_info_cum_sum[tmp_cls.gen_to_subid-1] + tmp_cls.gen_to_sub_pos
+        )
+        tmp_cls.grid_objects_types[tmp_cls.gen_pos_topo_vect, 0] = tmp_cls.gen_to_subid
+        tmp_cls.grid_objects_types[tmp_cls.gen_pos_topo_vect, 2] = np.arange(len(tmp_cls.gen_pos_topo_vect))
+        
+        tmp_cls.line_or_pos_topo_vect = np.where(tmp_cls.line_or_to_subid == 0, 
+            tmp_cls.line_or_to_sub_pos, 
+            sub_info_cum_sum[tmp_cls.line_or_to_subid-1] + tmp_cls.line_or_to_sub_pos
+        )
+        tmp_cls.grid_objects_types[tmp_cls.line_or_pos_topo_vect, 0] = tmp_cls.line_or_to_subid
+        tmp_cls.grid_objects_types[tmp_cls.line_or_pos_topo_vect, 3] = np.arange(len(tmp_cls.line_or_pos_topo_vect))
+        
+        tmp_cls.line_ex_pos_topo_vect = np.where(tmp_cls.line_ex_to_subid == 0, 
+            tmp_cls.line_ex_to_sub_pos, 
+            sub_info_cum_sum[tmp_cls.line_ex_to_subid-1] + tmp_cls.line_ex_to_sub_pos
+        )
+        tmp_cls.grid_objects_types[tmp_cls.line_ex_pos_topo_vect, 0] = tmp_cls.line_ex_to_subid
+        tmp_cls.grid_objects_types[tmp_cls.line_ex_pos_topo_vect, 4] = np.arange(len(tmp_cls.line_ex_pos_topo_vect))
+        
+        tmp_cls.storage_pos_topo_vect = np.where(tmp_cls.storage_to_subid == 0, 
+            tmp_cls.storage_to_sub_pos, 
+            sub_info_cum_sum[tmp_cls.storage_to_subid-1] + tmp_cls.storage_to_sub_pos
+        )
+        last_col = 4
+        if tmp_cls.n_storage >0:
+            last_col += 1
+            tmp_cls.grid_objects_types[tmp_cls.storage_pos_topo_vect, 0] = tmp_cls.storage_to_subid
+            tmp_cls.grid_objects_types[tmp_cls.storage_pos_topo_vect, last_col] = np.arange(len(tmp_cls.storage_pos_topo_vect))
+        
+        tmp_cls.interco_pos_topo_vect = np.where(tmp_cls.interco_to_subid == 0, 
+            tmp_cls.interco_to_sub_pos, 
+            sub_info_cum_sum[tmp_cls.interco_to_subid-1] + tmp_cls.interco_to_sub_pos
+        )
+        if tmp_cls.n_interco >0:
+            last_col += 1
+            tmp_cls.grid_objects_types[tmp_cls.interco_pos_topo_vect, 0] = tmp_cls.interco_to_subid
+            tmp_cls.grid_objects_types[tmp_cls.interco_pos_topo_vect, last_col] = np.arange(len(tmp_cls.interco_pos_topo_vect))
+        
+    
+         #
+         #tmp_cls_action._topo_vect_to_sub = None
+        #tmp_cls._compute_pos_big_topo_cls()
 
 
 
@@ -597,10 +649,10 @@ class MultiAgentEnv :
                     or isinstance(domains[agent], set)
                     or isinstance(domains[agent], np.ndarray)
             ):
-                raise DomainException("The domain must be a list or a set of substation indices")
+                raise DomainException("Agent id {agent} : The domain must be a list or a set of substation indices")
             
             if len(domains[agent]) == 0:
-                raise DomainException(f"{agent} : The domain is empty !")
+                raise DomainException(f"Agent id {agent} : The domain is empty !")
             
             for sub_id in domains[agent] : 
                 if not (isinstance(sub_id, int) 
@@ -608,9 +660,9 @@ class MultiAgentEnv :
                         or isinstance(sub_id, np.int32) 
                         or isinstance(sub_id, np.int64)
                 ):
-                    raise DomainException(f"{agent} : The id must be of type int. Type {type(sub_id)} is not valid")
+                    raise DomainException(f"Agent id {agent} : The id must be of type int. Type {type(sub_id)} is not valid")
                 if sub_id < 0 or sub_id > len(self._cent_env.name_sub) :
-                    raise DomainException(f"{agent} : The substation's id must be between 0 and {len(self._cent_env.name_sub)-1}, but {sub_id} has been given")
+                    raise DomainException(f"Agent id {agent} : The substation's id must be between 0 and {len(self._cent_env.name_sub)-1}, but {sub_id} has been given")
             sum_subs += len(domains[agent])
 
         if sum_subs != self._cent_env.n_sub:

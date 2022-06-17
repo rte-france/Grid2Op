@@ -23,8 +23,6 @@ class SubGridObjects(GridObjects) :
     mask_shunt = None
     mask_interco = None
     agent_name : str = None
-    n_line_or = -1
-    n_line_ex = -1
     
     interco_to_subid = None
     interco_to_lineid = None
@@ -50,5 +48,3 @@ class SubGridObjects(GridObjects) :
         res["mask_line_ex"] = cls.mask_line_ex
         res["mask_shunt"] = cls.mask_shunt
         res["agent_name"] = cls.agent_name
-        res["n_line_or"] = cls.n_line_or
-        res["n_line_ex"] = cls.n_line_ex
