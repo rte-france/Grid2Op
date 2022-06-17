@@ -276,6 +276,12 @@ class MATester(unittest.TestCase):
             assert ma_env._subgrids_cls['action']['agent_0'].n_line \
                 + ma_env._subgrids_cls['action']['agent_1'].n_line \
                 + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
+                
+            assert len(ma_env._subgrids_cls['action']['agent_0'].line_ex_to_subid) == ma_env._subgrids_cls['action']['agent_0'].n_line
+            assert len(ma_env._subgrids_cls['action']['agent_0'].line_or_to_subid) == ma_env._subgrids_cls['action']['agent_0'].n_line
+            
+            assert len(ma_env._subgrids_cls['action']['agent_1'].line_ex_to_subid) == ma_env._subgrids_cls['action']['agent_1'].n_line
+            assert len(ma_env._subgrids_cls['action']['agent_1'].line_or_to_subid) == ma_env._subgrids_cls['action']['agent_1'].n_line
             
             assert np.sum(ma_env._subgrids_cls['action']['agent_0'].sub_info)\
                 ==\
