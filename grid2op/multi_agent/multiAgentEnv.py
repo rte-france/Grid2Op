@@ -31,8 +31,8 @@ import pdb
 class MultiAgentEnv :
     def __init__(self,
                  env : Environment,
-                 observation_domains : MADict,
                  action_domains : MADict,
+                 observation_domains : MADict = None,
                  agent_order_fn = lambda x : x,
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
@@ -104,16 +104,22 @@ class MultiAgentEnv :
         
         self._cent_env = env
         
-        if action_domains.keys() != observation_domains.keys():
+        if observation_domains is not None and \
+                action_domains.keys() != observation_domains.keys():
             raise("action_domains and observation_domains must have the same agents' names !")
         
         self._verify_domains(action_domains)
-        self._verify_domains(observation_domains)
+        
+        if observation_domains is not None:
+            self._verify_domains(observation_domains)
         
         self.num_agents = len(action_domains)
         
         self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
-        self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
+        if observation_domains is None:
+            self._observation_domains = None
+        else:
+            self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
         self.agents = list(action_domains.keys())
         self.num_agents = len(self.agents)
 
@@ -247,11 +253,16 @@ class MultiAgentEnv :
         for agent_nm in self.agents : 
             self._build_agent_domain(agent_nm, self._action_domains[agent_nm])
             subgridobj = self._build_subgrid_obj_from_domain(self._action_domains[agent_nm])
-            self._subgrids_cls['action'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=agent_nm)
+            #TODO init grid does not work when the grid is not connected
+            self._subgrids_cls['action'][agent_nm] = SubGridObjects.init_grid(gridobj=copy.deepcopy(subgridobj), extra_name=agent_nm)
+            self._subgrids_cls['action'][agent_nm].shunt_to_subid = subgridobj.shunt_to_subid.copy()
+            self._subgrids_cls['action'][agent_nm].grid_objects_types = subgridobj.grid_objects_types.copy()
             
-            self._build_agent_domain(agent_nm, self._observation_domains[agent_nm])
-            subgridobj = self._build_subgrid_obj_from_domain(self._observation_domains[agent_nm])
-            self._subgrids_cls['observation'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=agent_nm)
+            if self._observation_domains is not None:
+                self._build_agent_domain(agent_nm, self._observation_domains[agent_nm])
+                subgridobj = self._build_subgrid_obj_from_domain(self._observation_domains[agent_nm])
+                self._subgrids_cls['observation'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=agent_nm)
+                self._subgrids_cls['observation'][agent_nm].grid_objects_types = subgridobj.grid_objects_types
         
         
     def _build_agent_domain(self, agent_nm, domain):

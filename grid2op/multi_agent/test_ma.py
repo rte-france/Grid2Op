@@ -33,12 +33,12 @@ class MATester(unittest.TestCase):
             'agent_0' : [0,1,2,3, 4],
             'agent_1' : [5,6,7,8,9,10,11,12,13]
         }
-        self.observation_domains = {
-            'agent_0' : self.action_domains['agent_1'],
-            'agent_1' : self.action_domains['agent_0']
-        }
+        #self.observation_domains = {
+        #    'agent_0' : self.action_domains['agent_1'],
+        #    'agent_1' : self.action_domains['agent_0']
+        #}
         # run redispatch agent on one scenario for 100 timesteps
-        self.ma_env = MultiAgentEnv(self.env, self.observation_domains, self.action_domains)
+        self.ma_env = MultiAgentEnv(self.env, self.action_domains)
         return super().setUp()
     
     def test_verify_domains(self):
@@ -46,7 +46,7 @@ class MATester(unittest.TestCase):
             'agent_0' : 0,
             'agent_1' : [5,6,7,8,9,10,11,12,13]
         }
-        observation_domains = action_domains
+        #observation_domains = action_domains
         #try:
         #    MultiAgentEnv(self.env, observation_domains, action_domains)
         #    assert False
@@ -55,23 +55,23 @@ class MATester(unittest.TestCase):
         #    assert True
             
         with self.assertRaises(DomainException) as de:
-            MultiAgentEnv(self.env, observation_domains, action_domains)
+            MultiAgentEnv(self.env, action_domains)
         
         action_domains = {
             'agent_0' : [0],
             'agent_1' : [5,6,7,8,9,10,11,12,13]
         }
-        observation_domains = action_domains
+        #observation_domains = action_domains
         with self.assertRaises(DomainException) as de:
-            MultiAgentEnv(self.env, observation_domains, action_domains)
+            MultiAgentEnv(self.env, action_domains)
             
         action_domains = {
             'agent_0' : [],
             'agent_1' : list(range(self.env.n_sub))
         }
-        observation_domains = action_domains
+        #observation_domains = action_domains
         with self.assertRaises(DomainException) as de:
-            MultiAgentEnv(self.env, observation_domains, action_domains)
+            MultiAgentEnv(self.env, action_domains)
         
     
     # TODO Test in case subs are not connex
@@ -180,12 +180,12 @@ class MATester(unittest.TestCase):
             'agent_0' : [0,1,2,3, 4],
             'agent_1' : [5,6,7,8,9,10,11,12,13]
         }
-        observation_domains = {
-            'agent_0' : self.action_domains['agent_1'],
-            'agent_1' : self.action_domains['agent_0']
-        }
+        #observation_domains = {
+        #    'agent_0' : self.action_domains['agent_1'],
+        #    'agent_1' : self.action_domains['agent_0']
+        #}
         # run redispatch agent on one scenario for 100 timesteps
-        ma_env = MultiAgentEnv(self.env, observation_domains, action_domains)
+        ma_env = MultiAgentEnv(self.env, action_domains)
         
         #print(ma_env._subgrids_cls['action']['agent_0'].n_line)
         #print(ma_env._subgrids_cls['action']['agent_1'].n_line)
@@ -231,7 +231,7 @@ class MATester(unittest.TestCase):
                                                                                           [ 4., -1., -1., -1.,  4., -1.],
                                                                                           [ 4., -1., -1., -1.,  6., -1.],
                                                                                           [ 4., -1., -1., -1., -1.,  2.],
-                                                                                          [ 4.,  3., -1., -1., -1., -1.]])).all()
+                                                                                          [ 4.,  3., -1., -1., -1., -1.]]))
         
         
     def test_build_subgrid_obj2(self):    
@@ -240,13 +240,15 @@ class MATester(unittest.TestCase):
             'agent_0' : [0,1,6,3, 4],
             'agent_1' : [5,2,7,8,9,10,11,12,13]
         }
-        observation_domains = {
-            'agent_0' : self.action_domains['agent_1'],
-            'agent_1' : self.action_domains['agent_0']
-        }
+        #observation_domains = {
+        #    'agent_0' : action_domains['agent_1'],
+        #    'agent_1' : action_domains['agent_0']
+        #}
         # run redispatch agent on one scenario for 100 timesteps
-        ma_env = MultiAgentEnv(self.env, observation_domains, action_domains)
+        ma_env = MultiAgentEnv(self.env, action_domains)
         
+        assert ma_env._subgrids_cls['action']['agent_0'].n_gen == 2
+        assert ma_env._subgrids_cls['action']['agent_1'].n_gen == 4
         assert ma_env._subgrids_cls['action']['agent_0'].n_gen + ma_env._subgrids_cls['action']['agent_1'].n_gen == self.env.n_gen
         assert ma_env._subgrids_cls['action']['agent_0'].n_load + ma_env._subgrids_cls['action']['agent_1'].n_load == self.env.n_load
         assert ma_env._subgrids_cls['action']['agent_0'].n_interco == ma_env._subgrids_cls['action']['agent_1'].n_interco
@@ -263,15 +265,16 @@ class MATester(unittest.TestCase):
                 'agent_0' : sub_ids[:7],
                 'agent_1' : sub_ids[7:]
             }
-            observation_domains = {
-                'agent_0' : self.action_domains['agent_1'],
-                'agent_1' : self.action_domains['agent_0']
-            }
+            #observation_domains = {
+            #    'agent_0' : action_domains['agent_1'],
+            #    'agent_1' : action_domains['agent_0']
+            #}
             # run redispatch agent on one scenario for 100 timesteps
-            ma_env = MultiAgentEnv(self.env, observation_domains, action_domains)
+            ma_env = MultiAgentEnv(self.env, action_domains)
 
             assert ma_env._subgrids_cls['action']['agent_0'].n_gen + ma_env._subgrids_cls['action']['agent_1'].n_gen == self.env.n_gen
             assert ma_env._subgrids_cls['action']['agent_0'].n_load + ma_env._subgrids_cls['action']['agent_1'].n_load == self.env.n_load
+            assert ma_env._subgrids_cls['action']['agent_0'].n_shunt + ma_env._subgrids_cls['action']['agent_1'].n_shunt == self.env.n_shunt
             assert ma_env._subgrids_cls['action']['agent_0'].n_interco == ma_env._subgrids_cls['action']['agent_1'].n_interco
             assert ma_env._subgrids_cls['action']['agent_0'].n_line \
                 + ma_env._subgrids_cls['action']['agent_1'].n_line \
@@ -305,7 +308,8 @@ class MATester(unittest.TestCase):
             assert (ma_env._subgrids_cls['action']['agent_0'].storage_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
             assert (ma_env._subgrids_cls['action']['agent_0'].gen_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
             assert (ma_env._subgrids_cls['action']['agent_0'].interco_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
-            #assert (ma_env._subgrids_cls['action']['agent_0'].shunt_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
+            if ma_env._subgrids_cls['action']['agent_0'].n_shunt:
+                assert (ma_env._subgrids_cls['action']['agent_0'].shunt_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
             
             assert (ma_env._subgrids_cls['action']['agent_1'].load_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
             assert (ma_env._subgrids_cls['action']['agent_1'].line_or_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
@@ -313,7 +317,8 @@ class MATester(unittest.TestCase):
             assert (ma_env._subgrids_cls['action']['agent_1'].storage_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
             assert (ma_env._subgrids_cls['action']['agent_1'].gen_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
             assert (ma_env._subgrids_cls['action']['agent_1'].interco_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
-            #assert (ma_env._subgrids_cls['action']['agent_1'].shunt_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
+            if ma_env._subgrids_cls['action']['agent_1'].n_shunt:
+                assert (ma_env._subgrids_cls['action']['agent_1'].shunt_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
             
 
             
