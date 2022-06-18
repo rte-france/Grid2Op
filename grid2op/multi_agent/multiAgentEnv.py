@@ -419,6 +419,7 @@ class MultiAgentEnv :
                 else cent_env_cls.line_ex_to_subid[tmp_cls.mask_interco][i] for i in range(tmp_cls.n_interco)
             ])
         ]
+        tmp_cls.interco_to_lineid = np.arange(cent_env_cls.n_line)[tmp_cls.mask_interco]
 
         # which index has this element in the substation vector 
         tmp_cls.load_to_sub_pos = cent_env_cls.load_to_sub_pos[tmp_cls.mask_load]

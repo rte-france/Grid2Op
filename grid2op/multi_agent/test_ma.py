@@ -206,7 +206,9 @@ class MATester(unittest.TestCase):
         assert ma_env._subgrids_cls['action']['agent_0'].n_line \
             + ma_env._subgrids_cls['action']['agent_1'].n_line \
             + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
-            
+        
+        assert (ma_env._subgrids_cls['action']['agent_0'].interco_to_lineid == np.array([15,16,17])).all()
+        assert (ma_env._subgrids_cls['action']['agent_1'].interco_to_lineid == np.array([15,16,17])).all()
         
         assert (ma_env._subgrids_cls['action']['agent_0'].grid_objects_types == np.array([[ 0., -1., -1.,  0., -1., -1.],
                                                                                           [ 0., -1., -1.,  1., -1., -1.],
@@ -231,7 +233,7 @@ class MATester(unittest.TestCase):
                                                                                           [ 4., -1., -1., -1.,  4., -1.],
                                                                                           [ 4., -1., -1., -1.,  6., -1.],
                                                                                           [ 4., -1., -1., -1., -1.,  2.],
-                                                                                          [ 4.,  3., -1., -1., -1., -1.]]))
+                                                                                          [ 4.,  3., -1., -1., -1., -1.]])).all()
         
         
     def test_build_subgrid_obj2(self):    
