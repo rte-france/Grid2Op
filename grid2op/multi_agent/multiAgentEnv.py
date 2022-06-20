@@ -15,6 +15,7 @@ import re
 from grid2op.Environment.Environment import Environment
 
 import grid2op
+from grid2op.Exceptions.EnvExceptions import EnvError
 from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Observation.observationSpace import ObservationSpace
 from grid2op.dtypes import dt_bool, dt_int
@@ -22,7 +23,7 @@ from grid2op.Action import ActionSpace
 from grid2op.multi_agent.subGridObjects import SubGridObjects
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.multi_agent.utils import AgentSelector, random_order  
-from grid2op.multi_agent.ma_typing import ActionProfile, MADict
+from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, MADict
 from grid2op.multi_agent.multi_agentExceptions import *
 
 import pdb
@@ -150,8 +151,8 @@ class MultiAgentEnv :
         
         
     def reset(self) -> MADict:
-        observation = self._cent_env.reset()
-        self.observations = self._update_observations(observation)
+        self._cent_env.reset()
+        self._update_observations(_update_state=False)
         return self.observations
     
     def step(self, action : ActionProfile) -> Tuple[MADict, MADict, MADict, MADict]:
@@ -228,7 +229,7 @@ class MultiAgentEnv :
             self.dones[agent] = done
             self.info[agent].update(info)
             
-        self.observations = self._update_observations(observation)
+        self._update_observations(_update_state=False)
         
         return self.observations, self.rewards, self.dones, self.info 
     
@@ -254,7 +255,7 @@ class MultiAgentEnv :
             self._build_agent_domain(agent_nm, self._action_domains[agent_nm])
             subgridobj = self._build_subgrid_obj_from_domain(self._action_domains[agent_nm])
             #TODO init grid does not work when the grid is not connected
-            self._subgrids_cls['action'][agent_nm] = SubGridObjects.init_grid(gridobj=copy.deepcopy(subgridobj), extra_name=agent_nm)
+            self._subgrids_cls['action'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=agent_nm)
             self._subgrids_cls['action'][agent_nm].shunt_to_subid = subgridobj.shunt_to_subid.copy()
             self._subgrids_cls['action'][agent_nm].grid_objects_types = subgridobj.grid_objects_types.copy()
             
@@ -344,9 +345,6 @@ class MultiAgentEnv :
         tmp_cls.name_shunt = cent_env_cls.name_shunt[
             tmp_cls.mask_shunt
         ]
-        tmp_cls.name_interco = np.array([
-            f'interco_{i}' for i in range(len(tmp_cls.interco_is_origin))
-        ])
         
         n_col_grid_objects_types = 5
         tmp_cls.n_gen = len(tmp_cls.name_gen)
@@ -360,7 +358,7 @@ class MultiAgentEnv :
         tmp_cls.n_storage = len(tmp_cls.name_storage)
         if tmp_cls.n_storage > 0:
             n_col_grid_objects_types += 1
-        tmp_cls.n_interco = len(tmp_cls.name_interco)
+        tmp_cls.n_interco = len(tmp_cls.interco_is_origin)
         if tmp_cls.n_interco > 0:
             n_col_grid_objects_types += 1
         
@@ -420,6 +418,9 @@ class MultiAgentEnv :
             ])
         ]
         tmp_cls.interco_to_lineid = np.arange(cent_env_cls.n_line)[tmp_cls.mask_interco]
+        tmp_cls.name_interco = np.array([
+            f'interco_{i}_line_{tmp_cls.interco_to_lineid[i]}' for i in range(len(tmp_cls.interco_is_origin))
+        ])
 
         # which index has this element in the substation vector 
         tmp_cls.load_to_sub_pos = cent_env_cls.load_to_sub_pos[tmp_cls.mask_load]
@@ -494,93 +495,82 @@ class MultiAgentEnv :
 
 
 
-        # # redispatch data, not available in all environment
-        # tmp_cls.redispatching_unit_commitment_availble = False
-        # tmp_cls.gen_type = self._cent_env.gen_type[
-        #     tmp_cls.mask_gen
-        # ]
-        # tmp_cls.gen_pmin = self._cent_env.gen_pmin[
-        #     tmp_cls.mask_gen
-        # ]
-        # tmp_cls.gen_pmax = self._cent_env.gen_pmax[
-        #     tmp_cls.mask_gen
-        # ]
-        # tmp_cls.gen_redispatchable = self._cent_env.gen_redispatchable[
-        #     tmp_cls.mask_gen
-        # ]
-        # tmp_cls.gen_max_ramp_up = self._cent_env.gen_max_ramp_up[
-        #     tmp_cls.mask_gen
-        # ]
-        # tmp_cls.gen_max_ramp_down = self._cent_env.gen_max_ramp_down[
-        #     tmp_cls.mask_gen
-        # ]
-        # tmp_cls.gen_min_uptime = self._cent_env.gen_min_uptime[
-        #     tmp_cls.mask_gen
-        # ]
-        # tmp_cls.gen_min_downtime = self._cent_env.gen_min_downtime[
-        #     tmp_cls.mask_gen
-        # ]
-        # tmp_cls.gen_cost_per_MW = self._cent_env.gen_cost_per_MW[
-        #     tmp_cls.mask_gen
-        # ]  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
-        # tmp_cls.gen_startup_cost = self._cent_env.gen_startup_cost[
-        #     tmp_cls.mask_gen
-        # ]  # start cost (in currency)
-        # tmp_cls.gen_shutdown_cost = self._cent_env.gen_shutdown_cost[
-        #     tmp_cls.mask_gen
-        # ]  # shutdown cost (in currency)
-        # tmp_cls.gen_renewable = self._cent_env.gen_renewable[
-        #     tmp_cls.mask_gen
-        # ]
+        # redispatch data, not available in all environment
+        tmp_cls.redispatching_unit_commitment_availble = False
+        tmp_cls.gen_type = self._cent_env.gen_type[
+            tmp_cls.mask_gen
+        ]
+        tmp_cls.gen_pmin = self._cent_env.gen_pmin[
+            tmp_cls.mask_gen
+        ]
+        tmp_cls.gen_pmax = self._cent_env.gen_pmax[
+            tmp_cls.mask_gen
+        ]
+        tmp_cls.gen_redispatchable = self._cent_env.gen_redispatchable[
+            tmp_cls.mask_gen
+        ]
+        tmp_cls.gen_max_ramp_up = self._cent_env.gen_max_ramp_up[
+            tmp_cls.mask_gen
+        ]
+        tmp_cls.gen_max_ramp_down = self._cent_env.gen_max_ramp_down[
+            tmp_cls.mask_gen
+        ]
+        tmp_cls.gen_min_uptime = self._cent_env.gen_min_uptime[
+            tmp_cls.mask_gen
+        ]
+        tmp_cls.gen_min_downtime = self._cent_env.gen_min_downtime[
+            tmp_cls.mask_gen
+        ]
+        tmp_cls.gen_cost_per_MW = self._cent_env.gen_cost_per_MW[
+            tmp_cls.mask_gen
+        ]  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
+        tmp_cls.gen_startup_cost = self._cent_env.gen_startup_cost[
+            tmp_cls.mask_gen
+        ]  # start cost (in currency)
+        tmp_cls.gen_shutdown_cost = self._cent_env.gen_shutdown_cost[
+            tmp_cls.mask_gen
+        ]  # shutdown cost (in currency)
+        tmp_cls.gen_renewable = self._cent_env.gen_renewable[
+            tmp_cls.mask_gen
+        ]
 
-        # # storage unit static data 
-        # tmp_cls.storage_type = self._cent_env.storage_type[
-        #     tmp_cls.mask_storage
-        # ]
-        # tmp_cls.storage_Emax = self._cent_env.storage_Emax[
-        #     tmp_cls.mask_storage
-        # ]
-        # tmp_cls.storage_Emin = self._cent_env.storage_Emin[
-        #     tmp_cls.mask_storage
-        # ]
-        # tmp_cls.storage_max_p_prod = self._cent_env.storage_max_p_prod[
-        #     tmp_cls.mask_storage
-        # ]
-        # tmp_cls.storage_max_p_absorb = self._cent_env.storage_max_p_absorb[
-        #     tmp_cls.mask_storage
-        # ]
-        # tmp_cls.storage_marginal_cost = self._cent_env.storage_marginal_cost[
-        #     tmp_cls.mask_storage
-        # ]
-        # tmp_cls.storage_loss = self._cent_env.storage_loss[
-        #     tmp_cls.mask_storage
-        # ]
-        # tmp_cls.storage_charging_efficiency = self._cent_env.storage_charging_efficiency[
-        #     tmp_cls.mask_storage
-        # ]
-        # tmp_cls.storage_discharging_efficiency = self._cent_env.storage_discharging_efficiency[
-        #     tmp_cls.mask_storage
-        # ]
+        # storage unit static data 
+        tmp_cls.storage_type = self._cent_env.storage_type[
+            tmp_cls.mask_storage
+        ]
+        tmp_cls.storage_Emax = self._cent_env.storage_Emax[
+            tmp_cls.mask_storage
+        ]
+        tmp_cls.storage_Emin = self._cent_env.storage_Emin[
+            tmp_cls.mask_storage
+        ]
+        tmp_cls.storage_max_p_prod = self._cent_env.storage_max_p_prod[
+            tmp_cls.mask_storage
+        ]
+        tmp_cls.storage_max_p_absorb = self._cent_env.storage_max_p_absorb[
+            tmp_cls.mask_storage
+        ]
+        tmp_cls.storage_marginal_cost = self._cent_env.storage_marginal_cost[
+            tmp_cls.mask_storage
+        ]
+        tmp_cls.storage_loss = self._cent_env.storage_loss[
+            tmp_cls.mask_storage
+        ]
+        tmp_cls.storage_charging_efficiency = self._cent_env.storage_charging_efficiency[
+            tmp_cls.mask_storage
+        ]
+        tmp_cls.storage_discharging_efficiency = self._cent_env.storage_discharging_efficiency[
+            tmp_cls.mask_storage
+        ]
 
-        # # grid layout
-        # tmp_cls.grid_layout = None if self._cent_env.grid_layout is None else {
-        #     k : self._cent_env.grid_layout[k]
-        #     for k in tmp_cls.name_sub
-        # }
+        # grid layout
+        tmp_cls.grid_layout = None if self._cent_env.grid_layout is None else {
+            k : self._cent_env.grid_layout[k]
+            for k in tmp_cls.name_sub
+        }
 
-        # # shunt data, not available in every backend 
-        # tmp_cls.shunts_data_available = self._cent_env.shunts_data_available[
-        #     tmp_cls.mask_shunt
-        # ]
-        # tmp_cls.n_shunt = self._cent_env.n_shunt[
-        #     tmp_cls.mask_shunt
-        # ]
-        # tmp_cls.name_shunt = self._cent_env.name_shunt[
-        #     tmp_cls.mask_shunt
-        # ]
-        # tmp_cls.shunt_to_subid = self._cent_env.shunt_to_subid[
-        #     tmp_cls.mask_shunt
-        # ]
+        # shunt data, not available in every backend 
+        tmp_cls.shunts_data_available = np.any(tmp_cls.mask_shunt)
 
         # # alarms #TODO
         # tmp_cls.dim_alarms = 0
@@ -588,7 +578,7 @@ class MultiAgentEnv :
         # tmp_cls.alarms_lines_area = {}
         # tmp_cls.alarms_area_lines = []
         
-        return tmp_cls
+        return copy.deepcopy(tmp_cls)
         
     
     def _build_observation_spaces(self, global_obs = True):
@@ -634,18 +624,26 @@ class MultiAgentEnv :
             )
     
     
-    def _update_observations(self, observation : BaseObservation):
+    def _update_observations(self, _update_state = True):
         """Update agents' observations from the global observation given by the self._cent_env
 
         Args:
             observation (BaseObservation): _description_
         """
-        if self.global_obs:
-            for agent in self.agents:
-                self.observations[agent] = observation.copy()
-        else:
-            #TODO
-            raise NotImplementedError("Local observations are not available yet !")
+        #for agent in self.agents:
+        #    self.observations[agent] = observation.copy()
+        
+        if self._cent_env.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+        if not self.__is_init:
+            raise EnvError(
+                "This environment is not initialized. You cannot retrieve its observation."
+            )
+        
+        for agent in self.agents:
+            self.observations[agent] = self.observation_spaces[agent](
+                env=self._cent_env, _update_state=_update_state
+            )
     
     def _verify_domains(self, domains : MADict) :
         """It verifies if substation ids are valid
@@ -661,27 +659,25 @@ class MultiAgentEnv :
                     or isinstance(domains[agent], set)
                     or isinstance(domains[agent], np.ndarray)
             ):
-                raise DomainException("Agent id {agent} : The domain must be a list or a set of substation indices")
+                raise DomainException(f"Agent id {agent} : The domain must be a list or a set of substation indices")
             
             if len(domains[agent]) == 0:
                 raise DomainException(f"Agent id {agent} : The domain is empty !")
             
-            for sub_id in domains[agent] : 
-                if not (isinstance(sub_id, int) 
-                        or isinstance(sub_id, dt_int) 
-                        or isinstance(sub_id, np.int32) 
-                        or isinstance(sub_id, np.int64)
-                ):
-                    raise DomainException(f"Agent id {agent} : The id must be of type int. Type {type(sub_id)} is not valid")
-                if sub_id < 0 or sub_id > len(self._cent_env.name_sub) :
-                    raise DomainException(f"Agent id {agent} : The substation's id must be between 0 and {len(self._cent_env.name_sub)-1}, but {sub_id} has been given")
+            for i in range(len(domains[agent])) : 
+                try:
+                    domains[agent][i] = int(domains[agent][i])
+                except Exception as e:
+                    raise DomainException(f"Agent id {agent} : The id must be of type int or convertible to an int. Type {type(domains[agent][i])} is not valid")
+                if domains[agent][i] < 0 or domains[agent][i] > self._cent_env.n_sub:
+                    raise DomainException(f"Agent id {agent} : The substation's id must be between 0 and {len(self._cent_env.name_sub)-1}, but {domains[agent][i]} has been given")
             sum_subs += len(domains[agent])
 
         if sum_subs != self._cent_env.n_sub:
             raise DomainException(f"The sum of sub id lists' length must be equal to _cent_env.n_sub = {self._cent_env.n_sub} but is {sum_subs}")
     
     
-    def observation_space(self, agent):
+    def observation_space(self, agent : AgentID):
         """
         Takes in agent and returns the observation space for that agent.
 
@@ -691,7 +687,7 @@ class MultiAgentEnv :
         """
         return self.observation_spaces[agent]
 
-    def action_space(self, agent):
+    def action_space(self, agent : AgentID):
         """
         Takes in agent and returns the action space for that agent.
 
@@ -701,370 +697,10 @@ class MultiAgentEnv :
         """
         return self.action_spaces[agent]
     
-    def observe(self, agent):
+    def observe(self, agent : AgentID):
         """
         Returns the observation an agent currently can make. `last()` calls this function.
         """
         # observations are updated in reset and step methods
         return self.observations[agent]
 
-
-
-
-
-#########################################################################
-#########################################################################
-# AEC
-#------------------------------------------------------------------------
-
-class AECIterable:
-    def __init__(self, env, max_iter):
-        self.env = env
-        self.max_iter = max_iter
-
-    def __iter__(self):
-        return AECIterator(self.env, self.max_iter)
-
-
-class AECIterator:
-    def __init__(self, env, max_iter):
-        self.env = env
-        self.iters_til_term = max_iter
-
-    def __next__(self):
-        if not self.env.agents or self.iters_til_term <= 0:
-            raise StopIteration
-        self.iters_til_term -= 1
-        return self.env.agent_selection
-
-
-class MultiAgentEnvAEC:
-    """
-    The AECEnv steps agents one at a time. If you are unsure if you
-    have implemented a AECEnv correctly, try running the `api_test` documented in
-    the Developer documentation on the website.
-    """
-
-    def __init__(self,
-                 env_name,
-                 agents_names,
-                 env_test : bool = False,
-                 forbidden_action_pen : float = 1.,
-                 ) :
-        
-        self.env = grid2op.make(env_name, test = env_test)
-        self.agent = [str(name) for name in agents_names]
-        self.rewards = dict(
-            zip(
-                self.agents, [0. for _ in range(self.num_agents)]
-            )
-        )
-        self._cumulative_rewards = dict(
-            zip(
-                self.agents, [0. for _ in range(self.num_agents)]
-            )
-        )
-        
-        self.observations = dict(
-            zip(
-                self.agents, [None for _ in range(self.num_agents)]
-            )
-        )
-
-    def step(self, action):
-        """
-        Accepts and add the action of the current agent_selection
-        in the environment, automatically switches control to the next agent.
-        """
-        raise NotImplementedError
-
-    def reset(self, seed=None):
-        """
-        Resets the environment to a starting state.
-        """
-        raise NotImplementedError
-
-    def seed(self, seed=None):
-        """
-        Reseeds the environment (making the resulting environment deterministic).
-        """
-        raise NotImplementedError(
-            "Calling seed externally is deprecated; call reset(seed=seed) instead"
-        )
-
-    def observe(self, agent):
-        """
-        Returns the observation an agent currently can make. `last()` calls this function.
-        """
-        # observations are updated in reset and step methods
-        return self.observations[agent]
-
-    def render(self, mode="human"):
-        """
-        Displays a rendered frame from the environment, if supported.
-        Alternate render modes in the default environments are `'rgb_array'`
-        which returns a numpy array and is supported by all environments outside of classic,
-        and `'ansi'` which returns the strings printed (specific to classic environments).
-        """
-        raise NotImplementedError
-
-    def state(self):
-        """
-        State returns a global view of the environment appropriate for
-        centralized training decentralized execution methods like QMIX
-        """
-        raise NotImplementedError(
-            "state() method has not been implemented in the environment {}.".format(
-                self.metadata.get("name", self.__class__.__name__)
-            )
-        )
-
-    def close(self):
-        """
-        Closes the rendering window, subprocesses, network connections, or any other resources
-        that should be released.
-        """
-        pass
-
-    def observation_space(self, agent):
-        """
-        Takes in agent and returns the observation space for that agent.
-
-        MUST return the same value for the same agent name
-
-        Default implementation is to return the observation_spaces dict
-        """
-        warnings.warn(
-            "Your environment should override the observation_space function. Attempting to use the observation_spaces dict attribute."
-        )
-        return self.observation_spaces[agent]
-
-    def action_space(self, agent):
-        """
-        Takes in agent and returns the action space for that agent.
-
-        MUST return the same value for the same agent name
-
-        Default implementation is to return the action_spaces dict
-        """
-        warnings.warn(
-            "Your environment should override the action_space function. Attempting to use the action_spaces dict attribute."
-        )
-        return self.action_spaces[agent]
-
-    @property
-    def num_agents(self):
-        return len(self.agents)
-
-    @property
-    def max_num_agents(self):
-        return len(self.possible_agents)
-
-    def _dones_step_first(self):
-        """
-        Makes .agent_selection point to first done agent. Stores old value of agent_selection
-        so that _was_done_step can restore the variable after the done agent steps.
-        """
-        _dones_order = [agent for agent in self.agents if self.dones[agent]]
-        if _dones_order:
-            self._skip_agent_selection = self.agent_selection
-            self.agent_selection = _dones_order[0]
-        return self.agent_selection
-
-    def _clear_rewards(self):
-        """
-        clears all items in .rewards
-        """
-        for agent in self.rewards:
-            self.rewards[agent] = 0.
-
-    def _accumulate_rewards(self):
-        """
-        adds .rewards dictionary to ._cumulative_rewards dictionary. Typically
-        called near the end of a step() method
-        """
-        for agent, reward in self.rewards.items():
-            self._cumulative_rewards[agent] += reward
-
-    def agent_iter(self, max_iter=2 ** 63):
-        """
-        yields the current agent (self.agent_selection) when used in a loop where you step() each iteration.
-        """
-        return AECIterable(self, max_iter)
-
-    def last(self, observe=True):
-        """
-        returns observation, cumulative reward, done, info   for the current agent (specified by self.agent_selection)
-        """
-        agent = self.agent_selection
-        observation = self.observe(agent) if observe else None
-        return (
-            observation,
-            self._cumulative_rewards[agent],
-            self.dones[agent],
-            self.infos[agent],
-        )
-
-    def _was_done_step(self, action):
-        """
-        Helper function that performs step() for done agents.
-
-        Does the following:
-
-        1. Removes done agent from .agents, .dones, .rewards, ._cumulative_rewards, and .infos
-        2. Loads next agent into .agent_selection: if another agent is done, loads that one, otherwise load next live agent
-        3. Clear the rewards dict
-
-        Highly recommended to use at the beginning of step as follows:
-
-        def step(self, action):
-            if self.dones[self.agent_selection]:
-                self._was_done_step()
-                return
-            # main contents of step
-        """
-        if action is not None:
-            raise ValueError("when an agent is done, the only valid action is None")
-
-        # removes done agent
-        agent = self.agent_selection
-        assert self.dones[
-            agent
-        ], "an agent that was not done as attempted to be removed"
-        del self.dones[agent]
-        del self.rewards[agent]
-        del self._cumulative_rewards[agent]
-        del self.infos[agent]
-        self.agents.remove(agent)
-
-        # finds next done agent or loads next live agent (Stored in _skip_agent_selection)
-        _dones_order = [agent for agent in self.agents if self.dones[agent]]
-        if _dones_order:
-            if getattr(self, "_skip_agent_selection", None) is None:
-                self._skip_agent_selection = self.agent_selection
-            self.agent_selection = _dones_order[0]
-        else:
-            if getattr(self, "_skip_agent_selection", None) is not None:
-                self.agent_selection = self._skip_agent_selection
-            self._skip_agent_selection = None
-        self._clear_rewards()
-
-    def __str__(self):
-        """
-        returns a name which looks like: "space_invaders_v1"
-        """
-        if hasattr(self, "metadata"):
-            return self.metadata.get("name", self.__class__.__name__)
-        else:
-            return self.__class__.__name__
-
-    @property
-    def unwrapped(self):
-        return self
-
-
-
-
-class ParallelEnv:
-    """
-    The Parallel environment steps every live agent at once. If you are unsure if you
-    have implemented a ParallelEnv correctly, try running the `parallel_api_test` in
-    the Developer documentation on the website.
-    """
-
-    def reset(self, seed=None):
-        """
-        resets the environment and returns a dictionary of observations (keyed by the agent name)
-        """
-        raise NotImplementedError
-
-    def seed(self, seed=None):
-        """
-        Reseeds the environment (making it deterministic).
-        """
-        raise NotImplementedError(
-            "Calling seed externally is deprecated; call reset(seed=seed) instead"
-        )
-
-    def step(self, actions):
-        """
-        receives a dictionary of actions keyed by the agent name.
-        Returns the observation dictionary, reward dictionary, done dictionary,
-        and info dictionary, where each dictionary is keyed by the agent.
-        """
-        raise NotImplementedError
-
-    def render(self, mode="human"):
-        """
-        Displays a rendered frame from the environment, if supported.
-        Alternate render modes in the default environments are `'rgb_array'`
-        which returns a numpy array and is supported by all environments outside
-        of classic, and `'ansi'` which returns the strings printed
-        (specific to classic environments).
-        """
-        raise NotImplementedError
-
-    def close(self):
-        """
-        Closes the rendering window.
-        """
-        pass
-
-    def state(self):
-        """
-        State returns a global view of the environment appropriate for
-        centralized training decentralized execution methods like QMIX
-        """
-        raise NotImplementedError(
-            "state() method has not been implemented in the environment {}.".format(
-                self.metadata.get("name", self.__class__.__name__)
-            )
-        )
-
-    def observation_space(self, agent):
-        """
-        Takes in agent and returns the observation space for that agent.
-
-        MUST return the same value for the same agent name
-
-        Default implementation is to return the observation_spaces dict
-        """
-        warnings.warn(
-            "Your environment should override the observation_space function. Attempting to use the observation_spaces dict attribute."
-        )
-        return self.observation_spaces[agent]
-
-    def action_space(self, agent):
-        """
-        Takes in agent and returns the action space for that agent.
-
-        MUST return the same value for the same agent name
-
-        Default implementation is to return the action_spaces dict
-        """
-        warnings.warn(
-            "Your environment should override the action_space function. Attempting to use the action_spaces dict attribute."
-        )
-        return self.action_spaces[agent]
-
-    @property
-    def num_agents(self):
-        return len(self.agents)
-
-    @property
-    def max_num_agents(self):
-        return len(self.possible_agents)
-
-    def __str__(self):
-        """
-        returns a name which looks like: "space_invaders_v1" by default
-        """
-        if hasattr(self, "metadata"):
-            return self.metadata.get("name", self.__class__.__name__)
-        else:
-            return self.__class__.__name__
-
-    @property
-    def unwrapped(self):
-        return self
-    

@@ -2810,14 +2810,6 @@ class GridObjects:
         res[cls.gen_to_sub_pos[dict_["generators_id"]], cls.GEN_COL] = dict_[
             "generators_id"
         ]
-        try:
-            res[cls.line_or_to_sub_pos[dict_["lines_or_id"]], cls.LOR_COL] = dict_[
-                "lines_or_id"
-            ]
-        except Exception as exc_:
-            import pdb
-            pdb.set_trace()
-            print("toto")
         res[cls.line_ex_to_sub_pos[dict_["lines_ex_id"]], cls.LEX_COL] = dict_[
             "lines_ex_id"
         ]

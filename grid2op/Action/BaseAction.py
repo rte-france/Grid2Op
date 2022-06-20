@@ -14,7 +14,6 @@ from typing import Tuple
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
-from grid2op.Observation.baseObservation import BaseObservation
 
 # TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
