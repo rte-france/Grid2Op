@@ -38,6 +38,7 @@ class MultiAgentEnv(RandomObject):
                  agent_order_fn = lambda x : x,
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
+                 copy_env = False,
                  _add_to_name: Optional[str] = None,
                  ):
         """Multi-agent Grid2Op POSG (Partially Observable Stochastic Game) environment
@@ -104,12 +105,18 @@ class MultiAgentEnv(RandomObject):
                       
  
         """
-        # TODO BEN: init the RandomObject
+        
+        super().__init__()
         
         # added to the class name, if you want to build multiple ma environment with the same underlying environment
         self._add_to_name = _add_to_name  
         
-        self._cent_env : Environment = env  # TODO BEN: copy or not copy ? Discuss
+        if copy_env:
+            # There's no need to copy the environment if it's used only for the multi-agent env,
+            # Otherwise, it's recommanded to do so to avoid data leaks.
+            self._cent_env : Environment = env.copy()
+        else:
+            self._cent_env : Environment = env 
             
         
         self._verify_domains(action_domains)
@@ -186,7 +193,6 @@ class MultiAgentEnv(RandomObject):
         
         order = self.select_agent.get_order(reinit=True)
         for agent in order:
-            # TODO agent is an "agent_id" or an "agent_name" not clear
             converted_action = action[agent] # TODO should be converted into grid2op action
             proposed_action = global_action + converted_action
             
@@ -265,7 +271,6 @@ class MultiAgentEnv(RandomObject):
             if self._add_to_name is not None:
                 extra_name += f"{self._add_to_name}"
                 
-            #TODO init grid does not work when the grid is not connected
             self._subgrids_cls['action'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=extra_name)
             self._subgrids_cls['action'][agent_nm].shunt_to_subid = subgridobj.shunt_to_subid.copy()
             self._subgrids_cls['action'][agent_nm].grid_objects_types = subgridobj.grid_objects_types.copy()
@@ -317,24 +322,39 @@ class MultiAgentEnv(RandomObject):
         return new_label[tmp_]
     
     def seed(self, seed):
-        # TODO BEN: code that to seed also the "cent_env"
+        self._cent_env.seed(seed)
         return super().seed(seed)
     
     def _build_subgrid_obj_from_domain(self, domain):
         cent_env_cls = type(self._cent_env)
         tmp_subgrid = SubGridObjects()
         tmp_cls = type(tmp_subgrid)
-        tmp_cls.sub_orig_ids = copy.deepcopy(domain['sub_id'])
+        tmp_cls.sub_orig_ids = np.sort(domain['sub_id'])
+        tmp_cls.load_orig_ids = np.where(domain['mask_load'])
+        tmp_cls.gen_orig_ids = np.where(domain['mask_gen'])
+        tmp_cls.storage_orig_ids = np.where(domain['mask_storage'])
+        tmp_cls.line_orig_ids = np.where(domain['mask_line_or'])
+        
         tmp_cls.mask_load = copy.deepcopy(domain['mask_load'])
         tmp_cls.mask_gen = copy.deepcopy(domain['mask_gen'])
         tmp_cls.mask_storage = copy.deepcopy(domain['mask_storage'])
-        tmp_cls.mask_shunt = copy.deepcopy(domain['mask_shunt'])
         tmp_cls.mask_line_or = copy.deepcopy(domain['mask_line_or'])
         tmp_cls.mask_line_ex = copy.deepcopy(domain['mask_line_ex'])
         tmp_cls.agent_name = copy.deepcopy(domain["agent_name"])
         tmp_cls.mask_sub = copy.deepcopy(domain["mask_sub"])
         tmp_cls.mask_interco = copy.deepcopy(domain["mask_interco"])
         tmp_cls.interco_is_origin = copy.deepcopy(domain["interco_is_origin"])
+        
+        # shunt data, not available in every backend 
+        tmp_cls.shunts_data_available = cent_env_cls.shunts_data_available
+        if tmp_cls.shunts_data_available:
+            tmp_cls.name_shunt = cent_env_cls.name_shunt[
+                tmp_cls.mask_shunt
+            ]
+            tmp_cls.n_shunt = len(tmp_cls.name_shunt)
+            tmp_cls.shunt_to_subid = np.zeros(tmp_cls.n_shunt, dtype=dt_int)
+            tmp_cls.mask_shunt = copy.deepcopy(domain['mask_shunt'])
+            tmp_cls.shunt_orig_ids = np.where(domain['mask_shunt'])
         
         tmp_cls.glop_version = cent_env_cls.glop_version
         tmp_cls._PATH_ENV = cent_env_cls._PATH_ENV
@@ -356,16 +376,14 @@ class MultiAgentEnv(RandomObject):
         tmp_cls.name_storage = cent_env_cls.name_storage[
             tmp_cls.mask_storage
         ]
-        tmp_cls.name_shunt = cent_env_cls.name_shunt[
-            tmp_cls.mask_shunt
-        ]
+        
         
         n_col_grid_objects_types = 5
         tmp_cls.n_gen = len(tmp_cls.name_gen)
         tmp_cls.n_load = len(tmp_cls.name_load)
         tmp_cls.n_line = len(tmp_cls.name_line)
         tmp_cls.n_sub = len(tmp_cls.name_sub)
-        tmp_cls.n_shunt = len(tmp_cls.name_shunt)
+        
         if tmp_cls.n_shunt > 0:
             n_col_grid_objects_types += 1
             #n_line_grid_objects_types += tmp_cls.n_shunt #TODO should I add shunt ?
@@ -393,7 +411,6 @@ class MultiAgentEnv(RandomObject):
         tmp_cls.line_or_to_subid = np.zeros(tmp_cls.n_line, dtype=dt_int)
         tmp_cls.line_ex_to_subid = np.zeros(tmp_cls.n_line, dtype=dt_int)
         tmp_cls.storage_to_subid = np.zeros(tmp_cls.n_storage, dtype=dt_int)
-        tmp_cls.shunt_to_subid = np.zeros(tmp_cls.n_shunt, dtype=dt_int)
         
         # new_label[orig_grid_sub_id] = new_grid_sub_id
         new_label = np.zeros(cent_env_cls.n_sub, dtype=dt_int) - 1
@@ -407,10 +424,11 @@ class MultiAgentEnv(RandomObject):
                                                      new_label,
                                                      cent_env_cls.gen_to_subid
         )
-        tmp_cls.shunt_to_subid  = self._relabel_subid(tmp_cls.mask_shunt,
-                                                      new_label,
-                                                      cent_env_cls.shunt_to_subid
-        )
+        if tmp_cls.n_shunt > 0:
+            tmp_cls.shunt_to_subid  = self._relabel_subid(tmp_cls.mask_shunt,
+                                                          new_label,
+                                                          cent_env_cls.shunt_to_subid
+            )
         tmp_cls.storage_to_subid  = self._relabel_subid(tmp_cls.mask_storage,
                                                         new_label,
                                                         cent_env_cls.storage_to_subid
@@ -448,7 +466,7 @@ class MultiAgentEnv(RandomObject):
             else cent_env_cls.line_ex_to_sub_pos[tmp_cls.mask_interco][i] for i in range(tmp_cls.n_interco)
         ])
 
-        # #TODO
+        
         tmp_cls.grid_objects_types = -np.ones((tmp_cls.dim_topo, n_col_grid_objects_types))
         
         # # which index has this element in the topology vector
@@ -583,11 +601,6 @@ class MultiAgentEnv(RandomObject):
             for k in tmp_cls.name_sub
         }
 
-        # shunt data, not available in every backend 
-        tmp_cls.shunts_data_available = cent_env_cls.shunts_data_available
-        # you should first check that and then fill all the shunts related attributes !!!!!
-        # TODO BEN
-
         # # alarms #TODO
         # tmp_cls.dim_alarms = 0
         # tmp_cls.alarms_area_names = []
@@ -657,8 +670,22 @@ class MultiAgentEnv(RandomObject):
                 "This environment is not initialized. You cannot retrieve its observation."
             )
         
-        # TODO BEN: why do you do that this way ? Why not reusing the centralized observation after the "self._cent_env.step(...)" ??
-        # TODO BEN: discuss
+        # It's a bit faster to create observation from the observation space 
+        # than copying it from the observation given by the self._cent_env.step
+        #
+        # You can try it in a notebook :
+        #   env = grid2op.make(env_name, test=True, backend=bk_cls())
+        #   obs = env.reset()
+        #
+        #   %%timeit
+        #   env.observation_space(
+        #                   env=env, _update_state=False
+        #   )
+        #
+        #   %%timeit
+        #   new_obs = obs.copy()
+        
+        
         for agent in self.agents:
             self.observations[agent] = self.observation_spaces[agent](
                 env=self._cent_env, _update_state=_update_state
