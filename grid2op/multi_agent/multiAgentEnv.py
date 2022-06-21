@@ -259,23 +259,16 @@ class MultiAgentEnv(RandomObject):
             'observation' : dict()
         }
         for agent_nm in self.agents : 
+            # action space
             self._build_agent_domain(agent_nm, self._action_domains[agent_nm])
-            subgridobj = self._build_subgrid_obj_from_domain(self._action_domains[agent_nm])
-            extra_name = agent_nm
-            if self._add_to_name is not None:
-                extra_name += f"{self._add_to_name}"
-                
-            #TODO init grid does not work when the grid is not connected
-            self._subgrids_cls['action'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=extra_name)
-            self._subgrids_cls['action'][agent_nm].shunt_to_subid = subgridobj.shunt_to_subid.copy()
-            self._subgrids_cls['action'][agent_nm].grid_objects_types = subgridobj.grid_objects_types.copy()
+            subgridcls = self._build_subgrid_cls_from_domain(self._action_domains[agent_nm])
+            self._subgrids_cls['action'][agent_nm] = subgridcls 
             
+            # observation space
             if self._observation_domains is not None:
                 self._build_agent_domain(agent_nm, self._observation_domains[agent_nm])
-                subgridobj = self._build_subgrid_obj_from_domain(self._observation_domains[agent_nm])
-                self._subgrids_cls['observation'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=extra_name)
-                self._subgrids_cls['observation'][agent_nm].grid_objects_types = subgridobj.grid_objects_types
-        
+                subgridcls = self._build_subgrid_cls_from_domain(self._observation_domains[agent_nm])
+                self._subgrids_cls['observation'][agent_nm] = subgridcls
         
     def _build_agent_domain(self, agent_nm, domain):
         """_summary_#TODO
@@ -306,9 +299,9 @@ class MultiAgentEnv(RandomObject):
         domain['mask_line_ex'] = np.isin(
             self._cent_env.line_ex_to_subid, domain['sub_id'] 
         )
-        domain['mask_interco'] = domain['mask_line_or']^domain['mask_line_ex']
+        domain['mask_interco'] = domain['mask_line_or'] ^ domain['mask_line_ex']
         domain['interco_is_origin'] = domain['mask_line_or'][domain['mask_interco']]
-        domain['mask_line_or'] = domain['mask_line_or']&domain['mask_line_ex']
+        domain['mask_line_or'] = domain['mask_line_or'] & domain['mask_line_ex']
         domain['mask_line_ex'] = domain['mask_line_or'].copy()
         domain["agent_name"] = agent_nm
     
@@ -320,271 +313,203 @@ class MultiAgentEnv(RandomObject):
         # TODO BEN: code that to seed also the "cent_env"
         return super().seed(seed)
     
-    def _build_subgrid_obj_from_domain(self, domain):
+    def _build_subgrid_cls_from_domain(self, domain):                
         cent_env_cls = type(self._cent_env)
         tmp_subgrid = SubGridObjects()
-        tmp_cls = type(tmp_subgrid)
-        tmp_cls.sub_orig_ids = copy.deepcopy(domain['sub_id'])
-        tmp_cls.mask_load = copy.deepcopy(domain['mask_load'])
-        tmp_cls.mask_gen = copy.deepcopy(domain['mask_gen'])
-        tmp_cls.mask_storage = copy.deepcopy(domain['mask_storage'])
-        tmp_cls.mask_shunt = copy.deepcopy(domain['mask_shunt'])
-        tmp_cls.mask_line_or = copy.deepcopy(domain['mask_line_or'])
-        tmp_cls.mask_line_ex = copy.deepcopy(domain['mask_line_ex'])
-        tmp_cls.agent_name = copy.deepcopy(domain["agent_name"])
-        tmp_cls.mask_sub = copy.deepcopy(domain["mask_sub"])
-        tmp_cls.mask_interco = copy.deepcopy(domain["mask_interco"])
-        tmp_cls.interco_is_origin = copy.deepcopy(domain["interco_is_origin"])
+        tmp_subgrid.sub_orig_ids = copy.deepcopy(domain['sub_id'])
+        tmp_subgrid.mask_load = copy.deepcopy(domain['mask_load'])
+        tmp_subgrid.mask_gen = copy.deepcopy(domain['mask_gen'])
+        tmp_subgrid.mask_storage = copy.deepcopy(domain['mask_storage'])
+        tmp_subgrid.mask_shunt = copy.deepcopy(domain['mask_shunt'])
+        tmp_subgrid.mask_line_or = copy.deepcopy(domain['mask_line_or'])
+        tmp_subgrid.mask_line_ex = copy.deepcopy(domain['mask_line_ex'])
+        tmp_subgrid.agent_name = copy.deepcopy(domain["agent_name"])
+        tmp_subgrid.mask_sub = copy.deepcopy(domain["mask_sub"])
+        tmp_subgrid.mask_interco = copy.deepcopy(domain["mask_interco"])
+        tmp_subgrid.interco_is_origin = copy.deepcopy(domain["interco_is_origin"])
         
-        tmp_cls.glop_version = cent_env_cls.glop_version
-        tmp_cls._PATH_ENV = cent_env_cls._PATH_ENV
+        tmp_subgrid.glop_version = cent_env_cls.glop_version
+        tmp_subgrid._PATH_ENV = cent_env_cls._PATH_ENV
 
         # name of the objects
-        tmp_cls.env_name = cent_env_cls.env_name
-        tmp_cls.name_load = cent_env_cls.name_load[
-            tmp_cls.mask_load
+        tmp_subgrid.env_name = cent_env_cls.env_name
+        tmp_subgrid.name_load = cent_env_cls.name_load[
+            tmp_subgrid.mask_load
         ]
-        tmp_cls.name_gen = cent_env_cls.name_gen[
-            tmp_cls.mask_gen
+        tmp_subgrid.name_gen = cent_env_cls.name_gen[
+            tmp_subgrid.mask_gen
         ]
-        tmp_cls.name_line = cent_env_cls.name_line[
-            tmp_cls.mask_line_or & tmp_cls.mask_line_ex
+        tmp_subgrid.name_line = cent_env_cls.name_line[
+            tmp_subgrid.mask_line_or & tmp_subgrid.mask_line_ex
         ]
-        tmp_cls.name_sub = cent_env_cls.name_sub[
-            tmp_cls.mask_sub
+        tmp_subgrid.name_sub = cent_env_cls.name_sub[
+            tmp_subgrid.mask_sub
         ]
-        tmp_cls.name_storage = cent_env_cls.name_storage[
-            tmp_cls.mask_storage
+        tmp_subgrid.name_storage = cent_env_cls.name_storage[
+            tmp_subgrid.mask_storage
         ]
-        tmp_cls.name_shunt = cent_env_cls.name_shunt[
-            tmp_cls.mask_shunt
+        tmp_subgrid.name_shunt = cent_env_cls.name_shunt[
+            tmp_subgrid.mask_shunt
         ]
         
-        n_col_grid_objects_types = 5
-        tmp_cls.n_gen = len(tmp_cls.name_gen)
-        tmp_cls.n_load = len(tmp_cls.name_load)
-        tmp_cls.n_line = len(tmp_cls.name_line)
-        tmp_cls.n_sub = len(tmp_cls.name_sub)
-        tmp_cls.n_shunt = len(tmp_cls.name_shunt)
-        if tmp_cls.n_shunt > 0:
-            n_col_grid_objects_types += 1
-            #n_line_grid_objects_types += tmp_cls.n_shunt #TODO should I add shunt ?
-        tmp_cls.n_storage = len(tmp_cls.name_storage)
-        if tmp_cls.n_storage > 0:
-            n_col_grid_objects_types += 1
-        tmp_cls.n_interco = len(tmp_cls.interco_is_origin)
-        if tmp_cls.n_interco > 0:
-            n_col_grid_objects_types += 1
-        
+        tmp_subgrid.n_gen = len(tmp_subgrid.name_gen)
+        tmp_subgrid.n_load = len(tmp_subgrid.name_load)
+        tmp_subgrid.n_line = len(tmp_subgrid.name_line)
+        tmp_subgrid.n_sub = len(tmp_subgrid.name_sub)
+        tmp_subgrid.n_shunt = len(tmp_subgrid.name_shunt)
+        tmp_subgrid.n_storage = len(tmp_subgrid.name_storage)
+        tmp_subgrid.n_interco = tmp_subgrid.mask_interco.sum()
 
-        tmp_cls.sub_info = cent_env_cls.sub_info[
-            tmp_cls.sub_orig_ids
+        tmp_subgrid.sub_info = cent_env_cls.sub_info[
+            tmp_subgrid.sub_orig_ids
         ]
         
         #TODO correct ?
-        tmp_cls.dim_topo = 2*tmp_cls.n_line + tmp_cls.n_interco + \
-            tmp_cls.n_load + tmp_cls.n_gen + tmp_cls.n_storage
+        tmp_subgrid.dim_topo = 2*tmp_subgrid.n_line + tmp_subgrid.n_interco + \
+            tmp_subgrid.n_load + tmp_subgrid.n_gen + tmp_subgrid.n_storage
 
         # to which substation is connected each element 
         # this is a bit "tricky" because I have to
         # re label the substation in the subgrid
-        tmp_cls.load_to_subid = np.zeros(tmp_cls.n_load, dtype=dt_int)
-        tmp_cls.gen_to_subid = np.zeros(tmp_cls.n_gen, dtype=dt_int)
-        tmp_cls.line_or_to_subid = np.zeros(tmp_cls.n_line, dtype=dt_int)
-        tmp_cls.line_ex_to_subid = np.zeros(tmp_cls.n_line, dtype=dt_int)
-        tmp_cls.storage_to_subid = np.zeros(tmp_cls.n_storage, dtype=dt_int)
-        tmp_cls.shunt_to_subid = np.zeros(tmp_cls.n_shunt, dtype=dt_int)
+        tmp_subgrid.load_to_subid = np.zeros(tmp_subgrid.n_load, dtype=dt_int)
+        tmp_subgrid.gen_to_subid = np.zeros(tmp_subgrid.n_gen, dtype=dt_int)
+        tmp_subgrid.line_or_to_subid = np.zeros(tmp_subgrid.n_line, dtype=dt_int)
+        tmp_subgrid.line_ex_to_subid = np.zeros(tmp_subgrid.n_line, dtype=dt_int)
+        tmp_subgrid.storage_to_subid = np.zeros(tmp_subgrid.n_storage, dtype=dt_int)
+        tmp_subgrid.shunt_to_subid = np.zeros(tmp_subgrid.n_shunt, dtype=dt_int)
         
         # new_label[orig_grid_sub_id] = new_grid_sub_id
         new_label = np.zeros(cent_env_cls.n_sub, dtype=dt_int) - 1
-        new_label[tmp_cls.sub_orig_ids] = np.arange(tmp_cls.n_sub)
+        new_label[tmp_subgrid.sub_orig_ids] = np.arange(tmp_subgrid.n_sub)
         
-        tmp_cls.load_to_subid  = self._relabel_subid(tmp_cls.mask_load,
+        tmp_subgrid.load_to_subid  = self._relabel_subid(tmp_subgrid.mask_load,
                                                      new_label,
                                                      cent_env_cls.load_to_subid
         )
-        tmp_cls.gen_to_subid  = self._relabel_subid(tmp_cls.mask_gen,
+        tmp_subgrid.gen_to_subid  = self._relabel_subid(tmp_subgrid.mask_gen,
                                                      new_label,
                                                      cent_env_cls.gen_to_subid
         )
-        tmp_cls.shunt_to_subid  = self._relabel_subid(tmp_cls.mask_shunt,
+        tmp_subgrid.shunt_to_subid  = self._relabel_subid(tmp_subgrid.mask_shunt,
                                                       new_label,
                                                       cent_env_cls.shunt_to_subid
         )
-        tmp_cls.storage_to_subid  = self._relabel_subid(tmp_cls.mask_storage,
+        tmp_subgrid.storage_to_subid  = self._relabel_subid(tmp_subgrid.mask_storage,
                                                         new_label,
                                                         cent_env_cls.storage_to_subid
         )
-        tmp_cls.line_or_to_subid = self._relabel_subid(tmp_cls.mask_line_or,
+        tmp_subgrid.line_or_to_subid = self._relabel_subid(tmp_subgrid.mask_line_or,
                                                         new_label,
                                                         cent_env_cls.line_or_to_subid
         )
-        tmp_cls.line_ex_to_subid = self._relabel_subid(tmp_cls.mask_line_ex,
+        tmp_subgrid.line_ex_to_subid = self._relabel_subid(tmp_subgrid.mask_line_ex,
                                                         new_label,
                                                         cent_env_cls.line_ex_to_subid
         )
         
+        interco_to_subid = np.zeros(cent_env_cls.n_line, dtype=dt_int) - 1
+        tmp_ = np.zeros(tmp_subgrid.n_interco, dtype=dt_int) - 1
+        tmp_[tmp_subgrid.interco_is_origin] = cent_env_cls.line_or_to_subid[tmp_subgrid.mask_interco][tmp_subgrid.interco_is_origin]
+        tmp_[~tmp_subgrid.interco_is_origin] = cent_env_cls.line_ex_to_subid[tmp_subgrid.mask_interco][~tmp_subgrid.interco_is_origin]
+        interco_to_subid[tmp_subgrid.mask_interco] = tmp_
+        tmp_subgrid.interco_to_subid = self._relabel_subid(tmp_subgrid.mask_interco,
+                                                           new_label,
+                                                           interco_to_subid)
         
-        tmp_cls.interco_to_subid = new_label[
-            np.array([
-                cent_env_cls.line_or_to_subid[tmp_cls.mask_interco][i] if tmp_cls.interco_is_origin[i] 
-                else cent_env_cls.line_ex_to_subid[tmp_cls.mask_interco][i] for i in range(tmp_cls.n_interco)
-            ])
-        ]
-        tmp_cls.interco_to_lineid = np.arange(cent_env_cls.n_line)[tmp_cls.mask_interco]
-        tmp_cls.name_interco = np.array([
-            f'interco_{i}_line_{tmp_cls.interco_to_lineid[i]}' for i in range(len(tmp_cls.interco_is_origin))
+        tmp_subgrid.interco_to_lineid = np.arange(cent_env_cls.n_line)[tmp_subgrid.mask_interco]
+        tmp_subgrid.name_interco = np.array([
+            f'interco_{i}_line_{tmp_subgrid.interco_to_lineid[i]}' for i in range(len(tmp_subgrid.interco_is_origin))
         ])
 
         # which index has this element in the substation vector 
-        tmp_cls.load_to_sub_pos = cent_env_cls.load_to_sub_pos[tmp_cls.mask_load]
-        tmp_cls.gen_to_sub_pos = cent_env_cls.gen_to_sub_pos[tmp_cls.mask_gen]
-        tmp_cls.storage_to_sub_pos = cent_env_cls.storage_to_sub_pos[tmp_cls.mask_storage]
-        tmp_cls.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_cls.mask_line_or]
-        tmp_cls.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_cls.mask_line_ex]
-        #tmp_cls.shunt_to_sub_pos = cent_env_cls.shunt_to_sub_pos[tmp_cls.mask_shunt]
-        tmp_cls.interco_to_sub_pos = np.array([
-            cent_env_cls.line_or_to_sub_pos[tmp_cls.mask_interco][i] if tmp_cls.interco_is_origin[i] 
-            else cent_env_cls.line_ex_to_sub_pos[tmp_cls.mask_interco][i] for i in range(tmp_cls.n_interco)
-        ])
-
-        # #TODO
-        tmp_cls.grid_objects_types = -np.ones((tmp_cls.dim_topo, n_col_grid_objects_types))
+        tmp_subgrid.load_to_sub_pos = cent_env_cls.load_to_sub_pos[tmp_subgrid.mask_load]
+        tmp_subgrid.gen_to_sub_pos = cent_env_cls.gen_to_sub_pos[tmp_subgrid.mask_gen]
+        tmp_subgrid.storage_to_sub_pos = cent_env_cls.storage_to_sub_pos[tmp_subgrid.mask_storage]
+        tmp_subgrid.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_line_or]
+        tmp_subgrid.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_line_ex]
         
-        # # which index has this element in the topology vector
-        # # "convenient" way to retrieve information of the grid
-        # # to which substation each element of the topovect is connected
-        sub_info_cum_sum = np.cumsum(tmp_cls.sub_info)
-        tmp_cls.load_pos_topo_vect = np.where(tmp_cls.load_to_subid == 0, 
-            tmp_cls.load_to_sub_pos, 
-            sub_info_cum_sum[tmp_cls.load_to_subid-1] + tmp_cls.load_to_sub_pos
-        )
-        tmp_cls.grid_objects_types[tmp_cls.load_pos_topo_vect, 0] = tmp_cls.load_to_subid
-        tmp_cls.grid_objects_types[tmp_cls.load_pos_topo_vect, 1] = np.arange(len(tmp_cls.load_pos_topo_vect))
-        
-        tmp_cls.gen_pos_topo_vect = np.where(tmp_cls.gen_to_subid == 0, 
-            tmp_cls.gen_to_sub_pos, 
-            sub_info_cum_sum[tmp_cls.gen_to_subid-1] + tmp_cls.gen_to_sub_pos
-        )
-        tmp_cls.grid_objects_types[tmp_cls.gen_pos_topo_vect, 0] = tmp_cls.gen_to_subid
-        tmp_cls.grid_objects_types[tmp_cls.gen_pos_topo_vect, 2] = np.arange(len(tmp_cls.gen_pos_topo_vect))
-        
-        tmp_cls.line_or_pos_topo_vect = np.where(tmp_cls.line_or_to_subid == 0, 
-            tmp_cls.line_or_to_sub_pos, 
-            sub_info_cum_sum[tmp_cls.line_or_to_subid-1] + tmp_cls.line_or_to_sub_pos
-        )
-        tmp_cls.grid_objects_types[tmp_cls.line_or_pos_topo_vect, 0] = tmp_cls.line_or_to_subid
-        tmp_cls.grid_objects_types[tmp_cls.line_or_pos_topo_vect, 3] = np.arange(len(tmp_cls.line_or_pos_topo_vect))
-        
-        tmp_cls.line_ex_pos_topo_vect = np.where(tmp_cls.line_ex_to_subid == 0, 
-            tmp_cls.line_ex_to_sub_pos, 
-            sub_info_cum_sum[tmp_cls.line_ex_to_subid-1] + tmp_cls.line_ex_to_sub_pos
-        )
-        tmp_cls.grid_objects_types[tmp_cls.line_ex_pos_topo_vect, 0] = tmp_cls.line_ex_to_subid
-        tmp_cls.grid_objects_types[tmp_cls.line_ex_pos_topo_vect, 4] = np.arange(len(tmp_cls.line_ex_pos_topo_vect))
-        
-        tmp_cls.storage_pos_topo_vect = np.where(tmp_cls.storage_to_subid == 0, 
-            tmp_cls.storage_to_sub_pos, 
-            sub_info_cum_sum[tmp_cls.storage_to_subid-1] + tmp_cls.storage_to_sub_pos
-        )
-        last_col = 4
-        if tmp_cls.n_storage >0:
-            last_col += 1
-            tmp_cls.grid_objects_types[tmp_cls.storage_pos_topo_vect, 0] = tmp_cls.storage_to_subid
-            tmp_cls.grid_objects_types[tmp_cls.storage_pos_topo_vect, last_col] = np.arange(len(tmp_cls.storage_pos_topo_vect))
-        
-        tmp_cls.interco_pos_topo_vect = np.where(tmp_cls.interco_to_subid == 0, 
-            tmp_cls.interco_to_sub_pos, 
-            sub_info_cum_sum[tmp_cls.interco_to_subid-1] + tmp_cls.interco_to_sub_pos
-        )
-        if tmp_cls.n_interco >0:
-            last_col += 1
-            tmp_cls.grid_objects_types[tmp_cls.interco_pos_topo_vect, 0] = tmp_cls.interco_to_subid
-            tmp_cls.grid_objects_types[tmp_cls.interco_pos_topo_vect, last_col] = np.arange(len(tmp_cls.interco_pos_topo_vect))
-        
-    
-         #
-         #tmp_cls_action._topo_vect_to_sub = None
-        #tmp_cls._compute_pos_big_topo_cls()
-
-
+        tmp_ = np.zeros(tmp_subgrid.n_interco, dtype=dt_int) - 1
+        tmp_[tmp_subgrid.interco_is_origin] = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_interco][tmp_subgrid.interco_is_origin]
+        tmp_[~tmp_subgrid.interco_is_origin] = cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_interco][~tmp_subgrid.interco_is_origin]
+        tmp_subgrid.interco_to_sub_pos = tmp_
 
         # redispatch data, not available in all environment
-        tmp_cls.redispatching_unit_commitment_availble = False
-        tmp_cls.gen_type = cent_env_cls.gen_type[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_pmin = cent_env_cls.gen_pmin[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_pmax = cent_env_cls.gen_pmax[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_redispatchable = cent_env_cls.gen_redispatchable[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_max_ramp_up = cent_env_cls.gen_max_ramp_up[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_max_ramp_down = cent_env_cls.gen_max_ramp_down[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_min_uptime = cent_env_cls.gen_min_uptime[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_min_downtime = cent_env_cls.gen_min_downtime[
-            tmp_cls.mask_gen
-        ]
-        tmp_cls.gen_cost_per_MW = cent_env_cls.gen_cost_per_MW[
-            tmp_cls.mask_gen
-        ]  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
-        tmp_cls.gen_startup_cost = cent_env_cls.gen_startup_cost[
-            tmp_cls.mask_gen
-        ]  # start cost (in currency)
-        tmp_cls.gen_shutdown_cost = cent_env_cls.gen_shutdown_cost[
-            tmp_cls.mask_gen
-        ]  # shutdown cost (in currency)
-        tmp_cls.gen_renewable = cent_env_cls.gen_renewable[
-            tmp_cls.mask_gen
-        ]
+        tmp_subgrid.redispatching_unit_commitment_availble = cent_env_cls.redispatching_unit_commitment_availble
+        if tmp_subgrid.redispatching_unit_commitment_availble:
+            tmp_subgrid.gen_type = cent_env_cls.gen_type[
+                tmp_subgrid.mask_gen
+            ]
+            tmp_subgrid.gen_pmin = cent_env_cls.gen_pmin[
+                tmp_subgrid.mask_gen
+            ]
+            tmp_subgrid.gen_pmax = cent_env_cls.gen_pmax[
+                tmp_subgrid.mask_gen
+            ]
+            tmp_subgrid.gen_redispatchable = cent_env_cls.gen_redispatchable[
+                tmp_subgrid.mask_gen
+            ]
+            tmp_subgrid.gen_max_ramp_up = cent_env_cls.gen_max_ramp_up[
+                tmp_subgrid.mask_gen
+            ]
+            tmp_subgrid.gen_max_ramp_down = cent_env_cls.gen_max_ramp_down[
+                tmp_subgrid.mask_gen
+            ]
+            tmp_subgrid.gen_min_uptime = cent_env_cls.gen_min_uptime[
+                tmp_subgrid.mask_gen
+            ]
+            tmp_subgrid.gen_min_downtime = cent_env_cls.gen_min_downtime[
+                tmp_subgrid.mask_gen
+            ]
+            tmp_subgrid.gen_cost_per_MW = cent_env_cls.gen_cost_per_MW[
+                tmp_subgrid.mask_gen
+            ]  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
+            tmp_subgrid.gen_startup_cost = cent_env_cls.gen_startup_cost[
+                tmp_subgrid.mask_gen
+            ]  # start cost (in currency)
+            tmp_subgrid.gen_shutdown_cost = cent_env_cls.gen_shutdown_cost[
+                tmp_subgrid.mask_gen
+            ]  # shutdown cost (in currency)
+            tmp_subgrid.gen_renewable = cent_env_cls.gen_renewable[
+                tmp_subgrid.mask_gen
+            ]
 
         # storage unit static data 
-        tmp_cls.storage_type = cent_env_cls.storage_type[
-            tmp_cls.mask_storage
+        tmp_subgrid.storage_type = cent_env_cls.storage_type[
+            tmp_subgrid.mask_storage
         ]
-        tmp_cls.storage_Emax = cent_env_cls.storage_Emax[
-            tmp_cls.mask_storage
+        tmp_subgrid.storage_Emax = cent_env_cls.storage_Emax[
+            tmp_subgrid.mask_storage
         ]
-        tmp_cls.storage_Emin = cent_env_cls.storage_Emin[
-            tmp_cls.mask_storage
+        tmp_subgrid.storage_Emin = cent_env_cls.storage_Emin[
+            tmp_subgrid.mask_storage
         ]
-        tmp_cls.storage_max_p_prod = cent_env_cls.storage_max_p_prod[
-            tmp_cls.mask_storage
+        tmp_subgrid.storage_max_p_prod = cent_env_cls.storage_max_p_prod[
+            tmp_subgrid.mask_storage
         ]
-        tmp_cls.storage_max_p_absorb = cent_env_cls.storage_max_p_absorb[
-            tmp_cls.mask_storage
+        tmp_subgrid.storage_max_p_absorb = cent_env_cls.storage_max_p_absorb[
+            tmp_subgrid.mask_storage
         ]
-        tmp_cls.storage_marginal_cost = cent_env_cls.storage_marginal_cost[
-            tmp_cls.mask_storage
+        tmp_subgrid.storage_marginal_cost = cent_env_cls.storage_marginal_cost[
+            tmp_subgrid.mask_storage
         ]
-        tmp_cls.storage_loss = cent_env_cls.storage_loss[
-            tmp_cls.mask_storage
+        tmp_subgrid.storage_loss = cent_env_cls.storage_loss[
+            tmp_subgrid.mask_storage
         ]
-        tmp_cls.storage_charging_efficiency = cent_env_cls.storage_charging_efficiency[
-            tmp_cls.mask_storage
+        tmp_subgrid.storage_charging_efficiency = cent_env_cls.storage_charging_efficiency[
+            tmp_subgrid.mask_storage
         ]
-        tmp_cls.storage_discharging_efficiency = cent_env_cls.storage_discharging_efficiency[
-            tmp_cls.mask_storage
+        tmp_subgrid.storage_discharging_efficiency = cent_env_cls.storage_discharging_efficiency[
+            tmp_subgrid.mask_storage
         ]
 
         # grid layout
-        tmp_cls.grid_layout = None if cent_env_cls.grid_layout is None else {
+        tmp_subgrid.grid_layout = None if cent_env_cls.grid_layout is None else {
             k : cent_env_cls.grid_layout[k]
-            for k in tmp_cls.name_sub
+            for k in tmp_subgrid.name_sub
         }
 
         # shunt data, not available in every backend 
-        tmp_cls.shunts_data_available = cent_env_cls.shunts_data_available
+        tmp_subgrid.shunts_data_available = cent_env_cls.shunts_data_available
         # you should first check that and then fill all the shunts related attributes !!!!!
         # TODO BEN
 
@@ -593,8 +518,12 @@ class MultiAgentEnv(RandomObject):
         # tmp_cls.alarms_area_names = []
         # tmp_cls.alarms_lines_area = {}
         # tmp_cls.alarms_area_lines = []
-        
-        return tmp_cls
+        extra_name = domain["agent_name"]
+        if self._add_to_name is not None:
+            extra_name += f"{self._add_to_name}"
+        res_cls = SubGridObjects.init_grid(gridobj=tmp_subgrid, extra_name=extra_name)
+        res_cls.assert_grid_correct_cls()
+        return res_cls
         
     
     def _build_observation_spaces(self):

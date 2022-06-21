@@ -452,6 +452,7 @@ class GridObjects:
     LOR_COL = 3
     LEX_COL = 4
     STORAGE_COL = 5
+    DIM_OBJ_SUB = 6  # should equal the last of above + 1 (here STORAGE_COL + 1)
 
     attr_list_vect = None
     attr_list_set = {}
@@ -1188,7 +1189,7 @@ class GridObjects:
             obj = self
         cls = type(self)
         cls_as_dict = {}
-        GridObjects._make_cls_dict_extended(obj, cls_as_dict, as_list=False)
+        self._make_cls_dict_extended(obj, cls_as_dict, as_list=False)
         for attr_nm, attr in cls_as_dict.items():
             setattr(cls, attr_nm, attr)
 
@@ -1199,26 +1200,8 @@ class GridObjects:
         cls._compute_pos_big_topo_cls()
 
     @classmethod
-    def _compute_pos_big_topo_cls(cls):
-        """
-        INTERNAL
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-        Compute the position of each element in the big topological vector.
-
-        Topology action are represented by numpy vector of size np.sum(self.sub_info).
-        The vector self.load_pos_topo_vect will give the index of each load in this big topology vector.
-        For example, for load i, self.load_pos_topo_vect[i] gives the position in such a topology vector that
-        affect this load.
-
-        This position can be automatically deduced from self.sub_info, self.load_to_subid and self.load_to_sub_pos.
-
-        This is the same for generators and both end of powerlines
-
-        :return: ``None``
-        """
-
+    def _inheritance_compute_pos_big_topo(cls):
+        
         # check if we need to implement the position in substation
         if (
             cls.n_storage == -1
@@ -1249,7 +1232,7 @@ class GridObjects:
 
         cls._topo_vect_to_sub = np.repeat(np.arange(cls.n_sub), repeats=cls.sub_info)
         cls.grid_objects_types = np.full(
-            shape=(cls.dim_topo, 6), fill_value=-1, dtype=dt_int
+            shape=(cls.dim_topo, cls.DIM_OBJ_SUB), fill_value=-1, dtype=dt_int
         )
         prev = 0
         for sub_id, nb_el in enumerate(cls.sub_info):
@@ -1257,7 +1240,57 @@ class GridObjects:
                 substation_id=sub_id
             )
             prev += nb_el
+        
+    @classmethod
+    def _compute_pos_big_topo_cls(cls):
+        """
+        INTERNAL
 
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Compute the position of each element in the big topological vector.
+
+        Topology action are represented by numpy vector of size np.sum(self.sub_info).
+        The vector self.load_pos_topo_vect will give the index of each load in this big topology vector.
+        For example, for load i, self.load_pos_topo_vect[i] gives the position in such a topology vector that
+        affect this load.
+
+        This position can be automatically deduced from self.sub_info, self.load_to_subid and self.load_to_sub_pos.
+
+        This is the same for generators and both end of powerlines
+
+        :return: ``None``
+        """
+        cls._inheritance_compute_pos_big_topo()
+        
+    @classmethod
+    def _check_load_size(cls):
+        # in case of subgrid, there can be "no load"
+        # in the subgrid, and following checks fails 
+        # usually they are performed in _check_sub_id
+        if np.min(cls.load_to_subid) < 0:
+            raise EnvError("Some shunt is connected to a negative substation id.")
+        if np.max(cls.load_to_subid) > cls.n_sub:
+            raise EnvError(
+                "Some load is supposed to be connected to substations with id {} which"
+                "is greater than the number of substations of the grid, which is {}."
+                "".format(np.max(cls.load_to_subid), cls.n_sub)
+            )
+        
+    @classmethod
+    def _check_gen_size(cls):
+        # in case of subgrid, there can be "no gen"
+        # in the subgrid, and following checks fails 
+        # usually they are performed in _check_sub_id
+        if np.min(cls.gen_to_subid) < 0:
+            raise EnvError("Some shunt is connected to a negative substation id.")
+        if np.max(cls.gen_to_subid) > cls.n_sub:
+            raise EnvError(
+                "Some generator is supposed to be connected to substations with id {} which"
+                "is greater than the number of substations of the grid, which is {}."
+                "".format(np.max(cls.gen_to_subid), cls.n_sub)
+            )
+        
     @classmethod
     def _check_sub_id(cls):
         # check it can be converted to proper types
@@ -1310,25 +1343,12 @@ class GridObjects:
         # now check the sizes
         if len(cls.load_to_subid) != cls.n_load:
             raise IncorrectNumberOfLoads()
-        if np.min(cls.load_to_subid) < 0:
-            raise EnvError("Some shunt is connected to a negative substation id.")
-        if np.max(cls.load_to_subid) > cls.n_sub:
-            raise EnvError(
-                "Some load is supposed to be connected to substations with id {} which"
-                "is greater than the number of substations of the grid, which is {}."
-                "".format(np.max(cls.load_to_subid), cls.n_sub)
-            )
+        cls._check_load_size()
 
         if len(cls.gen_to_subid) != cls.n_gen:
             raise IncorrectNumberOfGenerators()
-        if np.min(cls.gen_to_subid) < 0:
-            raise EnvError("Some shunt is connected to a negative substation id.")
-        if np.max(cls.gen_to_subid) > cls.n_sub:
-            raise EnvError(
-                "Some generator is supposed to be connected to substations with id {} which"
-                "is greater than the number of substations of the grid, which is {}."
-                "".format(np.max(cls.gen_to_subid), cls.n_sub)
-            )
+        cls._check_gen_size()
+            
         if len(cls.line_or_to_subid) != cls.n_line:
             raise IncorrectNumberOfLines()
         if np.min(cls.line_or_to_subid) < 0:
@@ -1722,6 +1742,63 @@ class GridObjects:
                 cls.sub_info[s_id] += 1
 
     @classmethod
+    def _compute_nb_element(cls) -> int:
+        return cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage
+    
+    @classmethod
+    def _inheritance_nb_obj_per_sub(cls):
+        obj_per_sub = np.zeros(shape=(cls.n_sub,), dtype=dt_int)
+        for sub_id in cls.load_to_subid:
+            obj_per_sub[sub_id] += 1
+        for sub_id in cls.gen_to_subid:
+            obj_per_sub[sub_id] += 1
+        for sub_id in cls.line_or_to_subid:
+            obj_per_sub[sub_id] += 1
+        for sub_id in cls.line_ex_to_subid:
+            obj_per_sub[sub_id] += 1
+        for sub_id in cls.storage_to_subid:
+            obj_per_sub[sub_id] += 1
+        return obj_per_sub
+    
+    @classmethod
+    def _nb_obj_per_sub(cls):
+        return cls._inheritance_nb_obj_per_sub()
+    
+    @classmethod
+    def _inheritance_concat_topo_vect(cls):
+        # used in assert_grid_correct_cls to check that the topo_vect
+        # is consistent
+        res =  np.concatenate(
+            (
+                cls.load_pos_topo_vect.flatten(),
+                cls.gen_pos_topo_vect.flatten(),
+                cls.line_or_pos_topo_vect.flatten(),
+                cls.line_ex_pos_topo_vect.flatten(),
+                cls.storage_pos_topo_vect.flatten(),
+            )
+        )
+        return res
+    
+    @classmethod
+    def _concat_topo_vect(cls):
+        # used in assert_grid_correct_cls to check that the topo_vect
+        # is consistent
+        return cls._inheritance_concat_topo_vect()
+    
+    @classmethod
+    def _check_for_gen_loads(cls):
+        # real complete powergrid should have generators and loads
+        # but that's not the case for "subgrid" (see SubGridObjects)
+        if cls.n_gen <= 0:
+            raise EnvError(
+                "n_gen is negative. Powergrid is invalid: there are no generators"
+            )
+        if cls.n_load <= 0:
+            raise EnvError(
+                "n_load is negative. Powergrid is invalid: there are no loads"
+            )
+        
+    @classmethod
     def assert_grid_correct_cls(cls):
         """
         INTERNAL
@@ -1749,22 +1826,14 @@ class GridObjects:
         """
         # TODO refactor this method with the `_check***` methods.
         # TODO refactor the `_check***` to use the same "base functions" that would be coded only once.
-
-        if cls.n_gen <= 0:
-            raise EnvError(
-                "n_gen is negative. Powergrid is invalid: there are no generator"
-            )
-        if cls.n_load <= 0:
-            raise EnvError(
-                "n_load is negative. Powergrid is invalid: there are no load"
-            )
+        cls._check_for_gen_loads()
         if cls.n_line <= 0:
             raise EnvError(
-                "n_line is negative. Powergrid is invalid: there are no line"
+                "n_line is negative. Powergrid is invalid: there are no lines"
             )
         if cls.n_sub <= 0:
             raise EnvError(
-                "n_sub is negative. Powergrid is invalid: there are no substation"
+                "n_sub is negative. Powergrid is invalid: there are no substations"
             )
 
         if (
@@ -1851,16 +1920,16 @@ class GridObjects:
             )
         if (
             np.sum(cls.sub_info)
-            != cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage
+            != cls._compute_nb_element()
         ):
-            err_msg = "The number of elements of elements is not consistent between self.sub_info where there are "
+            err_msg = "The number of elements is not consistent between self.sub_info where there are "
             err_msg += (
                 "{} elements connected to all substations and the number of load, generators and lines in "
                 "the _grid ({})."
             )
             err_msg = err_msg.format(
                 np.sum(cls.sub_info),
-                cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage,
+                cls._compute_nb_element(),
             )
             raise IncorrectNumberOfElements(err_msg)
 
@@ -1908,17 +1977,7 @@ class GridObjects:
             )
 
         # test if object are connected to right substation
-        obj_per_sub = np.zeros(shape=(cls.n_sub,), dtype=dt_int)
-        for sub_id in cls.load_to_subid:
-            obj_per_sub[sub_id] += 1
-        for sub_id in cls.gen_to_subid:
-            obj_per_sub[sub_id] += 1
-        for sub_id in cls.line_or_to_subid:
-            obj_per_sub[sub_id] += 1
-        for sub_id in cls.line_ex_to_subid:
-            obj_per_sub[sub_id] += 1
-        for sub_id in cls.storage_to_subid:
-            obj_per_sub[sub_id] += 1
+        obj_per_sub = cls._nb_obj_per_sub()
 
         if not np.all(obj_per_sub == cls.sub_info):
             raise IncorrectNumberOfElements(
@@ -1954,18 +2013,10 @@ class GridObjects:
                 raise IncorrectPositionOfStorages("for storage {}".format(i))
 
         # check that i don't have 2 objects with the same id in the "big topo" vector
-        concat_topo = np.concatenate(
-            (
-                cls.load_pos_topo_vect.flatten(),
-                cls.gen_pos_topo_vect.flatten(),
-                cls.line_or_pos_topo_vect.flatten(),
-                cls.line_ex_pos_topo_vect.flatten(),
-                cls.storage_pos_topo_vect.flatten(),
-            )
-        )
+        concat_topo = cls._concat_topo_vect()
         if len(np.unique(concat_topo)) != np.sum(cls.sub_info):
             raise EnvError(
-                "2 different objects would have the same id in the topology vector, or there would be"
+                "2 different objects would have the same id in the topology vector, or there would be "
                 "an empty component in this vector."
             )
 
@@ -2634,6 +2685,33 @@ class GridObjects:
             cls.dim_alarms = 0
 
     @classmethod
+    def _inheritance_get_obj_connect_to(cls, _sentinel=None, substation_id=None):
+        if _sentinel is not None:
+            raise Grid2OpException(
+                "get_obj_connect_to should be used only with key-word arguments"
+            )
+
+        if substation_id is None:
+            raise Grid2OpException(
+                "You ask the composition of a substation without specifying its id."
+                'Please provide "substation_id"'
+            )
+        if substation_id >= len(cls.sub_info):
+            raise Grid2OpException(
+                'There are no substation of id "substation_id={}" in this grid.'
+                "".format(substation_id)
+            )
+        res = {
+            "loads_id": np.where(cls.load_to_subid == substation_id)[0],
+            "generators_id": np.where(cls.gen_to_subid == substation_id)[0],
+            "lines_or_id": np.where(cls.line_or_to_subid == substation_id)[0],
+            "lines_ex_id": np.where(cls.line_ex_to_subid == substation_id)[0],
+            "storages_id": np.where(cls.storage_to_subid == substation_id)[0],
+            "nb_elements": cls.sub_info[substation_id],
+        }
+        return res
+        
+    @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
         """
         Get all the object connected to a given substation. This is particularly usefull if you want to know the
@@ -2686,9 +2764,13 @@ class GridObjects:
                    sub_id, env.name_line[dict_["storages_id"]]))
 
         """
+        return cls._inheritance_get_obj_connect_to(_sentinel, substation_id)
+    
+    @classmethod
+    def _inheritance_get_obj_substations(cls, _sentinel=None, substation_id=None):
         if _sentinel is not None:
             raise Grid2OpException(
-                "get_obj_connect_to should be used only with key-word arguments"
+                "get_obj_substations should be used only with key-word arguments"
             )
 
         if substation_id is None:
@@ -2701,16 +2783,25 @@ class GridObjects:
                 'There are no substation of id "substation_id={}" in this grid.'
                 "".format(substation_id)
             )
-        res = {
-            "loads_id": np.where(cls.load_to_subid == substation_id)[0],
-            "generators_id": np.where(cls.gen_to_subid == substation_id)[0],
-            "lines_or_id": np.where(cls.line_or_to_subid == substation_id)[0],
-            "lines_ex_id": np.where(cls.line_ex_to_subid == substation_id)[0],
-            "storages_id": np.where(cls.storage_to_subid == substation_id)[0],
-            "nb_elements": cls.sub_info[substation_id],
-        }
-        return res
 
+        dict_ = cls.get_obj_connect_to(substation_id=substation_id)
+        res = np.full((dict_["nb_elements"], 6), fill_value=-1, dtype=dt_int)
+        res[:, cls.SUB_COL] = substation_id
+        res[cls.load_to_sub_pos[dict_["loads_id"]], cls.LOA_COL] = dict_["loads_id"]
+        res[cls.gen_to_sub_pos[dict_["generators_id"]], cls.GEN_COL] = dict_[
+            "generators_id"
+        ]
+        res[cls.line_or_to_sub_pos[dict_["lines_or_id"]], cls.LOR_COL] = dict_[
+            "lines_or_id"
+        ]
+        res[cls.line_ex_to_sub_pos[dict_["lines_ex_id"]], cls.LEX_COL] = dict_[
+            "lines_ex_id"
+        ]
+        res[cls.storage_to_sub_pos[dict_["storages_id"]], cls.STORAGE_COL] = dict_[
+            "storages_id"
+        ]
+        return res
+    
     @classmethod
     def get_obj_substations(cls, _sentinel=None, substation_id=None):
         """
@@ -2787,36 +2878,7 @@ class GridObjects:
             nb_gen_this_substation = np.sum(is_gen)
 
         """
-        if _sentinel is not None:
-            raise Grid2OpException(
-                "get_obj_substations should be used only with key-word arguments"
-            )
-
-        if substation_id is None:
-            raise Grid2OpException(
-                "You ask the composition of a substation without specifying its id."
-                'Please provide "substation_id"'
-            )
-        if substation_id >= len(cls.sub_info):
-            raise Grid2OpException(
-                'There are no substation of id "substation_id={}" in this grid.'
-                "".format(substation_id)
-            )
-
-        dict_ = cls.get_obj_connect_to(substation_id=substation_id)
-        res = np.full((dict_["nb_elements"], 6), fill_value=-1, dtype=dt_int)
-        res[:, cls.SUB_COL] = substation_id
-        res[cls.load_to_sub_pos[dict_["loads_id"]], cls.LOA_COL] = dict_["loads_id"]
-        res[cls.gen_to_sub_pos[dict_["generators_id"]], cls.GEN_COL] = dict_[
-            "generators_id"
-        ]
-        res[cls.line_ex_to_sub_pos[dict_["lines_ex_id"]], cls.LEX_COL] = dict_[
-            "lines_ex_id"
-        ]
-        res[cls.storage_to_sub_pos[dict_["storages_id"]], cls.STORAGE_COL] = dict_[
-            "storages_id"
-        ]
-        return res
+        return cls._inheritance_get_obj_substations(_sentinel, substation_id)
 
     def get_lines_id(self, _sentinel=None, from_=None, to_=None):
         """
