@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2022, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -18,6 +18,7 @@ import grid2op
 from grid2op.Exceptions.EnvExceptions import EnvError
 from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Observation.observationSpace import ObservationSpace
+from grid2op.Space.RandomObject import RandomObject
 from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Action import ActionSpace
 from grid2op.multi_agent.subGridObjects import SubGridObjects
@@ -29,7 +30,7 @@ from grid2op.multi_agent.multi_agentExceptions import *
 import pdb
 
 
-class MultiAgentEnv :
+class MultiAgentEnv(RandomObject):
     def __init__(self,
                  env : Environment,
                  action_domains : MADict,
@@ -103,10 +104,12 @@ class MultiAgentEnv :
                       
  
         """
+        # TODO BEN: init the RandomObject
+        
         # added to the class name, if you want to build multiple ma environment with the same underlying environment
         self._add_to_name = _add_to_name  
         
-        self._cent_env : Environment = env
+        self._cent_env : Environment = env  # TODO BEN: copy or not copy ? Discuss
             
         
         self._verify_domains(action_domains)
@@ -313,6 +316,9 @@ class MultiAgentEnv :
         tmp_ = id_full_grid[mask]
         return new_label[tmp_]
     
+    def seed(self, seed):
+        # TODO BEN: code that to seed also the "cent_env"
+        return super().seed(seed)
     
     def _build_subgrid_obj_from_domain(self, domain):
         cent_env_cls = type(self._cent_env)
@@ -606,6 +612,8 @@ class MultiAgentEnv :
                 self.observation_spaces[agent] = self._cent_env.observation_space.copy()
         else:
             raise NotImplementedError("Local observations are not available yet !")
+        
+        # TODO BEN: code with the creation of the observation space for each individual agent (can wait a bit)
         #TODO Local observations
         #for agent in self.agents: 
         #    _cls_agent_action_space = ObservationSpace.init_grid(gridobj=self._subgrids_cls['observation'][agent], extra_name=agent)
@@ -649,6 +657,8 @@ class MultiAgentEnv :
                 "This environment is not initialized. You cannot retrieve its observation."
             )
         
+        # TODO BEN: why do you do that this way ? Why not reusing the centralized observation after the "self._cent_env.step(...)" ??
+        # TODO BEN: discuss
         for agent in self.agents:
             self.observations[agent] = self.observation_spaces[agent](
                 env=self._cent_env, _update_state=_update_state

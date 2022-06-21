@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2022, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -7,7 +7,6 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.Space.GridObjects import GridObjects
-import numpy as np
 
 
 class SubGridObjects(GridObjects) :
@@ -23,6 +22,7 @@ class SubGridObjects(GridObjects) :
     mask_shunt = None
     mask_interco = None
     agent_name : str = None
+    # TODO BEN: load_orig_ids, gen_orig_ids and everything else ...
     
     interco_to_subid = None
     interco_to_lineid = None
@@ -48,3 +48,18 @@ class SubGridObjects(GridObjects) :
         res["mask_line_ex"] = cls.mask_line_ex
         res["mask_shunt"] = cls.mask_shunt
         res["agent_name"] = cls.agent_name
+
+    # TODO BEN (not later)
+    @staticmethod
+    def from_dict(dict_):
+        GridObjects.from_dict(dict_)
+        
+    # TODO BEN (later)
+    @staticmethod
+    def init_grid_from_dict_for_pickle(name_res, orig_cls, cls_attr):
+        GridObjects.init_grid_from_dict_for_pickle(name_res, orig_cls, cls_attr)
+    
+    # TODO BEN (later)
+    @classmethod
+    def _get_full_cls_str(cls):
+        GridObjects._get_full_cls_str(cls)
