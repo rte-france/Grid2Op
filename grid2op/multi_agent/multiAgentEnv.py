@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2022, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -18,6 +18,7 @@ import grid2op
 from grid2op.Exceptions.EnvExceptions import EnvError
 from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Observation.observationSpace import ObservationSpace
+from grid2op.Space.RandomObject import RandomObject
 from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Action import ActionSpace
 from grid2op.multi_agent.subGridObjects import SubGridObjects
@@ -29,7 +30,7 @@ from grid2op.multi_agent.multi_agentExceptions import *
 import pdb
 
 
-class MultiAgentEnv :
+class MultiAgentEnv(RandomObject):
     def __init__(self,
                  env : Environment,
                  action_domains : MADict,
@@ -37,6 +38,7 @@ class MultiAgentEnv :
                  agent_order_fn = lambda x : x,
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
+                 _add_to_name: Optional[str] = None,
                  ):
         """Multi-agent Grid2Op POSG (Partially Observable Stochastic Game) environment
         This class transforms the given classical Grid2Op environment into a 
@@ -102,28 +104,33 @@ class MultiAgentEnv :
                       
  
         """
+        # TODO BEN: init the RandomObject
         
-        self._cent_env = env
+        # added to the class name, if you want to build multiple ma environment with the same underlying environment
+        self._add_to_name = _add_to_name  
         
-        if observation_domains is not None and \
-                action_domains.keys() != observation_domains.keys():
-            raise("action_domains and observation_domains must have the same agents' names !")
+        self._cent_env : Environment = env  # TODO BEN: copy or not copy ? Discuss
+            
         
         self._verify_domains(action_domains)
-        
-        if observation_domains is not None:
-            self._verify_domains(observation_domains)
-        
+        self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
         self.num_agents = len(action_domains)
         
-        self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
-        if observation_domains is None:
-            self._observation_domains = None
-        else:
+        if observation_domains is not None:
+            # user specified an observation domain
+            self._is_global_obs : bool = True
+            if action_domains.keys() != observation_domains.keys():
+                raise("action_domains and observation_domains must have the same agents' names !")
             self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
+            self._verify_domains(observation_domains)
+        else:
+            # no observation domain specified, so I assume it's a domain
+            # with full observability
+            self._is_global_obs : bool = False
+            self._observation_domains = None
+        
         self.agents = list(action_domains.keys())
         self.num_agents = len(self.agents)
-
         
         self.illegal_action_pen = illegal_action_pen
         self.ambiguous_action_pen = ambiguous_action_pen
@@ -254,15 +261,19 @@ class MultiAgentEnv :
         for agent_nm in self.agents : 
             self._build_agent_domain(agent_nm, self._action_domains[agent_nm])
             subgridobj = self._build_subgrid_obj_from_domain(self._action_domains[agent_nm])
+            extra_name = agent_nm
+            if self._add_to_name is not None:
+                extra_name += f"{self._add_to_name}"
+                
             #TODO init grid does not work when the grid is not connected
-            self._subgrids_cls['action'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=agent_nm)
+            self._subgrids_cls['action'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=extra_name)
             self._subgrids_cls['action'][agent_nm].shunt_to_subid = subgridobj.shunt_to_subid.copy()
             self._subgrids_cls['action'][agent_nm].grid_objects_types = subgridobj.grid_objects_types.copy()
             
             if self._observation_domains is not None:
                 self._build_agent_domain(agent_nm, self._observation_domains[agent_nm])
                 subgridobj = self._build_subgrid_obj_from_domain(self._observation_domains[agent_nm])
-                self._subgrids_cls['observation'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=agent_nm)
+                self._subgrids_cls['observation'][agent_nm] = SubGridObjects.init_grid(gridobj=subgridobj, extra_name=extra_name)
                 self._subgrids_cls['observation'][agent_nm].grid_objects_types = subgridobj.grid_objects_types
         
         
@@ -305,6 +316,9 @@ class MultiAgentEnv :
         tmp_ = id_full_grid[mask]
         return new_label[tmp_]
     
+    def seed(self, seed):
+        # TODO BEN: code that to seed also the "cent_env"
+        return super().seed(seed)
     
     def _build_subgrid_obj_from_domain(self, domain):
         cent_env_cls = type(self._cent_env)
@@ -497,80 +511,82 @@ class MultiAgentEnv :
 
         # redispatch data, not available in all environment
         tmp_cls.redispatching_unit_commitment_availble = False
-        tmp_cls.gen_type = self._cent_env.gen_type[
+        tmp_cls.gen_type = cent_env_cls.gen_type[
             tmp_cls.mask_gen
         ]
-        tmp_cls.gen_pmin = self._cent_env.gen_pmin[
+        tmp_cls.gen_pmin = cent_env_cls.gen_pmin[
             tmp_cls.mask_gen
         ]
-        tmp_cls.gen_pmax = self._cent_env.gen_pmax[
+        tmp_cls.gen_pmax = cent_env_cls.gen_pmax[
             tmp_cls.mask_gen
         ]
-        tmp_cls.gen_redispatchable = self._cent_env.gen_redispatchable[
+        tmp_cls.gen_redispatchable = cent_env_cls.gen_redispatchable[
             tmp_cls.mask_gen
         ]
-        tmp_cls.gen_max_ramp_up = self._cent_env.gen_max_ramp_up[
+        tmp_cls.gen_max_ramp_up = cent_env_cls.gen_max_ramp_up[
             tmp_cls.mask_gen
         ]
-        tmp_cls.gen_max_ramp_down = self._cent_env.gen_max_ramp_down[
+        tmp_cls.gen_max_ramp_down = cent_env_cls.gen_max_ramp_down[
             tmp_cls.mask_gen
         ]
-        tmp_cls.gen_min_uptime = self._cent_env.gen_min_uptime[
+        tmp_cls.gen_min_uptime = cent_env_cls.gen_min_uptime[
             tmp_cls.mask_gen
         ]
-        tmp_cls.gen_min_downtime = self._cent_env.gen_min_downtime[
+        tmp_cls.gen_min_downtime = cent_env_cls.gen_min_downtime[
             tmp_cls.mask_gen
         ]
-        tmp_cls.gen_cost_per_MW = self._cent_env.gen_cost_per_MW[
+        tmp_cls.gen_cost_per_MW = cent_env_cls.gen_cost_per_MW[
             tmp_cls.mask_gen
         ]  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
-        tmp_cls.gen_startup_cost = self._cent_env.gen_startup_cost[
+        tmp_cls.gen_startup_cost = cent_env_cls.gen_startup_cost[
             tmp_cls.mask_gen
         ]  # start cost (in currency)
-        tmp_cls.gen_shutdown_cost = self._cent_env.gen_shutdown_cost[
+        tmp_cls.gen_shutdown_cost = cent_env_cls.gen_shutdown_cost[
             tmp_cls.mask_gen
         ]  # shutdown cost (in currency)
-        tmp_cls.gen_renewable = self._cent_env.gen_renewable[
+        tmp_cls.gen_renewable = cent_env_cls.gen_renewable[
             tmp_cls.mask_gen
         ]
 
         # storage unit static data 
-        tmp_cls.storage_type = self._cent_env.storage_type[
+        tmp_cls.storage_type = cent_env_cls.storage_type[
             tmp_cls.mask_storage
         ]
-        tmp_cls.storage_Emax = self._cent_env.storage_Emax[
+        tmp_cls.storage_Emax = cent_env_cls.storage_Emax[
             tmp_cls.mask_storage
         ]
-        tmp_cls.storage_Emin = self._cent_env.storage_Emin[
+        tmp_cls.storage_Emin = cent_env_cls.storage_Emin[
             tmp_cls.mask_storage
         ]
-        tmp_cls.storage_max_p_prod = self._cent_env.storage_max_p_prod[
+        tmp_cls.storage_max_p_prod = cent_env_cls.storage_max_p_prod[
             tmp_cls.mask_storage
         ]
-        tmp_cls.storage_max_p_absorb = self._cent_env.storage_max_p_absorb[
+        tmp_cls.storage_max_p_absorb = cent_env_cls.storage_max_p_absorb[
             tmp_cls.mask_storage
         ]
-        tmp_cls.storage_marginal_cost = self._cent_env.storage_marginal_cost[
+        tmp_cls.storage_marginal_cost = cent_env_cls.storage_marginal_cost[
             tmp_cls.mask_storage
         ]
-        tmp_cls.storage_loss = self._cent_env.storage_loss[
+        tmp_cls.storage_loss = cent_env_cls.storage_loss[
             tmp_cls.mask_storage
         ]
-        tmp_cls.storage_charging_efficiency = self._cent_env.storage_charging_efficiency[
+        tmp_cls.storage_charging_efficiency = cent_env_cls.storage_charging_efficiency[
             tmp_cls.mask_storage
         ]
-        tmp_cls.storage_discharging_efficiency = self._cent_env.storage_discharging_efficiency[
+        tmp_cls.storage_discharging_efficiency = cent_env_cls.storage_discharging_efficiency[
             tmp_cls.mask_storage
         ]
 
         # grid layout
-        tmp_cls.grid_layout = None if self._cent_env.grid_layout is None else {
-            k : self._cent_env.grid_layout[k]
+        tmp_cls.grid_layout = None if cent_env_cls.grid_layout is None else {
+            k : cent_env_cls.grid_layout[k]
             for k in tmp_cls.name_sub
         }
 
         # shunt data, not available in every backend 
-        tmp_cls.shunts_data_available = np.any(tmp_cls.mask_shunt)
+        tmp_cls.shunts_data_available = cent_env_cls.shunts_data_available
+        # you should first check that and then fill all the shunts related attributes !!!!!
+        # TODO BEN
 
         # # alarms #TODO
         # tmp_cls.dim_alarms = 0
@@ -578,10 +594,10 @@ class MultiAgentEnv :
         # tmp_cls.alarms_lines_area = {}
         # tmp_cls.alarms_area_lines = []
         
-        return copy.deepcopy(tmp_cls)
+        return tmp_cls
         
     
-    def _build_observation_spaces(self, global_obs = True):
+    def _build_observation_spaces(self):
         """Build observation spaces from given domains for each agent
 
         Args:
@@ -591,12 +607,13 @@ class MultiAgentEnv :
             NotImplementedError: Local observations are not implemented yet
         """
         
-        if global_obs:
-            self.global_obs = True
+        if self._observation_domains is None:
             for agent in self.agents:
-                self.observation_spaces[agent] = self._cent_env.observation_space
+                self.observation_spaces[agent] = self._cent_env.observation_space.copy()
         else:
             raise NotImplementedError("Local observations are not available yet !")
+        
+        # TODO BEN: code with the creation of the observation space for each individual agent (can wait a bit)
         #TODO Local observations
         #for agent in self.agents: 
         #    _cls_agent_action_space = ObservationSpace.init_grid(gridobj=self._subgrids_cls['observation'][agent], extra_name=agent)
@@ -640,6 +657,8 @@ class MultiAgentEnv :
                 "This environment is not initialized. You cannot retrieve its observation."
             )
         
+        # TODO BEN: why do you do that this way ? Why not reusing the centralized observation after the "self._cent_env.step(...)" ??
+        # TODO BEN: discuss
         for agent in self.agents:
             self.observations[agent] = self.observation_spaces[agent](
                 env=self._cent_env, _update_state=_update_state

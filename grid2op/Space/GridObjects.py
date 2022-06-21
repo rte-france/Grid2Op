@@ -3658,9 +3658,9 @@ class GridObjects:
 
         # this implementation is 6 times faster than the "cls_to_dict" one below, so i kept it
         me_dict = {}
-        GridObjects._make_cls_dict_extended(cls, me_dict, as_list=False, copy_=False)
+        cls._make_cls_dict_extended(cls, me_dict, as_list=False, copy_=False)
         other_cls_dict = {}
-        GridObjects._make_cls_dict_extended(
+        cls._make_cls_dict_extended(
             other_cls, other_cls_dict, as_list=False, copy_=False
         )
 
@@ -3755,7 +3755,7 @@ class GridObjects:
         # TODO this is not really a convenient use of that i'm sure !
         # Try to see if it can be better
         cls_attr_as_dict = {}
-        GridObjects._make_cls_dict_extended(type(self), cls_attr_as_dict, as_list=False)
+        type(self)._make_cls_dict_extended(type(self), cls_attr_as_dict, as_list=False)
         if hasattr(self, "__getstate__"):
             my_state = self.__getstate__()
         else:
