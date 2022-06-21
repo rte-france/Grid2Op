@@ -204,8 +204,8 @@ class MATester(unittest.TestCase):
         assert ma_env._subgrids_cls['action']['agent_0'].n_load +  ma_env._subgrids_cls['action']['agent_1'].n_load == self.env.n_load
         assert ma_env._subgrids_cls['action']['agent_0'].n_interco == ma_env._subgrids_cls['action']['agent_1'].n_interco
         assert ma_env._subgrids_cls['action']['agent_0'].n_line \
-            + ma_env._subgrids_cls['action']['agent_1'].n_line \
-            + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
+             + ma_env._subgrids_cls['action']['agent_1'].n_line \
+             + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
             
         assert self.env.n_gen is type(self.env).n_gen
         #assert ma_env._subgrids_cls['action']['agent_0'].n_gen is type(ma_env._subgrids_cls['action']['agent_0']).n_gen 
@@ -213,8 +213,8 @@ class MATester(unittest.TestCase):
         assert ma_env._subgrids_cls['action']['agent_0'].n_load +  ma_env._subgrids_cls['action']['agent_1'].n_load == self.env.n_load
         assert ma_env._subgrids_cls['action']['agent_0'].n_interco == ma_env._subgrids_cls['action']['agent_1'].n_interco
         assert ma_env._subgrids_cls['action']['agent_0'].n_line \
-            + ma_env._subgrids_cls['action']['agent_1'].n_line \
-            + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
+             + ma_env._subgrids_cls['action']['agent_1'].n_line \
+             + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
         
         assert (ma_env._subgrids_cls['action']['agent_0'].interco_to_lineid == np.array([15,16,17])).all()
         assert (ma_env._subgrids_cls['action']['agent_1'].interco_to_lineid == np.array([15,16,17])).all()
@@ -290,8 +290,8 @@ class MATester(unittest.TestCase):
             assert ma_env._subgrids_cls['action']['agent_0'].n_shunt + ma_env._subgrids_cls['action']['agent_1'].n_shunt == self.env.n_shunt
             assert ma_env._subgrids_cls['action']['agent_0'].n_interco == ma_env._subgrids_cls['action']['agent_1'].n_interco
             assert ma_env._subgrids_cls['action']['agent_0'].n_line \
-                + ma_env._subgrids_cls['action']['agent_1'].n_line \
-                + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
+                 + ma_env._subgrids_cls['action']['agent_1'].n_line \
+                 + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
                 
             assert len(ma_env._subgrids_cls['action']['agent_0'].line_ex_to_subid) == ma_env._subgrids_cls['action']['agent_0'].n_line
             assert len(ma_env._subgrids_cls['action']['agent_0'].line_or_to_subid) == ma_env._subgrids_cls['action']['agent_0'].n_line
@@ -351,8 +351,8 @@ class MATester(unittest.TestCase):
         assert ma_env._subgrids_cls['action']['test_3_agent_0'].n_shunt + ma_env._subgrids_cls['action']['test_3_agent_1'].n_shunt == self.env.n_shunt
         assert ma_env._subgrids_cls['action']['test_3_agent_0'].n_interco == ma_env._subgrids_cls['action']['test_3_agent_1'].n_interco
         assert ma_env._subgrids_cls['action']['test_3_agent_0'].n_line \
-            + ma_env._subgrids_cls['action']['test_3_agent_1'].n_line \
-            + ma_env._subgrids_cls['action']['test_3_agent_0'].n_interco == self.env.n_line
+             + ma_env._subgrids_cls['action']['test_3_agent_1'].n_line \
+             + ma_env._subgrids_cls['action']['test_3_agent_0'].n_interco == self.env.n_line
             
         assert len(ma_env._subgrids_cls['action']['test_3_agent_0'].line_ex_to_subid) == ma_env._subgrids_cls['action']['test_3_agent_0'].n_line
         assert len(ma_env._subgrids_cls['action']['test_3_agent_0'].line_or_to_subid) == ma_env._subgrids_cls['action']['test_3_agent_0'].n_line
