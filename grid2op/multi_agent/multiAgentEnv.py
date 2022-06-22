@@ -38,7 +38,7 @@ class MultiAgentEnv(RandomObject):
                  agent_order_fn = lambda x : x,
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
-                 copy_env = False,
+                 copy_env = True,
                  _add_to_name: Optional[str] = None,
                  ):
         """Multi-agent Grid2Op POSG (Partially Observable Stochastic Game) environment
@@ -168,6 +168,56 @@ class MultiAgentEnv(RandomObject):
         self._update_observations(_update_state=False)
         return self.observations
     
+    def _handle_illegal_action(self, agent, reason):
+        # TODO treat different types of illegal actions
+        # action is replace by do nothing
+        # action = self._action_space({})
+        #init_disp = 1.0 * proposed_action._redispatch  # dispatching action
+        #action_storage_power = (
+        #    1.0 * action._storage_power
+        #)  # battery information
+        #is_illegal = True
+                
+        self.rewards[agent] -= self.illegal_action_pen
+        self.info[agent]['is_illegal_local'] = True
+        self.info[agent]['reason_illegal'] = reason
+    
+    def _handle_ambiguous_action(self, agent, except_tmp):
+        ## action is replace by do nothing
+        #action = self._action_space({})
+        #init_disp = 1.0 * action._redispatch  # dispatching action
+        #action_storage_power = (
+        #    1.0 * action._storage_power
+        #)  # battery information
+        #is_ambiguous = True
+        #except_.append(except_tmp)
+        self.rewards[agent] -= self.ambiguous_action_pen
+        self.info[agent]['is_ambiguous_local'] = True
+        self.info[agent]['ambiguous_except_tmp'] = except_tmp
+    
+    def _build_global_action(self, action : ActionProfile, order : list):
+        for agent in order:
+            converted_action = action[agent] # TODO should be converted into grid2op global action
+            proposed_action = self.global_action + converted_action
+            
+            # TODO are you sure it's possible here ? Are you sure it's what you want to do ?
+            # How did you define "illegal" for a partial action ? I'm not sure that's how
+            # it's implemented.
+            is_legal, reason = self._cent_env._game_rules(action=proposed_action, env=self._cent_env)
+            if not is_legal:
+                self._handle_illegal_action(agent, reason)
+
+            ambiguous, except_tmp = proposed_action.is_ambiguous()
+            # TODO can you think of other type of "ambiguous" actions maybe ?
+            if ambiguous:
+                self._handle_ambiguous_action(agent, except_tmp)
+                
+            if is_legal and not ambiguous :
+                # If the proposed action is valid, we adopt it
+                #Otherwise, the global action stays unchanged
+                self.global_action = proposed_action.copy()
+                
+            
     def step(self, action : ActionProfile) -> Tuple[MADict, MADict, MADict, MADict]:
     # TODO have a more usefull typing !
     # this is close to useless here
@@ -178,7 +228,7 @@ class MultiAgentEnv(RandomObject):
         """
         
         # We create the global action
-        global_action = self._cent_env.action_space({})
+        self.global_action = self._cent_env.action_space({})
         self.rewards = dict(
             zip(
                 self.agents, [0. for _ in range(self.num_agents)]
@@ -192,68 +242,22 @@ class MultiAgentEnv(RandomObject):
         
         order = self.select_agent.get_order(new_order=True)
         self._build_global_action(action, order)#TODO
-        for agent in order:
-            converted_action = action[agent] # TODO should be converted into grid2op global action
-            proposed_action = global_action + converted_action
-            
-            # TODO are you sure it's possible here ? Are you sure it's what you want to do ?
-            # How did you define "illegal" for a partial action ? I'm not sure that's how
-            # it's implemented.
-            is_legal, reason = self._cent_env._game_rules(action=proposed_action, env=self._cent_env)
-            # TODO treat different types of illegal actions
-            if not is_legal:
-                # action is replace by do nothing
-                # action = self._action_space({})
-                #init_disp = 1.0 * proposed_action._redispatch  # dispatching action
-                #action_storage_power = (
-                #    1.0 * action._storage_power
-                #)  # battery information
-                #is_illegal = True
-                self.handle_illegal_action(reason)#TODO
-                self.rewards[agent] -= self.illegal_action_pen
-                self.info[agent]['is_illegal_local'] = True
-
-            ambiguous, except_tmp = proposed_action.is_ambiguous()
-            # TODO can you think of other type of "ambiguous" actions maybe ?
-            if ambiguous:
-                ## action is replace by do nothing
-                #action = self._action_space({})
-                #init_disp = 1.0 * action._redispatch  # dispatching action
-                #action_storage_power = (
-                #    1.0 * action._storage_power
-                #)  # battery information
-                #is_ambiguous = True
-                #except_.append(except_tmp)
-                self.handle_ambiguous_action(except_tmp)#TODO
-                self.rewards[agent] -= self.ambiguous_action_pen
-                self.info[agent]['is_ambiguous_local'] = True
                 
-            if is_legal and not ambiguous :
-                # If the proposed action is valid, we adopt it
-                global_action = proposed_action.copy()
-                
-            #Otherwise, the global action stays unchanged
-
-            #if self._has_attention_budget:
-            #    # this feature is implemented, so i do it
-            #    reason_alarm_illegal = self._attention_budget.register_action(
-            #        self, action, is_illegal, is_ambiguous
-            #    )
-            #    self._is_alarm_illegal = reason_alarm_illegal is not None
-                
-        observation, reward, done, info = self._cent_env.step(global_action)
+        observation, reward, done, info = self._cent_env.step(self.global_action)
         # update agents' observation, reward, done, info
         
-        self.dispatch_reward_done_info(reward, done, info) #TODO
-        for agent in self.agents:
-            self.rewards[agent] += reward
-            self.dones[agent] = done
-            self.info[agent].update(info)
+        self._dispatch_reward_done_info(reward, done, info)
             
         self._update_observations(_update_state=False)
         
         return self.observations, self.rewards, self.dones, self.info 
     
+    def _dispatch_reward_done_info(self, reward, done, info):
+        for agent in self.agents:
+            self.rewards[agent] += reward
+            self.dones[agent] = done
+            self.info[agent].update(info)
+            
     #def agent_iter(self, max_iter=2 ** 63):
     #    """Agent iterator : it interacts with agents
     #    Take the global observation, reward, 
