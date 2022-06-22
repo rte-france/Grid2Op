@@ -26,8 +26,10 @@ class AgentSelector:
     """
     #TODO
     
-    def __init__(self, agents : list, agent_order_fn = lambda x : x, *args, **kwargs):
+    def __init__(self, agents : list, *args, agent_order_fn = None, **kwargs):
         self.agents = agents
+        if agent_order_fn is None:
+            agent_order_fn = lambda x : x
         self.agent_order_fn = agent_order_fn
         self.reinit(*args, **kwargs)
 

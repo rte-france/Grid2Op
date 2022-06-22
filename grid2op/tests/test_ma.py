@@ -87,6 +87,16 @@ class MATesterGlobalObs(unittest.TestCase):
             MultiAgentEnv(self.env, action_domains, _add_to_name="test_verify_domains_3")
         except DomainException:
             self.fail("action_domains raised Domain Exception unexpectedly!")
+            
+        action_domains = {
+            'agent_0' : [0,1,6,3, 4, 5],
+            'agent_1' : [5,2,7,8,9,10,11,12,13]
+        }
+        # this domain is valid even if it is not connected
+        try:
+            MultiAgentEnv(self.env, action_domains, _add_to_name="test_verify_domains_4")
+        except DomainException:
+            self.fail("action_domains raised Domain Exception unexpectedly!")
         
     
     def test_build_subgrids_action_domains(self):
@@ -344,13 +354,17 @@ class MATesterGlobalObs(unittest.TestCase):
     
     
     def check_n_objects(self, ma_env, a0, a1, space = 'action', add_msg = ""):
+        # TODO comment  
+        # Only for two agents
         assert ma_env._subgrids_cls[space][a0].n_gen +  ma_env._subgrids_cls[space][a1].n_gen == self.env.n_gen, add_msg
         assert ma_env._subgrids_cls[space][a0].n_load +  ma_env._subgrids_cls[space][a1].n_load == self.env.n_load, add_msg
         assert ma_env._subgrids_cls[space][a0].n_interco == ma_env._subgrids_cls[space][a1].n_interco, add_msg
         assert ma_env._subgrids_cls[space][a0].n_line \
              + ma_env._subgrids_cls[space][a1].n_line \
              + ma_env._subgrids_cls[space][a0].n_interco == self.env.n_line, add_msg
-             
+            
+        #TODO check n_objects by substation (sub_info in local == sub_info global)
+        
         assert np.sum(ma_env._subgrids_cls[space][a0].sub_info)\
             ==\
             ma_env._subgrids_cls[space][a0].n_gen+\

@@ -38,11 +38,11 @@ class MultiAgentEnv(RandomObject):
                  agent_order_fn = lambda x : x,
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
-                 copy_env = False,
+                 copy_env = True,
                  _add_to_name: Optional[str] = None,
                  ):
         """Multi-agent Grid2Op POSG (Partially Observable Stochastic Game) environment
-        This class transforms the given classical Grid2Op environment into a 
+        This class wraps the given classical Grid2Op environment into a 
         multi-agent environment.
 
         Args:
@@ -108,6 +108,23 @@ class MultiAgentEnv(RandomObject):
         
         super().__init__()
         
+        self._verify_domains(action_domains)
+        self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
+        self.num_agents = len(action_domains)
+        
+        if observation_domains is not None:
+            # user specified an observation domain
+            self._is_global_obs : bool = False
+            if action_domains.keys() != observation_domains.keys():
+                raise("action_domains and observation_domains must have the same agents' names !")
+            self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
+            self._verify_domains(observation_domains)
+        else:
+            # no observation domain specified, so I assume it's a domain
+            # with full observability
+            self._is_global_obs : bool = True
+            self._observation_domains = None
+            
         # added to the class name, if you want to build multiple ma environment with the same underlying environment
         self._add_to_name = _add_to_name  
         
@@ -125,7 +142,7 @@ class MultiAgentEnv(RandomObject):
         
         if observation_domains is not None:
             # user specified an observation domain
-            self._is_global_obs : bool = True
+            self._is_global_obs : bool = False
             if action_domains.keys() != observation_domains.keys():
                 raise("action_domains and observation_domains must have the same agents' names !")
             self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
@@ -133,7 +150,7 @@ class MultiAgentEnv(RandomObject):
         else:
             # no observation domain specified, so I assume it's a domain
             # with full observability
-            self._is_global_obs : bool = False
+            self._is_global_obs : bool = True
             self._observation_domains = None
         
         self.agents = list(action_domains.keys())
@@ -192,14 +209,16 @@ class MultiAgentEnv(RandomObject):
         )
         
         order = self.select_agent.get_order(reinit=True)
+        self._build_global_action(action, order)#TODO
         for agent in order:
-            converted_action = action[agent] # TODO should be converted into grid2op action
+            converted_action = action[agent] # TODO should be converted into grid2op global action
             proposed_action = global_action + converted_action
             
             # TODO are you sure it's possible here ? Are you sure it's what you want to do ?
             # How did you define "illegal" for a partial action ? I'm not sure that's how
             # it's implemented.
             is_legal, reason = self._cent_env._game_rules(action=proposed_action, env=self._cent_env)
+            # TODO treat different types of illegal actions
             if not is_legal:
                 # action is replace by do nothing
                 # action = self._action_space({})
@@ -208,6 +227,7 @@ class MultiAgentEnv(RandomObject):
                 #    1.0 * action._storage_power
                 #)  # battery information
                 #is_illegal = True
+                self.handle_illegal_action(reason)#TODO
                 self.rewards[agent] -= self.illegal_action_pen
                 self.info[agent]['is_illegal_local'] = True
 
@@ -222,11 +242,15 @@ class MultiAgentEnv(RandomObject):
                 #)  # battery information
                 #is_ambiguous = True
                 #except_.append(except_tmp)
+                self.handle_ambiguous_action(except_tmp)#TODO
                 self.rewards[agent] -= self.ambiguous_action_pen
                 self.info[agent]['is_ambiguous_local'] = True
                 
             if is_legal and not ambiguous :
-                global_action = proposed_action
+                # If the proposed action is valid, we adopt it
+                global_action = proposed_action.copy()
+                
+            #Otherwise, the global action stays unchanged
 
             #if self._has_attention_budget:
             #    # this feature is implemented, so i do it
@@ -235,8 +259,10 @@ class MultiAgentEnv(RandomObject):
             #    )
             #    self._is_alarm_illegal = reason_alarm_illegal is not None
                 
-        observation, reward, done, info = self.env.step(global_action)
+        observation, reward, done, info = self._cent_env.step(global_action)
         # update agents' observation, reward, done, info
+        
+        self.dispatch_reward_done_info(reward, done, info) #TODO
         for agent in self.agents:
             self.rewards[agent] += reward
             self.dones[agent] = done
@@ -457,11 +483,6 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_line_or]
         tmp_subgrid.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_line_ex]
         #tmp_cls.shunt_to_sub_pos = cent_env_cls.shunt_to_sub_pos[tmp_cls.mask_shunt]
-        tmp_subgrid.interco_to_sub_pos = np.array([
-            cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_interco][i] if tmp_subgrid.interco_is_origin[i] 
-            else cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_interco][i] for i in range(tmp_subgrid.n_interco)
-        ])
-
         
         tmp_subgrid.grid_objects_types = -np.ones((tmp_subgrid.dim_topo, n_col_grid_objects_types))
         
@@ -648,12 +669,16 @@ class MultiAgentEnv(RandomObject):
                 - value : list of substation ids
         """
         sum_subs = 0
+        
         for agent in domains.keys():
             if not (isinstance(domains[agent], list)
                     or isinstance(domains[agent], set)
                     or isinstance(domains[agent], np.ndarray)
             ):
                 raise DomainException(f"Agent id {agent} : The domain must be a list or a set of substation indices")
+            
+            if len(set(domains[agent])) != len(domains[agent]):
+                raise DomainException(f"Agent id {agent} : sub ids must be unique !")
             
             if len(domains[agent]) == 0:
                 raise DomainException(f"Agent id {agent} : The domain is empty !")
@@ -669,6 +694,9 @@ class MultiAgentEnv(RandomObject):
 
         if sum_subs != self._cent_env.n_sub:
             raise DomainException(f"The sum of sub id lists' length must be equal to _cent_env.n_sub = {self._cent_env.n_sub} but is {sum_subs}")
+        
+        if (np.sort(np.concatenate((list(domains.values())))) != np.array(range(self._cent_env.n_sub))).any():
+            raise DomainException(f"Domains must be a partition of substations !")
     
     
     def observation_space(self, agent : AgentID):
