@@ -38,7 +38,7 @@ class MultiAgentEnv(RandomObject):
                  agent_order_fn = lambda x : x,
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
-                 copy_env = True,
+                 copy_env = False,
                  _add_to_name: Optional[str] = None,
                  ):
         """Multi-agent Grid2Op POSG (Partially Observable Stochastic Game) environment
@@ -108,23 +108,6 @@ class MultiAgentEnv(RandomObject):
         
         super().__init__()
         
-        self._verify_domains(action_domains)
-        self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
-        self.num_agents = len(action_domains)
-        
-        if observation_domains is not None:
-            # user specified an observation domain
-            self._is_global_obs : bool = False
-            if action_domains.keys() != observation_domains.keys():
-                raise("action_domains and observation_domains must have the same agents' names !")
-            self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
-            self._verify_domains(observation_domains)
-        else:
-            # no observation domain specified, so I assume it's a domain
-            # with full observability
-            self._is_global_obs : bool = True
-            self._observation_domains = None
-            
         # added to the class name, if you want to build multiple ma environment with the same underlying environment
         self._add_to_name = _add_to_name  
         
@@ -135,7 +118,6 @@ class MultiAgentEnv(RandomObject):
         else:
             self._cent_env : Environment = env 
             
-        
         self._verify_domains(action_domains)
         self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
         self.num_agents = len(action_domains)
@@ -208,7 +190,7 @@ class MultiAgentEnv(RandomObject):
             )
         )
         
-        order = self.select_agent.get_order(reinit=True)
+        order = self.select_agent.get_order(new_order=True)
         self._build_global_action(action, order)#TODO
         for agent in order:
             converted_action = action[agent] # TODO should be converted into grid2op global action
@@ -398,21 +380,13 @@ class MultiAgentEnv(RandomObject):
         ]
         
         
-        n_col_grid_objects_types = 5
         tmp_subgrid.n_gen = len(tmp_subgrid.name_gen)
         tmp_subgrid.n_load = len(tmp_subgrid.name_load)
         tmp_subgrid.n_line = len(tmp_subgrid.name_line)
         tmp_subgrid.n_sub = len(tmp_subgrid.name_sub)
-        
-        if tmp_subgrid.n_shunt > 0:
-            n_col_grid_objects_types += 1
-            #n_line_grid_objects_types += tmp_cls.n_shunt #TODO should I add shunt ?
+        tmp_subgrid.n_shunt = len(tmp_subgrid.name_shunt)
         tmp_subgrid.n_storage = len(tmp_subgrid.name_storage)
-        if tmp_subgrid.n_storage > 0:
-            n_col_grid_objects_types += 1
-        tmp_subgrid.n_interco = len(tmp_subgrid.interco_is_origin)
-        if tmp_subgrid.n_interco > 0:
-            n_col_grid_objects_types += 1
+        tmp_subgrid.n_interco = tmp_subgrid.mask_interco.sum()
         
 
         tmp_subgrid.sub_info = cent_env_cls.sub_info[
@@ -483,8 +457,6 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_line_or]
         tmp_subgrid.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_line_ex]
         #tmp_cls.shunt_to_sub_pos = cent_env_cls.shunt_to_sub_pos[tmp_cls.mask_shunt]
-        
-        tmp_subgrid.grid_objects_types = -np.ones((tmp_subgrid.dim_topo, n_col_grid_objects_types))
         
         tmp_ = np.zeros(tmp_subgrid.n_interco, dtype=dt_int) - 1
         tmp_[tmp_subgrid.interco_is_origin] = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_interco][tmp_subgrid.interco_is_origin]

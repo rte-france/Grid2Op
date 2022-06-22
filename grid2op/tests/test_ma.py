@@ -93,10 +93,8 @@ class MATesterGlobalObs(unittest.TestCase):
             'agent_1' : [5,2,7,8,9,10,11,12,13]
         }
         # this domain is valid even if it is not connected
-        try:
+        with self.assertRaises(DomainException) as de:
             MultiAgentEnv(self.env, action_domains, _add_to_name="test_verify_domains_4")
-        except DomainException:
-            self.fail("action_domains raised Domain Exception unexpectedly!")
         
     
     def test_build_subgrids_action_domains(self):
