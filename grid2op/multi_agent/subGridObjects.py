@@ -293,11 +293,11 @@ class SubGridObjects(GridObjects):
     @staticmethod
     def from_dict(dict_):
         GridObjects.from_dict(dict_)
-        
-        class res(SubGridObjects):
-            pass
+        #
+        #class res(SubGridObjects):
+        #    pass
 
-        cls = res
+        #cls = res
         #cls.sub_info = extract_from_dict(
         #    dict_, "sub_info", lambda x: np.array(x).astype(dt_int)
         #)

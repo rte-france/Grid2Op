@@ -164,8 +164,8 @@ class MultiAgentEnv(RandomObject):
         
         
     def reset(self) -> MADict:
-        self._cent_env.reset()
-        self._update_observations(_update_state=False)
+        self._cent_observation = self._cent_env.reset()
+        self._update_observations()
         return self.observations
     
     def _handle_illegal_action(self, agent, reason):
@@ -181,6 +181,10 @@ class MultiAgentEnv(RandomObject):
         self.info[agent]['ambiguous_except_tmp'] = except_tmp
     
     def _build_global_action(self, action : ActionProfile, order : list):
+        
+        # We create the global action
+        self.global_action = self._cent_env.action_space({})
+        
         for agent in order:
             converted_action = action[agent] # TODO should be converted into grid2op global action
             proposed_action = self.global_action + converted_action
@@ -212,15 +216,12 @@ class MultiAgentEnv(RandomObject):
             action (dict): _description_
         """
         
-        # We create the global action
-        self.global_action = self._cent_env.action_space({})
-        
         order = self.select_agent.get_order(new_order=True)
         self._build_global_action(action, order)#TODO
                 
         self._cent_observation, reward, done, info = self._cent_env.step(self.global_action)
-        # update agents' observation, reward, done, info
         
+        # update agents' observation, reward, done, info
         self._dispatch_reward_done_info(reward, done, info)
             
         self._update_observations()
