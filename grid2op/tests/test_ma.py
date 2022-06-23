@@ -240,7 +240,71 @@ class MATesterGlobalObs(unittest.TestCase):
 
             # TODO BEN: and check more carefully the things, it's not enough at the moment
         
-    
+    # def test_action_space(self):
+    #     """test for the action spaces created for agents
+    #     """
+          #TODO BEN
+        
+    #     #assert self.ma_env.action_spaces['agent_0'].n_interco == self.ma_env._subgrids_cls['action']['agent_0'].n_interco
+    #     for agent in self.action_domains.keys():
+    #         assert self.ma_env.action_spaces[agent].n_line == self.ma_env._subgrids_cls['action'][agent].n_line
+    #         assert self.ma_env.action_spaces[agent].n_gen == self.ma_env._subgrids_cls['action'][agent].n_gen
+    #         assert self.ma_env.action_spaces[agent].n_line == self.ma_env._subgrids_cls['action'][agent].n_line
+    #         assert self.ma_env.action_spaces[agent].n_sub == self.ma_env._subgrids_cls['action'][agent].n_sub
+            
+    #         assert self.ma_env.action_spaces[agent].n_line is type(self.ma_env.action_spaces[agent]).n_line
+    #         assert self.ma_env.action_spaces[agent].n_gen is  type(self.ma_env.action_spaces[agent]).n_gen
+    #         assert self.ma_env.action_spaces[agent].n_line is type(self.ma_env.action_spaces[agent]).n_line
+    #         assert self.ma_env.action_spaces[agent].n_sub is  type(self.ma_env.action_spaces[agent]).n_sub
+            
+    #         try:
+    #             #Simple do nothing action
+    #             print(self.ma_env.action_spaces[agent]({}))
+    #             #assert True
+    #         except Exception as e:
+    #             print(f"Exception occured in test_action_space : {e}")
+
+    #         try:
+    #             #action on a line
+    #             print(self.ma_env.action_spaces[agent]({
+    #                 'change_bus' : self.ma_env.action_spaces[agent].line_or_pos_topo_vect[0]
+    #             }))
+    #             print(self.ma_env.action_spaces['agent_1']({
+    #                 'change_bus' : self.ma_env.action_spaces[agent].line_ex_pos_topo_vect[0]
+    #             }))
+    #             #assert True
+    #         except Exception as e:
+    #             #assert False
+    #             print(f"Exception occured in test_action_space : {e}")
+
+    #         try:
+    #             #action on a gen
+    #             print(self.ma_env.action_spaces[agent]({
+    #                 'change_bus' : self.ma_env.action_spaces[agent].gen_pos_topo_vect[0]
+    #             }))
+    #             #assert True
+    #         except Exception as e:
+    #             #assert False
+    #             print(f"Exception occured in test_action_space : {e}")
+
+    #         try:
+    #             #action on a load
+    #             print(self.ma_env.action_spaces[agent]({
+    #                 'change_bus' : self.ma_env.action_spaces[agent].load_pos_topo_vect[0]
+    #             }))
+    #             #assert True
+    #         except Exception as e:
+    #             #assert False
+    #             print(f"Exception occured in test_action_space : {e}")
+
+    #         #try:
+    #         #    #action on an interconnection
+    #         #    print(self.ma_env.action_spaces[agent]({
+    #         #        'change_bus' : self.ma_env.action_spaces[agent].interco_pos_topo_vect[0]
+    #         #    }))
+    #         #    assert True
+    #         #except Exception as e:
+    #         #    assert False
     
     def check_n_objects(self, ma_env, a0, a1, space = 'action', add_msg = ""):
         # TODO comment  

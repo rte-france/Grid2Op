@@ -591,7 +591,13 @@ class MultiAgentEnv(RandomObject):
         """
         # TODO BEN
         pass
-        
+        #for agent in self.agents: 
+        #    _cls_agent_action_space = ActionSpace.init_grid(gridobj=self._subgrids_cls['action'][agent], extra_name=agent)
+        #    self.action_spaces[agent] = _cls_agent_action_space(
+        #        gridobj=self._subgrids_cls['action'][agent],
+        #        actionClass=self._cent_env._actionClass,
+        #        legal_action=self._cent_env._game_rules.legal_action,
+        #    )
     
     
     def _update_observations(self, _update_state = True):
