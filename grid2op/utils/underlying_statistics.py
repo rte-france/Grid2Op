@@ -513,7 +513,10 @@ class EpisodeStatistics(object):
 
     @staticmethod
     def _check_if_base_reward(stuff):
-        return isinstance(stuff, type) and issubclass(stuff, BaseReward)
+        if isinstance(stuff, type):
+            return issubclass(stuff, BaseReward)
+        else:
+            return isinstance(stuff, BaseReward)
 
     @staticmethod
     def run_env(

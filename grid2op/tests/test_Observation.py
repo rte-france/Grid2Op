@@ -1724,6 +1724,17 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert mat6[lex_id2, :].nnz == 0
         assert mat6[:, lor_id2].nnz == 0
 
+    def test_copy_is_done(self):
+        """make sure the attribute obs._is_done is properly copied"""
+        obs = self.env.observation_space(self.env)
+        obs._is_done = True
+        obs_cpy = obs.copy()
+        assert obs_cpy._is_done == obs._is_done
+        
+        obs._is_done = False
+        obs_cpy = obs.copy()
+        assert obs_cpy._is_done == obs._is_done
+        
     def aux_test_conn_mat2(self, as_csr=False):
         l_id = 0
         # check line is connected, and matrix is the right size
