@@ -2085,6 +2085,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._last_obs = self._observation_space(
                 env=self, _update_state=_update_state
             )
+        
         return self._last_obs.copy()
 
     def get_thermal_limit(self):
@@ -2775,11 +2776,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 "Impossible to make a step with a non initialized backend. Have you called "
                 '"env.reset()" after the last game over ?'
             )
-
-        self._has_just_been_seeded = (
-            False  # I did something after calling "env.seed()" which is
-        )
+        # I did something after calling "env.seed()" which is
         # somehow "env.step()" or "env.reset()"
+        self._has_just_been_seeded =  False  
+        
         has_error = True
         is_done = False
         is_illegal = False
