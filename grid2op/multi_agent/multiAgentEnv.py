@@ -170,27 +170,12 @@ class MultiAgentEnv(RandomObject):
     
     def _handle_illegal_action(self, agent, reason):
         # TODO treat different types of illegal actions
-        # action is replace by do nothing
-        # action = self._action_space({})
-        #init_disp = 1.0 * proposed_action._redispatch  # dispatching action
-        #action_storage_power = (
-        #    1.0 * action._storage_power
-        #)  # battery information
-        #is_illegal = True
-                
         self.rewards[agent] -= self.illegal_action_pen
         self.info[agent]['is_illegal_local'] = True
         self.info[agent]['reason_illegal'] = reason
     
     def _handle_ambiguous_action(self, agent, except_tmp):
-        ## action is replace by do nothing
-        #action = self._action_space({})
-        #init_disp = 1.0 * action._redispatch  # dispatching action
-        #action_storage_power = (
-        #    1.0 * action._storage_power
-        #)  # battery information
-        #is_ambiguous = True
-        #except_.append(except_tmp)
+
         self.rewards[agent] -= self.ambiguous_action_pen
         self.info[agent]['is_ambiguous_local'] = True
         self.info[agent]['ambiguous_except_tmp'] = except_tmp
@@ -229,32 +214,22 @@ class MultiAgentEnv(RandomObject):
         
         # We create the global action
         self.global_action = self._cent_env.action_space({})
-        self.rewards = dict(
-            zip(
-                self.agents, [0. for _ in range(self.num_agents)]
-            )
-        )
-        self.info = dict(
-            zip(
-                self.agents, [{} for _ in range(self.num_agents)]
-            )
-        )
         
         order = self.select_agent.get_order(new_order=True)
         self._build_global_action(action, order)#TODO
                 
-        observation, reward, done, info = self._cent_env.step(self.global_action)
+        self._cent_observation, reward, done, info = self._cent_env.step(self.global_action)
         # update agents' observation, reward, done, info
         
         self._dispatch_reward_done_info(reward, done, info)
             
-        self._update_observations(_update_state=False)
+        self._update_observations()
         
         return self.observations, self.rewards, self.dones, self.info 
     
     def _dispatch_reward_done_info(self, reward, done, info):
         for agent in self.agents:
-            self.rewards[agent] += reward
+            self.rewards[agent] = reward
             self.dones[agent] = done
             self.info[agent].update(info)
             
@@ -542,10 +517,7 @@ class MultiAgentEnv(RandomObject):
         }
 
         # # alarms #TODO
-        # tmp_cls.dim_alarms = 0
-        # tmp_cls.alarms_area_names = []
-        # tmp_cls.alarms_lines_area = {}
-        # tmp_cls.alarms_area_lines = []
+
         extra_name = domain["agent_name"]
         if self._add_to_name is not None:
             extra_name += f"{self._add_to_name}"
@@ -571,19 +543,7 @@ class MultiAgentEnv(RandomObject):
             raise NotImplementedError("Local observations are not available yet !")
         
         # TODO BEN: code with the creation of the observation space for each individual agent (can wait a bit)
-        #TODO Local observations
-        #for agent in self.agents: 
-        #    _cls_agent_action_space = ObservationSpace.init_grid(gridobj=self._subgrids_cls['observation'][agent], extra_name=agent)
-        #    self.observation_spaces[agent] = _cls_agent_action_space(
-        #        gridobj = self._subgrids_cls['observation'][agent],
-        #        env = self._cent_env,
-        #        rewardClass=self._cent_env._rewardClass,
-        #        observationClass=self._cent_env._observationClass,
-        #        actionClass=self._cent_env._actionClass,
-        #        #TODO following parameters
-        #        with_forecast=True,
-        #        kwargs_observation=None,
-        #    )
+
     
     def _build_action_spaces(self):
         """Build action spaces from given domains for each agent
@@ -591,13 +551,7 @@ class MultiAgentEnv(RandomObject):
         """
         # TODO BEN
         pass
-        #for agent in self.agents: 
-        #    _cls_agent_action_space = ActionSpace.init_grid(gridobj=self._subgrids_cls['action'][agent], extra_name=agent)
-        #    self.action_spaces[agent] = _cls_agent_action_space(
-        #        gridobj=self._subgrids_cls['action'][agent],
-        #        actionClass=self._cent_env._actionClass,
-        #        legal_action=self._cent_env._game_rules.legal_action,
-        #    )
+
     
     
     def _update_observations(self, _update_state = True):
@@ -606,12 +560,10 @@ class MultiAgentEnv(RandomObject):
         Args:
             observation (BaseObservation): _description_
         """
-        #for agent in self.agents:
-        #    self.observations[agent] = observation.copy()
         
         if self._cent_env.__closed:
             raise EnvError("This environment is closed. You cannot use it anymore.")
-        if not self.__is_init:
+        if not self._cent_env.__is_init:
             raise EnvError(
                 "This environment is not initialized. You cannot retrieve its observation."
             )
@@ -633,9 +585,7 @@ class MultiAgentEnv(RandomObject):
         
         
         for agent in self.agents:
-            self.observations[agent] = self.observation_spaces[agent](
-                env=self._cent_env, _update_state=_update_state
-            )
+            self.observations[agent] = self._cent_observation.copy()
     
     def _verify_domains(self, domains : MADict) :
         """It verifies if substation ids are valid
