@@ -276,19 +276,19 @@ class MultiAgentEnv(RandomObject):
             'action' : dict(),
             'observation' : dict()
         }
-        for agent_nm in self.agents : 
+        for agent_name in self.agents : 
             # action space
-            self._build_agent_domain(agent_nm, self._action_domains[agent_nm])
-            subgridcls = self._build_subgrid_cls_from_domain(self._action_domains[agent_nm])
-            self._subgrids_cls['action'][agent_nm] = subgridcls 
+            self._build_agent_domain(agent_name, self._action_domains[agent_name])
+            subgridcls = self._build_subgrid_cls_from_domain(self._action_domains[agent_name])
+            self._subgrids_cls['action'][agent_name] = subgridcls 
             
             # observation space
             if self._observation_domains is not None:
-                self._build_agent_domain(agent_nm, self._observation_domains[agent_nm])
-                subgridcls = self._build_subgrid_cls_from_domain(self._observation_domains[agent_nm])
-                self._subgrids_cls['observation'][agent_nm] = subgridcls
+                self._build_agent_domain(agent_name, self._observation_domains[agent_name])
+                subgridcls = self._build_subgrid_cls_from_domain(self._observation_domains[agent_name])
+                self._subgrids_cls['observation'][agent_name] = subgridcls
         
-    def _build_agent_domain(self, agent_nm, domain):
+    def _build_agent_domain(self, agent_name, domain):
         """_summary_#TODO
 
         Args:
@@ -321,7 +321,7 @@ class MultiAgentEnv(RandomObject):
         domain['interco_is_origin'] = domain['mask_line_or'][domain['mask_interco']]
         domain['mask_line_or'] = domain['mask_line_or'] & domain['mask_line_ex']
         domain['mask_line_ex'] = domain['mask_line_or'].copy()
-        domain["agent_name"] = agent_nm
+        domain["agent_name"] = agent_name
     
     def _relabel_subid(self, mask, new_label, id_full_grid):
         tmp_ = id_full_grid[mask]
@@ -397,7 +397,6 @@ class MultiAgentEnv(RandomObject):
             tmp_subgrid.sub_orig_ids
         ]
         
-        #TODO correct ?
         tmp_subgrid.dim_topo = 2*tmp_subgrid.n_line + tmp_subgrid.n_interco + \
             tmp_subgrid.n_load + tmp_subgrid.n_gen + tmp_subgrid.n_storage
 
@@ -590,13 +589,9 @@ class MultiAgentEnv(RandomObject):
         """Build action spaces from given domains for each agent
         The action class is the same as 
         """
-        for agent in self.agents: 
-            _cls_agent_action_space = ActionSpace.init_grid(gridobj=self._subgrids_cls['action'][agent], extra_name=agent)
-            self.action_spaces[agent] = _cls_agent_action_space(
-                gridobj=self._subgrids_cls['action'][agent],
-                actionClass=self._cent_env._actionClass,
-                legal_action=self._cent_env._game_rules.legal_action,
-            )
+        # TODO BEN
+        pass
+        
     
     
     def _update_observations(self, _update_state = True):

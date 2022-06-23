@@ -206,7 +206,6 @@ class SubGridObjects(GridObjects):
             copy_,
         )
         res["agent_name"] = cls.agent_name
-        # TODO BEN: other stuff maybe ?
     
     @classmethod
     def get_obj_substations(cls, _sentinel=None, substation_id=None):
