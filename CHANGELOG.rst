@@ -31,6 +31,17 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+
+[1.7.2] - 2022-xx-yy
+--------------------
+- [FIXED] seeding issue https://github.com/rte-france/Grid2Op/issues/331
+- [FIXED] clarify doc about fixed size matrices / graphs https://github.com/rte-france/Grid2Op/issues/330
+- [FIXED] improved the behaviour of `obs._get_bus_id` and `obs._aux_fun_get_bus` : when some objects were on busbar 2
+  they had a "wrong" bus id (it was lagged by 1) meaning an empty "bus" was introduced.
+- [IMPROVED] possibility to pass the env variable `_GRID2OP_FORCE_TEST` to force the flag
+   of "test=True" when creating an environment. This is especially useful when testing to prevent
+   downloading of data.
+
 [1.7.1] - 2022-06-03
 -----------------------
 - [BREAKING] The possibility to propagate keyword arguments between the environment

@@ -29,7 +29,7 @@ class Issue321Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(env_name, test=True,
-                            action_class=PlayableAction, param=param)
+                               action_class=PlayableAction, param=param)
             
         env.seed(0)
         env.set_id(0)
