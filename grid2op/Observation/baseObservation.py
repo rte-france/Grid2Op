@@ -1545,10 +1545,8 @@ class BaseObservation(GridObjects):
         connected = (bus_or > 0) & (bus_ex > 0)
         bus_or = bus_or[connected]
         bus_ex = bus_ex[connected]
-        bus_or += self.line_or_to_subid[connected] + (bus_or - 1) * self.n_sub
-        bus_ex += self.line_ex_to_subid[connected] + (bus_ex - 1) * self.n_sub
-        bus_or -= 1
-        bus_ex -= 1
+        bus_or = self.line_or_to_subid[connected] + (bus_or - 1) * self.n_sub
+        bus_ex = self.line_ex_to_subid[connected] + (bus_ex - 1) * self.n_sub
         unique_bus = np.unique(np.concatenate((bus_or, bus_ex)))
         unique_bus = np.sort(unique_bus)
         nb_bus = unique_bus.shape[0]
@@ -1687,10 +1685,7 @@ class BaseObservation(GridObjects):
         """
         bus_id = 1 * self.topo_vect[id_topo_vect]
         connected = bus_id > 0
-        # bus_id[connected] = sub_id[connected] + (bus_id[connected] - 1) * self.n_sub
-        bus_id[connected] += sub_id[connected] + (bus_id[connected] - 1) * self.n_sub
-        bus_id -= 1  # because its label 1-2 and not 0-1
-        bus_id[~connected] = -1
+        bus_id[connected] = sub_id[connected] + (bus_id[connected] - 1) * self.n_sub
         return bus_id, connected
 
     def flow_bus_matrix(self, active_flow=True, as_csr_matrix=False):
