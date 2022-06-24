@@ -521,23 +521,20 @@ class MultiAgentEnv(RandomObject):
             for k in tmp_subgrid.name_sub
         }
 
-        # shunt data, not available in every backend 
-        tmp_subgrid.shunts_data_available = cent_env_cls.shunts_data_available
-        # you should first check that and then fill all the shunts related attributes !!!!!
-        # TODO BEN
-
-        # # alarms #TODO
-        # tmp_cls.dim_alarms = 0
-        # tmp_cls.alarms_area_names = []
-        # tmp_cls.alarms_lines_area = {}
-        # tmp_cls.alarms_area_lines = []
+        # alarms
+        tmp_subgrid.dim_alarms = 0
+        tmp_subgrid.alarms_area_names = []
+        tmp_subgrid.alarms_lines_area = {}
+        tmp_subgrid.alarms_area_lines = []
+        if cent_env_cls.dim_alarms != 0:
+            warnings.warn("Alarms are not yet handled by the \"multi agent\" environment. They have been deactivated")
+        
         extra_name = domain["agent_name"]
         if self._add_to_name is not None:
             extra_name += f"{self._add_to_name}"
         res_cls = SubGridObjects.init_grid(gridobj=tmp_subgrid, extra_name=extra_name)
         res_cls.assert_grid_correct_cls()
         return res_cls
-        
     
     def _build_observation_spaces(self):
         """Build observation spaces from given domains for each agent
@@ -664,4 +661,3 @@ class MultiAgentEnv(RandomObject):
         """
         # observations are updated in reset and step methods
         return self.observations[agent]
-
