@@ -1187,7 +1187,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed. You cannot use it anymore.")
-
+        
         seed_init = None
         seed_chron = None
         seed_obs = None
@@ -1195,38 +1195,43 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         seed_env_modif = None
         seed_volt_cont = None
         seed_opponent = None
+            
         if _seed_me:
+            max_int = np.iinfo(dt_int).max 
+            if seed > max_int:
+                raise Grid2OpException("Seed is too big. Max value is {}, provided value is {}".format(max_int, seed))
+
             try:
                 seed = np.array(seed).astype(dt_int)
             except Exception as exc_:
                 raise Grid2OpException(
                     "Impossible to seed with the seed provided. Make sure it can be converted to a"
-                    "numpy 64 integer."
+                    "numpy 32 bits integer."
                 )
             # example from gym
             # self.np_random, seed = seeding.np_random(seed)
             # inspiration from @ https://github.com/openai/gym/tree/master/gym/utils
             seed_init = seed
             super().seed(seed_init)
-
-        max_int = np.iinfo(dt_int).max
+            
+        max_seed = np.iinfo(dt_int).max  # 2**32 - 1
         if self.chronics_handler is not None:
-            seed = self.space_prng.randint(max_int)
+            seed = self.space_prng.randint(max_seed)
             seed_chron = self.chronics_handler.seed(seed)
         if self._observation_space is not None:
-            seed = self.space_prng.randint(max_int)
+            seed = self.space_prng.randint(max_seed)
             seed_obs = self._observation_space.seed(seed)
         if self._action_space is not None:
-            seed = self.space_prng.randint(max_int)
+            seed = self.space_prng.randint(max_seed)
             seed_action_space = self._action_space.seed(seed)
         if self._helper_action_env is not None:
-            seed = self.space_prng.randint(max_int)
+            seed = self.space_prng.randint(max_seed)
             seed_env_modif = self._helper_action_env.seed(seed)
         if self._voltage_controler is not None:
-            seed = self.space_prng.randint(max_int)
+            seed = self.space_prng.randint(max_seed)
             seed_volt_cont = self._voltage_controler.seed(seed)
         if self._opponent is not None:
-            seed = self.space_prng.randint(max_int)
+            seed = self.space_prng.randint(max_seed)
             seed_opponent = self._opponent.seed(seed)
         self._has_just_been_seeded = True
         return (
@@ -2085,6 +2090,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._last_obs = self._observation_space(
                 env=self, _update_state=_update_state
             )
+        
         return self._last_obs.copy()
 
     def get_thermal_limit(self):
@@ -2775,11 +2781,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 "Impossible to make a step with a non initialized backend. Have you called "
                 '"env.reset()" after the last game over ?'
             )
-
-        self._has_just_been_seeded = (
-            False  # I did something after calling "env.seed()" which is
-        )
+        # I did something after calling "env.seed()" which is
         # somehow "env.step()" or "env.reset()"
+        self._has_just_been_seeded =  False  
+        
         has_error = True
         is_done = False
         is_illegal = False
