@@ -316,17 +316,24 @@ class MultiAgentEnv(RandomObject):
     def _build_subgrid_cls_from_domain(self, domain):                
         cent_env_cls = type(self._cent_env)
         tmp_subgrid = SubGridObjects()
-        tmp_subgrid.sub_orig_ids = copy.deepcopy(domain['sub_id'])
+        
+        tmp_subgrid.agent_name = copy.deepcopy(domain["agent_name"])
+        
+        tmp_subgrid.sub_orig_ids = copy.deepcopy(np.sort(domain['sub_id']))
+        tmp_subgrid.mask_sub = copy.deepcopy(domain["mask_sub"])
+        
         tmp_subgrid.mask_load = copy.deepcopy(domain['mask_load'])
         tmp_subgrid.mask_gen = copy.deepcopy(domain['mask_gen'])
         tmp_subgrid.mask_storage = copy.deepcopy(domain['mask_storage'])
-        tmp_subgrid.mask_shunt = copy.deepcopy(domain['mask_shunt'])
         tmp_subgrid.mask_line_or = copy.deepcopy(domain['mask_line_or'])
         tmp_subgrid.mask_line_ex = copy.deepcopy(domain['mask_line_ex'])
-        tmp_subgrid.agent_name = copy.deepcopy(domain["agent_name"])
-        tmp_subgrid.mask_sub = copy.deepcopy(domain["mask_sub"])
         tmp_subgrid.mask_interco = copy.deepcopy(domain["mask_interco"])
         tmp_subgrid.interco_is_origin = copy.deepcopy(domain["interco_is_origin"])
+        
+        tmp_subgrid.load_orig_ids = np.where(domain['mask_load'])[0]
+        tmp_subgrid.gen_orig_ids = np.where(domain['mask_gen'])[0]
+        tmp_subgrid.storage_orig_ids = np.where(domain['mask_storage'])[0]
+        tmp_subgrid.line_orig_ids = np.where(domain['mask_line_or'])[0]
         
         tmp_subgrid.glop_version = cent_env_cls.glop_version
         tmp_subgrid._PATH_ENV = cent_env_cls._PATH_ENV
@@ -348,15 +355,11 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.name_storage = cent_env_cls.name_storage[
             tmp_subgrid.mask_storage
         ]
-        tmp_subgrid.name_shunt = cent_env_cls.name_shunt[
-            tmp_subgrid.mask_shunt
-        ]
         
         tmp_subgrid.n_gen = len(tmp_subgrid.name_gen)
         tmp_subgrid.n_load = len(tmp_subgrid.name_load)
         tmp_subgrid.n_line = len(tmp_subgrid.name_line)
         tmp_subgrid.n_sub = len(tmp_subgrid.name_sub)
-        tmp_subgrid.n_shunt = len(tmp_subgrid.name_shunt)
         tmp_subgrid.n_storage = len(tmp_subgrid.name_storage)
         tmp_subgrid.n_interco = tmp_subgrid.mask_interco.sum()
 
@@ -376,7 +379,6 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.line_or_to_subid = np.zeros(tmp_subgrid.n_line, dtype=dt_int)
         tmp_subgrid.line_ex_to_subid = np.zeros(tmp_subgrid.n_line, dtype=dt_int)
         tmp_subgrid.storage_to_subid = np.zeros(tmp_subgrid.n_storage, dtype=dt_int)
-        tmp_subgrid.shunt_to_subid = np.zeros(tmp_subgrid.n_shunt, dtype=dt_int)
         
         # new_label[orig_grid_sub_id] = new_grid_sub_id
         new_label = np.zeros(cent_env_cls.n_sub, dtype=dt_int) - 1
@@ -472,6 +474,17 @@ class MultiAgentEnv(RandomObject):
             tmp_subgrid.gen_renewable = cent_env_cls.gen_renewable[
                 tmp_subgrid.mask_gen
             ]
+
+        # shunt data, not available in every backend 
+        tmp_subgrid.shunts_data_available = cent_env_cls.shunts_data_available
+        if tmp_subgrid.shunts_data_available:
+            tmp_subgrid.mask_shunt = copy.deepcopy(domain['mask_shunt'])
+            tmp_subgrid.name_shunt = cent_env_cls.name_shunt[
+                tmp_subgrid.mask_shunt
+            ]
+            tmp_subgrid.n_shunt = len(tmp_subgrid.name_shunt)
+            tmp_subgrid.shunt_to_subid = np.zeros(tmp_subgrid.n_shunt, dtype=dt_int)
+            tmp_subgrid.shunt_orig_ids = np.where(domain['mask_shunt'])[0]
 
         # storage unit static data 
         tmp_subgrid.storage_type = cent_env_cls.storage_type[

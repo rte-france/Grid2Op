@@ -9,7 +9,6 @@
 import numpy as np
 
 from grid2op.dtypes import dt_int
-from grid2op.Exceptions import Grid2OpException
 from grid2op.Space.GridObjects import GridObjects
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
@@ -19,7 +18,13 @@ class SubGridObjects(GridObjects):
     DIM_OBJ_SUB = INTERCO_COL + 1
 
     sub_orig_ids = None
-    local2global = dict()
+    load_orig_ids = None
+    gen_orig_ids = None
+    storage_orig_ids = None
+    shunt_orig_ids = None
+    line_orig_ids = None
+    
+    #local2global = dict()
     mask_sub = None
     mask_load = None
     mask_gen = None
@@ -29,7 +34,6 @@ class SubGridObjects(GridObjects):
     mask_shunt = None
     mask_interco = None
     agent_name : str = None
-    # TODO BEN: load_orig_ids, gen_orig_ids and everything else ...
     
     interco_to_subid = None
     interco_to_lineid = None
@@ -45,104 +49,146 @@ class SubGridObjects(GridObjects):
     @staticmethod
     def _make_cls_dict_extended(cls, res, as_list=True, copy_=True):
         super()._make_cls_dict_extended(cls, res, as_list=as_list, copy_=copy_)
+        
+        res["agent_name"] = str(cls.agent_name)
+        
+        # interco
+        res["n_interco"] = cls.n_interco
         save_to_dict(
             res,
             cls,
-            "sub_orig_ids",
-            (lambda li: [int(el) for el in li]) if as_list else None,
-            copy_,
-        )
-        save_to_dict(
-            res,
-            cls,
-            "local2global",
-            (lambda li: [int(el) for el in li]) if as_list else None,
-            copy_,
-        )
-        save_to_dict(
-            res,
-            cls,
-            "interco_to_subid",
-            (lambda li: [int(el) for el in li]) if as_list else None,
-            copy_,
-        )
-        save_to_dict(
-            res,
-            cls,
-            "interco_to_lineid",
-            (lambda li: [int(el) for el in li]) if as_list else None,
-            copy_,
-        )
-        save_to_dict(
-            res,
-            cls,
-            "interco_to_sub_pos",
-            (lambda li: [int(el) for el in li]) if as_list else None,
-            copy_,
-        )
-        save_to_dict(
-            res,
-            cls,
-            "interco_is_origin",
-            (lambda li: [int(el) for el in li]) if as_list else None,
-            copy_,
-        )
-        save_to_dict(
-            res,
-            cls,
-            "interco_pos_topo_vect",
-            (lambda li: [int(el) for el in li]) if as_list else None,
+            "mask_interco",
+            (lambda li: [bool(el) for el in li]) if as_list else None,
             copy_,
         )
         save_to_dict(
             res,
             cls,
             "name_interco",
-            (lambda li: [str(el) for el in li]) if as_list else None,
+            (lambda arr: [str(el) for el in arr]) if as_list else None,
             copy_,
         )
-        res["n_interco"] = cls.n_interco
-    
+        save_to_dict(
+            res,
+            cls,
+            "interco_pos_topo_vect",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "interco_is_origin",
+            (lambda arr: [bool(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "interco_to_sub_pos",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "interco_to_lineid",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "interco_to_subid",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        
+        # original id (from main grid)
+        save_to_dict(
+            res,
+            cls,
+            "sub_orig_ids",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "load_orig_ids",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "gen_orig_ids",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "line_orig_ids",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "storage_orig_ids",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            cls,
+            "shunt_orig_ids",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        
+        # masks (extraction of the data from original grid)
         save_to_dict(
             res,
             cls,
             "mask_sub",
-            (lambda li: [bool(el) for el in li]) if as_list else None,
+            (lambda arr: [bool(el) for el in arr]) if as_list else None,
             copy_,
         )
         save_to_dict(
             res,
             cls,
             "mask_load",
-            (lambda li: [bool(el) for el in li]) if as_list else None,
+            (lambda arr: [bool(el) for el in arr]) if as_list else None,
             copy_,
         )
         save_to_dict(
             res,
             cls,
             "mask_gen",
-            (lambda li: [bool(el) for el in li]) if as_list else None,
+            (lambda arr: [bool(el) for el in arr]) if as_list else None,
             copy_,
         )
         save_to_dict(
             res,
             cls,
             "mask_storage",
-            (lambda li: [bool(el) for el in li]) if as_list else None,
+            (lambda arr: [bool(el) for el in arr]) if as_list else None,
             copy_,
         )
         save_to_dict(
             res,
             cls,
             "mask_line_or",
-            (lambda li: [bool(el) for el in li]) if as_list else None,
+            (lambda arr: [bool(el) for el in arr]) if as_list else None,
             copy_,
         )
         save_to_dict(
             res,
             cls,
             "mask_line_ex",
-            (lambda li: [bool(el) for el in li]) if as_list else None,
+            (lambda arr: [bool(el) for el in arr]) if as_list else None,
             copy_,
         )
         save_to_dict(
@@ -153,7 +199,7 @@ class SubGridObjects(GridObjects):
             copy_,
         )
         res["agent_name"] = cls.agent_name
-        # TODO BEN: other stuff maybe ?
+    
     
     @classmethod
     def get_obj_substations(cls, _sentinel=None, substation_id=None):
@@ -163,7 +209,6 @@ class SubGridObjects(GridObjects):
         -------
         res: ``numpy.ndarray``
             A matrix with as many rows as the number of element of the substation and 6 columns:
-
               1. column 0: the id of the substation
               2. column 1: -1 if this object is not a load, or `LOAD_ID` if this object is a load (see example)
               3. column 2: -1 if this object is not a generator, or `GEN_ID` if this object is a generator (see example)
@@ -173,7 +218,6 @@ class SubGridObjects(GridObjects):
                  end of a powerline
               6. column 5: -1 if this object is not a storage unit, or `STO_ID` if this object is one
               7. column 6: -1 if this object is not an "interco" , or `INTERCO_ID` if this object is one [ADDED]
-
         """
         tmp_ = cls._inheritance_get_obj_substations(_sentinel, substation_id)
         dict_ = cls.get_obj_connect_to(_sentinel, substation_id)
@@ -241,6 +285,14 @@ class SubGridObjects(GridObjects):
     @staticmethod
     def from_dict(dict_):
         GridObjects.from_dict(dict_)
+        #
+        #class res(SubGridObjects):
+        #    pass
+
+        #cls = res
+        #cls.sub_info = extract_from_dict(
+        #    dict_, "sub_info", lambda x: np.array(x).astype(dt_int)
+        #)
         
     # TODO BEN (later)
     @staticmethod
@@ -256,4 +308,3 @@ class SubGridObjects(GridObjects):
     @classmethod
     def _clear_class_attribute(cls):
         GridObjects._clear_class_attribute(cls)
-        
