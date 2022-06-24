@@ -21,7 +21,7 @@ class MATesterGlobalObs(unittest.TestCase):
         
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("l2rpn_case14_sandbox", test=True)
+            self.env = make("l2rpn_case14_sandbox", test=True, _add_to_name="test_ma")
 
         self.action_domains = {
             'agent_0' : [0,1,2,3, 4],
@@ -40,21 +40,17 @@ class MATesterGlobalObs(unittest.TestCase):
         return super().tearDown()
     
     def test_verify_domains(self):
+        """test the MultiAgentEnv._verify_domains method """
+        # it should test that :
+        # 1) the function works (does not throw an error) when the input domains are correct
+        # 2) the function throws an error when the input domains are wrong
+        # (the more "wrong" cases tested the better)
+        
         action_domains = {
             'agent_0' : 0,
             'agent_1' : [5,6,7,8,9,10,11,12,13]
         }
-        # TODO BEN: above action domain should raise an error: "0" is not an iterable !
-        
-        
-        #observation_domains = action_domains
-        #try:
-        #    MultiAgentEnv(self.env, observation_domains, action_domains)
-        #    assert False
-        #    
-        #except DomainException :
-        #    assert True
-            
+        # above action domain should raise an error: "0" is not an iterable !
         with self.assertRaises(DomainException) as de:
             MultiAgentEnv(self.env, action_domains, _add_to_name="test_verify_domains_0")
         
@@ -62,7 +58,7 @@ class MATesterGlobalObs(unittest.TestCase):
             'agent_0' : [0],
             'agent_1' : [5,6,7,8,9,10,11,12,13]
         }
-        #observation_domains = action_domains
+        # above action domain should raise an error: substations are not fully allocated !
         with self.assertRaises(DomainException) as de:
             MultiAgentEnv(self.env, action_domains, _add_to_name="test_verify_domains_1")
             
@@ -70,14 +66,28 @@ class MATesterGlobalObs(unittest.TestCase):
             'agent_0' : [],
             'agent_1' : list(range(self.env.n_sub))
         }
-        #observation_domains = action_domains
+        # above action domain should raise an error: agents must have at least one substation !
         with self.assertRaises(DomainException) as de:
             MultiAgentEnv(self.env, action_domains, _add_to_name="test_verify_domains_2")
+            
+        action_domains = {
+            'agent_0' : [0,1,6,3, 4],
+            'agent_1' : [5,2,7,8,9,10,11,12,13]
+        }
+        # this domain is valid even if it is not connected
+        try:
+            MultiAgentEnv(self.env, action_domains, _add_to_name="test_verify_domains_3")
+        except DomainException:
+            self.fail("action_domains raised Domain Exception unexpectedly!")
+            
+        action_domains = {
+            'agent_0' : [0,1,6,3, 4, 5],
+            'agent_1' : [5,2,7,8,9,10,11,12,13]
+        }
+        # this domain is valid even if it is not connected
+        with self.assertRaises(DomainException) as de:
+            MultiAgentEnv(self.env, action_domains, _add_to_name="test_verify_domains_4")
         
-    
-    # TODO Test in case subs are not connex
-
-    # TODO 
     
     def test_build_subgrids_action_domains(self):
         """Tests that the action_domains are correctly defined 
@@ -126,51 +136,13 @@ class MATesterGlobalObs(unittest.TestCase):
         
         assert (self.ma_env._action_domains['agent_0']['interco_is_origin'] == [True, True, True]).all()
         assert (self.ma_env._action_domains['agent_1']['interco_is_origin'] == np.invert([True, True, True])).all()
-                
         
-    #def test_build_subgrids_observation_domains(self):
-    #    """Tests that the observation_domains are correctly defined 
-    #        in MultiAgentEnv._build_subgrid_from_domain method
-    #    """
-    #    assert self.ma_env._observation_domains['agent_1']['sub_id'] == self.action_domains['agent_0']
-    #    assert self.ma_env._observation_domains['agent_0']['sub_id'] == self.action_domains['agent_1']
-    #    
-    #    assert (self.ma_env._observation_domains['agent_1']['mask_load'] == [True,  True,  True,  True, False, False, False, False, False, False, False]).all()
-    #    assert (self.ma_env._observation_domains['agent_0']['mask_load'] == np.invert([True,  True,  True,  True, False, False, False, False, False, False, False])).all()
-    #    
-    #    assert (self.ma_env._observation_domains['agent_1']['mask_gen'] == [True,  True, False, False, False,  True]).all()
-    #    assert (self.ma_env._observation_domains['agent_0']['mask_gen'] == np.invert([ True,  True, False, False, False,  True])).all()
-    #    
-    #    assert (self.ma_env._observation_domains['agent_1']['mask_storage'] == []).all()
-    #    assert (self.ma_env._observation_domains['agent_0']['mask_storage'] == []).all()
-    #    
-    #    assert (self.ma_env._observation_domains['agent_1']['mask_line_ex'] == [ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False, False, False, False,False, False]).all()
-    #    assert (self.ma_env._observation_domains['agent_0']['mask_line_ex'] == np.invert([ True,  True,  True,  True,  True,  True,  True, False, False, False, False, False, False, False, False, False, False, False,False, False])).all()
-    #    
-    #    assert (self.ma_env._observation_domains['agent_1']['mask_line_or'] == self.ma_env._observation_domains['agent_1']['mask_line_ex'] ).all()
-    #    assert (self.ma_env._observation_domains['agent_0']['mask_line_or'] == np.invert(self.ma_env._observation_domains['agent_1']['mask_line_ex'])).all()
-    #    
-    #    assert (self.ma_env._observation_domains['agent_1']['mask_shunt'] == [False]).all()
-    #    assert (self.ma_env._observation_domains['agent_0']['mask_shunt'] == [True]).all()
-    #    
-    #    assert (self.ma_env._observation_domains['agent_0']['mask_interco'] == [False, False, False, False, False, False, False, False, False,
-    #                                                                        False, False, False, False, False, False,  True,  True,  True,
-    #                                                                        False, False]).all()
-    #    assert (self.ma_env._observation_domains['agent_1']['mask_interco'] == [False, False, False, False, False, False, False, False, False,
-    #                                                                        False, False, False, False, False, False,  True,  True,  True,
-    #                                                                        False, False]).all()
-    #    
-    #    assert (self.ma_env._observation_domains['agent_1']['interco_is_origin'] == [True, True, True]).all()
-    #    assert (self.ma_env._observation_domains['agent_0']['interco_is_origin'] == np.invert([True, True, True])).all()
-    
-    # TODO
-    def test_validate_action_domain(self):
-        """test the MultiAgentEnv._verify_domains method """
-        # TODO it should test that :
-        # 1) the function works (does not throw an error) when the input domains are correct
-        # 2) the function throws an error when the input domains are wrong
-        # (the more "wrong" cases tested the better)
-        pass
+        assert self.ma_env._subgrids_cls['action']['agent_0'].n_interco == self.ma_env._subgrids_cls['action']['agent_1'].n_interco
+        
+        assert self.ma_env._subgrids_cls['action']['agent_0'].n_line \
+             + self.ma_env._subgrids_cls['action']['agent_1'].n_line \
+             + self.ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
+                
 
     def test_build_subgrid_obj(self):
         """test the MultiAgentEnv._build_subgrid_obj_from_domain"""
@@ -183,69 +155,49 @@ class MATesterGlobalObs(unittest.TestCase):
             'agent_0' : [0,1,2,3, 4],
             'agent_1' : [5,6,7,8,9,10,11,12,13]
         }
-        #observation_domains = {
-        #    'agent_0' : self.action_domains['agent_1'],
-        #    'agent_1' : self.action_domains['agent_0']
-        #}
         # run redispatch agent on one scenario for 100 timesteps
         ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name="test_build_subgrid_obj")
         
         
-        # TODO BEN: use a function to check all that more generally (eg the one you coded for test_build_subgrid_obj4)
-        # TODO BEN and this generic function you test EVERYTHING, not half of it.
-        # TODO BEN by everything I mean really every class attributes
-        # TODO BEN: COPY PASTE ARE TERRIBLE !!!!!!
         assert ma_env._subgrids_cls['action']['agent_0'].n_gen == 3
         assert ma_env._subgrids_cls['action']['agent_1'].n_gen == 3
-        #assert ma_env._subgrids_cls['action']['agent_0'].n_gen is not ma_env._subgrids_cls['action']['agent_1'].n_gen
-        #assert ma_env._subgrids_cls['action']['agent_0'].n_load is not ma_env._subgrids_cls['action']['agent_1'].n_load
-        #assert ma_env._subgrids_cls['action']['agent_0'].n_line is not ma_env._subgrids_cls['action']['agent_1'].n_line
-        #assert ma_env._subgrids_cls['action']['agent_0'].n_interco is not ma_env._subgrids_cls['action']['agent_1'].n_interco
         
-        assert ma_env._subgrids_cls['action']['agent_0'].n_gen +  ma_env._subgrids_cls['action']['agent_1'].n_gen == self.env.n_gen
-        assert ma_env._subgrids_cls['action']['agent_0'].n_load +  ma_env._subgrids_cls['action']['agent_1'].n_load == self.env.n_load
-        assert ma_env._subgrids_cls['action']['agent_0'].n_interco == ma_env._subgrids_cls['action']['agent_1'].n_interco
-        assert ma_env._subgrids_cls['action']['agent_0'].n_line \
-            + ma_env._subgrids_cls['action']['agent_1'].n_line \
-            + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
-            
-        assert self.env.n_gen is type(self.env).n_gen
-        #assert ma_env._subgrids_cls['action']['agent_0'].n_gen is type(ma_env._subgrids_cls['action']['agent_0']).n_gen 
-        #assert ma_env._subgrids_cls['action']['agent_1'].n_gen is type(ma_env._subgrids_cls['action']['agent_1']).n_gen
-        assert ma_env._subgrids_cls['action']['agent_0'].n_load +  ma_env._subgrids_cls['action']['agent_1'].n_load == self.env.n_load
-        assert ma_env._subgrids_cls['action']['agent_0'].n_interco == ma_env._subgrids_cls['action']['agent_1'].n_interco
-        assert ma_env._subgrids_cls['action']['agent_0'].n_line \
-            + ma_env._subgrids_cls['action']['agent_1'].n_line \
-            + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
+        self.check_orig_ids(ma_env, action_domains)
+        self.check_n_objects(ma_env, action_domains)
+        self.check_objects_to_subid(ma_env, action_domains)
+        self.check_connections(ma_env, action_domains)
+
+        self.run_in_env(ma_env)
         
         assert (ma_env._subgrids_cls['action']['agent_0'].interco_to_lineid == np.array([15,16,17])).all()
         assert (ma_env._subgrids_cls['action']['agent_1'].interco_to_lineid == np.array([15,16,17])).all()
         
-        ref_ = np.array([[ 0., -1., -1.,  0., -1., -1, -1.],
-                         [ 0., -1., -1.,  1., -1., -1, -1.],
-                         [ 0., -1.,  2., -1., -1., -1, -1.],
-                         [ 1., -1., -1., -1.,  0., -1, -1.],
-                         [ 1., -1., -1.,  2., -1., -1, -1.],
-                         [ 1., -1., -1.,  3., -1., -1, -1.],
-                         [ 1., -1., -1.,  4., -1., -1, -1.],
-                         [ 1., -1.,  0., -1., -1., -1, -1.],
-                         [ 1.,  0., -1., -1., -1., -1, -1.],
-                         [ 2., -1., -1., -1.,  2., -1, -1.],
-                         [ 2., -1., -1.,  5., -1., -1, -1.],
-                         [ 2., -1.,  1., -1., -1., -1, -1.],
-                         [ 2.,  1., -1., -1., -1., -1, -1.],
-                         [ 3., -1., -1., -1.,  3., -1, -1.],
-                         [ 3., -1., -1., -1.,  5., -1, -1.],
-                         [ 3., -1., -1.,  6., -1., -1, -1.],
-                         [ 3., -1., -1., -1., -1., -1,  0.],
-                         [ 3., -1., -1., -1., -1., -1,  1.],
-                         [ 3.,  2., -1., -1., -1., -1, -1.],
-                         [ 4., -1., -1., -1.,  1., -1, -1.],
-                         [ 4., -1., -1., -1.,  4., -1, -1.],
-                         [ 4., -1., -1., -1.,  6., -1, -1.],
-                         [ 4., -1., -1., -1., -1., -1,  2.],
-                         [ 4.,  3., -1., -1., -1., -1, -1.]])
-        assert (ma_env._subgrids_cls['action']['agent_0'].grid_objects_types == ref_).all()
+        ref = np.array([[ 0., -1., -1.,  0., -1., -1, -1.],
+                        [ 0., -1., -1.,  1., -1., -1, -1.],
+                        [ 0., -1.,  2., -1., -1., -1, -1.],
+                        [ 1., -1., -1., -1.,  0., -1, -1.],
+                        [ 1., -1., -1.,  2., -1., -1, -1.],
+                        [ 1., -1., -1.,  3., -1., -1, -1.],
+                        [ 1., -1., -1.,  4., -1., -1, -1.],
+                        [ 1., -1.,  0., -1., -1., -1, -1.],
+                        [ 1.,  0., -1., -1., -1., -1, -1.],
+                        [ 2., -1., -1., -1.,  2., -1, -1.],
+                        [ 2., -1., -1.,  5., -1., -1, -1.],
+                        [ 2., -1.,  1., -1., -1., -1, -1.],
+                        [ 2.,  1., -1., -1., -1., -1, -1.],
+                        [ 3., -1., -1., -1.,  3., -1, -1.],
+                        [ 3., -1., -1., -1.,  5., -1, -1.],
+                        [ 3., -1., -1.,  6., -1., -1, -1.],
+                        [ 3., -1., -1., -1., -1., -1,  0.],
+                        [ 3., -1., -1., -1., -1., -1,  1.],
+                        [ 3.,  2., -1., -1., -1., -1, -1.],
+                        [ 4., -1., -1., -1.,  1., -1, -1.],
+                        [ 4., -1., -1., -1.,  4., -1, -1.],
+                        [ 4., -1., -1., -1.,  6., -1, -1.],
+                        [ 4., -1., -1., -1., -1., -1,  2.],
+                        [ 4.,  3., -1., -1., -1., -1, -1.]])
+        
+        assert (ma_env._subgrids_cls['action']['agent_0'].grid_objects_types == ref).all()
         
         
     def test_build_subgrid_obj2(self):    
@@ -254,222 +206,163 @@ class MATesterGlobalObs(unittest.TestCase):
             'test_2_agent_0' : [0,1,4,5,10,11,12],
             'test_2_agent_1' : [2,3,6,7,8,9,13]
         }
-        #observation_domains = {
-        #    'agent_0' : action_domains['agent_1'],
-        #    'agent_1' : action_domains['agent_0']
-        #}
-        # run redispatch agent on one scenario for 100 timesteps
+        # TODO run redispatch agent on one scenario for 100 timesteps
         ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name="test_build_subgrid_obj2")
         
-        # TODO BEN: use a function to check all that more generally (eg the one you coded for test_build_subgrid_obj4)
-        # TODO BEN: COPY PASTE ARE TERRIBLE !!!!!!
         assert ma_env._subgrids_cls['action']['test_2_agent_0'].n_gen == 4
         assert ma_env._subgrids_cls['action']['test_2_agent_1'].n_gen == 2
-        assert ma_env._subgrids_cls['action']['test_2_agent_0'].n_gen + ma_env._subgrids_cls['action']['test_2_agent_1'].n_gen == self.env.n_gen
-        assert ma_env._subgrids_cls['action']['test_2_agent_0'].n_load + ma_env._subgrids_cls['action']['test_2_agent_1'].n_load == self.env.n_load
-        assert ma_env._subgrids_cls['action']['test_2_agent_0'].n_interco == ma_env._subgrids_cls['action']['test_2_agent_1'].n_interco
-        assert ma_env._subgrids_cls['action']['test_2_agent_0'].n_line \
-             + ma_env._subgrids_cls['action']['test_2_agent_1'].n_line \
-             + ma_env._subgrids_cls['action']['test_2_agent_0'].n_interco == self.env.n_line
+        
+        self.check_orig_ids(ma_env, action_domains)
+        self.check_n_objects(ma_env, action_domains)
+        self.check_objects_to_subid(ma_env, action_domains)
+        self.check_connections(ma_env, action_domains)
+
+        self.run_in_env(ma_env)
+        
     
-    def test_build_subgrid_obj4(self):    
-        # 4 random sub ids
+    def test_build_subgrid_obj3(self):    
+        # 3 random sub ids
         np.random.seed(0)
-        for it in range(10):
+        for it in range(100):
             sub_ids = list(range(14))
             np.random.shuffle(sub_ids)  # you should see it for reproducible results
             action_domains = {
                 'agent_0' : sub_ids[:7],
                 'agent_1' : sub_ids[7:]
             }
-            #observation_domains = {
-            #    'agent_0' : action_domains['agent_1'],
-            #    'agent_1' : action_domains['agent_0']
-            #}
             # run redispatch agent on one scenario for 100 timesteps
             ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name=f"_it_{it}")
+            
+            self.check_orig_ids(ma_env, action_domains)
+            self.check_n_objects(ma_env, action_domains, add_msg=f"error for iter {it}")
+            self.check_objects_to_subid(ma_env, action_domains)
+            self.check_connections(ma_env, action_domains)
 
-            assert ma_env._subgrids_cls['action']['agent_0'].n_gen + ma_env._subgrids_cls['action']['agent_1'].n_gen == self.env.n_gen, f"error for iter {it}"
-            assert ma_env._subgrids_cls['action']['agent_0'].n_load + ma_env._subgrids_cls['action']['agent_1'].n_load == self.env.n_load, f"error for iter {it}"
-            assert ma_env._subgrids_cls['action']['agent_0'].n_shunt + ma_env._subgrids_cls['action']['agent_1'].n_shunt == self.env.n_shunt, f"error for iter {it}"
-            assert ma_env._subgrids_cls['action']['agent_0'].n_interco == ma_env._subgrids_cls['action']['agent_1'].n_interco, f"error for iter {it}"
-            assert ma_env._subgrids_cls['action']['agent_0'].n_line \
-                + ma_env._subgrids_cls['action']['agent_1'].n_line \
-                + ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line, f"error for iter {it}"
-                
-            assert len(ma_env._subgrids_cls['action']['agent_0'].line_ex_to_subid) == ma_env._subgrids_cls['action']['agent_0'].n_line
-            assert len(ma_env._subgrids_cls['action']['agent_0'].line_or_to_subid) == ma_env._subgrids_cls['action']['agent_0'].n_line
-            
-            assert len(ma_env._subgrids_cls['action']['agent_1'].line_ex_to_subid) == ma_env._subgrids_cls['action']['agent_1'].n_line
-            assert len(ma_env._subgrids_cls['action']['agent_1'].line_or_to_subid) == ma_env._subgrids_cls['action']['agent_1'].n_line
-            assert np.sum(ma_env._subgrids_cls['action']['agent_0'].sub_info)\
-                ==\
-                ma_env._subgrids_cls['action']['agent_0'].n_gen+\
-                ma_env._subgrids_cls['action']['agent_0'].n_load+\
-                ma_env._subgrids_cls['action']['agent_0'].n_line*2+\
-                ma_env._subgrids_cls['action']['agent_0'].n_interco
-                
-            assert np.sum(ma_env._subgrids_cls['action']['agent_1'].sub_info)\
-                ==\
-                ma_env._subgrids_cls['action']['agent_1'].n_gen+\
-                ma_env._subgrids_cls['action']['agent_1'].n_load+\
-                ma_env._subgrids_cls['action']['agent_1'].n_line*2+\
-                ma_env._subgrids_cls['action']['agent_1'].n_interco
-            
-            
-            # TODO BEN: put all that in a function because you copy paste it dozens of times
             # TODO BEN: and check more carefully the things, it's not enough at the moment
-            # TODO BEN: COPY PASTE ARE TERRIBLE !!!!!!
-            # Verifies if sub ids are correct    
-            assert (ma_env._subgrids_cls['action']['agent_0'].load_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
-            assert (ma_env._subgrids_cls['action']['agent_0'].line_or_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
-            assert (ma_env._subgrids_cls['action']['agent_0'].line_ex_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
-            assert (ma_env._subgrids_cls['action']['agent_0'].storage_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
-            assert (ma_env._subgrids_cls['action']['agent_0'].gen_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
-            assert (ma_env._subgrids_cls['action']['agent_0'].interco_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
-            if ma_env._subgrids_cls['action']['agent_0'].n_shunt:
-                assert (ma_env._subgrids_cls['action']['agent_0'].shunt_to_subid < ma_env._subgrids_cls['action']['agent_0'].n_sub).all()
-            
-            assert (ma_env._subgrids_cls['action']['agent_1'].load_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
-            assert (ma_env._subgrids_cls['action']['agent_1'].line_or_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
-            assert (ma_env._subgrids_cls['action']['agent_1'].line_ex_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
-            assert (ma_env._subgrids_cls['action']['agent_1'].storage_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
-            assert (ma_env._subgrids_cls['action']['agent_1'].gen_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
-            assert (ma_env._subgrids_cls['action']['agent_1'].interco_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
-            if ma_env._subgrids_cls['action']['agent_1'].n_shunt:
-                assert (ma_env._subgrids_cls['action']['agent_1'].shunt_to_subid < ma_env._subgrids_cls['action']['agent_1'].n_sub).all()
-           
-            
-    def test_build_subgrid_obj3(self):    
-        # 3
-        action_domains = {
-            'test_3_agent_0' : [0,1,2,3,4,5,6,7],
-            'test_3_agent_1' : [8,9,10,11,12,13]
-        }
-        #observation_domains = {
-        #    'agent_0' : action_domains['agent_1'],
-        #    'agent_1' : action_domains['agent_0']
-        #}
-        ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name="test_build_subgrid_obj3")
         
-        # TODO BEN: use a function to check all that more generally (eg the one you coded for test_build_subgrid_obj4)
-        # TODO BEN and this generic function you test EVERYTHING, not half of it.
-        # TODO BEN by everything I mean really every class attributes
-        # TODO BEN: COPY PASTE ARE TERRIBLE !!!!!!
-        # run redispatch agent on one scenario for 100 timesteps
-        assert ma_env._subgrids_cls['action']['test_3_agent_0'].n_gen + ma_env._subgrids_cls['action']['test_3_agent_1'].n_gen == self.env.n_gen
-        assert ma_env._subgrids_cls['action']['test_3_agent_0'].n_load + ma_env._subgrids_cls['action']['test_3_agent_1'].n_load == self.env.n_load
-        assert ma_env._subgrids_cls['action']['test_3_agent_0'].n_shunt + ma_env._subgrids_cls['action']['test_3_agent_1'].n_shunt == self.env.n_shunt
-        assert ma_env._subgrids_cls['action']['test_3_agent_0'].n_interco == ma_env._subgrids_cls['action']['test_3_agent_1'].n_interco
-        assert ma_env._subgrids_cls['action']['test_3_agent_0'].n_line \
-            + ma_env._subgrids_cls['action']['test_3_agent_1'].n_line \
-            + ma_env._subgrids_cls['action']['test_3_agent_0'].n_interco == self.env.n_line
-            
-        assert len(ma_env._subgrids_cls['action']['test_3_agent_0'].line_ex_to_subid) == ma_env._subgrids_cls['action']['test_3_agent_0'].n_line
-        assert len(ma_env._subgrids_cls['action']['test_3_agent_0'].line_or_to_subid) == ma_env._subgrids_cls['action']['test_3_agent_0'].n_line
-        
-        assert len(ma_env._subgrids_cls['action']['test_3_agent_1'].line_ex_to_subid) == ma_env._subgrids_cls['action']['test_3_agent_1'].n_line
-        assert len(ma_env._subgrids_cls['action']['test_3_agent_1'].line_or_to_subid) == ma_env._subgrids_cls['action']['test_3_agent_1'].n_line
-        
-        assert np.sum(ma_env._subgrids_cls['action']['test_3_agent_0'].sub_info)\
-            ==\
-            ma_env._subgrids_cls['action']['test_3_agent_0'].n_gen+\
-            ma_env._subgrids_cls['action']['test_3_agent_0'].n_load+\
-            ma_env._subgrids_cls['action']['test_3_agent_0'].n_line*2+\
-            ma_env._subgrids_cls['action']['test_3_agent_0'].n_interco
-            
-        assert np.sum(ma_env._subgrids_cls['action']['test_3_agent_1'].sub_info)\
-            ==\
-            ma_env._subgrids_cls['action']['test_3_agent_1'].n_gen+\
-            ma_env._subgrids_cls['action']['test_3_agent_1'].n_load+\
-            ma_env._subgrids_cls['action']['test_3_agent_1'].n_line*2+\
-            ma_env._subgrids_cls['action']['test_3_agent_1'].n_interco
-        
-        
-        # Verifies if sub ids are correct    
-        assert (ma_env._subgrids_cls['action']['test_3_agent_0'].load_to_subid < ma_env._subgrids_cls['action']['test_3_agent_0'].n_sub).all()
-        assert (ma_env._subgrids_cls['action']['test_3_agent_0'].line_or_to_subid < ma_env._subgrids_cls['action']['test_3_agent_0'].n_sub).all()
-        assert (ma_env._subgrids_cls['action']['test_3_agent_0'].line_ex_to_subid < ma_env._subgrids_cls['action']['test_3_agent_0'].n_sub).all()
-        assert (ma_env._subgrids_cls['action']['test_3_agent_0'].storage_to_subid < ma_env._subgrids_cls['action']['test_3_agent_0'].n_sub).all()
-        assert (ma_env._subgrids_cls['action']['test_3_agent_0'].gen_to_subid < ma_env._subgrids_cls['action']['test_3_agent_0'].n_sub).all()
-        assert (ma_env._subgrids_cls['action']['test_3_agent_0'].interco_to_subid < ma_env._subgrids_cls['action']['test_3_agent_0'].n_sub).all()
-        if ma_env._subgrids_cls['action']['test_3_agent_0'].n_shunt:
-            assert (ma_env._subgrids_cls['action']['test_3_agent_0'].shunt_to_subid < ma_env._subgrids_cls['action']['test_3_agent_0'].n_sub).all()
-        
-        assert (ma_env._subgrids_cls['action']['test_3_agent_1'].load_to_subid < ma_env._subgrids_cls['action']['test_3_agent_1'].n_sub).all()
-        assert (ma_env._subgrids_cls['action']['test_3_agent_1'].line_or_to_subid < ma_env._subgrids_cls['action']['test_3_agent_1'].n_sub).all()
-        assert (ma_env._subgrids_cls['action']['test_3_agent_1'].line_ex_to_subid < ma_env._subgrids_cls['action']['test_3_agent_1'].n_sub).all()
-        assert (ma_env._subgrids_cls['action']['test_3_agent_1'].storage_to_subid < ma_env._subgrids_cls['action']['test_3_agent_1'].n_sub).all()
-        assert (ma_env._subgrids_cls['action']['test_3_agent_1'].gen_to_subid < ma_env._subgrids_cls['action']['test_3_agent_1'].n_sub).all()
-        assert (ma_env._subgrids_cls['action']['test_3_agent_1'].interco_to_subid < ma_env._subgrids_cls['action']['test_3_agent_1'].n_sub).all()
-        if ma_env._subgrids_cls['action']['test_3_agent_1'].n_shunt:
-            assert (ma_env._subgrids_cls['action']['test_3_agent_1'].shunt_to_subid < ma_env._subgrids_cls['action']['test_3_agent_1'].n_sub).all()
-
-            
-    # def test_action_space(self):
-    #     """test for the action spaces created for agents
-    #     """
-        
-    #     #assert self.ma_env.action_spaces['agent_0'].n_interco == self.ma_env._subgrids_cls['action']['agent_0'].n_interco
-    #     for agent in self.action_domains.keys():
-    #         assert self.ma_env.action_spaces[agent].n_line == self.ma_env._subgrids_cls['action'][agent].n_line
-    #         assert self.ma_env.action_spaces[agent].n_gen == self.ma_env._subgrids_cls['action'][agent].n_gen
-    #         assert self.ma_env.action_spaces[agent].n_line == self.ma_env._subgrids_cls['action'][agent].n_line
-    #         assert self.ma_env.action_spaces[agent].n_sub == self.ma_env._subgrids_cls['action'][agent].n_sub
-            
-    #         assert self.ma_env.action_spaces[agent].n_line is type(self.ma_env.action_spaces[agent]).n_line
-    #         assert self.ma_env.action_spaces[agent].n_gen is  type(self.ma_env.action_spaces[agent]).n_gen
-    #         assert self.ma_env.action_spaces[agent].n_line is type(self.ma_env.action_spaces[agent]).n_line
-    #         assert self.ma_env.action_spaces[agent].n_sub is  type(self.ma_env.action_spaces[agent]).n_sub
-            
-    #         try:
-    #             #Simple do nothing action
-    #             print(self.ma_env.action_spaces[agent]({}))
-    #             #assert True
-    #         except Exception as e:
-    #             print(f"Exception occured in test_action_space : {e}")
-
-    #         try:
-    #             #action on a line
-    #             print(self.ma_env.action_spaces[agent]({
-    #                 'change_bus' : self.ma_env.action_spaces[agent].line_or_pos_topo_vect[0]
-    #             }))
-    #             print(self.ma_env.action_spaces['agent_1']({
-    #                 'change_bus' : self.ma_env.action_spaces[agent].line_ex_pos_topo_vect[0]
-    #             }))
-    #             #assert True
-    #         except Exception as e:
-    #             #assert False
-    #             print(f"Exception occured in test_action_space : {e}")
-
-    #         try:
-    #             #action on a gen
-    #             print(self.ma_env.action_spaces[agent]({
-    #                 'change_bus' : self.ma_env.action_spaces[agent].gen_pos_topo_vect[0]
-    #             }))
-    #             #assert True
-    #         except Exception as e:
-    #             #assert False
-    #             print(f"Exception occured in test_action_space : {e}")
-
-    #         try:
-    #             #action on a load
-    #             print(self.ma_env.action_spaces[agent]({
-    #                 'change_bus' : self.ma_env.action_spaces[agent].load_pos_topo_vect[0]
-    #             }))
-    #             #assert True
-    #         except Exception as e:
-    #             #assert False
-    #             print(f"Exception occured in test_action_space : {e}")
-
-    #         #try:
-    #         #    #action on an interconnection
-    #         #    print(self.ma_env.action_spaces[agent]({
-    #         #        'change_bus' : self.ma_env.action_spaces[agent].interco_pos_topo_vect[0]
-    #         #    }))
-    #         #    assert True
-    #         #except Exception as e:
-    #         #    assert False
     
+    
+    def check_n_objects(self, ma_env, domain, space = 'action', add_msg = ""):
+        # TODO comment  
+        # Only for two agents
+        assert np.sum([ma_env._subgrids_cls[space][a].n_gen for a in domain.keys()]) == self.env.n_gen, add_msg
+        assert np.sum([ma_env._subgrids_cls[space][a].n_load for a in domain.keys()]) == self.env.n_load, add_msg
+        
+        
+        for agent in domain.keys():
+        
+            assert np.sum(ma_env._subgrids_cls[space][agent].sub_info)\
+                ==\
+                ma_env._subgrids_cls[space][agent].n_gen+\
+                ma_env._subgrids_cls[space][agent].n_load+\
+                ma_env._subgrids_cls[space][agent].n_line*2+\
+                ma_env._subgrids_cls[space][agent].n_interco, add_msg
+        
+        
+            assert len(ma_env._subgrids_cls[space][agent].line_ex_to_subid) == ma_env._subgrids_cls[space][agent].n_line, add_msg
+            assert len(ma_env._subgrids_cls[space][agent].line_or_to_subid) == ma_env._subgrids_cls[space][agent].n_line, add_msg
+        
+        
+    def check_objects_to_subid(self, ma_env, domain, space = 'action'):
+        
+        # Verifies if sub ids are correct   
+        for agent in domain.keys():
+         
+            assert (ma_env._subgrids_cls[space][agent].load_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            assert (ma_env._subgrids_cls[space][agent].line_or_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            assert (ma_env._subgrids_cls[space][agent].line_ex_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            assert (ma_env._subgrids_cls[space][agent].storage_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            assert (ma_env._subgrids_cls[space][agent].gen_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            assert (ma_env._subgrids_cls[space][agent].interco_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            if ma_env._subgrids_cls[space][agent].n_shunt:
+                assert (ma_env._subgrids_cls[space][agent].shunt_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+                
+            
+            for subid in range(ma_env._subgrids_cls[space][agent].n_sub):
+                dict_connected_objects = ma_env._subgrids_cls[space][agent].get_obj_connect_to(substation_id=subid)
+                
+                assert (np.where(ma_env._subgrids_cls[space][agent].load_to_subid == subid)\
+                    ==\
+                    dict_connected_objects["loads_id"]).all()
+                
+                assert (np.where(ma_env._subgrids_cls[space][agent].gen_to_subid == subid)\
+                    ==\
+                    dict_connected_objects["generators_id"]).all()
+                
+                assert (np.where(ma_env._subgrids_cls[space][agent].line_or_to_subid == subid)\
+                    ==\
+                    dict_connected_objects["lines_or_id"]).all()
+                
+                assert (np.where(ma_env._subgrids_cls[space][agent].line_ex_to_subid == subid)\
+                    ==\
+                    dict_connected_objects["lines_ex_id"]).all()
+                
+                assert (np.where(ma_env._subgrids_cls[space][agent].storage_to_subid == subid)\
+                    ==\
+                    dict_connected_objects["storages_id"]).all()
+            
+    def check_orig_ids(self, ma_env, domain : dict, space = 'action'):
+        #It tests if the origin ids are correct
+        
+        for agent in domain.keys():
+            mask_load = ma_env._subgrids_cls[space][agent].mask_load
+            mask_gen = ma_env._subgrids_cls[space][agent].mask_gen
+            mask_storage = ma_env._subgrids_cls[space][agent].mask_storage
+            mask_line_or = ma_env._subgrids_cls[space][agent].mask_line_or
+            mask_line_ex = ma_env._subgrids_cls[space][agent].mask_line_ex
+            mask_shunt = ma_env._subgrids_cls[space][agent].mask_shunt
+            mask_interco = ma_env._subgrids_cls[space][agent].mask_interco
+            
+            assert (ma_env._subgrids_cls[space][agent].sub_orig_ids == np.sort(domain[agent])).all()
+            assert (ma_env._subgrids_cls[space][agent].gen_orig_ids\
+                ==\
+                    np.arange(ma_env._cent_env.n_gen)[mask_gen]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].load_orig_ids\
+                ==\
+                    np.arange(ma_env._cent_env.n_load)[mask_load]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].storage_orig_ids\
+                ==\
+                    np.arange(ma_env._cent_env.n_storage)[mask_storage]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].line_orig_ids\
+                ==\
+                    np.arange(ma_env._cent_env.n_line)[mask_line_or]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].line_orig_ids\
+                ==\
+                    np.arange(ma_env._cent_env.n_line)[mask_line_ex]).all()
+            
+            if ma_env._subgrids_cls[space][agent].n_shunt > 0:
+                assert (ma_env._subgrids_cls[space][agent].shunt_orig_ids\
+                    ==\
+                        np.arange(ma_env._cent_env.n_shunt)[mask_shunt]).all()
+                
+            assert (ma_env._subgrids_cls[space][agent].interco_to_lineid\
+                ==\
+                    np.arange(ma_env._cent_env.n_line)[mask_interco]).all()
+            
+            
+    def check_connections(self, ma_env, domain, space = 'action'):
+        for agent in domain.keys():
+            
+            assert (ma_env._subgrids_cls[space][agent].sub_info\
+                ==\
+                    ma_env._cent_env.sub_info[
+                        ma_env._subgrids_cls[space][agent].sub_orig_ids
+                    ]).all()
+            
+    def run_in_env(self, ma_env):
+        #TODO
+        pass
+    
+    
+    
+    
+    # TODO BEN: use a function to check all that more generally (eg the one you coded for test_build_subgrid_obj4)
+    # TODO BEN and this generic function you test EVERYTHING, not half of it.
+    # TODO BEN by everything I mean really every class attributes
+        
 if __name__ == "__main__":
     unittest.main()
