@@ -219,9 +219,9 @@ class SubGridObjects(GridObjects):
               6. column 5: -1 if this object is not a storage unit, or `STO_ID` if this object is one
               7. column 6: -1 if this object is not an "interco" , or `INTERCO_ID` if this object is one [ADDED]
         """
-        tmp_ = cls._inheritance_get_obj_substations(_sentinel, substation_id)
+        tmp_ = cls._get_obj_substations_gridobjects(_sentinel, substation_id)
         dict_ = cls.get_obj_connect_to(_sentinel, substation_id)
-        res = np.full((dict_["nb_elements"], 7), fill_value=-1, dtype=dt_int)
+        res = np.full((dict_["nb_elements"], SubGridObjects.DIM_OBJ_SUB), fill_value=-1, dtype=dt_int)
         res[:, :GridObjects.DIM_OBJ_SUB] = tmp_
         res[cls.interco_to_sub_pos[dict_["intercos_id"]], cls.INTERCO_COL] = dict_[
             "intercos_id"
@@ -234,13 +234,13 @@ class SubGridObjects(GridObjects):
     
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
-        res = cls._inheritance_get_obj_connect_to(_sentinel, substation_id)
+        res = cls._get_obj_connect_to_gridobjects(_sentinel, substation_id)
         res["intercos_id"] = np.where(cls.interco_to_subid == substation_id)[0]
         return res
     
     @classmethod
     def _nb_obj_per_sub(cls) -> int:
-        obj_per_sub = cls._inheritance_nb_obj_per_sub() 
+        obj_per_sub = cls._nb_obj_per_sub_gridobjects() 
         for sub_id in cls.interco_to_subid:
             obj_per_sub[sub_id] += 1
         return obj_per_sub
@@ -249,13 +249,13 @@ class SubGridObjects(GridObjects):
     def _concat_topo_vect(cls):
         # used in assert_grid_correct_cls to check that the topo_vect
         # is consistent
-        res = cls._inheritance_concat_topo_vect()
+        res = cls._concat_topo_vect_gridobjects()
         res = np.concatenate((res, cls.interco_pos_topo_vect.flatten()))
         return res
     
     @classmethod
     def _compute_pos_big_topo_cls(cls):
-        cls._inheritance_compute_pos_big_topo()
+        cls._compute_pos_big_topo_gridobjects()
         cls.interco_pos_topo_vect = cls._aux_pos_big_topo(
             cls.interco_to_subid, cls.interco_to_sub_pos
         ).astype(dt_int)
@@ -284,7 +284,7 @@ class SubGridObjects(GridObjects):
     # TODO BEN (not later)
     @staticmethod
     def from_dict(dict_):
-        GridObjects.from_dict(dict_)
+        return GridObjects.from_dict(dict_)
         #
         #class res(SubGridObjects):
         #    pass
@@ -297,14 +297,42 @@ class SubGridObjects(GridObjects):
     # TODO BEN (later)
     @staticmethod
     def init_grid_from_dict_for_pickle(name_res, orig_cls, cls_attr):
-        GridObjects.init_grid_from_dict_for_pickle(name_res, orig_cls, cls_attr)
+        return GridObjects.init_grid_from_dict_for_pickle(name_res, orig_cls, cls_attr)
     
     # TODO BEN (later)
     @classmethod
     def _get_full_cls_str(cls):
-        GridObjects._get_full_cls_str(cls)
+        return GridObjects._get_full_cls_str(cls)
     
     # TODO BEN (later)
     @classmethod
     def _clear_class_attribute(cls):
-        GridObjects._clear_class_attribute(cls)
+        cls._clear_class_attribute_gridobjects()
+        
+        cls.INTERCO_COL = GridObjects.DIM_OBJ_SUB
+        cls.DIM_OBJ_SUB = cls.INTERCO_COL + 1
+
+        cls.sub_orig_ids = None
+        cls.load_orig_ids = None
+        cls.gen_orig_ids = None
+        cls.storage_orig_ids = None
+        cls.shunt_orig_ids = None
+        cls.line_orig_ids = None
+
+        cls.mask_sub = None
+        cls.mask_load = None
+        cls.mask_gen = None
+        cls.mask_storage = None
+        cls.mask_line_or = None
+        cls.mask_line_ex = None
+        cls.mask_shunt = None
+        cls.mask_interco = None
+        cls.agent_name : str = None
+
+        cls.interco_to_subid = None
+        cls.interco_to_lineid = None
+        cls.interco_to_sub_pos = None
+        cls.interco_is_origin = None
+        cls.interco_pos_topo_vect = None
+        cls.name_interco = None
+        cls.n_interco = -1

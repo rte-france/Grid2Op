@@ -596,7 +596,7 @@ class GridObjects:
         cls.dim_alarms = dim_alarms
 
     @classmethod
-    def _clear_class_attribute(cls):
+    def _clear_class_attribute_gridobjects(cls):
         cls.glop_version = grid2op.__version__
         cls._PATH_ENV = None
 
@@ -733,6 +733,10 @@ class GridObjects:
         cls.alarms_lines_area = {}
         cls.alarms_area_lines = []
 
+    @classmethod
+    def _clear_class_attribute(cls):
+        cls._clear_class_attribute_gridobjects()
+        
     @classmethod
     def _update_value_set(cls):
         """
@@ -1200,7 +1204,7 @@ class GridObjects:
         cls._compute_pos_big_topo_cls()
 
     @classmethod
-    def _inheritance_compute_pos_big_topo(cls):
+    def _compute_pos_big_topo_gridobjects(cls):
         
         # check if we need to implement the position in substation
         if (
@@ -1261,7 +1265,7 @@ class GridObjects:
 
         :return: ``None``
         """
-        cls._inheritance_compute_pos_big_topo()
+        cls._compute_pos_big_topo_gridobjects()
         
     @classmethod
     def _check_load_size(cls):
@@ -1746,7 +1750,7 @@ class GridObjects:
         return cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage
     
     @classmethod
-    def _inheritance_nb_obj_per_sub(cls):
+    def _nb_obj_per_sub_gridobjects(cls):
         obj_per_sub = np.zeros(shape=(cls.n_sub,), dtype=dt_int)
         for sub_id in cls.load_to_subid:
             obj_per_sub[sub_id] += 1
@@ -1762,10 +1766,10 @@ class GridObjects:
     
     @classmethod
     def _nb_obj_per_sub(cls):
-        return cls._inheritance_nb_obj_per_sub()
+        return cls._nb_obj_per_sub_gridobjects()
     
     @classmethod
-    def _inheritance_concat_topo_vect(cls):
+    def _concat_topo_vect_gridobjects(cls):
         # used in assert_grid_correct_cls to check that the topo_vect
         # is consistent
         res =  np.concatenate(
@@ -1783,7 +1787,7 @@ class GridObjects:
     def _concat_topo_vect(cls):
         # used in assert_grid_correct_cls to check that the topo_vect
         # is consistent
-        return cls._inheritance_concat_topo_vect()
+        return cls._concat_topo_vect_gridobjects()
     
     @classmethod
     def _check_for_gen_loads(cls):
@@ -2685,7 +2689,7 @@ class GridObjects:
             cls.dim_alarms = 0
 
     @classmethod
-    def _inheritance_get_obj_connect_to(cls, _sentinel=None, substation_id=None):
+    def _get_obj_connect_to_gridobjects(cls, _sentinel=None, substation_id=None):
         if _sentinel is not None:
             raise Grid2OpException(
                 "get_obj_connect_to should be used only with key-word arguments"
@@ -2764,10 +2768,10 @@ class GridObjects:
                    sub_id, env.name_line[dict_["storages_id"]]))
 
         """
-        return cls._inheritance_get_obj_connect_to(_sentinel, substation_id)
+        return cls._get_obj_connect_to_gridobjects(_sentinel, substation_id)
     
     @classmethod
-    def _inheritance_get_obj_substations(cls, _sentinel=None, substation_id=None):
+    def _get_obj_substations_gridobjects(cls, _sentinel=None, substation_id=None):
         if _sentinel is not None:
             raise Grid2OpException(
                 "get_obj_substations should be used only with key-word arguments"
@@ -2878,7 +2882,7 @@ class GridObjects:
             nb_gen_this_substation = np.sum(is_gen)
 
         """
-        return cls._inheritance_get_obj_substations(_sentinel, substation_id)
+        return cls._get_obj_substations_gridobjects(_sentinel, substation_id)
 
     def get_lines_id(self, _sentinel=None, from_=None, to_=None):
         """
