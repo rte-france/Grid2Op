@@ -38,6 +38,7 @@ class MultiAgentEnv(RandomObject):
                  agent_order_fn = lambda x : x,
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
+                 copy_env = True,
                  _add_to_name: Optional[str] = None,
                  ):
         """Multi-agent Grid2Op POSG (Partially Observable Stochastic Game) environment
@@ -104,13 +105,16 @@ class MultiAgentEnv(RandomObject):
                       
  
         """
-        # TODO BEN: init the RandomObject
+        
+        RandomObject.__init__(self)
         
         # added to the class name, if you want to build multiple ma environment with the same underlying environment
         self._add_to_name = _add_to_name  
         
-        self._cent_env : Environment = env  # TODO BEN: copy or not copy ? Discuss
-            
+        if copy_env:
+            self._cent_env : Environment = env.copy()
+        else:
+            self._cent_env : Environment = env
         
         self._verify_domains(action_domains)
         self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
@@ -282,7 +286,6 @@ class MultiAgentEnv(RandomObject):
             tmp_subgrid.sub_orig_ids
         ]
         
-        #TODO correct ?
         tmp_subgrid.dim_topo = 2*tmp_subgrid.n_line + tmp_subgrid.n_interco + \
             tmp_subgrid.n_load + tmp_subgrid.n_gen + tmp_subgrid.n_storage
 
@@ -467,7 +470,6 @@ class MultiAgentEnv(RandomObject):
         else:
             raise NotImplementedError("Local observations are not available yet !")
         
-        # TODO BEN: code with the creation of the observation space for each individual agent (can wait a bit)
         #TODO Local observations
         #for agent in self.agents: 
         #    _cls_agent_action_space = ObservationSpace.init_grid(gridobj=self._subgrids_cls['observation'][agent], extra_name=agent)
@@ -477,7 +479,6 @@ class MultiAgentEnv(RandomObject):
         #        rewardClass=self._cent_env._rewardClass,
         #        observationClass=self._cent_env._observationClass,
         #        actionClass=self._cent_env._actionClass,
-        #        #TODO following parameters
         #        with_forecast=True,
         #        kwargs_observation=None,
         #    )
@@ -511,8 +512,6 @@ class MultiAgentEnv(RandomObject):
                 "This environment is not initialized. You cannot retrieve its observation."
             )
         
-        # TODO BEN: why do you do that this way ? Why not reusing the centralized observation after the "self._cent_env.step(...)" ??
-        # TODO BEN: discuss
         for agent in self.agents:
             self.observations[agent] = self.observation_spaces[agent](
                 env=self._cent_env, _update_state=_update_state

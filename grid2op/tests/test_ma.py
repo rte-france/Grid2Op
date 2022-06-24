@@ -243,11 +243,15 @@ class MATesterGlobalObs(unittest.TestCase):
     
     
     def check_n_objects(self, ma_env, domain, space = 'action', add_msg = ""):
-        # TODO comment  
-        # Only for two agents
         assert np.sum([ma_env._subgrids_cls[space][a].n_gen for a in domain.keys()]) == self.env.n_gen, add_msg
         assert np.sum([ma_env._subgrids_cls[space][a].n_load for a in domain.keys()]) == self.env.n_load, add_msg
+        assert np.sum([ma_env._subgrids_cls[space][a].n_shunt for a in domain.keys()]) == self.env.n_shunt, add_msg
+        assert np.sum([ma_env._subgrids_cls[space][a].n_storage for a in domain.keys()]) == self.env.n_storage, add_msg
         
+        assert np.sum([ma_env._subgrids_cls[space][a].n_line for a in domain.keys()])\
+             + len(set(np.concatenate([ma_env._subgrids_cls[space][a].interco_to_lineid for a in domain.keys()])))\
+            ==\
+                self.env.n_line, add_msg
         
         for agent in domain.keys():
         
@@ -357,6 +361,47 @@ class MATesterGlobalObs(unittest.TestCase):
                         ma_env._subgrids_cls[space][agent].sub_orig_ids
                     ]).all()
             
+            for subid in range(ma_env._subgrids_cls[space][agent].n_sub):
+                dict_local = ma_env._subgrids_cls[space][agent].get_obj_connect_to(substation_id=subid)
+                dict_global = self.env.get_obj_connect_to(
+                    substation_id=ma_env._subgrids_cls[space][agent].sub_orig_ids[subid]
+                )
+                
+                assert dict_local['nb_elements'] == dict_global['nb_elements']
+                assert (dict_global['loads_id']\
+                    ==\
+                        ma_env._subgrids_cls[space][agent].load_orig_ids[dict_local['loads_id']]
+                ).all()
+
+                assert (dict_global['generators_id']\
+                    ==\
+                        ma_env._subgrids_cls[space][agent].gen_orig_ids[dict_local['generators_id']]
+                ).all()
+                
+                assert (dict_global['storages_id']\
+                    ==\
+                        ma_env._subgrids_cls[space][agent].storage_orig_ids[dict_local['storages_id']]
+                ).all()
+                
+                if len(dict_local['intercos_id']):
+                    assert (np.sort(np.concatenate((dict_global['lines_or_id'], dict_global['lines_ex_id'])))\
+                        ==\
+                            np.sort(np.concatenate((
+                                ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_or_id']],
+                                ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_ex_id']],
+                                ma_env._subgrids_cls[space][agent].interco_to_lineid[dict_local['intercos_id']]
+                            )))
+                    ).all()
+                else:
+                    assert (dict_global['lines_or_id']\
+                        ==\
+                            ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_or_id']]
+                    ).all()
+                    assert (dict_global['lines_ex_id']\
+                        ==\
+                            ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_ex_id']]
+                    ).all()
+                
     def run_in_env(self, ma_env):
         #TODO
         pass
@@ -364,9 +409,5 @@ class MATesterGlobalObs(unittest.TestCase):
     
     
     
-    # TODO BEN: use a function to check all that more generally (eg the one you coded for test_build_subgrid_obj4)
-    # TODO BEN and this generic function you test EVERYTHING, not half of it.
-    # TODO BEN by everything I mean really every class attributes
-        
 if __name__ == "__main__":
     unittest.main()
