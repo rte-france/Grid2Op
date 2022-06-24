@@ -304,6 +304,10 @@ class MATesterGlobalObs(unittest.TestCase):
     def check_orig_ids(self, ma_env, domain : dict, space = 'action'):
         #It tests if the origin ids are correct
         
+        assert (np.sort(np.concatenate([
+            ma_env._subgrids_cls[space][agent].sub_orig_ids 
+            for agent in domain.keys()])) == np.arange(ma_env._cent_env.n_sub)).all()
+        
         for agent in domain.keys():
             mask_load = ma_env._subgrids_cls[space][agent].mask_load
             mask_gen = ma_env._subgrids_cls[space][agent].mask_gen
