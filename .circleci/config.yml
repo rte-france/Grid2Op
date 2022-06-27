@@ -39,6 +39,7 @@ jobs:
                 command: |
                   source venv_test/bin/activate
                   pip install -e .[test]
+                  export _GRID2OP_FORCE_TEST=1
                   cd grid2op/tests/
                   python3 helper_list_test.py | circleci tests split > /tmp/tests_run
                   python3 -m unittest $(cat /tmp/tests_run)
@@ -63,12 +64,14 @@ jobs:
                     pip install -U numba
                     pip install -U "numpy>=1.18,<1.19"
                     pip install -U .[test]
+                    export _GRID2OP_FORCE_TEST=1
                     grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.19,<1.20"
                    pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
     install37:
         executor: python37
@@ -91,24 +94,28 @@ jobs:
                     pip install -U numba
                     pip install -U "numpy>=1.18,<1.19"
                     pip install -U .[test]
+                    export _GRID2OP_FORCE_TEST=1
                     grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.19,<1.20"
                    pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.20,<1.21"
                    pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.21,<1.22"
                    pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
     install38:
         executor: python38
@@ -131,30 +138,35 @@ jobs:
                     python -m pip install -U numba
                     python -m pip install -U "numpy>=1.18,<1.19"
                     python -m pip install -U .[test]
+                    export _GRID2OP_FORCE_TEST=1
                     grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.19,<1.20"
                    python -m pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.20,<1.21"
                    python -m pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.21,<1.22"
                    python -m pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.22,<1.23"
                    python -m pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
     install39:
         executor: python39
@@ -169,6 +181,7 @@ jobs:
             - run: python -m virtualenv venv_test
             - run:
                command: |
+                   export _GRID2OP_FORCE_TEST=1
                    source venv_test/bin/activate
                    python -m pip install -U pip setuptools wheel
                    python -m pip install chronix2grid>="1.1.0.post1"
@@ -179,12 +192,14 @@ jobs:
                    python -m pip install -U .[test]
             - run:
                command: |
+                   export _GRID2OP_FORCE_TEST=1
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.19,<1.20"
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
+                   export _GRID2OP_FORCE_TEST=1
                    python -m pip install -U "numpy>=1.20,<1.21"
                    grid2op.testinstall
             - run:
@@ -195,6 +210,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
+                   export _GRID2OP_FORCE_TEST=1
                    python -m pip install -U "numpy>=1.22,<1.23"
                    grid2op.testinstall
     install310:
@@ -217,12 +233,14 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.21,<1.22"
                    python -m pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.22,<1.23"
                    python -m pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
 
 workflows:

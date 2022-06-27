@@ -19,6 +19,7 @@ import grid2op.MakeEnv.PathUtils
 from grid2op.MakeEnv.PathUtils import _create_path_folder
 from grid2op.Download.DownloadDataset import _aux_download
 
+_VAR_FORCE_TEST = "_GRID2OP_FORCE_TEST"
 
 DEV_DATA_FOLDER = pkg_resources.resource_filename("grid2op", "data")
 DEV_DATASET = os.path.join(DEV_DATA_FOLDER, "{}")
@@ -114,6 +115,8 @@ _EXTRACT_DS_NAME_RECO_ERR = (
     'Impossible to recognize the environment name from path "{}"'
 )
 
+def _force_test_dataset():
+    return _VAR_FORCE_TEST in os.environ and int(os.environ[_VAR_FORCE_TEST]) >= 1
 
 def _send_request_retry(url, nb_retry=10, gh_session=None):
     """
@@ -304,6 +307,12 @@ def make(
 
     """
 
+    if _force_test_dataset():
+        if not test:
+            warnings.warn(f"The environment variable \"{_VAR_FORCE_TEST}\" is defined so grid2op will be forced in \"test\" mode. "
+                          f"This is equivalent to pass \"grid2op.make(..., test=True)\" and prevents any download of data.")
+            test = True
+            
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
         if el not in accepted_kwargs:
