@@ -163,8 +163,6 @@ class MATesterGlobalObs(unittest.TestCase):
         self.check_n_objects(ma_env, action_domains)
         self.check_objects_to_subid(ma_env, action_domains)
         self.check_connections(ma_env, action_domains)
-
-        self.run_in_env(ma_env)
         
         assert (ma_env._subgrids_cls['action']['agent_0'].interco_to_lineid == np.array([15,16,17])).all()
         assert (ma_env._subgrids_cls['action']['agent_1'].interco_to_lineid == np.array([15,16,17])).all()
@@ -213,8 +211,6 @@ class MATesterGlobalObs(unittest.TestCase):
         self.check_objects_to_subid(ma_env, action_domains)
         self.check_connections(ma_env, action_domains)
 
-        self.run_in_env(ma_env)
-        
     
     def test_build_subgrid_obj3(self):    
         # 3 random sub ids
