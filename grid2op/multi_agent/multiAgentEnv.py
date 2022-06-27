@@ -170,8 +170,6 @@ class MultiAgentEnv(RandomObject):
         raise NotImplementedError()
     
     def _build_subgrids(self):
-        """_summary_ #TODO
-        """
         
         self._subgrids_cls = {
             'action' : dict(),
@@ -190,11 +188,7 @@ class MultiAgentEnv(RandomObject):
                 self._subgrids_cls['observation'][agent_nm] = subgridcls
         
     def _build_agent_domain(self, agent_nm, domain):
-        """_summary_#TODO
 
-        Args:
-            domain (_type_): _description_
-        """        
         is_sub_in = np.full(self._cent_env.n_sub, fill_value=False, 
                             dtype=dt_bool)
         is_sub_in[domain['sub_id']] = True
@@ -229,7 +223,7 @@ class MultiAgentEnv(RandomObject):
         return new_label[tmp_]
     
     def seed(self, seed):
-        # TODO BEN: code that to seed also the "cent_env"
+        self._cent_env.seed(seed)
         return super().seed(seed)
     
     def _build_subgrid_cls_from_domain(self, domain):                
@@ -247,6 +241,7 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.mask_line_or = copy.deepcopy(domain['mask_line_or'])
         tmp_subgrid.mask_line_ex = copy.deepcopy(domain['mask_line_ex'])
         tmp_subgrid.mask_interco = copy.deepcopy(domain["mask_interco"])
+        tmp_subgrid.mask_shunt = copy.deepcopy(domain["mask_shunt"])
         tmp_subgrid.interco_is_origin = copy.deepcopy(domain["interco_is_origin"])
         
         tmp_subgrid.load_orig_ids = np.where(domain['mask_load'])[0]
@@ -309,10 +304,6 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.gen_to_subid  = self._relabel_subid(tmp_subgrid.mask_gen,
                                                      new_label,
                                                      cent_env_cls.gen_to_subid
-        )
-        tmp_subgrid.shunt_to_subid  = self._relabel_subid(tmp_subgrid.mask_shunt,
-                                                      new_label,
-                                                      cent_env_cls.shunt_to_subid
         )
         tmp_subgrid.storage_to_subid  = self._relabel_subid(tmp_subgrid.mask_storage,
                                                         new_label,
@@ -400,8 +391,11 @@ class MultiAgentEnv(RandomObject):
             tmp_subgrid.name_shunt = cent_env_cls.name_shunt[
                 tmp_subgrid.mask_shunt
             ]
+            tmp_subgrid.shunt_to_subid  = self._relabel_subid(tmp_subgrid.mask_shunt,
+                                                      new_label,
+                                                      cent_env_cls.shunt_to_subid
+            )
             tmp_subgrid.n_shunt = len(tmp_subgrid.name_shunt)
-            tmp_subgrid.shunt_to_subid = np.zeros(tmp_subgrid.n_shunt, dtype=dt_int)
             tmp_subgrid.shunt_orig_ids = np.where(domain['mask_shunt'])[0]
 
         # storage unit static data 
@@ -469,19 +463,7 @@ class MultiAgentEnv(RandomObject):
                 self.observation_spaces[agent] = self._cent_env.observation_space.copy()
         else:
             raise NotImplementedError("Local observations are not available yet !")
-        
-        #TODO Local observations
-        #for agent in self.agents: 
-        #    _cls_agent_action_space = ObservationSpace.init_grid(gridobj=self._subgrids_cls['observation'][agent], extra_name=agent)
-        #    self.observation_spaces[agent] = _cls_agent_action_space(
-        #        gridobj = self._subgrids_cls['observation'][agent],
-        #        env = self._cent_env,
-        #        rewardClass=self._cent_env._rewardClass,
-        #        observationClass=self._cent_env._observationClass,
-        #        actionClass=self._cent_env._actionClass,
-        #        with_forecast=True,
-        #        kwargs_observation=None,
-        #    )
+    
     
     def _build_action_spaces(self):
         """Build action spaces from given domains for each agent

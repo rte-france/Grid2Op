@@ -146,9 +146,6 @@ class MATesterGlobalObs(unittest.TestCase):
 
     def test_build_subgrid_obj(self):
         """test the MultiAgentEnv._build_subgrid_obj_from_domain"""
-        # TODO test that this function creates an object with the right
-        # attributes and the right values from the action / observation
-        # domain
         
         # 1
         action_domains = {
@@ -206,7 +203,6 @@ class MATesterGlobalObs(unittest.TestCase):
             'test_2_agent_0' : [0,1,4,5,10,11,12],
             'test_2_agent_1' : [2,3,6,7,8,9,13]
         }
-        # TODO run redispatch agent on one scenario for 100 timesteps
         ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name="test_build_subgrid_obj2")
         
         assert ma_env._subgrids_cls['action']['test_2_agent_0'].n_gen == 4
@@ -238,11 +234,10 @@ class MATesterGlobalObs(unittest.TestCase):
             self.check_objects_to_subid(ma_env, action_domains)
             self.check_connections(ma_env, action_domains)
 
-            # TODO BEN: and check more carefully the things, it's not enough at the moment
-        
-    
     
     def check_n_objects(self, ma_env, domain, space = 'action', add_msg = ""):
+        # Check the number of objects in subgrids. The sum must be equal 
+        # to the number in the global grid
         assert np.sum([ma_env._subgrids_cls[space][a].n_gen for a in domain.keys()]) == self.env.n_gen, add_msg
         assert np.sum([ma_env._subgrids_cls[space][a].n_load for a in domain.keys()]) == self.env.n_load, add_msg
         assert np.sum([ma_env._subgrids_cls[space][a].n_shunt for a in domain.keys()]) == self.env.n_shunt, add_msg
@@ -353,6 +348,8 @@ class MATesterGlobalObs(unittest.TestCase):
             
             
     def check_connections(self, ma_env, domain, space = 'action'):
+        # We check if the objects are connected to same subids
+        # in local/global grids and vice-versa.
         for agent in domain.keys():
             
             assert (ma_env._subgrids_cls[space][agent].sub_info\
@@ -360,6 +357,68 @@ class MATesterGlobalObs(unittest.TestCase):
                     ma_env._cent_env.sub_info[
                         ma_env._subgrids_cls[space][agent].sub_orig_ids
                     ]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
+                        ma_env._subgrids_cls[space][agent].load_to_subid]\
+                ==\
+                    ma_env._cent_env.load_to_subid[
+                        ma_env._subgrids_cls[space][agent].mask_load
+                    ]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
+                        ma_env._subgrids_cls[space][agent].gen_to_subid]\
+                ==\
+                    ma_env._cent_env.gen_to_subid[
+                        ma_env._subgrids_cls[space][agent].mask_gen
+                    ]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
+                        ma_env._subgrids_cls[space][agent].storage_to_subid]\
+                ==\
+                    ma_env._cent_env.storage_to_subid[
+                        ma_env._subgrids_cls[space][agent].mask_storage
+                    ]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
+                        ma_env._subgrids_cls[space][agent].shunt_to_subid]\
+                ==\
+                    ma_env._cent_env.shunt_to_subid[
+                        ma_env._subgrids_cls[space][agent].mask_shunt
+                    ]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
+                        ma_env._subgrids_cls[space][agent].line_ex_to_subid]\
+                ==\
+                    ma_env._cent_env.line_ex_to_subid[
+                        ma_env._subgrids_cls[space][agent].mask_line_ex
+                    ]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
+                        ma_env._subgrids_cls[space][agent].line_or_to_subid]\
+                ==\
+                    ma_env._cent_env.line_or_to_subid[
+                        ma_env._subgrids_cls[space][agent].mask_line_or
+                    ]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
+                        ma_env._subgrids_cls[space][agent].interco_to_subid][
+                            ma_env._subgrids_cls[space][agent].interco_is_origin]\
+                ==\
+                    ma_env._cent_env.line_or_to_subid[
+                        ma_env._subgrids_cls[space][agent].mask_interco
+                    ][
+                        ma_env._subgrids_cls[space][agent].interco_is_origin
+                ]).all()
+            
+            assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
+                        ma_env._subgrids_cls[space][agent].interco_to_subid][
+                            ~ma_env._subgrids_cls[space][agent].interco_is_origin]\
+                ==\
+                    ma_env._cent_env.line_ex_to_subid[
+                        ma_env._subgrids_cls[space][agent].mask_interco
+                    ][
+                        ~ma_env._subgrids_cls[space][agent].interco_is_origin
+                ]).all()
             
             for subid in range(ma_env._subgrids_cls[space][agent].n_sub):
                 dict_local = ma_env._subgrids_cls[space][agent].get_obj_connect_to(substation_id=subid)
@@ -402,9 +461,6 @@ class MATesterGlobalObs(unittest.TestCase):
                             ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_ex_id']]
                     ).all()
                 
-    def run_in_env(self, ma_env):
-        #TODO
-        pass
     
     
     

@@ -281,7 +281,6 @@ class SubGridObjects(GridObjects):
         # usually they are performed in _check_sub_id
         pass
     
-    # TODO BEN (not later)
     @staticmethod
     def from_dict(dict_):
         return GridObjects.from_dict(dict_)
@@ -294,17 +293,14 @@ class SubGridObjects(GridObjects):
         #    dict_, "sub_info", lambda x: np.array(x).astype(dt_int)
         #)
         
-    # TODO BEN (later)
     @staticmethod
     def init_grid_from_dict_for_pickle(name_res, orig_cls, cls_attr):
         return GridObjects.init_grid_from_dict_for_pickle(name_res, orig_cls, cls_attr)
     
-    # TODO BEN (later)
     @classmethod
     def _get_full_cls_str(cls):
         return GridObjects._get_full_cls_str(cls)
     
-    # TODO BEN (later)
     @classmethod
     def _clear_class_attribute(cls):
         cls._clear_class_attribute_gridobjects()
