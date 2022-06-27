@@ -197,14 +197,14 @@ class MATesterGlobalObs(unittest.TestCase):
         
     def test_build_subgrid_obj2(self):    
         # 2
+        # Test with 3 agents
         action_domains = {
-            'test_2_agent_0' : [0,1,4,5,10,11,12],
-            'test_2_agent_1' : [2,3,6,7,8,9,13]
+            'test_2_agent_0' : [0,1, 2, 3, 4],
+            'test_2_agent_1' : [5, 6, 7, 8, 9],
+            'test_2_agent_2' : [10, 11, 12, 13],
+            
         }
         ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name="test_build_subgrid_obj2")
-        
-        assert ma_env._subgrids_cls['action']['test_2_agent_0'].n_gen == 4
-        assert ma_env._subgrids_cls['action']['test_2_agent_1'].n_gen == 2
         
         self.check_orig_ids(ma_env, action_domains)
         self.check_n_objects(ma_env, action_domains)
@@ -220,7 +220,7 @@ class MATesterGlobalObs(unittest.TestCase):
             np.random.shuffle(sub_ids)  # you should see it for reproducible results
             action_domains = {
                 'agent_0' : sub_ids[:7],
-                'agent_1' : sub_ids[7:]
+                'agent_1' : sub_ids[7:],
             }
             # run redispatch agent on one scenario for 100 timesteps
             ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name=f"_it_{it}")
@@ -297,7 +297,8 @@ class MATesterGlobalObs(unittest.TestCase):
                     dict_connected_objects["storages_id"]).all()
             
     def check_orig_ids(self, ma_env, domain : dict, space = 'action'):
-        #It tests if the origin ids are correct
+        # It tests if the origin ids are correct and
+        # we have the same with masks.
         
         assert (np.sort(np.concatenate([
             ma_env._subgrids_cls[space][agent].sub_orig_ids 
@@ -346,6 +347,13 @@ class MATesterGlobalObs(unittest.TestCase):
     def check_connections(self, ma_env, domain, space = 'action'):
         # We check if the objects are connected to same subids
         # in local/global grids and vice-versa.
+        # First, we check if 2 elements are on the same substation 
+        # on the original grid, they also are on the same substation 
+        # on the subgrid.
+        #
+        # Then, we check that if 2 elements are on the same substation 
+        # in the subgrid, they are on the same substation 
+        # in the main grid (and vice-versa).
         for agent in domain.keys():
             
             assert (ma_env._subgrids_cls[space][agent].sub_info\
@@ -375,6 +383,7 @@ class MATesterGlobalObs(unittest.TestCase):
                         ma_env._subgrids_cls[space][agent].mask_storage
                     ]).all()
             
+            # This test didn't pass with the previous version
             assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
                         ma_env._subgrids_cls[space][agent].shunt_to_subid]\
                 ==\
@@ -416,46 +425,54 @@ class MATesterGlobalObs(unittest.TestCase):
                         ~ma_env._subgrids_cls[space][agent].interco_is_origin
                 ]).all()
             
-            for subid in range(ma_env._subgrids_cls[space][agent].n_sub):
-                dict_local = ma_env._subgrids_cls[space][agent].get_obj_connect_to(substation_id=subid)
-                dict_global = self.env.get_obj_connect_to(
-                    substation_id=ma_env._subgrids_cls[space][agent].sub_orig_ids[subid]
-                )
-                
-                assert dict_local['nb_elements'] == dict_global['nb_elements']
-                assert (dict_global['loads_id']\
+        for sub_origin_id in range(ma_env._cent_env.n_sub):
+            
+            agents = [k for k, v in domain.items() if sub_origin_id in v]
+            assert len(agents) == 1
+            agent = agents[0]
+            
+            subids = np.where(ma_env._subgrids_cls[space][agent].sub_orig_ids == sub_origin_id)
+            assert len(subids) == 1
+            subid = subids[0]
+            
+            dict_local = ma_env._subgrids_cls[space][agent].get_obj_connect_to(substation_id=subid)
+            dict_global = self.env.get_obj_connect_to(
+                substation_id=sub_origin_id
+            )
+            
+            assert dict_local['nb_elements'] == dict_global['nb_elements']
+            assert (dict_global['loads_id']\
+                ==\
+                    ma_env._subgrids_cls[space][agent].load_orig_ids[dict_local['loads_id']]
+            ).all()
+            assert (dict_global['generators_id']\
+                ==\
+                    ma_env._subgrids_cls[space][agent].gen_orig_ids[dict_local['generators_id']]
+            ).all()
+            
+            assert (dict_global['storages_id']\
+                ==\
+                    ma_env._subgrids_cls[space][agent].storage_orig_ids[dict_local['storages_id']]
+            ).all()
+            
+            if len(dict_local['intercos_id']):
+                assert (np.sort(np.concatenate((dict_global['lines_or_id'], dict_global['lines_ex_id'])))\
                     ==\
-                        ma_env._subgrids_cls[space][agent].load_orig_ids[dict_local['loads_id']]
+                        np.sort(np.concatenate((
+                            ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_or_id']],
+                            ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_ex_id']],
+                            ma_env._subgrids_cls[space][agent].interco_to_lineid[dict_local['intercos_id']]
+                        )))
                 ).all()
-
-                assert (dict_global['generators_id']\
+            else:
+                assert (dict_global['lines_or_id']\
                     ==\
-                        ma_env._subgrids_cls[space][agent].gen_orig_ids[dict_local['generators_id']]
+                        ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_or_id']]
                 ).all()
-                
-                assert (dict_global['storages_id']\
+                assert (dict_global['lines_ex_id']\
                     ==\
-                        ma_env._subgrids_cls[space][agent].storage_orig_ids[dict_local['storages_id']]
+                        ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_ex_id']]
                 ).all()
-                
-                if len(dict_local['intercos_id']):
-                    assert (np.sort(np.concatenate((dict_global['lines_or_id'], dict_global['lines_ex_id'])))\
-                        ==\
-                            np.sort(np.concatenate((
-                                ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_or_id']],
-                                ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_ex_id']],
-                                ma_env._subgrids_cls[space][agent].interco_to_lineid[dict_local['intercos_id']]
-                            )))
-                    ).all()
-                else:
-                    assert (dict_global['lines_or_id']\
-                        ==\
-                            ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_or_id']]
-                    ).all()
-                    assert (dict_global['lines_ex_id']\
-                        ==\
-                            ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_ex_id']]
-                    ).all()
                 
     
     

@@ -106,8 +106,6 @@ class MultiAgentEnv(RandomObject):
  
         """
         
-        RandomObject.__init__(self)
-        
         # added to the class name, if you want to build multiple ma environment with the same underlying environment
         self._add_to_name = _add_to_name  
         
@@ -122,7 +120,7 @@ class MultiAgentEnv(RandomObject):
         
         if observation_domains is not None:
             # user specified an observation domain
-            self._is_global_obs : bool = True
+            self._is_global_obs : bool = False
             if action_domains.keys() != observation_domains.keys():
                 raise("action_domains and observation_domains must have the same agents' names !")
             self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
@@ -130,7 +128,7 @@ class MultiAgentEnv(RandomObject):
         else:
             # no observation domain specified, so I assume it's a domain
             # with full observability
-            self._is_global_obs : bool = False
+            self._is_global_obs : bool = True
             self._observation_domains = None
         
         self.agents = list(action_domains.keys())
