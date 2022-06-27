@@ -238,7 +238,7 @@ class MATesterGlobalObs(unittest.TestCase):
         assert np.sum([ma_env._subgrids_cls[space][a].n_load for a in domain.keys()]) == self.env.n_load, add_msg
         assert np.sum([ma_env._subgrids_cls[space][a].n_shunt for a in domain.keys()]) == self.env.n_shunt, add_msg
         assert np.sum([ma_env._subgrids_cls[space][a].n_storage for a in domain.keys()]) == self.env.n_storage, add_msg
-        # For interconnections, we concatenate, then, we drop doubles and we take the length
+        # For interconnections, we concatenate, then, we drop duplicates and we take the length
         assert np.sum([ma_env._subgrids_cls[space][a].n_line for a in domain.keys()])\
              + len(set(np.concatenate([ma_env._subgrids_cls[space][a].interco_to_lineid for a in domain.keys()])))\
             ==\
