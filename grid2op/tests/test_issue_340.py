@@ -11,9 +11,10 @@ import warnings
 import unittest
 import grid2op
 from grid2op.Exceptions import Grid2OpException
+import numpy as np
 
 
-class Issue331Tester(unittest.TestCase):
+class Issue340Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -27,7 +28,13 @@ class Issue331Tester(unittest.TestCase):
     def test_obs(self):
         obs = self.env.reset()
         obs.state_of(storage_id=0)
-
+        
+    def test_act_add(self):
+        act0 = self.env.action_space({"curtail": [(0, 0.5)]})
+        act1 = self.env.action_space({"curtail": [(1, 0.5)]})
+        res = act0 + act1
+        assert np.all(res.curtail[[0,1]] == 0.5)
+  
 
 if __name__ == "__main__":
     unittest.main()
