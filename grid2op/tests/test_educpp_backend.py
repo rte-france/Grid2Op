@@ -25,7 +25,8 @@ class EducPPTester(unittest.TestCase):
             if (env_name == "l2rpn_icaps_2021" or 
                 env_name == "l2rpn_neurips_2020_track1" or
                 env_name == "l2rpn_wcci_2020" or
-                env_name == "l2rpn_wcci_2022_dev" 
+                env_name == "l2rpn_wcci_2022_dev" or
+                env_name == "l2rpn_wcci_2022"
             ):
                 # does not work because of generators name
                 # in the redispatching data
