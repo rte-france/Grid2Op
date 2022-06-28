@@ -34,9 +34,13 @@ class EducPPTester(unittest.TestCase):
             
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = grid2op.make(env_name, test=True, backend=EducPandaPowerBackend())
+                env = grid2op.make(env_name,
+                                   test=True,
+                                   backend=EducPandaPowerBackend(),
+                                   _add_to_name="educppbk")
                 assert type(env).n_shunt is None, f"error for {env_name}"
                 assert not type(env).shunts_data_available, f"error for {env_name}"
+            env.close()
             
             
 if __name__ == "__main__":

@@ -119,6 +119,7 @@ class TestActionSerialDict(unittest.TestCase):
     def tearDown(self):
         self.authorized_keys = {}
         self.gridobj._clear_class_attribute()
+        ActionSpace._clear_class_attribute()
 
     def setUp(self):
         """
