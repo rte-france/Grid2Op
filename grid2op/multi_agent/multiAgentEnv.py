@@ -35,7 +35,7 @@ class MultiAgentEnv(RandomObject):
                  env : Environment,
                  action_domains : MADict,
                  observation_domains : MADict = None,
-                 agent_order_fn = lambda x : sorted(list(x)),
+                 agent_order_fn = lambda x : x, #TODO BEN
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
                  copy_env = True,

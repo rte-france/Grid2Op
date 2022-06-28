@@ -91,46 +91,53 @@ class MATesterGlobalObs(unittest.TestCase):
         assert self.ma_env._action_domains['agent_1']['sub_id'] == self.action_domains['agent_1']
     
     def test_masks(self):
-        # We compare the masks with known values
+        # We compare the masks with known values for every agent
         self.ma_env = MultiAgentEnv(self.env, self.action_domains, _add_to_name="test_masks")
         mask_load_agent0 = np.array([True,  True,  True,  True, False, False, False, 
                             False, False, False, False])
+        # We compare the load masks with known values for every agent
         assert (self.ma_env._action_domains['agent_0']['mask_load'] == mask_load_agent0).all()
         assert (self.ma_env._action_domains['agent_1']['mask_load'] == ~mask_load_agent0).all()
         
         mask_gen_agent0 = np.array([ True,  True, False, False, False,  True])
+        # We compare the generator masks with known values for every agent
         assert (self.ma_env._action_domains['agent_0']['mask_gen'] == mask_gen_agent0).all()
         assert (self.ma_env._action_domains['agent_1']['mask_gen'] == ~mask_gen_agent0).all()
-        
+        # We compare the storage masks with known values for every agent
         assert (self.ma_env._action_domains['agent_0']['mask_storage'] == []).all()
         assert (self.ma_env._action_domains['agent_1']['mask_storage'] == []).all()
         
         mask_line_ex_agent0 = np.array([ True,  True,  True,  True,  True,  True,  True, 
                                 False, False,False, False, False, False, False, False, 
                                 False, False, False,False, False])
+        # We compare the line_ex masks with known values for every agent
         assert (self.ma_env._action_domains['agent_0']['mask_line_ex'] == mask_line_ex_agent0).all()
         mask_line_ex_agent1 = np.array([False, False, False, False, False, False, False,
                                         True,  True,  True, True,  True, True,  True,  True,
                                         False, False, False,  True,  True])
         assert (self.ma_env._action_domains['agent_1']['mask_line_ex'] == mask_line_ex_agent1).all()
-        
+        # We compare the line_or masks with known values for every agent
         assert (self.ma_env._action_domains['agent_0']['mask_line_or'] == mask_line_ex_agent0).all()
         assert (self.ma_env._action_domains['agent_1']['mask_line_or'] == mask_line_ex_agent1).all()
         
         mask_shunt_agent0 = np.array([False])
+        # We compare the shunt masks with known values for every agent
         assert (self.ma_env._action_domains['agent_0']['mask_shunt'] == mask_shunt_agent0).all()
         assert (self.ma_env._action_domains['agent_1']['mask_shunt'] == ~mask_shunt_agent0).all()
         
     def test_interco(self):
         
         self.ma_env = MultiAgentEnv(self.env, self.action_domains, _add_to_name="test_interco")
-        # Tests on interconnections with known values
+        # Tests on interconnections with known values for every agent
         mask_interco_agent0 = np.array([False, False, False, False, False, False, False, False, False,
                                 False, False, False, False, False, False,  True,  True,  True,
                                 False, False])
+        # We compare the interconnection masks with known values for every agent
         assert (self.ma_env._action_domains['agent_0']['mask_interco'] == mask_interco_agent0).all()
         assert (self.ma_env._action_domains['agent_1']['mask_interco'] == mask_interco_agent0).all()
         interco_is_origin_agent0 = np.array([True, True, True])
+        # We compare the interco_is_origin masks with known values for every agent
+        # interco_is_origin tells whether the corresponding interco is a line_or or not
         assert (self.ma_env._action_domains['agent_0']['interco_is_origin'] == interco_is_origin_agent0).all()
         assert (self.ma_env._action_domains['agent_1']['interco_is_origin'] == ~interco_is_origin_agent0).all()
         
@@ -156,12 +163,13 @@ class MATesterGlobalObs(unittest.TestCase):
         }
         ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name="test_build_subgrid_obj")
         
-        
+        # We compare the number of generators for every agents' subgrids with known values
         assert ma_env._subgrids_cls['action']['agent_0'].n_gen == 3
         assert ma_env._subgrids_cls['action']['agent_1'].n_gen == 3
         
         self.checks(ma_env, action_domains)
         
+        # We compare the interconnection original line ids with known values for every agent
         assert (ma_env._subgrids_cls['action']['agent_0'].interco_to_lineid == np.array([15,16,17])).all()
         assert (ma_env._subgrids_cls['action']['agent_1'].interco_to_lineid == np.array([15,16,17])).all()
         
@@ -234,15 +242,22 @@ class MATesterGlobalObs(unittest.TestCase):
         # Check the number of objects in subgrids. The sum must be equal 
         # to the number in the global grid
         
-        # Tests if the sum of object numbers in subgrids is equal to the number of that 
-        # object in the original grid.
+        # Tests if the sum of generator numbers in subgrids is equal to the number of  
+        # generators in the original grid.
         assert np.sum([ma_env._subgrids_cls[space][a].n_gen for a in domain.keys()]) == self.env.n_gen, add_msg
+        # Tests if the sum of load numbers in subgrids is equal to the number of  
+        # load in the original grid.
         assert np.sum([ma_env._subgrids_cls[space][a].n_load for a in domain.keys()]) == self.env.n_load, add_msg
+        # Tests if the sum of shunt numbers in subgrids is equal to the number of  
+        # shunt in the original grid.
         assert np.sum([ma_env._subgrids_cls[space][a].n_shunt for a in domain.keys()]) == self.env.n_shunt, add_msg
+        # Tests if the sum of storage numbers in subgrids is equal to the number of  
+        # storage in the original grid.
         assert np.sum([ma_env._subgrids_cls[space][a].n_storage for a in domain.keys()]) == self.env.n_storage, add_msg
-        # For interconnections, we concatenate, then, we drop duplicates and we take the length
+        # Tests if the sum of line numbers and interco numbers divided by 2 (since they are counted twice) 
+        # in subgrids is equal to the number of lines in the original grid.
         assert np.sum([ma_env._subgrids_cls[space][a].n_line for a in domain.keys()])\
-             + np.concatenate([ma_env._subgrids_cls[space][a].interco_to_lineid for a in domain.keys()]).size/2\
+             + np.sum([ma_env._subgrids_cls[space][a].n_interco for a in domain.keys()])/2\
             ==\
                 self.env.n_line, add_msg
         
@@ -265,45 +280,55 @@ class MATesterGlobalObs(unittest.TestCase):
         # Verifies if sub ids are correct   
         for agent in domain.keys():
             
-            # Check if sub ids are smaller than the number of substations
+            # Check if load to sub ids are smaller than the number of substations
             assert (ma_env._subgrids_cls[space][agent].load_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            # Check if line_or to sub ids are smaller than the number of substations
             assert (ma_env._subgrids_cls[space][agent].line_or_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            # Check if line_ex to sub ids are smaller than the number of substations
             assert (ma_env._subgrids_cls[space][agent].line_ex_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            # Check if storage to sub ids are smaller than the number of substations
             assert (ma_env._subgrids_cls[space][agent].storage_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            # Check if gen to sub ids are smaller than the number of substations
             assert (ma_env._subgrids_cls[space][agent].gen_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
+            # Check if interco to sub ids are smaller than the number of substations
             assert (ma_env._subgrids_cls[space][agent].interco_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
             if ma_env._subgrids_cls[space][agent].n_shunt:
+                # Check if shunt to sub ids are smaller than the number of substations
                 assert (ma_env._subgrids_cls[space][agent].shunt_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
                 
-            # Check if objects are correctly connected to the same substation
-            # as it is given by *_to_subid
+            
             for subid in range(ma_env._subgrids_cls[space][agent].n_sub):
                 dict_connected_objects = ma_env._subgrids_cls[space][agent].get_obj_connect_to(substation_id=subid)
-                
+                # Check if loads are correctly connected to the same substation
+                # as it is given by load_to_subid
                 assert (np.where(ma_env._subgrids_cls[space][agent].load_to_subid == subid)\
                     ==\
                     dict_connected_objects["loads_id"]).all()
-                
+                # Check if generators are correctly connected to the same substation
+                # as it is given by gen_to_subid
                 assert (np.where(ma_env._subgrids_cls[space][agent].gen_to_subid == subid)\
                     ==\
                     dict_connected_objects["generators_id"]).all()
-                
+                # Check if origin lines are correctly connected to the same substation
+                # as it is given by line_or_to_subid
                 assert (np.where(ma_env._subgrids_cls[space][agent].line_or_to_subid == subid)\
                     ==\
                     dict_connected_objects["lines_or_id"]).all()
-                
+                # Check if extremity lines are correctly connected to the same substation
+                # as it is given by line_ex_to_subid
                 assert (np.where(ma_env._subgrids_cls[space][agent].line_ex_to_subid == subid)\
                     ==\
                     dict_connected_objects["lines_ex_id"]).all()
-                
+                # Check if storages are correctly connected to the same substation
+                # as it is given by storage_to_subid
                 assert (np.where(ma_env._subgrids_cls[space][agent].storage_to_subid == subid)\
                     ==\
                     dict_connected_objects["storages_id"]).all()
             
     def check_orig_ids(self, ma_env, domain : dict, space = 'action'):
-        # It tests if the *_orig_ids are correct and
-        # if we have the same with masks.
         
+        # It tests if the sub_orig_ids give the set of sub ids
+        # by concatenating and sorting them
         assert (np.sort(np.concatenate([
             ma_env._subgrids_cls[space][agent].sub_orig_ids 
             for agent in domain.keys()])) == np.arange(ma_env._cent_env.n_sub)).all()
@@ -316,35 +341,43 @@ class MATesterGlobalObs(unittest.TestCase):
             mask_line_ex = ma_env._subgrids_cls[space][agent].mask_line_ex
             mask_shunt = ma_env._subgrids_cls[space][agent].mask_shunt
             mask_interco = ma_env._subgrids_cls[space][agent].mask_interco
-            
+            # It tests if the sub_orig_ids are correct and
+            # equal to the domain given 
             assert (ma_env._subgrids_cls[space][agent].sub_orig_ids == np.sort(domain[agent])).all()
-            # We check that we have the correct object original ids
+            # We check that we have the correct generators original ids
             # Ids should be the same as those given by masks 
             assert (ma_env._subgrids_cls[space][agent].gen_orig_ids\
                 ==\
                     np.arange(ma_env._cent_env.n_gen)[mask_gen]).all()
-            
+            # We check that we have the correct loads original ids
+            # Ids should be the same as those given by masks 
             assert (ma_env._subgrids_cls[space][agent].load_orig_ids\
                 ==\
                     np.arange(ma_env._cent_env.n_load)[mask_load]).all()
-            
+            # We check that we have the correct storage original ids
+            # Ids should be the same as those given by masks 
             assert (ma_env._subgrids_cls[space][agent].storage_orig_ids\
                 ==\
                     np.arange(ma_env._cent_env.n_storage)[mask_storage]).all()
-            
+            # We check that we have the correct lines original ids
+            # Ids should be the same as those given by line_or masks 
             assert (ma_env._subgrids_cls[space][agent].line_orig_ids\
                 ==\
                     np.arange(ma_env._cent_env.n_line)[mask_line_or]).all()
-            
+            # We check that we have the correct generators original ids
+            # Ids should be the same as those given by line_ex masks 
             assert (ma_env._subgrids_cls[space][agent].line_orig_ids\
                 ==\
                     np.arange(ma_env._cent_env.n_line)[mask_line_ex]).all()
             
             if ma_env._subgrids_cls[space][agent].n_shunt > 0:
+                # We check that we have the correct shunt original ids
+                # Ids should be the same as those given by masks 
                 assert (ma_env._subgrids_cls[space][agent].shunt_orig_ids\
                     ==\
                         np.arange(ma_env._cent_env.n_shunt)[mask_shunt]).all()
-                
+            # We check that we have the correct interconnections original ids
+            # Ids should be the same as those given by masks     
             assert (ma_env._subgrids_cls[space][agent].interco_to_lineid\
                 ==\
                     np.arange(ma_env._cent_env.n_line)[mask_interco]).all()
@@ -363,30 +396,32 @@ class MATesterGlobalObs(unittest.TestCase):
                         ma_env._subgrids_cls[space][agent].sub_orig_ids
                     ]).all()
             
-            # First, we check if 2 elements are on the same substation 
-            # on the original grid, they also are on the same substation 
-            # on the subgrid.
+            # We check if a load is on a substation on the subgrid,
+            # it is also on the original grid
             assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
                         ma_env._subgrids_cls[space][agent].load_to_subid]\
                 ==\
                     ma_env._cent_env.load_to_subid[
                         ma_env._subgrids_cls[space][agent].mask_load
                     ]).all()
-            
+            # We check if a generator is on a substation on the subgrid,
+            # it is also on the original grid
             assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
                         ma_env._subgrids_cls[space][agent].gen_to_subid]\
                 ==\
                     ma_env._cent_env.gen_to_subid[
                         ma_env._subgrids_cls[space][agent].mask_gen
                     ]).all()
-            
+            # We check if a storage is on a substation on the subgrid,
+            # it is also on the original grid
             assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
                         ma_env._subgrids_cls[space][agent].storage_to_subid]\
                 ==\
                     ma_env._cent_env.storage_to_subid[
                         ma_env._subgrids_cls[space][agent].mask_storage
                     ]).all()
-            
+            # We check if a shunt is on a substation on the subgrid,
+            # it is also on the original grid
             # This test didn't pass with the previous version
             assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
                         ma_env._subgrids_cls[space][agent].shunt_to_subid]\
@@ -394,21 +429,24 @@ class MATesterGlobalObs(unittest.TestCase):
                     ma_env._cent_env.shunt_to_subid[
                         ma_env._subgrids_cls[space][agent].mask_shunt
                     ]).all()
-            
+            # We check if a line_ex is on a substation on the subgrid,
+            # it is also on the original grid
             assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
                         ma_env._subgrids_cls[space][agent].line_ex_to_subid]\
                 ==\
                     ma_env._cent_env.line_ex_to_subid[
                         ma_env._subgrids_cls[space][agent].mask_line_ex
                     ]).all()
-            
+            # We check if a line_or is on a substation on the subgrid,
+            # it is also on the original grid
             assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
                         ma_env._subgrids_cls[space][agent].line_or_to_subid]\
                 ==\
                     ma_env._cent_env.line_or_to_subid[
                         ma_env._subgrids_cls[space][agent].mask_line_or
                     ]).all()
-            
+            # We check if an interconnection is on a substation on the subgrid,
+            # it is also on the original grid (line_or)
             assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
                         ma_env._subgrids_cls[space][agent].interco_to_subid][
                             ma_env._subgrids_cls[space][agent].interco_is_origin]\
@@ -418,7 +456,8 @@ class MATesterGlobalObs(unittest.TestCase):
                     ][
                         ma_env._subgrids_cls[space][agent].interco_is_origin
                 ]).all()
-            
+            # We check if an interconnection is on a substation on the subgrid,
+            # it is also on the original grid (line_ex)
             assert (ma_env._subgrids_cls[space][agent].sub_orig_ids[
                         ma_env._subgrids_cls[space][agent].interco_to_subid][
                             ~ma_env._subgrids_cls[space][agent].interco_is_origin]\
@@ -449,22 +488,28 @@ class MATesterGlobalObs(unittest.TestCase):
             dict_global = self.env.get_obj_connect_to(
                 substation_id=sub_origin_id
             )
-            # We check if the original ids of elements in the local dict
-            # are the same as the elements in the global dict 
+            # We check if we have the same number of elements
             assert dict_local['nb_elements'] == dict_global['nb_elements']
+            # We check if the original ids of loads in the local dict
+            # are the same as the loads in the global dict 
             assert (dict_global['loads_id']\
                 ==\
                     ma_env._subgrids_cls[space][agent].load_orig_ids[dict_local['loads_id']]
             ).all()
+            # We check if the original ids of generators in the local dict
+            # are the same as the generators in the global dict 
             assert (dict_global['generators_id']\
                 ==\
                     ma_env._subgrids_cls[space][agent].gen_orig_ids[dict_local['generators_id']]
             ).all()
-            
+            # We check if the original ids of storages in the local dict
+            # are the same as the storages in the global dict 
             assert (dict_global['storages_id']\
                 ==\
                     ma_env._subgrids_cls[space][agent].storage_orig_ids[dict_local['storages_id']]
             ).all()
+            # We check if the original ids of line_or in the local dict
+            # are the same as the line_or in the global dict 
             # For lines, we take into account interconnections based on their nature (line_or or line_ex)
             assert (dict_global['lines_or_id']\
                 ==\
@@ -475,6 +520,9 @@ class MATesterGlobalObs(unittest.TestCase):
                         ]
                     )))
             ).all()
+            # We check if the original ids of line_ex in the local dict
+            # are the same as the line_ex in the global dict 
+            # For lines, we take into account interconnections based on their nature (line_or or line_ex)
             assert (dict_global['lines_ex_id']\
                 ==\
                     np.sort(np.concatenate((
@@ -493,12 +541,15 @@ class MATesterGlobalObs(unittest.TestCase):
                     self.env.shunts_data_available 
                     
             if ma_env._subgrids_cls[space][agent].n_shunt > 0:
+                # We check that we have the correct shunt original ids
+                # Ids should be the same as those given by masks 
                 assert (ma_env._subgrids_cls[space][agent].shunt_orig_ids\
                     ==\
                         np.arange(ma_env._cent_env.n_shunt)[
                             ma_env._subgrids_cls[space][agent].mask_shunt
                         ]
                 ).all()
+                # Check if shunt to sub ids are smaller than the number of substations
                 assert (ma_env._subgrids_cls[space][agent].shunt_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
             # This test didn't pass with the previous version
             # We check if the shunt is connected to the same
