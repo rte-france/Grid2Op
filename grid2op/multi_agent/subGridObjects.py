@@ -286,7 +286,7 @@ class SubGridObjects(GridObjects):
     def _check_for_lines(cls):
         # in case of subgrid, there can be "no line"
         # in the subgrid, and following checks fails 
-        # usually they are performed in _check_sub_id
+        # usually they are performed in assert_grid_correct_cls
         pass
     
     @staticmethod
@@ -310,65 +310,7 @@ class SubGridObjects(GridObjects):
         return GridObjects._get_full_cls_str(cls)
     
     @classmethod
-    def _check_sub_id(cls):
-        # check it can be converted to proper types
-        if not isinstance(cls.load_to_subid, np.ndarray):
-            try:
-                cls.load_to_subid = np.array(cls.load_to_subid)
-                cls.load_to_subid = cls.load_to_subid.astype(dt_int)
-            except Exception as exc_:
-                raise EnvError(
-                    f"self.load_to_subid should be convertible to a numpy array. "
-                    f'It fails with error "{exc_}"'
-                )
-        if not isinstance(cls.gen_to_subid, np.ndarray):
-            try:
-                cls.gen_to_subid = np.array(cls.gen_to_subid)
-                cls.gen_to_subid = cls.gen_to_subid.astype(dt_int)
-            except Exception as exc_:
-                raise EnvError(
-                    f"self.gen_to_subid should be convertible to a numpy array. "
-                    f'It fails with error "{exc_}"'
-                )
-        if not isinstance(cls.line_or_to_subid, np.ndarray):
-            try:
-                cls.line_or_to_subid = np.array(cls.line_or_to_subid)
-                cls.line_or_to_subid = cls.line_or_to_subid.astype(dt_int)
-            except Exception as exc_:
-                raise EnvError(
-                    f"self.line_or_to_subid should be convertible to a numpy array. "
-                    f'It fails with error "{exc_}"'
-                )
-        if not isinstance(cls.line_ex_to_subid, np.ndarray):
-            try:
-                cls.line_ex_to_subid = np.array(cls.line_ex_to_subid)
-                cls.line_ex_to_subid = cls.line_ex_to_subid.astype(dt_int)
-            except Exception as exc_:
-                raise EnvError(
-                    "self.line_ex_to_subid should be convertible to a numpy array"
-                    f'It fails with error "{exc_}"'
-                )
-
-        if not isinstance(cls.storage_to_subid, np.ndarray):
-            try:
-                cls.storage_to_subid = np.array(cls.storage_to_subid)
-                cls.storage_to_subid = cls.storage_to_subid.astype(dt_int)
-            except Exception as e:
-                raise EnvError(
-                    "self.storage_to_subid should be convertible to a numpy array"
-                )
-
-        # now check the sizes
-        if len(cls.load_to_subid) != cls.n_load:
-            raise IncorrectNumberOfLoads()
-        cls._check_load_size()
-
-        if len(cls.gen_to_subid) != cls.n_gen:
-            raise IncorrectNumberOfGenerators()
-        cls._check_gen_size()
-            
-        if len(cls.line_or_to_subid) != cls.n_line:
-            raise IncorrectNumberOfLines()
+    def _check_powerline_size(cls):
         
         if cls.n_line > 0:
             if np.min(cls.line_or_to_subid) < 0:
@@ -379,9 +321,6 @@ class SubGridObjects(GridObjects):
                     "is greater than the number of substations of the grid, which is {}."
                     "".format(np.max(cls.line_or_to_subid), cls.n_sub)
                 )
-
-        if len(cls.line_ex_to_subid) != cls.n_line:
-            raise IncorrectNumberOfLines()
         if cls.n_line > 0:
             if np.min(cls.line_ex_to_subid) < 0:
                 raise EnvError("Some shunt is connected to a negative substation id.")
@@ -391,18 +330,7 @@ class SubGridObjects(GridObjects):
                     "is greater than the number of substations of the grid, which is {}."
                     "".format(np.max(cls.line_or_to_subid), cls.n_sub)
                 )
-        if len(cls.storage_to_subid) != cls.n_storage:
-            raise IncorrectNumberOfStorages()
 
-        if cls.n_storage > 0:
-            if np.min(cls.storage_to_subid) < 0:
-                raise EnvError("Some storage is connected to a negative substation id.")
-            if np.max(cls.storage_to_subid) > cls.n_sub:
-                raise EnvError(
-                    "Some powerline (ex) is supposed to be connected to substations with id {} which"
-                    "is greater than the number of substations of the grid, which is {}."
-                    "".format(np.max(cls.line_or_to_subid), cls.n_sub)
-                )
     
     @classmethod
     def _clear_class_attribute(cls):

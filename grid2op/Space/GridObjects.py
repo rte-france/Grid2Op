@@ -1294,6 +1294,26 @@ class GridObjects:
                 "is greater than the number of substations of the grid, which is {}."
                 "".format(np.max(cls.gen_to_subid), cls.n_sub)
             )
+            
+    @classmethod
+    def _check_powerline_size(cls):
+        if np.min(cls.line_or_to_subid) < 0:
+            raise EnvError("Some shunt is connected to a negative substation id.")
+        if np.max(cls.line_or_to_subid) > cls.n_sub:
+            raise EnvError(
+                "Some powerline (or) is supposed to be connected to substations with id {} which"
+                "is greater than the number of substations of the grid, which is {}."
+                "".format(np.max(cls.line_or_to_subid), cls.n_sub)
+            )
+            
+        if np.min(cls.line_ex_to_subid) < 0:
+            raise EnvError("Some shunt is connected to a negative substation id.")
+        if np.max(cls.line_ex_to_subid) > cls.n_sub:
+            raise EnvError(
+                "Some powerline (ex) is supposed to be connected to substations with id {} which"
+                "is greater than the number of substations of the grid, which is {}."
+                "".format(np.max(cls.line_or_to_subid), cls.n_sub)
+            )
         
     @classmethod
     def _check_sub_id(cls):
@@ -1355,25 +1375,12 @@ class GridObjects:
             
         if len(cls.line_or_to_subid) != cls.n_line:
             raise IncorrectNumberOfLines()
-        if np.min(cls.line_or_to_subid) < 0:
-            raise EnvError("Some shunt is connected to a negative substation id.")
-        if np.max(cls.line_or_to_subid) > cls.n_sub:
-            raise EnvError(
-                "Some powerline (or) is supposed to be connected to substations with id {} which"
-                "is greater than the number of substations of the grid, which is {}."
-                "".format(np.max(cls.line_or_to_subid), cls.n_sub)
-            )
+        
+        cls._check_powerline_size()
 
         if len(cls.line_ex_to_subid) != cls.n_line:
             raise IncorrectNumberOfLines()
-        if np.min(cls.line_ex_to_subid) < 0:
-            raise EnvError("Some shunt is connected to a negative substation id.")
-        if np.max(cls.line_ex_to_subid) > cls.n_sub:
-            raise EnvError(
-                "Some powerline (ex) is supposed to be connected to substations with id {} which"
-                "is greater than the number of substations of the grid, which is {}."
-                "".format(np.max(cls.line_or_to_subid), cls.n_sub)
-            )
+        
         if len(cls.storage_to_subid) != cls.n_storage:
             raise IncorrectNumberOfStorages()
 
