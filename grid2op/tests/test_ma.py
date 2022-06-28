@@ -129,12 +129,12 @@ class MATesterGlobalObs(unittest.TestCase):
         
         self.ma_env = MultiAgentEnv(self.env, self.action_domains, _add_to_name="test_interco")
         # Tests on interconnections with known values for every agent
-        mask_interco_agent0 = np.array([False, False, False, False, False, False, False, False, False,
+        mask_interco_ref = np.array([False, False, False, False, False, False, False, False, False,
                                 False, False, False, False, False, False,  True,  True,  True,
                                 False, False])
         # We compare the interconnection masks with known values for every agent
-        assert (self.ma_env._action_domains['agent_0']['mask_interco'] == mask_interco_agent0).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_interco'] == mask_interco_agent0).all()
+        assert (self.ma_env._action_domains['agent_0']['mask_interco'] == mask_interco_ref).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_interco'] == mask_interco_ref).all()
         interco_is_origin_agent0 = np.array([True, True, True])
         # We compare the interco_is_origin masks with known values for every agent
         # interco_is_origin tells whether the corresponding interco is a line_or or not
@@ -167,11 +167,12 @@ class MATesterGlobalObs(unittest.TestCase):
         assert ma_env._subgrids_cls['action']['agent_0'].n_gen == 3
         assert ma_env._subgrids_cls['action']['agent_1'].n_gen == 3
         
-        self.checks(ma_env, action_domains)
+        self.check_subgrid_consistency(ma_env, action_domains)
         
         # We compare the interconnection original line ids with known values for every agent
-        assert (ma_env._subgrids_cls['action']['agent_0'].interco_to_lineid == np.array([15,16,17])).all()
-        assert (ma_env._subgrids_cls['action']['agent_1'].interco_to_lineid == np.array([15,16,17])).all()
+        interco_lineid_ref = np.array([15,16,17])
+        assert (ma_env._subgrids_cls['action']['agent_0'].interco_to_lineid == interco_lineid_ref).all()
+        assert (ma_env._subgrids_cls['action']['agent_1'].interco_to_lineid == interco_lineid_ref).all()
         
         ref = np.array([[ 0., -1., -1.,  0., -1., -1, -1.],
                         [ 0., -1., -1.,  1., -1., -1, -1.],
@@ -212,7 +213,7 @@ class MATesterGlobalObs(unittest.TestCase):
         }
         ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name="test_build_subgrid_obj2")
         
-        self.checks(ma_env, action_domains)
+        self.check_subgrid_consistency(ma_env, action_domains)
 
     
     def test_build_subgrid_obj3(self):    
@@ -221,16 +222,17 @@ class MATesterGlobalObs(unittest.TestCase):
         for it in range(10):
             sub_ids = list(range(14))
             np.random.shuffle(sub_ids)  # you should see it for reproducible results
+            pivot = np.random.randint(low=1, high=13)
             action_domains = {
-                'agent_0' : sub_ids[:7],
-                'agent_1' : sub_ids[7:],
+                'agent_0' : sub_ids[:pivot],
+                'agent_1' : sub_ids[pivot:],
             }
             # run redispatch agent on one scenario for 100 timesteps
             ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name=f"_it_{it}")
-            self.checks(ma_env, action_domains, add_msg=f"error for iter {it}")
+            self.check_subgrid_consistency(ma_env, action_domains, add_msg=f"error for iter {it}")
             
             
-    def checks(self, ma_env, action_domains, add_msg=""):
+    def check_subgrid_consistency(self, ma_env, action_domains, add_msg=""):
         # Regroups all the checks to be done
         self.check_orig_ids(ma_env, action_domains)
         self.check_n_objects(ma_env, action_domains, add_msg=add_msg)

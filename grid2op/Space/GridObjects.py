@@ -1801,6 +1801,15 @@ class GridObjects:
             raise EnvError(
                 "n_load is negative. Powergrid is invalid: there are no loads"
             )
+            
+    @classmethod
+    def _check_for_lines(cls):
+        # real complete powergrid should have generators and loads
+        # but that's not the case for "subgrid" (see SubGridObjects)
+        if cls.n_line <= 0:
+            raise EnvError(
+                "n_line is negative. Powergrid is invalid: there are no lines"
+            )
         
     @classmethod
     def assert_grid_correct_cls(cls):
@@ -1831,10 +1840,7 @@ class GridObjects:
         # TODO refactor this method with the `_check***` methods.
         # TODO refactor the `_check***` to use the same "base functions" that would be coded only once.
         cls._check_for_gen_loads()
-        if cls.n_line <= 0:
-            raise EnvError(
-                "n_line is negative. Powergrid is invalid: there are no lines"
-            )
+        cls._check_for_lines()
         if cls.n_sub <= 0:
             raise EnvError(
                 "n_sub is negative. Powergrid is invalid: there are no substations"

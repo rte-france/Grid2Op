@@ -7,10 +7,19 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from typing import Any, Optional, Dict, Tuple
+from getting_started.grid2op.Observation.baseObservation import BaseObservation
+from getting_started.grid2op.Observation.observationSpace import ObservationSpace
+from grid2op.Action.ActionSpace import ActionSpace
 
 from grid2op.Action.BaseAction import BaseAction
 
 AgentID = str
+
+LocalObservationSpace = ObservationSpace
+LocalActionSpace = ActionSpace
+
+LocalAction = BaseAction
+LocalObservation = BaseObservation
 
 ActionProfile = Dict[AgentID, BaseAction]
 MADict = Dict[AgentID, Any]  # TODO slit it in more things to be more precise

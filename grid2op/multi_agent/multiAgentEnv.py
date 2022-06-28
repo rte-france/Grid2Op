@@ -24,7 +24,7 @@ from grid2op.Action import ActionSpace
 from grid2op.multi_agent.subGridObjects import SubGridObjects
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.multi_agent.utils import AgentSelector, random_order  
-from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, MADict
+from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, LocalActionSpace, LocalObservation, LocalObservationSpace, MADict
 from grid2op.multi_agent.multi_agentExceptions import *
 
 import pdb
@@ -133,7 +133,7 @@ class MultiAgentEnv(RandomObject):
             self._is_global_obs : bool = True
             self._observation_domains = None
         
-        self.agents = list(action_domains.keys())
+        self.agents = sorted(list(action_domains.keys()))
         self.num_agents = len(self.agents)
         
         self.illegal_action_pen = illegal_action_pen
@@ -153,7 +153,7 @@ class MultiAgentEnv(RandomObject):
                 self.agents, [None for _ in range(self.num_agents)]
             )
         )
-        self.agent_order = AgentSelector(self.agents, agent_order_fn)
+        self.agent_order = self.agents.copy()
         self.action_spaces = dict()
         self.observation_spaces = dict()
         self._build_subgrids()
@@ -488,19 +488,12 @@ class MultiAgentEnv(RandomObject):
         #for agent in self.agents:
         #    self.observations[agent] = observation.copy()
         
-        if self._cent_env.__closed:
-            raise EnvError("This environment is closed. You cannot use it anymore.")
-        if not self.__is_init:
-            raise EnvError(
-                "This environment is not initialized. You cannot retrieve its observation."
-            )
+        #TODO BEN: check that cent env is initialized and not closed
+        #TODO BEN : update self.observations
         
-        for agent in self.agents:
-            self.observations[agent] = self.observation_spaces[agent](
-                env=self._cent_env, _update_state=_update_state
-            )
+        raise NotImplementedError()
     
-    def _verify_domains(self, domains : MADict) :
+    def _verify_domains(self, domains : MADict) -> None:
         """It verifies if substation ids are valid
 
         Args:
@@ -534,7 +527,7 @@ class MultiAgentEnv(RandomObject):
             raise DomainException(f"The sum of sub id lists' length must be equal to _cent_env.n_sub = {self._cent_env.n_sub} but is {sum_subs}")
     
     
-    def observation_space(self, agent : AgentID):
+    def observation_space(self, agent : AgentID)-> LocalObservationSpace:
         """
         Takes in agent and returns the observation space for that agent.
 
@@ -544,7 +537,7 @@ class MultiAgentEnv(RandomObject):
         """
         return self.observation_spaces[agent]
 
-    def action_space(self, agent : AgentID):
+    def action_space(self, agent : AgentID) -> LocalActionSpace:
         """
         Takes in agent and returns the action space for that agent.
 
@@ -554,7 +547,7 @@ class MultiAgentEnv(RandomObject):
         """
         return self.action_spaces[agent]
     
-    def observe(self, agent : AgentID):
+    def observe(self, agent : AgentID) -> LocalObservation:
         """
         Returns the observation an agent currently can make. `last()` calls this function.
         """
