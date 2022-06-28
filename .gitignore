@@ -355,6 +355,8 @@ venv_test/
 getting_started/saved_agent_PPO_*_results/
 grid2op/data/**/_grid2op_classes/
 test_issue_glop.py
+**.swp
+grid2op/tests/test_report.txt
 
 # profiling files
 **.prof

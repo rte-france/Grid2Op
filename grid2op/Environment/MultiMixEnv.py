@@ -171,8 +171,12 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         # Special case handling for backend
         # TODO: with backend.copy() instead !
         backendClass = None
+        backend_kwargs = {}
         if "backend" in kwargs:
             backendClass = type(kwargs["backend"])
+            if hasattr(kwargs["backend"], "_my_kwargs"):
+                # was introduced in grid2op 1.7.1
+                backend_kwargs = kwargs["backend"]._my_kwargs
             del kwargs["backend"]
 
         # Inline import to prevent cyclical import
@@ -193,7 +197,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 if backendClass is not None:
                     env = make(
                         env_path,
-                        backend=backendClass(),
+                        backend=backendClass(**backend_kwargs),
                         _add_to_name=_add_to_name,
                         _compat_glop_version=_compat_glop_version,
                         test=_test,
