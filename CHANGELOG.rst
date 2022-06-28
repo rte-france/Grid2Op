@@ -45,6 +45,8 @@ Change Log
 - [IMPROVED] possibility to pass the env variable `_GRID2OP_FORCE_TEST` to force the flag
    of "test=True" when creating an environment. This is especially useful when testing to prevent
    downloading of data.
+- [IMPROVED] support of "kwargs" backend arguments in `MultiMixEnv` see first
+  item of version 1.7.1 below
 
 [1.7.1] - 2022-06-03
 -----------------------

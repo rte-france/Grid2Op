@@ -73,6 +73,9 @@ if __name__ == "__main__":
             "Please modify \"--version\" argument")
 
     regex_version = "[0-9]+\.[0-9]+\.[0-9]+(.post[0-9]+){0,1}(.rc[0-9]+){0,1}(.pre[0-9]+){0,1}"
+    # TODO use the official regex !
+    # see https://semver.org/ and https://regex101.com/r/Ly7O1x/3/
+    # regex_version = r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
     regex_version_with_str = f"['\"]{regex_version}['\"]"
     if re.match("^{}$".format(regex_version), version) is None:
         raise RuntimeError(
@@ -80,6 +83,7 @@ if __name__ == "__main__":
             "Please modify \"--version\" argument".format(
                 version))
 
+    # TODO re.search(reg_, "0.0.4-rc1").group("prerelease") -> rc1 (if regex_version is the official one)
     if re.search(f".*\.(rc|pre)[0-9]+$", version) is not None:
         is_prerelease = True
         print("This is a pre release, docker will NOT be pushed, github tag will NOT be made")

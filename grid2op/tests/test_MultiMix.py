@@ -86,9 +86,11 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_creation_with_backend_are_not_shared(self):
         class DummyBackend2(PandaPowerBackend):
-            def __init__(self, detailed_infos_for_cascading_failures=False):
+            def __init__(self, detailed_infos_for_cascading_failures=False,
+                         can_be_copied=True):
                 super().__init__(
-                    detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+                    detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+                    can_be_copied=can_be_copied
                 )
                 self.calls = 0
 
@@ -158,9 +160,10 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_reset_with_backend(self):
         class DummyBackend3(PandaPowerBackend):
-            def __init__(self, detailed_infos_for_cascading_failures=False):
+            def __init__(self, detailed_infos_for_cascading_failures=False, can_be_copied=True):
                 super().__init__(
-                    detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+                    detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+                    can_be_copied=can_be_copied
                 )
                 self._dummy = -1
 

@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import os
+import warnings
 import numpy as np
 import copy
 
@@ -195,9 +196,20 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 )
                 # Special case for backend
                 if backendClass is not None:
+                    try:
+                        # should pass with grid2op >= 1.7.1
+                        bk = backendClass(**backend_kwargs)
+                    except TypeError as exc_:
+                        # with grid2Op version prior to 1.7.1
+                        # you might have trouble with 
+                        # "TypeError: __init__() got an unexpected keyword argument 'can_be_copied'"
+                        warnings.warn("Impossible to create a backend for each mix using the "
+                                      "backend key-word arguments. Falling back to creating "
+                                      "with no argument at all.")
+                        bk = backendClass()
                     env = make(
                         env_path,
-                        backend=backendClass(**backend_kwargs),
+                        backend=bk,
                         _add_to_name=_add_to_name,
                         _compat_glop_version=_compat_glop_version,
                         test=_test,
