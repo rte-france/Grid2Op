@@ -78,15 +78,14 @@ class MATesterGlobalObs(unittest.TestCase):
             'agent_0' : [0,1,6,3, 4, 5],
             'agent_1' : [5,2,7,8,9,10,11,12,13]
         }
-        # this domain is valid even if it is not connected
+        # this domain is not a partition ; it should raise an error
         with self.assertRaises(DomainException) as de:
             MultiAgentEnv(self.env, action_domains, _add_to_name="test_verify_domains_4")
         
     
     def test_build_subgrids_action_domains(self):
-        """Tests that the action_domains are correctly defined 
-            in MultiAgentEnv._build_subgrid_from_domain method
-        """
+        # Simple test to verify if action domains are correctly
+        # taken into accaount by the env
         self.ma_env = MultiAgentEnv(self.env, self.action_domains, _add_to_name="test_build_subgrids_action_domains")
         assert self.ma_env._action_domains['agent_0']['sub_id'] == self.action_domains['agent_0']
         assert self.ma_env._action_domains['agent_1']['sub_id'] == self.action_domains['agent_1']
@@ -94,50 +93,54 @@ class MATesterGlobalObs(unittest.TestCase):
     def test_masks(self):
         # We compare the masks with known values
         self.ma_env = MultiAgentEnv(self.env, self.action_domains, _add_to_name="test_masks")
-        assert (self.ma_env._action_domains['agent_0']['mask_load'] == [True,  True,  True,  True, False, False, False, 
-                                                                        False, False, False, False]).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_load'] == np.invert([True,  True,  True,  True, False, False, 
-                                                                                  False, False, False, False, False])).all()
+        mask_load_agent0 = np.array([True,  True,  True,  True, False, False, False, 
+                            False, False, False, False])
+        assert (self.ma_env._action_domains['agent_0']['mask_load'] == mask_load_agent0).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_load'] == ~mask_load_agent0).all()
         
-        assert (self.ma_env._action_domains['agent_0']['mask_gen'] == [ True,  True, False, False, False,  True]).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_gen'] == np.invert([ True,  True, False, False, False,  True])).all()
+        mask_gen_agent0 = np.array([ True,  True, False, False, False,  True])
+        assert (self.ma_env._action_domains['agent_0']['mask_gen'] == mask_gen_agent0).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_gen'] == ~mask_gen_agent0).all()
         
         assert (self.ma_env._action_domains['agent_0']['mask_storage'] == []).all()
         assert (self.ma_env._action_domains['agent_1']['mask_storage'] == []).all()
         
-        assert (self.ma_env._action_domains['agent_0']['mask_line_ex'] == [ True,  True,  True,  True,  True,  True,  True, 
-                                                                           False, False,False, False, False, False, False, False, 
-                                                                           False, False, False,False, False]).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_line_ex'] == np.invert([ True,  True,  True,  True,  True,  
-                                                                                     True,  True, False, False,False,
-                                                                                     False, False, False, False, False, 
-                                                                                     True, True, True,False, False])).all()
+        mask_line_ex_agent0 = np.array([ True,  True,  True,  True,  True,  True,  True, 
+                                False, False,False, False, False, False, False, False, 
+                                False, False, False,False, False])
+        assert (self.ma_env._action_domains['agent_0']['mask_line_ex'] == mask_line_ex_agent0).all()
+        mask_line_ex_agent1 = np.array([False, False, False, False, False, False, False,
+                                        True,  True,  True, True,  True, True,  True,  True,
+                                        False, False, False,  True,  True])
+        assert (self.ma_env._action_domains['agent_1']['mask_line_ex'] == mask_line_ex_agent1).all()
         
-        assert (self.ma_env._action_domains['agent_0']['mask_line_or'] == self.ma_env._action_domains['agent_0']['mask_line_ex']).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_line_or'] == self.ma_env._action_domains['agent_1']['mask_line_ex']).all()
+        assert (self.ma_env._action_domains['agent_0']['mask_line_or'] == mask_line_ex_agent0).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_line_or'] == mask_line_ex_agent1).all()
         
-        assert (self.ma_env._action_domains['agent_0']['mask_shunt'] == [False]).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_shunt'] == [True]).all()
+        mask_shunt_agent0 = np.array([False])
+        assert (self.ma_env._action_domains['agent_0']['mask_shunt'] == mask_shunt_agent0).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_shunt'] == ~mask_shunt_agent0).all()
         
     def test_interco(self):
         
         self.ma_env = MultiAgentEnv(self.env, self.action_domains, _add_to_name="test_interco")
         # Tests on interconnections with known values
-        assert (self.ma_env._action_domains['agent_0']['mask_interco'] == [False, False, False, False, False, False, False, False, False,
-                                                                            False, False, False, False, False, False,  True,  True,  True,
-                                                                            False, False]).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_interco'] == [False, False, False, False, False, False, False, False, False,
-                                                                            False, False, False, False, False, False,  True,  True,  True,
-                                                                            False, False]).all()
-        assert (self.ma_env._action_domains['agent_0']['interco_is_origin'] == [True, True, True]).all()
-        assert (self.ma_env._action_domains['agent_1']['interco_is_origin'] == np.invert([True, True, True])).all()
+        mask_interco_agent0 = np.array([False, False, False, False, False, False, False, False, False,
+                                False, False, False, False, False, False,  True,  True,  True,
+                                False, False])
+        assert (self.ma_env._action_domains['agent_0']['mask_interco'] == mask_interco_agent0).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_interco'] == mask_interco_agent0).all()
+        interco_is_origin_agent0 = np.array([True, True, True])
+        assert (self.ma_env._action_domains['agent_0']['interco_is_origin'] == interco_is_origin_agent0).all()
+        assert (self.ma_env._action_domains['agent_1']['interco_is_origin'] == ~interco_is_origin_agent0).all()
         
         # In the two-agent case, they must have the same number of interconnections
         assert self.ma_env._subgrids_cls['action']['agent_0'].n_interco == self.ma_env._subgrids_cls['action']['agent_1'].n_interco
         
-        # In the two-agent case, the total number of lines in the global env 
-        # must be equal to the number of line in both local grids plus
-        # the number of interconnections.
+        # A line in the original grid is either a line in 
+        # one subgrid (if both its end are in the subdomain) or an interconnection. 
+        # By summing all lines in both subdomains and the interconnection, 
+        # we should get the total number of lines.
         assert self.ma_env._subgrids_cls['action']['agent_0'].n_line \
              + self.ma_env._subgrids_cls['action']['agent_1'].n_line \
              + self.ma_env._subgrids_cls['action']['agent_0'].n_interco == self.env.n_line
@@ -151,7 +154,6 @@ class MATesterGlobalObs(unittest.TestCase):
             'agent_0' : [0,1,2,3, 4],
             'agent_1' : [5,6,7,8,9,10,11,12,13]
         }
-        # run redispatch agent on one scenario for 100 timesteps
         ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name="test_build_subgrid_obj")
         
         
@@ -208,7 +210,7 @@ class MATesterGlobalObs(unittest.TestCase):
     def test_build_subgrid_obj3(self):    
         # 3 random sub ids
         np.random.seed(0)
-        for it in range(100):
+        for it in range(10):
             sub_ids = list(range(14))
             np.random.shuffle(sub_ids)  # you should see it for reproducible results
             action_domains = {
@@ -240,7 +242,7 @@ class MATesterGlobalObs(unittest.TestCase):
         assert np.sum([ma_env._subgrids_cls[space][a].n_storage for a in domain.keys()]) == self.env.n_storage, add_msg
         # For interconnections, we concatenate, then, we drop duplicates and we take the length
         assert np.sum([ma_env._subgrids_cls[space][a].n_line for a in domain.keys()])\
-             + len(set(np.concatenate([ma_env._subgrids_cls[space][a].interco_to_lineid for a in domain.keys()])))\
+             + np.concatenate([ma_env._subgrids_cls[space][a].interco_to_lineid for a in domain.keys()]).size/2\
             ==\
                 self.env.n_line, add_msg
         
@@ -273,7 +275,8 @@ class MATesterGlobalObs(unittest.TestCase):
             if ma_env._subgrids_cls[space][agent].n_shunt:
                 assert (ma_env._subgrids_cls[space][agent].shunt_to_subid < ma_env._subgrids_cls[space][agent].n_sub).all()
                 
-            # Check if objects are correctly connected
+            # Check if objects are correctly connected to the same substation
+            # as it is given by *_to_subid
             for subid in range(ma_env._subgrids_cls[space][agent].n_sub):
                 dict_connected_objects = ma_env._subgrids_cls[space][agent].get_obj_connect_to(substation_id=subid)
                 
@@ -298,8 +301,8 @@ class MATesterGlobalObs(unittest.TestCase):
                     dict_connected_objects["storages_id"]).all()
             
     def check_orig_ids(self, ma_env, domain : dict, space = 'action'):
-        # It tests if the origin ids are correct and
-        # we have the same with masks.
+        # It tests if the *_orig_ids are correct and
+        # if we have the same with masks.
         
         assert (np.sort(np.concatenate([
             ma_env._subgrids_cls[space][agent].sub_orig_ids 
@@ -426,9 +429,8 @@ class MATesterGlobalObs(unittest.TestCase):
                         ~ma_env._subgrids_cls[space][agent].interco_is_origin
                 ]).all()
             
-        # We check that if 2 elements are on the same substation 
-        # in the subgrid, they are on the same substation 
-        # in the main grid (and vice-versa).
+        # we check that if 2 elements are on the same substation in the original grid, 
+        # they are on the same substation in the corresponding subgrid
         for sub_origin_id in range(ma_env._cent_env.n_sub):
             
             agents = [k for k, v in domain.items() if sub_origin_id in v]
@@ -463,29 +465,25 @@ class MATesterGlobalObs(unittest.TestCase):
                 ==\
                     ma_env._subgrids_cls[space][agent].storage_orig_ids[dict_local['storages_id']]
             ).all()
-            # Interconnections are tricky
-            # If there's an interconnection (or more), we take the original line ids 
-            # for line_or, line_ex and interco, then, we concatenate and sort them to
-            # compare with the original concatenated and sorted line_ex and line_or ids
-            if len(dict_local['intercos_id']):
-                assert (np.sort(np.concatenate((dict_global['lines_or_id'], dict_global['lines_ex_id'])))\
-                    ==\
-                        np.sort(np.concatenate((
-                            ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_or_id']],
-                            ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_ex_id']],
-                            ma_env._subgrids_cls[space][agent].interco_to_lineid[dict_local['intercos_id']]
-                        )))
-                ).all()
-            else:
-                # Otherwise, we simply compare line_ex and line_or original ids
-                assert (dict_global['lines_or_id']\
-                    ==\
-                        ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_or_id']]
-                ).all()
-                assert (dict_global['lines_ex_id']\
-                    ==\
-                        ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_ex_id']]
-                ).all()
+            # For lines, we take into account interconnections based on their nature (line_or or line_ex)
+            assert (dict_global['lines_or_id']\
+                ==\
+                    np.sort(np.concatenate((
+                        ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_or_id']],
+                        ma_env._subgrids_cls[space][agent].interco_to_lineid[dict_local['intercos_id']][
+                            ma_env._subgrids_cls[space][agent].interco_is_origin[dict_local['intercos_id']]
+                        ]
+                    )))
+            ).all()
+            assert (dict_global['lines_ex_id']\
+                ==\
+                    np.sort(np.concatenate((
+                        ma_env._subgrids_cls[space][agent].line_orig_ids[dict_local['lines_ex_id']],
+                        ma_env._subgrids_cls[space][agent].interco_to_lineid[dict_local['intercos_id']][
+                            ~ma_env._subgrids_cls[space][agent].interco_is_origin[dict_local['intercos_id']]
+                        ]
+                    )))
+            ).all()
                 
     def check_shunt(self, ma_env, space = "action"):
         # Test for shunts

@@ -35,7 +35,7 @@ class MultiAgentEnv(RandomObject):
                  env : Environment,
                  action_domains : MADict,
                  observation_domains : MADict = None,
-                 agent_order_fn = lambda x : x,
+                 agent_order_fn = lambda x : sorted(list(x)),
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
                  copy_env = True,
@@ -51,6 +51,8 @@ class MultiAgentEnv(RandomObject):
                 - keys : agents' names 
                 - values : list of substations' (or lines) id under the control of the agent. Note that these ids imply
                     also generators and storage units in charge of the agent.
+                    These domains must be non empty and constitute a partition, i.e., the union is the set of all substation ids 
+                    and any intersection between two domains is empty.
             * observation_domains (MADict): 
                 - keys : agents' names 
                 - values : list of attributes of a Grid2Op observation that the agent can observe. It is represented by 
@@ -175,17 +177,17 @@ class MultiAgentEnv(RandomObject):
         }
         for agent_nm in self.agents : 
             # action space
-            self._build_agent_domain(agent_nm, self._action_domains[agent_nm])
+            self._build_subgrid_masks(agent_nm, self._action_domains[agent_nm])
             subgridcls = self._build_subgrid_cls_from_domain(self._action_domains[agent_nm])
             self._subgrids_cls['action'][agent_nm] = subgridcls 
             
             # observation space
             if self._observation_domains is not None:
-                self._build_agent_domain(agent_nm, self._observation_domains[agent_nm])
+                self._build_subgrid_masks(agent_nm, self._observation_domains[agent_nm])
                 subgridcls = self._build_subgrid_cls_from_domain(self._observation_domains[agent_nm])
                 self._subgrids_cls['observation'][agent_nm] = subgridcls
         
-    def _build_agent_domain(self, agent_nm, domain):
+    def _build_subgrid_masks(self, agent_nm, domain):
 
         is_sub_in = np.full(self._cent_env.n_sub, fill_value=False, 
                             dtype=dt_bool)
@@ -221,8 +223,7 @@ class MultiAgentEnv(RandomObject):
         return new_label[tmp_]
     
     def seed(self, seed):
-        self._cent_env.seed(seed)
-        return super().seed(seed)
+        raise NotImplementedError()
     
     def _build_subgrid_cls_from_domain(self, domain):                
         cent_env_cls = type(self._cent_env)
@@ -337,6 +338,8 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_line_or]
         tmp_subgrid.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_line_ex]
         
+        # Depending on whether the interco is a line_or or a line_ex,
+        # we take the corresponding sub_pos in cent_env 
         tmp_ = np.zeros(tmp_subgrid.n_interco, dtype=dt_int) - 1
         tmp_[tmp_subgrid.interco_is_origin] = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_interco][tmp_subgrid.interco_is_origin]
         tmp_[~tmp_subgrid.interco_is_origin] = cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_interco][~tmp_subgrid.interco_is_origin]
@@ -503,7 +506,9 @@ class MultiAgentEnv(RandomObject):
         Args:
             domains (dict): 
                 - key : agents' names
-                - value : list of substation ids
+                - value : list of substation ids convertible to int (allowed types are list, set and np.ndarray)
+                These domains must be non empty and constitute a partition, i.e., the union is the set of all substation ids 
+                in the global env and any intersection between two domains is empty.
         """
         sum_subs = 0
         for agent in domains.keys():
