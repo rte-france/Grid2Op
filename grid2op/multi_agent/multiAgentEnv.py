@@ -152,6 +152,20 @@ class MultiAgentEnv(RandomObject):
                 self.agents, [None for _ in range(self.num_agents)]
             )
         )
+        self.done = dict(
+            zip(
+                self.agents, [False for _ in range(self.num_agents)]
+            )
+        )
+        self.info = dict(
+            zip(
+                self.agents, [{} for _ in range(self.num_agents)]
+            )
+        )
+        
+        self._cent_observation = None
+        self.__closed = False
+        
         self.agent_order = self.agents.copy()
         self.action_spaces = dict()
         self.observation_spaces = dict()
@@ -161,8 +175,13 @@ class MultiAgentEnv(RandomObject):
         
         
     def reset(self) -> MADict:
-        # TODO : done, need tests
-        self._cent_env.reset()
+        # TODO : done, tested
+        self._cumulative_rewards = dict(
+            zip(
+                self.agents, [0. for _ in range(self.num_agents)]
+            )
+        )
+        self._cent_observation = self._cent_env.reset()
         self._update_observations(_update_state=False)
         return self.observations
     
@@ -224,6 +243,13 @@ class MultiAgentEnv(RandomObject):
         self._update_observations()
 
         return self.observations, self.rewards, self.done, self.info 
+    
+    def _dispatch_reward_done_info(self, reward, done, info):
+        for agent in self.agents:
+            self.rewards[agent] = reward
+            self._cumulative_rewards[agent] += reward
+            self.done[agent] = done
+            self.info[agent].update(info)
 
     
     def _build_subgrids(self):
@@ -620,13 +646,16 @@ class MultiAgentEnv(RandomObject):
         Args:
             observation (BaseObservation): _description_
         """
-        #for agent in self.agents:
-        #    self.observations[agent] = observation.copy()
         
-        #TODO BEN: check that cent env is initialized and not closed
-        #TODO BEN: update self.observations
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+        if self._cent_observation is None:
+            raise EnvError(
+                "This environment is not initialized. You cannot retrieve its observation."
+            )
         
-        raise NotImplementedError()
+        for agent in self.agents:
+            self.observations[agent] = self._cent_observation.copy()
     
     def _verify_domains(self, domains : MADict) -> None:
         """It verifies if substation ids are valid
@@ -687,3 +716,18 @@ class MultiAgentEnv(RandomObject):
         """
         # observations are updated in reset and step methods
         return self.observations[agent]
+    
+    def close(self, return_sccess = False, print_success = True):
+        self.__closed = True
+        try:
+            self._cent_env.close()
+            if print_success:
+                print("MAEnv closed with success !")
+            if return_sccess:
+                return True
+        except Exception as e:
+            print("Something went wrong :")
+            print(e)
+            if return_sccess:
+                return False
+            

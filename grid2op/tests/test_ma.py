@@ -171,7 +171,8 @@ class MATesterGlobalObs(unittest.TestCase):
         assert ma_env._subgrids_cls['action']['agent_1'].n_gen == 3
         
         self.check_subgrid_consistency(ma_env, action_domains)
-        
+        assert ma_env.agents == ['agent_0', 'agent_1']
+        assert ma_env.agent_order == ma_env.agents
         # We compare the interconnection original line ids with known values for every agent
         interco_lineid_ref = np.array([15,16,17])
         assert (ma_env._subgrids_cls['action']['agent_0'].interco_to_lineid == interco_lineid_ref).all()
@@ -215,7 +216,8 @@ class MATesterGlobalObs(unittest.TestCase):
             
         }
         ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name="test_build_subgrid_obj2")
-        
+        assert ma_env.agents == ['test_2_agent_0', 'test_2_agent_1', 'test_2_agent_2']
+        assert ma_env.agent_order == ma_env.agents
         self.check_subgrid_consistency(ma_env, action_domains)
 
     
@@ -232,6 +234,8 @@ class MATesterGlobalObs(unittest.TestCase):
             }
             # run redispatch agent on one scenario for 100 timesteps
             ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name=f"_it_{it}")
+            assert ma_env.agents == ['agent_0', 'agent_1']
+            assert ma_env.agent_order == ma_env.agents
             self.check_subgrid_consistency(ma_env, action_domains, add_msg=f"error for iter {it}")
             
             
@@ -244,6 +248,25 @@ class MATesterGlobalObs(unittest.TestCase):
         self.check_shunt(ma_env)
         self.check_mask_topo_vect(ma_env, action_domains)
         self.check_action_spaces(ma_env)
+        self.check_reset(ma_env)
+        self.check_dispatch_reward_done_info(ma_env)
+        
+    def check_reset(self, ma_env):
+        ma_env.reset()
+        for agent in ma_env.agents:
+            assert ma_env.observations[agent] is not ma_env._cent_observation
+            assert ma_env.observations[agent] == ma_env._cent_observation
+            
+    def check_dispatch_reward_done_info(self, ma_env):
+        reward = 42.
+        done = False
+        info = {'test' : True}
+        ma_env._dispatch_reward_done_info(reward, done, info)
+
+        for agent in ma_env.agents:
+            assert ma_env.rewards[agent] == reward
+            assert ma_env.done[agent] == done
+            assert ma_env.info[agent] == info
     
     def check_n_objects(self, ma_env, domain, space = 'action', add_msg = ""):
         # Check the number of objects in subgrids. The sum must be equal 
@@ -911,24 +934,39 @@ class MATesterGlobalObs(unittest.TestCase):
     def test_local_action_to_global_set_storage(self):
         # TODO 
         np.random.seed(0)
-        if self.ma_env._cent_env.n_storage > 0:
-            for agent in self.ma_env.agents:
-
-                for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_gen): 
-
-                    value = np.random.random() * 10 - 5
-                    local_act = self.ma_env.action_spaces[agent]({})
-                    local_act.set_storage = [(local_id, value)]
-
-                    global_act = self.ma_env._local_action_to_global(agent, local_act)
-
-                    global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
-                    ref_global_act = self.ma_env._cent_env.action_space({})
-                    ref_global_act.set_storage = [(global_id, value)]
-
-                    assert (global_act._storage_power == ref_global_act._storage_power).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                    assert global_act._modif_storage == ref_global_act._modif_storage, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                    assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+        for agent in self.ma_env.agents:
+            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_storage):
+                 
+                value = np.random.random() * 10 - 5
+                local_act = self.ma_env.action_spaces[agent]({})
+                local_act.set_storage = [(local_id, value)]
+                
+                global_act = self.ma_env._local_action_to_global(agent, local_act)
+                global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
+                
+                ref_global_act = self.ma_env._cent_env.action_space({})
+                ref_global_act.set_storage = [(global_id, value)]
+                
+                assert (global_act._storage_power == ref_global_act._storage_power).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                assert global_act._modif_storage == ref_global_act._modif_storage, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+        
+    def test_step(self):
+        np.random.seed(0)
+        cum_reward = 0
+        self.ma_env.reset()
+        for _ in range(10):
+            actions = dict(
+                zip(
+                    self.ma_env.agents, 
+                    [self.ma_env.action_spaces[agent].sample() for agent in self.ma_env.agents]
+                )
+            )
+            obs, rewards, dones, info = self.ma_env.step(actions)
+            if dones[self.ma_env.agents[0]]:
+                self.ma_env.reset()
+                
+        assert self.ma_env.close(return_sccess=True, print_success=False)
         
     #TODO other actions 
     # V0
