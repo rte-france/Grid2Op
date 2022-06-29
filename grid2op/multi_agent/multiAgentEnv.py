@@ -234,7 +234,6 @@ class MultiAgentEnv(RandomObject):
         
         if local_action._modif_set_bus:
             converted_action._modif_set_bus = True
-            print(np.where(local_action._set_topo_vect))
             converted_action._set_topo_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._set_topo_vect
         
         if local_action._modif_change_bus:
