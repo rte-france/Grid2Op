@@ -8,23 +8,17 @@
 
 import os
 import copy
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 import warnings
 import numpy as np
-import re
-from grid2op.Action.BaseAction import BaseAction
 from grid2op.Environment.Environment import Environment
 
 import grid2op
-from grid2op.Exceptions.EnvExceptions import EnvError
-from grid2op.Observation.baseObservation import BaseObservation
-from grid2op.Observation.observationSpace import ObservationSpace
 from grid2op.Space.RandomObject import RandomObject
 from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Action import ActionSpace
 from grid2op.multi_agent.subGridObjects import SubGridObjects
-from grid2op.operator_attention import LinearAttentionBudget
-from grid2op.multi_agent.utils import AgentSelector, random_order  
+from grid2op.Action import BaseAction
 from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, LocalAction, LocalActionSpace, LocalObservation, LocalObservationSpace, MADict
 from grid2op.multi_agent.multi_agentExceptions import *
 
@@ -301,6 +295,17 @@ class MultiAgentEnv(RandomObject):
         # TODO
         raise NotImplementedError()
     
+    def _local_action_to_global(self, agent : AgentID, local_action : LocalAction) -> BaseAction :
+        # TODO
+        # Empty global action
+        converted_action = self._cent_env.action_space({})
+        subgrid_type = self._subgrids_cls['action'][agent]
+        
+        if local_action._modif_set_bus:
+            converted_action._modif_set_bus = True
+            converted_action._set_topo_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._set_topo_vect
+
+        return converted_action
     def _build_subgrid_cls_from_domain(self, domain):                
         cent_env_cls = type(self._cent_env)
         tmp_subgrid = SubGridObjects()
@@ -518,10 +523,22 @@ class MultiAgentEnv(RandomObject):
         if cent_env_cls.dim_alarms != 0:
             warnings.warn("Alarms are not yet handled by the \"multi agent\" environment. They have been deactivated")
         
+        # mask to the original pos topo vect
+        tmp_subgrid.mask_orig_pos_topo_vect = np.full(cent_env_cls.dim_topo, fill_value=False, dtype=dt_bool)
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.load_pos_topo_vect[tmp_subgrid.mask_load]] = True
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.gen_pos_topo_vect[tmp_subgrid.mask_gen]] = True
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.storage_pos_topo_vect[tmp_subgrid.mask_storage]] = True
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_or_pos_topo_vect[tmp_subgrid.mask_line_or]] = True
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_line_ex]] = True
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_or_pos_topo_vect[tmp_subgrid.mask_interco][tmp_subgrid.interco_is_origin]] = True
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_interco][~tmp_subgrid.interco_is_origin]] = True
+        
         extra_name = domain["agent_name"]
         if self._add_to_name is not None:
             extra_name += f"{self._add_to_name}"
         res_cls = SubGridObjects.init_grid(gridobj=tmp_subgrid, extra_name=extra_name)
+
+        # make sure the class is consistent
         res_cls.assert_grid_correct_cls()
         return res_cls
     

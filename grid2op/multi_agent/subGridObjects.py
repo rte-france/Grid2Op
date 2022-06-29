@@ -25,7 +25,6 @@ class SubGridObjects(GridObjects):
     shunt_orig_ids = None
     line_orig_ids = None
     
-    #local2global = dict()
     mask_sub = None
     mask_load = None
     mask_gen = None
@@ -35,6 +34,7 @@ class SubGridObjects(GridObjects):
     mask_shunt = None
     mask_interco = None
     agent_name : str = None
+    mask_orig_pos_topo_vect = None
     
     interco_to_subid = None
     interco_to_lineid = None
@@ -199,6 +199,13 @@ class SubGridObjects(GridObjects):
             (lambda li: [bool(el) for el in li]) if as_list else None,
             copy_,
         )
+        save_to_dict(
+            res,
+            cls,
+            "mask_orig_pos_topo_vect",
+            (lambda li: [bool(el) for el in li]) if as_list else None,
+            copy_,
+        )
         res["agent_name"] = cls.agent_name
     
     
@@ -321,7 +328,43 @@ class SubGridObjects(GridObjects):
                     "is greater than the number of substations of the grid, which is {}."
                     "".format(np.max(cls.interco_to_subid), cls.n_sub)
                 )
-                
+    
+    @classmethod
+    def _assert_grid_correct_other_elements(cls):
+        # some checks for the interconnections
+        if len(cls.name_interco) != cls.n_interco:
+            raise EnvError("len(self.name_sub) != self.n_sub")
+        
+        if len(cls.interco_to_sub_pos) != cls.n_interco:
+            raise EnvError("len(self.interco_to_sub_pos) != self.n_load")
+        
+        if len(cls.interco_pos_topo_vect) != cls.n_interco:
+            raise EnvError(
+                "len(self.interco_pos_topo_vect) != self.n_interco"
+            )
+            
+        for i, (sub_id, sub_pos) in enumerate(
+            zip(cls.interco_to_subid, cls.interco_to_sub_pos)
+        ):
+            if sub_pos >= cls.sub_info[sub_id]:
+                raise EnvError("for interco {}".format(i))
+            
+        interco_pos_big_topo = cls._aux_pos_big_topo(
+            cls.interco_to_subid, cls.interco_to_sub_pos
+        )
+        if not np.all(interco_pos_big_topo == cls.interco_pos_topo_vect):
+            raise EnvError(
+                "Mismatch between interco_to_subid, "
+                "interco_to_sub_pos and interco_pos_topo_vect"
+            )     
+            
+        # pos topo vect
+        if cls.mask_orig_pos_topo_vect is None:
+            raise EnvError("mask_orig_pos_topo_vect should not be None")
+        if cls.mask_orig_pos_topo_vect.sum() != cls.dim_topo:
+            raise EnvError("mask_orig_pos_topo_vect counts more active component than the "
+                           "number of elements on the subgrid")
+    
     # TODO BEN: later             
     @staticmethod
     def from_dict(dict_):
@@ -368,6 +411,7 @@ class SubGridObjects(GridObjects):
         cls.mask_line_ex = None
         cls.mask_shunt = None
         cls.mask_interco = None
+        cls.mask_orig_pos_topo_vect = None
         cls.agent_name : str = None
 
         cls.interco_to_subid = None

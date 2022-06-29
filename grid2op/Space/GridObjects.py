@@ -2118,7 +2118,15 @@ class GridObjects:
 
         # alarm data
         cls._check_validity_alarm_data()
-
+        
+        # other type of data
+        cls._assert_grid_correct_other_elements()
+        
+    @classmethod
+    def _assert_grid_correct_other_elements(cls):
+        # kind of post processing for assert_grid_correct when you add other elements
+        pass
+    
     @classmethod
     def _check_validity_alarm_data(cls):
         if cls.dim_alarms == 0:
