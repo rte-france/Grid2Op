@@ -14,13 +14,17 @@ import numpy as np
 from grid2op.Environment.Environment import Environment
 
 import grid2op
+from grid2op.Exceptions.EnvExceptions import EnvError
+from grid2op.Space.GridObjects import GridObjects
 from grid2op.Space.RandomObject import RandomObject
 from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Action import ActionSpace
 from grid2op.multi_agent.subGridObjects import SubGridObjects
 from grid2op.Action import BaseAction
+
 from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, LocalAction, LocalActionSpace, LocalObservation, LocalObservationSpace, MADict
 from grid2op.multi_agent.multi_agentExceptions import *
+from grid2op.multi_agent.subgridAction import SubGridAction, SubGridActionSpace
 
 import pdb
 
@@ -231,6 +235,8 @@ class MultiAgentEnv(RandomObject):
         if local_action._modif_set_bus:
             converted_action._modif_set_bus = True
             converted_action._set_topo_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._set_topo_vect
+        
+        return converted_action
 
         # V0
         # TODO set_bus 
@@ -476,14 +482,26 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_or_pos_topo_vect[tmp_subgrid.mask_interco][tmp_subgrid.interco_is_origin]] = True
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_interco][~tmp_subgrid.interco_is_origin]] = True
         
-        extra_name = domain["agent_name"]
-        if self._add_to_name is not None:
-            extra_name += f"{self._add_to_name}"
+        extra_name = self._get_cls_name_from_domain(domain)
         res_cls = SubGridObjects.init_grid(gridobj=tmp_subgrid, extra_name=extra_name)
 
         # make sure the class is consistent
         res_cls.assert_grid_correct_cls()
         return res_cls
+    
+    def _get_cls_name_from_domain(self, domain=None, agent_name=None):
+        if domain is not None and agent_name is None:
+            extra_name = domain["agent_name"]
+        elif agent_name is not None and domain is None:
+            extra_name = agent_name
+        elif agent_name is None and domain is None:
+            raise EnvError("give at least agent_name or domain")
+        else:
+            raise EnvError("give exactly one of agent_name or domain")
+        
+        if self._add_to_name is not None:
+            extra_name += f"{self._add_to_name}"
+        return extra_name
     
     def _build_observation_spaces(self):
         """Build observation spaces from given domains for each agent
@@ -507,12 +525,16 @@ class MultiAgentEnv(RandomObject):
         The action class is the same as 
         """
         # TODO may be coded, tests not done
-        for agent in self.agents: 
-            _cls_agent_action_space = ActionSpace.init_grid(gridobj=self._subgrids_cls['action'][agent], extra_name=agent)
-            self.action_spaces[agent] = _cls_agent_action_space(
-                gridobj=self._subgrids_cls['action'][agent],
-                actionClass=self._cent_env._actionClass,
-                legal_action=self._cent_env._game_rules.legal_action,
+        for agent_nm in self.agents: 
+            this_subgrid = self._subgrids_cls['action'][agent_nm]
+            extra_name = self._get_cls_name_from_domain(agent_name=agent_nm)
+            _cls_agent_action_space = SubGridActionSpace.init_grid(gridobj=this_subgrid, extra_name=extra_name)
+            self.action_spaces[agent_nm] = _cls_agent_action_space(
+                gridobj=this_subgrid,
+                agent_name=extra_name,
+                # actionClass=self._cent_env._actionClass_orig,  # TODO later: have a specific action class for MAEnv
+                actionClass=SubGridAction,  # TODO later: have a specific action class for MAEnv
+                legal_action=self._cent_env._game_rules.legal_action,  # TODO later: probably not no... But we'll see when we do the rules
             )
     
     def _update_observations(self, _update_state = True):

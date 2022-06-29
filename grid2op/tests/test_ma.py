@@ -10,10 +10,12 @@ import unittest
 import warnings
 from grid2op import make
 from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
-import pdb
+import re
 import numpy as np
 from grid2op.multi_agent.multi_agentExceptions import *
 
+
+import pdb
 
 
 class MATesterGlobalObs(unittest.TestCase):
@@ -853,5 +855,23 @@ class MATesterGlobalObs(unittest.TestCase):
     # set_...
 
     
+    def test_action_spaces(self):        
+        action_domains = {
+            'agent_0' : [0,1,2,3, 4],
+            'agent_1' : [5,6,7,8,9,10,11,12,13]
+        }
+        space = "action"
+        ma_env = MultiAgentEnv(self.env,
+                               action_domains,
+                               _add_to_name="_test_build_subgrid_obj")
+        for agent in ma_env.agents:
+            assert ma_env.action_spaces[agent].dim_topo == ma_env._subgrids_cls[space][agent].dim_topo, f"wrong dimension of action space for agent {agent}"
+            do_nothing = ma_env.action_spaces[agent]({})
+            assert do_nothing.dim_topo == ma_env._subgrids_cls[space][agent].dim_topo, f"wrong dimension of action for agent {agent}"
+            
+            # check name of classes are correct
+            assert re.sub("^SubGridAction", "", type(do_nothing).__name__) == re.sub("^SubGridActionSpace", "", type(ma_env.action_spaces[agent]).__name__)
+
+        
 if __name__ == "__main__":
     unittest.main()

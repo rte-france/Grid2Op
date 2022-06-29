@@ -45,16 +45,15 @@ class SubGridObjects(GridObjects):
     n_interco = -1
     
     def __init__(self):
-        super().__init__()
+        GridObjects.__init__(self)
     
     @staticmethod
     def _make_cls_dict_extended(cls, res, as_list=True, copy_=True):
-        super()._make_cls_dict_extended(cls, res, as_list=as_list, copy_=copy_)
-        
+        GridObjects._make_cls_dict_extended(cls, res, as_list=as_list, copy_=copy_)
         res["agent_name"] = str(cls.agent_name)
         
         # interco
-        res["n_interco"] = cls.n_interco
+        res["n_interco"] = int(cls.n_interco)
         save_to_dict(
             res,
             cls,
@@ -206,8 +205,6 @@ class SubGridObjects(GridObjects):
             (lambda li: [bool(el) for el in li]) if as_list else None,
             copy_,
         )
-        res["agent_name"] = cls.agent_name
-    
     
     @classmethod
     def get_obj_substations(cls, _sentinel=None, substation_id=None):
