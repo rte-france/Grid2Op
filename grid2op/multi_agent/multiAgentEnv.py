@@ -206,15 +206,25 @@ class MultiAgentEnv(RandomObject):
             ]
             
         # change bus for line_or
-        converted_action.line_or_change_bus = np.where(local_action.line_or_change_bus == True)[0]
+        converted_action.line_or_change_bus = self._subgrids_cls['action'][agent].line_orig_ids[
+            np.where(local_action.line_or_change_bus == True)[0]
+        ]
         # change bus for line_ex
-        converted_action.line_ex_change_bus = np.where(local_action.line_ex_change_bus == True)[0]
+        converted_action.line_ex_change_bus = self._subgrids_cls['action'][agent].line_orig_ids[
+            np.where(local_action.line_ex_change_bus == True)[0]
+        ]
         # change bus for load
-        converted_action.load_change_bus = np.where(local_action.load_change_bus == True)[0]
+        converted_action.load_change_bus = self._subgrids_cls['action'][agent].load_orig_ids[
+            np.where(local_action.load_change_bus == True)[0]
+        ]
         # change bus for gen
-        converted_action.gen_change_bus = np.where(local_action.gen_change_bus == True)[0]
+        converted_action.gen_change_bus = self._subgrids_cls['action'][agent].gen_orig_ids[
+            np.where(local_action.gen_change_bus == True)[0]
+        ]
         # change bus for storage
-        converted_action.storage_change_bus = np.where(local_action.storage_change_bus == True)[0]
+        converted_action.storage_change_bus = self._subgrids_cls['action'][agent].storage_orig_ids[
+            np.where(local_action.storage_change_bus == True)[0]
+        ]
 
         return converted_action
         # V0
