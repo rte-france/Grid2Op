@@ -260,9 +260,6 @@ class MultiAgentEnv(RandomObject):
             converted_action._modif_curtailment = True
             converted_action._curtail[subgrid_type.gen_orig_ids] = local_action._curtail
         
-        #if local_action._modif_alarm:
-        #    converted_action._modif_alarm = True
-        
         # V0
         # TODO set_bus done tested
         # TODO change_bus done tested
