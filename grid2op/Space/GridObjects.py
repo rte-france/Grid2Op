@@ -1268,37 +1268,43 @@ class GridObjects:
         cls._compute_pos_big_topo_gridobjects()
         
     @classmethod
-    def _check_load_size(cls):
-        # in case of subgrid, there can be "no load"
-        # in the subgrid, and following checks fails 
-        # usually they are performed in _check_sub_id
+    def _check_load_size_gridobjects(cls):
         if np.min(cls.load_to_subid) < 0:
-            raise EnvError("Some shunt is connected to a negative substation id.")
+            raise EnvError("Some load is connected to a negative substation id.")
         if np.max(cls.load_to_subid) > cls.n_sub:
             raise EnvError(
                 "Some load is supposed to be connected to substations with id {} which"
                 "is greater than the number of substations of the grid, which is {}."
                 "".format(np.max(cls.load_to_subid), cls.n_sub)
             )
-        
     @classmethod
-    def _check_gen_size(cls):
-        # in case of subgrid, there can be "no gen"
+    def _check_load_size(cls):
+        # in case of subgrid, there can be "no load"
         # in the subgrid, and following checks fails 
         # usually they are performed in _check_sub_id
+        cls._check_load_size_gridobjects()
+            
+    @classmethod
+    def _check_gen_size_gridobjects(cls):
         if np.min(cls.gen_to_subid) < 0:
-            raise EnvError("Some shunt is connected to a negative substation id.")
+            raise EnvError("Some gen is connected to a negative substation id.")
         if np.max(cls.gen_to_subid) > cls.n_sub:
             raise EnvError(
                 "Some generator is supposed to be connected to substations with id {} which"
                 "is greater than the number of substations of the grid, which is {}."
                 "".format(np.max(cls.gen_to_subid), cls.n_sub)
             )
-            
     @classmethod
-    def _check_powerline_size(cls):
+    def _check_gen_size(cls):
+        # in case of subgrid, there can be "no gen"
+        # in the subgrid, and following checks fails 
+        # usually they are performed in _check_sub_id
+        cls._check_gen_size_gridobjects()
+        
+    @classmethod
+    def _check_powerline_size_gridobjects(cls):
         if np.min(cls.line_or_to_subid) < 0:
-            raise EnvError("Some shunt is connected to a negative substation id.")
+            raise EnvError("Some line (or) is connected to a negative substation id.")
         if np.max(cls.line_or_to_subid) > cls.n_sub:
             raise EnvError(
                 "Some powerline (or) is supposed to be connected to substations with id {} which"
@@ -1307,13 +1313,20 @@ class GridObjects:
             )
             
         if np.min(cls.line_ex_to_subid) < 0:
-            raise EnvError("Some shunt is connected to a negative substation id.")
+            raise EnvError("Some line (ex) is connected to a negative substation id.")
         if np.max(cls.line_ex_to_subid) > cls.n_sub:
             raise EnvError(
                 "Some powerline (ex) is supposed to be connected to substations with id {} which"
                 "is greater than the number of substations of the grid, which is {}."
                 "".format(np.max(cls.line_or_to_subid), cls.n_sub)
             )
+    @classmethod
+    def _check_powerline_size(cls):
+        # in case of subgrid, there can be "no line"
+        # in the subgrid, and following checks fails 
+        # usually they are performed in _check_sub_id
+        # there is no line if there are only interconnections !
+        cls._check_powerline_size_gridobjects()
         
     @classmethod
     def _check_sub_id(cls):
@@ -1393,7 +1406,14 @@ class GridObjects:
                     "is greater than the number of substations of the grid, which is {}."
                     "".format(np.max(cls.line_or_to_subid), cls.n_sub)
                 )
+        cls._check_sub_id_other_elements()
 
+    @classmethod
+    def _check_sub_id_other_elements(cls):
+        # if you added some elements in a subgrid for example
+        # this is the place to perform the appropriate checkings
+        pass
+    
     @classmethod
     def _fill_names(cls):
         if cls.name_line is None:
