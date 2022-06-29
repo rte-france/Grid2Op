@@ -240,14 +240,22 @@ class MultiAgentEnv(RandomObject):
             converted_action._modif_change_bus = True
             converted_action._change_bus_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._change_bus_vect
             
+        if local_action._modif_set_status:
+            converted_action._modif_set_status = True
+            converted_action._set_line_status[subgrid_type.line_orig_ids] = local_action._set_line_status
+            
+        if local_action._modif_change_status:
+            converted_action._modif_change_status = True
+            converted_action._switch_line_status[subgrid_type.line_orig_ids] = local_action._switch_line_status
+        
         
         # V0
         # TODO set_bus done tested
         # TODO change_bus done tested
         # TODO redispatch
         # TODO curtail
-        # TODO change_line_status
-        # TODO set_line_status
+        # TODO change_line_status done tested
+        # TODO set_line_status done tested
         # TODO set_storage
         
         # V inf
