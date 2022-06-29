@@ -598,15 +598,51 @@ class MATesterGlobalObs(unittest.TestCase):
                 raise AssertionError("some interco are deactivated in the mask pos topo vect")
             
     
-    def check_action_spaces(self, ma_env, space = 'action'):
+    def check_action_spaces(self, ma_env):
+        # This function checks if the action space is correctly
+        # created from _subgrids_cls['action']
+        # TODO more tests 
         for agent in ma_env.agents:
+            # We test if they have the same topological dimension
             assert ma_env.action_spaces[agent].dim_topo\
                 ==\
-                    ma_env._subgrids_cls[space][agent].dim_topo
+                    ma_env._subgrids_cls['action'][agent].dim_topo
                     
+            # It checks if the number of True values in the mask is
+            # equal to the length of actions' _set_topo_vect
             assert len(ma_env.action_spaces[agent]({})._set_topo_vect)\
                 ==\
-                    np.sum(ma_env._subgrids_cls[space][agent].mask_orig_pos_topo_vect)
+                    np.sum(ma_env._subgrids_cls['action'][agent].mask_orig_pos_topo_vect)
+                    
+            # Checks if they both have the same load_pos_topo_vect
+            assert ma_env.action_spaces[agent].load_pos_topo_vect\
+                ==\
+                    ma_env._subgrids_cls['action'][agent].load_pos_topo_vect 
+            
+            # Checks if they both have the same gen_pos_topo_vect
+            assert ma_env.action_spaces[agent].gen_pos_topo_vect\
+                ==\
+                    ma_env._subgrids_cls['action'][agent].gen_pos_topo_vect 
+            
+            # Checks if they both have the same line_or_pos_topo_vect
+            assert ma_env.action_spaces[agent].line_or_pos_topo_vect\
+                ==\
+                    ma_env._subgrids_cls['action'][agent].line_or_pos_topo_vect 
+                    
+            # Checks if they both have the same line_ex_pos_topo_vect
+            assert ma_env.action_spaces[agent].line_ex_pos_topo_vect\
+                ==\
+                    ma_env._subgrids_cls['action'][agent].line_ex_pos_topo_vect 
+                    
+            # Checks if they both have the same storage_pos_topo_vect
+            assert ma_env.action_spaces[agent].storage_pos_topo_vect\
+                ==\
+                    ma_env._subgrids_cls['action'][agent].storage_pos_topo_vect 
+            
+            # Checks if they both have the same interco_pos_topo_vect
+            assert ma_env.action_spaces[agent].interco_pos_topo_vect\
+                ==\
+                    ma_env._subgrids_cls['action'][agent].interco_pos_topo_vect 
         
     
     def test_local_action_to_global_set_bus(self):
