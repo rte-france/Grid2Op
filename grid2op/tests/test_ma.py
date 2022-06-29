@@ -952,19 +952,22 @@ class MATesterGlobalObs(unittest.TestCase):
                 assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
         
     def test_step(self):
+        
         np.random.seed(0)
         cum_reward = 0
         self.ma_env.reset()
         for _ in range(10):
-            actions = dict(
-                zip(
-                    self.ma_env.agents, 
-                    [self.ma_env.action_spaces[agent].sample() for agent in self.ma_env.agents]
+            while True:
+                actions = dict(
+                    zip(
+                        self.ma_env.agents, 
+                        [self.ma_env.action_spaces[agent].sample() for agent in self.ma_env.agents]
+                    )
                 )
-            )
-            obs, rewards, dones, info = self.ma_env.step(actions)
-            if dones[self.ma_env.agents[0]]:
-                self.ma_env.reset()
+                obs, rewards, dones, info = self.ma_env.step(actions)
+                if dones[self.ma_env.agents[0]]:
+                    self.ma_env.reset()
+                    break
                 
         assert self.ma_env.close(return_sccess=True, print_success=False)
         
