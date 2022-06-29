@@ -12,6 +12,7 @@ from typing import Optional, Tuple, Union
 import warnings
 import numpy as np
 import re
+from grid2op.Action.BaseAction import BaseAction
 from grid2op.Environment.Environment import Environment
 
 import grid2op
@@ -24,7 +25,7 @@ from grid2op.Action import ActionSpace
 from grid2op.multi_agent.subGridObjects import SubGridObjects
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.multi_agent.utils import AgentSelector, random_order  
-from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, LocalActionSpace, LocalObservation, LocalObservationSpace, MADict
+from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, LocalAction, LocalActionSpace, LocalObservation, LocalObservationSpace, MADict
 from grid2op.multi_agent.multi_agentExceptions import *
 
 import pdb
@@ -166,6 +167,70 @@ class MultiAgentEnv(RandomObject):
         self._update_observations(_update_state=False)
         return self.observations
     
+    def _local_action_to_global(self, agent : AgentID, local_action : LocalAction) -> BaseAction :
+        # TODO
+        # Empty global action
+        converted_action = self._cent_env.action_space({})
+        
+        # set bus for line_or
+        converted_action.line_or_set_bus = [
+            (self._subgrids_cls['action'][agent].line_orig_ids[i], 
+             local_action.line_or_set_bus[i])
+            for i in range(len(local_action.line_or_set_bus))
+        ]
+        # set bus for line_ex
+        converted_action.line_ex_set_bus = [
+            (self._subgrids_cls['action'][agent].line_orig_ids[i], 
+             local_action.line_ex_set_bus[i])
+            for i in range(len(local_action.line_ex_set_bus))
+        ]
+        # set bus for load
+        converted_action.load_set_bus = [
+            (self._subgrids_cls['action'][agent].load_orig_ids[i], 
+             local_action.load_set_bus[i])
+            for i in range(len(local_action.load_set_bus))
+        ]
+        # set bus for gen
+        converted_action.gen_set_bus = [
+            (self._subgrids_cls['action'][agent].gen_orig_ids[i], 
+             local_action.gen_set_bus[i])
+            for i in range(len(local_action.gen_set_bus))
+        ]
+        # set bus for storage
+        if len(local_action.storage_set_bus):
+            converted_action.storage_set_bus = [
+                (self._subgrids_cls['action'][agent].storage_orig_ids[i], 
+                 local_action.storage_set_bus[i])
+                for i in range(len(local_action.storage_set_bus))
+            ]
+            
+        # change bus for line_or
+        converted_action.line_or_change_bus = np.where(local_action.line_or_change_bus == True)[0]
+        # change bus for line_ex
+        converted_action.line_ex_change_bus = np.where(local_action.line_ex_change_bus == True)[0]
+        # change bus for load
+        converted_action.load_change_bus = np.where(local_action.load_change_bus == True)[0]
+        # change bus for gen
+        converted_action.gen_change_bus = np.where(local_action.gen_change_bus == True)[0]
+        # change bus for storage
+        converted_action.storage_change_bus = np.where(local_action.storage_change_bus == True)[0]
+
+        return converted_action
+        # V0
+        # set_bus 
+        # change_bus 
+        # redispatch
+        # curtail
+        # change_line_status
+        # set_line_status
+        # set_storage
+        
+        # V inf
+        # injection
+        # hazards
+        # maintenance
+        # alarm
+
     def step(self, action : ActionProfile) -> Tuple[MADict, MADict, MADict, MADict]:
         raise NotImplementedError()
     
