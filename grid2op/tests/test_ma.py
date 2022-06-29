@@ -241,6 +241,7 @@ class MATesterGlobalObs(unittest.TestCase):
         self.check_connections(ma_env, action_domains)
         self.check_shunt(ma_env)
         self.check_mask_topo_vect(ma_env, action_domains)
+        self.check_action_spaces(ma_env)
     
     def check_n_objects(self, ma_env, domain, space = 'action', add_msg = ""):
         # Check the number of objects in subgrids. The sum must be equal 
@@ -596,6 +597,17 @@ class MATesterGlobalObs(unittest.TestCase):
             if np.any(~mask_orig_pos_topo_vect[interco_pos_topo_vect]):
                 raise AssertionError("some interco are deactivated in the mask pos topo vect")
             
+    
+    def check_action_spaces(self, ma_env, space = 'action'):
+        for agent in ma_env.agents:
+            assert ma_env.action_spaces[agent].dim_topo\
+                ==\
+                    ma_env._subgrids_cls[space][agent].dim_topo
+                    
+            assert len(ma_env.action_spaces[agent]({})._set_topo_vect)\
+                ==\
+                    np.sum(ma_env._subgrids_cls[space][agent].mask_orig_pos_topo_vect)
+        
     
     def test_local_action_to_global_set_bus(self):
         # TODO 

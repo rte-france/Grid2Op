@@ -162,79 +162,6 @@ class MultiAgentEnv(RandomObject):
         self._update_observations(_update_state=False)
         return self.observations
     
-    def _local_action_to_global(self, agent : AgentID, local_action : LocalAction) -> BaseAction :
-        # TODO
-        # Empty global action
-        converted_action = self._cent_env.action_space({})
-        
-        # set bus for line_or
-        converted_action.line_or_set_bus = [
-            (self._subgrids_cls['action'][agent].line_orig_ids[i], 
-             local_action.line_or_set_bus[i])
-            for i in range(len(local_action.line_or_set_bus))
-        ]
-        # set bus for line_ex
-        converted_action.line_ex_set_bus = [
-            (self._subgrids_cls['action'][agent].line_orig_ids[i], 
-             local_action.line_ex_set_bus[i])
-            for i in range(len(local_action.line_ex_set_bus))
-        ]
-        # set bus for load
-        converted_action.load_set_bus = [
-            (self._subgrids_cls['action'][agent].load_orig_ids[i], 
-             local_action.load_set_bus[i])
-            for i in range(len(local_action.load_set_bus))
-        ]
-        # set bus for gen
-        converted_action.gen_set_bus = [
-            (self._subgrids_cls['action'][agent].gen_orig_ids[i], 
-             local_action.gen_set_bus[i])
-            for i in range(len(local_action.gen_set_bus))
-        ]
-        # set bus for storage
-        if len(local_action.storage_set_bus):
-            converted_action.storage_set_bus = [
-                (self._subgrids_cls['action'][agent].storage_orig_ids[i], 
-                 local_action.storage_set_bus[i])
-                for i in range(len(local_action.storage_set_bus))
-            ]
-            
-        # change bus for line_or
-        converted_action.line_or_change_bus = self._subgrids_cls['action'][agent].line_orig_ids[
-            np.where(local_action.line_or_change_bus == True)[0]
-        ]
-        # change bus for line_ex
-        converted_action.line_ex_change_bus = self._subgrids_cls['action'][agent].line_orig_ids[
-            np.where(local_action.line_ex_change_bus == True)[0]
-        ]
-        # change bus for load
-        converted_action.load_change_bus = self._subgrids_cls['action'][agent].load_orig_ids[
-            np.where(local_action.load_change_bus == True)[0]
-        ]
-        # change bus for gen
-        converted_action.gen_change_bus = self._subgrids_cls['action'][agent].gen_orig_ids[
-            np.where(local_action.gen_change_bus == True)[0]
-        ]
-        # change bus for storage
-        converted_action.storage_change_bus = self._subgrids_cls['action'][agent].storage_orig_ids[
-            np.where(local_action.storage_change_bus == True)[0]
-        ]
-
-        return converted_action
-        # V0
-        # set_bus 
-        # change_bus 
-        # redispatch
-        # curtail
-        # change_line_status
-        # set_line_status
-        # set_storage
-        
-        # V inf
-        # injection
-        # hazards
-        # maintenance
-        # alarm
 
     def step(self, action : ActionProfile) -> Tuple[MADict, MADict, MADict, MADict]:
         # TODO
@@ -305,7 +232,23 @@ class MultiAgentEnv(RandomObject):
             converted_action._modif_set_bus = True
             converted_action._set_topo_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._set_topo_vect
 
+        # V0
+        # TODO set_bus 
+        # TODO change_bus 
+        # TODO redispatch
+        # TODO curtail
+        # TODO change_line_status
+        # TODO set_line_status
+        # TODO set_storage
+        
+        # V inf
+        # injection
+        # hazards
+        # maintenance
+        # alarm
+        
         return converted_action
+    
     def _build_subgrid_cls_from_domain(self, domain):                
         cent_env_cls = type(self._cent_env)
         tmp_subgrid = SubGridObjects()
