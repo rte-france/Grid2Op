@@ -572,10 +572,12 @@ class MATesterGlobalObs(unittest.TestCase):
         for agent in self.ma_env.agents:
             # Test for loads
             local_load_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_load)
-            local_act = self.ma_env.action_spaces[agent]({
-                'set_bus' : 
-                    (self.ma_env._subgrids_cls['action'][agent].load_pos_topo_vect[local_load_id], 2)
-            })
+            #local_act = self.ma_env.action_spaces[agent]({
+            #    'set_bus' : 
+            #        (self.ma_env._subgrids_cls['action'][agent].load_pos_topo_vect[local_load_id], 2)
+            #})
+            local_act = self.ma_env.action_spaces[agent]({})
+            local_act.load_set_bus = [(local_load_id, 2)]
             global_act = self.ma_env._local_action_to_global(agent, local_act)
             global_load_id = self.ma_env._subgrids_cls['action'][agent].load_orig_ids[local_load_id]
             ref_global_act = self.ma_env._cent_env.action_space({
