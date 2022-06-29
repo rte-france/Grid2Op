@@ -230,10 +230,11 @@ class MultiAgentEnv(RandomObject):
         # TODO
         # Empty global action
         converted_action = self._cent_env.action_space({})
-        subgrid_type = self._subgrids_cls['action'][agent]
+        subgrid_type = type(local_action)
         
         if local_action._modif_set_bus:
             converted_action._modif_set_bus = True
+            print(np.where(local_action._set_topo_vect))
             converted_action._set_topo_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._set_topo_vect
         
         if local_action._modif_change_bus:
@@ -248,6 +249,17 @@ class MultiAgentEnv(RandomObject):
             converted_action._modif_change_status = True
             converted_action._switch_line_status[subgrid_type.line_orig_ids] = local_action._switch_line_status
         
+        #if local_action._modif_redispatch:
+        #    converted_action._modif_redispatch = True
+        #
+        #if local_action._modif_storage:
+        #    converted_action._modif_storage = True
+        #
+        #if local_action._modif_curtailment:
+        #    converted_action._modif_curtailment = True
+        #
+        #if local_action._modif_alarm:
+        #    converted_action._modif_alarm = True
         
         # V0
         # TODO set_bus done tested

@@ -646,101 +646,85 @@ class MATesterGlobalObs(unittest.TestCase):
                 ==\
                     ma_env._subgrids_cls['action'][agent].interco_pos_topo_vect).all() 
         
-    
+    def are_same_actions(self, a1, a2, type_action, add_msg = ""):
+        assert a1 == a2, add_msg
+        assert eval(f'(a1.{type_action} == a2.{type_action}).all()'), add_msg
+        assert eval(f'assert a1._modif_{type_action} == a2._modif_{type_action}'), add_msg
+        
     def test_local_action_to_global_set_bus(self):
         # TODO 
         np.random.seed(0)
         for agent in self.ma_env.agents:
             # Test for loads
-            local_load_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_load)
-            local_act = self.ma_env.action_spaces[agent]({
-                'set_bus' : 
-                    (self.ma_env.action_spaces[agent].load_pos_topo_vect[local_load_id], 2)
-            })
-            #local_act = self.ma_env.action_spaces[agent]({})
-            #local_act.load_set_bus = [(local_load_id, 2)]
-            global_act = self.ma_env._local_action_to_global(agent, local_act)
-            global_load_id = self.ma_env._subgrids_cls['action'][agent].load_orig_ids[local_load_id]
-            ref_global_act = self.ma_env._cent_env.action_space({
-                'set_bus' : 
-                    (self.ma_env._cent_env.action_space.load_pos_topo_vect[global_load_id], 2)
-            })
-            assert (global_act.set_bus == ref_global_act.set_bus).all()
-            assert global_act._modif_set_bus == ref_global_act._modif_set_bus
-            assert global_act == ref_global_act
+            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_load):
+                
+                local_act = self.ma_env.action_spaces[agent]({})
+                local_act.load_set_bus = [(local_id, 2)]
+                
+                global_act = self.ma_env._local_action_to_global(agent, local_act)
+                global_id = self.ma_env._subgrids_cls['action'][agent].load_orig_ids[local_id]
+                
+                ref_global_act = self.ma_env._cent_env.action_space({})
+                local_act.load_set_bus = [(global_id, 2)]
+                
+                self.are_same_actions(
+                    global_act, ref_global_act, 'set_bus', 
+                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                )
             
             # Test for gens
-            local_gen_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_gen)
-            local_act = self.ma_env.action_spaces[agent]({
-                'set_bus' : 
-                    (self.ma_env.action_spaces[agent].gen_pos_topo_vect[local_gen_id], 2)
-            })
-            #local_act = self.ma_env.action_spaces[agent]({})
-            #local_act.gen_set_bus = [(local_gen_id, 2)]
-            global_act = self.ma_env._local_action_to_global(agent, local_act)
-            global_gen_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_gen_id]
-            ref_global_act = self.ma_env._cent_env.action_space({
-                'set_bus' : 
-                    (self.ma_env._cent_env.action_space.gen_pos_topo_vect[global_gen_id], 2)
-            })
-            assert (global_act.set_bus == ref_global_act.set_bus).all()
-            assert global_act._modif_set_bus == ref_global_act._modif_set_bus
-            assert global_act == ref_global_act
+            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_gen):
+
+                local_act = self.ma_env.action_spaces[agent]({})
+                local_act.gen_set_bus = [(local_id, 2)]
+                
+                global_act = self.ma_env._local_action_to_global(agent, local_act)
+                global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
+                
+                ref_global_act = self.ma_env._cent_env.action_space({})
+                local_act.gen_set_bus = [(global_id, 2)]
+                
+                self.are_same_actions(global_act, ref_global_act, 'set_bus')
             
-            # Test for line_ors
-            local_line_or_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_line)
-            local_act = self.ma_env.action_spaces[agent]({
-                'set_bus' : 
-                    (self.ma_env.action_spaces[agent].line_or_pos_topo_vect[local_line_or_id], 2)
-            })
-            #local_act = self.ma_env.action_spaces[agent]({})
-            #local_act.line_or_set_bus = [(local_line_or_id, 2)]
-            global_act = self.ma_env._local_action_to_global(agent, local_act)
-            global_line_or_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_line_or_id]
-            ref_global_act = self.ma_env._cent_env.action_space({
-                'set_bus' : 
-                    (self.ma_env._cent_env.action_space.line_or_pos_topo_vect[global_line_or_id], 2)
-            })
-            assert (global_act.set_bus == ref_global_act.set_bus).all()
-            assert global_act._modif_set_bus == ref_global_act._modif_set_bus
-            assert global_act == ref_global_act
+            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_line):
+                # Test for line_ors
+                local_act = self.ma_env.action_spaces[agent]({})
+                local_act.line_or_set_bus = [(local_id, 2)]
+                
+                global_act = self.ma_env._local_action_to_global(agent, local_act)
+                global_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
+                
+                ref_global_act = self.ma_env._cent_env.action_space({})
+                local_act.line_or_set_bus = [(global_id, 2)]
+                
+                self.are_same_actions(global_act, ref_global_act, 'set_bus')
             
-            # Test for line_exs
-            local_line_ex_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_line)
-            local_act = self.ma_env.action_spaces[agent]({
-                'set_bus' : 
-                    (self.ma_env.action_spaces[agent].line_ex_pos_topo_vect[local_line_ex_id], 2)
-            })
-            #local_act = self.ma_env.action_spaces[agent]({})
-            #local_act.line_ex_set_bus = [(local_line_ex_id, 2)]
-            global_act = self.ma_env._local_action_to_global(agent, local_act)
-            global_line_ex_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_line_ex_id]
-            ref_global_act = self.ma_env._cent_env.action_space({
-                'set_bus' : 
-                    (self.ma_env._cent_env.action_space.line_ex_pos_topo_vect[global_line_ex_id], 2)
-            })
-            assert (global_act.set_bus == ref_global_act.set_bus).all()
-            assert global_act._modif_set_bus == ref_global_act._modif_set_bus
-            assert global_act == ref_global_act
+                # Test for line_exs
+                local_act = self.ma_env.action_spaces[agent]({})
+                local_act.line_ex_set_bus = [(local_id, 2)]
+                
+                global_act = self.ma_env._local_action_to_global(agent, local_act)
+                global_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
+                
+                ref_global_act = self.ma_env._cent_env.action_space({})
+                local_act.line_ex_set_bus = [(global_id, 2)]
+                
+                self.are_same_actions(global_act, ref_global_act, 'set_bus')
             
             # Test for storages
             if self.ma_env._subgrids_cls['action'][agent].n_storage > 0:
-                local_storage_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_storage)
-                local_act = self.ma_env.action_spaces[agent]({
-                    'set_bus' : 
-                        (self.ma_env.action_spaces[agent].storage_pos_topo_vect[local_storage_id], 2)
-                })
-                #local_act = self.ma_env.action_spaces[agent]({})
-                #local_act.storage_set_bus = [(local_storage_id, 2)]
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_storage_id = self.ma_env._subgrids_cls['action'][agent].storage_orig_ids[local_storage_id]
-                ref_global_act = self.ma_env._cent_env.action_space({
-                    'set_bus' : 
-                        (self.ma_env._cent_env.action_space.storage_pos_topo_vect[global_storage_id], 2)
-                })
-                assert (global_act.set_bus == ref_global_act.set_bus).all()
-                assert global_act._modif_set_bus == ref_global_act._modif_set_bus
-                assert global_act == ref_global_act
+                for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_storage):
+                    
+                    local_act = self.ma_env.action_spaces[agent]({})
+                    local_act.storage_set_bus = [(local_id, 2)]
+
+                    global_act = self.ma_env._local_action_to_global(agent, local_act)
+                    global_id = self.ma_env._subgrids_cls['action'][agent].storage_orig_ids[local_id]
+
+                    ref_global_act = self.ma_env._cent_env.action_space({})
+                    local_act.storage_set_bus = [(global_id, 2)]
+
+                    self.are_same_actions(global_act, ref_global_act, 'set_bus')
 
     def test_local_action_to_global_change_bus(self):
         # TODO 
@@ -787,17 +771,17 @@ class MATesterGlobalObs(unittest.TestCase):
             assert global_act == ref_global_act
             
             # Test for line_ors
-            local_line_or_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_line)
+            local_line_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_line)
             local_act = self.ma_env.action_spaces[agent]({
                 'change_bus' : 
-                    self.ma_env.action_spaces[agent].line_or_pos_topo_vect[local_line_or_id]
+                    self.ma_env.action_spaces[agent].line_or_pos_topo_vect[local_line_id]
             })
             #local_act = self.ma_env.action_spaces[agent]({})
-            #local_act.line_or_change_bus = [local_line_or_id]
+            #local_act.line_or_change_bus = [local_line_id]
             
             global_act = self.ma_env._local_action_to_global(agent, local_act)
             
-            global_line_or_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_line_or_id]
+            global_line_or_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_line_id]
             ref_global_act = self.ma_env._cent_env.action_space({
                 'change_bus' : 
                     self.ma_env._cent_env.action_space.line_or_pos_topo_vect[global_line_or_id]
@@ -807,17 +791,17 @@ class MATesterGlobalObs(unittest.TestCase):
             assert global_act == ref_global_act
             
             # Test for line_exs
-            local_line_ex_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_line)
+            local_line_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_line)
             local_act = self.ma_env.action_spaces[agent]({
                 'change_bus' : 
-                    self.ma_env.action_spaces[agent].line_ex_pos_topo_vect[local_line_ex_id]
+                    self.ma_env.action_spaces[agent].line_ex_pos_topo_vect[local_line_id]
             })
             #local_act = self.ma_env.action_spaces[agent]({})
-            #local_act.line_ex_change_bus = [local_line_ex_id]
+            #local_act.line_ex_change_bus = [local_line_id]
             
             global_act = self.ma_env._local_action_to_global(agent, local_act)
             
-            global_line_ex_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_line_ex_id]
+            global_line_ex_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_line_id]
             ref_global_act = self.ma_env._cent_env.action_space({
                 'change_bus' : 
                     self.ma_env._cent_env.action_space.line_ex_pos_topo_vect[global_line_ex_id]
