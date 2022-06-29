@@ -613,8 +613,7 @@ class MATesterGlobalObs(unittest.TestCase):
             
             # check name of classes are correct
             assert re.sub("^SubGridAction", "", type(do_nothing).__name__) == re.sub("^SubGridActionSpace", "", type(ma_env.action_spaces[agent]).__name__)
-            
-        pdb.set_trace()
+
         
 if __name__ == "__main__":
     unittest.main()
