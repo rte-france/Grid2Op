@@ -239,6 +239,7 @@ class MATesterGlobalObs(unittest.TestCase):
         self.check_objects_to_subid(ma_env, action_domains)
         self.check_connections(ma_env, action_domains)
         self.check_shunt(ma_env)
+        self.check_mask_topo_vect(ma_env, action_domains)
     
     def check_n_objects(self, ma_env, domain, space = 'action', add_msg = ""):
         # Check the number of objects in subgrids. The sum must be equal 
@@ -383,7 +384,6 @@ class MATesterGlobalObs(unittest.TestCase):
             assert (ma_env._subgrids_cls[space][agent].interco_to_lineid\
                 ==\
                     np.arange(ma_env._cent_env.n_line)[mask_interco]).all()
-            
             
     def check_connections(self, ma_env, domain, space = 'action'):
         # We check if the objects are connected to same subids
@@ -563,7 +563,38 @@ class MATesterGlobalObs(unittest.TestCase):
                         ma_env._subgrids_cls[space][agent].mask_shunt
                     ]).all()
     
+    def check_mask_topo_vect(self, ma_env, domain, space="action"):
+        for agent in domain.keys():
+            subgrid_cls = ma_env._subgrids_cls[space][agent]
+            orig_grid_cls = type(ma_env._cent_env)
+            mask_orig_pos_topo_vect = subgrid_cls.mask_orig_pos_topo_vect
+            if np.all(mask_orig_pos_topo_vect):
+                raise AssertionError("Some agent would have all the grid")
+            if np.all(~mask_orig_pos_topo_vect):
+                raise AssertionError("Some agent would have all the grid")
+            
+            assert mask_orig_pos_topo_vect.size == orig_grid_cls.dim_topo, "mask do not corresponds to original grid size"
+            
+            if np.any(~mask_orig_pos_topo_vect[orig_grid_cls.load_pos_topo_vect[subgrid_cls.load_orig_ids]]):
+                raise AssertionError("some loads are deactivated in the mask pos topo vect")
     
+            if np.any(~mask_orig_pos_topo_vect[orig_grid_cls.gen_pos_topo_vect[subgrid_cls.gen_orig_ids]]):
+                raise AssertionError("some gens are deactivated in the mask pos topo vect")
+    
+            if np.any(~mask_orig_pos_topo_vect[orig_grid_cls.storage_pos_topo_vect[subgrid_cls.storage_orig_ids]]):
+                raise AssertionError("some gens are deactivated in the mask pos topo vect")
+    
+            if np.any(~mask_orig_pos_topo_vect[orig_grid_cls.line_or_pos_topo_vect[subgrid_cls.line_orig_ids]]):
+                raise AssertionError("some line or are deactivated in the mask pos topo vect")
+            
+            if np.any(~mask_orig_pos_topo_vect[orig_grid_cls.line_ex_pos_topo_vect[subgrid_cls.line_orig_ids]]):
+                raise AssertionError("some line ex are deactivated in the mask pos topo vect")
+            
+            interco_pos_topo_vect = orig_grid_cls.line_or_pos_topo_vect[subgrid_cls.interco_to_lineid]
+            interco_pos_topo_vect[~subgrid_cls.interco_is_origin] = orig_grid_cls.line_ex_pos_topo_vect[subgrid_cls.interco_to_lineid][~subgrid_cls.interco_is_origin]
+            if np.any(~mask_orig_pos_topo_vect[interco_pos_topo_vect]):
+                raise AssertionError("some interco are deactivated in the mask pos topo vect")
+            
     
 if __name__ == "__main__":
     unittest.main()
