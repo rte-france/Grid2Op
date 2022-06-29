@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-from grid2op.Exceptions.EnvExceptions import EnvError, IncorrectNumberOfGenerators, IncorrectNumberOfLines, IncorrectNumberOfLoads, IncorrectNumberOfStorages
+from grid2op.Exceptions.EnvExceptions import EnvError, IncorrectNumberOfElements, IncorrectNumberOfGenerators, IncorrectNumberOfLines, IncorrectNumberOfLoads, IncorrectNumberOfStorages
 
 from grid2op.dtypes import dt_int
 from grid2op.Space.GridObjects import GridObjects
@@ -273,22 +273,56 @@ class SubGridObjects(GridObjects):
         # in case of subgrid, there can be "no load"
         # in the subgrid, and following checks fails 
         # usually they are performed in _check_sub_id
-        pass
+        if cls.n_load > 0:
+            cls._check_load_size_gridobjects()
         
     @classmethod
     def _check_gen_size(cls):
         # in case of subgrid, there can be "no gen"
         # in the subgrid, and following checks fails 
         # usually they are performed in _check_sub_id
-        pass
+        if cls.n_gen > 0:
+            cls._check_gen_size_gridobjects()
     
     @classmethod
     def _check_for_lines(cls):
         # in case of subgrid, there can be "no line"
         # in the subgrid, and following checks fails 
         # usually they are performed in assert_grid_correct_cls
-        pass
+        if cls.n_line + cls.n_interco <= 0:
+            raise EnvError(
+                "There should be at least one line or one interco for each "
+                "zone of your grid."
+            )
     
+    @classmethod
+    def _check_powerline_size(cls):
+        # in case of subgrid, there can be "no line"
+        # in the subgrid, and following checks fails 
+        # usually they are performed in _check_sub_id
+        # there is no line if there are only interconnections !
+        if cls.n_line > 0:
+            cls._check_powerline_size_gridobjects()
+        
+    @classmethod
+    def _check_sub_id_other_elements(cls):
+        # if you added some elements in a subgrid for example
+        # this is the place to perform the appropriate checkings
+        # for this class, we added the interco, so we check here that everything works
+        if len(cls.interco_to_subid) != cls.n_interco:
+            raise IncorrectNumberOfElements("Incorrect number of interconnections")
+
+        if cls.n_interco > 0:
+            if np.min(cls.interco_to_subid) < 0:
+                raise EnvError("Some interco is connected to a negative substation id.")
+            if np.max(cls.interco_to_subid) > cls.n_sub:
+                raise EnvError(
+                    "Some interco is supposed to be connected to substations with id {} which"
+                    "is greater than the number of substations of the grid, which is {}."
+                    "".format(np.max(cls.interco_to_subid), cls.n_sub)
+                )
+                
+    # TODO BEN: later             
     @staticmethod
     def from_dict(dict_):
         return GridObjects.from_dict(dict_)
@@ -300,38 +334,18 @@ class SubGridObjects(GridObjects):
         #cls.sub_info = extract_from_dict(
         #    dict_, "sub_info", lambda x: np.array(x).astype(dt_int)
         #)
-        
+    
+    # TODO BEN: later   
     @staticmethod
     def init_grid_from_dict_for_pickle(name_res, orig_cls, cls_attr):
         return GridObjects.init_grid_from_dict_for_pickle(name_res, orig_cls, cls_attr)
     
+    # TODO BEN: later   
     @classmethod
     def _get_full_cls_str(cls):
         return GridObjects._get_full_cls_str(cls)
     
-    @classmethod
-    def _check_powerline_size(cls):
-        
-        if cls.n_line > 0:
-            if np.min(cls.line_or_to_subid) < 0:
-                raise EnvError("Some shunt is connected to a negative substation id.")
-            if np.max(cls.line_or_to_subid) > cls.n_sub:
-                raise EnvError(
-                    "Some powerline (or) is supposed to be connected to substations with id {} which"
-                    "is greater than the number of substations of the grid, which is {}."
-                    "".format(np.max(cls.line_or_to_subid), cls.n_sub)
-                )
-        if cls.n_line > 0:
-            if np.min(cls.line_ex_to_subid) < 0:
-                raise EnvError("Some shunt is connected to a negative substation id.")
-            if np.max(cls.line_ex_to_subid) > cls.n_sub:
-                raise EnvError(
-                    "Some powerline (ex) is supposed to be connected to substations with id {} which"
-                    "is greater than the number of substations of the grid, which is {}."
-                    "".format(np.max(cls.line_or_to_subid), cls.n_sub)
-                )
-
-    
+    # TODO BEN: later   
     @classmethod
     def _clear_class_attribute(cls):
         cls._clear_class_attribute_gridobjects()

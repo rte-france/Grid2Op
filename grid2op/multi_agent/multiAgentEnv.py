@@ -163,6 +163,7 @@ class MultiAgentEnv(RandomObject):
         
         
     def reset(self) -> MADict:
+        # TODO : done, need tests
         self._cent_env.reset()
         self._update_observations(_update_state=False)
         return self.observations
@@ -232,10 +233,10 @@ class MultiAgentEnv(RandomObject):
         # alarm
 
     def step(self, action : ActionProfile) -> Tuple[MADict, MADict, MADict, MADict]:
+        # TODO
         raise NotImplementedError()
     
     def _build_subgrids(self):
-        
         self._subgrids_cls = {
             'action' : dict(),
             'observation' : dict()
@@ -253,7 +254,6 @@ class MultiAgentEnv(RandomObject):
                 self._subgrids_cls['observation'][agent_nm] = subgridcls
         
     def _build_subgrid_masks(self, agent_nm, domain):
-
         is_sub_in = np.full(self._cent_env.n_sub, fill_value=False, 
                             dtype=dt_bool)
         is_sub_in[domain['sub_id']] = True
@@ -288,6 +288,7 @@ class MultiAgentEnv(RandomObject):
         return new_label[tmp_]
     
     def seed(self, seed):
+        # TODO
         raise NotImplementedError()
     
     def _build_subgrid_cls_from_domain(self, domain):                
@@ -524,17 +525,18 @@ class MultiAgentEnv(RandomObject):
             NotImplementedError: Local observations are not implemented yet
         """
         
-        if self._observation_domains is None:
+        if self._is_global_obs:
+            # in case of global observation, I simply copy the observation space
             for agent in self.agents:
                 self.observation_spaces[agent] = self._cent_env.observation_space.copy()
         else:
             raise NotImplementedError("Local observations are not available yet !")
     
-    
     def _build_action_spaces(self):
         """Build action spaces from given domains for each agent
         The action class is the same as 
         """
+        # TODO may be coded, tests not done
         for agent in self.agents: 
             _cls_agent_action_space = ActionSpace.init_grid(gridobj=self._subgrids_cls['action'][agent], extra_name=agent)
             self.action_spaces[agent] = _cls_agent_action_space(
@@ -542,7 +544,6 @@ class MultiAgentEnv(RandomObject):
                 actionClass=self._cent_env._actionClass,
                 legal_action=self._cent_env._game_rules.legal_action,
             )
-    
     
     def _update_observations(self, _update_state = True):
         """Update agents' observations from the global observation given by the self._cent_env
@@ -554,7 +555,7 @@ class MultiAgentEnv(RandomObject):
         #    self.observations[agent] = observation.copy()
         
         #TODO BEN: check that cent env is initialized and not closed
-        #TODO BEN : update self.observations
+        #TODO BEN: update self.observations
         
         raise NotImplementedError()
     
@@ -590,7 +591,6 @@ class MultiAgentEnv(RandomObject):
 
         if sum_subs != self._cent_env.n_sub:
             raise DomainException(f"The sum of sub id lists' length must be equal to _cent_env.n_sub = {self._cent_env.n_sub} but is {sum_subs}")
-    
     
     def observation_space(self, agent : AgentID)-> LocalObservationSpace:
         """

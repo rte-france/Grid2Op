@@ -815,7 +815,7 @@ class BaseObservation(GridObjects):
             if storage_id >= self.n_storage:
                 raise Grid2OpException(
                     'There are no storage unit with id "storage_id={}" in this grid.'.format(
-                        line_id
+                        storage_id
                     )
                 )
             if storage_id < 0:
@@ -828,7 +828,7 @@ class BaseObservation(GridObjects):
             res["bus"] = self.topo_vect[self.storage_pos_topo_vect[storage_id]]
             res["sub_id"] = self.storage_to_subid[storage_id]
             if self.support_theta:
-                res["origin"]["theta"] = self.storage_theta[storage_id]
+                res["theta"] = self.storage_theta[storage_id]
         else:
             if substation_id >= len(self.sub_info):
                 raise Grid2OpException(
