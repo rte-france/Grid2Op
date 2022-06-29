@@ -144,7 +144,7 @@ class OpponentSpace(object):
         """
         This function calls the attack from the opponent.
 
-        It check whether the budget is consistent with the attack (budget should be more that the cosst
+        It check whether the budget is consistent with the attack (budget should be more that the cost
         associated with the attack). If the attack cost too much, then it is replaced by a "do nothing"
         action. Otherwise, the attack will be implemented by the environment.
 
