@@ -830,55 +830,114 @@ class MATesterGlobalObs(unittest.TestCase):
         # TODO 
         np.random.seed(0)
         for agent in self.ma_env.agents:
-            # Test for loads
-            local_line_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_line)
-            local_act = self.ma_env.action_spaces[agent]({
-                'change_line_status' : 
-                    local_line_id
-            })
             
-            global_act = self.ma_env._local_action_to_global(agent, local_act)
-            
-            global_load_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_line_id]
-            ref_global_act = self.ma_env._cent_env.action_space({
-                'change_line_status' : 
-                    global_load_id
-            })
-            assert (global_act._switch_line_status == ref_global_act._switch_line_status).all()
-            assert global_act._modif_change_status == ref_global_act._modif_change_status
-            assert global_act == ref_global_act
+            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_line) : 
+                
+                local_act = self.ma_env.action_spaces[agent]({})
+                local_act.line_change_status = [local_id]
+
+                global_act = self.ma_env._local_action_to_global(agent, local_act)
+
+                global_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
+                ref_global_act = self.ma_env._cent_env.action_space({})
+                ref_global_act.line_change_status = [global_id]
+                
+                assert (global_act._switch_line_status == ref_global_act._switch_line_status).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                assert global_act._modif_change_status == ref_global_act._modif_change_status, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
             
     def test_local_action_to_global_set_line_status(self):
         # TODO 
         np.random.seed(0)
         for agent in self.ma_env.agents:
-            # Test for loads
-            local_line_id = np.random.randint(0, self.ma_env._subgrids_cls['action'][agent].n_line)
-            local_act = self.ma_env.action_spaces[agent]({
-                'set_line_status' : 
-                    (local_line_id, -1)
-            })
             
-            global_act = self.ma_env._local_action_to_global(agent, local_act)
+            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_line) : 
+                
+                local_act = self.ma_env.action_spaces[agent]({})
+                local_act.line_set_status = [(local_id, -1)]
+
+                global_act = self.ma_env._local_action_to_global(agent, local_act)
+
+                global_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
+                ref_global_act = self.ma_env._cent_env.action_space({})
+                ref_global_act.line_set_status = [(global_id, -1)]
+                
+                assert (global_act._set_line_status == ref_global_act._set_line_status).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                assert global_act._modif_set_status == ref_global_act._modif_set_status, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
             
-            global_load_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_line_id]
-            ref_global_act = self.ma_env._cent_env.action_space({
-                'set_line_status' : 
-                    (global_load_id, -1)
-            })
-            assert (global_act._set_line_status == ref_global_act._set_line_status).all()
-            assert global_act._modif_set_status == ref_global_act._modif_set_status
-            assert global_act == ref_global_act
+    def test_local_action_to_global_redispatch(self):
+        # TODO 
+        np.random.seed(0)
+        for agent in self.ma_env.agents:
             
+            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_gen): 
+                
+                amount = np.random.random() - 0.5
+                local_act = self.ma_env.action_spaces[agent]({})
+                local_act.redispatch = [(local_id, amount)]
+
+                global_act = self.ma_env._local_action_to_global(agent, local_act)
+
+                global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
+                ref_global_act = self.ma_env._cent_env.action_space({})
+                ref_global_act.redispatch = [(global_id, amount)]
+                
+                assert (global_act._redispatch == ref_global_act._redispatch).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                assert global_act._modif_redispatch == ref_global_act._modif_redispatch, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                
+    def test_local_action_to_global_curtail(self):
+        # TODO 
+        np.random.seed(0)
+        for agent in self.ma_env.agents:
+            
+            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_gen): 
+                
+                ratio_curtailment = np.random.random()
+                local_act = self.ma_env.action_spaces[agent]({})
+                local_act.curtail = [(local_id, ratio_curtailment)]
+
+                global_act = self.ma_env._local_action_to_global(agent, local_act)
+
+                global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
+                ref_global_act = self.ma_env._cent_env.action_space({})
+                ref_global_act.curtail = [(global_id, ratio_curtailment)]
+                
+                assert (global_act._curtail == ref_global_act._curtail).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                assert global_act._modif_curtailment == ref_global_act._modif_curtailment, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                
+    def test_local_action_to_global_set_storage(self):
+        # TODO 
+        np.random.seed(0)
+        if self.ma_env._cent_env.n_storage > 0:
+            for agent in self.ma_env.agents:
+
+                for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_gen): 
+
+                    value = np.random.random() * 10 - 5
+                    local_act = self.ma_env.action_spaces[agent]({})
+                    local_act.set_storage = [(local_id, value)]
+
+                    global_act = self.ma_env._local_action_to_global(agent, local_act)
+
+                    global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
+                    ref_global_act = self.ma_env._cent_env.action_space({})
+                    ref_global_act.set_storage = [(global_id, value)]
+
+                    assert (global_act._storage_power == ref_global_act._storage_power).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                    assert global_act._modif_storage == ref_global_act._modif_storage, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+                    assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
         
     #TODO other actions 
     # V0
     # change_bus, done
-    # redispatch
-    # curtail
-    # change_line_status
-    # set_line_status
-    # set_storage
+    # redispatch done
+    # curtail done
+    # change_line_status done 
+    # set_line_status done
+    # set_storage done
     
     # TODO v0.1
     # Topo actions on interconnections

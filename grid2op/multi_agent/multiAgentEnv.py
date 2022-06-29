@@ -248,26 +248,29 @@ class MultiAgentEnv(RandomObject):
             converted_action._modif_change_status = True
             converted_action._switch_line_status[subgrid_type.line_orig_ids] = local_action._switch_line_status
         
-        #if local_action._modif_redispatch:
-        #    converted_action._modif_redispatch = True
-        #
-        #if local_action._modif_storage:
-        #    converted_action._modif_storage = True
-        #
-        #if local_action._modif_curtailment:
-        #    converted_action._modif_curtailment = True
-        #
+        if local_action._modif_redispatch:
+            converted_action._modif_redispatch = True
+            converted_action._redispatch[subgrid_type.gen_orig_ids] = local_action._redispatch
+        
+        if local_action._modif_storage:
+            converted_action._modif_storage = True
+            converted_action._storage_power[subgrid_type.gen_orig_ids] = local_action._storage_power
+        
+        if local_action._modif_curtailment:
+            converted_action._modif_curtailment = True
+            converted_action._curtail[subgrid_type.gen_orig_ids] = local_action._curtail
+        
         #if local_action._modif_alarm:
         #    converted_action._modif_alarm = True
         
         # V0
         # TODO set_bus done tested
         # TODO change_bus done tested
-        # TODO redispatch
-        # TODO curtail
+        # TODO redispatch done, tested
+        # TODO curtail done, tested
         # TODO change_line_status done tested
         # TODO set_line_status done tested
-        # TODO set_storage
+        # TODO set_storage done 
         
         # V inf
         # injection
