@@ -61,7 +61,7 @@ class SerializableSpace(GridObjects, RandomObject):
 
     """
 
-    def __init__(self, gridobj, subtype=object, _init_grid=True):
+    def __init__(self, gridobj, subtype=object, _init_grid=True, _extra_name=None):
         """
 
         subtype: ``type``
@@ -83,7 +83,7 @@ class SerializableSpace(GridObjects, RandomObject):
         RandomObject.__init__(self)
         self._init_subtype = subtype  # do not use, use to save restore only !!!
         if _init_grid:
-            self.subtype = subtype.init_grid(gridobj)
+            self.subtype = subtype.init_grid(gridobj, extra_name=_extra_name)
             from grid2op.Action import (
                 BaseAction,
             )  # lazy loading to prevent circular reference
