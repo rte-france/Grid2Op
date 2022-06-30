@@ -106,6 +106,7 @@ class MultiAgentEnv(RandomObject):
                       
  
         """
+        RandomObject.__init__(self)
         
         # added to the class name, if you want to build multiple ma environment with the same underlying environment
         self._add_to_name = _add_to_name  
@@ -163,6 +164,10 @@ class MultiAgentEnv(RandomObject):
             )
         )
         
+        self._cent_observation = None
+        self.__closed = False
+        self._has_just_been_seeded = False
+        
         
         self.agent_order = self.agents.copy()
         self.action_spaces = dict()
@@ -173,8 +178,15 @@ class MultiAgentEnv(RandomObject):
         
         
     def reset(self) -> MADict:
-        # TODO
-        raise NotImplementedError()
+        # TODO : done, tested
+        self._cumulative_rewards = dict(
+            zip(
+                self.agents, [0. for _ in range(self.num_agents)]
+            )
+        )
+        self._cent_observation = self._cent_env.reset()
+        self._update_observations()
+        return self.observations
     
     def _handle_illegal_action(self, reason):
         
@@ -223,8 +235,23 @@ class MultiAgentEnv(RandomObject):
             _description_
         """
         
-        # TODO
-        raise NotImplementedError()
+        order = self.agent_order
+        self._build_global_action(action, order)
+
+        self._cent_observation, reward, done, info = self._cent_env.step(self.global_action)
+        
+        self._dispatch_reward_done_info(reward, done, info)
+
+        self._update_observations()
+
+        return self.observations, self.rewards, self.done, self.info 
+    
+    def _dispatch_reward_done_info(self, reward, done, info):
+        for agent in self.agents:
+            self.rewards[agent] = reward
+            self._cumulative_rewards[agent] += reward
+            self.done[agent] = done
+            self.info[agent].update(copy.deepcopy(info))
     
     def _build_subgrids(self):
         self._subgrids_cls = {
@@ -277,9 +304,93 @@ class MultiAgentEnv(RandomObject):
         tmp_ = id_full_grid[mask]
         return new_label[tmp_]
     
-    def seed(self, seed):
-        # TODO
-        raise NotImplementedError()
+    def seed(self, seed = None, _seed_me = True):
+        """
+        Set the seed of this :class:`Environment` for a better control and to ease reproducible experiments.
+
+        Parameters
+        ----------
+        seed: ``int``
+           The seed to set.
+
+        _seed_me: ``bool``
+            Whether to seed this instance or just the other things. Used internally only.
+
+        Returns
+        ---------
+        seed: ``tuple``
+            The seed used to set the prng (pseudo random number generator) for the environment
+        seed_cent_env: ``tuple``
+            The seed used to set the prng for the chronics_handler (if any), otherwise ``None``
+        seed_obs: ``dict``
+            The seed used to set the prng for the observation space (if any), otherwise ``None``
+        seed_action_space: ``dict``
+            The seed used to set the prng for the action space (if any), otherwise ``None``
+
+
+        Examples
+        ---------
+
+        Seeding an environment should be done with:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+            env.seed(0)
+            obs = env.reset()
+
+        As long as the environment instance (variable `env` in the above code) is not `reset` the `env.seed` has no
+        real effect (but can have side effect).
+
+        For a full control on the seed mechanism it is more than advised to reset it after it has been seeded.
+
+        """
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+        
+        seed_init = None
+        seed_cent_env = None
+        seed_obs = dict()
+        seed_action_space = dict()
+            
+        if _seed_me:
+            max_int = np.iinfo(dt_int).max 
+            if seed > max_int:
+                raise Grid2OpException("Seed is too big. Max value is {}, provided value is {}".format(max_int, seed))
+
+            try:
+                seed = np.array(seed).astype(dt_int)
+            except Exception as exc_:
+                raise Grid2OpException(
+                    "Impossible to seed with the seed provided. Make sure it can be converted to a"
+                    "numpy 32 bits integer."
+                )
+            # example from gym
+            # self.np_random, seed = seeding.np_random(seed)
+            # inspiration from @ https://github.com/openai/gym/tree/master/gym/utils
+            seed_init = seed
+            super().seed(seed_init)
+            
+        max_seed = np.iinfo(dt_int).max  # 2**32 - 1
+        
+        seed = self.space_prng.randint(max_seed)
+        seed_cent_env = self._cent_env.seed(seed)
+        
+        for agent in self.agents:
+            seed = self.space_prng.randint(max_seed)
+            seed_obs[agent] = self.observation_spaces[agent].seed(seed)
+            
+            seed = self.space_prng.randint(max_seed)
+            seed_action_space[agent] = self.action_spaces[agent].seed(seed)
+            
+        self._has_just_been_seeded = True
+        return (
+            seed_init,
+            seed_cent_env,
+            seed_obs,
+            seed_action_space
+        )
     
     def _local_action_to_global(self, local_action : LocalAction) -> BaseAction :
         # Empty global action
@@ -623,8 +734,15 @@ class MultiAgentEnv(RandomObject):
         Args:
             observation (BaseObservation): _description_
         """
-        # TODO 
-        raise NotImplementedError()
+        if self.__closed:
+            raise EnvError("This environment is closed. You cannot use it anymore.")
+        if self._cent_observation is None:
+            raise EnvError(
+                "This environment is not initialized. You cannot retrieve its observation."
+            )
+        
+        for agent in self.agents:
+            self.observations[agent] = self._cent_observation.copy()
     
     def _verify_domains(self, domains : MADict) -> None:
         """It verifies if substation ids are valid
@@ -685,4 +803,18 @@ class MultiAgentEnv(RandomObject):
         """
         # observations are updated in reset and step methods
         return self.observations[agent]
+    
+    def close(self, return_sccess = False, print_success = True):
+        self.__closed = True
+        try:
+            self._cent_env.close()
+            if print_success:
+                print("MAEnv closed with success !")
+            if return_sccess:
+                return True
+        except Exception as e:
+            print("Something went wrong :")
+            print(e)
+            if return_sccess:
+                return False
             
