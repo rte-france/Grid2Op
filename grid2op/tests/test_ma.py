@@ -222,12 +222,13 @@ class MATesterGlobalObs(unittest.TestCase):
         # Test with 3 agents
         action_domains = {
             'test_2_agent_0' : [0,1, 2, 3, 4],
-            'test_2_agent_1' : [5, 6, 7, 8, 9],
             'test_2_agent_2' : [10, 11, 12, 13],
+            'test_2_agent_1' : [5, 6, 7, 8, 9],
             
         }
         ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name="test_build_subgrid_obj2")
         assert ma_env.agents == ['test_2_agent_0', 'test_2_agent_1', 'test_2_agent_2']
+        assert ma_env.agents != ['test_2_agent_0', 'test_2_agent_2', 'test_2_agent_1']
         assert ma_env.agent_order == ma_env.agents
         self.check_subgrid_consistency(ma_env, action_domains)
 
@@ -632,44 +633,25 @@ class MATesterGlobalObs(unittest.TestCase):
             assert len(ma_env.action_spaces[agent]({})._set_topo_vect)\
                 ==\
                     np.sum(ma_env._subgrids_cls['action'][agent].mask_orig_pos_topo_vect)
-                    
-            # Checks if they both have the same load_pos_topo_vect
-            assert (ma_env.action_spaces[agent].load_pos_topo_vect\
-                ==\
-                    ma_env._subgrids_cls['action'][agent].load_pos_topo_vect).all()
             
-            # Checks if they both have the same gen_pos_topo_vect
-            assert (ma_env.action_spaces[agent].gen_pos_topo_vect\
-                ==\
-                    ma_env._subgrids_cls['action'][agent].gen_pos_topo_vect).all()
+            for object in ['load', 'gen', 'line_or', 'line_ex', 'storage', 'interco']:
+                
+                # Checks if they both have the same object_pos_topo_vect
+                assert (getattr(ma_env.action_spaces[agent], f'{object}_pos_topo_vect')\
+                    ==\
+                        getattr(ma_env._subgrids_cls['action'][agent], f'{object}_pos_topo_vect')).all()
             
-            # Checks if they both have the same line_or_pos_topo_vect
-            assert (ma_env.action_spaces[agent].line_or_pos_topo_vect\
-                ==\
-                    ma_env._subgrids_cls['action'][agent].line_or_pos_topo_vect).all() 
-                    
-            # Checks if they both have the same line_ex_pos_topo_vect
-            assert (ma_env.action_spaces[agent].line_ex_pos_topo_vect\
-                ==\
-                    ma_env._subgrids_cls['action'][agent].line_ex_pos_topo_vect).all() 
-                    
-            # Checks if they both have the same storage_pos_topo_vect
-            assert (ma_env.action_spaces[agent].storage_pos_topo_vect\
-                ==\
-                    ma_env._subgrids_cls['action'][agent].storage_pos_topo_vect).all() 
-            
-            # Checks if they both have the same interco_pos_topo_vect
-            assert (ma_env.action_spaces[agent].interco_pos_topo_vect\
-                ==\
-                    ma_env._subgrids_cls['action'][agent].interco_pos_topo_vect).all() 
         
     def are_same_actions(self, a1, a2, type_action, 
                          add_msg = ""):
+        modif_type_action = f'_modif_{type_action}'
         # Checks both actions have the same action type
-        # meaning if the same 
+        # meaning if the same action is done, the array
+        # representing this action is the same in both
+        # actions.
         assert (getattr(a1, type_action) == getattr(a2, type_action)).all(), add_msg
         # Chacks if the same action type is applied 
-        assert getattr(a1, f'_modif_{type_action}') == getattr(a2, f'_modif_{type_action}'), add_msg
+        assert getattr(a1, modif_type_action) == getattr(a2, modif_type_action), add_msg
         # Checks if the actions are the same
         # meaning they have the same effect
         # on the grid
@@ -677,7 +659,7 @@ class MATesterGlobalObs(unittest.TestCase):
         
         
     def check_local2global(self, agent, n, orig_ids, type_action, is_set, value,
-                           assert_type = None, assert_modif = None):
+                           ):
         # We check for every local id if _local_action_to_global 
         # gives the correspondig global action on the same object
         # and they have the same effect.
@@ -686,17 +668,24 @@ class MATesterGlobalObs(unittest.TestCase):
             
             local_act = self.ma_env.action_spaces[agent]({})
             if is_set:
+                # We create the local action
                 setattr(local_act, type_action, [(local_id, value)])
             else:
+                # We create the local action
                 setattr(local_act, type_action, [local_id])
             
             global_act = self.ma_env._local_action_to_global(local_act)
             global_id = orig_ids[local_id]
             
             ref_global_act = self.ma_env._cent_env.action_space({})
+            # if an action is of type set (like set_bus, redispatch, ...)
+            # we give the tuple (id, value)
+            # otherwise we give only the id
             if is_set:
+                # We create the global action
                 setattr(ref_global_act, type_action, [(global_id, value)])
             else:
+                # We create the global action
                 setattr(ref_global_act, type_action, [global_id])
             
             self.are_same_actions(
@@ -711,6 +700,7 @@ class MATesterGlobalObs(unittest.TestCase):
                     
         
     def test_local_action_to_global_set_bus(self):
+        # tests for set bus actions
         
         # The global env must have at least one storage
         assert self.ma_env._cent_env.n_storage > 0
@@ -771,6 +761,8 @@ class MATesterGlobalObs(unittest.TestCase):
 
 
     def test_local_action_to_global_change_bus(self):
+        # tests for change bus actions
+        
         # The global env must have at least one storage
         assert self.ma_env._cent_env.n_storage > 0
         
@@ -830,7 +822,7 @@ class MATesterGlobalObs(unittest.TestCase):
         
     
     def test_local_action_to_global_change_line_status(self):
-        # TODO comments
+        # tests for change line status actions
         for agent in self.ma_env.agents:
             
             self.check_local2global(
@@ -844,7 +836,7 @@ class MATesterGlobalObs(unittest.TestCase):
             
             
     def test_local_action_to_global_set_line_status(self):
-        # TODO 
+        # tests for set line status actions
         for agent in self.ma_env.agents:
             
             self.check_local2global(
@@ -858,6 +850,8 @@ class MATesterGlobalObs(unittest.TestCase):
             
             
     def test_local_action_to_global_redispatch(self):
+        # tests for redispatch actions
+        
         # We should have at least one redispatchable generator
         assert (self.ma_env._cent_env.gen_redispatchable).any()
         
