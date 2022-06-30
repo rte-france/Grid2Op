@@ -248,25 +248,7 @@ class MATesterGlobalObs(unittest.TestCase):
         self.check_shunt(ma_env)
         self.check_mask_topo_vect(ma_env, action_domains)
         self.check_action_spaces(ma_env)
-        self.check_reset(ma_env)
-        self.check_dispatch_reward_done_info(ma_env)
-        
-    def check_reset(self, ma_env):
-        ma_env.reset()
-        for agent in ma_env.agents:
-            assert ma_env.observations[agent] is not ma_env._cent_observation
-            assert ma_env.observations[agent] == ma_env._cent_observation
-            
-    def check_dispatch_reward_done_info(self, ma_env):
-        reward = 42.
-        done = False
-        info = {'test' : True}
-        ma_env._dispatch_reward_done_info(reward, done, info)
 
-        for agent in ma_env.agents:
-            assert ma_env.rewards[agent] == reward
-            assert ma_env.done[agent] == done
-            assert ma_env.info[agent] == info
     
     def check_n_objects(self, ma_env, domain, space = 'action', add_msg = ""):
         # Check the number of objects in subgrids. The sum must be equal 
@@ -951,25 +933,6 @@ class MATesterGlobalObs(unittest.TestCase):
                 assert global_act._modif_storage == ref_global_act._modif_storage, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
                 assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
         
-    def test_step(self):
-        
-        np.random.seed(0)
-        cum_reward = 0
-        self.ma_env.reset()
-        for _ in range(10):
-            while True:
-                actions = dict(
-                    zip(
-                        self.ma_env.agents, 
-                        [self.ma_env.action_spaces[agent].sample() for agent in self.ma_env.agents]
-                    )
-                )
-                obs, rewards, dones, info = self.ma_env.step(actions)
-                if dones[self.ma_env.agents[0]]:
-                    self.ma_env.reset()
-                    break
-                
-        assert self.ma_env.close(return_sccess=True, print_success=False)
         
     #TODO other actions 
     # V0
