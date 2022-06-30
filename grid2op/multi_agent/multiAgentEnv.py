@@ -152,6 +152,16 @@ class MultiAgentEnv(RandomObject):
                 self.agents, [None for _ in range(self.num_agents)]
             )
         )
+        self.done = dict(
+            zip(
+                self.agents, [False for _ in range(self.num_agents)]
+            )
+        )
+        self.info = dict(
+            zip(
+                self.agents, [{} for _ in range(self.num_agents)]
+            )
+        )
         
         
         self.agent_order = self.agents.copy()
@@ -165,8 +175,39 @@ class MultiAgentEnv(RandomObject):
     def reset(self) -> MADict:
         # TODO
         raise NotImplementedError()
+    
+    def _handle_illegal_action(self, reason):
+        
+        for a in self.agents:
+            self.info[a]['action_is_illegal'] = True
+            self.info[a]['reason_illegal'] = reason
 
+    def _handle_ambiguous_action(self, except_tmp):
+        
+        for a in self.agents:
+            self.info[a]['is_ambiguous'] = True
+            self.info[a]['ambiguous_except_tmp'] = except_tmp
 
+    def _build_global_action(self, action : ActionProfile, order : list):
+        
+        self.global_action = self._cent_env.action_space({})
+        proposed_action = self.global_action.copy()
+        
+        for agent in order:
+            proposed_action += self._local_action_to_global(action[agent])
+
+        is_legal, reason = self._cent_env._game_rules(action=proposed_action, env=self._cent_env)
+        if not is_legal:
+            self._handle_illegal_action(reason)
+            
+        ambiguous, except_tmp = proposed_action.is_ambiguous()
+        if ambiguous:
+            self._handle_ambiguous_action(except_tmp)
+            
+        if is_legal and not ambiguous :
+            # If the proposed action is valid, we adopt it
+            #Otherwise, the global action stays unchanged
+            self.global_action = proposed_action.copy()
             
     def step(self, action : ActionProfile) -> Tuple[MADict, MADict, MADict, MADict]:
         """_summary_

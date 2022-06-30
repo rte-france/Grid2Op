@@ -10,6 +10,7 @@ import unittest
 import warnings
 from grid2op import make
 from grid2op.Action.PlayableAction import PlayableAction
+from grid2op.Parameters import Parameters
 from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
 import re
 import numpy as np
@@ -22,15 +23,22 @@ import pdb
 class MATesterGlobalObs(unittest.TestCase):
     def setUp(self) -> None:
         
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            self.env = make("educ_case14_storage", test=True,
-                            action_class=PlayableAction, _add_to_name="test_ma")
-
         self.action_domains = {
             'agent_0' : [0,1,2,3, 4],
             'agent_1' : [5,6,7,8,9,10,11,12,13]
         }
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            
+            custom_params = Parameters()
+            custom_params.MAX_SUB_CHANGED = len(self.action_domains.keys())
+            custom_params.MAX_LINE_STATUS_CHANGED = len(self.action_domains.keys())
+            
+            self.env = make("educ_case14_storage", test=True, param = custom_params,
+                            action_class=PlayableAction, _add_to_name="test_ma")
+
+        
         self.ma_env = MultiAgentEnv(self.env, self.action_domains)
         return super().setUp()
     
@@ -912,6 +920,76 @@ class MATesterGlobalObs(unittest.TestCase):
     # change_interco_status
     # set_...
 
+    def check_legal_actions(self):
+        # We create a legal action and check
+        # if _build_global_action gives the
+        # correct global_action
+        action = dict()
+        local_id = 0
+        for agent in self.ma_env.agents:
+            action[agent] = self.ma_env.action_spaces[agent]({})
+            action[agent].change_line_status = [local_id]
+        
+        self.ma_env._build_global_action(action, self.ma_env.agents)
+        
+        ref_action = self.ma_env._cent_env.action_space({})
+        ref_action.change_line_status = [
+            self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
+            for agent in self.ma_env.agents
+        ]
+        
+        # We check if the global action is the wanted action
+        assert ref_action == self.ma_env.global_action
+    
+    def check_illegal_actions(self):
+        # We create an illegal action and check
+        # if _build_global_action gives the
+        # do nothing
+        action = dict()
+        local_id = 0
+        for agent in self.ma_env.agents:
+            action[agent] = self.ma_env.action_spaces[agent]({})
+            action[agent].change_line_status = [local_id, local_id+1]
+        
+        self.ma_env._build_global_action(action, self.ma_env.agents)
+        
+        ref_action = self.ma_env._cent_env.action_space({})
+        # We check if the global action is do nothing
+        assert ref_action == self.ma_env.global_action
+        # We check if info is updated
+        assert (np.array([
+            self.ma_env.info[a]['action_is_illegal']
+            for a in self.ma_env.agents
+        ])).all()
+    
+    def check_ambiguous_actions(self):
+        # We create an ambiguous action and check
+        # if _build_global_action gives the
+        # do nothing
+        action = dict()
+        local_id = 0
+        for agent in self.ma_env.agents:
+            action[agent] = self.ma_env.action_spaces[agent]({})
+            # This is an ambiguous action. The curtailment ratio
+            # must be between 0 and 1
+            action[agent].curtail = [(local_id, 2)]
+        
+        self.ma_env._build_global_action(action, self.ma_env.agents)
+        
+        ref_action = self.ma_env._cent_env.action_space({})
+        # We check if the global action is do nothing
+        assert ref_action == self.ma_env.global_action
+        # We check if info is updated
+        assert (np.array([
+            self.ma_env.info[a]['is_ambiguous']
+            for a in self.ma_env.agents
+        ])).all()
+        
+    def test_build_global_action(self):
+        self.check_legal_actions()
+        self.check_illegal_actions()
+        self.check_ambiguous_actions()
+        
     
     def test_action_spaces(self):        
         action_domains = {
