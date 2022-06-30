@@ -528,6 +528,9 @@ class MultiAgentEnv(RandomObject):
         res_cls.assert_grid_correct_cls()
         return res_cls
     
+    #TODO BEN: check that cent env is initialized and not closed
+    #TODO BEN: update self.observations
+        
     def _get_cls_name_from_domain(self, domain=None, agent_name=None):
         if domain is not None and agent_name is None:
             extra_name = domain["agent_name"]
