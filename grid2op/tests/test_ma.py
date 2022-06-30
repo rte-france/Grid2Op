@@ -9,6 +9,7 @@
 import unittest
 import warnings
 from grid2op import make
+from grid2op.Action.PlayableAction import PlayableAction
 from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
 import re
 import numpy as np
@@ -23,7 +24,8 @@ class MATesterGlobalObs(unittest.TestCase):
         
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("l2rpn_case14_sandbox", test=True, _add_to_name="test_ma")
+            self.env = make("educ_case14_storage", test=True,
+                            action_class=PlayableAction, _add_to_name="test_ma")
 
         self.action_domains = {
             'agent_0' : [0,1,2,3, 4],
@@ -107,8 +109,9 @@ class MATesterGlobalObs(unittest.TestCase):
         assert (self.ma_env._action_domains['agent_0']['mask_gen'] == mask_gen_agent0).all()
         assert (self.ma_env._action_domains['agent_1']['mask_gen'] == ~mask_gen_agent0).all()
         # We compare the storage masks with known values for every agent
-        assert (self.ma_env._action_domains['agent_0']['mask_storage'] == []).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_storage'] == []).all()
+        mask_storage = np.array([False, False])
+        assert (self.ma_env._action_domains['agent_0']['mask_storage'] == mask_storage).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_storage'] == ~mask_storage).all()
         
         mask_line_ex_agent0 = np.array([ True,  True,  True,  True,  True,  True,  True, 
                                 False, False,False, False, False, False, False, False, 
@@ -280,7 +283,8 @@ class MATesterGlobalObs(unittest.TestCase):
                 ma_env._subgrids_cls[space][agent].n_gen+\
                 ma_env._subgrids_cls[space][agent].n_load+\
                 ma_env._subgrids_cls[space][agent].n_line*2+\
-                ma_env._subgrids_cls[space][agent].n_interco, add_msg
+                ma_env._subgrids_cls[space][agent].n_interco+\
+                ma_env._subgrids_cls[space][agent].n_storage, add_msg
         
             # The number of line_ex/line_or should be equal to the number of lines
             assert len(ma_env._subgrids_cls[space][agent].line_ex_to_subid) == ma_env._subgrids_cls[space][agent].n_line, add_msg
@@ -651,278 +655,245 @@ class MATesterGlobalObs(unittest.TestCase):
                 ==\
                     ma_env._subgrids_cls['action'][agent].interco_pos_topo_vect).all() 
         
-    def are_same_actions(self, a1, a2, type_action, add_msg = ""):
-        # TODO COMMENTS before each
+    def are_same_actions(self, a1, a2, type_action, 
+                         add_msg = ""):
+        # Checks both actions have the same action type
+        # meaning if the same 
+        assert (getattr(a1, type_action) == getattr(a2, type_action)).all(), add_msg
+        # Chacks if the same action type is applied 
+        assert getattr(a1, f'_modif_{type_action}') == getattr(a2, f'_modif_{type_action}'), add_msg
+        # Checks if the actions are the same
+        # meaning they have the same effect
+        # on the grid
         assert a1 == a2, add_msg
-        assert eval(f'(a1.{type_action} == a2.{type_action}).all()'), add_msg
-        assert eval(f'a1._modif_{type_action} == a2._modif_{type_action}'), add_msg
+        
+        
+    def check_local2global(self, agent, n, orig_ids, type_action, is_set, value,
+                           assert_type = None, assert_modif = None):
+        # We check for every local id if _local_action_to_global 
+        # gives the correspondig global action on the same object
+        # and they have the same effect.
+        
+        for local_id in range(n):
+            
+            local_act = self.ma_env.action_spaces[agent]({})
+            if is_set:
+                setattr(local_act, type_action, [(local_id, value)])
+            else:
+                setattr(local_act, type_action, [local_id])
+            
+            global_act = self.ma_env._local_action_to_global(local_act)
+            global_id = orig_ids[local_id]
+            
+            ref_global_act = self.ma_env._cent_env.action_space({})
+            if is_set:
+                setattr(ref_global_act, type_action, [(global_id, value)])
+            else:
+                setattr(ref_global_act, type_action, [global_id])
+            
+            self.are_same_actions(
+                global_act, ref_global_act, 'set_bus',
+                add_msg = f"""
+                    agent : {agent}, 
+                    local id : {local_id}, 
+                    global_id : {global_id},
+                    action type : {type_action}
+                """
+            )
+                    
         
     def test_local_action_to_global_set_bus(self):
-        # TODO remove random tests
-        np.random.seed(0)
+        
+        # The global env must have at least one storage
+        assert self.ma_env._cent_env.n_storage > 0
+        
         for agent in self.ma_env.agents:
+            
             # Test for loads
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_load):
-                
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.load_set_bus = [(local_id, 2)]
-                
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].load_orig_ids[local_id]
-                
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.load_set_bus = [(global_id, 2)]
-                
-                self.are_same_actions(
-                    global_act, ref_global_act, 'set_bus', 
-                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                )
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_load,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].load_orig_ids,
+                type_action = 'load_set_bus',
+                is_set = True,
+                value = 2
+            )
+
             
             # Test for gens
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_gen):
-
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.gen_set_bus = [(local_id, 2)]
-                
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
-                
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.gen_set_bus = [(global_id, 2)]
-                
-                self.are_same_actions(
-                    global_act, ref_global_act, 'set_bus', 
-                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                )
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_gen,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids,
+                type_action = 'gen_set_bus',
+                is_set = True,
+                value = 2
+            )
             
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_line):
-                # Test for line_ors
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.line_or_set_bus = [(local_id, 2)]
-                
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
-                
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.line_or_set_bus = [(global_id, 2)]
-                
-                self.are_same_actions(
-                    global_act, ref_global_act, 'set_bus', 
-                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                )
+            # Test for line_ors
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_line,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].line_orig_ids,
+                type_action = 'line_or_set_bus',
+                is_set = True,
+                value = 2
+            )
             
-                # Test for line_exs
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.line_ex_set_bus = [(local_id, 2)]
-                
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
-                
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.line_ex_set_bus = [(global_id, 2)]
-                
-                self.are_same_actions(
-                    global_act, ref_global_act, 'set_bus', 
-                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                )
+            # Test for line_exs
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_line,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].line_orig_ids,
+                type_action = 'line_ex_set_bus',
+                is_set = True,
+                value = 2
+            )
+            
             
             # Test for storages
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_storage):
-                
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.storage_set_bus = [(local_id, 2)]
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].storage_orig_ids[local_id]
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.storage_set_bus = [(global_id, 2)]
-                self.are_same_actions(
-                    global_act, ref_global_act, 'set_bus', 
-                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                )
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_storage,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].storage_orig_ids,
+                type_action = 'storage_set_bus',
+                is_set = True,
+                value = 2
+            )
+
 
     def test_local_action_to_global_change_bus(self):
-        # TODO remove randomness 
-        np.random.seed(0)
+        # The global env must have at least one storage
+        assert self.ma_env._cent_env.n_storage > 0
+        
         for agent in self.ma_env.agents:
+            
             # Test for loads
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_load):
-                
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.load_change_bus = [local_id]
-                
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].load_orig_ids[local_id]
-                
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.load_change_bus = [global_id]
-                
-                self.are_same_actions(
-                    global_act, ref_global_act, 'change_bus', 
-                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                )
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_load,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].load_orig_ids,
+                type_action = 'load_change_bus',
+                is_set = False,
+                value = 2
+            )
+
             
             # Test for gens
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_gen):
-
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.gen_change_bus = [local_id]
-                
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
-                
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.gen_change_bus = [global_id]
-                
-                self.are_same_actions(
-                    global_act, ref_global_act, 'change_bus', 
-                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                )
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_gen,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids,
+                type_action = 'gen_change_bus',
+                is_set = False,
+                value = 2
+            )
             
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_line):
-                # Test for line_ors
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.line_or_change_bus = [local_id]
-                
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
-                
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.line_or_change_bus = [global_id]
-                
-                self.are_same_actions(
-                    global_act, ref_global_act, 'change_bus', 
-                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                )
+            # Test for line_ors
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_line,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].line_orig_ids,
+                type_action = 'line_or_change_bus',
+                is_set = False,
+                value = 2
+            )
             
-                # Test for line_exs
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.line_ex_change_bus = [local_id]
-                
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
-                
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.line_ex_change_bus = [global_id]
-                
-                self.are_same_actions(
-                    global_act, ref_global_act, 'change_bus', 
-                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                )
+            # Test for line_exs
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_line,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].line_orig_ids,
+                type_action = 'line_ex_change_bus',
+                is_set = False,
+                value = 2
+            )
+            
             
             # Test for storages
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_storage):
-                
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.storage_change_bus = [local_id]
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].storage_orig_ids[local_id]
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.storage_change_bus = [global_id]
-                self.are_same_actions(
-                    global_act, ref_global_act, 'change_bus', 
-                    add_msg = f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                )
-                
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_storage,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].storage_orig_ids,
+                type_action = 'storage_change_bus',
+                is_set = False,
+                value = 2
+            )
+        
     
     def test_local_action_to_global_change_line_status(self):
-        # TODO 
-        np.random.seed(0)
+        # TODO comments
         for agent in self.ma_env.agents:
             
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_line) : 
-                
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.line_change_status = [local_id]
-
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-
-                global_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.line_change_status = [global_id]
-                
-                assert (global_act._switch_line_status == ref_global_act._switch_line_status).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                assert global_act._modif_change_status == ref_global_act._modif_change_status, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_line,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].line_orig_ids,
+                type_action = 'line_change_status',
+                is_set = False,
+                value = 2,
+            )
+            
             
     def test_local_action_to_global_set_line_status(self):
         # TODO 
-        np.random.seed(0)
         for agent in self.ma_env.agents:
             
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_line) : 
-                
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.line_set_status = [(local_id, -1)]
-
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-
-                global_id = self.ma_env._subgrids_cls['action'][agent].line_orig_ids[local_id]
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.line_set_status = [(global_id, -1)]
-                
-                assert (global_act._set_line_status == ref_global_act._set_line_status).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                assert global_act._modif_set_status == ref_global_act._modif_set_status, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_line,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].line_orig_ids,
+                type_action = 'line_set_status',
+                is_set = True,
+                value = -1,
+            )
+            
             
     def test_local_action_to_global_redispatch(self):
-        # TODO 
-        np.random.seed(0)
+        # We should have at least one redispatchable generator
+        assert (self.ma_env._cent_env.gen_redispatchable).any()
+        
         for agent in self.ma_env.agents:
             
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_gen): 
-                
-                amount = 0.42
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.redispatch = [(local_id, amount)]
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_gen,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids,
+                type_action = 'redispatch',
+                is_set = True,
+                value = 0.42,
+            )
 
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-
-                global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.redispatch = [(global_id, amount)]
-                
-                assert (global_act._redispatch == ref_global_act._redispatch).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                assert global_act._modif_redispatch == ref_global_act._modif_redispatch, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
                 
     def test_local_action_to_global_curtail(self):
-        # TODO 
+        
         for agent in self.ma_env.agents:
             
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_gen): 
-                
-                ratio_curtailment = 0.42
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.curtail = [(local_id, ratio_curtailment)]
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_gen,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids,
+                type_action = 'curtail',
+                is_set = True,
+                value = 0.42,
+            )
 
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-
-                global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.curtail = [(global_id, ratio_curtailment)]
-                
-                assert (global_act._curtail == ref_global_act._curtail).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                assert global_act._modif_curtailment == ref_global_act._modif_curtailment, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
                 
     def test_local_action_to_global_set_storage(self):
-        # TODO 
+        # We should have at least one storage unit
+        assert self.ma_env._cent_env.n_storage > 0
+        
         for agent in self.ma_env.agents:
-            for local_id in range(self.ma_env._subgrids_cls['action'][agent].n_storage):
-                 
-                value = 0.42
-                local_act = self.ma_env.action_spaces[agent]({})
-                local_act.set_storage = [(local_id, value)]
-                
-                global_act = self.ma_env._local_action_to_global(agent, local_act)
-                global_id = self.ma_env._subgrids_cls['action'][agent].gen_orig_ids[local_id]
-                
-                ref_global_act = self.ma_env._cent_env.action_space({})
-                ref_global_act.set_storage = [(global_id, value)]
-                
-                assert (global_act._storage_power == ref_global_act._storage_power).all(), f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                assert global_act._modif_storage == ref_global_act._modif_storage, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
-                assert global_act == ref_global_act, f"agent : {agent}, local id : {local_id}, global_id : {global_id}"
+            
+            self.check_local2global(
+                agent = agent,
+                n = self.ma_env._subgrids_cls['action'][agent].n_storage,
+                orig_ids = self.ma_env._subgrids_cls['action'][agent].storage_orig_ids,
+                type_action = 'storage_p',
+                is_set = True,
+                value = 0.42,
+            )
+
         
         
     #TODO other actions 
@@ -952,8 +923,11 @@ class MATesterGlobalObs(unittest.TestCase):
                                action_domains,
                                _add_to_name="_test_build_subgrid_obj")
         for agent in ma_env.agents:
+            # The action space must have the same dim_topo
+            # as its subgrid class
             assert ma_env.action_spaces[agent].dim_topo == ma_env._subgrids_cls[space][agent].dim_topo, f"wrong dimension of action space for agent {agent}"
             do_nothing = ma_env.action_spaces[agent]({})
+            # Same for any instance (action)
             assert do_nothing.dim_topo == ma_env._subgrids_cls[space][agent].dim_topo, f"wrong dimension of action for agent {agent}"
             
             # check name of classes are correct

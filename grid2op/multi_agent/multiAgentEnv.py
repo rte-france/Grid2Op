@@ -240,14 +240,15 @@ class MultiAgentEnv(RandomObject):
         # TODO
         raise NotImplementedError()
     
-    def _local_action_to_global(self, agent : AgentID, local_action : LocalAction) -> BaseAction :
-        # TODO delete agent
+    def _local_action_to_global(self, local_action : LocalAction) -> BaseAction :
         # Empty global action
         converted_action = self._cent_env.action_space({})
         subgrid_type = type(local_action)
         
-        # TODO comments
-        # We take local changes 
+        # We check for every action type if there's a change
+        # if it is the case, we take local changes and copy 
+        # them in the corresponding global positions for that
+        # action type via mask_orig_pos_topo_vect.
         if local_action._modif_set_bus:
             converted_action._modif_set_bus = True
             converted_action._set_topo_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._set_topo_vect
@@ -270,7 +271,7 @@ class MultiAgentEnv(RandomObject):
         
         if local_action._modif_storage:
             converted_action._modif_storage = True
-            converted_action._storage_power[subgrid_type.gen_orig_ids] = local_action._storage_power
+            converted_action._storage_power[subgrid_type.storage_orig_ids] = local_action._storage_power
         
         if local_action._modif_curtailment:
             converted_action._modif_curtailment = True
@@ -291,7 +292,7 @@ class MultiAgentEnv(RandomObject):
         # maintenance
         # alarm
         
-        return converted_action
+        return converted_action.copy()
     
     def _build_subgrid_cls_from_domain(self, domain):                
         cent_env_cls = type(self._cent_env)
@@ -643,18 +644,4 @@ class MultiAgentEnv(RandomObject):
         """
         # observations are updated in reset and step methods
         return self.observations[agent]
-    
-    def close(self, return_sccess = False, print_success = True):
-        self.__closed = True
-        try:
-            self._cent_env.close()
-            if print_success:
-                print("MAEnv closed with success !")
-            if return_sccess:
-                return True
-        except Exception as e:
-            print("Something went wrong :")
-            print(e)
-            if return_sccess:
-                return False
             
