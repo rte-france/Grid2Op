@@ -152,19 +152,7 @@ class MultiAgentEnv(RandomObject):
                 self.agents, [None for _ in range(self.num_agents)]
             )
         )
-        self.done = dict(
-            zip(
-                self.agents, [False for _ in range(self.num_agents)]
-            )
-        )
-        self.info = dict(
-            zip(
-                self.agents, [{} for _ in range(self.num_agents)]
-            )
-        )
         
-        self._cent_observation = None
-        self.__closed = False
         
         self.agent_order = self.agents.copy()
         self.action_spaces = dict()
@@ -253,11 +241,13 @@ class MultiAgentEnv(RandomObject):
         raise NotImplementedError()
     
     def _local_action_to_global(self, agent : AgentID, local_action : LocalAction) -> BaseAction :
-        # TODO
+        # TODO delete agent
         # Empty global action
         converted_action = self._cent_env.action_space({})
         subgrid_type = type(local_action)
         
+        # TODO comments
+        # We take local changes 
         if local_action._modif_set_bus:
             converted_action._modif_set_bus = True
             converted_action._set_topo_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._set_topo_vect
