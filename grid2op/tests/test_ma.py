@@ -260,6 +260,32 @@ class MATesterGlobalObs(unittest.TestCase):
         self.check_shunt(ma_env)
         self.check_mask_topo_vect(ma_env, action_domains)
         self.check_action_spaces(ma_env)
+        self.check_reset(ma_env)
+        self.check_dispatch_reward_done_info(ma_env)
+        
+    def check_reset(self, ma_env):
+        ma_env.reset()
+        for agent in ma_env.agents:
+            # We check if the _cent_observation is copied and not pointed
+            assert ma_env.observations[agent] is not ma_env._cent_observation
+            # We check if observations have same values
+            assert ma_env.observations[agent] == ma_env._cent_observation
+            
+    def check_dispatch_reward_done_info(self, ma_env):
+        reward = 42.
+        done = False
+        info = {'test' : True}
+        ma_env._dispatch_reward_done_info(reward, done, info)
+
+        for agent in ma_env.agents:
+            # We check if rewards have same values
+            assert ma_env.rewards[agent] == reward
+            # We check if dones have same values
+            assert ma_env.done[agent] == done
+            # We check if infos have same values
+            assert ma_env.info[agent] == info
+            # We check if infos are copied and not pointed
+            assert ma_env.info[agent] is not info
 
     
     def check_n_objects(self, ma_env, domain, space = 'action', add_msg = ""):
@@ -1005,6 +1031,28 @@ class MATesterGlobalObs(unittest.TestCase):
             # check name of classes are correct
             assert re.sub("^SubGridAction", "", type(do_nothing).__name__) == re.sub("^SubGridActionSpace", "", type(ma_env.action_spaces[agent]).__name__)
 
+    
+    def test_step(self):
+        
+        np.random.seed(0)
+        self.ma_env.seed(0)
+        cum_reward = 0
+        self.ma_env.reset()
+        for _ in range(10):
+            while True:
+                actions = dict(
+                    zip(
+                        self.ma_env.agents, 
+                        [self.ma_env.action_spaces[agent].sample() for agent in self.ma_env.agents]
+                    )
+                )
+                obs, rewards, dones, info = self.ma_env.step(actions)
+                if dones[self.ma_env.agents[0]]:
+                    self.ma_env.reset()
+                    break
+                
+        # We check if the ma_env is correctly closed
+        assert self.ma_env.close(return_sccess=True, print_success=False)
         
 if __name__ == "__main__":
     unittest.main()

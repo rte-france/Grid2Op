@@ -26,7 +26,36 @@ class SubGridActionSpace(SubGridObjects, ActionSpace):
                              actionClass=actionClass,
                              _extra_name=agent_name)
     
+    def _get_possible_action_types(self):
+        """Overrides an ActionSpace's method
+
+        Returns
+        -------
+        list
+            All possible action types
+        """
+        rnd_types = []
+        cls = type(self)
+        if self.n_line > 0: #TODO interco v0.1
+            if "set_line_status" in self.actionClass.authorized_keys:
+                rnd_types.append(cls.SET_STATUS_ID)
+            if "change_line_status" in self.actionClass.authorized_keys:
+                rnd_types.append(cls.CHANGE_STATUS_ID)
+            if "set_bus" in self.actionClass.authorized_keys:
+                rnd_types.append(cls.SET_BUS_ID)
+            if "change_bus" in self.actionClass.authorized_keys:
+                rnd_types.append(cls.CHANGE_BUS_ID)
         
+        if self.n_gen > 0 and (self.gen_redispatchable).any():
+            if "redispatch" in self.actionClass.authorized_keys:
+                rnd_types.append(cls.REDISPATCHING_ID)
+                
+        if self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
+            rnd_types.append(cls.STORAGE_POWER_ID)
+            
+        if self.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
+            rnd_types.append(cls.RAISE_ALARM_ID)
+        return rnd_types
          
         
 # TODO (later) make that a "metaclass" with argument the ActionType (here playable action)
