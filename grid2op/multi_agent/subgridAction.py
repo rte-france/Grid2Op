@@ -25,7 +25,9 @@ class SubGridActionSpace(SubGridObjects, ActionSpace):
                              legal_action=legal_action,
                              actionClass=actionClass,
                              _extra_name=agent_name)
+    
         
+         
         
 # TODO (later) make that a "metaclass" with argument the ActionType (here playable action)
 class SubGridAction(SubGridObjects, PlayableAction):

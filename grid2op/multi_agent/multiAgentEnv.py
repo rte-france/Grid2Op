@@ -152,6 +152,8 @@ class MultiAgentEnv(RandomObject):
                 self.agents, [None for _ in range(self.num_agents)]
             )
         )
+        
+        
         self.agent_order = self.agents.copy()
         self.action_spaces = dict()
         self.observation_spaces = dict()
@@ -161,12 +163,25 @@ class MultiAgentEnv(RandomObject):
         
         
     def reset(self) -> MADict:
-        # TODO : done, need tests
-        self._cent_env.reset()
-        self._update_observations(_update_state=False)
-        return self.observations
-    
+        # TODO
+        raise NotImplementedError()
+
+
+            
     def step(self, action : ActionProfile) -> Tuple[MADict, MADict, MADict, MADict]:
+        """_summary_
+
+        Parameters
+        ----------
+        action : ActionProfile
+            _description_
+
+        Returns
+        -------
+        Tuple[MADict, MADict, MADict, MADict]
+            _description_
+        """
+        
         # TODO
         raise NotImplementedError()
     
@@ -225,18 +240,60 @@ class MultiAgentEnv(RandomObject):
         # TODO
         raise NotImplementedError()
     
-    def _local_action_to_global(self, agent : AgentID, local_action : LocalAction) -> BaseAction :
-        # TODO
+    def _local_action_to_global(self, local_action : LocalAction) -> BaseAction :
         # Empty global action
         converted_action = self._cent_env.action_space({})
         subgrid_type = type(local_action)
         
+        # We check for every action type if there's a change
+        # if it is the case, we take local changes and copy 
+        # them in the corresponding global positions for that
+        # action type via mask_orig_pos_topo_vect.
         if local_action._modif_set_bus:
             converted_action._modif_set_bus = True
             converted_action._set_topo_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._set_topo_vect
         
-        return converted_action
-
+        if local_action._modif_change_bus:
+            converted_action._modif_change_bus = True
+            converted_action._change_bus_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._change_bus_vect
+            
+        if local_action._modif_set_status:
+            converted_action._modif_set_status = True
+            converted_action._set_line_status[subgrid_type.line_orig_ids] = local_action._set_line_status
+            
+        if local_action._modif_change_status:
+            converted_action._modif_change_status = True
+            converted_action._switch_line_status[subgrid_type.line_orig_ids] = local_action._switch_line_status
+        
+        if local_action._modif_redispatch:
+            converted_action._modif_redispatch = True
+            converted_action._redispatch[subgrid_type.gen_orig_ids] = local_action._redispatch
+        
+        if local_action._modif_storage:
+            converted_action._modif_storage = True
+            converted_action._storage_power[subgrid_type.storage_orig_ids] = local_action._storage_power
+        
+        if local_action._modif_curtailment:
+            converted_action._modif_curtailment = True
+            converted_action._curtail[subgrid_type.gen_orig_ids] = local_action._curtail
+        
+        # V0
+        # TODO set_bus done tested
+        # TODO change_bus done tested
+        # TODO redispatch done, tested
+        # TODO curtail done, tested
+        # TODO change_line_status done tested
+        # TODO set_line_status done tested
+        # TODO set_storage done 
+        
+        # V inf
+        # injection
+        # hazards
+        # maintenance
+        # alarm
+        
+        return converted_action.copy()
+    
     def _build_subgrid_cls_from_domain(self, domain):                
         cent_env_cls = type(self._cent_env)
         tmp_subgrid = SubGridObjects()
@@ -471,6 +528,9 @@ class MultiAgentEnv(RandomObject):
         res_cls.assert_grid_correct_cls()
         return res_cls
     
+    #TODO BEN: check that cent env is initialized and not closed
+    #TODO BEN: update self.observations
+        
     def _get_cls_name_from_domain(self, domain=None, agent_name=None):
         if domain is not None and agent_name is None:
             extra_name = domain["agent_name"]
@@ -525,12 +585,7 @@ class MultiAgentEnv(RandomObject):
         Args:
             observation (BaseObservation): _description_
         """
-        #for agent in self.agents:
-        #    self.observations[agent] = observation.copy()
-        
-        #TODO BEN: check that cent env is initialized and not closed
-        #TODO BEN: update self.observations
-        
+        # TODO 
         raise NotImplementedError()
     
     def _verify_domains(self, domains : MADict) -> None:
@@ -592,3 +647,4 @@ class MultiAgentEnv(RandomObject):
         """
         # observations are updated in reset and step methods
         return self.observations[agent]
+            
