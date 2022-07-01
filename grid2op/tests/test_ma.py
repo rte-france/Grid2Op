@@ -1065,12 +1065,10 @@ class MATesterGlobalObs(unittest.TestCase):
         self.ma_env.reset()
         for _ in range(10):
             while True:
-                actions = dict(
-                    zip(
-                        self.ma_env.agents, 
-                        [self.ma_env.action_spaces[agent].sample() for agent in self.ma_env.agents]
-                    )
-                )
+                actions = {
+                    agent : self.ma_env.action_spaces[agent].sample()
+                    for agent in self.ma_env.agents
+                }
                 obs, rewards, dones, info = self.ma_env.step(actions)
                 if dones[self.ma_env.agents[0]]:
                     self.ma_env.reset()

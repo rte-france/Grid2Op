@@ -74,10 +74,6 @@ class MultiAgentEnv(RandomObject):
             * rewards (MADict) : 
                 - keys : agents' names
                 - values : agent's reward
-            
-            * _cumulative_rewards (MADict) :
-                - keys : agents' names
-                - values : agent's cumulative reward in the episode
                 
             * observation (MADict) :
                 - keys : agents' names
@@ -168,11 +164,6 @@ class MultiAgentEnv(RandomObject):
                 self.agents, [0. for _ in range(self.num_agents)]
             )
         )
-        self._cumulative_rewards = dict(
-            zip(
-                self.agents, [0. for _ in range(self.num_agents)]
-            )
-        )
         self.observations = dict(
             zip(
                 self.agents, [None for _ in range(self.num_agents)]
@@ -201,11 +192,6 @@ class MultiAgentEnv(RandomObject):
         
     def reset(self) -> MADict:
         # TODO : done, tested
-        self._cumulative_rewards = dict(
-            zip(
-                self.agents, [0. for _ in range(self.num_agents)]
-            )
-        )
         self._cent_observation = self._cent_env.reset()
         self._update_observations()
         return self.observations
@@ -214,13 +200,12 @@ class MultiAgentEnv(RandomObject):
         
         for a in self.agents:
             self.info[a]['action_is_illegal'] = True
-            self.info[a]['reason_illegal'] = reason
+            self.info[a]['reason_illegal'] = copy.deepcopy(reason)
 
     def _handle_ambiguous_action(self, except_tmp):
         
         for a in self.agents:
             self.info[a]['is_ambiguous'] = True
-            self.info[a]['ambiguous_except_tmp'] = except_tmp
 
     def _build_global_action(self, action : ActionProfile, order : list):
         
@@ -275,7 +260,6 @@ class MultiAgentEnv(RandomObject):
     def _dispatch_reward_done_info(self, reward, done, info):
         for agent in self.agents:
             self.rewards[agent] = reward
-            self._cumulative_rewards[agent] += reward
             self.done[agent] = done
             self.info[agent].update(copy.deepcopy(info))
     
