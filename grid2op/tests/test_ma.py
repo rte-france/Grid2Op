@@ -664,6 +664,9 @@ class MATesterGlobalObs(unittest.TestCase):
         # gives the correspondig global action on the same object
         # and they have the same effect.
         
+        # We check if lengths match 
+        assert n == len(orig_ids)
+        
         for local_id in range(n):
             
             local_act = self.ma_env.action_spaces[agent]({})
