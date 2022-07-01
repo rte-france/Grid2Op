@@ -31,11 +31,7 @@ class MATesterGlobalObs(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             
-            custom_params = Parameters()
-            custom_params.MAX_SUB_CHANGED = len(self.action_domains.keys())
-            custom_params.MAX_LINE_STATUS_CHANGED = len(self.action_domains.keys())
-            
-            self.env = make("educ_case14_storage", test=True, param = custom_params,
+            self.env = make("educ_case14_storage", test=True,
                             action_class=PlayableAction, _add_to_name="test_ma")
 
         
@@ -950,9 +946,10 @@ class MATesterGlobalObs(unittest.TestCase):
         
         self.ma_env._build_global_action(action, self.ma_env.agents)
         
-        ref_action = self.ma_env._cent_env.action_space({})
+        do_nothing = self.ma_env._cent_env.action_space({})
+        
         # We check if the global action is do nothing
-        assert ref_action == self.ma_env.global_action
+        assert do_nothing == self.ma_env.global_action
         # We check if info is updated
         assert (np.array([
             self.ma_env.info[a]['action_is_illegal']
@@ -973,9 +970,9 @@ class MATesterGlobalObs(unittest.TestCase):
         
         self.ma_env._build_global_action(action, self.ma_env.agents)
         
-        ref_action = self.ma_env._cent_env.action_space({})
+        do_nothing = self.ma_env._cent_env.action_space({})
         # We check if the global action is do nothing
-        assert ref_action == self.ma_env.global_action
+        assert do_nothing == self.ma_env.global_action
         # We check if info is updated
         assert (np.array([
             self.ma_env.info[a]['is_ambiguous']

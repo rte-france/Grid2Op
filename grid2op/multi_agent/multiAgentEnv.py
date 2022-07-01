@@ -6,19 +6,16 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
 import copy
 from typing import Optional, Tuple
 import warnings
 import numpy as np
 from grid2op.Environment.Environment import Environment
 
-import grid2op
 from grid2op.Exceptions.EnvExceptions import EnvError
-from grid2op.Space.GridObjects import GridObjects
+from grid2op.Parameters import Parameters
 from grid2op.Space.RandomObject import RandomObject
 from grid2op.dtypes import dt_bool, dt_int
-from grid2op.Action import ActionSpace
 from grid2op.multi_agent.subGridObjects import SubGridObjects
 from grid2op.Action import BaseAction
 
@@ -26,14 +23,13 @@ from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, LocalAction, L
 from grid2op.multi_agent.multi_agentExceptions import *
 from grid2op.multi_agent.subgridAction import SubGridAction, SubGridActionSpace
 
-import pdb
-
 
 class MultiAgentEnv(RandomObject):
     def __init__(self,
                  env : Environment,
                  action_domains : MADict,
                  observation_domains : MADict = None,
+                 params = None,
                  agent_order_fn = lambda x : x, #TODO BEN
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
@@ -118,6 +114,35 @@ class MultiAgentEnv(RandomObject):
         self._verify_domains(action_domains)
         self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
         self.num_agents = len(action_domains)
+        
+        # Updating parameters
+        if params is None:
+            # TODO complete default parameters
+            self.parameters = self._cent_env.parameters
+            self.parameters.MAX_SUB_CHANGED = self.num_agents
+            self.parameters.MAX_LINE_STATUS_CHANGED = self.num_agents
+
+            self._cent_env.change_parameters(self.parameters)
+            
+            print("Rules can not be changed in this version.")
+            
+            if copy_env:
+                self._cent_env.reset()
+            else:
+                warnings("The central env has been reset !")
+            
+            assert self._cent_env.parameters.MAX_LINE_STATUS_CHANGED == self.num_agents
+            
+        else:
+            # TODO MA
+            raise NotImplementedError("Multi-agent parameters are not available yet.")
+            if not isinstance(params, Parameters):
+                raise Grid2OpException(f"Parameters must be of type grid2op.Prameters.Parameters but {type(params)} is given")
+            
+            self.parameters = params
+            self._cent_env.change_parameters(self.parameters)
+
+        
         
         if observation_domains is not None:
             # user specified an observation domain
