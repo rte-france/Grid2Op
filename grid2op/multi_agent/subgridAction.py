@@ -41,10 +41,11 @@ class SubGridActionSpace(SubGridObjects, ActionSpace):
                 rnd_types.append(cls.SET_STATUS_ID)
             if "change_line_status" in self.actionClass.authorized_keys:
                 rnd_types.append(cls.CHANGE_STATUS_ID)
-            if "set_bus" in self.actionClass.authorized_keys:
-                rnd_types.append(cls.SET_BUS_ID)
-            if "change_bus" in self.actionClass.authorized_keys:
-                rnd_types.append(cls.CHANGE_BUS_ID)
+        
+        if "set_bus" in self.actionClass.authorized_keys:
+            rnd_types.append(cls.SET_BUS_ID)
+        if "change_bus" in self.actionClass.authorized_keys:
+            rnd_types.append(cls.CHANGE_BUS_ID)
         
         if self.n_gen > 0 and (self.gen_redispatchable).any():
             if "redispatch" in self.actionClass.authorized_keys:

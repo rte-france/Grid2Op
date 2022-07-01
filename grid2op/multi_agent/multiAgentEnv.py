@@ -125,12 +125,12 @@ class MultiAgentEnv(RandomObject):
 
             self._cent_env.change_parameters(self.parameters)
             
-            print("Rules can not be changed in this version.")
+            warnings.warn("Rules can not be changed in this version.")
             
             if copy_env:
                 self._cent_env.reset()
             else:
-                warnings("The central env has been reset !")
+                warnings.warn("The central env has been reset !")
             
             assert self._cent_env.parameters.MAX_LINE_STATUS_CHANGED == self.num_agents
             
