@@ -2486,9 +2486,17 @@ class BaseAction(GridObjects):
                     obj_id = l_id
                     objt_type = "storage"
                     array_subid = self.storage_to_subid
+                    
+        if obj_id is None:
+            # handle possibly other elements
+            obj_id, objt_type, array_subid = self._obj_caract_from_topo_id_others(id_)
+            
         substation_id = array_subid[obj_id]
         return obj_id, objt_type, substation_id
 
+    def _obj_caract_from_topo_id_others(self, id_):
+        pass
+    
     def __str__(self) -> str:
         """
         This utility allows printing in a human-readable format what objects will be impacted by the action.
