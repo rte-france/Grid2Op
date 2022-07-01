@@ -331,8 +331,33 @@ class MultiAgentEnv(RandomObject):
         return new_label[tmp_]
     
     def seed(self, seed):
+
+        seed_init = seed
+
+        max_seed = np.iinfo(dt_int).max  # 2**32 - 1
+
+        super().seed(seed)
+
+        seed = self.space_prng.randint(max_seed)
+        seed_cent_env = self._cent_env.seed(seed)
+
+        seed_observation_space = []
+        seed_action_space = []
+
+        for agent in sorted(self.agents):
+            seed = self.space_prng.randint(max_seed)
+            seed_observation_space.append(self.observation_spaces[agent].seed(seed))
+
+            seed = self.space_prng.randint(max_seed)
+            seed_action_space.append(self.action_spaces[agent].seed(seed))
+
+        return (
+            seed_init,
+            seed_cent_env,
+            seed_observation_space,
+            seed_action_space
+        )
         
-        raise NotImplementedError()
     
     def _local_action_to_global(self, local_action : LocalAction) -> BaseAction :
         # Empty global action

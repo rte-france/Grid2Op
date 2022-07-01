@@ -1061,8 +1061,7 @@ class MATesterGlobalObs(unittest.TestCase):
     
     def test_step(self):
         
-        np.random.seed(0)
-        # TODO seed
+        self.ma_env.seed(0)
         self.ma_env.reset()
         for _ in range(10):
             while True:
