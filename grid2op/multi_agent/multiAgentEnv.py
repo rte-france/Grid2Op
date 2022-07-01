@@ -190,16 +190,20 @@ class MultiAgentEnv(RandomObject):
 
     def _build_global_action(self, action : ActionProfile, order : list):
         
+        # The global action is do nothing at the beginning
         self.global_action = self._cent_env.action_space({})
         proposed_action = self.global_action.copy()
         
         for agent in order:
+            # We translate and add local actions one by one
             proposed_action += self._local_action_to_global(action[agent])
 
+        # We check if the resulted action is illegal
         is_legal, reason = self._cent_env._game_rules(action=proposed_action, env=self._cent_env)
         if not is_legal:
             self._handle_illegal_action(reason)
             
+        # We check if the resulted action is ambiguous
         ambiguous, except_tmp = proposed_action.is_ambiguous()
         if ambiguous:
             self._handle_ambiguous_action(except_tmp)
