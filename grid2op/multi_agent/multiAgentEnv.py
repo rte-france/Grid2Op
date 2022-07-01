@@ -304,91 +304,31 @@ class MultiAgentEnv(RandomObject):
         tmp_ = id_full_grid[mask]
         return new_label[tmp_]
     
-    def seed(self, seed = None, _seed_me = True):
-        """
-        Set the seed of this :class:`Environment` for a better control and to ease reproducible experiments.
-
-        Parameters
-        ----------
-        seed: ``int``
-           The seed to set.
-
-        _seed_me: ``bool``
-            Whether to seed this instance or just the other things. Used internally only.
-
-        Returns
-        ---------
-        seed: ``tuple``
-            The seed used to set the prng (pseudo random number generator) for the environment
-        seed_cent_env: ``tuple``
-            The seed used to set the prng for the chronics_handler (if any), otherwise ``None``
-        seed_obs: ``dict``
-            The seed used to set the prng for the observation space (if any), otherwise ``None``
-        seed_action_space: ``dict``
-            The seed used to set the prng for the action space (if any), otherwise ``None``
-
-
-        Examples
-        ---------
-
-        Seeding an environment should be done with:
-
-        .. code-block:: python
-
-            import grid2op
-            env = grid2op.make()
-            env.seed(0)
-            obs = env.reset()
-
-        As long as the environment instance (variable `env` in the above code) is not `reset` the `env.seed` has no
-        real effect (but can have side effect).
-
-        For a full control on the seed mechanism it is more than advised to reset it after it has been seeded.
-
-        """
-        if self.__closed:
-            raise EnvError("This environment is closed. You cannot use it anymore.")
+    def seed(self, seed):
         
-        seed_init = None
-        seed_cent_env = None
-        seed_obs = dict()
-        seed_action_space = dict()
-            
-        if _seed_me:
-            max_int = np.iinfo(dt_int).max 
-            if seed > max_int:
-                raise Grid2OpException("Seed is too big. Max value is {}, provided value is {}".format(max_int, seed))
-
-            try:
-                seed = np.array(seed).astype(dt_int)
-            except Exception as exc_:
-                raise Grid2OpException(
-                    "Impossible to seed with the seed provided. Make sure it can be converted to a"
-                    "numpy 32 bits integer."
-                )
-            # example from gym
-            # self.np_random, seed = seeding.np_random(seed)
-            # inspiration from @ https://github.com/openai/gym/tree/master/gym/utils
-            seed_init = seed
-            super().seed(seed_init)
-            
+        seed_init = seed
+        
         max_seed = np.iinfo(dt_int).max  # 2**32 - 1
+        
+        super().seed(seed)
         
         seed = self.space_prng.randint(max_seed)
         seed_cent_env = self._cent_env.seed(seed)
         
-        for agent in self.agents:
+        seed_observation_space = []
+        seed_action_space = []
+        
+        for agent in sorted(self.agents):
             seed = self.space_prng.randint(max_seed)
-            seed_obs[agent] = self.observation_spaces[agent].seed(seed)
+            seed_observation_space.append(self.observation_spaces[agent].seed(seed))
             
             seed = self.space_prng.randint(max_seed)
-            seed_action_space[agent] = self.action_spaces[agent].seed(seed)
+            seed_action_space.append(self.action_spaces[agent].seed(seed))
             
-        self._has_just_been_seeded = True
         return (
             seed_init,
             seed_cent_env,
-            seed_obs,
+            seed_observation_space,
             seed_action_space
         )
     
