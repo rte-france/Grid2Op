@@ -625,25 +625,29 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_or_pos_topo_vect[tmp_subgrid.mask_interco][tmp_subgrid.interco_is_origin]] = True
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_interco][~tmp_subgrid.interco_is_origin]] = True
         
-        extra_name = self._get_cls_name_from_domain(domain)
+        extra_name = self._get_cls_name_from_domain()
         res_cls = SubGridObjects.init_grid(gridobj=tmp_subgrid, extra_name=extra_name)
-
         # make sure the class is consistent
         res_cls.assert_grid_correct_cls()
         return res_cls
     
     def _get_cls_name_from_domain(self, domain=None, agent_name=None):
+        extra_name = ""
         if domain is not None and agent_name is None:
             extra_name = domain["agent_name"]
         elif agent_name is not None and domain is None:
             extra_name = agent_name
-        elif agent_name is None and domain is None:
-            raise EnvError("give at least agent_name or domain")
-        else:
+        # elif agent_name is None and domain is None:
+        #     raise EnvError("give at least agent_name or domain")
+        elif agent_name is not None and domain is not None:
             raise EnvError("give exactly one of agent_name or domain")
         
         if self._add_to_name is not None:
             extra_name += f"{self._add_to_name}"
+        
+        if extra_name == "":
+            extra_name = None
+            
         return extra_name
     
     def _build_observation_spaces(self):
@@ -670,8 +674,9 @@ class MultiAgentEnv(RandomObject):
         # TODO may be coded, tests not done
         for agent_nm in self.agents: 
             this_subgrid = self._subgrids_cls['action'][agent_nm]
-            extra_name = self._get_cls_name_from_domain(agent_name=agent_nm)
-            _cls_agent_action_space = SubGridActionSpace.init_grid(gridobj=this_subgrid, extra_name=extra_name)
+            extra_name = self._get_cls_name_from_domain()
+            _cls_agent_action_space = SubGridActionSpace.init_grid(gridobj=this_subgrid,
+                                                                   extra_name=extra_name)
             self.action_spaces[agent_nm] = _cls_agent_action_space(
                 gridobj=this_subgrid,
                 agent_name=extra_name,
