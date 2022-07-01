@@ -1035,8 +1035,7 @@ class MATesterGlobalObs(unittest.TestCase):
     def test_step(self):
         
         np.random.seed(0)
-        self.ma_env.seed(0)
-        cum_reward = 0
+        # TODO seed
         self.ma_env.reset()
         for _ in range(10):
             while True:
@@ -1051,34 +1050,7 @@ class MATesterGlobalObs(unittest.TestCase):
                     self.ma_env.reset()
                     break
                 
-        # We check if the ma_env is correctly closed
-        assert self.ma_env.close(return_sccess=True, print_success=False)
         
-    def test_step(self):
-        from grid2op.Agent import RandomAgent
-        
-        
-        np.random.seed(0)
-        self.ma_env.seed(0)
-        cum_reward = 0
-        self.ma_env.reset()
-        ra = RandomAgent(self.ma_env.action_spaces['agent_0'])
-        
-        for _ in range(10):
-            while True:
-                actions = dict(
-                    zip(
-                        self.ma_env.agents, 
-                        [self.ma_env.action_spaces[agent].sample() for agent in self.ma_env.agents]
-                    )
-                )
-                obs, rewards, dones, info = self.ma_env.step(actions)
-                if dones[self.ma_env.agents[0]]:
-                    self.ma_env.reset()
-                    break
-                
-        # We check if the ma_env is correctly closed
-        assert self.ma_env.close(return_sccess=True, print_success=False)
         
 if __name__ == "__main__":
     unittest.main()

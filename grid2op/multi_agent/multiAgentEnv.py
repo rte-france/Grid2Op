@@ -165,9 +165,6 @@ class MultiAgentEnv(RandomObject):
         )
         
         self._cent_observation = None
-        self.__closed = False
-        self._has_just_been_seeded = False
-        
         
         self.agent_order = self.agents.copy()
         self.action_spaces = dict()
@@ -306,31 +303,7 @@ class MultiAgentEnv(RandomObject):
     
     def seed(self, seed):
         
-        seed_init = seed
-        
-        max_seed = np.iinfo(dt_int).max  # 2**32 - 1
-        
-        super().seed(seed)
-        
-        seed = self.space_prng.randint(max_seed)
-        seed_cent_env = self._cent_env.seed(seed)
-        
-        seed_observation_space = []
-        seed_action_space = []
-        
-        for agent in sorted(self.agents):
-            seed = self.space_prng.randint(max_seed)
-            seed_observation_space.append(self.observation_spaces[agent].seed(seed))
-            
-            seed = self.space_prng.randint(max_seed)
-            seed_action_space.append(self.action_spaces[agent].seed(seed))
-            
-        return (
-            seed_init,
-            seed_cent_env,
-            seed_observation_space,
-            seed_action_space
-        )
+        raise NotImplementedError()
     
     def _local_action_to_global(self, local_action : LocalAction) -> BaseAction :
         # Empty global action
@@ -674,8 +647,7 @@ class MultiAgentEnv(RandomObject):
         Args:
             observation (BaseObservation): _description_
         """
-        if self.__closed:
-            raise EnvError("This environment is closed. You cannot use it anymore.")
+
         if self._cent_observation is None:
             raise EnvError(
                 "This environment is not initialized. You cannot retrieve its observation."
@@ -743,18 +715,3 @@ class MultiAgentEnv(RandomObject):
         """
         # observations are updated in reset and step methods
         return self.observations[agent]
-    
-    def close(self, return_sccess = False, print_success = True):
-        self.__closed = True
-        try:
-            self._cent_env.close()
-            if print_success:
-                print("MAEnv closed with success !")
-            if return_sccess:
-                return True
-        except Exception as e:
-            print("Something went wrong :")
-            print(e)
-            if return_sccess:
-                return False
-            
