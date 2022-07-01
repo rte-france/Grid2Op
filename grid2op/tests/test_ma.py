@@ -265,7 +265,7 @@ class MATesterGlobalObs(unittest.TestCase):
             }
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name=f"_it_{it}")
+                ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name=f"_test_build_subgrid_obj3_it_{it}")
             assert ma_env.agents == ['agent_0', 'agent_1']
             assert ma_env.agent_order == ma_env.agents
             self.check_subgrid_consistency(ma_env, action_domains, add_msg=f"error for iter {it}")
@@ -1045,7 +1045,7 @@ class MATesterGlobalObs(unittest.TestCase):
             warnings.filterwarnings("ignore")
             ma_env = MultiAgentEnv(self.env,
                                    action_domains,
-                                   _add_to_name="_test_build_subgrid_obj")
+                                   _add_to_name="_test_action_spaces")
             
         for agent in ma_env.agents:
             # The action space must have the same dim_topo
@@ -1074,30 +1074,6 @@ class MATesterGlobalObs(unittest.TestCase):
                     self.ma_env.reset()
                     break
                 
-                
-    def test_print(self):
-        from grid2op.Agent import RandomAgent
-        from grid2op.Converter.IdToAct import IdToAct
-        ma_env = MultiAgentEnv(self.env, self.action_domains)
-        
-        ma_env.seed(0)
-        obs = ma_env.reset()
-
-        random_agents = dict()
-        id2act = dict()
-
-
-        for agent in ma_env.agents:
-            id2act[agent] = IdToAct(ma_env.action_spaces[agent])
-            random_agents[agent] = RandomAgent(ma_env.action_spaces[agent], action_space_converter=id2act[agent])
-            print(random_agents[agent].action_space.storage_to_subid)
-            break
-
-
-        
-        for _ in range (10):
-            act = random_agents['agent_0'].act(obs['agent_0'], 0)
-            print(act)
         
         
 if __name__ == "__main__":

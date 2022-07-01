@@ -126,6 +126,7 @@ class MultiAgentEnv(RandomObject):
             if copy_env:
                 self._cent_env.reset()
             else:
+                self._cent_env.reset()
                 warnings.warn("The central env has been reset !")
             
             assert self._cent_env.parameters.MAX_LINE_STATUS_CHANGED == self.num_agents
