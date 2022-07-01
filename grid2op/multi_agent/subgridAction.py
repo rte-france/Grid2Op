@@ -64,3 +64,45 @@ class SubGridAction(SubGridObjects, PlayableAction):
     def __init__(self):
         SubGridObjects.__init__(self)
         PlayableAction.__init__(self)
+
+    def _obj_caract_from_topo_id(self, id_):
+        obj_id = None
+        objt_type = None
+        array_subid = None
+        for l_id, id_in_topo in enumerate(self.load_pos_topo_vect):
+            if id_in_topo == id_:
+                obj_id = l_id
+                objt_type = "load"
+                array_subid = self.load_to_subid
+        if obj_id is None:
+            for l_id, id_in_topo in enumerate(self.gen_pos_topo_vect):
+                if id_in_topo == id_:
+                    obj_id = l_id
+                    objt_type = "generator"
+                    array_subid = self.gen_to_subid
+        if obj_id is None:
+            for l_id, id_in_topo in enumerate(self.line_or_pos_topo_vect):
+                if id_in_topo == id_:
+                    obj_id = l_id
+                    objt_type = self._line_or_str
+                    array_subid = self.line_or_to_subid
+        if obj_id is None:
+            for l_id, id_in_topo in enumerate(self.line_ex_pos_topo_vect):
+                if id_in_topo == id_:
+                    obj_id = l_id
+                    objt_type = self._line_ex_str
+                    array_subid = self.line_ex_to_subid
+        if obj_id is None:
+            for l_id, id_in_topo in enumerate(self.storage_pos_topo_vect):
+                if id_in_topo == id_:
+                    obj_id = l_id
+                    objt_type = "storage"
+                    array_subid = self.storage_to_subid
+        if obj_id is None:
+            for l_id, id_in_topo in enumerate(self.interco_pos_topo_vect):
+                if id_in_topo == id_:
+                    obj_id = l_id
+                    objt_type = "interconnection"
+                    array_subid = self.interco_to_subid
+        substation_id = array_subid[obj_id]
+        return obj_id, objt_type, substation_id
