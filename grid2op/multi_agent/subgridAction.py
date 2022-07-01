@@ -34,3 +34,15 @@ class SubGridAction(SubGridObjects, PlayableAction):
     def __init__(self):
         SubGridObjects.__init__(self)
         PlayableAction.__init__(self)
+    
+    def _obj_caract_from_topo_id_others(self, id_):
+        obj_id = None
+        objt_type = None
+        array_subid = None
+        for l_id, id_in_topo in enumerate(self.interco_pos_topo_vect):
+            if id_in_topo == id_:
+                obj_id = l_id
+                side_ = "(or)" if self.interco_is_origin[l_id] else "(ex)"
+                objt_type = f"interco {side_}"
+                array_subid = self.interco_to_subid
+        return obj_id, objt_type, array_subid

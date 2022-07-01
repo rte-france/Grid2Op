@@ -12,6 +12,7 @@ from grid2op.Exceptions.EnvExceptions import EnvError, IncorrectNumberOfElements
 from grid2op.dtypes import dt_int
 from grid2op.Space.GridObjects import GridObjects
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
+import re
 
 
 class SubGridObjects(GridObjects):
@@ -234,6 +235,20 @@ class SubGridObjects(GridObjects):
         return res
     
     @classmethod
+    def init_grid(cls, gridobj, force=False, extra_name=None, force_module=None):
+        extr_nms = []
+        if gridobj.agent_name is not None:
+            extr_nms .append(f"{gridobj.agent_name}")
+        if extra_name is not None:
+            extr_nms.append(f"{extra_name}")
+            
+        if extr_nms:
+            extr_nms = "_".join(extr_nms)
+        else:
+            extr_nms = None
+        return cls.init_grid_gridobject(gridobj, force, extr_nms, force_module)
+    
+    @classmethod
     def _compute_nb_element(cls) -> int:
         return cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage + cls.n_interco
     
@@ -362,6 +377,19 @@ class SubGridObjects(GridObjects):
             raise EnvError("mask_orig_pos_topo_vect counts more active component than the "
                            "number of elements on the subgrid")
     
+    # TODO BEN: use the "type(name_res, (cls,), cls_attr_as_dict)" 
+    # syntax in the function below
+    @classmethod
+    def make_local(cls, BaseClass):
+        class NewClass(SubGridObjects, BaseClass):
+            def __init__(self, *args ,**kwargs):
+                SubGridObjects.__init__(self)
+                BaseClass.__init__(self, *args, **kwargs)
+                
+        tmp_cls = NewClass.init_grid(cls)
+        tmp_cls.__name__ = re.sub("NewClass", BaseClass.__name__, tmp_cls.__name__)
+        return tmp_cls
+
     # TODO BEN: later             
     @staticmethod
     def from_dict(dict_):

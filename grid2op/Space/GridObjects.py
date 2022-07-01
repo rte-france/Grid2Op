@@ -2665,6 +2665,10 @@ class GridObjects:
             it does not initialize it. Setting "force=True" will bypass this check and update it accordingly.
 
         """
+        return cls.init_grid_gridobject(gridobj, force, extra_name, force_module)
+    
+    @classmethod
+    def init_grid_gridobject(cls, gridobj, force=False, extra_name=None, force_module=None):
         # nothing to do now that the value are class member
         name_res = "{}_{}".format(cls.__name__, gridobj.env_name)
         
