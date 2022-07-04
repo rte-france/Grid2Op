@@ -74,10 +74,6 @@ class MultiAgentEnv(RandomObject):
             * rewards (MADict) : 
                 - keys : agents' names
                 - values : agent's reward
-            
-            * _cumulative_rewards (MADict) :
-                - keys : agents' names
-                - values : agent's cumulative reward in the episode
                 
             * observation (MADict) :
                 - keys : agents' names
@@ -102,6 +98,7 @@ class MultiAgentEnv(RandomObject):
                       
  
         """
+        RandomObject.__init__(self)
         
         # added to the class name, if you want to build multiple ma environment with the same underlying environment
         self._add_to_name = _add_to_name  
@@ -124,12 +121,13 @@ class MultiAgentEnv(RandomObject):
 
             self._cent_env.change_parameters(self.parameters)
             
-            print("Rules can not be changed in this version.")
+            warnings.warn("Rules can not be changed in this version.")
             
             if copy_env:
                 self._cent_env.reset()
             else:
-                warnings("The central env has been reset !")
+                self._cent_env.reset()
+                warnings.warn("The central env has been reset !")
             
             assert self._cent_env.parameters.MAX_LINE_STATUS_CHANGED == self.num_agents
             
@@ -167,11 +165,6 @@ class MultiAgentEnv(RandomObject):
                 self.agents, [0. for _ in range(self.num_agents)]
             )
         )
-        self._cumulative_rewards = dict(
-            zip(
-                self.agents, [0. for _ in range(self.num_agents)]
-            )
-        )
         self.observations = dict(
             zip(
                 self.agents, [None for _ in range(self.num_agents)]
@@ -188,6 +181,7 @@ class MultiAgentEnv(RandomObject):
             )
         )
         
+        self._cent_observation = None
         
         self.agent_order = self.agents.copy()
         self.action_spaces = dict()
@@ -198,20 +192,21 @@ class MultiAgentEnv(RandomObject):
         
         
     def reset(self) -> MADict:
-        # TODO
-        raise NotImplementedError()
+        # TODO : done, tested
+        self._cent_observation = self._cent_env.reset()
+        self._update_observations()
+        return self.observations
     
     def _handle_illegal_action(self, reason):
         
         for a in self.agents:
             self.info[a]['action_is_illegal'] = True
-            self.info[a]['reason_illegal'] = reason
+            self.info[a]['reason_illegal'] = copy.deepcopy(reason)
 
     def _handle_ambiguous_action(self, except_tmp):
         
         for a in self.agents:
             self.info[a]['is_ambiguous'] = True
-            self.info[a]['ambiguous_except_tmp'] = except_tmp
 
     def _build_global_action(self, action : ActionProfile, order : list):
         
@@ -252,8 +247,22 @@ class MultiAgentEnv(RandomObject):
             _description_
         """
         
-        # TODO
-        raise NotImplementedError()
+        order = self.agent_order
+        self._build_global_action(action, order)
+
+        self._cent_observation, reward, done, info = self._cent_env.step(self.global_action)
+        
+        self._dispatch_reward_done_info(reward, done, info)
+
+        self._update_observations()
+
+        return self.observations, self.rewards, self.done, self.info 
+    
+    def _dispatch_reward_done_info(self, reward, done, info):
+        for agent in self.agents:
+            self.rewards[agent] = reward
+            self.done[agent] = done
+            self.info[agent].update(copy.deepcopy(info))
     
     def _build_subgrids(self):
         self._subgrids_cls = {
@@ -307,8 +316,33 @@ class MultiAgentEnv(RandomObject):
         return new_label[tmp_]
     
     def seed(self, seed):
-        # TODO
-        raise NotImplementedError()
+
+        seed_init = seed
+
+        max_seed = np.iinfo(dt_int).max  # 2**32 - 1
+
+        super().seed(seed)
+
+        seed = self.space_prng.randint(max_seed)
+        seed_cent_env = self._cent_env.seed(seed)
+
+        seed_observation_space = []
+        seed_action_space = []
+
+        for agent in sorted(self.agents):
+            seed = self.space_prng.randint(max_seed)
+            seed_observation_space.append(self.observation_spaces[agent].seed(seed))
+
+            seed = self.space_prng.randint(max_seed)
+            seed_action_space.append(self.action_spaces[agent].seed(seed))
+
+        return (
+            seed_init,
+            seed_cent_env,
+            seed_observation_space,
+            seed_action_space
+        )
+        
     
     def _local_action_to_global(self, local_action : LocalAction) -> BaseAction :
         # Empty global action
@@ -597,9 +631,6 @@ class MultiAgentEnv(RandomObject):
         res_cls.assert_grid_correct_cls()
         return res_cls
     
-    #TODO BEN: check that cent env is initialized and not closed
-    #TODO BEN: update self.observations
-        
     def _get_cls_name_from_domain(self, domain=None, agent_name=None):
         extra_name = ""
         if domain is not None and agent_name is None:
@@ -660,8 +691,14 @@ class MultiAgentEnv(RandomObject):
         Args:
             observation (BaseObservation): _description_
         """
-        # TODO 
-        raise NotImplementedError()
+
+        if self._cent_observation is None:
+            raise EnvError(
+                "This environment is not initialized. You cannot retrieve its observation."
+            )
+        
+        for agent in self.agents:
+            self.observations[agent] = self._cent_observation.copy()
     
     def _verify_domains(self, domains : MADict) -> None:
         """It verifies if substation ids are valid
@@ -722,4 +759,3 @@ class MultiAgentEnv(RandomObject):
         """
         # observations are updated in reset and step methods
         return self.observations[agent]
-            
