@@ -32,6 +32,7 @@ class L2RPNSandBoxScore(BaseReward):
                  alpha_redisp=1.0,
                  alpha_loss=1.0,
                  alpha_storage=1.0,
+                 alpha_curtailment=1.0,
                  reward_max=1000.,
                  logger=None):
         BaseReward.__init__(self, logger=logger)
@@ -40,6 +41,7 @@ class L2RPNSandBoxScore(BaseReward):
         self.alpha_redisp = dt_float(alpha_redisp)
         self.alpha_loss = dt_float(alpha_loss)
         self.alpha_storage = dt_float(alpha_storage)
+        self.alpha_curtailment = dt_float(alpha_curtailment)
 
     def initialize(self, env):
         # TODO compute reward max! 
@@ -65,9 +67,16 @@ class L2RPNSandBoxScore(BaseReward):
     def _get_redisp_cost(self, env, p_t):
         actual_dispatch = env._actual_dispatch
         c_redispatching = (
-            dt_float(2.0) * np.sum(np.abs(actual_dispatch)) * p_t * env.delta_time_seconds / 3600.0
+            np.sum(np.abs(actual_dispatch)) * p_t * env.delta_time_seconds / 3600.0
         )
         return c_redispatching
+    
+    def _get_curtail_cost(self, env, p_t):
+        curtailment_mw = -env._sum_curtailment_mw  # curtailment is always negative in the env 
+        c_curtailment = (
+            curtailment_mw * p_t * env.delta_time_seconds / 3600.0
+        )
+        return c_curtailment
 
     def _get_loss_cost(self, env, p_t):
         gen_p = self._get_gen_p(env)
@@ -91,6 +100,9 @@ class L2RPNSandBoxScore(BaseReward):
         # redispatching amount
         c_redispatching = self._get_redisp_cost(env, p_t)
         
+        # curtailment amount
+        c_curtailment = self._get_curtail_cost(env, p_t)
+        
         # cost of losses
         c_loss = self._get_loss_cost(env, p_t)
         
@@ -98,6 +110,14 @@ class L2RPNSandBoxScore(BaseReward):
         c_storage = self._get_storage_cost(env, p_t)
         
         # total "operationnal cost"
-        c_operations = dt_float(self.alpha_loss * c_loss + self.alpha_redisp * c_redispatching + self.alpha_storage * c_storage)
+        c_operations = dt_float(self.alpha_loss * c_loss + 
+                                self.alpha_redisp * c_redispatching + 
+                                self.alpha_storage * c_storage + 
+                                self.alpha_curtailment * c_curtailment)
+        
+        print(f"\t{c_loss = :.2f}")
+        print(f"\t{c_redispatching = :.2f}")
+        print(f"\t{c_curtailment = :.2f}")
+        print(f"\t{c_storage = :.2f}")
 
         return c_operations

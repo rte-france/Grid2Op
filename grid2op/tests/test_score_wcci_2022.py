@@ -16,8 +16,6 @@ from grid2op.Agent.doNothing import DoNothingAgent
 from grid2op.Reward import L2RPNWCCI2022ScoreFun
 from grid2op.utils import ScoreL2RPN2022
 
-import pdb
-
 
 class AgentTester(BaseAgent):
     def act(self, observation, reward, done):
@@ -137,6 +135,71 @@ class WCCI2022Tester(unittest.TestCase):
             assert np.all(np.abs(np.array(res_agent[0]) - np.array([-0.07931602, -0.08532347])) <= 1e-6)
         finally:
             my_score.clear_all()
+
+class TestL2RPNWCCI2022ScoreFun(unittest.TestCase): 
+    """test curtailment and redispatching scores to make sure they match the description in the html of the competition.
+    
+    (storage are tested in the class just above, so i don't retest them here)
+    """
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("l2rpn_wcci_2022", test=True)
+        self.env.seed(0)
+        self.env.reset()
+        self.score_fun = L2RPNWCCI2022ScoreFun()
+        self.score_fun.initialize(self.env)   
+        
+        # run the env without actions
+        self.env.set_id(0)
+        obs = self.env.reset()
+        dn_ = self.env.action_space()
+        self.obs_ref, reward, done, info = self.env.step(dn_)
+        obs = self.obs_ref
+        self.score_ref = self.score_fun(env=self.env, action=dn_, is_done=False, has_error=False, is_illegal=False, is_ambiguous=False)
+        self.losses_ref = np.sum(obs.gen_p) - np.sum(obs.load_p)
+        self.pt_ref = obs.gen_cost_per_MW[obs.gen_p > 0].max()
+        
+        # test that the score, in this case, is the losses
+        assert np.abs(self.score_ref - self.losses_ref * self.pt_ref / 12.) <= 1e-4
+             
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_unary_curtailment(self):
+        gen_id = 0
+        # now apply a curtailment action and compute the score
+        for E_curt in [0.5, 1., 2., 3.]:
+            self.env.set_id(0)
+            obs = self.env.reset()
+            # curtail a certain amount of MWh and check the formula is correct
+            act = self.env.action_space({"curtail": [(gen_id,(self.obs_ref.gen_p[gen_id] - 12. * E_curt) / obs.gen_pmax[gen_id])]})
+            obs, reward, done, info = self.env.step(act)
+            assert not info['exception']
+            score = self.score_fun(env=self.env, action=act, is_done=False, has_error=False, is_illegal=False, is_ambiguous=False)
+            losses = np.sum(obs.gen_p) - np.sum(obs.load_p)
+            pt = obs.gen_cost_per_MW[obs.gen_p > 0].max()
+            assert np.abs(pt - self.pt_ref) <= 1e-5, f"wrong marginal price for {E_curt:.2f}"
+            assert np.abs(score - (losses * pt / 12. + 2 * E_curt * pt)) <= 1e-4, f"error for {E_curt:.2f}"
+        
+    def test_unary_redisp(self):
+        gen_id = 8  # ramps is 11.2
+        # now apply a redispatching action and compute the score
+        for E_redisp in [-0.9, -0.7, -0.5, -0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 0.9]:
+            self.env.set_id(0)
+            obs = self.env.reset()
+            # curtail 12MW for 5 mins => 1 MWh (next step gen 0 should produce 41.6 MW)
+            act = self.env.action_space({"redispatch": [(gen_id, 12. * E_redisp)]})
+            obs, reward, done, info = self.env.step(act)
+            assert not info['exception'], f'one error occured for {E_redisp:.2f}'
+            score = self.score_fun(env=self.env, action=act, is_done=False, has_error=False, is_illegal=False, is_ambiguous=False)
+            losses = np.sum(obs.gen_p) - np.sum(obs.load_p)
+            pt = obs.gen_cost_per_MW[obs.gen_p > 0].max()
+            assert np.abs(pt - self.pt_ref) <= 1e-5, f"wrong marginal price for {E_redisp:.2f}"
+            assert np.abs(score - (losses * pt / 12. + 2 * np.abs(E_redisp) * pt)) <= 2e-4, f"error for {E_redisp:.2f}"
         
         
 if __name__ == "__main__":
