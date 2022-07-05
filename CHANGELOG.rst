@@ -32,7 +32,7 @@ Change Log
 - [???] properly model interconnecting powerlines
 
 
-[1.7.2] - 2022-xx-yy
+[1.7.2] - 2022-07-05
 --------------------
 - [FIXED] seeding issue https://github.com/rte-france/Grid2Op/issues/331
 - [FIXED] clarify doc about fixed size matrices / graphs https://github.com/rte-france/Grid2Op/issues/330
