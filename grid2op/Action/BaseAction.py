@@ -1252,13 +1252,16 @@ class BaseAction(GridObjects):
 
         # curtailment
         curtailment = other._curtail
-        ok_ind = np.isfinite(curtailment) & np.any(curtailment != -1.0)
+        ok_ind = np.isfinite(curtailment) & (curtailment != -1.0)
         if np.any(ok_ind):
             if "_curtail" not in self.attr_list_set:
                 warnings.warn(
                     type(self).ERR_ACTION_CUT.format("_curtail")
                 )
             else:
+                # new curtailment of the results should be
+                # the curtailment of rhs, only when rhs acts
+                # on curtailment
                 self._curtail[ok_ind] = curtailment[ok_ind]
 
         # set and change status

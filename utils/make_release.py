@@ -12,6 +12,7 @@
 # - docs/conf.py
 # - Dockerfile
 
+import sys
 import os
 import argparse
 import re
@@ -72,6 +73,9 @@ if __name__ == "__main__":
             "Please modify \"--version\" argument")
 
     regex_version = "[0-9]+\.[0-9]+\.[0-9]+(.post[0-9]+){0,1}(.rc[0-9]+){0,1}(.pre[0-9]+){0,1}"
+    # TODO use the official regex !
+    # see https://semver.org/ and https://regex101.com/r/Ly7O1x/3/
+    # regex_version = r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
     regex_version_with_str = f"['\"]{regex_version}['\"]"
     if re.match("^{}$".format(regex_version), version) is None:
         raise RuntimeError(
@@ -79,6 +83,16 @@ if __name__ == "__main__":
             "Please modify \"--version\" argument".format(
                 version))
 
+    # TODO re.search(reg_, "0.0.4-rc1").group("prerelease") -> rc1 (if regex_version is the official one)
+    if re.search(f".*\.(rc|pre)[0-9]+$", version) is not None:
+        is_prerelease = True
+        print("This is a pre release, docker will NOT be pushed, github tag will NOT be made")
+        time.sleep(2)
+    else:
+        is_prerelease = False
+        print("This is sandard release, docker will be pushed, github tag will be added")
+        time.sleep(2)
+        
     if True:
         # setup.py
         setup_path = os.path.join(path, "setup.py")
@@ -156,35 +170,41 @@ if __name__ == "__main__":
         with open(dockerfile, "w") as f:
             f.write(new_setup)
 
-        # Stage in git
-        start_subprocess_print(["git", "add", dockerfile])
+        if not is_prerelease:
+            # Stage in git
+            start_subprocess_print(["git", "add", dockerfile])
 
-        # generate some logs, for backward compatibility
-        # NB this generation is part of the test run, so it's safe to re generate the log when each version is released
-        # in the sense that the tests pass ;-)
-        import grid2op
-        from grid2op.Agent import RandomAgent
-        from grid2op.Runner import Runner
-        import warnings
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            PATH_PREVIOUS_RUNNER = os.path.join(path, "grid2op", "data_test", "runner_data")
-            # set the right grid2op version (instead of reloading the stuff, ugly, but working)
-            grid2op.__version__ = version
-            env = grid2op.make("rte_case5_example", test=True)
-            runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
-            runner.run(nb_episode=2,
-                       path_save=os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}"),
-                       pbar=True,
-                       max_iter=100)
-        # Stage in git
-        start_subprocess_print(["git", "add", f'{os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}")}/*'])
+            # generate some logs, for backward compatibility
+            # NB this generation is part of the test run, so it's safe to re generate the log when each version is released
+            # in the sense that the tests pass ;-)
+            import grid2op
+            from grid2op.Agent import RandomAgent
+            from grid2op.Runner import Runner
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                PATH_PREVIOUS_RUNNER = os.path.join(path, "grid2op", "data_test", "runner_data")
+                # set the right grid2op version (instead of reloading the stuff, ugly, but working)
+                grid2op.__version__ = version
+                env = grid2op.make("rte_case5_example", test=True)
+                runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+                runner.run(nb_episode=2,
+                        path_save=os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}"),
+                        pbar=True,
+                        max_iter=100)
+            # Stage in git
+            start_subprocess_print(["git", "add", f'{os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}")}/*'])
 
         # Commit
         start_subprocess_print(["git", "commit", "-m", "Release v{}".format(version)])
-        # Create a new git tag
-        start_subprocess_print(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
+        if not is_prerelease:
+            # Create a new git tag
+            start_subprocess_print(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
 
+    if is_prerelease:
+        print("Please push changes: 'git push'")
+        sys.exit(0)
+        
     # Wait for user to push changes
     pushed = input("Please push changes: 'git push && git push --tags' - then press any key")
     # TODO refacto these, no need to have 3 times almost the same "templatedockerfile"

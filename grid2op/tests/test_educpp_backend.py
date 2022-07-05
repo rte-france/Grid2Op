@@ -25,7 +25,8 @@ class EducPPTester(unittest.TestCase):
             if (env_name == "l2rpn_icaps_2021" or 
                 env_name == "l2rpn_neurips_2020_track1" or
                 env_name == "l2rpn_wcci_2020" or
-                env_name == "l2rpn_wcci_2022_dev" 
+                env_name == "l2rpn_wcci_2022_dev" or
+                env_name == "l2rpn_wcci_2022"
             ):
                 # does not work because of generators name
                 # in the redispatching data
@@ -34,9 +35,13 @@ class EducPPTester(unittest.TestCase):
             
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = grid2op.make(env_name, test=True, backend=EducPandaPowerBackend())
+                env = grid2op.make(env_name,
+                                   test=True,
+                                   backend=EducPandaPowerBackend(),
+                                   _add_to_name="educppbk")
                 assert type(env).n_shunt is None, f"error for {env_name}"
                 assert not type(env).shunts_data_available, f"error for {env_name}"
+            env.close()
             
             
 if __name__ == "__main__":

@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import time
+from numpy import var
 import requests
 import os
 import warnings
@@ -19,6 +20,7 @@ import grid2op.MakeEnv.PathUtils
 from grid2op.MakeEnv.PathUtils import _create_path_folder
 from grid2op.Download.DownloadDataset import _aux_download
 
+_VAR_FORCE_TEST = "_GRID2OP_FORCE_TEST"
 
 DEV_DATA_FOLDER = pkg_resources.resource_filename("grid2op", "data")
 DEV_DATASET = os.path.join(DEV_DATA_FOLDER, "{}")
@@ -36,6 +38,7 @@ TEST_DEV_ENVS = {
     "l2rpn_case14_sandbox": DEV_DATASET.format("l2rpn_case14_sandbox"),
     "l2rpn_icaps_2021": DEV_DATASET.format("l2rpn_icaps_2021"),
     "l2rpn_wcci_2022_dev": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
+    "l2rpn_wcci_2022": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
     # educational files
     "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
     "educ_case14_storage": DEV_DATASET.format("educ_case14_storage"),
@@ -114,6 +117,20 @@ _EXTRACT_DS_NAME_RECO_ERR = (
     'Impossible to recognize the environment name from path "{}"'
 )
 
+def _force_test_dataset():
+    res = False
+    if _VAR_FORCE_TEST in os.environ:
+        try:
+            var_int = int(os.environ[_VAR_FORCE_TEST])
+        except Exception as exc_:
+            warnings.warn(f"The environment variable {_VAR_FORCE_TEST}, "
+                          f"used to force the \"test=True\" in grid2op "
+                          f"cannot be converted to an integer with error "
+                          f"\"{exc_}\". As it is set nonetheless, we "
+                          f"assume you want to force \"test=True\".")
+            var_int = 1
+        res = var_int >= 1
+    return res
 
 def _send_request_retry(url, nb_retry=10, gh_session=None):
     """
@@ -304,6 +321,12 @@ def make(
 
     """
 
+    if _force_test_dataset():
+        if not test:
+            warnings.warn(f"The environment variable \"{_VAR_FORCE_TEST}\" is defined so grid2op will be forced in \"test\" mode. "
+                          f"This is equivalent to pass \"grid2op.make(..., test=True)\" and prevents any download of data.")
+            test = True
+            
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
         if el not in accepted_kwargs:

@@ -815,7 +815,7 @@ class BaseObservation(GridObjects):
             if storage_id >= self.n_storage:
                 raise Grid2OpException(
                     'There are no storage unit with id "storage_id={}" in this grid.'.format(
-                        line_id
+                        storage_id
                     )
                 )
             if storage_id < 0:
@@ -828,7 +828,7 @@ class BaseObservation(GridObjects):
             res["bus"] = self.topo_vect[self.storage_pos_topo_vect[storage_id]]
             res["sub_id"] = self.storage_to_subid[storage_id]
             if self.support_theta:
-                res["origin"]["theta"] = self.storage_theta[storage_id]
+                res["theta"] = self.storage_theta[storage_id]
         else:
             if substation_id >= len(self.sub_info):
                 raise Grid2OpException(
@@ -1545,10 +1545,8 @@ class BaseObservation(GridObjects):
         connected = (bus_or > 0) & (bus_ex > 0)
         bus_or = bus_or[connected]
         bus_ex = bus_ex[connected]
-        bus_or += self.line_or_to_subid[connected] + (bus_or - 1) * self.n_sub
-        bus_ex += self.line_ex_to_subid[connected] + (bus_ex - 1) * self.n_sub
-        bus_or -= 1
-        bus_ex -= 1
+        bus_or = self.line_or_to_subid[connected] + (bus_or - 1) * self.n_sub
+        bus_ex = self.line_ex_to_subid[connected] + (bus_ex - 1) * self.n_sub
         unique_bus = np.unique(np.concatenate((bus_or, bus_ex)))
         unique_bus = np.sort(unique_bus)
         nb_bus = unique_bus.shape[0]
@@ -1565,6 +1563,14 @@ class BaseObservation(GridObjects):
         If `bus_connectivity_matrix[i,j] = 1` then at least a power line connects bus i and bus j.
         Otherwise, nothing connects it.
 
+        .. warning::
+            The matrix returned by this function has not a fixed size. Its
+            number of nodes and edges can change depending on the state of the grid.
+            See :ref:`get-the-graph-gridgraph` for more information.
+            
+            Also, note that when "done=True" this matrix has size (1, 1)
+            and contains only 0.
+            
         Parameters
         ----------
         as_csr_matrix: ``bool``
@@ -1679,10 +1685,7 @@ class BaseObservation(GridObjects):
         """
         bus_id = 1 * self.topo_vect[id_topo_vect]
         connected = bus_id > 0
-        # bus_id[connected] = sub_id[connected] + (bus_id[connected] - 1) * self.n_sub
-        bus_id[connected] += sub_id[connected] + (bus_id[connected] - 1) * self.n_sub
-        bus_id -= 1  # because its label 1-2 and not 0-1
-        bus_id[~connected] = -1
+        bus_id[connected] = sub_id[connected] + (bus_id[connected] - 1) * self.n_sub
         return bus_id, connected
 
     def flow_bus_matrix(self, active_flow=True, as_csr_matrix=False):
@@ -1696,6 +1699,14 @@ class BaseObservation(GridObjects):
         The other  element of each **row** of this matrix will be the flow of power from the bus represented
         by the line i to the bus represented by column j.
 
+        .. warning::
+            The matrix returned by this function has not a fixed size. Its
+            number of nodes and edges can change depending on the state of the grid.
+            See :ref:`get-the-graph-gridgraph` for more information.
+            
+            Also, note that when "done=True" this matrix has size (1, 1)
+            and contains only 0.
+            
         Notes
         ------
         When the observation is in a "done" state (*eg* there has been a game over) then this function returns a 
@@ -1971,6 +1982,14 @@ class BaseObservation(GridObjects):
             injected at node 6 from this edge will be *p_or*) and the "extremity" side is bus 8
             (**eg** the active power injected at node 8 from this edge will be *p_ex*).
 
+        .. warning::
+            The graph returned by this function has not a fixed size. Its
+            number of nodes and edges can change depending on the state of the grid.
+            See :ref:`get-the-graph-gridgraph` for more information.
+            
+            Also, note that when "done=True" this graph has only one node and
+            no edge.
+            
         .. note::
             The graph returned by this function is "frozen" to prevent its modification. If you really want to modify
             it you can "unfroze" it.
