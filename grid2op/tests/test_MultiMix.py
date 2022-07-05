@@ -26,12 +26,12 @@ warnings.simplefilter("error")
 
 class TestMultiMixEnvironment(unittest.TestCase):
     def test_creation(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         assert mme.current_obs is not None
         assert mme.current_env is not None
 
     def test_get_path_env(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         path_mme = mme.get_path_env()
         for mix in mme:
             path_mix = mix.get_path_env()
@@ -49,7 +49,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
     def test_creation_with_params(self):
         p = Parameters()
         p.MAX_SUB_CHANGED = 666
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p, _test=True)
         assert mme.current_obs is not None
         assert mme.current_env is not None
         assert mme.parameters.MAX_SUB_CHANGED == 666
@@ -61,7 +61,8 @@ class TestMultiMixEnvironment(unittest.TestCase):
             "game": GameplayReward,
             "l2rpn": L2RPNReward,
         }
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p, other_rewards=oth_r)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p, 
+                                  other_rewards=oth_r, _test=True)
         assert mme.current_obs is not None
         assert mme.current_env is not None
         o, r, d, i = mme.step(mme.action_space({}))
@@ -75,7 +76,9 @@ class TestMultiMixEnvironment(unittest.TestCase):
             def dummy(self):
                 return True
 
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, backend=DummyBackend1())
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, 
+                                  backend=DummyBackend1(), 
+                                  _test=True)
         assert mme.current_obs is not None
         assert mme.current_env is not None
         for env in mme:
@@ -83,9 +86,17 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_creation_with_backend_are_not_shared(self):
         class DummyBackend2(PandaPowerBackend):
-            def __init__(self, detailed_infos_for_cascading_failures=False):
+            def __init__(self, detailed_infos_for_cascading_failures=False,
+                         can_be_copied=True,
+                         ligthsim2grid=False,
+                         dist_slack=False,
+                         max_iter=10):
                 super().__init__(
-                    detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+                    detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+                    can_be_copied=can_be_copied,
+                    ligthsim2grid=ligthsim2grid,
+                    dist_slack=dist_slack,
+                    max_iter=max_iter
                 )
                 self.calls = 0
 
@@ -94,7 +105,9 @@ class TestMultiMixEnvironment(unittest.TestCase):
                 self.calls += 1
                 return r
 
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, backend=DummyBackend2())
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
+                                  backend=DummyBackend2(),
+                                  _test=True)
         assert mme.current_obs is not None
         assert mme.current_env is not None
         for t in range(3):
@@ -108,6 +121,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
             opponent_class=BaseOpponent,
             opponent_init_budget=42.0,
             opponent_budget_per_ts=0.42,
+            _test=True
         )
         assert mme.current_obs is not None
         assert mme.current_env is not None
@@ -117,7 +131,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
             assert env._opponent_budget_per_ts == dt_float(0.42)
 
     def test_reset(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         mme.reset()
         assert mme.current_obs is not None
         assert mme.current_env is not None
@@ -125,7 +139,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
     def test_reset_with_params(self):
         p = Parameters()
         p.MAX_SUB_CHANGED = 666
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p, _test=True)
         mme.reset()
         assert mme.current_obs is not None
         assert mme.current_env is not None
@@ -138,7 +152,8 @@ class TestMultiMixEnvironment(unittest.TestCase):
             "game": GameplayReward,
             "l2rpn": L2RPNReward,
         }
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p, other_rewards=oth_r)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p,
+                                  other_rewards=oth_r, _test=True)
         mme.reset()
 
         assert mme.current_obs is not None
@@ -151,9 +166,19 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_reset_with_backend(self):
         class DummyBackend3(PandaPowerBackend):
-            def __init__(self, detailed_infos_for_cascading_failures=False):
+            def __init__(self, 
+                         detailed_infos_for_cascading_failures=False,
+                         can_be_copied=True,
+                         ligthsim2grid=False,
+                         dist_slack=False,
+                         max_iter=10
+                         ):
                 super().__init__(
-                    detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+                    detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+                    can_be_copied=can_be_copied,
+                    ligthsim2grid=ligthsim2grid,
+                    dist_slack=dist_slack,
+                    max_iter=max_iter
                 )
                 self._dummy = -1
 
@@ -163,7 +188,9 @@ class TestMultiMixEnvironment(unittest.TestCase):
             def dummy(self):
                 return self._dummy
 
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, backend=DummyBackend3())
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
+                                  backend=DummyBackend3(),
+                                  _test=True)
         mme.reset()
         assert mme.current_env.backend.dummy() == 1
 
@@ -172,7 +199,8 @@ class TestMultiMixEnvironment(unittest.TestCase):
             PATH_DATA_MULTIMIX,
             opponent_class=BaseOpponent,
             opponent_init_budget=42.0,
-            opponent_budget_per_ts=0.42,
+            opponent_budget_per_ts=0.42, 
+            _test=True,
         )
         mme.reset()
         assert mme.current_obs is not None
@@ -182,7 +210,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert mme._opponent_budget_per_ts == dt_float(0.42)
 
     def test_reset_seq(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         for i in range(2):
             assert i == mme.current_index
             mme.reset()
@@ -190,22 +218,22 @@ class TestMultiMixEnvironment(unittest.TestCase):
             assert mme.current_env is not None
 
     def test_reset_random(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         for i in range(2):
             mme.reset(random=True)
             assert mme.current_obs is not None
             assert mme.current_env is not None
 
     def test_seeding(self):
-        mme1 = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme1 = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         seeds_1 = mme1.seed(2)
         mme1.close()
 
-        mme2 = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme2 = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         seeds_2 = mme2.seed(42)
         mme2.close()
 
-        mme3 = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme3 = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         seeds_3 = mme3.seed(2)
         mme3.close()
 
@@ -213,7 +241,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert np.any(seeds_1 != seeds_2)
 
     def test_step_dn(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         dn = mme.action_space({})
 
         obs, r, done, info = mme.step(dn)
@@ -224,7 +252,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_step_switch_line(self):
         LINE_ID = 4
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         line_ex_topo = mme.line_ex_pos_topo_vect[LINE_ID]
         line_or_topo = mme.line_or_pos_topo_vect[LINE_ID]
         switch_status = mme.action_space.get_change_line_status_vect()
@@ -240,7 +268,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert obs.line_status[LINE_ID] == True, "Line is not reconnected"
 
     def test_forecast_toggle(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         dn = mme.action_space({})
         # Forecast off
         mme.deactivate_forecast()
@@ -262,7 +290,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert done is not True
 
     def test_bracket_access_by_name(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
 
         mix1_env = mme["case14_001"]
         assert mix1_env.name == "case14_001"
@@ -272,7 +300,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
             unknown_env = mme["unknown_raise"]
 
     def test_keys_access(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
 
         for k in mme.keys():
             mix = mme[k]
@@ -281,7 +309,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
             assert mix.name == k
 
     def test_values_access(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
 
         for v in mme.values():
             assert v is not None
@@ -289,14 +317,14 @@ class TestMultiMixEnvironment(unittest.TestCase):
             assert v == mme[v.name]
 
     def test_values_unique(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         vals = list(mme.values())
         vals_unique = list(set(vals))
 
         assert len(vals) == len(vals_unique)
 
     def test_items_acces(self):
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
 
         for k, v in mme.items():
             assert k is not None
@@ -306,7 +334,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_copy(self):
         # https://github.com/BDonnot/lightsim2grid/issues/10
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
         for i in range(5):
             obs, reward, done, info = mme.step(mme.action_space())
         env2 = mme.copy()

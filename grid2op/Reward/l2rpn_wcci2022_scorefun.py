@@ -31,9 +31,10 @@ class L2RPNWCCI2022ScoreFun(L2RPNSandBoxScore):
                  alpha_redisp=1.0,
                  alpha_loss=1.0,
                  alpha_storage=1.0,
+                 alpha_curtailment=1.0,
                  reward_max=1000.,
                  logger=None):
-        super().__init__(alpha_redisp, alpha_loss, alpha_storage, reward_max, logger)
+        super().__init__(alpha_redisp, alpha_loss, alpha_storage, alpha_curtailment, reward_max, logger)
         self.storage_cost = dt_float(storage_cost)
         
     def _get_storage_cost(self, env, p_t):
