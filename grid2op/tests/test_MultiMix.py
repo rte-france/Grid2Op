@@ -87,10 +87,16 @@ class TestMultiMixEnvironment(unittest.TestCase):
     def test_creation_with_backend_are_not_shared(self):
         class DummyBackend2(PandaPowerBackend):
             def __init__(self, detailed_infos_for_cascading_failures=False,
-                         can_be_copied=True):
+                         can_be_copied=True,
+                         ligthsim2grid=False,
+                         dist_slack=False,
+                         max_iter=10):
                 super().__init__(
                     detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
-                    can_be_copied=can_be_copied
+                    can_be_copied=can_be_copied,
+                    ligthsim2grid=ligthsim2grid,
+                    dist_slack=dist_slack,
+                    max_iter=max_iter
                 )
                 self.calls = 0
 
@@ -160,10 +166,19 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_reset_with_backend(self):
         class DummyBackend3(PandaPowerBackend):
-            def __init__(self, detailed_infos_for_cascading_failures=False, can_be_copied=True):
+            def __init__(self, 
+                         detailed_infos_for_cascading_failures=False,
+                         can_be_copied=True,
+                         ligthsim2grid=False,
+                         dist_slack=False,
+                         max_iter=10
+                         ):
                 super().__init__(
                     detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
-                    can_be_copied=can_be_copied
+                    can_be_copied=can_be_copied,
+                    ligthsim2grid=ligthsim2grid,
+                    dist_slack=dist_slack,
+                    max_iter=max_iter
                 )
                 self._dummy = -1
 

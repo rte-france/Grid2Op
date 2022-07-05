@@ -114,10 +114,4 @@ class L2RPNSandBoxScore(BaseReward):
                                 self.alpha_redisp * c_redispatching + 
                                 self.alpha_storage * c_storage + 
                                 self.alpha_curtailment * c_curtailment)
-        
-        print(f"\t{c_loss = :.2f}")
-        print(f"\t{c_redispatching = :.2f}")
-        print(f"\t{c_curtailment = :.2f}")
-        print(f"\t{c_storage = :.2f}")
-
         return c_operations

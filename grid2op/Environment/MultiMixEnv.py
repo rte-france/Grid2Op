@@ -203,9 +203,10 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                         # with grid2Op version prior to 1.7.1
                         # you might have trouble with 
                         # "TypeError: __init__() got an unexpected keyword argument 'can_be_copied'"
-                        warnings.warn("Impossible to create a backend for each mix using the "
-                                      "backend key-word arguments. Falling back to creating "
-                                      "with no argument at all.")
+                        msg_ = ("Impossible to create a backend for each mix using the "
+                                "backend key-word arguments. Falling back to creating "
+                                "with no argument at all (default behaviour with grid2op <= 1.7.0).")
+                        warnings.warn(msg_)
                         bk = backendClass()
                     env = make(
                         env_path,

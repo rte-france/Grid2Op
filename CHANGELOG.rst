@@ -42,6 +42,7 @@ Change Log
   (see https://github.com/rte-france/Grid2Op/issues/340)
 - [FIXED] an issue with `act0 + act1` when curtailment was applied 
   (see https://github.com/rte-france/Grid2Op/issues/340)
+- [FIXED] a slight "bug" in the formula to compute the redispatching cost for L2RPN 2022 competition.
 - [IMPROVED] possibility to pass the env variable `_GRID2OP_FORCE_TEST` to force the flag
    of "test=True" when creating an environment. This is especially useful when testing to prevent
    downloading of data.

@@ -27,6 +27,7 @@ class AgentTester(BaseAgent):
     
     
 class WCCI2022Tester(unittest.TestCase):
+    """tests are focused on the storage units for this class"""
     def setUp(self) -> None:
         self.seed = 0
         self.scen_id = 0
