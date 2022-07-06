@@ -517,13 +517,16 @@ class BaseAction(GridObjects):
 
         if self.shunts_data_available:
             attr_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+            
+        self._aux_aux_copy(other, attr_simple, attr_vect)
 
+    def _aux_aux_copy(self, other, attr_simple, attr_vect):
         for attr_nm in attr_simple:
             setattr(other, attr_nm, getattr(self, attr_nm))
 
         for attr_nm in attr_vect:
             getattr(other, attr_nm)[:] = getattr(self, attr_nm)
-
+        
     def __copy__(self) -> "BaseAction":
         res = type(self)()
 
@@ -542,8 +545,8 @@ class BaseAction(GridObjects):
 
     @classmethod
     def process_shunt_data(cls):
-        
         return super().process_shunt_data()
+    
     def __deepcopy__(self, memodict={}) -> "BaseAction":
         res = type(self)()
 
@@ -2506,7 +2509,7 @@ class BaseAction(GridObjects):
         return obj_id, objt_type, substation_id
 
     def _obj_caract_from_topo_id_others(self, id_):
-        pass
+        return None, None, None
     
     def __str__(self) -> str:
         """
@@ -2673,9 +2676,14 @@ class BaseAction(GridObjects):
                     area_str = "s: \n\t \t - " + "\n\t \t - ".join(li_area)
                 res.append(f"\t - Raise an alarm on area" f"{area_str}")
             else:
-                res.append("\t - Not raise any alarm")
+                res.append("\t - NOT raise any alarm")
+                
+        self._str_for_other_elements(res, impact)
         return "\n".join(res)
 
+    def _str_for_other_elements(self, current_li_str, impact):
+        pass
+    
     def impact_on_objects(self) -> dict:
         """
         This will return a dictionary which contains details on objects that will be impacted by the action.

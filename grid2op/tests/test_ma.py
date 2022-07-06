@@ -1059,15 +1059,20 @@ class MATesterGlobalObs(unittest.TestCase):
             # check name of classes are correct
             assert re.sub("^SubGridAction", "", type(do_nothing).__name__) == re.sub("^SubGridActionSpace", "", type(ma_env.action_spaces[agent]).__name__)
 
+    def _aux_sample_withtout_interco(self, act_sp):
+        res = act_sp.sample()
+        if res._modif_interco_set_status or res._modif_interco_change_status:
+            # if the action sample the interconnection, i resample it
+            res = self._aux_sample_withtout_interco(act_sp)
+        return res
     
     def test_step(self):
-        
-        self.ma_env.seed(0)
+        self.ma_env.seed(0)  # do not change the seed otherwise you might have some "action on interco" which are not fully implemented yet
         self.ma_env.reset()
         for _ in range(10):
             while True:
                 actions = {
-                    agent : self.ma_env.action_spaces[agent].sample()
+                    agent : self._aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
                     for agent in self.ma_env.agents
                 }
                 obs, rewards, dones, info = self.ma_env.step(actions)

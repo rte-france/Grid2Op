@@ -251,6 +251,10 @@ class SerializableActionSpace(SerializableSpace):
         rnd_update["raise_alarm"] = [rnd_area]
         return rnd_update
 
+    def _aux_sample_other_element(self, rnd_type) -> dict:
+        # sample other elements for subclass if needed
+        return None
+    
     def sample(self):
         """
         A utility used to sample a new random :class:`BaseAction`.
@@ -327,9 +331,11 @@ class SerializableActionSpace(SerializableSpace):
         elif rnd_type == self.RAISE_ALARM_ID:
             rnd_update = self._sample_raise_alarm()
         else:
-            raise Grid2OpException(
-                "Impossible to sample action of type {}".format(rnd_type)
-            )
+            rnd_update = self._aux_sample_other_element(rnd_type)
+            if rnd_update is None:
+                raise Grid2OpException(
+                    "Impossible to sample action of type {}".format(rnd_type)
+                )
 
         rnd_act.update(rnd_update)
         return rnd_act
