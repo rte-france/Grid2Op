@@ -77,10 +77,14 @@ class SubGridAction(SubGridObjects, PlayableAction):
     attr_list_vect = copy.deepcopy(PlayableAction.attr_list_vect)
     attr_list_vect.append("_set_interco_status")
     attr_list_vect.append("_switch_interco_status")
-    
+        
     def __init__(self):
         SubGridObjects.__init__(self)
         PlayableAction.__init__(self)
+    
+        self.authorized_keys_to_digest["change_interco_status"] = self._digest_change_interco_status
+        self.authorized_keys_to_digest["set_interco_status"] = self._digest_set_interco_status
+        
         # add the things for the interco
         self._set_interco_status = np.full(shape=self.n_interco, fill_value=0, dtype=dt_int)
         self._switch_interco_status = np.full(
@@ -279,3 +283,13 @@ class SubGridAction(SubGridObjects, PlayableAction):
                 f"Please consult the documentation. "
                 f'The error was:\n"{exc_}"'
             )
+
+    def _digest_set_interco_status(self, dict_):
+        if "set_interco_status" in dict_:
+            # this action can both disconnect or reconnect an interconnection
+            self.interco_set_status = dict_["set_interco_status"]
+
+    def _digest_change_interco_status(self, dict_):
+        if "change_interco_status" in dict_:
+            if dict_["change_interco_status"] is not None:
+                self.interco_change_status = dict_["change_interco_status"]

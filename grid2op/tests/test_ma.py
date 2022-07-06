@@ -1245,7 +1245,7 @@ class TestAction(unittest.TestCase):
         with self.assertRaises(IllegalAction):
             act.interco_set_status = [(id_, 1)]
             
-        # wrong bus
+        # wrong status
         id_ = 0
         act = self.ma_env.action_spaces[agent_nm]()
         with self.assertRaises(IllegalAction):
@@ -1281,7 +1281,67 @@ class TestAction(unittest.TestCase):
         act = self.ma_env.action_spaces[agent_nm]()
         with self.assertRaises(IllegalAction):
             act.interco_change_status = [id_]
-                              
+
+    def test_interco_set_status_dict(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                for stat in [-1, 1]:
+                    act = self.ma_env.action_spaces[agent_nm]({"set_interco_status": [(id_, stat)]})
+                    # the flag that we change is properly set
+                    assert act._modif_interco_set_status 
+                    # the correct position is changed
+                    assert act._set_interco_status[id_] == stat
+                    # only this position is affected
+                    assert act._set_interco_status.sum() == stat
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id
+        id_ = -1
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_interco_status": [(id_, 1)]})
+            
+        # wrong id
+        id_ = type(act).n_interco
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_interco_status": [(id_, 1)]})
+            
+        # wrong status
+        id_ = 0
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_interco_status": [(id_, -2)]})
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_interco_status": [(id_, 2)]})
+      
+    def test_interco_change_status_dict(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                act = self.ma_env.action_spaces[agent_nm]({"change_interco_status":  [id_]})
+                # the flag that we change is properly set
+                assert act._modif_interco_change_status 
+                # the correct position is changed
+                assert act._switch_interco_status[id_]
+                # only this position is affected
+                assert act._switch_interco_status.sum() == 1
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id (too low)
+        id_ = -1
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"change_interco_status":  [id_]})
+            
+        # wrong id (too high)
+        id_ = type(act).n_interco
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"change_interco_status":  [id_]})
+                                                    
              
 if __name__ == "__main__":
     unittest.main()
