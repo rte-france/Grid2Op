@@ -6,9 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import copy
 import numpy as np
 
-
+from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Exceptions import IllegalAction
 from grid2op.Action import PlayableAction, ActionSpace, BaseAction
 from grid2op.multi_agent.subGridObjects import SubGridObjects
@@ -60,14 +61,34 @@ class SubGridActionSpace(SubGridObjects, ActionSpace):
             
         if self.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
             rnd_types.append(cls.RAISE_ALARM_ID)
+            
+        # TODO INTERCO !!!
         return rnd_types
          
         
 # TODO (later) make that a "metaclass" with argument the ActionType (here playable action)
 class SubGridAction(SubGridObjects, PlayableAction):
+    
+    # TODO make the "PlayableAction" type generic !
+    authorized_keys = copy.deepcopy(PlayableAction.authorized_keys)
+    authorized_keys.add('change_interco_status')
+    authorized_keys.add('set_interco_status')
+    
+    attr_list_vect = copy.deepcopy(PlayableAction.attr_list_vect)
+    attr_list_vect.append("_set_interco_status")
+    attr_list_vect.append("_switch_interco_status")
+    
     def __init__(self):
         SubGridObjects.__init__(self)
         PlayableAction.__init__(self)
+        # add the things for the interco
+        self._set_interco_status = np.full(shape=self.n_interco, fill_value=0, dtype=dt_int)
+        self._switch_interco_status = np.full(
+            shape=self.n_interco, fill_value=False, dtype=dt_bool
+        )
+        
+        self._modif_interco_set_status = False
+        self._modif_interco_change_status = False
     
     def _obj_caract_from_topo_id_others(self, id_):
         obj_id = None
@@ -173,4 +194,88 @@ class SubGridAction(SubGridObjects, PlayableAction):
             self.interco_change_bus = ddict_["intercos_id"]
             handled = True
         return handled
+
+    @property
+    def interco_set_status(self) -> np.ndarray:
+        if "set_interco_status" not in self.authorized_keys:
+            raise IllegalAction(
+                'Impossible to modify the status of interconnections (with "set") with this action type.'
+            )
+        res = 1 * self._set_interco_status
+        res.flags.writeable = False
+        return res
     
+    @interco_set_status.setter
+    def interco_set_status(self, values):
+        if "set_interco_status" not in self.authorized_keys:
+            raise IllegalAction(
+                'Impossible to modify the status of interconnections (with "set") with this action type.'
+            )
+        orig_ = 1 * self._set_interco_status
+        try:
+            self._aux_affect_object_int(
+                values,
+                "interco status",
+                self.n_interco,
+                self.name_interco,
+                np.arange(self.n_interco),
+                self._set_interco_status,
+                max_val=1,
+            )
+            self._modif_interco_set_status = True
+        except Exception as exc_:
+            self._aux_affect_object_int(
+                orig_,
+                "interco status",
+                self.n_interco,
+                self.name_interco,
+                np.arange(self.n_interco),
+                self._set_interco_status,
+                max_val=1,
+            )
+            raise IllegalAction(
+                f"Impossible to modify the interco status with your input. "
+                f"Please consult the documentation. "
+                f'The error was:\n"{exc_}"'
+            )
+
+    @property
+    def interco_change_status(self) -> np.ndarray:
+        """
+        Property to set the status of the powerline.
+
+        It behave similarly than :attr:`BaseAction.gen_change_bus` but with the following convention:
+
+        * ``False`` will not affect the powerline
+        * ``True`` will change the status of the powerline. If it was connected, it will attempt to
+          disconnect it, if it was disconnected, it will attempt to reconnect it.
+
+        """
+        res = copy.deepcopy(self._switch_interco_status)
+        res.flags.writeable = False
+        return res
+                
+    @interco_change_status.setter
+    def interco_change_status(self, values):
+        if "change_interco_status" not in self.authorized_keys:
+            raise IllegalAction(
+                'Impossible to modify the status of interconnections (with "change") with this action type.'
+            )
+        orig_ = 1 * self._switch_interco_status
+        try:
+            self._aux_affect_object_bool(
+                values,
+                "interco status",
+                self.n_interco,
+                self.name_interco,
+                np.arange(self.n_interco),
+                self._switch_interco_status,
+            )
+            self._modif_interco_change_status = True
+        except Exception as exc_:
+            self._switch_interco_status[:] = orig_
+            raise IllegalAction(
+                f"Impossible to modify the interco status with your input. "
+                f"Please consult the documentation. "
+                f'The error was:\n"{exc_}"'
+            )
