@@ -10,6 +10,7 @@ import unittest
 import warnings
 from grid2op import make
 from grid2op.Action.PlayableAction import PlayableAction
+from grid2op.Exceptions.IllegalActionExceptions import IllegalAction
 from grid2op.Parameters import Parameters
 from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
 import re
@@ -1075,6 +1076,90 @@ class MATesterGlobalObs(unittest.TestCase):
                     break
                 
         
+class TestAction(unittest.TestCase):
+    def setUp(self) -> None:
         
+        self.action_domains = {
+            'agent_0' : [0, 1, 2, 3, 4],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
+        }
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            
+            self.env = make("educ_case14_storage", test=True,
+                            action_class=PlayableAction, _add_to_name="test_ma")
+
+        
+            self.ma_env = MultiAgentEnv(self.env, self.action_domains)
+            
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+        
+    def test_interco_set_bus(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                for bus_id in [1, 2]:
+                    act = self.ma_env.action_spaces[agent_nm]()
+                    act.interco_set_bus = [(id_, bus_id)]
+                    # the correct position is changed
+                    assert act._set_topo_vect[type(act).interco_pos_topo_vect[id_]] == bus_id
+                    # only this position is affected
+                    assert act._set_topo_vect[type(act).interco_pos_topo_vect].sum() == bus_id
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id
+        id_ = -1
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_set_bus = [(id_, 1)]
+            
+        # wrong id
+        id_ = type(act).n_interco
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_set_bus = [(id_, 1)]
+            
+        # wrong bus
+        id_ = 0
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_set_bus = [(id_, 3)]
+            
+    def test_interco_change_bus(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                act = self.ma_env.action_spaces[agent_nm]()
+                act.interco_change_bus = [id_]
+                # the correct position is changed
+                assert act._change_bus_vect[type(act).interco_pos_topo_vect[id_]]
+                # only this position is affected
+                assert act._change_bus_vect[type(act).interco_pos_topo_vect].sum() == 1
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id
+        id_ = -1
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_change_bus = [id_]
+            
+        # wrong id
+        id_ = type(act).n_interco
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_change_bus = [id_]
+        
+    
 if __name__ == "__main__":
     unittest.main()

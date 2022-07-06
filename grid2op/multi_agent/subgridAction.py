@@ -6,6 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import numpy as np
+
+
+from grid2op.Exceptions import IllegalAction
 from grid2op.Action import PlayableAction, ActionSpace, BaseAction
 from grid2op.multi_agent.subGridObjects import SubGridObjects
 
@@ -76,3 +80,83 @@ class SubGridAction(SubGridObjects, PlayableAction):
                 objt_type = f"interco {side_}"
                 array_subid = self.interco_to_subid
         return obj_id, objt_type, array_subid
+    
+    @property
+    def interco_change_bus(self) -> np.ndarray:
+        """
+        Allows to retrieve (and affect) the busbars at which the origin side of powerlines are **changed**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus`. See the help there for more information.
+        """
+        res = self.change_bus[self.interco_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @interco_change_bus.setter
+    def interco_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction(
+                'Impossible to modify the line (origin) bus (with "change") with this action type.'
+            )
+        orig_ = self.interco_change_bus
+        try:
+            self._aux_affect_object_bool(
+                values,
+                "interco",
+                self.n_interco,
+                self.name_interco,
+                self.interco_pos_topo_vect,
+                self._change_bus_vect,
+            )
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.interco_pos_topo_vect] = orig_
+            raise IllegalAction(
+                f"Impossible to modify the interconnection bus with your input. "
+                f"Please consult the documentation. "
+                f'The error was:\n"{exc_}"'
+            )
+
+    @property
+    def interco_set_bus(self) -> np.ndarray:
+        """
+        Allows to retrieve (and affect) the busbars at which the origin side of each powerline is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
+        """
+        res = self.set_bus[self.interco_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
+    @interco_set_bus.setter
+    def interco_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction(
+                'Impossible to modify the line (origin) bus (with "set") with this action type.'
+            )
+        orig_ = self.interco_set_bus
+        try:
+            self._aux_affect_object_int(
+                values,
+                "interco",
+                self.n_interco,
+                self.name_interco,
+                self.interco_pos_topo_vect,
+                self._set_topo_vect,
+            )
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._aux_affect_object_int(
+                orig_,
+                'interco',
+                self.n_interco,
+                self.name_interco,
+                self.interco_pos_topo_vect,
+                self._set_topo_vect,
+            )
+            raise IllegalAction(
+                f"Impossible to modify the interco bus with your input. "
+                f"Please consult the documentation. "
+                f'The error was:\n"{exc_}"'
+            )
+            
