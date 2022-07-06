@@ -140,8 +140,6 @@ class MultiAgentEnv(RandomObject):
             self.parameters = params
             self._cent_env.change_parameters(self.parameters)
 
-        
-        
         if observation_domains is not None:
             # user specified an observation domain
             self._is_global_obs : bool = False
@@ -190,7 +188,6 @@ class MultiAgentEnv(RandomObject):
         self._build_action_spaces()
         self._build_observation_spaces()
         
-        
     def reset(self) -> MADict:
         # TODO : done, tested
         self._cent_observation = self._cent_env.reset()
@@ -198,18 +195,15 @@ class MultiAgentEnv(RandomObject):
         return self.observations
     
     def _handle_illegal_action(self, reason):
-        
         for a in self.agents:
             self.info[a]['action_is_illegal'] = True
             self.info[a]['reason_illegal'] = copy.deepcopy(reason)
 
     def _handle_ambiguous_action(self, except_tmp):
-        
         for a in self.agents:
             self.info[a]['is_ambiguous'] = True
 
     def _build_global_action(self, action : ActionProfile, order : list):
-        
         # The global action is do nothing at the beginning
         self.global_action = self._cent_env.action_space({})
         proposed_action = self.global_action.copy()
@@ -381,6 +375,15 @@ class MultiAgentEnv(RandomObject):
             converted_action._modif_curtailment = True
             converted_action._curtail[subgrid_type.gen_orig_ids] = local_action._curtail
         
+        if local_action._modif_interco_set_status:
+            raise NotImplementedError("What to do if I modified an interco status (set) ?")
+        if local_action._modif_interco_change_status:
+            raise NotImplementedError("What to do if I modified an interco status (change) ?")
+        if local_action._modif_inj:
+            raise NotImplementedError("What to do if I modified an injection ?")
+        if local_action._modif_alarm:
+            raise NotImplementedError("What to do if I modified an alarm ?")
+            
         # V0
         # TODO set_bus done tested
         # TODO change_bus done tested
@@ -396,6 +399,7 @@ class MultiAgentEnv(RandomObject):
         # maintenance
         # alarm
         
+        # TODO why a copy here ?
         return converted_action.copy()
     
     def _build_subgrid_cls_from_domain(self, domain):                
