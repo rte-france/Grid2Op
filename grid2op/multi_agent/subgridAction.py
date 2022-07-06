@@ -160,3 +160,17 @@ class SubGridAction(SubGridObjects, PlayableAction):
                 f'The error was:\n"{exc_}"'
             )
             
+    def _digest_setbus_other_elements(self, ddict_, handled):
+        """may be used by the derived classes to set_bus with some other elements"""
+        if "intercos_id" in ddict_:
+            self.interco_set_bus = ddict_["intercos_id"]
+            handled = True
+        return handled
+    
+    def _digest_changebus_other_elements(self, ddict_, handled):
+        """may be used by the derived classes to set_bus with some other elements"""
+        if "intercos_id" in ddict_:
+            self.interco_change_bus = ddict_["intercos_id"]
+            handled = True
+        return handled
+    

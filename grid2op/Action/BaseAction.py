@@ -1534,6 +1534,10 @@ class BaseAction(GridObjects):
                         )
                         warnings.warn(warn)
 
+    def _digest_setbus_other_elements(self, ddict_, handled):
+        """may be used by the derived classes to set_bus with some other elements"""
+        return handled
+        
     def _digest_setbus(self, dict_):
         if "set_bus" in dict_:
             self._modif_set_bus = True
@@ -1562,6 +1566,7 @@ class BaseAction(GridObjects):
                 if "substations_id" in ddict_:
                     self.sub_set_bus = ddict_["substations_id"]
                     handled = True
+                handled = self._digest_setbus_other_elements(ddict_, handled)
                 if not handled:
                     msg = 'Invalid way to set the topology. When dict_["set_bus"] is a dictionary it should have'
                     msg += (
@@ -1574,6 +1579,10 @@ class BaseAction(GridObjects):
             else:
                 self.set_bus = dict_["set_bus"]
 
+    def _digest_changebus_other_elements(self, ddict_, handled):
+        """may be used by the derived classes to set_bus with some other elements"""
+        return handled
+    
     def _digest_change_bus(self, dict_):
         if "change_bus" in dict_:
             self._modif_change_bus = True
@@ -1602,8 +1611,10 @@ class BaseAction(GridObjects):
                 if "substations_id" in ddict_:
                     self.sub_change_bus = ddict_["substations_id"]
                     handled = True
+                handled = self._digest_changebus_other_elements(ddict_, handled)
+                
                 if not handled:
-                    msg = 'Invalid way to change the topology. When dict_["set_bus"] is a dictionary it should have'
+                    msg = 'Invalid way to change the topology. When dict_["change_bus"] is a dictionary it should have'
                     msg += (
                         ' at least one of "loads_id", "generators_id", "lines_or_id", '
                     )
@@ -1914,9 +1925,9 @@ class BaseAction(GridObjects):
 
         if dict_ is not None:
             for kk in dict_.keys():
-                if kk not in self.authorized_keys:
+                if kk not in type(self).authorized_keys:
                     warn = 'The key "{}" used to update an action will be ignored. Valid keys are {}'
-                    warn = warn.format(kk, self.authorized_keys)
+                    warn = warn.format(kk, type(self).authorized_keys)
                     warnings.warn(warn)
 
             self._digest_shunt(dict_)
