@@ -188,8 +188,8 @@ class MATesterGlobalObs(unittest.TestCase):
         
         # 1
         action_domains = {
-            'agent_0' : [0,1,2,3, 4],
-            'agent_1' : [5,6,7,8,9,10,11,12,13]
+            'agent_0' : [0, 1, 2, 3, 4],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
         }
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -234,6 +234,9 @@ class MATesterGlobalObs(unittest.TestCase):
         # We compare with a known value
         assert (ma_env._subgrids_cls['action']['agent_0'].grid_objects_types == ref).all()
         
+        # test the observation are complete (rapid tests)
+        assert ma_env._subgrids_cls['observation']['agent_0'].n_interco == 0
+        assert ma_env._subgrids_cls['observation']['agent_1'].n_interco == 0
         
     def test_build_subgrid_obj2(self):    
         # 2
@@ -286,11 +289,14 @@ class MATesterGlobalObs(unittest.TestCase):
         
     def check_reset(self, ma_env):
         ma_env.reset()
+        first_obs = None
         for agent in ma_env.agents:
             # We check if the _cent_observation is copied and not pointed
-            assert ma_env.observations[agent] is not ma_env._cent_observation
+            assert ma_env.observations[agent] is not first_obs
+            if first_obs is None:
+                first_obs = ma_env.observations[agent]
             # We check if observations have same values
-            assert ma_env.observations[agent] == ma_env._cent_observation
+            assert ma_env.observations[agent] == first_obs
             
     def check_dispatch_reward_done_info(self, ma_env):
         reward = 42.

@@ -22,6 +22,7 @@ from grid2op.Action import BaseAction
 from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, LocalAction, LocalActionSpace, LocalObservation, LocalObservationSpace, MADict
 from grid2op.multi_agent.multi_agentExceptions import *
 from grid2op.multi_agent.subgridAction import SubGridAction, SubGridActionSpace
+from grid2op.multi_agent.subgridObservation import SubGridObservation, SubGridObservationSpace
 
 
 class MultiAgentEnv(RandomObject):
@@ -140,18 +141,30 @@ class MultiAgentEnv(RandomObject):
             self.parameters = params
             self._cent_env.change_parameters(self.parameters)
 
-        if observation_domains is not None:
+        if observation_domains is None:
+            self._is_global_obs = True
+            # in this case the observation domain is the full domain
+            self._observation_domains = {k: {"sub_id": np.arange(type(self._cent_env).n_sub)} for k in action_domains.keys()}
+        else:
             # user specified an observation domain
-            self._is_global_obs : bool = False
             if action_domains.keys() != observation_domains.keys():
-                raise("action_domains and observation_domains must have the same agents' names !")
+                raise EnvError("action_domains and observation_domains must have the same agents' names !")
+            self._is_global_obs : bool = False
             self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
             self._verify_domains(observation_domains)
-        else:
-            # no observation domain specified, so I assume it's a domain
-            # with full observability
-            self._is_global_obs : bool = True
-            self._observation_domains = None
+            
+        # if observation_domains is not None:
+        #     # user specified an observation domain
+        #     self._is_global_obs : bool = False
+        #     if action_domains.keys() != observation_domains.keys():
+        #         raise("action_domains and observation_domains must have the same agents' names !")
+        #     self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
+        #     self._verify_domains(observation_domains)
+        # else:
+        #     # no observation domain specified, so I assume it's a domain
+        #     # with full observability
+        #     self._is_global_obs : bool = True
+        #     self._observation_domains = None
         
         self.agents = sorted(list(action_domains.keys()))
         self.num_agents = len(self.agents)
@@ -179,8 +192,6 @@ class MultiAgentEnv(RandomObject):
             )
         )
         
-        self._cent_observation = None
-        
         self.agent_order = self.agents.copy()
         self.action_spaces = dict()
         self.observation_spaces = dict()
@@ -189,9 +200,9 @@ class MultiAgentEnv(RandomObject):
         self._build_observation_spaces()
         
     def reset(self) -> MADict:
-        # TODO : done, tested
-        self._cent_observation = self._cent_env.reset()
-        self._update_observations()
+        # TODO : done, NOT tested
+        cent_observation = self._cent_env.reset()
+        self._update_observations(cent_observation)
         return self.observations
     
     def _handle_illegal_action(self, reason):
@@ -244,11 +255,11 @@ class MultiAgentEnv(RandomObject):
         order = self.agent_order
         self._build_global_action(action, order)
 
-        self._cent_observation, reward, done, info = self._cent_env.step(self.global_action)
+        cent_observation, reward, done, info = self._cent_env.step(self.global_action)
         
         self._dispatch_reward_done_info(reward, done, info)
 
-        self._update_observations()
+        self._update_observations(cent_observation)
 
         return self.observations, self.rewards, self.done, self.info 
     
@@ -266,14 +277,13 @@ class MultiAgentEnv(RandomObject):
         for agent_nm in self.agents : 
             # action space
             self._build_subgrid_masks(agent_nm, self._action_domains[agent_nm])
-            subgridcls = self._build_subgrid_cls_from_domain(self._action_domains[agent_nm])
+            subgridcls = self._build_subgrid_cls_from_domain(self._action_domains[agent_nm], "action")
             self._subgrids_cls['action'][agent_nm] = subgridcls 
             
             # observation space
-            if self._observation_domains is not None:
-                self._build_subgrid_masks(agent_nm, self._observation_domains[agent_nm])
-                subgridcls = self._build_subgrid_cls_from_domain(self._observation_domains[agent_nm])
-                self._subgrids_cls['observation'][agent_nm] = subgridcls
+            self._build_subgrid_masks(agent_nm, self._observation_domains[agent_nm])
+            subgridcls = self._build_subgrid_cls_from_domain(self._observation_domains[agent_nm], "observation")
+            self._subgrids_cls['observation'][agent_nm] = subgridcls
         
     def _build_subgrid_masks(self, agent_nm, domain):
         is_sub_in = np.full(self._cent_env.n_sub, fill_value=False, 
@@ -402,7 +412,8 @@ class MultiAgentEnv(RandomObject):
         # TODO why a copy here ?
         return converted_action.copy()
     
-    def _build_subgrid_cls_from_domain(self, domain):                
+    def _build_subgrid_cls_from_domain(self, domain, type_: str):
+        # type_: action or observation                
         cent_env_cls = type(self._cent_env)
         tmp_subgrid = SubGridObjects()
         
@@ -630,6 +641,10 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_interco][~tmp_subgrid.interco_is_origin]] = True
         
         extra_name = self._get_cls_name_from_domain()
+        if extra_name is None:
+            extra_name = f"_{type_}"
+        else:
+            extra_name += f"_{type_}"
         res_cls = SubGridObjects.init_grid(gridobj=tmp_subgrid, extra_name=extra_name)
         # make sure the class is consistent
         res_cls.assert_grid_correct_cls()
@@ -664,12 +679,23 @@ class MultiAgentEnv(RandomObject):
             NotImplementedError: Local observations are not implemented yet
         """
         
-        if self._is_global_obs:
-            # in case of global observation, I simply copy the observation space
-            for agent in self.agents:
-                self.observation_spaces[agent] = self._cent_env.observation_space.copy()
-        else:
-            raise NotImplementedError("Local observations are not available yet !")
+        # in case of global observation, I simply copy the observation space
+        for agent_nm in self.agents:
+            this_subgrid = self._subgrids_cls['observation'][agent_nm]
+            extra_name = self._get_cls_name_from_domain()
+            ob_sp_cls = SubGridObservationSpace.init_grid(this_subgrid,
+                                                          extra_name=extra_name)
+            self.observation_spaces[agent_nm] = ob_sp_cls(full_gridobj=type(self._cent_env),
+                                                          ma_env=self,
+                                                          local_gridobj=this_subgrid,
+                                                          is_complete_obs=self._is_global_obs)
+        
+        # if self._is_global_obs:
+        #     # in case of global observation, I simply copy the observation space
+        #     for agent_nm in self.agents:
+        #         self.observation_spaces[agent_nm] = self._cent_env.observation_space.copy(copy_backend=True)
+        # else:
+        #     raise NotImplementedError("Local observations are not available yet !")
     
     def _build_action_spaces(self):
         """Build action spaces from given domains for each agent
@@ -689,20 +715,15 @@ class MultiAgentEnv(RandomObject):
                 legal_action=self._cent_env._game_rules.legal_action,  # TODO later: probably not no... But we'll see when we do the rules
             )
     
-    def _update_observations(self, _update_state = True):
+    def _update_observations(self, cent_observation, _update_state=True):
         """Update agents' observations from the global observation given by the self._cent_env
 
         Args:
             observation (BaseObservation): _description_
         """
-
-        if self._cent_observation is None:
-            raise EnvError(
-                "This environment is not initialized. You cannot retrieve its observation."
-            )
         
-        for agent in self.agents:
-            self.observations[agent] = self._cent_observation.copy()
+        for agent_nm in self.agents:
+            self.observations[agent_nm] = self.observation_spaces[agent_nm](self, cent_observation, _update_state=_update_state)
     
     def _verify_domains(self, domains : MADict) -> None:
         """It verifies if substation ids are valid
