@@ -1552,7 +1552,7 @@ class TestGlobalObservation(unittest.TestCase):
                 for agent_nm, local_act in actions.items():
                     global_act += local_act.to_global(global_act_sp)
                 sim_o_g, sim_r_g, sim_d_g, sim_i_g = global_obs.simulate(global_act)
-                assert sim_i_g["exception"] == sim_i["exception"] 
+                assert [f"{el}" for el in sim_i_g["exception"]] == [f"{el}" for el in sim_i["exception"]]
                 assert sim_o_g == sim_o
                 assert sim_r_g == sim_r
                 

@@ -70,8 +70,9 @@ class SubGridObservation(SubGridObjects, CompleteObservation):
                 continue
             action += local_act.to_global(self.action_helper)
         action += actions[my_cls.agent_name].to_global(self.action_helper)
-        print(action)
+        # 2) simulate with the global action
         complete_obs, global_reward, done, info = super().simulate(action, time_step)
+        # 3) return the result of the simulation
         return complete_obs, global_reward, done, info
     
     def reset(self):
