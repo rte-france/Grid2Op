@@ -311,8 +311,7 @@ class MultiAgentEnv(RandomObject):
         )
         domain['mask_interco'] = domain['mask_line_or'] ^ domain['mask_line_ex']
         domain['interco_is_origin'] = domain['mask_line_or'][domain['mask_interco']]
-        domain['mask_line_or'] = domain['mask_line_or'] & domain['mask_line_ex']
-        domain['mask_line_ex'] = domain['mask_line_or'].copy()
+        domain['mask_line'] = domain['mask_line_or'] & domain['mask_line_ex']
         domain["agent_name"] = agent_nm
     
     def _relabel_subid(self, mask, new_label, id_full_grid):
@@ -425,8 +424,7 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.mask_load = copy.deepcopy(domain['mask_load'])
         tmp_subgrid.mask_gen = copy.deepcopy(domain['mask_gen'])
         tmp_subgrid.mask_storage = copy.deepcopy(domain['mask_storage'])
-        tmp_subgrid.mask_line_or = copy.deepcopy(domain['mask_line_or'])
-        tmp_subgrid.mask_line_ex = copy.deepcopy(domain['mask_line_ex'])
+        tmp_subgrid.mask_line = copy.deepcopy(domain['mask_line'])
         tmp_subgrid.mask_interco = copy.deepcopy(domain["mask_interco"])
         tmp_subgrid.mask_shunt = copy.deepcopy(domain["mask_shunt"])
         tmp_subgrid.interco_is_origin = copy.deepcopy(domain["interco_is_origin"])
@@ -434,7 +432,7 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.load_orig_ids = np.where(domain['mask_load'])[0]
         tmp_subgrid.gen_orig_ids = np.where(domain['mask_gen'])[0]
         tmp_subgrid.storage_orig_ids = np.where(domain['mask_storage'])[0]
-        tmp_subgrid.line_orig_ids = np.where(domain['mask_line_or'])[0]
+        tmp_subgrid.line_orig_ids = np.where(domain['mask_line'])[0]
         
         tmp_subgrid.glop_version = cent_env_cls.glop_version
         tmp_subgrid._PATH_ENV = cent_env_cls._PATH_ENV
@@ -448,7 +446,7 @@ class MultiAgentEnv(RandomObject):
             tmp_subgrid.mask_gen
         ]
         tmp_subgrid.name_line = cent_env_cls.name_line[
-            tmp_subgrid.mask_line_or & tmp_subgrid.mask_line_ex
+            tmp_subgrid.mask_line
         ]
         tmp_subgrid.name_sub = cent_env_cls.name_sub[
             tmp_subgrid.mask_sub
@@ -485,24 +483,24 @@ class MultiAgentEnv(RandomObject):
         new_label[tmp_subgrid.sub_orig_ids] = np.arange(tmp_subgrid.n_sub)
         
         tmp_subgrid.load_to_subid  = self._relabel_subid(tmp_subgrid.mask_load,
-                                                     new_label,
-                                                     cent_env_cls.load_to_subid
+                                                         new_label,
+                                                         cent_env_cls.load_to_subid
         )
         tmp_subgrid.gen_to_subid  = self._relabel_subid(tmp_subgrid.mask_gen,
-                                                     new_label,
-                                                     cent_env_cls.gen_to_subid
+                                                        new_label,
+                                                        cent_env_cls.gen_to_subid
         )
         tmp_subgrid.storage_to_subid  = self._relabel_subid(tmp_subgrid.mask_storage,
-                                                        new_label,
-                                                        cent_env_cls.storage_to_subid
+                                                            new_label,
+                                                            cent_env_cls.storage_to_subid
         )
-        tmp_subgrid.line_or_to_subid = self._relabel_subid(tmp_subgrid.mask_line_or,
-                                                        new_label,
-                                                        cent_env_cls.line_or_to_subid
+        tmp_subgrid.line_or_to_subid = self._relabel_subid(tmp_subgrid.mask_line,
+                                                           new_label,
+                                                           cent_env_cls.line_or_to_subid
         )
-        tmp_subgrid.line_ex_to_subid = self._relabel_subid(tmp_subgrid.mask_line_ex,
-                                                        new_label,
-                                                        cent_env_cls.line_ex_to_subid
+        tmp_subgrid.line_ex_to_subid = self._relabel_subid(tmp_subgrid.mask_line,
+                                                           new_label,
+                                                           cent_env_cls.line_ex_to_subid
         )
         
         interco_to_subid = np.zeros(cent_env_cls.n_line, dtype=dt_int) - 1
@@ -523,8 +521,8 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.load_to_sub_pos = cent_env_cls.load_to_sub_pos[tmp_subgrid.mask_load]
         tmp_subgrid.gen_to_sub_pos = cent_env_cls.gen_to_sub_pos[tmp_subgrid.mask_gen]
         tmp_subgrid.storage_to_sub_pos = cent_env_cls.storage_to_sub_pos[tmp_subgrid.mask_storage]
-        tmp_subgrid.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_line_or]
-        tmp_subgrid.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_line_ex]
+        tmp_subgrid.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_line]
+        tmp_subgrid.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_line]
         
         # Depending on whether the interco is a line_or or a line_ex,
         # we take the corresponding sub_pos in cent_env 
@@ -635,8 +633,8 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.load_pos_topo_vect[tmp_subgrid.mask_load]] = True
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.gen_pos_topo_vect[tmp_subgrid.mask_gen]] = True
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.storage_pos_topo_vect[tmp_subgrid.mask_storage]] = True
-        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_or_pos_topo_vect[tmp_subgrid.mask_line_or]] = True
-        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_line_ex]] = True
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_or_pos_topo_vect[tmp_subgrid.mask_line]] = True
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_line]] = True
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_or_pos_topo_vect[tmp_subgrid.mask_interco][tmp_subgrid.interco_is_origin]] = True
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_interco][~tmp_subgrid.interco_is_origin]] = True
         
@@ -755,8 +753,10 @@ class MultiAgentEnv(RandomObject):
                     raise DomainException(f"Agent id {agent} : The substation's id must be between 0 and {len(self._cent_env.name_sub)-1}, but {domains[agent][i]} has been given")
             sum_subs += len(domains[agent])
 
-        if sum_subs != self._cent_env.n_sub:
-            raise DomainException(f"The sum of sub id lists' length must be equal to _cent_env.n_sub = {self._cent_env.n_sub} but is {sum_subs}")
+        # TODO since when ???
+        # especially for the observation, you can have some "duplicate", this test needs to be modified / corrected
+        # if sum_subs != self._cent_env.n_sub:
+            # raise DomainException(f"The sum of sub id lists' length must be equal to _cent_env.n_sub = {self._cent_env.n_sub} but is {sum_subs}")
     
     def observation_space(self, agent : AgentID)-> LocalObservationSpace:
         """

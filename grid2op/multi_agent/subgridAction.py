@@ -100,6 +100,7 @@ class SubGridActionSpace(SubGridObjects, ActionSpace):
     
         
 # TODO (later) make that a "metaclass" with argument the ActionType (here playable action)
+# TODO run the extensive grid2op test for the action for this class
 class SubGridAction(SubGridObjects, PlayableAction):
     
     # TODO make the "PlayableAction" type generic !
@@ -110,6 +111,8 @@ class SubGridAction(SubGridObjects, PlayableAction):
     attr_list_vect = copy.deepcopy(PlayableAction.attr_list_vect)
     attr_list_vect.append("_set_interco_status")
     attr_list_vect.append("_switch_interco_status")
+    
+    attr_list_set = set(attr_list_vect)
         
     def __init__(self):
         SubGridObjects.__init__(self)

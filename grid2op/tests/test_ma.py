@@ -8,18 +8,32 @@
 
 import unittest
 import warnings
-from grid2op import make
-from grid2op.Action.PlayableAction import PlayableAction
-from grid2op.Exceptions.IllegalActionExceptions import IllegalAction
-from grid2op.Parameters import Parameters
-from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
 import re
 import numpy as np
+
+
+from grid2op import make
+from grid2op.Action import ActionSpace
+from grid2op.Action.PlayableAction import PlayableAction
+from grid2op.Exceptions.IllegalActionExceptions import IllegalAction
+from grid2op.Exceptions.ObservationExceptions import SimulateError
+from grid2op.Parameters import Parameters
+from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
+from grid2op.multi_agent.subgridAction import SubGridAction
 from grid2op.multi_agent.multi_agentExceptions import *
 
 
 import pdb
 
+
+
+def _aux_sample_withtout_interco(act_sp: ActionSpace):
+    res: SubGridAction = act_sp.sample()
+    if res._modif_interco_set_status or res._modif_interco_change_status:
+        # if the action sample the interconnection, i resample it
+        res = _aux_sample_withtout_interco(act_sp)
+    return res
+    
 
 class MATesterGlobalObs(unittest.TestCase):
     def setUp(self) -> None:
@@ -135,18 +149,18 @@ class MATesterGlobalObs(unittest.TestCase):
         assert (self.ma_env._action_domains['agent_0']['mask_storage'] == mask_storage).all()
         assert (self.ma_env._action_domains['agent_1']['mask_storage'] == ~mask_storage).all()
         
-        mask_line_ex_agent0 = np.array([ True,  True,  True,  True,  True,  True,  True, 
+        mask_line_agent0 = np.array([ True,  True,  True,  True,  True,  True,  True, 
                                 False, False,False, False, False, False, False, False, 
                                 False, False, False,False, False])
         # We compare the line_ex masks with known values for every agent
-        assert (self.ma_env._action_domains['agent_0']['mask_line_ex'] == mask_line_ex_agent0).all()
-        mask_line_ex_agent1 = np.array([False, False, False, False, False, False, False,
+        assert (self.ma_env._action_domains['agent_0']['mask_line'] == mask_line_agent0).all()
+        mask_line_agent1 = np.array([False, False, False, False, False, False, False,
                                         True,  True,  True, True,  True, True,  True,  True,
                                         False, False, False,  True,  True])
-        assert (self.ma_env._action_domains['agent_1']['mask_line_ex'] == mask_line_ex_agent1).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_line'] == mask_line_agent1).all()
         # We compare the line_or masks with known values for every agent
-        assert (self.ma_env._action_domains['agent_0']['mask_line_or'] == mask_line_ex_agent0).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_line_or'] == mask_line_ex_agent1).all()
+        assert (self.ma_env._action_domains['agent_0']['mask_line'] == mask_line_agent0).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_line'] == mask_line_agent1).all()
         
         mask_shunt_agent0 = np.array([False])
         # We compare the shunt masks with known values for every agent
@@ -415,8 +429,7 @@ class MATesterGlobalObs(unittest.TestCase):
             mask_load = ma_env._subgrids_cls[space][agent].mask_load
             mask_gen = ma_env._subgrids_cls[space][agent].mask_gen
             mask_storage = ma_env._subgrids_cls[space][agent].mask_storage
-            mask_line_or = ma_env._subgrids_cls[space][agent].mask_line_or
-            mask_line_ex = ma_env._subgrids_cls[space][agent].mask_line_ex
+            mask_line = ma_env._subgrids_cls[space][agent].mask_line
             mask_shunt = ma_env._subgrids_cls[space][agent].mask_shunt
             mask_interco = ma_env._subgrids_cls[space][agent].mask_interco
             # It tests if the sub_orig_ids are correct and
@@ -441,12 +454,12 @@ class MATesterGlobalObs(unittest.TestCase):
             # Ids should be the same as those given by line_or masks 
             assert (ma_env._subgrids_cls[space][agent].line_orig_ids\
                 ==\
-                    np.arange(ma_env._cent_env.n_line)[mask_line_or]).all()
+                    np.arange(ma_env._cent_env.n_line)[mask_line]).all()
             # We check that we have the correct generators original ids
             # Ids should be the same as those given by line_ex masks 
             assert (ma_env._subgrids_cls[space][agent].line_orig_ids\
                 ==\
-                    np.arange(ma_env._cent_env.n_line)[mask_line_ex]).all()
+                    np.arange(ma_env._cent_env.n_line)[mask_line]).all()
             
             if ma_env._subgrids_cls[space][agent].n_shunt > 0:
                 # We check that we have the correct shunt original ids
@@ -512,7 +525,7 @@ class MATesterGlobalObs(unittest.TestCase):
                         ma_env._subgrids_cls[space][agent].line_ex_to_subid]\
                 ==\
                     ma_env._cent_env.line_ex_to_subid[
-                        ma_env._subgrids_cls[space][agent].mask_line_ex
+                        ma_env._subgrids_cls[space][agent].mask_line
                     ]).all()
             # We check if a line_or is on a substation on the subgrid,
             # it is also on the original grid
@@ -520,7 +533,7 @@ class MATesterGlobalObs(unittest.TestCase):
                         ma_env._subgrids_cls[space][agent].line_or_to_subid]\
                 ==\
                     ma_env._cent_env.line_or_to_subid[
-                        ma_env._subgrids_cls[space][agent].mask_line_or
+                        ma_env._subgrids_cls[space][agent].mask_line
                     ]).all()
             # We check if an interconnection is on a substation on the subgrid,
             # it is also on the original grid (line_or)
@@ -1064,13 +1077,6 @@ class MATesterGlobalObs(unittest.TestCase):
             
             # check name of classes are correct
             assert re.sub("^SubGridAction", "", type(do_nothing).__name__) == re.sub("^SubGridActionSpace", "", type(ma_env.action_spaces[agent]).__name__)
-
-    def _aux_sample_withtout_interco(self, act_sp):
-        res = act_sp.sample()
-        if res._modif_interco_set_status or res._modif_interco_change_status:
-            # if the action sample the interconnection, i resample it
-            res = self._aux_sample_withtout_interco(act_sp)
-        return res
     
     def test_step(self):
         self.ma_env.seed(0)  # do not change the seed otherwise you might have some "action on interco" which are not fully implemented yet
@@ -1078,7 +1084,7 @@ class MATesterGlobalObs(unittest.TestCase):
         for _ in range(10):
             while True:
                 actions = {
-                    agent : self._aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
+                    agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
                     for agent in self.ma_env.agents
                 }
                 obs, rewards, dones, info = self.ma_env.step(actions)
@@ -1108,6 +1114,7 @@ class TestAction(unittest.TestCase):
     
     def tearDown(self) -> None:
         self.env.close()
+        self.ma_env._cent_env.close()
         return super().tearDown()
         
     def test_interco_set_bus(self):
@@ -1353,6 +1360,62 @@ class TestAction(unittest.TestCase):
         with self.assertRaises(IllegalAction):
             act = self.ma_env.action_spaces[agent_nm]({"change_interco_status":  [id_]})
                                                     
-             
+class TestLocalObservation(unittest.TestCase):
+    def setUp(self) -> None:
+        
+        self.action_domains = {
+            'agent_0' : [0, 1, 2, 3, 4],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
+        }
+        
+        self.observation_domains = {
+            'agent_0' : [0, 1, 2, 3, 4, 5, 6, 8],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13, 4, 3]
+        }
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            
+            self.env = make("educ_case14_storage",
+                            test=True,
+                            action_class=PlayableAction,
+                            _add_to_name="TestObservation")
+
+        
+            self.ma_env = MultiAgentEnv(self.env, self.action_domains, self.observation_domains)
+            
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        self.ma_env._cent_env.close()
+        return super().tearDown()
+
+    def test_reset_env(self):
+        obs = self.ma_env.reset()
+        for ag_nm in ["agent_0", "agent_1"]:
+            assert not obs[ag_nm]._is_complete_obs       
+    
+    def test_step(self):
+        self.ma_env.seed(0)  # do not change the seed otherwise you might have some "action on interco" which are not fully implemented yet
+        self.ma_env.reset()
+        for _ in range(10):
+            while True:
+                actions = {
+                    agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
+                    for agent in self.ma_env.agents
+                }
+                obs, rewards, dones, info = self.ma_env.step(actions)
+                if dones[self.ma_env.agents[0]]:
+                    self.ma_env.reset()
+                    break
+                
+                # For now, it is not clear how to "simulate" with a partial observation
+                with self.assertRaises(SimulateError):
+                    obs["agent_0"].simulate(actions)
+                with self.assertRaises(SimulateError):
+                    obs["agent_1"].simulate(actions)
+                 
+                 
 if __name__ == "__main__":
     unittest.main()
