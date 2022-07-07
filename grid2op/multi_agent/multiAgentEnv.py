@@ -109,7 +109,7 @@ class MultiAgentEnv(RandomObject):
         else:
             self._cent_env : Environment = env
         
-        self._verify_domains(action_domains)
+        self._verify_domains(action_domains, is_action_domain=True)
         self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
         self.num_agents = len(action_domains)
         
@@ -119,16 +119,14 @@ class MultiAgentEnv(RandomObject):
             self.parameters = self._cent_env.parameters
             self.parameters.MAX_SUB_CHANGED = self.num_agents
             self.parameters.MAX_LINE_STATUS_CHANGED = self.num_agents
-
-            self._cent_env.change_parameters(self.parameters)
             
             warnings.warn("Rules can not be changed in this version.")
+            self._cent_env.change_parameters(self.parameters)
+            self._cent_env.change_forecast_parameters(self.parameters)
+            self._cent_env.reset()
             
-            if copy_env:
-                self._cent_env.reset()
-            else:
-                self._cent_env.reset()
-                warnings.warn("The central env has been reset !")
+            if not copy_env:
+                warnings.warn("The central env has been heavily modified (parameters and reset) !")
             
             assert self._cent_env.parameters.MAX_LINE_STATUS_CHANGED == self.num_agents
             
@@ -151,7 +149,7 @@ class MultiAgentEnv(RandomObject):
                 raise EnvError("action_domains and observation_domains must have the same agents' names !")
             self._is_global_obs : bool = False
             self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
-            self._verify_domains(observation_domains)
+            self._verify_domains(observation_domains, is_action_domain=False)
             
         # if observation_domains is not None:
         #     # user specified an observation domain
@@ -349,67 +347,8 @@ class MultiAgentEnv(RandomObject):
     
     def _local_action_to_global(self, local_action : LocalAction) -> BaseAction :
         # Empty global action
-        converted_action = self._cent_env.action_space({})
-        subgrid_type = type(local_action)
-        
-        # We check for every action type if there's a change
-        # if it is the case, we take local changes and copy 
-        # them in the corresponding global positions for that
-        # action type via mask_orig_pos_topo_vect.
-        if local_action._modif_set_bus:
-            converted_action._modif_set_bus = True
-            converted_action._set_topo_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._set_topo_vect
-        
-        if local_action._modif_change_bus:
-            converted_action._modif_change_bus = True
-            converted_action._change_bus_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._change_bus_vect
-            
-        if local_action._modif_set_status:
-            converted_action._modif_set_status = True
-            converted_action._set_line_status[subgrid_type.line_orig_ids] = local_action._set_line_status
-            
-        if local_action._modif_change_status:
-            converted_action._modif_change_status = True
-            converted_action._switch_line_status[subgrid_type.line_orig_ids] = local_action._switch_line_status
-        
-        if local_action._modif_redispatch:
-            converted_action._modif_redispatch = True
-            converted_action._redispatch[subgrid_type.gen_orig_ids] = local_action._redispatch
-        
-        if local_action._modif_storage:
-            converted_action._modif_storage = True
-            converted_action._storage_power[subgrid_type.storage_orig_ids] = local_action._storage_power
-        
-        if local_action._modif_curtailment:
-            converted_action._modif_curtailment = True
-            converted_action._curtail[subgrid_type.gen_orig_ids] = local_action._curtail
-        
-        if local_action._modif_interco_set_status:
-            raise NotImplementedError("What to do if I modified an interco status (set) ?")
-        if local_action._modif_interco_change_status:
-            raise NotImplementedError("What to do if I modified an interco status (change) ?")
-        if local_action._modif_inj:
-            raise NotImplementedError("What to do if I modified an injection ?")
-        if local_action._modif_alarm:
-            raise NotImplementedError("What to do if I modified an alarm ?")
-            
-        # V0
-        # TODO set_bus done tested
-        # TODO change_bus done tested
-        # TODO redispatch done, tested
-        # TODO curtail done, tested
-        # TODO change_line_status done tested
-        # TODO set_line_status done tested
-        # TODO set_storage done 
-        
-        # V inf
-        # injection
-        # hazards
-        # maintenance
-        # alarm
-        
-        # TODO why a copy here ?
-        return converted_action.copy()
+        converted_action = local_action.to_global(self._cent_env.action_space)
+        return converted_action
     
     def _build_subgrid_cls_from_domain(self, domain, type_: str):
         # type_: action or observation                
@@ -723,7 +662,7 @@ class MultiAgentEnv(RandomObject):
         for agent_nm in self.agents:
             self.observations[agent_nm] = self.observation_spaces[agent_nm](self, cent_observation, _update_state=_update_state)
     
-    def _verify_domains(self, domains : MADict) -> None:
+    def _verify_domains(self, domains : MADict, is_action_domain=True) -> None:
         """It verifies if substation ids are valid
 
         Args:
@@ -753,10 +692,9 @@ class MultiAgentEnv(RandomObject):
                     raise DomainException(f"Agent id {agent} : The substation's id must be between 0 and {len(self._cent_env.name_sub)-1}, but {domains[agent][i]} has been given")
             sum_subs += len(domains[agent])
 
-        # TODO since when ???
-        # especially for the observation, you can have some "duplicate", this test needs to be modified / corrected
-        # if sum_subs != self._cent_env.n_sub:
-            # raise DomainException(f"The sum of sub id lists' length must be equal to _cent_env.n_sub = {self._cent_env.n_sub} but is {sum_subs}")
+        if is_action_domain and sum_subs != self._cent_env.n_sub:
+            # check that I can act on every substation
+            raise DomainException(f"The sum of sub id lists' length must be equal to _cent_env.n_sub = {self._cent_env.n_sub} but is {sum_subs}")
     
     def observation_space(self, agent : AgentID)-> LocalObservationSpace:
         """

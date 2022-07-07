@@ -63,8 +63,16 @@ class SubGridObservation(SubGridObjects, CompleteObservation):
                                 "Your agent can only observe a small part of the grid.")
             
         # 1) convert the actions to a global action
+        my_cls = type(self)
+        action = self.action_helper()
+        for agent_nm, local_act in actions.items():
+            if agent_nm == my_cls.agent_name:
+                continue
+            action += local_act.to_global(self.action_helper)
+        action += actions[my_cls.agent_name].to_global(self.action_helper)
+        print(action)
         complete_obs, global_reward, done, info = super().simulate(action, time_step)
-        # 2) convert complete_obs in the Observation, dispatch reward and all...
+        return complete_obs, global_reward, done, info
     
     def reset(self):
         super().reset()

@@ -7,6 +7,8 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import copy
+from lib2to3.pytree import Base
+import warnings
 import numpy as np
 from typing import Tuple
 
@@ -98,6 +100,126 @@ class SubGridActionSpace(SubGridObjects, ActionSpace):
             rnd_update = self._sample_interco_change_bus()
         return rnd_update
     
+    def from_global(self, global_action: BaseAction):
+        """Convert the global action to a local action handled by this space
+
+        Parameters
+        ----------
+        global_action : BaseAction
+            The global action
+
+        Returns
+        -------
+        _type_
+            _description_
+
+        Raises
+        ------
+        NotImplementedError
+            _description_
+        NotImplementedError
+            _description_
+        NotImplementedError
+            _description_
+        NotImplementedError
+            _description_
+        """
+        
+        # TODO not tested
+        my_cls = type(self)
+        local_action = self()
+        
+        if global_action._modif_set_bus:
+            if self.supports_type("set_bus"):
+                tmp_ = global_action._set_topo_vect[my_cls.mask_orig_pos_topo_vect]
+                if np.any(tmp_ != 0):
+                    local_action._modif_set_bus = True
+                    local_action._set_topo_vect = tmp_
+            else:
+                warnings.warn("The set_bus part of this global action has been removed because "
+                              "the target action type does not suppor it")
+
+        if global_action._modif_change_bus:        
+            if self.supports_type("change_bus"):
+                tmp_ = global_action._change_bus_vect[my_cls.mask_orig_pos_topo_vect]
+                if np.any(tmp_):
+                    local_action._modif_change_bus = True
+                    local_action._change_bus_vect = tmp_
+            else:
+                warnings.warn("The change_bus part of this global action has been removed because "
+                              "the target action type does not suppor it")
+        
+        if global_action._modif_set_status:
+            if self.supports_type("set_line_status"):
+                tmp_ = global_action._set_line_status[my_cls.mask_line]
+                if np.any(tmp_ != 0):
+                    # regular lines (in the local grid) have been modified
+                    local_action._modif_set_status = True
+                    local_action._set_line_status = tmp_
+                
+                tmp_ = global_action._set_line_status[my_cls.mask_interco]
+                if np.any(tmp_ != 0):
+                    # interco (in the local grid) have been modified
+                    local_action._modif_interco_set_status = True
+                    local_action._set_interco_status = tmp_
+            else:
+                warnings.warn("The set_line_status part of this global action has been removed because "
+                              "the target action type does not suppor it")
+       
+        if global_action._modif_change_status:     
+            if self.supports_type("change_line_status"):
+                tmp_ = global_action._switch_line_status[my_cls.mask_line]
+                if np.any(tmp_):
+                    # regular lines (in the local grid) have been modified
+                    local_action._modif_change_status = True
+                    local_action._switch_line_status = tmp_
+                
+                tmp_ = global_action._switch_line_status[my_cls.mask_interco]
+                if np.any(tmp_):
+                    # interco (in the local grid) have been modified
+                    local_action._modif_interco_change_status = True
+                    local_action._switch_line_status = tmp_
+            else:
+                warnings.warn("The change_line_status part of this global action has been removed because "
+                              "the target action type does not suppor it")
+        
+        if global_action._modif_redispatch:
+            if self.supports_type("redispatch"):
+                tmp_ = global_action._redispatch[my_cls.gen_orig_ids]
+                if np.any(tmp_ != 0.):
+                    local_action._modif_redispatch = True
+                    local_action._redispatch = tmp_
+            else:
+                warnings.warn("The redispatch part of this global action has been removed because "
+                              "the target action type does not suppor it")
+        
+        if global_action._modif_storage:
+            if self.supports_type("storage_power"):
+                tmp_ = global_action._storage_power[my_cls.storage_orig_ids]
+                if np.any(tmp_ != 0.):
+                    local_action._modif_storage = True
+                    local_action._storage_power = tmp_
+            else:
+                warnings.warn("The storage_power part of this global action has been removed because "
+                              "the target action type does not suppor it")
+        
+        if global_action._modif_curtailment:
+            if self.supports_type("curtail"):
+                tmp_ = global_action._curtail[my_cls.gen_orig_ids]
+                if np.any(tmp_ != -1.):
+                    local_action._modif_curtailment = True
+                    local_action._curtail = global_action._curtail[my_cls.gen_orig_ids]
+            else:
+                warnings.warn("The curtail part of this global action has been removed because "
+                              "the target action type does not suppor it")
+                
+        if global_action._modif_inj:
+            raise NotImplementedError("What to do if global_action modified an injection ?")
+        if global_action._modif_alarm:
+            raise NotImplementedError("What to do if global_action modified an alarm ?")
+        
+        return local_action    
+        
         
 # TODO (later) make that a "metaclass" with argument the ActionType (here playable action)
 # TODO run the extensive grid2op test for the action for this class
@@ -139,6 +261,7 @@ class SubGridAction(SubGridObjects, PlayableAction):
         return super().as_serializable_dict()
     
     def __iadd__(self, other):
+        raise NotImplementedError("You are not supposed to add local action together. But maybe add local action to global action !")
         super().__iadd__(other)
         # TODO
         return self
@@ -183,6 +306,103 @@ class SubGridAction(SubGridObjects, PlayableAction):
         ]
         self._aux_aux_copy(other, attr_simple, attr_vect)
     
+    def to_global(self, global_action_space: ActionSpace):
+        """Convert the local action to a global action using the provided action space
+
+        Parameters
+        ----------
+        global_action_space : ActionSpace
+            The action space
+
+        Returns
+        -------
+        _type_
+            _description_
+
+        Raises
+        ------
+        NotImplementedError
+            _description_
+        NotImplementedError
+            _description_
+        NotImplementedError
+            _description_
+        NotImplementedError
+            _description_
+        """
+        my_cls = type(self)
+        global_action = global_action_space()
+        # We check for every action type if there's a change
+        # if it is the case, we take local changes and copy 
+        # them in the corresponding global positions for that
+        # action type via mask_orig_pos_topo_vect.
+        if self._modif_set_bus:
+            if global_action_space.supports_type("set_bus"):
+                global_action._modif_set_bus = True
+                global_action._set_topo_vect[my_cls.mask_orig_pos_topo_vect] = self._set_topo_vect
+            else:
+                warnings.warn("The set_bus part of this local action has been removed because "
+                              "the target action type does not suppor it")
+        
+        if self._modif_change_bus:
+            if global_action_space.supports_type("change_bus"):
+                global_action._modif_change_bus = True
+                global_action._change_bus_vect[my_cls.mask_orig_pos_topo_vect] = self._change_bus_vect
+            else:
+                warnings.warn("The change_bus part of this local action has been removed because "
+                              "the target action type does not suppor it")
+            
+        if self._modif_set_status:
+            if global_action_space.supports_type("set_line_status"):
+                global_action._modif_set_status = True
+                global_action._set_line_status[my_cls.line_orig_ids] = self._set_line_status
+            else:
+                warnings.warn("The set_line_status part of this local action has been removed because "
+                              "the target action type does not suppor it")
+            
+        if self._modif_change_status:
+            if global_action_space.supports_type("change_line_status"):
+                global_action._modif_change_status = True
+                global_action._switch_line_status[my_cls.line_orig_ids] = self._switch_line_status
+            else:
+                warnings.warn("The change_line_status part of this local action has been removed because "
+                              "the target action type does not suppor it")
+        
+        if self._modif_redispatch:
+            if global_action_space.supports_type("redispatch"):
+                global_action._modif_redispatch = True
+                global_action._redispatch[my_cls.gen_orig_ids] = self._redispatch
+            else:
+                warnings.warn("The redispatch part of this local action has been removed because "
+                              "the target action type does not suppor it")
+        
+        if self._modif_storage:
+            if global_action_space.supports_type("storage_power"):
+                global_action._modif_storage = True
+                global_action._storage_power[my_cls.storage_orig_ids] = self._storage_power
+            else:
+                warnings.warn("The storage_power part of this local action has been removed because "
+                              "the target action type does not suppor it")
+        
+        if self._modif_curtailment:
+            if global_action_space.supports_type("curtail"):
+                global_action._modif_curtailment = True
+                global_action._curtail[my_cls.gen_orig_ids] = self._curtail
+            else:
+                warnings.warn("The curtail part of this local action has been removed because "
+                              "the target action type does not suppor it")
+        
+        if self._modif_interco_set_status:
+            raise NotImplementedError("What to do if I modified an interco status (set) ?")
+        if self._modif_interco_change_status:
+            raise NotImplementedError("What to do if I modified an interco status (change) ?")
+        if self._modif_inj:
+            raise NotImplementedError("What to do if I modified an injection ?")
+        if self._modif_alarm:
+            raise NotImplementedError("What to do if I modified an alarm ?")
+        return global_action
+        
+        
     def impact_on_objects(self) -> dict:
         # TODO not tested
         res = super().impact_on_objects()
@@ -319,7 +539,6 @@ class SubGridAction(SubGridObjects, PlayableAction):
     def __eq__(self, other) -> bool:
         # TODO not tested
         res = super().__eq__(other)
-        
         if not res:
             return False
         
@@ -327,6 +546,7 @@ class SubGridAction(SubGridObjects, PlayableAction):
             self._set_interco_status == other._set_interco_status
         ):
             return False        
+        
         if (self._modif_interco_change_status != other._modif_interco_change_status) or not np.all(
             self._switch_interco_status == other._switch_interco_status
         ):

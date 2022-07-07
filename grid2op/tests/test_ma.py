@@ -14,9 +14,11 @@ import numpy as np
 
 from grid2op import make
 from grid2op.Action import ActionSpace
+from grid2op.Action.BaseAction import BaseAction
 from grid2op.Action.PlayableAction import PlayableAction
 from grid2op.Exceptions.IllegalActionExceptions import IllegalAction
 from grid2op.Exceptions.ObservationExceptions import SimulateError
+from grid2op.Observation.completeObservation import CompleteObservation
 from grid2op.Parameters import Parameters
 from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
 from grid2op.multi_agent.subgridAction import SubGridAction
@@ -24,6 +26,8 @@ from grid2op.multi_agent.multi_agentExceptions import *
 
 
 import pdb
+
+from grid2op.multi_agent.subgridObservation import SubGridObservation
 
 
 
@@ -35,6 +39,19 @@ def _aux_sample_withtout_interco(act_sp: ActionSpace):
     return res
     
 
+def _aux_sample_without_interco_from_global(global_act_sp: ActionSpace, local_act_spaces):
+    res: BaseAction = global_act_sp.sample()
+    if res._modif_set_status:
+        # if the action sample the interconnection, i resample it
+        if np.any(res._set_line_status[local_act_spaces["agent_0"].mask_interco] != 0) or np.any(res._set_line_status[local_act_spaces["agent_1"].mask_interco] != 0):
+            res = _aux_sample_without_interco_from_global(global_act_sp, local_act_spaces)
+    elif res._modif_change_status:
+        # if the action sample the interconnection, i resample it
+        if np.any(res._switch_line_status[local_act_spaces["agent_0"].mask_interco]) or np.any(res._switch_line_status[local_act_spaces["agent_1"].mask_interco]):
+            res = _aux_sample_without_interco_from_global(global_act_sp, local_act_spaces)
+    return res
+    
+    
 class MATesterGlobalObs(unittest.TestCase):
     def setUp(self) -> None:
         
@@ -1359,6 +1376,63 @@ class TestAction(unittest.TestCase):
         id_ = type(act).n_interco
         with self.assertRaises(IllegalAction):
             act = self.ma_env.action_spaces[agent_nm]({"change_interco_status":  [id_]})
+                    
+    def test_to_local(self):
+        # TODO this test is not extensive at all !
+        # for example, it should test the interco too, and I remove them !
+        # and its just "quick and dirty" tests using seed, better tests would be to create these actions
+        # and think about 
+        self.ma_env.seed(0)
+        self.ma_env.reset()
+        
+        # test global -> locals -> global
+        for i in range(100):
+            global_act = _aux_sample_without_interco_from_global(self.ma_env._cent_env.action_space,
+                                                                 self.ma_env.action_spaces
+                                                                )
+            local_act = {agent_nm: self.ma_env.action_spaces[agent_nm].from_global(global_act) 
+                         for agent_nm in self.ma_env.agents}
+            
+            global_act_2 = (local_act["agent_0"].to_global(self.ma_env._cent_env.action_space) +
+                            local_act["agent_1"].to_global(self.ma_env._cent_env.action_space)
+                           )
+            if i == 42:
+                # this action does nothing, but unfortunately it's because it sampled a subtation
+                # a change_bus, and "decided" not to change anything
+                # this flag is "lost in the conversion"
+                global_act._modif_change_bus = False
+                
+            # when I combine these actions, it should be true
+            assert global_act_2 == global_act, f"error for iteration {i} with ref:\n{global_act}\nand rebuilt:\n{global_act_2}"
+            
+        # test locals -> global -> locals
+        for i in range(100):
+            local_act = {agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
+                         for agent in self.ma_env.agents}
+            
+            global_act = (local_act["agent_0"].to_global(self.ma_env._cent_env.action_space) +
+                          local_act["agent_1"].to_global(self.ma_env._cent_env.action_space)
+                         )
+            
+            local_act_2 = {agent_nm: self.ma_env.action_spaces[agent_nm].from_global(global_act) 
+                           for agent_nm in self.ma_env.agents}
+
+            if i == 78 :
+                # this action does nothing, but unfortunately it's because it sampled a subtation
+                # a change_bus, and "decided" not to change anything
+                # this flag is "lost in the conversion"
+                local_act["agent_0"]._modif_change_bus = False
+
+            elif i == 82 or i == 83 or i == 85:
+                # this action does nothing, but unfortunately it's because it sampled a subtation
+                # a change_bus, and "decided" not to change anything
+                # this flag is "lost in the conversion"
+                local_act["agent_1"]._modif_change_bus = False
+                
+            # when I combine these actions, it should be true
+            for agent_nm in self.ma_env.agents:
+                assert local_act[agent_nm] == local_act_2[agent_nm], f"error for iteration {i}, agent {agent_nm} with ref:\n{local_act[agent_nm]}\nand rebuilt:\n{local_act_2[agent_nm]}"
+   
                                                     
 class TestLocalObservation(unittest.TestCase):
     def setUp(self) -> None:
@@ -1416,6 +1490,76 @@ class TestLocalObservation(unittest.TestCase):
                 with self.assertRaises(SimulateError):
                     obs["agent_1"].simulate(actions)
                  
-                 
+
+class TestGlobalObservation(unittest.TestCase):
+    def setUp(self) -> None:
+        
+        self.action_domains = {
+            'agent_0' : [0, 1, 2, 3, 4],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
+        }
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            
+            self.env = make("educ_case14_storage",
+                            test=True,
+                            action_class=PlayableAction,
+                            _add_to_name="TestObservation")
+
+        
+            self.ma_env = MultiAgentEnv(self.env, self.action_domains)
+            
+        return super().setUp()
+
+    def test_reset_env(self):
+        obs = self.ma_env.reset()
+        for ag_nm in ["agent_0", "agent_1"]:
+            assert obs[ag_nm]._is_complete_obs       
+    
+    def test_step(self):
+        self.ma_env.seed(0)  # do not change the seed otherwise you might have some "action on interco" which are not fully implemented yet
+        self.ma_env.reset()
+        for _ in range(10):
+            while True:
+                actions = {
+                    agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
+                    for agent in self.ma_env.agents
+                }
+                obs, rewards, dones, info = self.ma_env.step(actions)
+                if dones[self.ma_env.agents[0]]:
+                    self.ma_env.reset()
+                    break
+                
+    def test_simulate(self):
+        self.ma_env.seed(0)
+        obs = self.ma_env.reset()
+        for _ in range(10):
+            actions = {
+                agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
+                for agent in self.ma_env.agents
+            }
+            
+            for ag_nm in ["agent_0", "agent_1"]:
+                sim_o, sim_r, sim_d, sim_i =  obs[ag_nm].simulate(actions)   
+                assert not isinstance(sim_o, SubGridObservation)            
+                assert isinstance(sim_o, CompleteObservation)  
+                
+                # now check the simulated observation is the same as the one from the global env
+                global_obs = self.ma_env._cent_env.get_obs()
+                global_act_sp = self.ma_env._cent_env.action_space
+                global_act = global_act_sp()
+                for agent_nm, local_act in actions.items():
+                    global_act += local_act.to_global(global_act_sp)
+                sim_o_g, sim_r_g, sim_d_g, sim_i_g = global_obs.simulate(global_act)
+                assert sim_i_g["exception"] == sim_i["exception"] 
+                assert sim_o_g == sim_o
+                assert sim_r_g == sim_r
+                
+            obss, rewards, dones, infos = self.ma_env.step(actions)
+            if dones[self.ma_env.agents[0]]:
+                obs = self.ma_env.reset()
+
+
 if __name__ == "__main__":
     unittest.main()
