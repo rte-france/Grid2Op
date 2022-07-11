@@ -13,6 +13,7 @@ from grid2op.dtypes import dt_float, dt_int, dt_bool
 from grid2op.Exceptions import SimulateError
 from grid2op.Observation import ObservationSpace, CompleteObservation
 from grid2op.multi_agent.subGridObjects import SubGridObjects
+from grid2op.multi_agent.ma_typing import ActionProfile
 
 
 class SubGridObservation(SubGridObjects, CompleteObservation):
@@ -56,7 +57,37 @@ class SubGridObservation(SubGridObjects, CompleteObservation):
         self.time_next_maintenance_interco = np.empty(shape=self.n_interco, dtype=dt_int)
         self.timestep_overflow_interco = np.empty(shape=self.n_interco, dtype=dt_int)
     
-    def simulate(self, actions, time_step=1):
+    def simulate(self, actions: ActionProfile, time_step: int=1):
+        """
+        
+        .. warning::
+            It does not use the same logic as the environment to "avoid conflict" between the agents.
+            
+            This function takes the agent (in alphabetical order) and apply their local action successively.
+            
+            Then it applies the action of the agent that has the observation space (to make sure it has "the last word").
+
+        Parameters
+        ----------
+        actions : ActionProfile
+            List of actions you want to "simulate". This should be a dictionnary with the keys being the name
+            of the agents, and the values the corresponding "local action". It should contain at least the 
+            "local action" of the agent concerned by the observation. If no other actions are sent, "do nothing" is assumed.
+             
+        time_step : int, optional
+            see the documentation of the observation.simulate, by default 1
+
+        Returns
+        -------
+        It returns the complete observation after combination of the actions, the global reward, the "done" flag and a centralized "info".
+
+        Raises
+        ------
+        SimulateError
+            It is raised when the observatino is not "complete".
+            
+        """
+        # TODO not tested intensively
         if not self._is_complete_obs:
             raise SimulateError("Impossible to forecast the impact of a local action if you "
                                 "have the complete information about the grid. "
@@ -65,9 +96,10 @@ class SubGridObservation(SubGridObjects, CompleteObservation):
         # 1) convert the actions to a global action
         my_cls = type(self)
         action = self.action_helper()
-        for agent_nm, local_act in actions.items():
+        for agent_nm in sorted(actions.values()):
             if agent_nm == my_cls.agent_name:
                 continue
+            local_act  = actions[agent_nm]
             action += local_act.to_global(self.action_helper)
         action += actions[my_cls.agent_name].to_global(self.action_helper)
         # 2) simulate with the global action
@@ -76,6 +108,7 @@ class SubGridObservation(SubGridObjects, CompleteObservation):
         return complete_obs, global_reward, done, info
     
     def reset(self):
+        # TODO not tested
         super().reset()
         self.interco_p[:] = np.NaN
         self.interco_q[:] = np.NaN
@@ -94,6 +127,8 @@ class SubGridObservation(SubGridObjects, CompleteObservation):
     def update(self, env, complete_obs, with_forecast=True):
         # env: centralized env
         # complete_obs: the complete observation at this step
+        
+        # TODO not tested
         
         if self._is_complete_obs:
             CompleteObservation.update(self, env, with_forecast)
@@ -238,7 +273,6 @@ class SubGridObservation(SubGridObjects, CompleteObservation):
         self.duration_next_maintenance_interco[:] = complete_obs.duration_next_maintenance[my_cls.mask_interco]
         self.time_next_maintenance_interco[:] = complete_obs.time_next_maintenance[my_cls.mask_interco]
         self.timestep_overflow_interco[:] = complete_obs.timestep_overflow[my_cls.mask_interco]
-        
         
     
 class SubGridObservationSpace(SubGridObjects, ObservationSpace):
