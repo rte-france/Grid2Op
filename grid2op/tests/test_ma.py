@@ -8,18 +8,50 @@
 
 import unittest
 import warnings
-from grid2op import make
-from grid2op.Action.PlayableAction import PlayableAction
-from grid2op.Parameters import Parameters
-from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
 import re
 import numpy as np
+
+
+from grid2op import make
+from grid2op.Action import ActionSpace
+from grid2op.Action.BaseAction import BaseAction
+from grid2op.Action.PlayableAction import PlayableAction
+from grid2op.Exceptions.IllegalActionExceptions import IllegalAction
+from grid2op.Exceptions.ObservationExceptions import SimulateError
+from grid2op.Observation.completeObservation import CompleteObservation
+from grid2op.Parameters import Parameters
+from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
+from grid2op.multi_agent.subgridAction import SubGridAction
 from grid2op.multi_agent.multi_agentExceptions import *
 
 
 import pdb
 
+from grid2op.multi_agent.subgridObservation import SubGridObservation
 
+
+
+def _aux_sample_withtout_interco(act_sp: ActionSpace):
+    res: SubGridAction = act_sp.sample()
+    if res._modif_interco_set_status or res._modif_interco_change_status:
+        # if the action sample the interconnection, i resample it
+        res = _aux_sample_withtout_interco(act_sp)
+    return res
+    
+
+def _aux_sample_without_interco_from_global(global_act_sp: ActionSpace, local_act_spaces):
+    res: BaseAction = global_act_sp.sample()
+    if res._modif_set_status:
+        # if the action sample the interconnection, i resample it
+        if np.any(res._set_line_status[local_act_spaces["agent_0"].mask_interco] != 0) or np.any(res._set_line_status[local_act_spaces["agent_1"].mask_interco] != 0):
+            res = _aux_sample_without_interco_from_global(global_act_sp, local_act_spaces)
+    elif res._modif_change_status:
+        # if the action sample the interconnection, i resample it
+        if np.any(res._switch_line_status[local_act_spaces["agent_0"].mask_interco]) or np.any(res._switch_line_status[local_act_spaces["agent_1"].mask_interco]):
+            res = _aux_sample_without_interco_from_global(global_act_sp, local_act_spaces)
+    return res
+    
+    
 class MATesterGlobalObs(unittest.TestCase):
     def setUp(self) -> None:
         
@@ -134,18 +166,18 @@ class MATesterGlobalObs(unittest.TestCase):
         assert (self.ma_env._action_domains['agent_0']['mask_storage'] == mask_storage).all()
         assert (self.ma_env._action_domains['agent_1']['mask_storage'] == ~mask_storage).all()
         
-        mask_line_ex_agent0 = np.array([ True,  True,  True,  True,  True,  True,  True, 
+        mask_line_agent0 = np.array([ True,  True,  True,  True,  True,  True,  True, 
                                 False, False,False, False, False, False, False, False, 
                                 False, False, False,False, False])
         # We compare the line_ex masks with known values for every agent
-        assert (self.ma_env._action_domains['agent_0']['mask_line_ex'] == mask_line_ex_agent0).all()
-        mask_line_ex_agent1 = np.array([False, False, False, False, False, False, False,
+        assert (self.ma_env._action_domains['agent_0']['mask_line'] == mask_line_agent0).all()
+        mask_line_agent1 = np.array([False, False, False, False, False, False, False,
                                         True,  True,  True, True,  True, True,  True,  True,
                                         False, False, False,  True,  True])
-        assert (self.ma_env._action_domains['agent_1']['mask_line_ex'] == mask_line_ex_agent1).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_line'] == mask_line_agent1).all()
         # We compare the line_or masks with known values for every agent
-        assert (self.ma_env._action_domains['agent_0']['mask_line_or'] == mask_line_ex_agent0).all()
-        assert (self.ma_env._action_domains['agent_1']['mask_line_or'] == mask_line_ex_agent1).all()
+        assert (self.ma_env._action_domains['agent_0']['mask_line'] == mask_line_agent0).all()
+        assert (self.ma_env._action_domains['agent_1']['mask_line'] == mask_line_agent1).all()
         
         mask_shunt_agent0 = np.array([False])
         # We compare the shunt masks with known values for every agent
@@ -187,8 +219,8 @@ class MATesterGlobalObs(unittest.TestCase):
         
         # 1
         action_domains = {
-            'agent_0' : [0,1,2,3, 4],
-            'agent_1' : [5,6,7,8,9,10,11,12,13]
+            'agent_0' : [0, 1, 2, 3, 4],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
         }
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -233,6 +265,9 @@ class MATesterGlobalObs(unittest.TestCase):
         # We compare with a known value
         assert (ma_env._subgrids_cls['action']['agent_0'].grid_objects_types == ref).all()
         
+        # test the observation are complete (rapid tests)
+        assert ma_env._subgrids_cls['observation']['agent_0'].n_interco == 0
+        assert ma_env._subgrids_cls['observation']['agent_1'].n_interco == 0
         
     def test_build_subgrid_obj2(self):    
         # 2
@@ -285,11 +320,14 @@ class MATesterGlobalObs(unittest.TestCase):
         
     def check_reset(self, ma_env):
         ma_env.reset()
+        first_obs = None
         for agent in ma_env.agents:
             # We check if the _cent_observation is copied and not pointed
-            assert ma_env.observations[agent] is not ma_env._cent_observation
+            assert ma_env.observations[agent] is not first_obs
+            if first_obs is None:
+                first_obs = ma_env.observations[agent]
             # We check if observations have same values
-            assert ma_env.observations[agent] == ma_env._cent_observation
+            assert ma_env.observations[agent] == first_obs
             
     def check_dispatch_reward_done_info(self, ma_env):
         reward = 42.
@@ -408,8 +446,7 @@ class MATesterGlobalObs(unittest.TestCase):
             mask_load = ma_env._subgrids_cls[space][agent].mask_load
             mask_gen = ma_env._subgrids_cls[space][agent].mask_gen
             mask_storage = ma_env._subgrids_cls[space][agent].mask_storage
-            mask_line_or = ma_env._subgrids_cls[space][agent].mask_line_or
-            mask_line_ex = ma_env._subgrids_cls[space][agent].mask_line_ex
+            mask_line = ma_env._subgrids_cls[space][agent].mask_line
             mask_shunt = ma_env._subgrids_cls[space][agent].mask_shunt
             mask_interco = ma_env._subgrids_cls[space][agent].mask_interco
             # It tests if the sub_orig_ids are correct and
@@ -434,12 +471,12 @@ class MATesterGlobalObs(unittest.TestCase):
             # Ids should be the same as those given by line_or masks 
             assert (ma_env._subgrids_cls[space][agent].line_orig_ids\
                 ==\
-                    np.arange(ma_env._cent_env.n_line)[mask_line_or]).all()
+                    np.arange(ma_env._cent_env.n_line)[mask_line]).all()
             # We check that we have the correct generators original ids
             # Ids should be the same as those given by line_ex masks 
             assert (ma_env._subgrids_cls[space][agent].line_orig_ids\
                 ==\
-                    np.arange(ma_env._cent_env.n_line)[mask_line_ex]).all()
+                    np.arange(ma_env._cent_env.n_line)[mask_line]).all()
             
             if ma_env._subgrids_cls[space][agent].n_shunt > 0:
                 # We check that we have the correct shunt original ids
@@ -505,7 +542,7 @@ class MATesterGlobalObs(unittest.TestCase):
                         ma_env._subgrids_cls[space][agent].line_ex_to_subid]\
                 ==\
                     ma_env._cent_env.line_ex_to_subid[
-                        ma_env._subgrids_cls[space][agent].mask_line_ex
+                        ma_env._subgrids_cls[space][agent].mask_line
                     ]).all()
             # We check if a line_or is on a substation on the subgrid,
             # it is also on the original grid
@@ -513,7 +550,7 @@ class MATesterGlobalObs(unittest.TestCase):
                         ma_env._subgrids_cls[space][agent].line_or_to_subid]\
                 ==\
                     ma_env._cent_env.line_or_to_subid[
-                        ma_env._subgrids_cls[space][agent].mask_line_or
+                        ma_env._subgrids_cls[space][agent].mask_line
                     ]).all()
             # We check if an interconnection is on a substation on the subgrid,
             # it is also on the original grid (line_or)
@@ -1057,16 +1094,14 @@ class MATesterGlobalObs(unittest.TestCase):
             
             # check name of classes are correct
             assert re.sub("^SubGridAction", "", type(do_nothing).__name__) == re.sub("^SubGridActionSpace", "", type(ma_env.action_spaces[agent]).__name__)
-
     
     def test_step(self):
-        
-        self.ma_env.seed(0)
+        self.ma_env.seed(0)  # do not change the seed otherwise you might have some "action on interco" which are not fully implemented yet
         self.ma_env.reset()
         for _ in range(10):
             while True:
                 actions = {
-                    agent : self.ma_env.action_spaces[agent].sample()
+                    agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
                     for agent in self.ma_env.agents
                 }
                 obs, rewards, dones, info = self.ma_env.step(actions)
@@ -1075,6 +1110,456 @@ class MATesterGlobalObs(unittest.TestCase):
                     break
                 
         
+class TestAction(unittest.TestCase):
+    def setUp(self) -> None:
         
+        self.action_domains = {
+            'agent_0' : [0, 1, 2, 3, 4],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
+        }
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            
+            self.env = make("educ_case14_storage", test=True,
+                            action_class=PlayableAction, _add_to_name="test_ma")
+
+        
+            self.ma_env = MultiAgentEnv(self.env, self.action_domains)
+            
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        self.ma_env._cent_env.close()
+        return super().tearDown()
+        
+    def test_interco_set_bus(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                for bus_id in [1, 2]:
+                    act = self.ma_env.action_spaces[agent_nm]()
+                    act.interco_set_bus = [(id_, bus_id)]
+                    # the correct position is changed
+                    assert act._set_topo_vect[type(act).interco_pos_topo_vect[id_]] == bus_id
+                    # only this position is affected
+                    assert act._set_topo_vect[type(act).interco_pos_topo_vect].sum() == bus_id
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id
+        id_ = -1
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_set_bus = [(id_, 1)]
+            
+        # wrong id
+        id_ = type(act).n_interco
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_set_bus = [(id_, 1)]
+            
+        # wrong bus
+        id_ = 0
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_set_bus = [(id_, 3)]
+            
+    def test_interco_change_bus(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                act = self.ma_env.action_spaces[agent_nm]()
+                act.interco_change_bus = [id_]
+                # the correct position is changed
+                assert act._change_bus_vect[type(act).interco_pos_topo_vect[id_]]
+                # only this position is affected
+                assert act._change_bus_vect[type(act).interco_pos_topo_vect].sum() == 1
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id
+        id_ = -1
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_change_bus = [id_]
+            
+        # wrong id
+        id_ = type(act).n_interco
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_change_bus = [id_]
+
+    def test_interco_set_bus_dict(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                for bus_id in [1, 2]:
+                    act = self.ma_env.action_spaces[agent_nm]({"set_bus": {"intercos_id":  [(id_, bus_id)]}})
+                    # the correct position is changed
+                    assert act._set_topo_vect[type(act).interco_pos_topo_vect[id_]] == bus_id
+                    # only this position is affected
+                    assert act._set_topo_vect[type(act).interco_pos_topo_vect].sum() == bus_id
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id
+        id_ = -1
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_bus": {"intercos_id":  [(id_, 1)]}})
+            
+        # wrong id
+        id_ = type(act).n_interco
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_bus": {"intercos_id":  [(id_, 1)]}})
+            
+        # wrong bus
+        id_ = 0
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_bus": {"intercos_id":  [(id_, 3)]}})
+             
+    def test_interco_change_bus_dict(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                act = self.ma_env.action_spaces[agent_nm]({"change_bus": {"intercos_id":  [id_]}})
+                # the correct position is changed
+                assert act._change_bus_vect[type(act).interco_pos_topo_vect[id_]]
+                # only this position is affected
+                assert act._change_bus_vect[type(act).interco_pos_topo_vect].sum() == 1
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id
+        id_ = -1
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"change_bus": {"intercos_id":  [id_]}})
+            
+        # wrong id
+        id_ = type(act).n_interco
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"change_bus": {"intercos_id":  [id_]}})
+
+    def test_interco_set_status(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                for stat in [-1, 1]:
+                    act = self.ma_env.action_spaces[agent_nm]()
+                    act.interco_set_status = [(id_, stat)]
+                    # the flag that we change is properly set
+                    assert act._modif_interco_set_status 
+                    # the correct position is changed
+                    assert act._set_interco_status[id_] == stat
+                    # only this position is affected
+                    assert act._set_interco_status.sum() == stat
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id
+        id_ = -1
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_set_status = [(id_, 1)]
+            
+        # wrong id
+        id_ = type(act).n_interco
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_set_status = [(id_, 1)]
+            
+        # wrong status
+        id_ = 0
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_set_status = [(id_, 2)]
+        with self.assertRaises(IllegalAction):
+            act.interco_set_status = [(id_, -2)]
+
+    def test_interco_change_status(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                act = self.ma_env.action_spaces[agent_nm]()
+                act.interco_change_status = [id_]
+                # the flag that we change is properly set
+                assert act._modif_interco_change_status 
+                # the correct position is changed
+                assert act._switch_interco_status[id_]
+                # only this position is affected
+                assert act._switch_interco_status.sum() == 1
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id (too low)
+        id_ = -1
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_change_status = [id_]
+            
+        # wrong id (too high)
+        id_ = type(act).n_interco
+        act = self.ma_env.action_spaces[agent_nm]()
+        with self.assertRaises(IllegalAction):
+            act.interco_change_status = [id_]
+
+    def test_interco_set_status_dict(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                for stat in [-1, 1]:
+                    act = self.ma_env.action_spaces[agent_nm]({"set_interco_status": [(id_, stat)]})
+                    # the flag that we change is properly set
+                    assert act._modif_interco_set_status 
+                    # the correct position is changed
+                    assert act._set_interco_status[id_] == stat
+                    # only this position is affected
+                    assert act._set_interco_status.sum() == stat
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id
+        id_ = -1
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_interco_status": [(id_, 1)]})
+            
+        # wrong id
+        id_ = type(act).n_interco
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_interco_status": [(id_, 1)]})
+            
+        # wrong status
+        id_ = 0
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_interco_status": [(id_, -2)]})
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"set_interco_status": [(id_, 2)]})
+      
+    def test_interco_change_status_dict(self):
+        id_ = 0
+        # 1) test it works when it should
+        for agent_nm in ["agent_0", "agent_1"]:
+            act = self.ma_env.action_spaces[agent_nm]()
+            for id_ in range(type(act).n_interco):
+                act = self.ma_env.action_spaces[agent_nm]({"change_interco_status":  [id_]})
+                # the flag that we change is properly set
+                assert act._modif_interco_change_status 
+                # the correct position is changed
+                assert act._switch_interco_status[id_]
+                # only this position is affected
+                assert act._switch_interco_status.sum() == 1
+                
+        # 2) test it should NOT work when it shouldn't
+        agent_nm = "agent_0"
+        # wrong id (too low)
+        id_ = -1
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"change_interco_status":  [id_]})
+            
+        # wrong id (too high)
+        id_ = type(act).n_interco
+        with self.assertRaises(IllegalAction):
+            act = self.ma_env.action_spaces[agent_nm]({"change_interco_status":  [id_]})
+                    
+    def test_to_local(self):
+        # TODO this test is not extensive at all !
+        # for example, it should test the interco too, and I remove them !
+        # and its just "quick and dirty" tests using seed, better tests would be to create these actions
+        # and think about 
+        self.ma_env.seed(0)
+        self.ma_env.reset()
+        
+        # test global -> locals -> global
+        for i in range(100):
+            global_act = _aux_sample_without_interco_from_global(self.ma_env._cent_env.action_space,
+                                                                 self.ma_env.action_spaces
+                                                                )
+            local_act = {agent_nm: self.ma_env.action_spaces[agent_nm].from_global(global_act) 
+                         for agent_nm in self.ma_env.agents}
+            
+            global_act_2 = (local_act["agent_0"].to_global(self.ma_env._cent_env.action_space) +
+                            local_act["agent_1"].to_global(self.ma_env._cent_env.action_space)
+                           )
+            if i == 42:
+                # this action does nothing, but unfortunately it's because it sampled a subtation
+                # a change_bus, and "decided" not to change anything
+                # this flag is "lost in the conversion"
+                global_act._modif_change_bus = False
+                
+            # when I combine these actions, it should be true
+            assert global_act_2 == global_act, f"error for iteration {i} with ref:\n{global_act}\nand rebuilt:\n{global_act_2}"
+            
+        # test locals -> global -> locals
+        for i in range(100):
+            local_act = {agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
+                         for agent in self.ma_env.agents}
+            
+            global_act = (local_act["agent_0"].to_global(self.ma_env._cent_env.action_space) +
+                          local_act["agent_1"].to_global(self.ma_env._cent_env.action_space)
+                         )
+            
+            local_act_2 = {agent_nm: self.ma_env.action_spaces[agent_nm].from_global(global_act) 
+                           for agent_nm in self.ma_env.agents}
+
+            if i == 78 :
+                # this action does nothing, but unfortunately it's because it sampled a subtation
+                # a change_bus, and "decided" not to change anything
+                # this flag is "lost in the conversion"
+                local_act["agent_0"]._modif_change_bus = False
+
+            elif i == 82 or i == 83 or i == 85:
+                # this action does nothing, but unfortunately it's because it sampled a subtation
+                # a change_bus, and "decided" not to change anything
+                # this flag is "lost in the conversion"
+                local_act["agent_1"]._modif_change_bus = False
+                
+            # when I combine these actions, it should be true
+            for agent_nm in self.ma_env.agents:
+                assert local_act[agent_nm] == local_act_2[agent_nm], f"error for iteration {i}, agent {agent_nm} with ref:\n{local_act[agent_nm]}\nand rebuilt:\n{local_act_2[agent_nm]}"
+   
+                                                    
+class TestLocalObservation(unittest.TestCase):
+    def setUp(self) -> None:
+        
+        self.action_domains = {
+            'agent_0' : [0, 1, 2, 3, 4],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
+        }
+        
+        self.observation_domains = {
+            'agent_0' : [0, 1, 2, 3, 4, 5, 6, 8],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13, 4, 3]
+        }
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            
+            self.env = make("educ_case14_storage",
+                            test=True,
+                            action_class=PlayableAction,
+                            _add_to_name="TestObservation")
+
+        
+            self.ma_env = MultiAgentEnv(self.env, self.action_domains, self.observation_domains)
+            
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        self.ma_env._cent_env.close()
+        return super().tearDown()
+
+    def test_reset_env(self):
+        obs = self.ma_env.reset()
+        for ag_nm in ["agent_0", "agent_1"]:
+            assert not obs[ag_nm]._is_complete_obs       
+    
+    def test_step(self):
+        self.ma_env.seed(0)  # do not change the seed otherwise you might have some "action on interco" which are not fully implemented yet
+        self.ma_env.reset()
+        for _ in range(10):
+            while True:
+                actions = {
+                    agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
+                    for agent in self.ma_env.agents
+                }
+                obs, rewards, dones, info = self.ma_env.step(actions)
+                if dones[self.ma_env.agents[0]]:
+                    self.ma_env.reset()
+                    break
+                
+                # For now, it is not clear how to "simulate" with a partial observation
+                with self.assertRaises(SimulateError):
+                    obs["agent_0"].simulate(actions)
+                with self.assertRaises(SimulateError):
+                    obs["agent_1"].simulate(actions)
+                 
+
+class TestGlobalObservation(unittest.TestCase):
+    def setUp(self) -> None:
+        
+        self.action_domains = {
+            'agent_0' : [0, 1, 2, 3, 4],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
+        }
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            
+            self.env = make("educ_case14_storage",
+                            test=True,
+                            action_class=PlayableAction,
+                            _add_to_name="TestObservation")
+
+        
+            self.ma_env = MultiAgentEnv(self.env, self.action_domains)
+            
+        return super().setUp()
+
+    def test_reset_env(self):
+        obs = self.ma_env.reset()
+        for ag_nm in ["agent_0", "agent_1"]:
+            assert obs[ag_nm]._is_complete_obs       
+    
+    def test_step(self):
+        self.ma_env.seed(0)  # do not change the seed otherwise you might have some "action on interco" which are not fully implemented yet
+        self.ma_env.reset()
+        for _ in range(10):
+            while True:
+                actions = {
+                    agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
+                    for agent in self.ma_env.agents
+                }
+                obs, rewards, dones, info = self.ma_env.step(actions)
+                if dones[self.ma_env.agents[0]]:
+                    self.ma_env.reset()
+                    break
+                
+    def test_simulate(self):
+        self.ma_env.seed(0)
+        obs = self.ma_env.reset()
+        for _ in range(10):
+            actions = {
+                agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
+                for agent in self.ma_env.agents
+            }
+            
+            for ag_nm in ["agent_0", "agent_1"]:
+                sim_o, sim_r, sim_d, sim_i =  obs[ag_nm].simulate(actions)   
+                assert not isinstance(sim_o, SubGridObservation)            
+                assert isinstance(sim_o, CompleteObservation)  
+                
+                # now check the simulated observation is the same as the one from the global env
+                global_obs = self.ma_env._cent_env.get_obs()
+                global_act_sp = self.ma_env._cent_env.action_space
+                global_act = global_act_sp()
+                for agent_nm, local_act in actions.items():
+                    global_act += local_act.to_global(global_act_sp)
+                sim_o_g, sim_r_g, sim_d_g, sim_i_g = global_obs.simulate(global_act)
+                assert [f"{el}" for el in sim_i_g["exception"]] == [f"{el}" for el in sim_i["exception"]]
+                assert sim_o_g == sim_o
+                assert sim_r_g == sim_r
+                
+            obss, rewards, dones, infos = self.ma_env.step(actions)
+            if dones[self.ma_env.agents[0]]:
+                obs = self.ma_env.reset()
+
+
 if __name__ == "__main__":
     unittest.main()

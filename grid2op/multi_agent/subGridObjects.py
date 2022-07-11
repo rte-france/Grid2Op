@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import pdb
 import numpy as np
 from grid2op.Exceptions.EnvExceptions import EnvError, IncorrectNumberOfElements, IncorrectNumberOfGenerators, IncorrectNumberOfLines, IncorrectNumberOfLoads, IncorrectNumberOfStorages
 
@@ -30,8 +31,7 @@ class SubGridObjects(GridObjects):
     mask_load = None
     mask_gen = None
     mask_storage = None
-    mask_line_or = None
-    mask_line_ex = None
+    mask_line = None
     mask_shunt = None
     mask_interco = None
     agent_name : str = None
@@ -181,14 +181,7 @@ class SubGridObjects(GridObjects):
         save_to_dict(
             res,
             cls,
-            "mask_line_or",
-            (lambda arr: [bool(el) for el in arr]) if as_list else None,
-            copy_,
-        )
-        save_to_dict(
-            res,
-            cls,
-            "mask_line_ex",
+            "mask_line",
             (lambda arr: [bool(el) for el in arr]) if as_list else None,
             copy_,
         )
@@ -432,8 +425,7 @@ class SubGridObjects(GridObjects):
         cls.mask_load = None
         cls.mask_gen = None
         cls.mask_storage = None
-        cls.mask_line_or = None
-        cls.mask_line_ex = None
+        cls.mask_line = None
         cls.mask_shunt = None
         cls.mask_interco = None
         cls.mask_orig_pos_topo_vect = None

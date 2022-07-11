@@ -30,8 +30,12 @@ class NoForecastAvailable(Grid2OpException):
 
     pass
 
+class SimulateError(Grid2OpException):
+    """Generic error concerning the `obs.simulate(...)` function"""
+    pass
 
-class SimulateUsedTooMuch(Grid2OpException):
+class SimulateUsedTooMuch(SimulateError):
+    """More precise error: you called `obs.simulate(...)` too much, raising an error"""
     pass
 
 
@@ -42,7 +46,7 @@ class SimulateUsedTooMuchThisStep(SimulateUsedTooMuch):
     It is raised when the total number of calls to `obs.simulate(...)` exceeds the maximum number of allowed
     calls to it, for a given step.
 
-    You can do more "obs.simulate" if you call "env.step".
+    You can do more "obs.simulate(...)" at the next observation (after calling "env.step(...)").
     """
 
     pass

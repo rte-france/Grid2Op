@@ -517,13 +517,16 @@ class BaseAction(GridObjects):
 
         if self.shunts_data_available:
             attr_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+            
+        self._aux_aux_copy(other, attr_simple, attr_vect)
 
+    def _aux_aux_copy(self, other, attr_simple, attr_vect):
         for attr_nm in attr_simple:
             setattr(other, attr_nm, getattr(self, attr_nm))
 
         for attr_nm in attr_vect:
             getattr(other, attr_nm)[:] = getattr(self, attr_nm)
-
+        
     def __copy__(self) -> "BaseAction":
         res = type(self)()
 
@@ -542,8 +545,8 @@ class BaseAction(GridObjects):
 
     @classmethod
     def process_shunt_data(cls):
-        
         return super().process_shunt_data()
+    
     def __deepcopy__(self, memodict={}) -> "BaseAction":
         res = type(self)()
 
@@ -894,12 +897,14 @@ class BaseAction(GridObjects):
         # check that the underlying grid is the same in both instances
         same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
+            print("due to same_grid")
             return False
 
         # _grid is the same, now I test the the injections modifications are the same
         same_action = self._modif_inj == other._modif_inj
         same_action = same_action and self._dict_inj.keys() == other._dict_inj.keys()
         if not same_action:
+            print("due to same_action")
             return False
 
         # all injections are the same
@@ -911,23 +916,27 @@ class BaseAction(GridObjects):
             if not np.all(tmp_me == tmp_other) or not np.all(
                 me_inj[tmp_me] == other_inj[tmp_other]
             ):
+                print("due to _dict_inj")
                 return False
 
         # same line status
         if (self._modif_set_status != other._modif_set_status) or not np.all(
             self._set_line_status == other._set_line_status
         ):
+            print("due to _set_line_status")
             return False
 
         if (self._modif_change_status != other._modif_change_status) or not np.all(
             self._switch_line_status == other._switch_line_status
         ):
+            print("due to _switch_line_status")
             return False
 
         # redispatching is same
         if (self._modif_redispatch != other._modif_redispatch) or not np.all(
             self._redispatch == other._redispatch
         ):
+            print("due to _redispatch")
             return False
 
         # storage is same
@@ -938,28 +947,33 @@ class BaseAction(GridObjects):
         if not np.all(tmp_me == tmp_other) or not np.all(
             me_inj[tmp_me] == other_inj[tmp_other]
         ):
+            print("due to _storage_power")
             return False
 
         # curtailment
         if (self._modif_curtailment != other._modif_curtailment) or not np.array_equal(
             self._curtail, other._curtail
         ):
+            print("due to _curtail")
             return False
 
         # alarm
         if (self._modif_alarm != other._modif_alarm) or not np.array_equal(
             self._raise_alarm, other._raise_alarm
         ):
+            print("due to _raise_alarm")
             return False
 
         # same topology changes
         if (self._modif_set_bus != other._modif_set_bus) or not np.all(
             self._set_topo_vect == other._set_topo_vect
         ):
+            print("due to _set_topo_vect")
             return False
         if (self._modif_change_bus != other._modif_change_bus) or not np.all(
             self._change_bus_vect == other._change_bus_vect
         ):
+            print("due to _change_bus_vect")
             return False
 
         # shunts are the same
@@ -1534,6 +1548,10 @@ class BaseAction(GridObjects):
                         )
                         warnings.warn(warn)
 
+    def _digest_setbus_other_elements(self, ddict_, handled):
+        """may be used by the derived classes to set_bus with some other elements"""
+        return handled
+        
     def _digest_setbus(self, dict_):
         if "set_bus" in dict_:
             self._modif_set_bus = True
@@ -1562,6 +1580,7 @@ class BaseAction(GridObjects):
                 if "substations_id" in ddict_:
                     self.sub_set_bus = ddict_["substations_id"]
                     handled = True
+                handled = self._digest_setbus_other_elements(ddict_, handled)
                 if not handled:
                     msg = 'Invalid way to set the topology. When dict_["set_bus"] is a dictionary it should have'
                     msg += (
@@ -1574,6 +1593,10 @@ class BaseAction(GridObjects):
             else:
                 self.set_bus = dict_["set_bus"]
 
+    def _digest_changebus_other_elements(self, ddict_, handled):
+        """may be used by the derived classes to set_bus with some other elements"""
+        return handled
+    
     def _digest_change_bus(self, dict_):
         if "change_bus" in dict_:
             self._modif_change_bus = True
@@ -1602,8 +1625,10 @@ class BaseAction(GridObjects):
                 if "substations_id" in ddict_:
                     self.sub_change_bus = ddict_["substations_id"]
                     handled = True
+                handled = self._digest_changebus_other_elements(ddict_, handled)
+                
                 if not handled:
-                    msg = 'Invalid way to change the topology. When dict_["set_bus"] is a dictionary it should have'
+                    msg = 'Invalid way to change the topology. When dict_["change_bus"] is a dictionary it should have'
                     msg += (
                         ' at least one of "loads_id", "generators_id", "lines_or_id", '
                     )
@@ -1914,9 +1939,9 @@ class BaseAction(GridObjects):
 
         if dict_ is not None:
             for kk in dict_.keys():
-                if kk not in self.authorized_keys:
+                if kk not in type(self).authorized_keys:
                     warn = 'The key "{}" used to update an action will be ignored. Valid keys are {}'
-                    warn = warn.format(kk, self.authorized_keys)
+                    warn = warn.format(kk, type(self).authorized_keys)
                     warnings.warn(warn)
 
             self._digest_shunt(dict_)
@@ -2495,7 +2520,7 @@ class BaseAction(GridObjects):
         return obj_id, objt_type, substation_id
 
     def _obj_caract_from_topo_id_others(self, id_):
-        pass
+        return None, None, None
     
     def __str__(self) -> str:
         """
@@ -2662,9 +2687,14 @@ class BaseAction(GridObjects):
                     area_str = "s: \n\t \t - " + "\n\t \t - ".join(li_area)
                 res.append(f"\t - Raise an alarm on area" f"{area_str}")
             else:
-                res.append("\t - Not raise any alarm")
+                res.append("\t - NOT raise any alarm")
+                
+        self._str_for_other_elements(res, impact)
         return "\n".join(res)
 
+    def _str_for_other_elements(self, current_li_str, impact):
+        pass
+    
     def impact_on_objects(self) -> dict:
         """
         This will return a dictionary which contains details on objects that will be impacted by the action.

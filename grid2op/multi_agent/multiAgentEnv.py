@@ -22,6 +22,7 @@ from grid2op.Action import BaseAction
 from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, LocalAction, LocalActionSpace, LocalObservation, LocalObservationSpace, MADict
 from grid2op.multi_agent.multi_agentExceptions import *
 from grid2op.multi_agent.subgridAction import SubGridAction, SubGridActionSpace
+from grid2op.multi_agent.subgridObservation import SubGridObservation, SubGridObservationSpace
 
 
 class MultiAgentEnv(RandomObject):
@@ -108,7 +109,7 @@ class MultiAgentEnv(RandomObject):
         else:
             self._cent_env : Environment = env
         
-        self._verify_domains(action_domains)
+        self._verify_domains(action_domains, is_action_domain=True)
         self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
         self.num_agents = len(action_domains)
         
@@ -118,16 +119,14 @@ class MultiAgentEnv(RandomObject):
             self.parameters = self._cent_env.parameters
             self.parameters.MAX_SUB_CHANGED = self.num_agents
             self.parameters.MAX_LINE_STATUS_CHANGED = self.num_agents
-
-            self._cent_env.change_parameters(self.parameters)
             
             warnings.warn("Rules can not be changed in this version.")
+            self._cent_env.change_parameters(self.parameters)
+            self._cent_env.change_forecast_parameters(self.parameters)
+            self._cent_env.reset()
             
-            if copy_env:
-                self._cent_env.reset()
-            else:
-                self._cent_env.reset()
-                warnings.warn("The central env has been reset !")
+            if not copy_env:
+                warnings.warn("The central env has been heavily modified (parameters and reset) !")
             
             assert self._cent_env.parameters.MAX_LINE_STATUS_CHANGED == self.num_agents
             
@@ -140,20 +139,30 @@ class MultiAgentEnv(RandomObject):
             self.parameters = params
             self._cent_env.change_parameters(self.parameters)
 
-        
-        
-        if observation_domains is not None:
-            # user specified an observation domain
-            self._is_global_obs : bool = False
-            if action_domains.keys() != observation_domains.keys():
-                raise("action_domains and observation_domains must have the same agents' names !")
-            self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
-            self._verify_domains(observation_domains)
+        if observation_domains is None:
+            self._is_global_obs = True
+            # in this case the observation domain is the full domain
+            self._observation_domains = {k: {"sub_id": np.arange(type(self._cent_env).n_sub)} for k in action_domains.keys()}
         else:
-            # no observation domain specified, so I assume it's a domain
-            # with full observability
-            self._is_global_obs : bool = True
-            self._observation_domains = None
+            # user specified an observation domain
+            if action_domains.keys() != observation_domains.keys():
+                raise EnvError("action_domains and observation_domains must have the same agents' names !")
+            self._is_global_obs : bool = False
+            self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
+            self._verify_domains(observation_domains, is_action_domain=False)
+            
+        # if observation_domains is not None:
+        #     # user specified an observation domain
+        #     self._is_global_obs : bool = False
+        #     if action_domains.keys() != observation_domains.keys():
+        #         raise("action_domains and observation_domains must have the same agents' names !")
+        #     self._observation_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in observation_domains.items()}
+        #     self._verify_domains(observation_domains)
+        # else:
+        #     # no observation domain specified, so I assume it's a domain
+        #     # with full observability
+        #     self._is_global_obs : bool = True
+        #     self._observation_domains = None
         
         self.agents = sorted(list(action_domains.keys()))
         self.num_agents = len(self.agents)
@@ -181,8 +190,6 @@ class MultiAgentEnv(RandomObject):
             )
         )
         
-        self._cent_observation = None
-        
         self.agent_order = self.agents.copy()
         self.action_spaces = dict()
         self.observation_spaces = dict()
@@ -190,26 +197,22 @@ class MultiAgentEnv(RandomObject):
         self._build_action_spaces()
         self._build_observation_spaces()
         
-        
     def reset(self) -> MADict:
-        # TODO : done, tested
-        self._cent_observation = self._cent_env.reset()
-        self._update_observations()
+        # TODO : done, NOT tested
+        cent_observation = self._cent_env.reset()
+        self._update_observations(cent_observation)
         return self.observations
     
     def _handle_illegal_action(self, reason):
-        
         for a in self.agents:
             self.info[a]['action_is_illegal'] = True
             self.info[a]['reason_illegal'] = copy.deepcopy(reason)
 
     def _handle_ambiguous_action(self, except_tmp):
-        
         for a in self.agents:
             self.info[a]['is_ambiguous'] = True
 
     def _build_global_action(self, action : ActionProfile, order : list):
-        
         # The global action is do nothing at the beginning
         self.global_action = self._cent_env.action_space({})
         proposed_action = self.global_action.copy()
@@ -250,11 +253,11 @@ class MultiAgentEnv(RandomObject):
         order = self.agent_order
         self._build_global_action(action, order)
 
-        self._cent_observation, reward, done, info = self._cent_env.step(self.global_action)
+        cent_observation, reward, done, info = self._cent_env.step(self.global_action)
         
         self._dispatch_reward_done_info(reward, done, info)
 
-        self._update_observations()
+        self._update_observations(cent_observation)
 
         return self.observations, self.rewards, self.done, self.info 
     
@@ -272,14 +275,13 @@ class MultiAgentEnv(RandomObject):
         for agent_nm in self.agents : 
             # action space
             self._build_subgrid_masks(agent_nm, self._action_domains[agent_nm])
-            subgridcls = self._build_subgrid_cls_from_domain(self._action_domains[agent_nm])
+            subgridcls = self._build_subgrid_cls_from_domain(self._action_domains[agent_nm], "action")
             self._subgrids_cls['action'][agent_nm] = subgridcls 
             
             # observation space
-            if self._observation_domains is not None:
-                self._build_subgrid_masks(agent_nm, self._observation_domains[agent_nm])
-                subgridcls = self._build_subgrid_cls_from_domain(self._observation_domains[agent_nm])
-                self._subgrids_cls['observation'][agent_nm] = subgridcls
+            self._build_subgrid_masks(agent_nm, self._observation_domains[agent_nm])
+            subgridcls = self._build_subgrid_cls_from_domain(self._observation_domains[agent_nm], "observation")
+            self._subgrids_cls['observation'][agent_nm] = subgridcls
         
     def _build_subgrid_masks(self, agent_nm, domain):
         is_sub_in = np.full(self._cent_env.n_sub, fill_value=False, 
@@ -307,8 +309,7 @@ class MultiAgentEnv(RandomObject):
         )
         domain['mask_interco'] = domain['mask_line_or'] ^ domain['mask_line_ex']
         domain['interco_is_origin'] = domain['mask_line_or'][domain['mask_interco']]
-        domain['mask_line_or'] = domain['mask_line_or'] & domain['mask_line_ex']
-        domain['mask_line_ex'] = domain['mask_line_or'].copy()
+        domain['mask_line'] = domain['mask_line_or'] & domain['mask_line_ex']
         domain["agent_name"] = agent_nm
     
     def _relabel_subid(self, mask, new_label, id_full_grid):
@@ -346,59 +347,11 @@ class MultiAgentEnv(RandomObject):
     
     def _local_action_to_global(self, local_action : LocalAction) -> BaseAction :
         # Empty global action
-        converted_action = self._cent_env.action_space({})
-        subgrid_type = type(local_action)
-        
-        # We check for every action type if there's a change
-        # if it is the case, we take local changes and copy 
-        # them in the corresponding global positions for that
-        # action type via mask_orig_pos_topo_vect.
-        if local_action._modif_set_bus:
-            converted_action._modif_set_bus = True
-            converted_action._set_topo_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._set_topo_vect
-        
-        if local_action._modif_change_bus:
-            converted_action._modif_change_bus = True
-            converted_action._change_bus_vect[subgrid_type.mask_orig_pos_topo_vect] = local_action._change_bus_vect
-            
-        if local_action._modif_set_status:
-            converted_action._modif_set_status = True
-            converted_action._set_line_status[subgrid_type.line_orig_ids] = local_action._set_line_status
-            
-        if local_action._modif_change_status:
-            converted_action._modif_change_status = True
-            converted_action._switch_line_status[subgrid_type.line_orig_ids] = local_action._switch_line_status
-        
-        if local_action._modif_redispatch:
-            converted_action._modif_redispatch = True
-            converted_action._redispatch[subgrid_type.gen_orig_ids] = local_action._redispatch
-        
-        if local_action._modif_storage:
-            converted_action._modif_storage = True
-            converted_action._storage_power[subgrid_type.storage_orig_ids] = local_action._storage_power
-        
-        if local_action._modif_curtailment:
-            converted_action._modif_curtailment = True
-            converted_action._curtail[subgrid_type.gen_orig_ids] = local_action._curtail
-        
-        # V0
-        # TODO set_bus done tested
-        # TODO change_bus done tested
-        # TODO redispatch done, tested
-        # TODO curtail done, tested
-        # TODO change_line_status done tested
-        # TODO set_line_status done tested
-        # TODO set_storage done 
-        
-        # V inf
-        # injection
-        # hazards
-        # maintenance
-        # alarm
-        
-        return converted_action.copy()
+        converted_action = local_action.to_global(self._cent_env.action_space)
+        return converted_action
     
-    def _build_subgrid_cls_from_domain(self, domain):                
+    def _build_subgrid_cls_from_domain(self, domain, type_: str):
+        # type_: action or observation                
         cent_env_cls = type(self._cent_env)
         tmp_subgrid = SubGridObjects()
         
@@ -410,8 +363,7 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.mask_load = copy.deepcopy(domain['mask_load'])
         tmp_subgrid.mask_gen = copy.deepcopy(domain['mask_gen'])
         tmp_subgrid.mask_storage = copy.deepcopy(domain['mask_storage'])
-        tmp_subgrid.mask_line_or = copy.deepcopy(domain['mask_line_or'])
-        tmp_subgrid.mask_line_ex = copy.deepcopy(domain['mask_line_ex'])
+        tmp_subgrid.mask_line = copy.deepcopy(domain['mask_line'])
         tmp_subgrid.mask_interco = copy.deepcopy(domain["mask_interco"])
         tmp_subgrid.mask_shunt = copy.deepcopy(domain["mask_shunt"])
         tmp_subgrid.interco_is_origin = copy.deepcopy(domain["interco_is_origin"])
@@ -419,7 +371,7 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.load_orig_ids = np.where(domain['mask_load'])[0]
         tmp_subgrid.gen_orig_ids = np.where(domain['mask_gen'])[0]
         tmp_subgrid.storage_orig_ids = np.where(domain['mask_storage'])[0]
-        tmp_subgrid.line_orig_ids = np.where(domain['mask_line_or'])[0]
+        tmp_subgrid.line_orig_ids = np.where(domain['mask_line'])[0]
         
         tmp_subgrid.glop_version = cent_env_cls.glop_version
         tmp_subgrid._PATH_ENV = cent_env_cls._PATH_ENV
@@ -433,7 +385,7 @@ class MultiAgentEnv(RandomObject):
             tmp_subgrid.mask_gen
         ]
         tmp_subgrid.name_line = cent_env_cls.name_line[
-            tmp_subgrid.mask_line_or & tmp_subgrid.mask_line_ex
+            tmp_subgrid.mask_line
         ]
         tmp_subgrid.name_sub = cent_env_cls.name_sub[
             tmp_subgrid.mask_sub
@@ -470,24 +422,24 @@ class MultiAgentEnv(RandomObject):
         new_label[tmp_subgrid.sub_orig_ids] = np.arange(tmp_subgrid.n_sub)
         
         tmp_subgrid.load_to_subid  = self._relabel_subid(tmp_subgrid.mask_load,
-                                                     new_label,
-                                                     cent_env_cls.load_to_subid
+                                                         new_label,
+                                                         cent_env_cls.load_to_subid
         )
         tmp_subgrid.gen_to_subid  = self._relabel_subid(tmp_subgrid.mask_gen,
-                                                     new_label,
-                                                     cent_env_cls.gen_to_subid
+                                                        new_label,
+                                                        cent_env_cls.gen_to_subid
         )
         tmp_subgrid.storage_to_subid  = self._relabel_subid(tmp_subgrid.mask_storage,
-                                                        new_label,
-                                                        cent_env_cls.storage_to_subid
+                                                            new_label,
+                                                            cent_env_cls.storage_to_subid
         )
-        tmp_subgrid.line_or_to_subid = self._relabel_subid(tmp_subgrid.mask_line_or,
-                                                        new_label,
-                                                        cent_env_cls.line_or_to_subid
+        tmp_subgrid.line_or_to_subid = self._relabel_subid(tmp_subgrid.mask_line,
+                                                           new_label,
+                                                           cent_env_cls.line_or_to_subid
         )
-        tmp_subgrid.line_ex_to_subid = self._relabel_subid(tmp_subgrid.mask_line_ex,
-                                                        new_label,
-                                                        cent_env_cls.line_ex_to_subid
+        tmp_subgrid.line_ex_to_subid = self._relabel_subid(tmp_subgrid.mask_line,
+                                                           new_label,
+                                                           cent_env_cls.line_ex_to_subid
         )
         
         interco_to_subid = np.zeros(cent_env_cls.n_line, dtype=dt_int) - 1
@@ -508,8 +460,8 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.load_to_sub_pos = cent_env_cls.load_to_sub_pos[tmp_subgrid.mask_load]
         tmp_subgrid.gen_to_sub_pos = cent_env_cls.gen_to_sub_pos[tmp_subgrid.mask_gen]
         tmp_subgrid.storage_to_sub_pos = cent_env_cls.storage_to_sub_pos[tmp_subgrid.mask_storage]
-        tmp_subgrid.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_line_or]
-        tmp_subgrid.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_line_ex]
+        tmp_subgrid.line_or_to_sub_pos = cent_env_cls.line_or_to_sub_pos[tmp_subgrid.mask_line]
+        tmp_subgrid.line_ex_to_sub_pos = cent_env_cls.line_ex_to_sub_pos[tmp_subgrid.mask_line]
         
         # Depending on whether the interco is a line_or or a line_ex,
         # we take the corresponding sub_pos in cent_env 
@@ -620,12 +572,16 @@ class MultiAgentEnv(RandomObject):
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.load_pos_topo_vect[tmp_subgrid.mask_load]] = True
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.gen_pos_topo_vect[tmp_subgrid.mask_gen]] = True
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.storage_pos_topo_vect[tmp_subgrid.mask_storage]] = True
-        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_or_pos_topo_vect[tmp_subgrid.mask_line_or]] = True
-        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_line_ex]] = True
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_or_pos_topo_vect[tmp_subgrid.mask_line]] = True
+        tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_line]] = True
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_or_pos_topo_vect[tmp_subgrid.mask_interco][tmp_subgrid.interco_is_origin]] = True
         tmp_subgrid.mask_orig_pos_topo_vect[cent_env_cls.line_ex_pos_topo_vect[tmp_subgrid.mask_interco][~tmp_subgrid.interco_is_origin]] = True
         
         extra_name = self._get_cls_name_from_domain()
+        if extra_name is None:
+            extra_name = f"_{type_}"
+        else:
+            extra_name += f"_{type_}"
         res_cls = SubGridObjects.init_grid(gridobj=tmp_subgrid, extra_name=extra_name)
         # make sure the class is consistent
         res_cls.assert_grid_correct_cls()
@@ -660,12 +616,23 @@ class MultiAgentEnv(RandomObject):
             NotImplementedError: Local observations are not implemented yet
         """
         
-        if self._is_global_obs:
-            # in case of global observation, I simply copy the observation space
-            for agent in self.agents:
-                self.observation_spaces[agent] = self._cent_env.observation_space.copy()
-        else:
-            raise NotImplementedError("Local observations are not available yet !")
+        # in case of global observation, I simply copy the observation space
+        for agent_nm in self.agents:
+            this_subgrid = self._subgrids_cls['observation'][agent_nm]
+            extra_name = self._get_cls_name_from_domain()
+            ob_sp_cls = SubGridObservationSpace.init_grid(this_subgrid,
+                                                          extra_name=extra_name)
+            self.observation_spaces[agent_nm] = ob_sp_cls(full_gridobj=type(self._cent_env),
+                                                          ma_env=self,
+                                                          local_gridobj=this_subgrid,
+                                                          is_complete_obs=self._is_global_obs)
+        
+        # if self._is_global_obs:
+        #     # in case of global observation, I simply copy the observation space
+        #     for agent_nm in self.agents:
+        #         self.observation_spaces[agent_nm] = self._cent_env.observation_space.copy(copy_backend=True)
+        # else:
+        #     raise NotImplementedError("Local observations are not available yet !")
     
     def _build_action_spaces(self):
         """Build action spaces from given domains for each agent
@@ -685,22 +652,17 @@ class MultiAgentEnv(RandomObject):
                 legal_action=self._cent_env._game_rules.legal_action,  # TODO later: probably not no... But we'll see when we do the rules
             )
     
-    def _update_observations(self, _update_state = True):
+    def _update_observations(self, cent_observation, _update_state=True):
         """Update agents' observations from the global observation given by the self._cent_env
 
         Args:
             observation (BaseObservation): _description_
         """
-
-        if self._cent_observation is None:
-            raise EnvError(
-                "This environment is not initialized. You cannot retrieve its observation."
-            )
         
-        for agent in self.agents:
-            self.observations[agent] = self._cent_observation.copy()
+        for agent_nm in self.agents:
+            self.observations[agent_nm] = self.observation_spaces[agent_nm](self, cent_observation, _update_state=_update_state)
     
-    def _verify_domains(self, domains : MADict) -> None:
+    def _verify_domains(self, domains : MADict, is_action_domain=True) -> None:
         """It verifies if substation ids are valid
 
         Args:
@@ -730,7 +692,8 @@ class MultiAgentEnv(RandomObject):
                     raise DomainException(f"Agent id {agent} : The substation's id must be between 0 and {len(self._cent_env.name_sub)-1}, but {domains[agent][i]} has been given")
             sum_subs += len(domains[agent])
 
-        if sum_subs != self._cent_env.n_sub:
+        if is_action_domain and sum_subs != self._cent_env.n_sub:
+            # check that I can act on every substation
             raise DomainException(f"The sum of sub id lists' length must be equal to _cent_env.n_sub = {self._cent_env.n_sub} but is {sum_subs}")
     
     def observation_space(self, agent : AgentID)-> LocalObservationSpace:

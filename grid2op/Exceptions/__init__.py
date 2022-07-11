@@ -40,6 +40,7 @@ __all__ = [
     "DivergingPowerFlow",
     "BaseObservationError",
     "NoForecastAvailable",
+    "SimulateError",
     "SimulateUsedTooMuchThisStep",
     "SimulateUsedTooMuchThisEpisode",
     "ChronicsError",
@@ -102,6 +103,7 @@ from grid2op.Exceptions.PowerflowExceptions import DivergingPowerFlow
 
 from grid2op.Exceptions.ObservationExceptions import BaseObservationError
 from grid2op.Exceptions.ObservationExceptions import NoForecastAvailable
+from grid2op.Exceptions.ObservationExceptions import SimulateError
 from grid2op.Exceptions.ObservationExceptions import SimulateUsedTooMuchThisStep
 from grid2op.Exceptions.ObservationExceptions import SimulateUsedTooMuchThisEpisode
 
