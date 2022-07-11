@@ -96,7 +96,7 @@ class SubGridObservation(SubGridObjects, CompleteObservation):
         # 1) convert the actions to a global action
         my_cls = type(self)
         action = self.action_helper()
-        for agent_nm in sorted(actions.values()):
+        for agent_nm in sorted(actions.keys()):
             if agent_nm == my_cls.agent_name:
                 continue
             local_act  = actions[agent_nm]
