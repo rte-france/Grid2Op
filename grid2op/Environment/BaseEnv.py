@@ -713,6 +713,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._last_obs = self._last_obs.copy()
 
         new_obj._has_just_been_seeded = self._has_just_been_seeded
+        # do not forget !
+        new_obj._is_test = self._is_test
 
     def get_path_env(self):
         """

@@ -31,6 +31,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.7.3] - 2022-xx-yy
+--------------------
+- [FIXED] a bug when using a `Runner` with an environment that has 
+  been copied (see https://github.com/rte-france/Grid2Op/issues/361)
+
 
 [1.7.2] - 2022-07-05
 --------------------
