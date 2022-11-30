@@ -2629,7 +2629,7 @@ class GridObjects:
         if cls.glop_version < "1.6.0":
             # this feature did not exist before.
             cls.dim_alarms = 0
-
+        
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
         """
@@ -3739,7 +3739,7 @@ class GridObjects:
             res_cls._compute_pos_big_topo_cls()
             if res_cls.glop_version != grid2op.__version__:
                 res_cls.process_grid2op_compat()
-            res_cls.process_grid2op_shunt_data()
+            res_cls.process_shunt_data()
             # add the class in the "globals" for reuse later
             globals()[name_res] = res_cls
 
