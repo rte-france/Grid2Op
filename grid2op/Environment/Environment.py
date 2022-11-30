@@ -1340,6 +1340,7 @@ class Environment(BaseEnv):
         all_chron = sorted(os.listdir(chronics_path))
         to_val = set(val_scen_id)
 
+        to_test = set()  # see https://github.com/rte-france/Grid2Op/issues/363
         if nm_test is not None:
             to_test = set(test_scen_id)
 
