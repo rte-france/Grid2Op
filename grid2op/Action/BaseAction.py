@@ -2811,7 +2811,7 @@ class BaseAction(GridObjects):
                             "amount": new_max,
                         }
                     )
-            storage["changed"] = True
+            curtailment["changed"] = True
             has_impact = True
 
         return {
