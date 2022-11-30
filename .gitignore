@@ -357,6 +357,7 @@ grid2op/data/**/_grid2op_classes/
 test_issue_glop.py
 **.swp
 grid2op/tests/test_report.txt
+results
 
 # profiling files
 **.prof

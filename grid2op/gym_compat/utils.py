@@ -6,7 +6,15 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-_MIN_GYM_VERSION = "0.17.2"
+from packaging import version
+from importlib.metadata import distribution
+
+_MIN_GYM_VERSION = version.parse("0.17.2")
+# this is the last gym version to use the "old" numpy prng
+_MAX_GYM_VERSION_RANDINT = version.parse("0.25.99") 
+# the current gym version (we should support most recent, but also 0.21 because it used by stable baselines3...)
+GYM_VERSION = version.parse(distribution('gym').version)
+
 
 ALL_ATTR = (
     "set_line_status",
@@ -34,9 +42,9 @@ ATTR_DISCRETE = (
 
 
 def check_gym_version():
-    import gym
 
-    if gym.__version__ < _MIN_GYM_VERSION:
+    if GYM_VERSION < _MIN_GYM_VERSION:
+        import gym
         raise RuntimeError(
             f"Grid2op does not work with gym < {_MIN_GYM_VERSION} and you have gym with "
             f"version {gym.__version__} installed."
