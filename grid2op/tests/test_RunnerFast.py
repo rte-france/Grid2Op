@@ -86,7 +86,7 @@ class TestRunner(HelperTests):
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
                 runner = Runner(**env.get_params_for_runner())
-        res = runner.run(nb_episode=1, max_iter=self.max_iter)
+                res = runner.run(nb_episode=1, max_iter=self.max_iter)
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter, f"{timestep} != {self.max_iter}"
 
@@ -95,9 +95,9 @@ class TestRunner(HelperTests):
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
                 runner = Runner(**env.get_params_for_runner())
-        res = runner.run(
-            nb_episode=1, max_iter=self.max_iter, env_seeds=[1], agent_seeds=[2]
-        )
+                res = runner.run(
+                    nb_episode=1, max_iter=self.max_iter, env_seeds=[1], agent_seeds=[2]
+                )
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter, f"{timestep} != {self.max_iter}"
 
@@ -106,13 +106,13 @@ class TestRunner(HelperTests):
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
                 runner = Runner(**env.get_params_for_runner())
-        res = runner.run(
-            nb_episode=2,
-            nb_process=2,
-            max_iter=self.max_iter,
-            env_seeds=[1, 2],
-            agent_seeds=[3, 4],
-        )
+                res = runner.run(
+                    nb_episode=2,
+                    nb_process=2,
+                    max_iter=self.max_iter,
+                    env_seeds=[1, 2],
+                    agent_seeds=[3, 4],
+                )
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
 

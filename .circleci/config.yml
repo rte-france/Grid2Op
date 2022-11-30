@@ -103,21 +103,7 @@ jobs:
                    pip install -U .[test]
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
-            - run:
-               command: |
-                   source venv_test/bin/activate
-                   pip install -U "numpy>=1.22,<1.23"
-                   pip install -U .[test]
-                   export _GRID2OP_FORCE_TEST=1
-                   grid2op.testinstall
-            - run:
-               command: |
-                   source venv_test/bin/activate
-                   pip install -U "numpy>=1.23,<1.24"
-                   pip install -U .[test]
-                   export _GRID2OP_FORCE_TEST=1
-                   grid2op.testinstall
-    install38:
+                   
         executor: python38
         resource_class: small
         steps:

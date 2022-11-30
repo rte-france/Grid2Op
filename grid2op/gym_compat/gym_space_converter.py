@@ -11,7 +11,7 @@ import numpy as np
 import copy
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
-from grid2op.gym_compat.utils import check_gym_version, GYM_VERSION, _MAX_GYM_VERSION_RANDINT
+from grid2op.gym_compat.utils import check_gym_version, sample_seed
 
 
 class _BaseGymSpaceConverter(spaces.Dict):
@@ -250,12 +250,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
         sub_seeds = seeds
         max_ = 2**32 - 1
         for i, space_key in enumerate(sorted(self.spaces.keys())):
-            if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
-                # old gym behaviour
-                sub_seed = self.np_random.randint(max_)
-            else:
-                # gym finally use most recent numpy random generator
-                sub_seed = int(self.np_random.integers(0, max_))
+            sub_seed = sample_seed(max_, self.np_random)
             sub_seeds.append(self.spaces[space_key].seed(sub_seed))
         return sub_seeds
 
