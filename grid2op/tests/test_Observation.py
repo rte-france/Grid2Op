@@ -1813,10 +1813,14 @@ class TestBasisObsBehaviour(unittest.TestCase):
         self.aux_test_conn_mat3(True)
 
     def test_active_flow_bus_matrix(self):
-        self.aux_flow_bus_matrix(active_flow=True)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.aux_flow_bus_matrix(active_flow=True)
 
     def test_reactive_flow_bus_matrix(self):
-        self.aux_flow_bus_matrix(active_flow=False)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.aux_flow_bus_matrix(active_flow=False)
 
     def aux_flow_bus_matrix(self, active_flow):
         with warnings.catch_warnings():
@@ -2844,7 +2848,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # check that the observations are equal
         self._check_equal(sim_obs, self.obs)
 
-        obs = self.env.reset()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            obs = self.env.reset()
         sim_obs1, rew1, done1, _ = obs.simulate(
             self.env.action_space.disconnect_powerline(line_id=2)
         )
@@ -2860,7 +2866,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self._check_equal(sim_obs1, sim_obs3)
 
     def test_nb_step(self):
-        obs = self.env.reset()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            obs = self.env.reset()
         sim_obs1, rew1, done1, _ = obs.simulate(
             self.env.action_space.disconnect_powerline(line_id=2)
         )
@@ -2880,7 +2888,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         assert obs.current_step == 1
         assert sim_obs1.current_step == 2
 
-        obs = self.env.reset()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            obs = self.env.reset()
         sim_obs1, rew1, done1, _ = obs.simulate(
             self.env.action_space.disconnect_powerline(line_id=2)
         )
