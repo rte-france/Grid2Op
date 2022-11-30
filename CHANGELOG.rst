@@ -33,9 +33,13 @@ Change Log
 
 [1.7.3] - 2022-xx-yy
 --------------------
+- [BREAKING] now requires numpy >= 1.20 to work (otherwise there are 
+  issues with newer versions of pandas)
 - [FIXED] a bug when using a `Runner` with an environment that has 
   been copied (see https://github.com/rte-france/Grid2Op/issues/361)
-
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/358
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/363
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/364
 
 [1.7.2] - 2022-07-05
 --------------------
