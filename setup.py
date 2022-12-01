@@ -61,7 +61,8 @@ pkgs = {
         ],
         "plot": ["imageio"],
         "test": ["lightsim2grid",
-                 "numba"
+                 "numba",
+                 "gym>=0.26"
                  ],
         "chronix2grid": [
             "ChroniX2Grid>=1.1.0.post1"

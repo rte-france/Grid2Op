@@ -6,11 +6,14 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from os import truncate
+import warnings
 import gym
 from grid2op.Chronics import Multifolder
 from grid2op.gym_compat.gym_obs_space import GymObservationSpace
 from grid2op.gym_compat.gym_act_space import GymActionSpace
-from grid2op.gym_compat.utils import check_gym_version
+from grid2op.gym_compat.utils import (check_gym_version, sample_seed,
+                                      _MAX_GYM_VERSION_RANDINT, GYM_VERSION)
 
 
 class GymEnv(gym.Env):
@@ -49,27 +52,54 @@ class GymEnv(gym.Env):
         self.reward_range = self.init_env.reward_range
         self.metadata = self.init_env.metadata
         self._shuffle_chronics = shuffle_chronics
-
-    def step(self, gym_action):
+        
+        if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
+            self.seed = self._aux_seed
+            self.reset = self._aux_reset
+            self.step = self._aux_step
+        else:
+            self.reset = self._aux_reset_new
+            self.step = self._aux_step_new
+            
+    def _aux_step(self, gym_action):
+        # used for gym < 0.26
         g2op_act = self.action_space.from_gym(gym_action)
         g2op_obs, reward, done, info = self.init_env.step(g2op_act)
         gym_obs = self.observation_space.to_gym(g2op_obs)
         return gym_obs, float(reward), done, info
+    
+    def _aux_step_new(self, gym_action):
+        # used for gym >= 0.26
+        # TODO refacto with _aux_step
+        g2op_act = self.action_space.from_gym(gym_action)
+        g2op_obs, reward, done, info = self.init_env.step(g2op_act)
+        gym_obs = self.observation_space.to_gym(g2op_obs)
+        truncated = g2op_obs.current_step == g2op_obs.max_step
+        return gym_obs, float(reward), done, truncated, info
 
-    def reset(self, seed=None, return_info=False, options=None):
+    def _aux_reset(self, seed=None, return_info=None, options=None):
+        # used for gym < 0.26
         if self._shuffle_chronics and isinstance(
             self.init_env.chronics_handler.real_data, Multifolder
         ):
             self.init_env.chronics_handler.sample_next_chronics()
+         
         if seed is not None:
-            self.init_env.seed(seed)
+            self._aux_seed(seed)
+            
         g2op_obs = self.init_env.reset()
         gym_obs = self.observation_space.to_gym(g2op_obs)
+            
         if return_info:
-            return gym_obs, {}
+            chron_id = self.init_env.chronics_handler.get_id()
+            return gym_obs, {"time serie id": chron_id}
         else:
             return gym_obs
 
+    def _aux_reset_new(self, seed=None, options=None):
+        # used for gym > 0.26
+        return self._aux_reset(seed, True, options)
+        
     def render(self, mode="human"):
         """for compatibility with open ai gym render function"""
         super(GymEnv, self).render(mode=mode)
@@ -87,9 +117,15 @@ class GymEnv(gym.Env):
             self.observation_space.close()
         self.observation_space = None
 
-    def seed(self, seed=None):
-        self.init_env.seed(seed)
-        # TODO seed also env space and observation space
+    def _aux_seed(self, seed=None):
+        # deprecated in gym >=0.26
+        if seed is not None:
+            # seed the gym env
+            super().reset(seed=seed)
+            # then seed the underlying grid2op env
+            max_ = 2**32-1
+            next_seed = sample_seed(max_, self._np_random)
+            self.init_env.seed(next_seed)
 
     def __del__(self):
         # delete possible dangling reference

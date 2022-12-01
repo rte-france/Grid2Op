@@ -94,11 +94,11 @@ class TestGymCompatModule(unittest.TestCase):
         ), f"Size should be {size_th} but is {dim_obs_space}"
 
         # test that i can do basic stuff there
-        obs = env_gym.reset()
+        obs, info = env_gym.reset()
         for k in env_gym.observation_space.spaces.keys():
             assert obs[k] in env_gym.observation_space[k], f"error for key: {k}"
         act = env_gym.action_space.sample()
-        obs2, reward2, done2, info2 = env_gym.step(act)
+        obs2, reward2, done2, truncated, info2 = env_gym.step(act)
         assert obs2 in env_gym.observation_space
 
         # test for the __str__ method
@@ -152,7 +152,7 @@ class TestGymCompatModule(unittest.TestCase):
             ScalerAttrConverter(substract=0.0, divide=self.env.gen_pmax),
         )
         env_gym.observation_space = ob_space
-        obs = env_gym.reset()
+        obs, info = env_gym.reset()
         assert key in env_gym.observation_space.spaces
         low = np.zeros(self.env.n_gen) - 1
         high = np.zeros(self.env.n_gen) + 1
@@ -181,7 +181,7 @@ class TestGymCompatModule(unittest.TestCase):
         )
 
         # we highly recommend to "reset" the environment after setting up the observation space
-        obs_gym = env_gym.reset()
+        obs_gym, info = env_gym.reset()
         assert key in env_gym.observation_space.spaces
         assert obs_gym in env_gym.observation_space
 
@@ -756,7 +756,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                 )
             },
         )
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in self.env_gym.observation_space
         assert self.env_gym.observation_space._attr_to_keep == sorted(kept_attr)
         assert len(obs_gym) == 3583
@@ -766,7 +766,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
         self.env_gym.observation_space = BoxGymObsSpace(
             self.env.observation_space, attr_to_keep=kept_attr
         )
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in self.env_gym.observation_space
         assert self.env_gym.observation_space._attr_to_keep == sorted(kept_attr)
         assert len(obs_gym) == 79
@@ -779,7 +779,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
             self.env.observation_space, attr_to_keep=kept_attr
         )
         self.env_gym.observation_space = observation_space
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in observation_space
         assert observation_space._attr_to_keep == kept_attr
         assert len(obs_gym) == 17
@@ -792,7 +792,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
             divide={"gen_p": self.env.gen_pmax, "load_p": self.obs_env.load_p},
         )
         self.env_gym.observation_space = observation_space
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in observation_space
         assert observation_space._attr_to_keep == kept_attr
         assert len(obs_gym) == 17
@@ -807,7 +807,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
             subtract={"gen_p": 100.0, "load_p": 100.0},
         )
         self.env_gym.observation_space = observation_space
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in observation_space
         assert observation_space._attr_to_keep == kept_attr
         assert len(obs_gym) == 17
@@ -844,7 +844,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                 )
             },
         )
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in self.env_gym.observation_space
         assert self.env_gym.observation_space._attr_to_keep == sorted(kept_attr)
         assert len(obs_gym) == 3583
@@ -1846,7 +1846,7 @@ class ObsAllAttr(unittest.TestCase):
             env = grid2op.make("educ_case14_storage", test=True,
                                action_class=PlayableAction)
         gym_env = GymEnv(env)
-        obs = gym_env.reset()
+        obs, info = gym_env.reset()
         all_attrs = ["year",
                      "month",
                      "day",
