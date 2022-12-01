@@ -77,7 +77,7 @@ class Issue185Tester(unittest.TestCase):
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
                     act = gym_env.action_space.sample()
                     assert act in gym_env.action_space, f"error for {env_name}"
-                    obs, reward, done, info = gym_env.step(act)
+                    obs, reward, done, truncated, info = gym_env.step(act)
                     assert obs in gym_env.observation_space, f"error for {env_name}"
 
     def test_issue_185_obs_box_space(self):
@@ -99,7 +99,7 @@ class Issue185Tester(unittest.TestCase):
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
                     act = gym_env.action_space.sample()
                     assert act in gym_env.action_space, f"error for {env_name}"
-                    obs, reward, done, info = gym_env.step(act)
+                    obs, reward, done, truncated, info = gym_env.step(act)
                     assert obs in gym_env.observation_space, f"error for {env_name}"
 
     def test_issue_185_act_multidiscrete_space(self):
@@ -133,7 +133,7 @@ class Issue185Tester(unittest.TestCase):
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
                     act = gym_env.action_space.sample()
                     assert act in gym_env.action_space, f"error for {env_name}"
-                    obs, reward, done, info = gym_env.step(act)
+                    obs, reward, done, truncated, info = gym_env.step(act)
                     assert obs in gym_env.observation_space, f"error for {env_name}"
 
     def test_issue_185_act_discrete_space(self):
@@ -166,7 +166,7 @@ class Issue185Tester(unittest.TestCase):
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
                     act = gym_env.action_space.sample()
                     assert act in gym_env.action_space, f"error for {env_name}"
-                    obs, reward, done, info = gym_env.step(act)
+                    obs, reward, done, truncated, info = gym_env.step(act)
                     if obs not in gym_env.observation_space:
                         for k in obs:
                             if not obs[k] in gym_env.observation_space[k]:

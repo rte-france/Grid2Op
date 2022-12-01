@@ -248,7 +248,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
         """
         seeds = super(spaces.Dict, self).seed(seed)
         sub_seeds = seeds
-        max_ = 2**32 - 1
+        max_ = np.iinfo(dt_int).max
         for i, space_key in enumerate(sorted(self.spaces.keys())):
             sub_seed = sample_seed(max_, self.np_random)
             sub_seeds.append(self.spaces[space_key].seed(sub_seed))

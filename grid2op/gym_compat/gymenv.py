@@ -6,9 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from os import truncate
-import warnings
+import numpy as np
 import gym
+
+from grid2op.dtypes import dt_int
 from grid2op.Chronics import Multifolder
 from grid2op.gym_compat.gym_obs_space import GymObservationSpace
 from grid2op.gym_compat.gym_act_space import GymActionSpace
@@ -123,7 +124,7 @@ class GymEnv(gym.Env):
             # seed the gym env
             super().reset(seed=seed)
             # then seed the underlying grid2op env
-            max_ = 2**32-1
+            max_ = np.iinfo(dt_int).max 
             next_seed = sample_seed(max_, self._np_random)
             self.init_env.seed(next_seed)
 

@@ -27,7 +27,7 @@ class FixedTuple(Tuple):
         """
         seeds = super(Tuple, self).seed(seed)
         sub_seeds = seeds
-        max_ = 2**32-1
+        max_ = np.iinfo(dt_int).max
         for i, space in enumerate(self.spaces):
             sub_seed = sample_seed(max_, self.np_random)
             sub_seeds.append(space.seed(sub_seed))

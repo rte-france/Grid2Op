@@ -211,6 +211,7 @@ class TestGymCompatModule(unittest.TestCase):
                 res = (2, 2, 0, 0, 0, 9)
             else:
                 res = (0, 6, 0, 0, 0, 5)
+                res = (10, 3, 0, 0, 0, 7)
         
         assert np.all(
             act_gym["redispatch"] == res
@@ -226,6 +227,7 @@ class TestGymCompatModule(unittest.TestCase):
                 res = (0, 9, 0, 0, 0, 7)
             else:
                 res = (2, 9, 0, 0, 0, 1)
+                res = (7, 5, 0, 0, 0, 8)
         assert np.all(
             act_gym["redispatch"] == res
         ), f'wrong action: {act_gym["redispatch"]}'
@@ -261,8 +263,9 @@ class TestGymCompatModule(unittest.TestCase):
                 )
             else:
                 res_tup = (8, 9, 0, 0, 0, 2)
+                res_tup = (8, 2, 0, 0, 0, 9)
                 res_disp = np.array(
-                    [2.5, 6.666666, 0., 0., 0., -7.5], dtype=dt_float
+                    [2.5, -5., 0., 0., 0., 10.], dtype=dt_float
                 )
             
         assert (
@@ -294,8 +297,9 @@ class TestGymCompatModule(unittest.TestCase):
                 )
             else:
                 res_tup = (4, 2, 0, 0, 0, 5)
+                res_tup = (3, 8, 0, 0, 0, 8)
                 res_disp = np.array(
-                    [-0.8333335, -5., 0.0, 0.0, 0.0, 0.0], dtype=dt_float
+                    [-1.6666665, 5., 0.0, 0.0, 0.0, 7.5], dtype=dt_float
                 )
         assert (
             act_gym["redispatch"] == res_tup
