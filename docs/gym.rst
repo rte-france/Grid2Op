@@ -54,6 +54,13 @@ A simple usage is:
 
     For more customization on that side, please refer to the section :ref:`gym_compat_box_discrete` below
 
+.. warning::
+    The `gym` package has some breaking API change since its version 0.26. Depending on the version installed,
+    we attempted, in grid2op, to maintain compatibility both with former version and later one. This makes this
+    class behave differently depending on the version of gym you have installed !
+    
+    The main changes involve the functions `env.step` and `env.reset`
+    
 This page is organized as follow:
 
 .. contents:: Table of Contents
@@ -129,6 +136,8 @@ Each keys correspond to an attribute of the observation. In this example `"line_
 represents the attribute `obs.line_status` which is a boolean vector (for each powerline
 `True` encodes for "connected" and `False` for "disconnected") See the chapter :ref:`observation_module` for
 more information about these attributes.
+
+You can transform the observation space as you wish. There are some examples in the notebooks.
 
 Default Action space
 ******************************
@@ -210,6 +219,9 @@ And for the action space:
 
     gym_env.action_space = MyCustomActionSpace(whatever, you, wanted)
 
+There are some pre defined transformation (for example transforming the action to Discrete or MultiDiscrete). 
+Do not hesitate to have a look at the  section :ref:`gym_compat_box_discrete`.
+
 
 Customizing the action and observation space, using Converter
 **************************************************************
@@ -279,7 +291,7 @@ Converter name                                  Objective
 =============================================   ============================================================
 :class:`ContinuousToDiscreteConverter`          Convert a continuous space into a discrete one
 :class:`MultiToTupleConverter`                  Convert a gym MultiBinary to a gym Tuple of gym Binary and a gym MultiDiscrete to a Tuple of Discrete
-:class:`ScalerAttrConverter`                    Allows to scale (divide an attribute by something and subtract something from it
+:class:`ScalerAttrConverter`                    Allows to scale (divide an attribute by something and subtract something from it)
 `BaseGymSpaceConverter.add_key`_                Allows you to compute another "part" of the observation space (you add an information to the gym space)
 `BaseGymSpaceConverter.keep_only_attr`_         Allows you to specify which part of the action / observation you want to keep
 `BaseGymSpaceConverter.ignore_attr`_            Allows you to ignore some attributes of the action / observation (they will not be part of the gym space)

@@ -25,6 +25,13 @@ class GymEnv(gym.Env):
     They can handle action_space_converter or observation_space converter to change the representation of data
     that will be fed to the agent.  #TODO
 
+    .. warning::
+        The `gym` package has some breaking API change since its version 0.26. Depending on the version installed,
+        we attempted, in grid2op, to maintain compatibility both with former version and later one. This makes this
+        class behave differently depending on the version of gym you have installed !
+        
+        The main changes involve the functions `env.step` and `env.reset`
+
     Notes
     ------
     The environment passed as input is copied. It is not modified by this "gym environment"
@@ -41,7 +48,6 @@ class GymEnv(gym.Env):
         env_name = ...
         env = grid2op.make(env_name)
         gym_env = GymEnv(env)  # is a gym environment properly inheriting from gym.Env !
-
 
     """
 
@@ -73,10 +79,10 @@ class GymEnv(gym.Env):
         # used for gym >= 0.26
         # TODO refacto with _aux_step
         g2op_act = self.action_space.from_gym(gym_action)
-        g2op_obs, reward, done, info = self.init_env.step(g2op_act)
+        g2op_obs, reward, terminated, info = self.init_env.step(g2op_act)
         gym_obs = self.observation_space.to_gym(g2op_obs)
-        truncated = g2op_obs.current_step == g2op_obs.max_step
-        return gym_obs, float(reward), done, truncated, info
+        truncated = False # see https://github.com/openai/gym/pull/2752
+        return gym_obs, float(reward), terminated, truncated, info
 
     def _aux_reset(self, seed=None, return_info=None, options=None):
         # used for gym < 0.26
