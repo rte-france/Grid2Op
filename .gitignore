@@ -358,6 +358,7 @@ test_issue_glop.py
 **.swp
 grid2op/tests/test_report.txt
 results
+grid2op/tests/finally_not_a_bug_test_issue_368.py
 
 # profiling files
 **.prof

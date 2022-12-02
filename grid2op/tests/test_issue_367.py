@@ -62,7 +62,6 @@ class Issue367Tester(unittest.TestCase):
         self.env.close()
         return super().tearDown()
     
-        
 
 if __name__ == "__main__":
     unittest.main()
