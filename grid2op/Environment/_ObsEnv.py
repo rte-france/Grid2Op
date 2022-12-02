@@ -104,6 +104,7 @@ class _ObsEnv(BaseEnv):
         self.duration_next_maintenance_init = np.zeros(self.n_line, dtype=dt_int)
         self.target_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
         self.actual_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
+        self._already_modified_gen_init = np.zeros(self.n_gen, dtype=dt_float)
 
         # line status (inherited from BaseEnv)
         self._line_status = np.full(self.n_line, dtype=dt_bool, fill_value=True)
@@ -461,6 +462,7 @@ class _ObsEnv(BaseEnv):
         self._duration_next_maintenance[:] = self.duration_next_maintenance_init
         self._target_dispatch[:] = self.target_dispatch_init
         self._actual_dispatch[:] = self.actual_dispatch_init
+        self._already_modified_gen[:] = self._already_modified_gen_init
 
     def _reset_to_orig_state(self):
         """
@@ -627,6 +629,7 @@ class _ObsEnv(BaseEnv):
         self.duration_next_maintenance_init[:] = env._duration_next_maintenance
         self.target_dispatch_init[:] = env._target_dispatch
         self.actual_dispatch_init[:] = env._actual_dispatch
+        self._already_modified_gen_init[:] = env._already_modified_gen
         self.opp_space_state, self.opp_state = env._oppSpace._get_state()
 
         # storage units

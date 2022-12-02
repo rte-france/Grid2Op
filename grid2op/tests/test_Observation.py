@@ -2806,8 +2806,10 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Simulate all actions
         for act in actions:
             self.sim_obs, _, _, _ = self.obs.simulate(act)
+            
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
+        
         # Test observations are the same
         if self.sim_obs != self.step_obs:
             diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
