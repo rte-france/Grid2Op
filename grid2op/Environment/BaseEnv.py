@@ -352,6 +352,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # redispatching data
         self._target_dispatch: np.ndarray = None
+        self._already_modified_gen: np.ndarray = None
         self._actual_dispatch: np.ndarray = None
         self._gen_uptime: np.ndarray = None
         self._gen_downtime: np.ndarray = None
@@ -597,6 +598,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # redispatching data
         new_obj._target_dispatch = copy.deepcopy(self._target_dispatch)
+        new_obj._already_modified_gen = copy.deepcopy(self._already_modified_gen)
         new_obj._actual_dispatch = copy.deepcopy(self._actual_dispatch)
         new_obj._gen_uptime = copy.deepcopy(self._gen_uptime)
         new_obj._gen_downtime = copy.deepcopy(self._gen_downtime)
@@ -999,6 +1001,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # create the vector to the proper shape
         self._target_dispatch = np.zeros(self.n_gen, dtype=dt_float)
+        self._already_modified_gen = np.zeros(self.n_gen, dtype=dt_bool)
         self._actual_dispatch = np.zeros(self.n_gen, dtype=dt_float)
         self._gen_uptime = np.zeros(self.n_gen, dtype=dt_int)
         self._gen_downtime = np.zeros(self.n_gen, dtype=dt_int)
@@ -1455,6 +1458,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _reset_redispatching(self):
         # redispatching
         self._target_dispatch[:] = 0.0
+        self._already_modified_gen[:] = False
         self._actual_dispatch[:] = 0.0
         self._gen_uptime[:] = 0
         self._gen_downtime[:] = 0
@@ -1486,16 +1490,24 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         redisp_act_orig = 1.0 * action._redispatch
 
-        already_modified_gen = self._target_dispatch != 0.0
-        self._target_dispatch[already_modified_gen] += redisp_act_orig[
-            already_modified_gen
-        ]
-        first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
+        # already_modified_gen = self._target_dispatch != 0.0
+        # self._target_dispatch[already_modified_gen] += redisp_act_orig[
+        #     already_modified_gen
+        # ]
+        # first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
+        # self._target_dispatch[first_modified] = (
+        #     self._actual_dispatch[first_modified] + redisp_act_orig[first_modified]
+        # )
+        # already_modified_gen |= first_modified
+        
+        # self._already_modified_gen[self._target_dispatch != 0.0] = True
+        self._target_dispatch[self._already_modified_gen] += redisp_act_orig[self._already_modified_gen]
+        first_modified = (~self._already_modified_gen) & (redisp_act_orig != 0)
         self._target_dispatch[first_modified] = (
             self._actual_dispatch[first_modified] + redisp_act_orig[first_modified]
         )
-        already_modified_gen |= first_modified
-        return already_modified_gen
+        self._already_modified_gen[redisp_act_orig != 0] = True
+        return self._already_modified_gen
 
     def _prepare_redisp(self, action, new_p, already_modified_gen):
         # trying with an optimization method
