@@ -58,8 +58,12 @@ Change Log
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/377 by adding a special
   method `backend.update_thermal_limit_from_vect`
 - [ADDED] the "`packaging`" python package is now required to install grid2op. 
-  It allows to support different `gym` version that changes behavior regarding
+  It allows to support different `gym` versions that changes behavior regarding
   numpy pseudo random generator.
+- [IMPROVED] clarify documentation of gym compat module (see 
+  https://github.com/rte-france/Grid2Op/issues/372 and 
+  https://github.com/rte-france/Grid2Op/issues/373) as well as the doc
+  for MultifolderWithCache (see https://github.com/rte-france/Grid2Op/issues/370)
 
 [1.7.2] - 2022-07-05
 --------------------

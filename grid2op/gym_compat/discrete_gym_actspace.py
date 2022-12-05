@@ -29,7 +29,61 @@ class DiscreteActSpace(Discrete):
 
     This class allows to convert a grid2op action space into a gym "Discrete". This means that the action are
     labeled, and instead of describing the action itself, you provide only its ID.
+    
+    Let's take an example of line disconnection. In the "standard" gym representation you need to:
+    
+    .. code-block:: python
 
+        import grid2op
+        import numpy as np
+        from grid2op.gym_compat import GymEnv
+        
+        env_name = ...
+        env = grid2op.make(env_name)
+        gym_env = GymEnv(env)
+
+        # now do an action
+        gym_act = {}
+        gym_act["set_bus"]  = np.zeros(env.n_line, dtype=np.int)
+        l_id = ... # the line you want to disconnect
+        gym_act["set_bus"][l_id] = -1
+        obs, reward, done, truncated, info = gym_env.step(gym_act)
+        
+    This has the advantage to be as close as possible to raw grid2op. But the main drawback is that
+    most of RL framework are not able to do this kind of modification easily. For discrete actions,
+    what is often do is:
+    
+    1) enumerate all possible actions (say you have n different actions)
+    2) assign a unique id to all actions (say from 0 to n-1)
+    3) have a "policy" output a vector of size n with each component
+       representing an action (eg `vect[42]` represents the score the policy assign to action `42`)    
+       
+    Instead of having everyone doing the modifications "on its own" we developed the `DiscreteActSpace`
+    that does exactly this, in a single line of code:
+    
+    .. code-block:: python
+
+        import grid2op
+        import numpy as np
+        from grid2op.gym_compat import GymEnv, DiscreteActSpace
+
+        env_name = ...
+        env = grid2op.make(env_name)
+        gym_env = GymEnv(env)
+        gym_env.action_space = DiscreteActSpace(env.action_space,
+                                                attr_to_keep=["set_bus", 
+                                                              "set_line_status",
+                                                              # or anything else
+                                                             ]
+                                                )
+
+        # do action with ID 42
+        gym_act = 42
+        obs, reward, done, truncated, info = gym_env.step(gym_act)    
+        # to know what the action did, you can
+        # print(gym_env.action_space.from_gym(gym_act))
+    
+    
     It is related to the :class:`MultiDiscreteActSpace` but compared to this other representation, it
     does not allow to do "multiple actions". Typically, if you use the snippets below:
 
@@ -62,7 +116,7 @@ class DiscreteActSpace(Discrete):
 
     .. note::
         This class is really closely related to the :class:`grid2op.Converter.IdToAct`. It basically "maps"
-        this "IdToAct" into a type of gym space, which, in this case, will be a Discrete one.
+        this "IdToAct" into a type of gym space, which, in this case, will be a `Discrete` one.
 
     Examples
     --------

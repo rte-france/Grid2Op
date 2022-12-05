@@ -152,6 +152,51 @@ straight translation from the attribute of the action to the key of the dictiona
 - "set_line_status": Box(`env.n_line`) [type: int, low=-1, high=1]
 - "storage_power": Box(`env.n_storage`) [type: float, low=-`env.storage_max_p_prod`, high=`env.storage_max_p_absorb`]
 
+For example you can create a "gym action" (for the default encoding) like:
+
+.. code-block:: python
+
+    import grid2op
+    from grid2op.gym_compat import GymEnv
+    import numpy as np
+
+    env_name = ...
+
+    env = grid2op.make(env_name)
+    gym_env = GymEnv(env)
+
+    seed = ...
+    obs, info = gym_env.reset(seed)  # for new gym interface
+
+    # do nothing
+    gym_act = {}
+    obs, reward, done, truncated, info = gym_env.step(gym_act)
+
+    #change the bus of the element 6 and 7 of the "topo_vect"
+    gym_act = {}
+    gym_act["change_bus"] = np.zeros(env.dim_topo, dtype=np.int8)   # gym encoding of a multi binary
+    gym_act["change_bus"][[6, 7]] = 1
+    obs, reward, done, truncated, info = gym_env.step(gym_act)
+
+    # redispatch generator 2 of 1.7MW
+    gym_act = {}
+    gym_act["redispatch"] = np.zeros(env.n_gen, dtype=np.float32)   # gym encoding of a Box
+    gym_act["redispatch"][2] = 1.7
+    obs, reward, done, truncated, info = gym_env.step(gym_act)
+
+    # set the bus of element 8 and 9 to bus 2
+    gym_act = {}
+    gym_act["set_bus"] = np.zeros(env.dim_topo, dtype=np.float32)   # gym encoding of a Box
+    gym_act["set_bus"][[8, 9]] = 2
+    obs, reward, done, truncated, info = gym_env.step(gym_act)
+
+    # of course, you can set_bus, redispatch, change the storage units etc. in the same action.
+
+
+This way of doing things is perfectly grounded. It works but it is quite verbose and not
+really "ML friendly". You can customize the way you "encode" your actions / observations relatively
+easily. Some examples are given in the following subsections.
+
 .. _base_gym_space_function:
 
 Customizing the action and observation space
@@ -324,7 +369,7 @@ Converter name                    Objective
 ===============================   ============================================================
 :class:`BoxGymObsSpace`           Convert the observation space to a single "Box"
 :class:`BoxGymActSpace`           Convert a gym MultiBinary to a gym Tuple of gym Binary and a gym MultiDiscrete to a Tuple of Discrete
-:class:`MultiDiscreteActSpace`    Allows to scale (divide an attribute by something and subtract something from it
+:class:`MultiDiscreteActSpace`    Allows to scale (divide an attribute by something and subtract something from it)
 :class:`DiscreteActSpace`         Allows you to compute another "part" of the observation space (you add an information to the gym space)
 ===============================   ============================================================
 
