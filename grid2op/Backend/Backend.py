@@ -619,6 +619,24 @@ class Backend(GridObjects, ABC):
                         )
                     self.thermal_limit_a[i] = tmp
 
+    def update_thermal_limit_from_vect(self, thermal_limit_a):
+        """You can use it if your backend stores the thermal limits
+        of the grid in a vector (see PandaPowerBackend for example)
+        
+        .. warning::
+            This is not called by the environment and cannot be used to
+            model Dynamic Line Rating. For such purpose please use `update_thermal_limit`
+            
+            This function is used to create a "Simulator" from a backend for example.
+        
+
+        Parameters
+        ----------
+        vect : np.ndarray
+            The thermal limits (in A)
+        """
+        pass
+    
     def update_thermal_limit(self, env):
         """
         INTERNAL
@@ -646,7 +664,6 @@ class Backend(GridObjects, ABC):
             The environment used to compute the thermal limit
 
         """
-
         pass
 
     def get_thermal_limit(self):

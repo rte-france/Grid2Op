@@ -469,7 +469,7 @@ class BaseAction(GridObjects):
         self._modif_alarm = False
 
     @classmethod
-    def process_shunt_data(cls):
+    def process_shunt_satic_data(cls):
         if not cls.shunts_data_available:
             # this is really important, otherwise things from grid2op base types will be affected
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
@@ -482,7 +482,7 @@ class BaseAction(GridObjects):
                     except ValueError:
                         pass
             cls.attr_list_set = set(cls.attr_list_vect)
-        return super().process_shunt_data()
+        return super().process_shunt_satic_data()
     
     def copy(self) -> "BaseAction":
         # sometimes this method is used...
@@ -541,9 +541,9 @@ class BaseAction(GridObjects):
         return res
 
     @classmethod
-    def process_shunt_data(cls):
-        
-        return super().process_shunt_data()
+    def process_shunt_satic_data(cls):
+        return super().process_shunt_satic_data()
+    
     def __deepcopy__(self, memodict={}) -> "BaseAction":
         res = type(self)()
 
