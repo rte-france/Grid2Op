@@ -61,6 +61,13 @@ To illustrate this, let's create an environment that we'll use for an example an
 
     obs = env.reset()
 
+    # in summary (see descriptions bellow for more information) : 
+    act_line_1 = env.action_space({"set_line_status": [(1, -1)]})
+    obs, reward, done, info = env.step(act_line_1)  # legal, obs.time_before_cooldown_line[1] = 3
+    obs, reward, done, info = env.step(act_line_1)  # illegal, obs.time_before_cooldown_line[1] = 2
+    obs, reward, done, info = env.step(act_line_1)  # illegal, obs.time_before_cooldown_line[1] = 1
+    obs, reward, done, info = env.step(act_line_1)  # illegal, obs.time_before_cooldown_line[1] = 0
+    obs, reward, done, info = env.step(act_line_1)  # legal, obs.time_before_cooldown_line[1] = 3
 
 Cooldown on substation
 ***********************
