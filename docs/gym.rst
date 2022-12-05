@@ -404,6 +404,63 @@ Other frameworks
 **********************
 Any contribution is welcome here
 
+Troubleshoot with some frameworks
+-------------------------------------------------
+
+Python complains about pickle
+********************************
+This usually takes the form of an error with `XXX_env_name` (*eg* `CompleteObservation_l2rpn_wcci_2022`) is not serializable.
+
+This is because grid2op will (to save computation time) generate some classes (the classes themseleves) on the
+fly, once the environment is loaded. And unfortunately, pickle module is not always able to process these
+(meta) data.
+
+Try to first create (automatically!) the files containing the description of the classes 
+used by your environment (for example):
+
+.. code-block:: python
+
+    from grid2op import make
+    from grid2op.Reward import RedispReward
+    from lightsim2grid import LightSimBackend
+
+    env_name = 'l2rpn_wcci_2022'
+    backend_class = LightSimBackend
+    env = make(env_name, reward_class=RedispReward, backend=backend_class())
+    env.generate_classes()
+
+.. note::
+    This piece of code is to do once (each time you change the backend or the env name)
+
+And then proceed as usual by loading the grid2op environment
+with the key-word `experimental_read_from_local_dir`
+
+.. code-block:: python
+
+    from grid2op import make
+    from grid2op.Reward import RedispReward
+    from lightsim2grid import LightSimBackend
+
+    env_name = 'l2rpn_wcci_2022'
+    backend_class = LightSimBackend
+    env = make(env_name, reward_class=RedispReward, backend=backend_class(),
+               experimental_read_from_local_dir=True)
+    # do whatever
+
+Observation XXX outside given space YYY
+****************************************
+Often encountered with ray[rllib] this is due to a technical aspect (slack bus) of the grid
+which may cause issue with gen_p being above / bellow pmin / pmax for certain generators.
+
+You can get rid of it by modifying the observation space and "remove" the low / high values on 
+pmin and pmax: 
+
+.. code-block:: python
+
+        # we suppose you already have an observation space
+        self.observation_space["gen_p"].low[:] = -np.inf
+        self.observation_space["gen_p"].high[:] = np.inf
+
 
 Detailed Documentation by class
 --------------------------------

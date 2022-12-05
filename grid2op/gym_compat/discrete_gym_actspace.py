@@ -58,7 +58,7 @@ class DiscreteActSpace(Discrete):
     3) have a "policy" output a vector of size n with each component
        representing an action (eg `vect[42]` represents the score the policy assign to action `42`)    
        
-    Instead of having everyone doing the modifications "on its own" we developed the `DiscreteActSpace`
+    Instead of having everyone doing the modifications "on its own" we developed the :class:`DiscreteActSpace`
     that does exactly this, in a single line of code:
     
     .. code-block:: python
@@ -138,11 +138,14 @@ class DiscreteActSpace(Discrete):
     The possible attribute you can provide in the "attr_to_keep" are:
 
     - "set_line_status"
-    - "set_line_status_simple" (grid2op >= 1.6.6) : set line status adds 5 actions per powerlines: 1) disconnect it
+    - "set_line_status_simple" (grid2op >= 1.6.6) : set line status adds 5 actions per powerlines: 
+      
+      1) disconnect it
       2) connect origin side to busbar 1 and extermity side to busbar 1
       3) connect origin side to busbar 1 and extermity side to busbar 2
       4) connect origin side to busbar 2 and extermity side to busbar 1
       5) connect origin side to busbar 2 and extermity side to busbar 2
+      
       This is "over complex" for most use case where you just want to "connect it"
       or "disconnect it". If you want the simplest version, just use "set_line_status_simple".
     - "change_line_status"
@@ -174,14 +177,17 @@ class DiscreteActSpace(Discrete):
 
     .. note::
 
-        This last version is much (much) safer and reproducible. Indeed, the
+        This last version (providing explicitly the actions you want to keep and their ID)
+        is much (much) safer and reproducible. Indeed, the
         actions usable by your agent will be the same (and in the same order)
-        regardless of the grid2op version.
+        regardless of the grid2op version, of the person using it, of pretty
+        much everything.
 
         It might not be consistent (between different grid2op versions)
         if the actions are built from scratch (for example, depending on the
         grid2op version other types of actions can be made, such as curtailment,
-        or actions on storage units).
+        or actions on storage units) like it's the case with the key-words
+        (*eg* "set_bus") you pass as argument in the `attr_to_keep`
 
     """
 
@@ -294,7 +300,7 @@ class DiscreteActSpace(Discrete):
 
         Parameters
         ----------
-        gym_act: ``int````
+        gym_act: ``int``
             the gym action (a single integer for this action space)
 
         Returns
