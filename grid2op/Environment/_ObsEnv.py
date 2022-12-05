@@ -348,6 +348,12 @@ class _ObsEnv(BaseEnv):
         self._topo_vect[:] = topo_vect
         # TODO update maintenance time, duration and cooldown accordingly (see all todos in `update_grid`)
 
+        # update the cooldowns (see issue https://github.com/rte-france/Grid2Op/issues/374)
+        tmp_ = self._times_before_line_status_actionable
+        tmp_[tmp_ > 0] += time_step
+        tmp_ = self._times_before_topology_actionable
+        tmp_[tmp_ > 0] += time_step
+        
         # TODO set the shunts here
         # update the action that set the grid to the real value
         (
@@ -554,6 +560,7 @@ class _ObsEnv(BaseEnv):
         if maybe_exc is not None:
             raise maybe_exc
         self._reset_to_orig_state()
+        
         obs, reward, done, info = self.step(action)
         return obs, reward, done, info
 
