@@ -260,9 +260,6 @@ class PandaPowerBackend(Backend):
             self.cst_1 * self.gen_theta,
             self.cst_1 * self.storage_theta,
         )
-
-    def update_thermal_limit_from_vect(self, thermal_limit_a):
-        self.thermal_limit_a[:] = thermal_limit_a
     
     def get_nb_active_bus(self):
         """

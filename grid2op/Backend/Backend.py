@@ -635,7 +635,8 @@ class Backend(GridObjects, ABC):
         vect : np.ndarray
             The thermal limits (in A)
         """
-        pass
+        thermal_limit_a = np.array(thermal_limit_a).astype(dt_float)
+        self.thermal_limit_a[:] = thermal_limit_a
     
     def update_thermal_limit(self, env):
         """

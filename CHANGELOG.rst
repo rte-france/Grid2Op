@@ -50,7 +50,7 @@ Change Log
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/369
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/374
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/377 by adding a special
-  method `pp_backend.update_thermal_limit_from_vect`
+  method `backend.update_thermal_limit_from_vect`
 - [ADDED] the "`packaging`" python package is now required to install grid2op. 
   It allows to support different `gym` version that changes behavior regarding
   numpy pseudo random generator.
