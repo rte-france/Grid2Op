@@ -60,6 +60,8 @@ Change Log
 - [ADDED] the "`packaging`" python package is now required to install grid2op. 
   It allows to support different `gym` versions that changes behavior regarding
   numpy pseudo random generator.
+- [ADDED] the function `act.remove_line_status_from_topo` to ignore the line status modification
+  that would be induced by "set_bus" or "change_bus" when some cooldown applies on the powerline.
 - [IMPROVED] clarify documentation of gym compat module (see 
   https://github.com/rte-france/Grid2Op/issues/372 and 
   https://github.com/rte-france/Grid2Op/issues/373) as well as the doc
