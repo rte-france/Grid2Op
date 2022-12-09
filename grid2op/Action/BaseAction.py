@@ -1210,7 +1210,7 @@ class BaseAction(GridObjects):
             
         Parameters
         ----------
-        obs : :class:`grid2op.Observation.BaseObservation`
+        obs: :class:`grid2op.Observation.BaseObservation`
             The current observation
             
         check_cooldown: `bool`, optional
@@ -5511,7 +5511,11 @@ class BaseAction(GridObjects):
     def curtail_mw(self, values_mw):
         self.curtail = self.curtailment_mw_to_ratio(values_mw)
 
-    def limit_curtail_storage(self, obs: "BaseObservation", margin: float=10., do_copy: bool=False) -> Tuple["BaseAction", np.ndarray, np.ndarray]:
+    def limit_curtail_storage(self,
+                              obs: "BaseObservation",
+                              margin: float=10.,
+                              do_copy: bool=False,
+                              _tol_equal : float=0.01) -> Tuple["BaseAction", np.ndarray, np.ndarray]:
         """
         This function tries to limit the possibility to end up
         with a "game over" because actions on curtailment or storage units (see the "Notes" section
@@ -5564,19 +5568,28 @@ class BaseAction(GridObjects):
             the environment will do it knowing exactly what will happen next (its a bit "cheating") and limit 
             exactly the action to exactly right amount.
             
-            Using :func:`grid2op.Aciton.BaseAction.limit_curtail_storage` is always feasible, but less precise.
-            
+            Using :func:`grid2op.Aciton.BaseAction.limit_curtail_storage` is always feasible, but less precise
+            and subject to uncertainties.
+        
+        .. warning::
+            If the action has no effect (for example you give a limit of the curtailment above the
+            actual production of renewable generators) then regardless of the "margin" parameter
+            your action will be declared "legal" which may cause unfeasibility in the future.
+        
         Parameters
         ----------
         obs : ``Observation``
-            The current observation. The main attributes used for the observation are `obs.gen_margin_down` and `obs.gen_margin_up`.
+            The current observation. The main attributes used for the observation are 
+            `obs.gen_margin_down` and `obs.gen_margin_up`.
             
         margin : ``float``, optional
-            The "margin" taken from the controlable generators "margin" to "take into account" when limiting the action (see description for
-            more information), by default 10.
+            The "margin" taken from the controlable generators "margin" to 
+            "take into account" when limiting the action 
+            (see description for more information), by default 10.
             
         do_copy : ``bool``, optional
-            Whether to make a copy of the current action (if set to ``True``) or to modify it (default, when ``False``), by default False
+            Whether to make a copy of the current action (if set to ``True``) or to modify the
+            action "in-place" (default, when ``False``)
 
         Returns
         -------
@@ -5605,10 +5618,10 @@ class BaseAction(GridObjects):
         
         # curtailment
         gen_curtailed = (res._curtail != -1) & cls.gen_renewable
-        # gen_curtailed &= ( (obs.gen_p > res._curtail * cls.gen_pmax) | (obs.gen_p_before_curtail > res._curtail * cls.gen_pmax))
         gen_curtailed &= ( (obs.gen_p > res._curtail * cls.gen_pmax) | (obs.gen_p_before_curtail > obs.gen_p ))
         gen_p_after_max = (res._curtail * cls.gen_pmax)[gen_curtailed]
-        # I migbt have a problem because curtailment decreases too rapidly (ie i set a limit too low)
+        
+        # I might have a problem because curtailment decreases too rapidly (ie i set a limit too low)
         prod_after_down = np.minimum(gen_p_after_max, obs.gen_p[gen_curtailed])
         # I might have a problem because curtailment increase too rapidly (limit was low and I set it too high too
         # rapidly)
@@ -5624,13 +5637,16 @@ class BaseAction(GridObjects):
         total_mw_curtailed = total_mw_curtailed_down - total_mw_curtailed_up
         total_mw_act = total_mw_curtailed + total_mw_storage
         
-        if total_mw_act > max_up - margin:
+        if (total_mw_act > 0) and (total_mw_act > max_up - margin):
             # controlable generators should be asked to increase their production too much, I need to limit
             # the storage unit (consume too much) or the curtailment (curtailment too strong)
-            if max_up < margin + 0.1:
+            if max_up < margin + _tol_equal:
                 # not enough ramp up anyway so I don't do anything
+                res_add_storage[:] = -res._storage_power
+                res_add_curtailed[gen_curtailed] = obs.gen_p[gen_curtailed] / obs.gen_pmax[gen_curtailed] - res._curtail[gen_curtailed]
                 res._storage_power[:] = 0.  # don't act on storage
                 res._curtail[gen_curtailed] = -1  # reset curtailment
+                
             else:
                 remove_mw = total_mw_act - (max_up - margin)
                 # fix curtailment
@@ -5649,12 +5665,14 @@ class BaseAction(GridObjects):
                              remove_storage_mw / np.sum(res._storage_power[do_storage_consum]))
                     res._storage_power[do_storage_consum] += tmp_
                     res_add_storage[do_storage_consum] = tmp_
-        
-        elif total_mw_act < -max_down + margin:
+                    
+        elif (total_mw_act < 0) and (total_mw_act < -max_down + margin):
             # controlable generators should be asked to decrease their production too much, I need to limit
             # the storage unit (produce too much) or the curtailment (curtailment too little)
-            if max_down < margin + 0.1:
+            if max_down < margin + _tol_equal:
                 # not enough ramp down anyway so I don't do anything
+                res_add_storage[:] = -res._storage_power
+                res_add_curtailed[gen_curtailed] = obs.gen_p[gen_curtailed] / obs.gen_pmax[gen_curtailed] - res._curtail[gen_curtailed]
                 res._storage_power[:] = 0.  # don't act on storage
                 res._curtail[gen_curtailed] = -1  # reset curtailment
             else:
