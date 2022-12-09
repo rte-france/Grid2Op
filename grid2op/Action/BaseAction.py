@@ -1079,7 +1079,7 @@ class BaseAction(GridObjects):
         effective_change[
             self.line_ex_pos_topo_vect[self._lines_impacted & isnotconnected]
         ] = False
-
+        
         # i can change also the status of a powerline by acting on its extremity
         # first sub case i connected the powerline by setting origin OR extremity to positive stuff
         if powerline_status is not None:
@@ -1098,24 +1098,178 @@ class BaseAction(GridObjects):
             self._lines_impacted |= connect_set_ex
             effective_change[self.line_or_pos_topo_vect[connect_set_ex]] = False
             effective_change[self.line_ex_pos_topo_vect[connect_set_ex]] = False
-
+            
             # second sub case i disconnected the powerline by setting origin or extremity to negative stuff
             disco_set_or = (self._set_topo_vect[self.line_or_pos_topo_vect] < 0) & (
-                ~isnotconnected
+                powerline_status
             )
             self._lines_impacted |= disco_set_or
             effective_change[self.line_or_pos_topo_vect[disco_set_or]] = False
             effective_change[self.line_ex_pos_topo_vect[disco_set_or]] = False
             disco_set_ex = (self._set_topo_vect[self.line_ex_pos_topo_vect] < 0) & (
-                ~isnotconnected
+                powerline_status
             )
             self._lines_impacted |= disco_set_ex
             effective_change[self.line_or_pos_topo_vect[disco_set_ex]] = False
             effective_change[self.line_ex_pos_topo_vect[disco_set_ex]] = False
-
+        
         self._subs_impacted[self._topo_vect_to_sub[effective_change]] = True
         return self._lines_impacted, self._subs_impacted
 
+    def remove_line_status_from_topo(self,
+                                     obs: "grid2op.Observation.BaseObservation",
+                                     check_cooldown: bool = True):
+        """
+        .. versionadded:: 1.8.0
+        
+        This function prevent an action to act on a powerline status if
+        through the "set_bus" and "change_bus" part if a cooldown applies (
+        see :ref:`action_powerline_status` for cases where this can apply)
+        
+        For example:
+        
+        .. code-block:: python
+        
+            import grid2op
+            import numpy as np
+            env_name = "l2rpn_icaps_2021_small"
+            env = grid2op.make(env_name)
+            env.set_id(0) 
+            env.seed(0)
+            obs = env.reset()
+
+            act = env.action_space({"set_bus": {"substations_id": [(27, [1, -1, 2, 2, 1])]}})
+            obs, reward, done, info = env.step(act)
+
+            act_sub28 = env.action_space({"set_bus": {"substations_id": [(28, [1, 2, 2, 1, 1])]}})
+            obs, reward, done, info = env.step(act_sub28)
+            # >>> info["exception"] : IllegalAction('Powerline with ids [42] have been modified illegally (cooldown)')
+
+        This is because in the second action, the powerline 42 is assigned to bus 2, so it would be reconnected, 
+        which is not possible due to the cooldown.
+        
+        The behaviour is (for all powerlines where a cooldown applies *ie* `obs.time_before_cooldown_sub > 0`):
+        
+          - if this line is disconnected and is assigned to a bus 1 or 2 at a substation for
+            one of its end, then this part of the action is ignored (it has not effect: bus will NOT
+            be set)
+          - if this line is connected and it is assigned to bus "-1" at one of its side
+            (extremity or origin side) then this part of the action is ignored (bus will NOT be "set")
+          - if this line is disconnected and the bus to one of its side is "changed", then this
+            part is ignored: bus will NOT be changed
+        
+        .. warning::
+            This modifies the action in-place.
+        
+        .. note::
+            This function does not check the cooldowns if you specify `check_cooldown=False`
+        
+        Examples
+        ---------
+        
+        To avoid the issue explained above, you can now do:
+        
+        .. code-block:: python
+        
+            import grid2op
+            import numpy as np
+            env_name = "l2rpn_icaps_2021_small"
+            env = grid2op.make(env_name)
+            env.set_id(0) 
+            env.seed(0)
+            obs = env.reset()
+
+            act = env.action_space({"set_bus": {"substations_id": [(27, [1, -1, 2, 2, 1])]}})
+            obs, reward, done, info = env.step(act)
+
+            act_sub28_clean = env.action_space({"set_bus": {"substations_id": [(28, [1, 2, 2, 1, 1])]}})
+            act_sub28_clean.remove_line_status_from_topo(obs)
+            print(act_sub28_clean)
+            # This action will:
+            #     - NOT change anything to the injections
+            #     - NOT perform any redispatching action
+            #     - NOT modify any storage capacity
+            #     - NOT perform any curtailment
+            #     - NOT force any line status
+            #     - NOT switch any line status
+            #     - NOT switch anything in the topology
+            #     - Set the bus of the following element(s):
+            #         - Assign bus 1 to line (extremity) id 41 [on substation 28]
+            #         - Assign bus 2 to line (origin) id 44 [on substation 28]
+            #         - Assign bus 1 to line (extremity) id 57 [on substation 28]
+            #         - Assign bus 1 to generator id 16 [on substation 28]
+            #     - Not raise any alarm
+
+            obs, reward, done, info = env.step(act_sub28_clean)
+            # >>> info["exception"] : []
+        
+        .. note::
+            The part of the action `act_sub28_clean` that would 
+            "*- Assign bus 2 to line (extremity) id 42 [on substation 28]*" has been removed because powerline
+            42 is disconnected in the observation and under a cooldown.
+            
+        Parameters
+        ----------
+        obs : :class:`grid2op.Observation.BaseObservation`
+            The current observation
+            
+        check_cooldown: `bool`, optional
+            If `True` (default) will modify the action only for the powerline impacted by a cooldown.
+            Otherwise will modify all the powerlines.
+            
+            
+        """
+        status = obs.line_status
+        line_under_cooldown = obs.time_before_cooldown_line > 0
+        if not check_cooldown:
+            line_under_cooldown[:] = True
+            
+        cls = type(self)
+        
+        # remove the "set" part that would cause a reconnection
+        mask_reco = np.full(cls.dim_topo, fill_value=False)
+        reco_or_ = np.full(cls.n_line, fill_value=False)
+        reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & 
+                 (~status) & line_under_cooldown] = True
+        mask_reco[cls.line_or_pos_topo_vect] = reco_or_
+        
+        reco_ex_ = np.full(cls.n_line, fill_value=False)
+        reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & 
+                 (~status) & line_under_cooldown] = True
+        mask_reco[cls.line_ex_pos_topo_vect] = reco_ex_
+        
+        self._set_topo_vect[mask_reco] = 0
+        
+        # remove the "set" that would cause a disconnection
+        mask_disco = np.full(cls.dim_topo, fill_value=False)
+        reco_or_ = np.full(cls.n_line, fill_value=False)
+        reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] < 0) & 
+                 status & line_under_cooldown] = True
+        mask_disco[cls.line_or_pos_topo_vect] = reco_or_
+        
+        reco_ex_ = np.full(cls.n_line, fill_value=False)
+        reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0) & 
+                 status & line_under_cooldown] = True
+        mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
+        
+        self._set_topo_vect[mask_disco] = 0
+        
+        # remove the "change" part when powerlines is disconnected
+        mask_disco = np.full(cls.dim_topo, fill_value=False)
+        reco_or_ = np.full(cls.n_line, fill_value=False)
+        reco_or_[self._change_bus_vect[cls.line_or_pos_topo_vect] & 
+                 (~status) & line_under_cooldown] = True
+        mask_disco[cls.line_or_pos_topo_vect] = reco_or_
+        
+        reco_ex_ = np.full(cls.n_line, fill_value=False)
+        reco_ex_[self._change_bus_vect[cls.line_ex_pos_topo_vect] & 
+                 (~status) & line_under_cooldown] = True
+        mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
+        
+        self._change_bus_vect[mask_disco] = False
+        
+        return self
+        
     def reset(self):
         """
         INTERNAL USE ONLY
