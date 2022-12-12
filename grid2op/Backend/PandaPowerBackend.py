@@ -260,7 +260,7 @@ class PandaPowerBackend(Backend):
             self.cst_1 * self.gen_theta,
             self.cst_1 * self.storage_theta,
         )
-
+    
     def get_nb_active_bus(self):
         """
         INTERNAL

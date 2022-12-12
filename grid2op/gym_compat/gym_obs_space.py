@@ -7,7 +7,6 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
 import warnings
-import attr
 import numpy as np
 from gym import spaces
 

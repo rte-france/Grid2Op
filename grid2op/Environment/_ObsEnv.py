@@ -104,6 +104,7 @@ class _ObsEnv(BaseEnv):
         self.duration_next_maintenance_init = np.zeros(self.n_line, dtype=dt_int)
         self.target_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
         self.actual_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
+        self._already_modified_gen_init = np.zeros(self.n_gen, dtype=dt_float)
 
         # line status (inherited from BaseEnv)
         self._line_status = np.full(self.n_line, dtype=dt_bool, fill_value=True)
@@ -347,6 +348,12 @@ class _ObsEnv(BaseEnv):
         self._topo_vect[:] = topo_vect
         # TODO update maintenance time, duration and cooldown accordingly (see all todos in `update_grid`)
 
+        # update the cooldowns (see issue https://github.com/rte-france/Grid2Op/issues/374)
+        tmp_ = self._times_before_line_status_actionable
+        tmp_[tmp_ > 0] += time_step
+        tmp_ = self._times_before_topology_actionable
+        tmp_[tmp_ > 0] += time_step
+        
         # TODO set the shunts here
         # update the action that set the grid to the real value
         (
@@ -461,6 +468,7 @@ class _ObsEnv(BaseEnv):
         self._duration_next_maintenance[:] = self.duration_next_maintenance_init
         self._target_dispatch[:] = self.target_dispatch_init
         self._actual_dispatch[:] = self.actual_dispatch_init
+        self._already_modified_gen[:] = self._already_modified_gen_init
 
     def _reset_to_orig_state(self):
         """
@@ -552,6 +560,7 @@ class _ObsEnv(BaseEnv):
         if maybe_exc is not None:
             raise maybe_exc
         self._reset_to_orig_state()
+        
         obs, reward, done, info = self.step(action)
         return obs, reward, done, info
 
@@ -627,6 +636,7 @@ class _ObsEnv(BaseEnv):
         self.duration_next_maintenance_init[:] = env._duration_next_maintenance
         self.target_dispatch_init[:] = env._target_dispatch
         self.actual_dispatch_init[:] = env._actual_dispatch
+        self._already_modified_gen_init[:] = env._already_modified_gen
         self.opp_space_state, self.opp_state = env._oppSpace._get_state()
 
         # storage units

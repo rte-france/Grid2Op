@@ -273,10 +273,13 @@ The unit tests includes testing, on linux machines the correct integration of gr
 - python 3.9
 - python 3.10
 
-On all of these cases, we tested grid2op on all available numpy version >= 1.18 (**nb** available numpy versions depend
+On all of these cases, we tested grid2op on all available numpy version >= 1.20 (**nb** available numpy versions depend
 on python version).
 
 The complete test suit is run on linux with the latest numpy version on python 3.8.
+
+**NB** grid2op should work on python 3.11 but as numba is not (yet) compatible with this python version, 
+and because numba is used for some tests, we do not test grid2op with python 3.11 yet.
 
 ## Known issue
 

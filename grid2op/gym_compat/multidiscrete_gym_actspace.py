@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 from gym.spaces import MultiDiscrete, Box
 
-from grid2op.Action import BaseAction, ActionSpace
+from grid2op.Action import ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 
 from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE, check_gym_version

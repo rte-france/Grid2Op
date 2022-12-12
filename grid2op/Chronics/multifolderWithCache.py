@@ -30,6 +30,33 @@ class MultifolderWithCache(Multifolder):
     performs less than a few dozen of steps leading to more time spent reading 8600 rows than computing the
     few dozen of steps.
 
+    .. warning::
+        When you create an environment with this chronics class (*eg* by doing 
+        `env = make(...,chronics_class=MultifolderWithCache)`), the "cache" is not
+        pre loaded, only the first scenario is loaded in memory (to save loading time).
+        
+        In order to load everything, you NEED to call `env.chronics_handler.reset()`, which,
+        by default, will load every scenario into memory. If you want to filter some
+        data, for example by reading only the scenario of decembre, you can use the 
+        `set_filter` method.
+        
+        A typical workflow (at the start of your program) when using this class is then:
+        
+        1) create the environment: `env = make(...,chronics_class=MultifolderWithCache)`
+        2) (optional but recommended) select some scenarios: 
+           `env.chronics_handler.real_data.set_filter(lambda x: re.match(".*december.*", x) is not None)`
+        3) load the data in memory: `env.chronics_handler.reset()`
+        4) do whatever you want using `env`
+
+    .. note::
+        After creation (anywhere in your code), 
+        you can use other scenarios by calling the `set_filter` function again:
+        
+        1) select other scenarios: 
+           `env.chronics_handler.real_data.set_filter(lambda x: re.match(".*january.*", x) is not None)` 
+        2) load the data in memory: `env.chronics_handler.reset()`
+        3) do whatever you want using `env`
+    
     Examples
     ---------
     This is how this class can be used:

@@ -73,15 +73,27 @@ class Issue148Tester(unittest.TestCase):
         assert oo_.time_before_cooldown_sub[1] == 1
         assert ii_["is_illegal"]
 
-        oo_, rr_, dd_, ii_ = oo_.simulate(action)
+        # still illegal (cooldown of 1)
+        ooo_, rr_, dd_, ii_ = oo_.simulate(action)
         assert not dd_
-        assert oo_.time_before_cooldown_sub[ID_MAINT] == 0
+        assert ooo_.time_before_cooldown_sub[ID_MAINT] == 0
+        assert ii_["is_illegal"]
+        # we check that's illegal (cooldown is 1)
+        ooo_, rr_, dd_, ii_ = env.step(action)
+        assert not dd_
+        assert ooo_.time_before_cooldown_sub[ID_MAINT] == 0
+        assert ii_["is_illegal"]
+
+        # but now it's legal to simulate (next step it's legal)
+        ooo_, rr_, dd_, ii_ = oo_.simulate(action)
+        assert not dd_
+        assert ooo_.time_before_cooldown_sub[ID_MAINT] == 0
         assert not ii_["is_illegal"]
-
-        oo_, rr_, dd_, ii_ = env.step(env.action_space())
+        # we check that's legal
+        ooo_, rr_, dd_, ii_ = env.step(action)
         assert not dd_
-        assert oo_.time_before_cooldown_sub[ID_MAINT] == 0
-
-
+        assert ooo_.time_before_cooldown_sub[ID_MAINT] == 0
+        assert not ii_["is_illegal"]
+        
 if __name__ == "__main__":
     unittest.main()
