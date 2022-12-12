@@ -289,8 +289,9 @@ to the lines that are already disconnected (so the lines such that `obs.line_sta
 
     act_sub4_clean = env.action_space({"set_bus": {"substations_id": [(4, [2, 2, 2, 1, 1])]}})
     ## post processing
-    act_sub4_clean.line_or_set_bus = [(l_id, 0) for l_id in np.arange(obs.n_line) if not obs.line_status[l_id]]
-    act_sub4_clean.line_ex_set_bus = [(l_id, 0) for l_id in np.arange(obs.n_line) if not obs.line_status[l_id]]
+    act_sub4_clean.remove_line_status_from_topo()  # grid2op >= 1.8.0
+    # act_sub4_clean.line_or_set_bus = [(l_id, 0) for l_id in np.arange(obs.n_line) if not obs.line_status[l_id]]
+    # act_sub4_clean.line_ex_set_bus = [(l_id, 0) for l_id in np.arange(obs.n_line) if not obs.line_status[l_id]]
     ## continue as usual
     obs, reward, done, info = env.step(act_sub4_clean)
 

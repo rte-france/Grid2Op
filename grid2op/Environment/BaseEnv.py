@@ -1489,18 +1489,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _get_already_modified_gen(self, action):
 
         redisp_act_orig = 1.0 * action._redispatch
-
-        # already_modified_gen = self._target_dispatch != 0.0
-        # self._target_dispatch[already_modified_gen] += redisp_act_orig[
-        #     already_modified_gen
-        # ]
-        # first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
-        # self._target_dispatch[first_modified] = (
-        #     self._actual_dispatch[first_modified] + redisp_act_orig[first_modified]
-        # )
-        # already_modified_gen |= first_modified
-        
-        # self._already_modified_gen[self._target_dispatch != 0.0] = True
         self._target_dispatch[self._already_modified_gen] += redisp_act_orig[self._already_modified_gen]
         first_modified = (~self._already_modified_gen) & (redisp_act_orig != 0)
         self._target_dispatch[first_modified] = (

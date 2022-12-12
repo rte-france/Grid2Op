@@ -92,14 +92,19 @@ class GymEnv(gym.Env):
             self.init_env.chronics_handler.sample_next_chronics()
          
         if seed is not None:
-            self._aux_seed(seed)
+            seed_, next_seed, underlying_env_seeds = self._aux_seed(seed)
             
         g2op_obs = self.init_env.reset()
         gym_obs = self.observation_space.to_gym(g2op_obs)
             
         if return_info:
             chron_id = self.init_env.chronics_handler.get_id()
-            return gym_obs, {"time serie id": chron_id}
+            info = {"time serie id": chron_id}
+            if seed is not None:
+                info["seed"] = seed
+                info["grid2op_env_seed"] = next_seed
+                info["underlying_env_seeds"] = underlying_env_seeds
+            return gym_obs, info
         else:
             return gym_obs
 
@@ -132,7 +137,9 @@ class GymEnv(gym.Env):
             # then seed the underlying grid2op env
             max_ = np.iinfo(dt_int).max 
             next_seed = sample_seed(max_, self._np_random)
-            self.init_env.seed(next_seed)
+            underlying_env_seeds = self.init_env.seed(next_seed)
+            return seed, next_seed, underlying_env_seeds
+        return None, None, None
 
     def __del__(self):
         # delete possible dangling reference
