@@ -55,11 +55,11 @@ A simple usage is:
     For more customization on that side, please refer to the section :ref:`gym_compat_box_discrete` below
 
 .. warning::
-    The `gym` package has some breaking API change since its version 0.26. Depending on the version installed,
-    we attempted, in grid2op, to maintain compatibility both with former version and later one. This makes this
-    class behave differently depending on the version of gym you have installed !
+    The `gym` package has some breaking API change since its version 0.26. We attempted, 
+    in grid2op, to maintain compatibility both with former versions and later ones. This makes **this
+    class behave differently depending on the version of gym you have installed** !
     
-    The main changes involve the functions `env.step` and `env.reset`
+    The main changes involve the functions `env.step` and `env.reset` (core gym functions)
     
 This page is organized as follow:
 
@@ -186,7 +186,7 @@ For example you can create a "gym action" (for the default encoding) like:
 
     # set the bus of element 8 and 9 to bus 2
     gym_act = {}
-    gym_act["set_bus"] = np.zeros(env.dim_topo, dtype=np.float32)   # gym encoding of a Box
+    gym_act["set_bus"] = np.zeros(env.dim_topo, dtype=int)   # gym encoding of a Box
     gym_act["set_bus"][[8, 9]] = 2
     obs, reward, done, truncated, info = gym_env.step(gym_act)
 
@@ -268,8 +268,8 @@ There are some pre defined transformation (for example transforming the action t
 Do not hesitate to have a look at the  section :ref:`gym_compat_box_discrete`.
 
 
-Customizing the action and observation space, using Converter
-**************************************************************
+Some already implemented customization
+***************************************
 However, if you don't want to fully customize everything, we encourage you to have a look at the "GymConverter"
 that we coded to ease this process.
 
@@ -342,7 +342,19 @@ Converter name                                  Objective
 `BaseGymSpaceConverter.ignore_attr`_            Allows you to ignore some attributes of the action / observation (they will not be part of the gym space)
 =============================================   ============================================================
 
+.. warning::
+    TODO: Help more than welcome !
 
+    Organize this page with a section for each "use":
+    
+    - scale de the data
+    - keep only some part of the observation
+    - add some info to the observation
+    - transform a box to a discrete action space
+    - use MultiDiscrete
+
+    Instead of having the current ordering of things
+    
 .. note::
 
     With the "converters" above, note that the observation space AND action space will still
