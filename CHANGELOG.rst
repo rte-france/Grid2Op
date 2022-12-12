@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.8.0] - 2022-12-yy
+[1.8.0] - 2022-12-12
 --------------------
 - [BREAKING] now requires numpy >= 1.20 to work (otherwise there are 
   issues with newer versions of pandas).
