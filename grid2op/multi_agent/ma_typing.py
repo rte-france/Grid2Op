@@ -7,8 +7,8 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from typing import Any, Optional, Dict, Tuple
-from getting_started.grid2op.Observation.baseObservation import BaseObservation
-from getting_started.grid2op.Observation.observationSpace import ObservationSpace
+from grid2op.Observation.baseObservation import BaseObservation
+from grid2op.Observation.observationSpace import ObservationSpace
 
 from grid2op.multi_agent.subgridAction import SubGridAction, SubGridActionSpace
 
