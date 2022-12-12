@@ -11,6 +11,7 @@ from gym.spaces import Tuple, MultiBinary, MultiDiscrete, Discrete
 
 from grid2op.dtypes import dt_int
 from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
+from grid2op.gym_compat.utils import sample_seed
 
 
 class FixedTuple(Tuple):
@@ -26,9 +27,9 @@ class FixedTuple(Tuple):
         """
         seeds = super(Tuple, self).seed(seed)
         sub_seeds = seeds
-        max_ = np.iinfo(int).max
+        max_ = np.iinfo(dt_int).max
         for i, space in enumerate(self.spaces):
-            sub_seed = self.np_random.randint(max_)
+            sub_seed = sample_seed(max_, self.np_random)
             sub_seeds.append(space.seed(sub_seed))
         return sub_seeds
 

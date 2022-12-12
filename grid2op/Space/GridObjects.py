@@ -2710,7 +2710,7 @@ class GridObjects:
             res_cls._INIT_GRID_CLS = cls
 
         res_cls._compute_pos_big_topo_cls()
-        res_cls.process_shunt_data()
+        res_cls.process_shunt_satic_data()
         if res_cls.glop_version != grid2op.__version__:
             res_cls.process_grid2op_compat()
 
@@ -2733,7 +2733,7 @@ class GridObjects:
         if cls.glop_version < "1.6.0":
             # this feature did not exist before.
             cls.dim_alarms = 0
-
+        
     @classmethod
     def _get_obj_connect_to_gridobjects(cls, _sentinel=None, substation_id=None):
         if _sentinel is not None:
@@ -3692,7 +3692,7 @@ class GridObjects:
             # backward compatibility: no storage were supported
             cls.set_no_storage()
             
-        cls.process_shunt_data()
+        cls.process_shunt_satic_data()
         
         if cls.glop_version != grid2op.__version__:
             # change name of the environment, this is done in Environment.py for regular environment
@@ -3716,7 +3716,7 @@ class GridObjects:
         return cls()
 
     @classmethod
-    def process_shunt_data(cls):
+    def process_shunt_satic_data(cls):
         """remove possible shunts data from the classes, if shunts are deactivated"""
         pass
     
@@ -3850,7 +3850,7 @@ class GridObjects:
             res_cls._compute_pos_big_topo_cls()
             if res_cls.glop_version != grid2op.__version__:
                 res_cls.process_grid2op_compat()
-            res_cls.process_grid2op_shunt_data()
+            res_cls.process_shunt_satic_data()
             # add the class in the "globals" for reuse later
             globals()[name_res] = res_cls
 

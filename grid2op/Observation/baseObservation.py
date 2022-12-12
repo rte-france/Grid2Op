@@ -855,7 +855,7 @@ class BaseObservation(GridObjects):
         return res
     
     @classmethod
-    def process_shunt_data(cls):
+    def process_shunt_satic_data(cls):
         if not cls.shunts_data_available:
             # this is really important, otherwise things from grid2op base types will be affected
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
@@ -868,7 +868,7 @@ class BaseObservation(GridObjects):
                     except ValueError:
                         pass
             cls.attr_list_set = set(cls.attr_list_vect)
-        return super().process_shunt_data()
+        return super().process_shunt_satic_data()
     
     @classmethod
     def process_grid2op_compat(cls):

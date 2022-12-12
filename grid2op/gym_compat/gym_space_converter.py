@@ -11,7 +11,7 @@ import numpy as np
 import copy
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
-from grid2op.gym_compat.utils import check_gym_version
+from grid2op.gym_compat.utils import check_gym_version, sample_seed
 
 
 class _BaseGymSpaceConverter(spaces.Dict):
@@ -248,9 +248,9 @@ class _BaseGymSpaceConverter(spaces.Dict):
         """
         seeds = super(spaces.Dict, self).seed(seed)
         sub_seeds = seeds
-        max_ = np.iinfo(int).max
+        max_ = np.iinfo(dt_int).max
         for i, space_key in enumerate(sorted(self.spaces.keys())):
-            sub_seed = self.np_random.randint(max_)
+            sub_seed = sample_seed(max_, self.np_random)
             sub_seeds.append(self.spaces[space_key].seed(sub_seed))
         return sub_seeds
 

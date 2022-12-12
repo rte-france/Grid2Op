@@ -54,6 +54,13 @@ A simple usage is:
 
     For more customization on that side, please refer to the section :ref:`gym_compat_box_discrete` below
 
+.. warning::
+    The `gym` package has some breaking API change since its version 0.26. We attempted, 
+    in grid2op, to maintain compatibility both with former versions and later ones. This makes **this
+    class behave differently depending on the version of gym you have installed** !
+    
+    The main changes involve the functions `env.step` and `env.reset` (core gym functions)
+    
 This page is organized as follow:
 
 .. contents:: Table of Contents
@@ -130,6 +137,8 @@ represents the attribute `obs.line_status` which is a boolean vector (for each p
 `True` encodes for "connected" and `False` for "disconnected") See the chapter :ref:`observation_module` for
 more information about these attributes.
 
+You can transform the observation space as you wish. There are some examples in the notebooks.
+
 Default Action space
 ******************************
 The default action space is also a type of gym Dict. As for the observation space above, it is a
@@ -142,6 +151,51 @@ straight translation from the attribute of the action to the key of the dictiona
 - "set_bus": Box(`env.dim_topo`) [type: int, low=-1, high=2]
 - "set_line_status": Box(`env.n_line`) [type: int, low=-1, high=1]
 - "storage_power": Box(`env.n_storage`) [type: float, low=-`env.storage_max_p_prod`, high=`env.storage_max_p_absorb`]
+
+For example you can create a "gym action" (for the default encoding) like:
+
+.. code-block:: python
+
+    import grid2op
+    from grid2op.gym_compat import GymEnv
+    import numpy as np
+
+    env_name = ...
+
+    env = grid2op.make(env_name)
+    gym_env = GymEnv(env)
+
+    seed = ...
+    obs, info = gym_env.reset(seed)  # for new gym interface
+
+    # do nothing
+    gym_act = {}
+    obs, reward, done, truncated, info = gym_env.step(gym_act)
+
+    #change the bus of the element 6 and 7 of the "topo_vect"
+    gym_act = {}
+    gym_act["change_bus"] = np.zeros(env.dim_topo, dtype=np.int8)   # gym encoding of a multi binary
+    gym_act["change_bus"][[6, 7]] = 1
+    obs, reward, done, truncated, info = gym_env.step(gym_act)
+
+    # redispatch generator 2 of 1.7MW
+    gym_act = {}
+    gym_act["redispatch"] = np.zeros(env.n_gen, dtype=np.float32)   # gym encoding of a Box
+    gym_act["redispatch"][2] = 1.7
+    obs, reward, done, truncated, info = gym_env.step(gym_act)
+
+    # set the bus of element 8 and 9 to bus 2
+    gym_act = {}
+    gym_act["set_bus"] = np.zeros(env.dim_topo, dtype=int)   # gym encoding of a Box
+    gym_act["set_bus"][[8, 9]] = 2
+    obs, reward, done, truncated, info = gym_env.step(gym_act)
+
+    # of course, you can set_bus, redispatch, change the storage units etc. in the same action.
+
+
+This way of doing things is perfectly grounded. It works but it is quite verbose and not
+really "ML friendly". You can customize the way you "encode" your actions / observations relatively
+easily. Some examples are given in the following subsections.
 
 .. _base_gym_space_function:
 
@@ -210,9 +264,12 @@ And for the action space:
 
     gym_env.action_space = MyCustomActionSpace(whatever, you, wanted)
 
+There are some pre defined transformation (for example transforming the action to Discrete or MultiDiscrete). 
+Do not hesitate to have a look at the  section :ref:`gym_compat_box_discrete`.
 
-Customizing the action and observation space, using Converter
-**************************************************************
+
+Some already implemented customization
+***************************************
 However, if you don't want to fully customize everything, we encourage you to have a look at the "GymConverter"
 that we coded to ease this process.
 
@@ -279,13 +336,25 @@ Converter name                                  Objective
 =============================================   ============================================================
 :class:`ContinuousToDiscreteConverter`          Convert a continuous space into a discrete one
 :class:`MultiToTupleConverter`                  Convert a gym MultiBinary to a gym Tuple of gym Binary and a gym MultiDiscrete to a Tuple of Discrete
-:class:`ScalerAttrConverter`                    Allows to scale (divide an attribute by something and subtract something from it
+:class:`ScalerAttrConverter`                    Allows to scale (divide an attribute by something and subtract something from it)
 `BaseGymSpaceConverter.add_key`_                Allows you to compute another "part" of the observation space (you add an information to the gym space)
 `BaseGymSpaceConverter.keep_only_attr`_         Allows you to specify which part of the action / observation you want to keep
 `BaseGymSpaceConverter.ignore_attr`_            Allows you to ignore some attributes of the action / observation (they will not be part of the gym space)
 =============================================   ============================================================
 
+.. warning::
+    TODO: Help more than welcome !
 
+    Organize this page with a section for each "use":
+    
+    - scale de the data
+    - keep only some part of the observation
+    - add some info to the observation
+    - transform a box to a discrete action space
+    - use MultiDiscrete
+
+    Instead of having the current ordering of things
+    
 .. note::
 
     With the "converters" above, note that the observation space AND action space will still
@@ -312,7 +381,7 @@ Converter name                    Objective
 ===============================   ============================================================
 :class:`BoxGymObsSpace`           Convert the observation space to a single "Box"
 :class:`BoxGymActSpace`           Convert a gym MultiBinary to a gym Tuple of gym Binary and a gym MultiDiscrete to a Tuple of Discrete
-:class:`MultiDiscreteActSpace`    Allows to scale (divide an attribute by something and subtract something from it
+:class:`MultiDiscreteActSpace`    Allows to scale (divide an attribute by something and subtract something from it)
 :class:`DiscreteActSpace`         Allows you to compute another "part" of the observation space (you add an information to the gym space)
 ===============================   ============================================================
 
@@ -346,6 +415,63 @@ Any contribution is welcome here
 Other frameworks
 **********************
 Any contribution is welcome here
+
+Troubleshoot with some frameworks
+-------------------------------------------------
+
+Python complains about pickle
+********************************
+This usually takes the form of an error with `XXX_env_name` (*eg* `CompleteObservation_l2rpn_wcci_2022`) is not serializable.
+
+This is because grid2op will (to save computation time) generate some classes (the classes themseleves) on the
+fly, once the environment is loaded. And unfortunately, pickle module is not always able to process these
+(meta) data.
+
+Try to first create (automatically!) the files containing the description of the classes 
+used by your environment (for example):
+
+.. code-block:: python
+
+    from grid2op import make
+    from grid2op.Reward import RedispReward
+    from lightsim2grid import LightSimBackend
+
+    env_name = 'l2rpn_wcci_2022'
+    backend_class = LightSimBackend
+    env = make(env_name, reward_class=RedispReward, backend=backend_class())
+    env.generate_classes()
+
+.. note::
+    This piece of code is to do once (each time you change the backend or the env name)
+
+And then proceed as usual by loading the grid2op environment
+with the key-word `experimental_read_from_local_dir`
+
+.. code-block:: python
+
+    from grid2op import make
+    from grid2op.Reward import RedispReward
+    from lightsim2grid import LightSimBackend
+
+    env_name = 'l2rpn_wcci_2022'
+    backend_class = LightSimBackend
+    env = make(env_name, reward_class=RedispReward, backend=backend_class(),
+               experimental_read_from_local_dir=True)
+    # do whatever
+
+Observation XXX outside given space YYY
+****************************************
+Often encountered with ray[rllib] this is due to a technical aspect (slack bus) of the grid
+which may cause issue with gen_p being above / bellow pmin / pmax for certain generators.
+
+You can get rid of it by modifying the observation space and "remove" the low / high values on 
+pmin and pmax: 
+
+.. code-block:: python
+
+        # we suppose you already have an observation space
+        self.observation_space["gen_p"].low[:] = -np.inf
+        self.observation_space["gen_p"].high[:] = np.inf
 
 
 Detailed Documentation by class

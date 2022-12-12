@@ -270,7 +270,7 @@ class FromChronix2grid(GridValue):
         # generate the next possible chronics
         if not self._reuse_seed:
             self._init_datetime = self.space_prng.choice(self.li_months, 1)[0]
-            self._seed_used_for_chronix2grid = self.space_prng.randint(2**32-1)
+            self._seed_used_for_chronix2grid = self.space_prng.randint(np.iinfo(dt_int).max)
             self._reuse_seed = False
         self.current_datetime = datetime.strptime(self._init_datetime, "%Y-%m-%d")
         
