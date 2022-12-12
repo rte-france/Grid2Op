@@ -7,7 +7,6 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import time
-from numpy import var
 import requests
 import os
 import warnings

@@ -12,6 +12,7 @@ import os
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
 
+from grid2op.dtypes import dt_float
 from grid2op.Environment import BaseEnv
 from grid2op.Action import BaseAction
 from grid2op.Backend import Backend
@@ -204,6 +205,7 @@ class Simulator(object):
         new_gen_v: np.ndarray = None,
         new_load_p: np.ndarray = None,
         new_load_q: np.ndarray = None,
+        update_thermal_limit: bool = True,
     ):
         """Set the state of the simulator to a given state described by an observation (and optionally some
         new loads and generation)
@@ -223,6 +225,10 @@ class Simulator(object):
             new load active consumption, by default None
         new_load_q : np.ndarray, optional
             new load reactive consumption, by default None
+        update_thermal_limit: bool, optional
+            Do you update the thermal limit of the backend (we recommend to leave it to `True`
+            otherwise some bugs can appear such as 
+            https://github.com/rte-france/Grid2Op/issues/377)
 
         Raises
         ------
@@ -258,6 +264,9 @@ class Simulator(object):
         self.error = None
         self.backend.update_from_obs(self.current_obs, force_update=True)
 
+        if update_thermal_limit:
+            self.backend.update_thermal_limit_from_vect(self.current_obs.thermal_limit)
+            
         if do_powerflow:
             self._do_powerflow()
 

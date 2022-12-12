@@ -360,6 +360,10 @@ class TestObservationMaintenance(unittest.TestCase):
         )
 
     def test_simulate_disco_planned_maintenance(self):
+        
+        reco_line = self.env.action_space()
+        reco_line.line_set_status = [(4, +1)]
+        
         obs = self.env.get_obs()
         assert obs.line_status[4]
         assert obs.time_next_maintenance[4] == 1
@@ -370,19 +374,26 @@ class TestObservationMaintenance(unittest.TestCase):
         assert not sim_obs.line_status[4]
         assert sim_obs.time_next_maintenance[4] == 0
         assert sim_obs.duration_next_maintenance[4] == 11
+        
         # simulation at current step
         sim_obs, *_ = obs.simulate(self.env.action_space(), time_step=0)
         assert sim_obs.line_status[4]
         assert sim_obs.time_next_maintenance[4] == 1
         assert sim_obs.duration_next_maintenance[4] == 12
+        
         # line will be disconnected next time step
         sim_obs, *_ = obs.simulate(self.env.action_space(), time_step=1)
         assert not sim_obs.line_status[4]
         assert sim_obs.time_next_maintenance[4] == 0
         assert sim_obs.duration_next_maintenance[4] == 11
 
-        for ts in range(12):
+        for ts in range(11):
             obs, reward, done, info = self.env.step(self.env.action_space())
+            assert obs.time_next_maintenance[4] == 0
+            assert obs.duration_next_maintenance[4] == 12-ts, f"should be {12-ts} but is {obs.duration_next_maintenance[4]} (step ts)"
+
+        # at this step if I attempt a reco it fails
+        obs, reward, done, info = self.env.step(self.env.action_space())
         # maintenance will be over next time step
         assert not obs.line_status[4]
         assert obs.time_next_maintenance[4] == 0
@@ -393,22 +404,36 @@ class TestObservationMaintenance(unittest.TestCase):
         assert not sim_obs.line_status[4]
         assert sim_obs.time_next_maintenance[4] == -1
         assert sim_obs.duration_next_maintenance[4] == 0
-
-        # i have the right to reconnect it (if i simulate in the future)
-        act = self.env.action_space()
-        act.line_set_status = [(4, +1)]
-        sim_obs, reward, done, info = obs.simulate(act, time_step=1)
-        assert not info["is_illegal"]
-        assert sim_obs.line_status[4]
-        assert sim_obs.time_next_maintenance[4] == -1
-        assert sim_obs.duration_next_maintenance[4] == 0
-
+        
         # i don't have the right to reconnect it if i don't simulate in the future
-        sim_obs, reward, done, info = obs.simulate(act, time_step=0)
+        sim_obs, reward, done, info = obs.simulate(reco_line, time_step=0)
         assert info["is_illegal"]
         assert not sim_obs.line_status[4]
         assert sim_obs.time_next_maintenance[4] == 0
         assert sim_obs.duration_next_maintenance[4] == 1
+        
+        # I still have to wait 1 step before reconnection, so this raises
+        sim_obs, reward, done, info = obs.simulate(reco_line, time_step=1)
+        assert info["is_illegal"], f"there should be no error, but action is illegal"
+        assert not sim_obs.line_status[4]
+        assert sim_obs.time_next_maintenance[4] == -1
+        assert sim_obs.duration_next_maintenance[4] == 0
+        
+        # at this step if I attempt a reco it fails
+        obs, reward, done, info = self.env.step(reco_line)
+        # maintenance will be over next time step
+        assert info["is_illegal"]
+        assert not obs.line_status[4]
+        assert obs.time_next_maintenance[4] == -1
+        assert obs.duration_next_maintenance[4] == 0
+        
+        # I can reco the line next step
+        sim_obs, reward, done, info = obs.simulate(reco_line, time_step=1)
+        assert not info["is_illegal"], f"there should be no error, but action is illegal"
+        assert sim_obs.line_status[4]
+        assert sim_obs.time_next_maintenance[4] == -1
+        assert sim_obs.duration_next_maintenance[4] == 0
+        
         # TODO be careful here, if the rules allows for reconnection, then the
         # TODO action becomes legal, and the powerline is reconnected
         # TODO => this is because the "_obs_env" do not attempt to force the disconnection

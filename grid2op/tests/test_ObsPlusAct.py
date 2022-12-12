@@ -24,6 +24,11 @@ class BaseHelper:
     """Base class to test the method __add__ of an observation that is able to emulate the "adding" of
     an action from an observation"""
 
+    def reset_without_pp_futurewarnings(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.obs = self.env.reset()
+            
     def setUp(self) -> None:
         param = Parameters()
         param.NO_OVERFLOW_DISCONNECTION = True
@@ -36,7 +41,7 @@ class BaseHelper:
                 param=param,
                 gamerules_class=AlwaysLegal,
             )
-        self.obs = self.env.reset()
+        self.reset_without_pp_futurewarnings()
         self.act = self.env.action_space()
 
     def tearDown(self) -> None:
@@ -73,13 +78,13 @@ class BaseHelper:
         res_ls_2,
         res_ls_3,
     ):
-        self.obs = self.env.reset()
+        self.reset_without_pp_futurewarnings()
         res = self.obs + self.act
         assert np.all(res.topo_vect == res_topo_vect_1)
         assert np.all(res.line_status == res_ls_1)
         self.check_all_other_as_if_game_over(res)
 
-        self.obs = self.env.reset()
+        self.reset_without_pp_futurewarnings()
         # try to deconnect a powerline
         if "set_line_status" in self.act.authorized_keys:
             obs, reward, done, info = self.env.step(
@@ -100,7 +105,7 @@ class BaseHelper:
             assert np.all(res2.line_status == res_ls_2)
             self.check_all_other_as_if_game_over(res2)
 
-        self.obs = self.env.reset()
+        self.reset_without_pp_futurewarnings()
         # try to change a substation configuration
         if "set_bus" in self.act.authorized_keys:
             act_step = self.env.action_space(

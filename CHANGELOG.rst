@@ -31,6 +31,41 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.8.0] - 2022-12-yy
+--------------------
+- [BREAKING] now requires numpy >= 1.20 to work (otherwise there are 
+  issues with newer versions of pandas).
+- [BREAKING] issue https://github.com/rte-france/Grid2Op/issues/379 requires
+  different behaviour depending on installed gym package.
+- [BREAKING] cooldowns are not consistent between `env.step` and `obs.simulate`. 
+  If `obs.time_before_cooldown_line[l_id] > 0` it will be illegal, at the next call to `env.step` 
+  (and `obs.simulate`) to modify the status of this powerline `l_id`. Same for 
+  `obs.time_before_cooldown_sub[s_id] > 0` if trying to modify topology of
+  substation `s_id`. This also impacts the maintenances and hazards.
+  This is also linked to github issue https://github.com/rte-france/Grid2Op/issues/148
+- [FIXED] a bug when using a `Runner` with an environment that has 
+  been copied (see https://github.com/rte-france/Grid2Op/issues/361)
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/358
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/363
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/364
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/365 and 
+  https://github.com/rte-france/Grid2Op/issues/376 . Now the function(s)
+  `gridobj.process_shunt_data` and `gridobj.process_grid2op_shunt_data` are called
+  `gridobj.process_shunt_static_data`
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/367
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/369
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/374
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/377 by adding a special
+  method `backend.update_thermal_limit_from_vect`
+- [ADDED] the "`packaging`" python package is now required to install grid2op. 
+  It allows to support different `gym` versions that changes behavior regarding
+  numpy pseudo random generator.
+- [ADDED] the function `act.remove_line_status_from_topo` to ignore the line status modification
+  that would be induced by "set_bus" or "change_bus" when some cooldown applies on the powerline.
+- [IMPROVED] clarify documentation of gym compat module (see 
+  https://github.com/rte-france/Grid2Op/issues/372 and 
+  https://github.com/rte-france/Grid2Op/issues/373) as well as the doc
+  for MultifolderWithCache (see https://github.com/rte-france/Grid2Op/issues/370)
 
 [1.7.2] - 2022-07-05
 --------------------
@@ -84,7 +119,8 @@ Change Log
 [1.7.0] - 2022-04-29
 ---------------------
 - [BREAKING] the `L2RPNSandBoxScore`, `RedispReward` and `EconomicReward` now properly computes the cost of the grid 
-  (there was an error between the conversion from MWh - cost is given in $ / MWh - and MW). This impacts also `ScoreICAPS2021` and `ScoreL2RPN2020`.
+  (there was an error between the conversion from MWh - cost is given in $ / MWh - and MW). 
+  This impacts also `ScoreICAPS2021` and `ScoreL2RPN2020`.
 - [BREAKING] in the "gym_compat" module the curtailment action type has 
   for dimension the number of dispatchable generators (as opposed to all generators
   before) this was mandatory to fix issue https://github.com/rte-france/Grid2Op/issues/282
@@ -181,14 +217,17 @@ Change Log
 - [ADDED] a method of the action space to show a list of actions to get back to the original topology 
   (see https://github.com/rte-france/Grid2Op/issues/275)
   `env.action_space.get_back_to_ref_state(obs)`
-- [ADDED] a method of the action to store it in a grid2op independant fashion (using json and dictionaries), see `act.as_serializable_dict()`
-- [ADDED] possibility to generate a gym `DiscreteActSpace` from a given list of actions (see https://github.com/rte-france/Grid2Op/issues/277)
+- [ADDED] a method of the action to store it in a grid2op independant fashion (using json and dictionaries), 
+  see `act.as_serializable_dict()`
+- [ADDED] possibility to generate a gym `DiscreteActSpace` from a given list of actions (see 
+  https://github.com/rte-france/Grid2Op/issues/277)
 - [ADDED] a class that output a noisy observation to the agent (see `NoisyObservation`): the agent sees
   the real values of the environment with some noise, this could used to model inacurate
   sensors.
 - [IMPROVED] observation now raises `Grid2OpException` instead of `RuntimeError`
 - [IMRPOVED] docs (and notebooks) for the "split_train_val" https://github.com/rte-france/Grid2Op/issues/269
-- [IMRPOVED] the "`env.split_train_val(...)`" function to also generate a test dataset see https://github.com/rte-france/Grid2Op/issues/276
+- [IMRPOVED] the "`env.split_train_val(...)`" function to also generate a test dataset see 
+  https://github.com/rte-france/Grid2Op/issues/276
   
 [1.6.4] - 2021-11-08
 ---------------------

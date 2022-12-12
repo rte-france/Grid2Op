@@ -1340,6 +1340,7 @@ class Environment(BaseEnv):
         all_chron = sorted(os.listdir(chronics_path))
         to_val = set(val_scen_id)
 
+        to_test = set()  # see https://github.com/rte-france/Grid2Op/issues/363
         if nm_test is not None:
             to_test = set(test_scen_id)
 
@@ -1634,10 +1635,18 @@ class Environment(BaseEnv):
         res["observationClass"] = self._observationClass_orig
         res["rewardClass"] = copy.deepcopy(self._rewardClass)
         res["legalActClass"] = self._legalActClass
-        res["envClass"] = Environment
+        res["envClass"] = Environment  # TODO !
         res["gridStateclass"] = self.chronics_handler.chronicsClass
         res["backendClass"] = self._raw_backend_class
-        res["backend_kwargs"] = self.backend._my_kwargs
+        if hasattr(self.backend, "_my_kwargs"):
+            res["backend_kwargs"] = self.backend._my_kwargs
+        else:
+            msg_ = ("You are probably using a legacy backend class that cannot "
+                    "be copied properly. Please upgrade your backend to the latest version.")
+            self.logger.warn(msg_)
+            warnings.warn(msg_)
+            res["backend_kwargs"] = None
+            
         res["verbose"] = False
 
         dict_ = copy.deepcopy(self.chronics_handler.kwargs)

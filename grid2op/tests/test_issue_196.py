@@ -47,5 +47,5 @@ class Issue196Tester(unittest.TestCase):
 
     def test_issue_196_genp(self):
         # not great test as it passes with the bug... but just in the case... cannot hurt
-        obs = self.env_gym.reset()
+        obs, *_ = self.env_gym.reset()
         assert obs in self.env_gym.observation_space
