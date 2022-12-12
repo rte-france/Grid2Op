@@ -24,7 +24,13 @@ class Issue223Tester(unittest.TestCase):
     def _skip_if_not_installed(self):
         if not CAN_PLOT:
             self.skipTest("matplotlib is not installed")
-
+            
+    def reset_without_pp_futurewarnings(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            obs = self.env.reset()
+        return obs
+            
     def setUp(self) -> None:
         if CAN_PLOT:
             with warnings.catch_warnings():
@@ -32,7 +38,7 @@ class Issue223Tester(unittest.TestCase):
                 env_nm = os.path.join(PATH_DATA_TEST, "5bus_modif_grid")
                 self.env = grid2op.make(env_nm, test=True, chronics_class=ChangeNothing)
                 self.env.seed(0)
-                self.env.reset()
+                self.reset_without_pp_futurewarnings()
 
     def test_env_working(self):
         self._skip_if_not_installed()
@@ -43,4 +49,4 @@ class Issue223Tester(unittest.TestCase):
             assert "sub_5" in plot_helper._grid_layout
             assert "sub_6" in plot_helper._grid_layout
             # now test i can plot an observation
-            fig = plot_helper.plot_obs(self.env.reset())
+            fig = plot_helper.plot_obs(self.reset_without_pp_futurewarnings())

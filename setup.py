@@ -22,13 +22,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 pkgs = {
     "required": [
-        "numpy>=1.18.3",
+        "numpy>=1.20",
         "scipy>=1.4.1",
         "pandas>=1.0.3",
         "pandapower>=2.2.2",
         "tqdm>=4.45.0",
         "networkx>=2.4",
-        "requests>=2.23.0"
+        "requests>=2.23.0",
+        "packaging"  # because gym changes the way it uses numpy prng in version 0.26 and i need both gym before and after...
     ],
     "extras": {
         "optional": [
@@ -60,7 +61,8 @@ pkgs = {
         ],
         "plot": ["imageio"],
         "test": ["lightsim2grid",
-                 "numba"
+                 "numba",
+                 "gym>=0.26"
                  ],
         "chronix2grid": [
             "ChroniX2Grid>=1.1.0.post1"

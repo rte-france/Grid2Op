@@ -49,15 +49,16 @@ class TestFromChronix2Grid(unittest.TestCase):
     def test_seed_setid(self):
         """test env.seed(...) and env.set_id(...)"""
         id_ref = '2525122259@2050-02-28'
+        id_ref = '377638611@2050-02-28'
         # test tell_id
-        sum_prod_ref = 41676.3552
+        sum_prod_ref = 42340.949878
         self.env.seed(self.seed_)
         self.env.reset()
         id_ = self.env.chronics_handler.get_id()
         assert id_ == id_ref, f"wrong id {id_} instead of {id_ref}"
         assert abs(self.env.chronics_handler.real_data._gen_p.sum() - sum_prod_ref) <= 1e-4
         self.env.reset()
-        assert abs(self.env.chronics_handler.real_data._gen_p.sum() - 37991.1742) <= 1e-4
+        assert abs(self.env.chronics_handler.real_data._gen_p.sum() - 38160.833356999996) <= 1e-4
         self.env.set_id(id_ref)
         self.env.reset()
         assert abs(self.env.chronics_handler.real_data._gen_p.sum() - sum_prod_ref) <= 1e-4
@@ -69,16 +70,20 @@ class TestFromChronix2Grid(unittest.TestCase):
         
     def test_episode(self):
         """test that the episode can go until the end"""
-        self.env.seed(0)
+        self.env.seed(1)
         obs = self.env.reset()
+        assert obs.current_step == 0
         assert obs.max_step == 10
-        for i in range(obs.max_step - 2):
+        for i in range(obs.max_step - 1):
             obs, reward, done, info = self.env.step(self.env.action_space())
-            assert not done
+            assert not done, f"episode should not be over at iteration {i}"
         obs, reward, done, info = self.env.step(self.env.action_space())
-        assert done
+        assert obs.current_step == 10
+        assert obs.max_step == 10
+        assert done, "episode should have terminated"
         obs = self.env.reset()
         assert obs.max_step == 10
+        assert obs.current_step == 0
     
     def test_maintenance(self):
         with warnings.catch_warnings():

@@ -117,7 +117,19 @@ _EXTRACT_DS_NAME_RECO_ERR = (
 )
 
 def _force_test_dataset():
-    return _VAR_FORCE_TEST in os.environ and int(os.environ[_VAR_FORCE_TEST]) >= 1
+    res = False
+    if _VAR_FORCE_TEST in os.environ:
+        try:
+            var_int = int(os.environ[_VAR_FORCE_TEST])
+        except Exception as exc_:
+            warnings.warn(f"The environment variable {_VAR_FORCE_TEST}, "
+                          f"used to force the \"test=True\" in grid2op "
+                          f"cannot be converted to an integer with error "
+                          f"\"{exc_}\". As it is set nonetheless, we "
+                          f"assume you want to force \"test=True\".")
+            var_int = 1
+        res = var_int >= 1
+    return res
 
 def _send_request_retry(url, nb_retry=10, gh_session=None):
     """

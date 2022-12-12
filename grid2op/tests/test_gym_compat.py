@@ -28,7 +28,7 @@ try:
         MultiDiscreteActSpace,
         DiscreteActSpace,
     )
-    from grid2op.gym_compat.utils import _compute_extra_power_for_losses
+    from grid2op.gym_compat.utils import _compute_extra_power_for_losses, _MAX_GYM_VERSION_RANDINT, GYM_VERSION
 
     GYM_AVAIL = True
 except ImportError:
@@ -94,11 +94,11 @@ class TestGymCompatModule(unittest.TestCase):
         ), f"Size should be {size_th} but is {dim_obs_space}"
 
         # test that i can do basic stuff there
-        obs = env_gym.reset()
+        obs, info = env_gym.reset()
         for k in env_gym.observation_space.spaces.keys():
             assert obs[k] in env_gym.observation_space[k], f"error for key: {k}"
         act = env_gym.action_space.sample()
-        obs2, reward2, done2, info2 = env_gym.step(act)
+        obs2, reward2, done2, truncated, info2 = env_gym.step(act)
         assert obs2 in env_gym.observation_space
 
         # test for the __str__ method
@@ -152,7 +152,7 @@ class TestGymCompatModule(unittest.TestCase):
             ScalerAttrConverter(substract=0.0, divide=self.env.gen_pmax),
         )
         env_gym.observation_space = ob_space
-        obs = env_gym.reset()
+        obs, info = env_gym.reset()
         assert key in env_gym.observation_space.spaces
         low = np.zeros(self.env.n_gen) - 1
         high = np.zeros(self.env.n_gen) + 1
@@ -181,7 +181,7 @@ class TestGymCompatModule(unittest.TestCase):
         )
 
         # we highly recommend to "reset" the environment after setting up the observation space
-        obs_gym = env_gym.reset()
+        obs_gym, info = env_gym.reset()
         assert key in env_gym.observation_space.spaces
         assert obs_gym in env_gym.observation_space
 
@@ -205,9 +205,13 @@ class TestGymCompatModule(unittest.TestCase):
             res = (7, 9, 0, 0, 0, 9)
         else:
             # it's linux
-            res = (1, 2, 0, 0, 0, 0)
-            res = (5, 3, 0, 0, 0, 1)
-            res = (2, 2, 0, 0, 0, 9)
+            if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
+                res = (1, 2, 0, 0, 0, 0)
+                res = (5, 3, 0, 0, 0, 1)
+                res = (2, 2, 0, 0, 0, 9)
+            else:
+                res = (0, 6, 0, 0, 0, 5)
+                res = (10, 3, 0, 0, 0, 7)
         
         assert np.all(
             act_gym["redispatch"] == res
@@ -217,9 +221,13 @@ class TestGymCompatModule(unittest.TestCase):
             res = (2, 9, 0, 0, 0, 1)
         else:
             # it's linux
-            res = (0, 1, 0, 0, 0, 4)
-            res = (5, 5, 0, 0, 0, 9)
-            res = (0, 9, 0, 0, 0, 7)
+            if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
+                res = (0, 1, 0, 0, 0, 4)
+                res = (5, 5, 0, 0, 0, 9)
+                res = (0, 9, 0, 0, 0, 7)
+            else:
+                res = (2, 9, 0, 0, 0, 1)
+                res = (7, 5, 0, 0, 0, 8)
         assert np.all(
             act_gym["redispatch"] == res
         ), f'wrong action: {act_gym["redispatch"]}'
@@ -240,18 +248,26 @@ class TestGymCompatModule(unittest.TestCase):
             res_disp = np.array([0.833333, 0.0, 0.0, 0.0, 0.0, 10.0], dtype=dt_float)
         else:
             # it's linux
-            res_tup = (1, 4, 0, 0, 0, 8)
-            res_disp = np.array(
-                [-3.3333333, -1.666667, 0.0, 0.0, 0.0, 7.5], dtype=dt_float
-            )
-            res_tup = (7, 4, 0, 0, 0, 0)
-            res_disp = np.array(
-                [1.666667, -1.666667, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
-            )
-            res_tup = (8, 5, 0, 0, 0, 8)
-            res_disp = np.array(
-                [2.5, 0.0, 0.0, 0.0, 0.0, 7.5], dtype=dt_float
-            )
+            if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
+                res_tup = (1, 4, 0, 0, 0, 8)
+                res_disp = np.array(
+                    [-3.3333333, -1.666667, 0.0, 0.0, 0.0, 7.5], dtype=dt_float
+                )
+                res_tup = (7, 4, 0, 0, 0, 0)
+                res_disp = np.array(
+                    [1.666667, -1.666667, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
+                )
+                res_tup = (8, 5, 0, 0, 0, 8)
+                res_disp = np.array(
+                    [2.5, 0.0, 0.0, 0.0, 0.0, 7.5], dtype=dt_float
+                )
+            else:
+                res_tup = (8, 9, 0, 0, 0, 2)
+                res_tup = (8, 2, 0, 0, 0, 9)
+                res_disp = np.array(
+                    [2.5, -5., 0., 0., 0., 10.], dtype=dt_float
+                )
+            
         assert (
             act_gym["redispatch"] == res_tup
         ), f'error. redispatch is {act_gym["redispatch"]}'
@@ -266,18 +282,25 @@ class TestGymCompatModule(unittest.TestCase):
             res_disp = np.array([0.0, 5.0, 0.0, 0.0, 0.0, 12.5], dtype=dt_float)
         else:
             # it's linux
-            res_tup = (3, 9, 0, 0, 0, 0)
-            res_disp = np.array(
-                [-1.6666665, 6.666666, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
-            )
-            res_tup = (8, 6, 0, 0, 0, 0)
-            res_disp = np.array(
-                [2.5, 1.666666, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
-            )
-            res_tup = (7, 6, 0, 0, 0, 4)
-            res_disp = np.array(
-                [1.666667, 1.666666, 0.0, 0.0, 0.0, -2.5], dtype=dt_float
-            )
+            if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
+                res_tup = (3, 9, 0, 0, 0, 0)
+                res_disp = np.array(
+                    [-1.6666665, 6.666666, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
+                )
+                res_tup = (8, 6, 0, 0, 0, 0)
+                res_disp = np.array(
+                    [2.5, 1.666666, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
+                )
+                res_tup = (7, 6, 0, 0, 0, 4)
+                res_disp = np.array(
+                    [1.666667, 1.666666, 0.0, 0.0, 0.0, -2.5], dtype=dt_float
+                )
+            else:
+                res_tup = (4, 2, 0, 0, 0, 5)
+                res_tup = (3, 8, 0, 0, 0, 8)
+                res_disp = np.array(
+                    [-1.6666665, 5., 0.0, 0.0, 0.0, 7.5], dtype=dt_float
+                )
         assert (
             act_gym["redispatch"] == res_tup
         ), f'error. redispatch is {act_gym["redispatch"]}'
@@ -737,7 +760,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                 )
             },
         )
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in self.env_gym.observation_space
         assert self.env_gym.observation_space._attr_to_keep == sorted(kept_attr)
         assert len(obs_gym) == 3583
@@ -747,7 +770,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
         self.env_gym.observation_space = BoxGymObsSpace(
             self.env.observation_space, attr_to_keep=kept_attr
         )
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in self.env_gym.observation_space
         assert self.env_gym.observation_space._attr_to_keep == sorted(kept_attr)
         assert len(obs_gym) == 79
@@ -760,7 +783,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
             self.env.observation_space, attr_to_keep=kept_attr
         )
         self.env_gym.observation_space = observation_space
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in observation_space
         assert observation_space._attr_to_keep == kept_attr
         assert len(obs_gym) == 17
@@ -773,7 +796,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
             divide={"gen_p": self.env.gen_pmax, "load_p": self.obs_env.load_p},
         )
         self.env_gym.observation_space = observation_space
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in observation_space
         assert observation_space._attr_to_keep == kept_attr
         assert len(obs_gym) == 17
@@ -788,7 +811,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
             subtract={"gen_p": 100.0, "load_p": 100.0},
         )
         self.env_gym.observation_space = observation_space
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in observation_space
         assert observation_space._attr_to_keep == kept_attr
         assert len(obs_gym) == 17
@@ -825,7 +848,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                 )
             },
         )
-        obs_gym = self.env_gym.reset()
+        obs_gym, info = self.env_gym.reset()
         assert obs_gym in self.env_gym.observation_space
         assert self.env_gym.observation_space._attr_to_keep == sorted(kept_attr)
         assert len(obs_gym) == 3583
@@ -1827,7 +1850,7 @@ class ObsAllAttr(unittest.TestCase):
             env = grid2op.make("educ_case14_storage", test=True,
                                action_class=PlayableAction)
         gym_env = GymEnv(env)
-        obs = gym_env.reset()
+        obs, info = gym_env.reset()
         all_attrs = ["year",
                      "month",
                      "day",

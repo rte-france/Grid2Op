@@ -537,6 +537,25 @@ Another way is to use a dedicated class that stores the data in memory. This is 
 to avoid long and inefficient I/O that are replaced by reading the the complete dataset once and store it
 into memory.
 
+.. warning::
+    When you create an environment with this chronics class (*eg* by doing 
+    `env = make(...,chronics_class=MultifolderWithCache)`), the "cache" is not
+    pre loaded, only the first scenario is loaded in memory (to save loading time).
+    
+    In order to load everything, you NEED to call `env.chronics_handler.reset()`, which,
+    by default, will load every scenario into memory. If you want to filter some
+    data, for example by reading only the scenario of decembre, you can use the 
+    `set_filter` method.
+    
+    A typical workflow (at the start of your program) when using this class is then:
+    
+    1) create the environment: `env = make(...,chronics_class=MultifolderWithCache)`
+    2) (optional but recommended) select some scenarios: 
+      `env.chronics_handler.real_data.set_filter(lambda x: re.match(".*december.*", x) is not None)` 
+    3) load the data in memory: `env.chronics_handler.reset()`
+    4) do whatever you want using `env`
+
+
 This can be achieved with:
 
 .. code-block:: python

@@ -92,11 +92,11 @@ Technical Documentation
    createbackend
    environment
    episode
-   rules
    observation
    opponent
    parameters
    reward
+   rules
    runner
    simulator
    space

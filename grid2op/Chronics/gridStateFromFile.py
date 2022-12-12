@@ -953,7 +953,7 @@ class GridStateFromFile(GridValue):
                 raise InsufficientData(msg_err.format(self.n_, self.max_iter))
 
     def next_chronics(self):
-        self.current_datetime = datetime(year=2019, month=1, day=1)
+        self.current_datetime = self.start_datetime
         self.current_index = -1
         self.curr_iter = 0
 

@@ -45,7 +45,7 @@ class TestMultiProc(unittest.TestCase):
             )
         env_gym = GymEnv(env)
 
-        obs_gym = env_gym.reset()
+        obs_gym, *_ = env_gym.reset()
 
         # 3. (optional) customize it (see section above for more information)
         ## customize action space
