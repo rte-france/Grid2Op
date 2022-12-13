@@ -112,7 +112,6 @@ class BaseAgent(RandomObject, ABC):
         """
         pass
 
-
     def save_state(self, savestate_path :os.PathLike):  
         """
         An optional method to save the internal state of your agent.
@@ -144,7 +143,6 @@ class BaseAgent(RandomObject, ABC):
             The path to which your agent state variables should be saved
         """
         pass
-    
     
     def load_state(self, loadstate_path :os.PathLike):  
         """
