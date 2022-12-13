@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2022, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -14,3 +14,15 @@ class DomainException(Grid2OpException):
     the given domain by the user is not valid.
     """
     pass
+
+class MultiAgentStillBeta(UserWarning):
+    """
+    Multi agent is currently a beta feature. API is subject to change
+    """
+    pass
+
+class MissingFeature(MultiAgentStillBeta):
+    """This feature is currently missing, if you need it, either implement it
+    and make a pull request. Or make a feature request at :\n
+    https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement,multi-agents&template=feature_request.md&title=[Missing Feature]:
+    """

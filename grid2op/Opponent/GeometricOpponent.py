@@ -223,12 +223,13 @@ class GeometricOpponent(BaseOpponent):
         This method is the equivalent of "attack" for a regular agent.
         Opponent, in this framework can have more information than a regular agent (in particular it can
         view time step t+1), it has access to its current budget etc.
+        
         Parameters
         ----------
         observation: :class:`grid2op.Observation.Observation`
             The last observation (at time t)
         opp_reward: ``float``
-            THe opponent "reward" (equivalent to the agent reward, but for the opponent) TODO do i add it back ???
+            The opponent "reward" (equivalent to the agent reward, but for the opponent) TODO do i add it back ???
         done: ``bool``
             Whether the game ended or not TODO do i add it back ???
         agent_action: :class:`grid2op.Action.Action`

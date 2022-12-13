@@ -177,6 +177,7 @@ class BoxGymObsSpace(Box):
         subtract=None,
         divide=None,
         functs=None,
+        replace_nan_by_0 : bool =False,  # replace nan by 0.
     ):
         check_gym_version()
         if not isinstance(grid2op_observation_space, ObservationSpace):
@@ -185,6 +186,8 @@ class BoxGymObsSpace(Box):
                 f"grid2op observation. You provided {type(grid2op_observation_space)}"
                 f'as the "grid2op_observation_space" attribute.'
             )
+        self._replace_nan_by_0 : bool = replace_nan_by_0
+        
         self._attr_to_keep = sorted(attr_to_keep)
 
         ob_sp = grid2op_observation_space
@@ -678,6 +681,8 @@ class BoxGymObsSpace(Box):
 
     def _handle_attribute(self, grid2op_observation, attr_nm):
         res = getattr(grid2op_observation, attr_nm).astype(self.dtype)
+        if self._replace_nan_by_0:
+            res[~np.isfinite(res)] = 0.
         if attr_nm in self._subtract:
             res -= self._subtract[attr_nm]
         if attr_nm in self._divide:
