@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import copy
-
+import os
 from abc import ABC, abstractmethod
 from grid2op.Space import RandomObject
 
@@ -109,5 +109,66 @@ class BaseAgent(RandomObject, ABC):
         res: :class:`grid2op.Action.PlaybleAction`
             The action chosen by the bot / controler / agent.
 
+        """
+        pass
+
+
+    def save_state(self, savestate_path :os.PathLike):  
+        """
+        An optional method to save the internal state of your agent.
+        The saved state can later be re-loaded with `self.load_state`, e.g. to repeat 
+        a Grid2Op time step with exactly the same internal parameterization. This
+        can be useful to repeat Grid2Op experiments and analyze why your agent performed 
+        certain actions in past time steps. Concept developed by Fraunhofer IEE KES.
+
+        Notes
+        -----
+        First, the internal state your agent consists of attributes that are contained in 
+        the :class:`grid2op.Agent.BaseAgent` and :class:`grid2op.Agent.BaseAgent.action_space`.
+        Examples are the parameterization and seeds of the random number generator that your
+        agent uses. Such attributes can easily be obtained with the :func:`getattr` and stored
+        in a common file format, such as `.npy`.
+        
+        Second, your agent may contain custom attributes, such as e.g. a vector of line indices 
+        from a Grid2Op observation. You could obtain and save them in the same way as explained 
+        before.
+
+        Third, your agent may contain very specific modules such as `Tensorflow` that
+        do not support the simple :func:`getattr`. However, these modules normally have
+        their own methods to save an internal state. Examples of such methods are
+        :func:`save_weights` that you can integrate in your implementation of `self.save_state`.
+        
+        Parameters
+        ----------
+        savestate_path: ``string``
+            The path to which your agent state variables should be saved
+        """
+        pass
+    
+    
+    def load_state(self, loadstate_path :os.PathLike):  
+        """
+        An optional method to re-load the internal agent state that was saved with `self.save_state`. 
+        This can be useful to re-set your agent to an earlier simulation time step and reproduce 
+        past experiments with Grid2Op. Concept developed by Fraunhofer IEE KES.
+
+        Notes
+        -----
+        First, the internal state your agent consists of attributes that are contained in 
+        the :class:`grid2op.Agent.BaseAgent` and :class:`grid2op.Agent.BaseAgent.action_space`.
+        Such attributes can easily be re-set with :func:`setattr`.
+        
+        Second, your agent may contain custom attributes, such as e.g. a vector of line indices 
+        from a Grid2Op observation. You can re-set them with :func:`setattr` as well.
+
+        Third, your agent may contain very specific modules such as `Tensorflow` that
+        do not support the simple :func:`setattr`. However, these modules normally have
+        their own methods to re-load an internal state. Examples of such methods are
+        :func:`load_weights` that you can integrate in your implementation of `self.load_state`.
+        
+        Parameters
+        ----------
+        savestate_path: ``string``
+            The path from which your agent state variables should be loaded
         """
         pass
