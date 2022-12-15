@@ -31,6 +31,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.8.1] - 2023-xx-yy
+-------------------------
+- [ADDED] the baseAgent class now has two new template methods `save_state` and `load_state` to save and
+  load the agent's state during Grid2op simulations. Examples can be found in L2RPN baselines (PandapowerOPFAgent and curriculumagent).
+
 [1.8.0] - 2022-12-yy
 --------------------
 - [BREAKING] now requires numpy >= 1.20 to work (otherwise there are 
@@ -62,8 +67,6 @@ Change Log
   numpy pseudo random generator.
 - [ADDED] the function `act.remove_line_status_from_topo` to ignore the line status modification
   that would be induced by "set_bus" or "change_bus" when some cooldown applies on the powerline.
-- [ADDED] the baseAgent class now has two new template methods `save_state` and `load_state` to save and
-  load the agent's state during Grid2op simulations. Examples can be found in L2RPN baselines (PandapowerOPFAgent and curriculumagent).
 - [IMPROVED] clarify documentation of gym compat module (see 
   https://github.com/rte-france/Grid2Op/issues/372 and 
   https://github.com/rte-france/Grid2Op/issues/373) as well as the doc
