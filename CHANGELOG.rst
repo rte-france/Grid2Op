@@ -31,6 +31,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.8.1] - 2023-xx-yy
+-------------------------
+- [ADDED] the baseAgent class now has two new template methods `save_state` and `load_state` to save and
+  load the agent's state during Grid2op simulations. Examples can be found in L2RPN baselines (PandapowerOPFAgent and curriculumagent).
+
 [1.8.0] - 2022-12-yy
 --------------------
 - [BREAKING] now requires numpy >= 1.20 to work (otherwise there are 
