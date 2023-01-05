@@ -26,7 +26,7 @@ from grid2op.multi_agent.ma_typing import (ActionProfile,
                                            LocalObservation,
                                            LocalObservationSpace,
                                            MADict)
-from grid2op.multi_agent.multi_agentExceptions import DomainException, MissingFeature
+from grid2op.multi_agent.ma_exceptions import DomainException, MissingFeature
 from grid2op.multi_agent.subgridAction import SubGridAction, SubGridActionSpace
 from grid2op.multi_agent.subgridObservation import SubGridObservation, SubGridObservationSpace
 

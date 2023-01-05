@@ -12,7 +12,7 @@ __all__ = ["SubGridAction",
            "SubGridObjects"]
 import warnings
 
-from grid2op.multi_agent.multi_agentExceptions import MultiAgentStillBeta
+from grid2op.multi_agent.ma_exceptions import MultiAgentStillBeta
 
 warnings.warn("You are using a beta feature. "
               "It might contain bugs, behaviour is subject to change and some features will be added. "
