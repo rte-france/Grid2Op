@@ -35,6 +35,8 @@ Change Log
 -------------------------
 - [ADDED] the baseAgent class now has two new template methods `save_state` and `load_state` to save and
   load the agent's state during Grid2op simulations. Examples can be found in L2RPN baselines (PandapowerOPFAgent and curriculumagent).
+- [IMPROVED] error message in pandapower backend when the grid do not converge due to disconnected
+   generators or loads.
 
 [1.8.0] - 2022-12-yy
 --------------------

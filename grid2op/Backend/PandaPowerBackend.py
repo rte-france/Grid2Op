@@ -1003,10 +1003,18 @@ class PandaPowerBackend(Backend):
 
                 if np.any(~self._grid.load["in_service"]):
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    raise pp.powerflow.LoadflowNotConverged("Isolated load")
+                    raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
+                                                            " disconnected load. If you want to disconnect one, say it"
+                                                            " consumes 0. instead. Please check loads: "
+                                                            f"{np.where(~self._grid.load['in_service'])[0]}"
+                                                            )
                 if np.any(~self._grid.gen["in_service"]):
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    raise pp.powerflow.LoadflowNotConverged("Isolated gen")
+                    raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
+                                                            " disconnected generators. If you want to disconnect one, say it"
+                                                            " produces 0. instead. Please check generators: "
+                                                            f"{np.where(~self._grid.gen['in_service'])[0]}"
+                                                            )
 
                 if is_dc:
                     pp.rundcpp(self._grid, check_connectivity=False)
