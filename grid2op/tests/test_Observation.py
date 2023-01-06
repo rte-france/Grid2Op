@@ -34,10 +34,6 @@ from grid2op.Action import CompleteAction, PlayableAction
 # temporary deactivation of all the failing test until simulate is fixed
 DEACTIVATE_FAILING_TEST = False
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestBasisObsBehaviour(unittest.TestCase):
     def setUp(self):

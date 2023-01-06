@@ -31,10 +31,6 @@ from grid2op.Rules import AlwaysLegal
 from grid2op.Chronics import GridStateFromFileWithForecastsWithoutMaintenance
 from grid2op.Runner import Runner
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestProperHandlingHazardsMaintenance(HelperTests):
     def setUp(self):

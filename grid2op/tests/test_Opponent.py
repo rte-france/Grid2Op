@@ -38,7 +38,6 @@ RHO_NORMALIZATION = [1, 1, 1, 1, 1, 1]
 
 class TestSuiteBudget_001(BaseActionBudget):
     """just for testing"""
-
     pass
 
 

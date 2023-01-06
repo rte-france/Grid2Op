@@ -19,13 +19,87 @@ from grid2op.dtypes import dt_bool, dt_int
 from grid2op.multi_agent.subGridObjects import SubGridObjects
 from grid2op.Action import BaseAction
 
-from grid2op.multi_agent.ma_typing import ActionProfile, AgentID, LocalAction, LocalActionSpace, LocalObservation, LocalObservationSpace, MADict
-from grid2op.multi_agent.multi_agentExceptions import *
+from grid2op.multi_agent.ma_typing import (ActionProfile,
+                                           AgentID,
+                                           LocalAction,
+                                           LocalActionSpace,
+                                           LocalObservation,
+                                           LocalObservationSpace,
+                                           MADict)
+from grid2op.multi_agent.ma_exceptions import DomainException, MissingFeature
 from grid2op.multi_agent.subgridAction import SubGridAction, SubGridActionSpace
 from grid2op.multi_agent.subgridObservation import SubGridObservation, SubGridObservationSpace
 
 
 class MultiAgentEnv(RandomObject):
+    """This is the base class for the multi agent feature.
+        
+    The functionality is still in beta, subject to API change, incomplete and with possible bugs.
+    
+    You can use it as:
+    
+    .. code-block:: python
+    
+        import grid2op
+        from from grid2op.multi_agent import MultiAgentEnv
+        
+        env_name = "l2rpn_case14_sandbox"
+        centralized_env = grid2op.make(env_name)
+        
+        # this is the zones controlled by each agents, given
+        # with substations id
+        # (NB for now all substations of the grid should belong to at least a zone
+        # and at most a zone)
+        zones = {"agent_0": [0, 1, 2, 3, 4],
+                 "agent_1": [5,6,7,8,9,10,11,12,13]}
+        
+        # by default all agents observe all the grid
+        ma_env = MultiAgentEnv(centralized_env,
+                               action_domains=zones)
+        # you can pass `observation_domains=a dictionnary with the same keys as zones` if
+        # you want to restrict the observation for each agent
+        
+        # then you can interact with this environment like in "any" POSG setting:
+        dict_obs = env.reset()
+        # dict with: key=agent_name, value=the SubGridObservation
+        
+        act = {"agent_0": env.action_spaces["agent_0"].sample(),
+            "agent_1": env.action_spaces["agent_1"].sample()}
+        # dict with key=agent name, value=the SubGridAction (here random)
+        
+        dict_obs, dict_reward, dict_done, dict_info = env.step(act)
+        # all of the above are like in the centralized case, but instead of "normal"
+        # things, they are dictionnaries with values being the "normal thing" and the keys
+        # the agent names.
+    
+    Some more examples are available at:
+    
+    https://github.com/rte-france/Grid2Op/tree/master/examples/multi_agents
+    
+    .. note::
+        This class implements the "Partially Observable Stochastic Game" interface. Meaning that
+        each agent act independantly of one another (though they all act on the same grid).
+        
+        At time t, agent `i` cannot send an information that will be used by agent `j` at time `t` (though
+        it would be possible that agent `i` sent an information at time t-1 or t-2 to agent `j` that agent `j` 
+        could use at time `t`). In other words, all agents act "at the same time" on the grid. 
+        
+        This is the framework used for Ray 
+        (https://docs.ray.io/en/latest/_modules/ray/rllib/env/multi_agent_env.html)
+        or flatland (https://flatland.aicrowd.com/getting-started/env.html) 
+    
+    
+    .. note::
+        For other types of "games" such as "AEC" (Agent Environment Cycle), implemented in Petting Zoo
+        for example (see https://github.com/Farama-Foundation/PettingZoo) is not yet available. Though we
+        are thinking about it [NB AEC settings is a superset of POSG: any POSG can be viewed as an AEC, though
+        the opposite does not necessarily holds].
+        
+        If this feature is of interest to you, let us know at:
+        
+        https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement,multi-agents&template=feature_request.md&title=Implement AEC
+        
+    """
     def __init__(self,
                  env : Environment,
                  action_domains : MADict,
@@ -34,7 +108,7 @@ class MultiAgentEnv(RandomObject):
                  agent_order_fn = lambda x : x, #TODO BEN
                  illegal_action_pen : float = 0.,
                  ambiguous_action_pen : float = 0.,
-                 copy_env = True,
+                 copy_env: bool = True,
                  _add_to_name: Optional[str] = None,
                  ):
         """Multi-agent Grid2Op POSG (Partially Observable Stochastic Game) environment
@@ -106,8 +180,10 @@ class MultiAgentEnv(RandomObject):
         
         if copy_env:
             self._cent_env : Environment = env.copy()
+            self._copy_env = True
         else:
             self._cent_env : Environment = env
+            self._copy_env = False
         
         self._verify_domains(action_domains, is_action_domain=True)
         self._action_domains = {k: {"sub_id": copy.deepcopy(v)} for k,v in action_domains.items()}
@@ -120,7 +196,6 @@ class MultiAgentEnv(RandomObject):
             self.parameters.MAX_SUB_CHANGED = self.num_agents
             self.parameters.MAX_LINE_STATUS_CHANGED = self.num_agents
             
-            warnings.warn("Rules can not be changed in this version.")
             self._cent_env.change_parameters(self.parameters)
             self._cent_env.change_forecast_parameters(self.parameters)
             self._cent_env.reset()
@@ -131,7 +206,9 @@ class MultiAgentEnv(RandomObject):
             assert self._cent_env.parameters.MAX_LINE_STATUS_CHANGED == self.num_agents
             
         else:
-            # TODO MA
+            warnings.warn(("You cannot change the parameters of the distributed environment. Please visit: \n"
+                           "https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement,multi-agents&template=feature_request.md&title=[Missing Feature]: Change MaEnv parameters"), 
+                           category=MissingFeature)
             raise NotImplementedError("Multi-agent parameters are not available yet.")
             if not isinstance(params, Parameters):
                 raise Grid2OpException(f"Parameters must be of type grid2op.Prameters.Parameters but {type(params)} is given")
@@ -698,7 +775,7 @@ class MultiAgentEnv(RandomObject):
     
     def observation_space(self, agent : AgentID)-> LocalObservationSpace:
         """
-        Takes in agent and returns the observation space for that agent.
+        Takes in agent id and returns the observation space for that agent.
 
         MUST return the same value for the same agent name
 
@@ -708,7 +785,7 @@ class MultiAgentEnv(RandomObject):
 
     def action_space(self, agent : AgentID) -> LocalActionSpace:
         """
-        Takes in agent and returns the action space for that agent.
+        Takes in agent id (string) and returns the action space for that agent.
 
         MUST return the same value for the same agent name
 
@@ -722,3 +799,14 @@ class MultiAgentEnv(RandomObject):
         """
         # observations are updated in reset and step methods
         return self.observations[agent]
+
+    def close(self):
+        if self._copy_env:
+            self._cent_env.close()
+        
+        for sub_act in self.action_spaces.values():
+            sub_act.close()
+        
+        for sub_obs in self.observation_spaces.values():
+            sub_obs.close()
+        

@@ -14,7 +14,6 @@ from grid2op.tests.helper_path_test import *
 
 try:
     from grid2op.PlotGrid import PlotMatplot
-
     CAN_PLOT = True
 except ImportError as exc_:
     CAN_PLOT = False

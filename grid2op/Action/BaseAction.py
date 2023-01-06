@@ -897,14 +897,12 @@ class BaseAction(GridObjects):
         # check that the underlying grid is the same in both instances
         same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
-            print("due to same_grid")
             return False
 
         # _grid is the same, now I test the the injections modifications are the same
         same_action = self._modif_inj == other._modif_inj
         same_action = same_action and self._dict_inj.keys() == other._dict_inj.keys()
         if not same_action:
-            print("due to same_action")
             return False
 
         # all injections are the same
@@ -916,27 +914,23 @@ class BaseAction(GridObjects):
             if not np.all(tmp_me == tmp_other) or not np.all(
                 me_inj[tmp_me] == other_inj[tmp_other]
             ):
-                print("due to _dict_inj")
                 return False
 
         # same line status
         if (self._modif_set_status != other._modif_set_status) or not np.all(
             self._set_line_status == other._set_line_status
         ):
-            print("due to _set_line_status")
             return False
 
         if (self._modif_change_status != other._modif_change_status) or not np.all(
             self._switch_line_status == other._switch_line_status
         ):
-            print("due to _switch_line_status")
             return False
 
         # redispatching is same
         if (self._modif_redispatch != other._modif_redispatch) or not np.all(
             self._redispatch == other._redispatch
         ):
-            print("due to _redispatch")
             return False
 
         # storage is same
@@ -947,33 +941,28 @@ class BaseAction(GridObjects):
         if not np.all(tmp_me == tmp_other) or not np.all(
             me_inj[tmp_me] == other_inj[tmp_other]
         ):
-            print("due to _storage_power")
             return False
 
         # curtailment
         if (self._modif_curtailment != other._modif_curtailment) or not np.array_equal(
             self._curtail, other._curtail
         ):
-            print("due to _curtail")
             return False
 
         # alarm
         if (self._modif_alarm != other._modif_alarm) or not np.array_equal(
             self._raise_alarm, other._raise_alarm
         ):
-            print("due to _raise_alarm")
             return False
 
         # same topology changes
         if (self._modif_set_bus != other._modif_set_bus) or not np.all(
             self._set_topo_vect == other._set_topo_vect
         ):
-            print("due to _set_topo_vect")
             return False
         if (self._modif_change_bus != other._modif_change_bus) or not np.all(
             self._change_bus_vect == other._change_bus_vect
         ):
-            print("due to _change_bus_vect")
             return False
 
         # shunts are the same

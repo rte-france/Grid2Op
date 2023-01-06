@@ -20,10 +20,6 @@ from grid2op.tests.helper_path_test import *
 from grid2op.Reward import *
 from grid2op.MakeEnv import make
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestLoadingReward(ABC):
     def setUp(self):

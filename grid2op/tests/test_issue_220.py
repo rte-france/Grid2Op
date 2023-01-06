@@ -8,7 +8,6 @@
 
 import unittest
 import warnings
-import numpy as np
 
 import grid2op
 

@@ -9,7 +9,6 @@
 import warnings
 
 import grid2op
-from grid2op.Chronics import ChangeNothing
 from grid2op.tests.helper_path_test import *
 from grid2op.Observation import CompleteObservation
 

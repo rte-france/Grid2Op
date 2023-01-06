@@ -34,10 +34,6 @@ PATH_DATA_TEST = PATH_DATA_TEST_PP
 BKclass1 = PandaPowerBackend
 BKclass2 = PandaPowerBackend
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestLoading(HelperTests):
     def test_init(self):

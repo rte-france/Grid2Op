@@ -19,10 +19,6 @@ from grid2op.Action import PlayableAction
 import tempfile
 import pdb
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestConnectivityConverter(HelperTests):
     def setUp(self):

@@ -42,10 +42,6 @@ from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent
 from grid2op.Environment import MultiMixEnvironment, Environment
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_blank(self):

@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2022, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -100,6 +100,16 @@ class SubGridActionSpace(SubGridObjects, ActionSpace):
             rnd_update = self._sample_interco_change_bus()
         return rnd_update
     
+    @staticmethod
+    def _aux_get_powerline_id(action_space, sub_id_):
+        cls = type(action_space)
+        ids = super(ActionSpace, action_space)._aux_get_powerline_id(action_space, sub_id_)
+        interco_id = action_space.interco_to_sub_pos[
+            action_space.interco_to_subid == sub_id_
+        ]
+        ids = np.concatenate((ids, interco_id))
+        return ids
+        
     def from_global(self, global_action: BaseAction):
         """Convert the global action to a local action handled by this space
 

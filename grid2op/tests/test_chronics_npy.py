@@ -11,7 +11,7 @@ import unittest
 import warnings
 import copy
 from grid2op.Parameters import Parameters
-from grid2op.Chronics import FromNPY, GridStateFromFileWithForecastsWithMaintenance
+from grid2op.Chronics import FromNPY
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Runner import Runner
 import numpy as np

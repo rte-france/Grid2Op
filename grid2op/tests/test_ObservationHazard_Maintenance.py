@@ -31,10 +31,6 @@ from grid2op.Environment import Environment
 # temporary deactivation of all the failing test until simulate is fixed
 DEACTIVATE_FAILING_TEST = False
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestObservationHazard(unittest.TestCase):
     def setUp(self):

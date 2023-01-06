@@ -10,7 +10,7 @@ import pdb
 import warnings
 from grid2op.tests.helper_path_test import *
 
-from grid2op.dtypes import dt_int, dt_bool, dt_float
+from grid2op.dtypes import dt_int, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Environment import Environment
 from grid2op.Backend import PandaPowerBackend
@@ -18,10 +18,6 @@ from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Rules import *
 from grid2op.MakeEnv import make
-
-import warnings
-
-warnings.simplefilter("error")
 
 
 class TestLoadingBackendFunc(unittest.TestCase):

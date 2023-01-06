@@ -993,6 +993,17 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
+    def _aux_get_powerline_id(action_space, sub_id_):
+        powerlines_or_id = action_space.line_or_to_sub_pos[
+            action_space.line_or_to_subid == sub_id_
+        ]
+        powerlines_ex_id = action_space.line_ex_to_sub_pos[
+            action_space.line_ex_to_subid == sub_id_
+        ]
+        powerlines_id = np.concatenate((powerlines_or_id, powerlines_ex_id))
+        return powerlines_id
+            
+    @staticmethod
     def get_all_unitary_topologies_set(action_space, sub_id=None):
         """
         This methods allows to compute and return all the unitary topological changes that can be performed on a
@@ -1048,14 +1059,7 @@ class SerializableActionSpace(SerializableSpace):
                 {"set_bus": {"substations_id": [(sub_id_, new_topo)]}}
             )
             tmp.append(action)
-
-            powerlines_or_id = action_space.line_or_to_sub_pos[
-                action_space.line_or_to_subid == sub_id_
-            ]
-            powerlines_ex_id = action_space.line_ex_to_sub_pos[
-                action_space.line_ex_to_subid == sub_id_
-            ]
-            powerlines_id = np.concatenate((powerlines_or_id, powerlines_ex_id))
+            powerlines_id = action_space._aux_get_powerline_id(action_space, sub_id_)
 
             # computes all the topologies at 2 buses for this substation
             for tup in itertools.product(S, repeat=num_el - 1):

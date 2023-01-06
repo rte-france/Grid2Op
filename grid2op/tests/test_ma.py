@@ -19,17 +19,16 @@ from grid2op.Action.PlayableAction import PlayableAction
 from grid2op.Exceptions.IllegalActionExceptions import IllegalAction
 from grid2op.Exceptions.ObservationExceptions import SimulateError
 from grid2op.Observation.completeObservation import CompleteObservation
-from grid2op.Parameters import Parameters
-from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
-from grid2op.multi_agent.subgridAction import SubGridAction
-from grid2op.multi_agent.multi_agentExceptions import *
-
+try:
+    from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
+    from grid2op.multi_agent.subgridAction import SubGridAction
+    from grid2op.multi_agent.ma_exceptions import DomainException
+    from grid2op.multi_agent.subgridObservation import SubGridObservation
+except ImportError as exc_:
+    print(f"Impossible to load with error {exc_}")
+    raise
 
 import pdb
-
-from grid2op.multi_agent.subgridObservation import SubGridObservation
-
-
 
 def _aux_sample_withtout_interco(act_sp: ActionSpace):
     res: SubGridAction = act_sp.sample()
@@ -68,6 +67,8 @@ class MATesterGlobalObs(unittest.TestCase):
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains)
+            self.ma_env.seed(0)
+            self.ma_env.reset()
             
         return super().setUp()
     
@@ -140,7 +141,9 @@ class MATesterGlobalObs(unittest.TestCase):
         # taken into accaount by the env
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.ma_env = MultiAgentEnv(self.env, self.action_domains, _add_to_name="test_build_subgrids_action_domains")
+            self.ma_env = MultiAgentEnv(self.env,
+                                        self.action_domains,
+                                        _add_to_name="test_build_subgrids_action_domains")
         
         assert self.ma_env._action_domains['agent_0']['sub_id'] == self.action_domains['agent_0']
         assert self.ma_env._action_domains['agent_1']['sub_id'] == self.action_domains['agent_1']
@@ -300,7 +303,9 @@ class MATesterGlobalObs(unittest.TestCase):
             }
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                ma_env = MultiAgentEnv(self.env, action_domains, _add_to_name=f"_test_build_subgrid_obj3_it_{it}")
+                ma_env = MultiAgentEnv(self.env,
+                                       action_domains,
+                                       _add_to_name=f"_test_build_subgrid_obj3_it_{it}")
             assert ma_env.agents == ['agent_0', 'agent_1']
             assert ma_env.agent_order == ma_env.agents
             self.check_subgrid_consistency(ma_env, action_domains, add_msg=f"error for iter {it}")
@@ -1126,6 +1131,8 @@ class TestAction(unittest.TestCase):
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains)
+            self.ma_env.seed(0)
+            self.ma_env.reset()
             
         return super().setUp()
     
@@ -1457,6 +1464,8 @@ class TestLocalObservation(unittest.TestCase):
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains, self.observation_domains)
+            self.ma_env.seed(0)
+            self.ma_env.reset()
             
         return super().setUp()
     
@@ -1509,6 +1518,8 @@ class TestGlobalObservation(unittest.TestCase):
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains)
+            self.ma_env.seed(0)
+            self.ma_env.reset()
             
         return super().setUp()
 
