@@ -9,7 +9,6 @@
 import grid2op
 import unittest
 import warnings
-import copy
 
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Exceptions.EnvExceptions import EnvError

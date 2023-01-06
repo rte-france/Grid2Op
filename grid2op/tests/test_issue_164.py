@@ -12,7 +12,6 @@ import warnings
 import grid2op
 from grid2op.Reward import BaseReward
 from grid2op.dtypes import dt_float
-from grid2op.Exceptions import DivergingPowerFlow
 
 
 class Test164_Reward(BaseReward):

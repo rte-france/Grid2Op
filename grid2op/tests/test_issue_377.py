@@ -11,9 +11,6 @@ import numpy as np
 import grid2op
 import unittest
 import warnings
-
-import re
-
 from grid2op.Parameters import Parameters
 
 

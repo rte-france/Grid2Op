@@ -10,9 +10,6 @@
 # This module will test that the environment, when copied, works as expected (ie with making some basic tests
 # for the results of "env.copy()"
 
-import copy
-import pdb
-import time
 import warnings
 
 from grid2op.tests.helper_path_test import *

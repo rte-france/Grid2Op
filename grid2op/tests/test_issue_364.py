@@ -10,8 +10,6 @@ import grid2op
 import unittest
 import warnings
 
-from grid2op.Runner import Runner
-
 
 class Issue364Tester(unittest.TestCase):
     def setUp(self) -> None:

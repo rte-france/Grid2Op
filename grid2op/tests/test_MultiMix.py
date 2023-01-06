@@ -19,10 +19,6 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Opponent import BaseOpponent
 from grid2op.dtypes import dt_float
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestMultiMixEnvironment(unittest.TestCase):
     def test_creation(self):

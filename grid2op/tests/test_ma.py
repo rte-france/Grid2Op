@@ -22,7 +22,7 @@ from grid2op.Observation.completeObservation import CompleteObservation
 try:
     from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
     from grid2op.multi_agent.subgridAction import SubGridAction
-    from grid2op.multi_agent.ma_exceptions import DomainException, MultiAgentStillBeta, MissingFeature
+    from grid2op.multi_agent.ma_exceptions import DomainException
     from grid2op.multi_agent.subgridObservation import SubGridObservation
 except ImportError as exc_:
     print(f"Impossible to load with error {exc_}")

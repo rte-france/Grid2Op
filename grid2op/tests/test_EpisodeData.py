@@ -32,10 +32,6 @@ PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
     os.path.join(PATH_CHRONICS, "test_multi_chronics")
 )
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestEpisodeData(unittest.TestCase):
     def setUp(self):

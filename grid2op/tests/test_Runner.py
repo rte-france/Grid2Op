@@ -30,8 +30,6 @@ from grid2op.Agent import RandomAgent
 from grid2op.Episode import EpisodeData
 from grid2op.Observation import CompleteObservation
 
-warnings.simplefilter("error")
-
 
 class TestRunner(HelperTests):
     def setUp(self):

@@ -7,11 +7,6 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import grid2op
-import numpy as np
-
-#!/usr/bin/env python3
-
-import grid2op
 import unittest
 from grid2op.Parameters import Parameters
 import warnings

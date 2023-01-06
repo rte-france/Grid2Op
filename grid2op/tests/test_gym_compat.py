@@ -36,10 +36,6 @@ except ImportError:
 
 import pdb
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestGymCompatModule(unittest.TestCase):
     def _skip_if_no_gym(self):

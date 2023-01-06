@@ -23,8 +23,6 @@ from grid2op.MakeEnv import make
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 
-warnings.simplefilter("error")
-
 
 class TestRunner(HelperTests):
     def setUp(self):

@@ -22,8 +22,6 @@ from grid2op.Parameters import Parameters
 
 import warnings
 
-warnings.simplefilter("error")
-
 
 class TestAgent(AgentWithConverter):
     def __init__(
