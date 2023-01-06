@@ -9,6 +9,7 @@
 # TODO test the json part but... https://github.com/openai/gym-http-api/issues/62 or https://github.com/openai/gym/issues/1841
 import tempfile
 import json
+import warnings
 from grid2op.gym_compat.discrete_gym_actspace import DiscreteActSpace
 from grid2op.tests.helper_path_test import *
 from grid2op.Action import PlayableAction
