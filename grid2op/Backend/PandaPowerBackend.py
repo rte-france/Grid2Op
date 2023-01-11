@@ -1003,10 +1003,18 @@ class PandaPowerBackend(Backend):
 
                 if np.any(~self._grid.load["in_service"]):
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    raise pp.powerflow.LoadflowNotConverged("Isolated load")
+                    raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
+                                                            " disconnected load. If you want to disconnect one, say it"
+                                                            " consumes 0. instead. Please check loads: "
+                                                            f"{np.where(~self._grid.load['in_service'])[0]}"
+                                                            )
                 if np.any(~self._grid.gen["in_service"]):
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    raise pp.powerflow.LoadflowNotConverged("Isolated gen")
+                    raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
+                                                            " disconnected generators. If you want to disconnect one, say it"
+                                                            " produces 0. instead. Please check generators: "
+                                                            f"{np.where(~self._grid.gen['in_service'])[0]}"
+                                                            )
 
                 if is_dc:
                     pp.rundcpp(self._grid, check_connectivity=False)
@@ -1031,7 +1039,7 @@ class PandaPowerBackend(Backend):
                 if self._grid.res_gen.isnull().values.any():
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     # sometimes pandapower does not detect divergence and put Nan.
-                    raise pp.powerflow.LoadflowNotConverged("Isolated gen")
+                    raise pp.powerflow.LoadflowNotConverged("Divergence due to Nan values in res_gen table.")
 
                 (
                     self.prod_p[:],
@@ -1337,7 +1345,7 @@ class PandaPowerBackend(Backend):
         return self._topo_vect
 
     def _get_topo_vect(self):
-        res = np.full(self.dim_topo, fill_value=np.NaN, dtype=dt_int)
+        res = np.full(self.dim_topo, fill_value=np.iinfo(dt_int).max, dtype=dt_int)
 
         line_status = self.get_line_status()
 
