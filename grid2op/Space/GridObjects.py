@@ -2264,7 +2264,7 @@ class GridObjects:
         if not isinstance(cls.name_shunt, np.ndarray):
             try:
                 cls.name_shunt = np.array(cls.name_shunt)
-                cls.name_shunt = cls.name_shunt.astype(np.str)
+                cls.name_shunt = cls.name_shunt.astype(np.str_)
             except Exception as exc:
                 raise EnvError(
                     'name_shunt should be convertible to a numpy array with dtype "str".'
