@@ -13,4 +13,5 @@ dt_int = (
 dt_float = (
     np.float32
 )  # dtype('float64') or dtype('float32') depending on platform  => i force it to float32
-dt_bool = np.bool
+
+dt_bool = np.bool_  # mandatory for numpy >= 1.24
