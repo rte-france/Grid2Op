@@ -264,11 +264,11 @@ class L2RPN2019_Action(BaseAction):
         next_ = self.n_line
 
         self._switch_line_status = vect[prev_:next_]
-        self._switch_line_status = self._switch_line_status.astype(np.bool)
+        self._switch_line_status = self._switch_line_status.astype(np.bool_)
         prev_ = next_
         next_ += self.dim_topo
         self._change_bus_vect = vect[prev_:next_]
-        self._change_bus_vect = self._change_bus_vect.astype(np.bool)
+        self._change_bus_vect = self._change_bus_vect.astype(np.bool_)
 
         # self.disambiguate_reconnection()
 

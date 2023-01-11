@@ -31,13 +31,16 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.8.1] - 2023-xx-yy
--------------------------
+[1.8.1] - 2023-01-11
+---------------------
+- [FIXED] a deprecation with numpy>= 1.24 (**eg** np.bool and np.str)
 - [ADDED] the baseAgent class now has two new template methods `save_state` and `load_state` to save and
   load the agent's state during Grid2op simulations. Examples can be found in L2RPN baselines (PandapowerOPFAgent and curriculumagent).
+- [IMPROVED] error message in pandapower backend when the grid do not converge due to disconnected
+   generators or loads.
 
-[1.8.0] - 2022-12-yy
---------------------
+[1.8.0] - 2022-12-12
+---------------------
 - [BREAKING] now requires numpy >= 1.20 to work (otherwise there are 
   issues with newer versions of pandas).
 - [BREAKING] issue https://github.com/rte-france/Grid2Op/issues/379 requires
