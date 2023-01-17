@@ -149,6 +149,7 @@ class Environment(BaseEnv):
         self.viewer = None
         self.metadata = None
         self.spec = None
+        self.render_mode = None
 
         if _raw_backend_class is None:
             self._raw_backend_class = type(backend)
@@ -783,7 +784,7 @@ class Environment(BaseEnv):
         self.viewer = PlotMatplot(self._observation_space)
         self.viewer_fig = None
         # Set renderer modes
-        self.metadata = {"render.modes": ["human", "silent"]}
+        self.metadata = {"render.modes": ["human", "silent", "rgb_array"]}
 
     def __str__(self):
         return "<{} instance named {}>".format(type(self).__name__, self.name)
@@ -898,7 +899,7 @@ class Environment(BaseEnv):
         self._last_obs = None  # force the first observation to be generated properly
         return self.get_obs()
 
-    def render(self, mode="human"):
+    def render(self):
         """
         Render the state of the environment on the screen, using matplotlib
         Also returns the Matplotlib figure
@@ -932,9 +933,9 @@ class Environment(BaseEnv):
         self.attach_renderer()
 
         # Check mode is correct
-        if mode not in self.metadata["render.modes"]:
+        if self.render_mode not in self.metadata["render.modes"]:
             err_msg = 'Renderer mode "{}" not supported. Available modes are {}.'
-            raise Grid2OpException(err_msg.format(mode, self.metadata["render.modes"]))
+            raise Grid2OpException(err_msg.format(self.render_mode, self.metadata["render.modes"]))
 
         # Render the current observation
         fig = self.viewer.plot_obs(
@@ -942,8 +943,13 @@ class Environment(BaseEnv):
         )
 
         # First time show for human mode
-        if self.viewer_fig is None and mode == "human":
+        if self.viewer_fig is None and self.render_mode == "human":
             fig.show()
+        elif self.render_mode == "rgb_array":
+            fig.canvas.draw()
+            array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8) 
+            reshaped_array = array.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            return reshaped_array
         else:  # Update the figure content
             fig.canvas.draw()
 
