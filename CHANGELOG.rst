@@ -33,6 +33,8 @@ Change Log
 
 [1.8.2] - 2023-xx-yy
 --------------------
+- [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
+   "human" has been removed because it needs some fixes. This should not impact lots of code.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [IMPROVED] documentation of the gym `DiscreteActSpace`: it is now explicit that the "do nothing" action

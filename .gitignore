@@ -362,6 +362,7 @@ grid2op/tests/finally_not_a_bug_test_issue_368.py
 grid2op/data_test/test_issue_367/chronics/2050-01-03_7/generation_quality.json
 grid2op/data_test/test_issue_367/chronics/2050-01-03_7/maintenance_meta.json
 test_doc.py
+test_render.py
 
 # profiling files
 **.prof
