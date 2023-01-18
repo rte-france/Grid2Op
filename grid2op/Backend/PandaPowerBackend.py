@@ -348,13 +348,22 @@ class PandaPowerBackend(Backend):
         self._id_bus_added = None
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            pp.runpp(
-                self._grid,
-                numba=numba_,
-                lightsim2grid=self._ligthsim2grid,
-                distributed_slack=self._dist_slack,
-                max_iteration=self._max_iter,
-            )
+            try:
+                pp.runpp(
+                    self._grid,
+                    numba=numba_,
+                    lightsim2grid=self._ligthsim2grid,
+                    distributed_slack=self._dist_slack,
+                    max_iteration=self._max_iter,
+                )
+            except pp.powerflow.LoadflowNotConverged:
+                pp.rundcpp(
+                    self._grid,
+                    numba=numba_,
+                    lightsim2grid=self._ligthsim2grid,
+                    distributed_slack=self._dist_slack,
+                    max_iteration=self._max_iter,
+                )
         new_pp_version = False
         if not "slack_weight" in self._grid.gen:
             self._grid.gen["slack_weight"] = 1.0
@@ -421,13 +430,22 @@ class PandaPowerBackend(Backend):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            pp.runpp(
-                self._grid,
-                numba=numba_,
-                lightsim2grid=self._ligthsim2grid,
-                distributed_slack=self._dist_slack,
-                max_iteration=self._max_iter,
-            )
+            try:
+                pp.runpp(
+                    self._grid,
+                    numba=numba_,
+                    lightsim2grid=self._ligthsim2grid,
+                    distributed_slack=self._dist_slack,
+                    max_iteration=self._max_iter,
+                )
+            except pp.powerflow.LoadflowNotConverged:
+                pp.rundcpp(
+                    self._grid,
+                    numba=numba_,
+                    lightsim2grid=self._ligthsim2grid,
+                    distributed_slack=self._dist_slack,
+                    max_iteration=self._max_iter,
+                )
 
         self.__nb_bus_before = self._grid.bus.shape[0]
         self.__nb_powerline = self._grid.line.shape[0]
@@ -492,7 +510,6 @@ class PandaPowerBackend(Backend):
                 for i, (_, row) in enumerate(self._grid.gen.iterrows())
             ]
         self.name_gen = np.array(self.name_gen)
-
         self.n_load = copy.deepcopy(self._grid.load.shape[0])
         if (
             "name" in self._grid.load.columns
@@ -1015,7 +1032,6 @@ class PandaPowerBackend(Backend):
                                                             " produces 0. instead. Please check generators: "
                                                             f"{np.where(~self._grid.gen['in_service'])[0]}"
                                                             )
-
                 if is_dc:
                     pp.rundcpp(self._grid, check_connectivity=False)
                     self._nb_bus_before = (
@@ -1072,7 +1088,7 @@ class PandaPowerBackend(Backend):
                             for g_id in ind_gens:
                                 if (
                                     self._topo_vect[self.load_pos_topo_vect[l_id]]
-                                    == self._topo_vect[self.load_pos_topo_vect[g_id]]
+                                    == self._topo_vect[self.gen_pos_topo_vect[g_id]]
                                 ):
                                     self.load_v[l_id] = self.prod_v[g_id]
                                     break

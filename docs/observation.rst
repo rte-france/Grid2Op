@@ -13,9 +13,9 @@
 .. _hour_of_day: ./observation.html#grid2op.Observation.BaseObservation.hour_of_day
 .. _minute_of_hour: ./observation.html#grid2op.Observation.BaseObservation.minute_of_hour
 .. _day_of_week: ./observation.html#grid2op.Observation.BaseObservation.day_of_week
-.. _gen_p: ./observation.html#grid2op.Observation.BaseObservation.prod_p
-.. _gen_q: ./observation.html#grid2op.Observation.BaseObservation.prod_q
-.. _gen_v: ./observation.html#grid2op.Observation.BaseObservation.prod_v
+.. _gen_p: ./observation.html#grid2op.Observation.BaseObservation.gen_p
+.. _gen_q: ./observation.html#grid2op.Observation.BaseObservation.gen_q
+.. _gen_v: ./observation.html#grid2op.Observation.BaseObservation.gen_v
 .. _load_p: ./observation.html#grid2op.Observation.BaseObservation.load_p
 .. _load_q: ./observation.html#grid2op.Observation.BaseObservation.load_q
 .. _load_v: ./observation.html#grid2op.Observation.BaseObservation.load_v

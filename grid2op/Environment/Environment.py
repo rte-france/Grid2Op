@@ -60,8 +60,8 @@ class Environment(BaseEnv):
     spec: ``None``
         For Gym compatibility, do not use
 
-    viewer: ``object``
-        Used to display the powergrid. Currently not supported.
+    _viewer: ``object``
+        Used to display the powergrid. Currently properly supported.
 
     """
 
@@ -146,7 +146,7 @@ class Environment(BaseEnv):
         # self.action_space = None
         # self.observation_space = None
         self.reward_range = None
-        self.viewer = None
+        self._viewer = None
         self.metadata = None
         self.spec = None
 
@@ -405,10 +405,10 @@ class Environment(BaseEnv):
 
         # for gym compatibility
         self.reward_range = self._reward_helper.range()
-        self.viewer = None
+        self._viewer = None
         self.viewer_fig = None
 
-        self.metadata = {"render.modes": []}
+        self.metadata = {"render.modes": ["rgb_array"]}
         self.spec = None
 
         self.current_reward = self.reward_range[0]
@@ -767,7 +767,7 @@ class Environment(BaseEnv):
 
         """
         # Viewer already exists: skip
-        if self.viewer is not None:
+        if self._viewer is not None:
             return
 
         # Do we have the dependency
@@ -780,10 +780,10 @@ class Environment(BaseEnv):
             )
             raise Grid2OpException(err_msg) from None
 
-        self.viewer = PlotMatplot(self._observation_space)
+        self._viewer = PlotMatplot(self._observation_space)
         self.viewer_fig = None
         # Set renderer modes
-        self.metadata = {"render.modes": ["human", "silent"]}
+        self.metadata = {"render.modes": ["silent", "rgb_array"]}  # "human", 
 
     def __str__(self):
         return "<{} instance named {}>".format(type(self).__name__, self.name)
@@ -898,7 +898,7 @@ class Environment(BaseEnv):
         self._last_obs = None  # force the first observation to be generated properly
         return self.get_obs()
 
-    def render(self, mode="human"):
+    def render(self, mode="rgb_array"):
         """
         Render the state of the environment on the screen, using matplotlib
         Also returns the Matplotlib figure
@@ -937,7 +937,7 @@ class Environment(BaseEnv):
             raise Grid2OpException(err_msg.format(mode, self.metadata["render.modes"]))
 
         # Render the current observation
-        fig = self.viewer.plot_obs(
+        fig = self._viewer.plot_obs(
             self.current_obs, figure=self.viewer_fig, redraw=True
         )
 
@@ -949,8 +949,10 @@ class Environment(BaseEnv):
 
         # Store to re-use the figure
         self.viewer_fig = fig
-        # Return the figure in case it needs to be saved/used
-        return self.viewer_fig
+        
+        # Return the rgb array
+        rgb_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(self._viewer.width,self._viewer.height,3)
+        return rgb_array
 
     def _custom_deepcopy_for_copy(self, new_obj):
         super()._custom_deepcopy_for_copy(new_obj)
