@@ -2466,7 +2466,8 @@ class BaseObservation(GridObjects):
     @property
     def prod_p(self):
         """
-        As of grid2op version 1.5.0, for better consistency, the "prod_p" attribute has been renamed "gen_p".
+        As of grid2op version 1.5.0, for better consistency, the "prod_p" attribute has been renamed "gen_p",
+        see the doc of :attr:`BaseObservation.gen_p` for more information.
 
         This property is present to maintain the backward compatibility.
 
@@ -2480,7 +2481,8 @@ class BaseObservation(GridObjects):
     @property
     def prod_q(self):
         """
-        As of grid2op version 1.5.0, for better consistency, the "prod_q" attribute has been renamed "gen_q".
+        As of grid2op version 1.5.0, for better consistency, the "prod_q" attribute has been renamed "gen_q",
+        see the doc of :attr:`BaseObservation.gen_q` for more information.
 
         This property is present to maintain the backward compatibility.
 
@@ -2494,7 +2496,8 @@ class BaseObservation(GridObjects):
     @property
     def prod_v(self):
         """
-        As of grid2op version 1.5.0, for better consistency, the "prod_v" attribute has been renamed "gen_v".
+        As of grid2op version 1.5.0, for better consistency, the "prod_v" attribute has been renamed "gen_v",
+        see the doc of :attr:`BaseObservation.gen_v` for more information.
 
         This property is present to maintain the backward compatibility.
 
@@ -2507,7 +2510,13 @@ class BaseObservation(GridObjects):
 
     def sub_topology(self, sub_id):
         """
-        Returns the topology of the given substation
+        Returns the topology of the given substation.
+        
+        We remind the reader that for substation id `sud_id`, its topology is represented 
+        by a vector of length `type(obs).subs_info[sub_id]` elements. And for each
+        elements of this vector, you now on which bus (1 or 2) it is connected or 
+        if the corresponding element is disconnected (in this case it's -1)
+        
         Returns
         -------
 

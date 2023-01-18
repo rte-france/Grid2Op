@@ -104,19 +104,22 @@ class DiscreteActSpace(Discrete):
 
     Then at each step, `gym_env1` will allow to perform a redispatching action (on any number of generators),
     a curtailment
-    action (on any number of generators) __**AND**__  changing the topology at one substation. But at each
+    action (on any number of generators) __**AND**__ changing the topology at one substation. But at each
     steps, the agent should predicts lots of "number".
 
     On the other hand, at each step, the agent for `gym_env2` will have to predict a single integer (which is
     usually the case in most RL environment) but it this action will affect redispatching on a single generator,
     perform curtailment on a single generator __**OR**__  changing the topology at one substation. But at each
-    steps, the agent should predicts lots of "number".
+    steps, the agent should predicts only one "number".
 
     The action set is then largely  constrained compared to the :class:`MultiDiscreteActSpace`
 
     .. note::
         This class is really closely related to the :class:`grid2op.Converter.IdToAct`. It basically "maps"
         this "IdToAct" into a type of gym space, which, in this case, will be a `Discrete` one.
+        
+    .. note::
+        By default, the "do nothing" action is encoded by the integer '0'.
 
     Examples
     --------

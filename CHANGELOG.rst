@@ -31,6 +31,18 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.8.2] - 2023-xx-yy
+--------------------
+- [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
+   "human" has been removed because it needs some fixes. This should not impact lots of code.
+- [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
+  from the generators)
+- [IMPROVED] documentation of the gym `DiscreteActSpace`: it is now explicit that the "do nothing" action
+  is by default encoded by `0`
+- [IMPROVED] documentation of `BaseObservation` and its attributes
+- [IMPROVED] `PandapowerBackend` can now be loaded even if the underlying grid does not converge in `AC` (but
+  it should still converge in `DC`) see https://github.com/rte-france/Grid2Op/issues/391
+
 [1.8.1] - 2023-01-11
 ---------------------
 - [FIXED] a deprecation with numpy>= 1.24 (**eg** np.bool and np.str)
