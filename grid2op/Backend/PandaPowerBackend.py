@@ -1120,6 +1120,10 @@ class PandaPowerBackend(Backend):
                 self.v_ex[~self.line_status] = 0.0
                 self.v_or[:] *= self.lines_or_pu_to_kv
                 self.v_ex[:] *= self.lines_ex_pu_to_kv
+                
+                # see issue https://github.com/rte-france/Grid2Op/issues/389
+                self.theta_or[~np.isfinite(self.theta_or)] = 0.0
+                self.theta_ex[~np.isfinite(self.theta_ex)] = 0.0
 
                 self._nb_bus_before = None
                 self._grid._ppc["gen"][self._iref_slack, 1] = 0.0

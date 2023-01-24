@@ -2042,6 +2042,7 @@ class BaseObservation(GridObjects):
                 assert abs(q_line - q_) <= 1e-5, "error for kirchoff's law for graph for Q"
 
         """
+        cls = type(self)
         # TODO save this graph somewhere, in a self._as_networkx attributes for example
         mat_p, (load_bus, gen_bus, stor_bus, lor_bus, lex_bus) = self.flow_bus_matrix(
             active_flow=True, as_csr_matrix=True
@@ -2053,15 +2054,18 @@ class BaseObservation(GridObjects):
         
         # bus voltage
         bus_v = np.zeros(mat_p.shape[0])
-        bus_v[lor_bus] = self.v_or
-        bus_v[lex_bus] = self.v_ex
+        # i need to put lor_bus[self.line_status] otherwise pandapower might not detect a line
+        # is disconnected and output the "wrong" voltage / theta in the graph
+        # see issue https://github.com/rte-france/Grid2Op/issues/389
+        bus_v[lor_bus[self.line_status]] = self.v_or[self.line_status]
+        bus_v[lex_bus[self.line_status]] = self.v_ex[self.line_status]
         bus_theta = np.zeros(mat_p.shape[0])
         bus_subid = np.zeros(mat_p.shape[0], dtype=dt_int)
-        bus_subid[lor_bus] = self.line_or_to_subid
-        bus_subid[lex_bus] = self.line_ex_to_subid
+        bus_subid[lor_bus[self.line_status]] = cls.line_or_to_subid[self.line_status]
+        bus_subid[lex_bus[self.line_status]] = cls.line_ex_to_subid[self.line_status]
         if self.support_theta:
-            bus_theta[lor_bus] = self.theta_or
-            bus_theta[lex_bus] = self.theta_ex
+            bus_theta[lor_bus[self.line_status]] = self.theta_or[self.line_status]
+            bus_theta[lex_bus[self.line_status]] = self.theta_ex[self.line_status]
 
         # bus active injection
         bus_p = mat_p.diagonal().copy()
@@ -2106,6 +2110,7 @@ class BaseObservation(GridObjects):
         self._add_edges_multi(self.p_or, self.p_ex, "p", lor_bus, lex_bus, graph)
         self._add_edges_multi(self.q_or, self.q_ex, "q", lor_bus, lex_bus, graph)
         self._add_edges_multi(self.a_or, self.a_ex, "a", lor_bus, lex_bus, graph)
+        self._add_edges_multi(self.v_or, self.v_ex, "v", lor_bus, lex_bus, graph)
         if self.support_theta:
             self._add_edges_multi(
                 self.theta_or, self.theta_ex, "theta", lor_bus, lex_bus, graph
@@ -2115,6 +2120,15 @@ class BaseObservation(GridObjects):
         self._add_edges_simple(
             self.time_before_cooldown_line, "cooldown", lor_bus, lex_bus, graph
         )
+        self._add_edges_simple(
+            self._thermal_limit, "thermal_limit", lor_bus, lex_bus, graph
+        )
+        self._add_edges_simple(
+            self.time_next_maintenance, "time_next_maintenance", lor_bus, lex_bus, 
+            graph)
+        self._add_edges_simple(
+            self.duration_next_maintenance, "duration_next_maintenance", lor_bus, 
+            lex_bus, graph)
         self._add_edges_simple(self.line_status, "status", lor_bus, lex_bus, graph)
         self._add_edges_simple(
             self.thermal_limit, "thermal_limit", lor_bus, lex_bus, graph
