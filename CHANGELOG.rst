@@ -34,7 +34,7 @@ Change Log
 [1.8.2] - 2023-xx-yy
 --------------------
 - [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
-   "human" has been removed because it needs some fixes. This should not impact lots of code.
+  "human" has been removed because it needs some fixes. This should not impact lots of code.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
@@ -57,7 +57,7 @@ Change Log
 - [ADDED] the baseAgent class now has two new template methods `save_state` and `load_state` to save and
   load the agent's state during Grid2op simulations. Examples can be found in L2RPN baselines (PandapowerOPFAgent and curriculumagent).
 - [IMPROVED] error message in pandapower backend when the grid do not converge due to disconnected
-   generators or loads.
+  generators or loads.
 
 [1.8.0] - 2022-12-12
 ---------------------
@@ -107,8 +107,8 @@ Change Log
   (see https://github.com/rte-france/Grid2Op/issues/340)
 - [FIXED] a slight "bug" in the formula to compute the redispatching cost for L2RPN 2022 competition.
 - [IMPROVED] possibility to pass the env variable `_GRID2OP_FORCE_TEST` to force the flag
-   of "test=True" when creating an environment. This is especially useful when testing to prevent
-   downloading of data.
+  of "test=True" when creating an environment. This is especially useful when testing to prevent
+  downloading of data.
 - [IMPROVED] support of "kwargs" backend arguments in `MultiMixEnv` see first
   item of version 1.7.1 below
 
