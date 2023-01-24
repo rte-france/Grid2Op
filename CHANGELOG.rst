@@ -37,7 +37,8 @@ Change Log
    "human" has been removed because it needs some fixes. This should not impact lots of code.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
-- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
+
   1) the `PandapowerBackend` did not compute the `theta` correctly on powerline especially if
      they are connected to a disconnected bus (in this case I chose to put `theta=0`) 
   2) the `obs.as_networkx()` method did not check, when updating nodes attributes if powerlines 
