@@ -34,14 +34,22 @@ Change Log
 [1.8.2] - 2023-xx-yy
 --------------------
 - [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
-   "human" has been removed because it needs some fixes. This should not impact lots of code.
+  "human" has been removed because it needs some fixes. This should not impact lots of code.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
+
+  1) the `PandapowerBackend` did not compute the `theta` correctly on powerline especially if
+     they are connected to a disconnected bus (in this case I chose to put `theta=0`) 
+  2) the `obs.as_networkx()` method did not check, when updating nodes attributes if powerlines 
+     were connected or not, which was wrong in some cases 
 - [IMPROVED] documentation of the gym `DiscreteActSpace`: it is now explicit that the "do nothing" action
   is by default encoded by `0`
 - [IMPROVED] documentation of `BaseObservation` and its attributes
 - [IMPROVED] `PandapowerBackend` can now be loaded even if the underlying grid does not converge in `AC` (but
   it should still converge in `DC`) see https://github.com/rte-france/Grid2Op/issues/391
+- [IMPROVED] `obs.as_networkx()` method: almost all powerlines attributes can now be read from the 
+  resulting graph object.
 
 [1.8.1] - 2023-01-11
 ---------------------
@@ -49,7 +57,7 @@ Change Log
 - [ADDED] the baseAgent class now has two new template methods `save_state` and `load_state` to save and
   load the agent's state during Grid2op simulations. Examples can be found in L2RPN baselines (PandapowerOPFAgent and curriculumagent).
 - [IMPROVED] error message in pandapower backend when the grid do not converge due to disconnected
-   generators or loads.
+  generators or loads.
 
 [1.8.0] - 2022-12-12
 ---------------------
@@ -99,8 +107,8 @@ Change Log
   (see https://github.com/rte-france/Grid2Op/issues/340)
 - [FIXED] a slight "bug" in the formula to compute the redispatching cost for L2RPN 2022 competition.
 - [IMPROVED] possibility to pass the env variable `_GRID2OP_FORCE_TEST` to force the flag
-   of "test=True" when creating an environment. This is especially useful when testing to prevent
-   downloading of data.
+  of "test=True" when creating an environment. This is especially useful when testing to prevent
+  downloading of data.
 - [IMPROVED] support of "kwargs" backend arguments in `MultiMixEnv` see first
   item of version 1.7.1 below
 
