@@ -363,6 +363,7 @@ grid2op/data_test/test_issue_367/chronics/2050-01-03_7/generation_quality.json
 grid2op/data_test/test_issue_367/chronics/2050-01-03_7/maintenance_meta.json
 test_doc.py
 test_render.py
+requirements_issue_389.txt
 
 # profiling files
 **.prof
