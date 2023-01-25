@@ -14,12 +14,10 @@ import pdb
 
     
 import grid2op
-import matplotlib.pyplot as plt
-from grid2op.PlotGrid import PlotMatplot
 import numpy as np
 
 
-class Issue380Tester(unittest.TestCase):
+class Issue389Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

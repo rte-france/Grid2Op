@@ -9,16 +9,13 @@
 import grid2op
 import unittest
 import warnings
-import numpy as np
-import pdb
-
     
 import grid2op
 from grid2op.gym_compat import GymEnv
 import numpy as np
 
 
-class Issue380Tester(unittest.TestCase):
+class TestGymEnvRenderer(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
