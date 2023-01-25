@@ -51,13 +51,14 @@ class GymEnv(gym.Env):
 
     """
 
-    def __init__(self, env_init, shuffle_chronics=True):
+    def __init__(self, env_init, shuffle_chronics=True, render_mode="rgb_array"):
         check_gym_version()
         self.init_env = env_init.copy()
         self.action_space = GymActionSpace(self.init_env)
         self.observation_space = GymObservationSpace(self.init_env)
         self.reward_range = self.init_env.reward_range
         self.metadata = self.init_env.metadata
+        self.init_env.render_mode = render_mode
         self._shuffle_chronics = shuffle_chronics
         
         if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
@@ -112,10 +113,9 @@ class GymEnv(gym.Env):
         # used for gym > 0.26
         return self._aux_reset(seed, True, options)
         
-    def render(self, mode="human"):
+    def render(self):
         """for compatibility with open ai gym render function"""
-        super(GymEnv, self).render(mode=mode)
-        self.init_env.render(mode=mode)
+        return self.init_env.render()
 
     def close(self):
         if hasattr(self, "init_env") and self.init_env is not None:

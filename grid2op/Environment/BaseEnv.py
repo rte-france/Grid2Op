@@ -124,7 +124,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     reward_range: ``tuple``
         For open ai gym compatibility. It represents the range of the rewards: reward min, reward max
 
-    viewer:
+    _viewer:
         For open ai gym compatibility.
 
     viewer_fig:
@@ -386,7 +386,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # gym compatibility
         self.reward_range = None, None
-        self.viewer = None
+        self._viewer = None
         self.viewer_fig = None
 
         # other rewards
@@ -638,7 +638,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # gym compatibility
         new_obj.reward_range = copy.deepcopy(self.reward_range)
-        new_obj.viewer = copy.deepcopy(self.viewer)
+        new_obj._viewer = copy.deepcopy(self._viewer)
         new_obj.viewer_fig = copy.deepcopy(self.viewer_fig)
 
         # other rewards
@@ -3062,8 +3062,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
 
         # todo there might be some side effect
-        if hasattr(self, "viewer") and self.viewer is not None:
-            self.viewer = None
+        if hasattr(self, "_viewer") and self._viewer is not None:
+            self._viewer = None
             self.viewer_fig = None
 
         if hasattr(self, "backend") and self.backend is not None:
@@ -3167,7 +3167,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_names_chronics_to_backend",
             "_reward_helper",
             "reward_range",
-            "viewer",
+            "_viewer",
             "viewer_fig",
             "other_rewards",
             "_opponent_action_class",
