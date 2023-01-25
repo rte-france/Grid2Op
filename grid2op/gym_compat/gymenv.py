@@ -51,7 +51,7 @@ class GymEnv(gym.Env):
 
     """
 
-    def __init__(self, env_init, shuffle_chronics=True, render_mode="human"):
+    def __init__(self, env_init, shuffle_chronics=True, render_mode="rgb_array"):
         check_gym_version()
         self.init_env = env_init.copy()
         self.action_space = GymActionSpace(self.init_env)
