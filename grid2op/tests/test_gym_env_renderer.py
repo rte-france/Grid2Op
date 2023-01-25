@@ -14,8 +14,7 @@ import pdb
 
     
 import grid2op
-import matplotlib.pyplot as plt
-from grid2op.PlotGrid import PlotMatplot
+from grid2op.gym_compat import GymEnv
 import numpy as np
 
 
@@ -24,24 +23,18 @@ class Issue380Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.env = grid2op.make("rte_case5_example", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
         self.env.seed(0)
         self.env.set_id(0)
 
-    def test_issue(self):
-        act = self.env.action_space({"set_bus":{ "substations_id": [(4, (2, 1, 2))]}})
-        obs, reward, done, info = self.env.step(act)
-        act = self.env.action_space({"set_bus":{ "lines_or_id": [(7, -1)]}})
-        obs, reward, done, info = self.env.step(act)
-        assert not done
-        assert not np.isnan(obs.theta_ex[-1])
-        G = obs.as_networkx()
-        assert not np.isnan(G.nodes[4]["theta"])
-        assert G.edges[(0, 4)]["theta_or"] == G.nodes[0]["theta"]
-        assert G.edges[(0, 4)]["theta_ex"] == G.nodes[4]["theta"]
-
-        assert G.edges[(0, 4)]["v_or"] == G.nodes[0]["v"]
-        assert G.edges[(0, 4)]["v_ex"] == G.nodes[4]["v"]
-
+    def test_render_signature(self):
+        genv = GymEnv(self.env)
+        _ = genv.reset()
+        array = genv.render()
+        assert array.shape == (1280, 720, 3)
+        with self.assertRaises(TypeError):
+            array = genv.render(render_mode="rgb_array")
+        
+        
 if __name__ == "__main__":
     unittest.main()
