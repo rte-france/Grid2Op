@@ -951,7 +951,7 @@ class Environment(BaseEnv):
         self.viewer_fig = fig
         
         # Return the rgb array
-        rgb_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(self._viewer.width,self._viewer.height,3)
+        rgb_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(self._viewer.height, self._viewer.width, 3)
         return rgb_array
 
     def _custom_deepcopy_for_copy(self, new_obj):
