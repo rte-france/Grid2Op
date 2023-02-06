@@ -43,6 +43,8 @@ Change Log
      they are connected to a disconnected bus (in this case I chose to put `theta=0`) 
   2) the `obs.as_networkx()` method did not check, when updating nodes attributes if powerlines 
      were connected or not, which was wrong in some cases 
+- [IMPROVED] the `GridStateFromFileWIthForecasts` is now able to read forecast from multiple steps
+  ahead (provided that it knows the horizons in its constructor)
 - [IMPROVED] documentation of the gym `DiscreteActSpace`: it is now explicit that the "do nothing" action
   is by default encoded by `0`
 - [IMPROVED] documentation of `BaseObservation` and its attributes
@@ -50,6 +52,7 @@ Change Log
   it should still converge in `DC`) see https://github.com/rte-france/Grid2Op/issues/391
 - [IMPROVED] `obs.as_networkx()` method: almost all powerlines attributes can now be read from the 
   resulting graph object.
+- [IMPROVED] possibility to set `data_feeding_kwargs` from the config file directly.
 
 [1.8.1] - 2023-01-11
 ---------------------

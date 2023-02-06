@@ -59,15 +59,8 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         time_interval=timedelta(minutes=5),
         max_iter=-1,
         chunk_size=None,
+        h_forecast=(5, ),
     ):
-        GridStateFromFile.__init__(
-            self,
-            path,
-            sep=sep,
-            time_interval=time_interval,
-            max_iter=max_iter,
-            chunk_size=chunk_size,
-        )
 
         self.load_p_forecast = None
         self.load_q_forecast = None
@@ -82,7 +75,29 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         self._order_prod_v_forecasted = None
         self._order_maintenance_forecasted = None
         self._data_already_in_mem = False  # says if the "main" value from the base class had to be reloaded (used for chunk)
-
+        self._nb_forecast = len(h_forecast)
+        self._h_forecast = copy.deepcopy(h_forecast)
+        self._check_hs_consistent(self._h_forecast, time_interval)
+        
+        # init base class
+        GridStateFromFile.__init__(
+            self,
+            path,
+            sep=sep,
+            time_interval=time_interval,
+            max_iter=max_iter,
+            chunk_size=chunk_size,
+        )
+    
+    def _check_hs_consistent(self, h_forecast, time_interval):
+        prev = timedelta(minutes=0)
+        for i, h in enumerate(h_forecast):
+            prev += time_interval
+            if prev.total_seconds() // 60 != h:
+                raise ChronicsError("For now you cannot build non contiuguous forecast. "
+                                    "Forecast should look like [5, 10, 15, 20] "
+                                    "but not [10, 15, 20] (missing h=5mins) or [5, 10, 20] (missing h=15)")
+        
     def _get_next_chunk_forecasted(self):
         load_p = None
         load_q = None
@@ -131,10 +146,22 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             names_chronics_to_backend,
         )
 
-        load_p_iter = self._get_data("load_p_forecasted")
-        load_q_iter = self._get_data("load_q_forecasted")
-        prod_p_iter = self._get_data("prod_p_forecasted")
-        prod_v_iter = self._get_data("prod_v_forecasted")
+        if self.chunk_size is not None:
+            chunk_size = self.chunk_size * self._nb_forecast
+        else:
+            chunk_size = None
+            
+        if self.max_iter > 0:
+            nrows_to_load = (self.max_iter + 1) * self._nb_forecast
+            
+        load_p_iter = self._get_data("load_p_forecasted",
+                                     chunk_size, nrows_to_load)
+        load_q_iter = self._get_data("load_q_forecasted",
+                                     chunk_size, nrows_to_load)
+        prod_p_iter = self._get_data("prod_p_forecasted",
+                                     chunk_size, nrows_to_load)
+        prod_v_iter = self._get_data("prod_v_forecasted",
+                                     chunk_size, nrows_to_load)
         hazards = None  # no hazards in forecast
 
         nrows = None
@@ -295,10 +322,10 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         ):
             if arr is not None:
                 if self.chunk_size is None:
-                    if arr.shape[0] < self.n_:
+                    if arr.shape[0] < self.n_ * self._nb_forecast:
                         raise EnvError(
-                            "Array for forecast {}_forecasted as not the same number of rows of load_p. "
-                            "The chronics cannot be loaded properly.".format(name_arr)
+                            "Array for forecast {}_forecasted as not the same number of rows of {} x nb_forecast. "
+                            "The chronics cannot be loaded properly.".format(name_arr, name_arr)
                         )
 
     def _load_next_chunk_in_memory_forecast(self):
@@ -331,33 +358,37 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
                 self._load_next_chunk_in_memory_forecast()
             except StopIteration as exc_:
                 raise exc_
+            
+        res = []
+        for h in self._h_forecast:
+            res_d = {}
+            dict_ = {}
+            indx_to_look = self._nb_forecast * self.current_index + h
+            if self.load_p_forecast is not None:
+                dict_["load_p"] = dt_float(
+                    1.0 * self.load_p_forecast[indx_to_look, :]
+                )
+            if self.load_q_forecast is not None:
+                dict_["load_q"] = dt_float(
+                    1.0 * self.load_q_forecast[indx_to_look, :]
+                )
+            if self.prod_p_forecast is not None:
+                dict_["prod_p"] = dt_float(
+                    1.0 * self.prod_p_forecast[indx_to_look, :]
+                )
+            if self.prod_v_forecast is not None:
+                dict_["prod_v"] = dt_float(
+                    1.0 * self.prod_v_forecast[indx_to_look, :]
+                )
+            if dict_:
+                res_d["injection"] = dict_
 
-        res = {}
-        dict_ = {}
-        if self.load_p_forecast is not None:
-            dict_["load_p"] = dt_float(
-                1.0 * self.load_p_forecast[self.current_index, :]
-            )
-        if self.load_q_forecast is not None:
-            dict_["load_q"] = dt_float(
-                1.0 * self.load_q_forecast[self.current_index, :]
-            )
-        if self.prod_p_forecast is not None:
-            dict_["prod_p"] = dt_float(
-                1.0 * self.prod_p_forecast[self.current_index, :]
-            )
-        if self.prod_v_forecast is not None:
-            dict_["prod_v"] = dt_float(
-                1.0 * self.prod_v_forecast[self.current_index, :]
-            )
-        if dict_:
-            res["injection"] = dict_
+            if self.maintenance_forecast is not None:
+                res_d["maintenance"] = self.maintenance_forecast[self.current_index, :]
 
-        if self.maintenance_forecast is not None:
-            res["maintenance"] = self.maintenance_forecast[self.current_index, :]
-
-        forecast_datetime = self.current_datetime + self.time_interval
-        return [(forecast_datetime, res)]
+            forecast_datetime = self.current_datetime + timedelta(minutes=h)
+            res.append((forecast_datetime, res_d))
+        return res
 
     def get_id(self) -> str:
         return self.path

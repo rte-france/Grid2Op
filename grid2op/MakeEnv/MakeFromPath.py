@@ -519,6 +519,11 @@ def make_from_dataset_path(
         "gridvalueClass": grid_value_class_cfg,
     }
 
+    if "data_feeding_kwargs" in config_data and config_data["data_feeding_kwargs"] is not None:
+        dfkwargs_cfg = config_data["data_feeding_kwargs"]
+        for el in dfkwargs_cfg:
+            default_chronics_kwargs[el] = dfkwargs_cfg[el]
+            
     data_feeding_kwargs = _get_default_aux(
         "data_feeding_kwargs",
         kwargs,

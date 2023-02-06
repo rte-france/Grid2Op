@@ -284,16 +284,20 @@ class GridStateFromFile(GridValue):
                 #     "GridStateFromFile: unable to locate the data files that should be at \"{}\"".format(self.path))
         return read_compressed
 
-    def _get_data(self, data_name):
+    def _get_data(self, data_name, chunksize=-1, nrows=None):
         file_ext = self._get_fileext(data_name)
-        nrows = None
-        if self.max_iter > 0:
-            nrows = self.max_iter + 1
+        
+        if nrows is None:
+            if self.max_iter > 0:
+                nrows = self.max_iter + 1
+            
         if file_ext is not None:
+            if chunksize == -1:
+                chunksize = self.chunk_size
             res = pd.read_csv(
                 os.path.join(self.path, "{}{}".format(data_name, file_ext)),
                 sep=self.sep,
-                chunksize=self.chunk_size,
+                chunksize=chunksize,
                 nrows=nrows,
             )
         else:
