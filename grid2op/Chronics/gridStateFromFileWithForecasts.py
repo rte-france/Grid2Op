@@ -360,10 +360,10 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
                 raise exc_
             
         res = []
-        for h in self._h_forecast:
+        for h_id, h in enumerate(self._h_forecast):
             res_d = {}
             dict_ = {}
-            indx_to_look = self._nb_forecast * self.current_index + h
+            indx_to_look = self._nb_forecast * self.current_index + h_id
             if self.load_p_forecast is not None:
                 dict_["load_p"] = dt_float(
                     1.0 * self.load_p_forecast[indx_to_look, :]
