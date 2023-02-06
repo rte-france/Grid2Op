@@ -311,7 +311,12 @@ class _ObsEnv(BaseEnv):
         return res
 
     def init(
-        self, new_state_action, time_stamp, timestep_overflow, topo_vect, time_step=1
+        self,
+        new_state_action,
+        time_stamp,
+        timestep_overflow,
+        topo_vect,
+        time_step=1
     ):
         """
         INTERNAL

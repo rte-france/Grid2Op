@@ -2207,7 +2207,7 @@ class BaseObservation(GridObjects):
         )
         return res
 
-    def simulate(self, action, time_step=1):
+    def simulate(self, action, time_step=1, chain_independant=False):
         """
         This method is used to simulate the effect of an action on a forecast powergrid state. This forecast
         state is built upon the current observation.
@@ -2223,6 +2223,9 @@ class BaseObservation(GridObjects):
         It has the same return
         value as the :func:`grid2op.Environment.Environment.step` function.
 
+        .. versionadded:: 1.8.3
+            The `chain_independant` parameters.
+            
         Parameters
         ----------
         action: :class:`grid2op.Action.Action`
@@ -2232,6 +2235,12 @@ class BaseObservation(GridObjects):
             The time step of the forecasted grid to perform the action on. If no forecast are available for this
             time step, a :class:`grid2op.Exceptions.NoForecastAvailable` is thrown.
 
+        chain_independant: ``bool``
+            Whether or not to chain the call to "simulate" in an independant manner (see doc below TODO) or not.
+            If calls are independant, it will be much faster, but an action will be "forgotten" between the chained
+            calls (cooldown will not be impacted, neither thermal limits, etc.). 
+            By default it's `False`, meaning it takes longer to compute but is more "straightforward".
+            
         Raises
         ------
         :class:`grid2op.Exceptions.NoForecastAvailable`
@@ -2333,6 +2342,16 @@ class BaseObservation(GridObjects):
 
         sim_obs, *rest = self._obs_env.simulate(action)
         sim_obs = copy.deepcopy(sim_obs)
+        if self._forecasted_inj:
+            # allow "chain" to simulate
+            sim_obs.action_helper = self.action_helper  # no copy !
+            if chain_independant:
+                sim_obs._obs_env = self._obs_env  # no copy !
+            else:
+                # copy here
+                sim_obs._obs_env = self._obs_env.copy()
+                sim_obs._obs_env.update_grid(self._obs_env)
+            sim_obs._forecasted_inj = self._forecasted_inj[1:]  # remove the first one
         return (sim_obs, *rest)  # parentheses are needed for python 3.6 at least.
 
     def copy(self):

@@ -43,6 +43,8 @@ Change Log
      they are connected to a disconnected bus (in this case I chose to put `theta=0`) 
   2) the `obs.as_networkx()` method did not check, when updating nodes attributes if powerlines 
      were connected or not, which was wrong in some cases 
+- [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
+  horizon are available.
 - [IMPROVED] the `GridStateFromFileWIthForecasts` is now able to read forecast from multiple steps
   ahead (provided that it knows the horizons in its constructor)
 - [IMPROVED] documentation of the gym `DiscreteActSpace`: it is now explicit that the "do nothing" action
