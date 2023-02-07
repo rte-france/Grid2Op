@@ -55,6 +55,7 @@ Change Log
 - [IMPROVED] `obs.as_networkx()` method: almost all powerlines attributes can now be read from the 
   resulting graph object.
 - [IMPROVED] possibility to set `data_feeding_kwargs` from the config file directly.
+- [IMPROVED] so "FutureWarnings" are silenced (depending on pandas and pandapower version)
 
 [1.8.1] - 2023-01-11
 ---------------------

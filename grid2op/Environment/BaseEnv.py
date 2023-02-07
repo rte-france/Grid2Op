@@ -2636,6 +2636,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._times_before_line_status_actionable[
                 cond
             ] = self._max_timestep_line_status_deactivated
+            
         if self._max_timestep_topology_deactivated > 0:
             self._times_before_topology_actionable[
                 self._times_before_topology_actionable > 0

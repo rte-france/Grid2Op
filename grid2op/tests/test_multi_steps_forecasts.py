@@ -98,8 +98,7 @@ class MultiStepsForcaTester(unittest.TestCase):
         
         obs, reward, done, info = self.env.step(self.env.action_space())
         self.aux_test_for_consistent(obs)
-        assert done
-            
+        assert done        
 
     def test_cache(self):
         with warnings.catch_warnings():
@@ -129,7 +128,117 @@ class MultiStepsForcaTester(unittest.TestCase):
         obs, reward, done, info = self.env.step(self.env.action_space())
         self.aux_test_for_consistent(obs)
 
+    def test_cooldowns(self):
+        obs = self.env.reset()
+        dn = self.env.action_space()
+        act = self.env.action_space({"set_bus": {"substations_id": [(2, (2, 1, 2, 1))]}})
+        
+        # check it properly applies in "simulate"
+        tmp_o_1, *_ = obs.simulate(act, time_step=1, chain_independant=True)
+        assert tmp_o_1.time_before_cooldown_sub[2] == 3
+        tmp_o_2, *_ = obs.simulate(act, time_step=2, chain_independant=True)
+        assert tmp_o_2.time_before_cooldown_sub[2] == 3
+        tmp_o_3, *_ = obs.simulate(act, time_step=3, chain_independant=True)
+        assert tmp_o_3.time_before_cooldown_sub[2] == 3
+        tmp_o_12, *_ = obs.simulate(act, time_step=12, chain_independant=True)
+        assert tmp_o_12.time_before_cooldown_sub[2] == 3 
+        
+        # check if a cooldown exists it is properly changed in simulate
+        obs2, reward, done, info = self.env.step(act)
+        tmp_o_1_2, *_ = obs2.simulate(dn, time_step=1, chain_independant=True)
+        assert tmp_o_1_2.time_before_cooldown_sub[2] == 2      
+        tmp_o_2_2, *_ = obs2.simulate(dn, time_step=2, chain_independant=True)
+        assert tmp_o_2_2.time_before_cooldown_sub[2] == 1        
+        tmp_o_3_2, *_ = obs2.simulate(dn, time_step=3, chain_independant=True)
+        assert tmp_o_3_2.time_before_cooldown_sub[2] == 0        
+        tmp_o_12_2, *_ = obs2.simulate(dn, time_step=12, chain_independant=True)
+        assert tmp_o_12_2.time_before_cooldown_sub[2] == 0        
+        
+        # check if a cooldown exists it is properly changed in simulate
+        obs3, reward, done, info = self.env.step(dn)
+        tmp_o_1_3, *_ = obs3.simulate(dn, time_step=1, chain_independant=True)
+        assert tmp_o_1_3.time_before_cooldown_sub[2] == 1      
+        tmp_o_2_3, *_ = obs3.simulate(dn, time_step=2, chain_independant=True)
+        assert tmp_o_2_3.time_before_cooldown_sub[2] == 0        
+        tmp_o_3_3, *_ = obs3.simulate(dn, time_step=3, chain_independant=True)
+        assert tmp_o_3_3.time_before_cooldown_sub[2] == 0        
+        tmp_o_12_3, *_ = obs3.simulate(dn, time_step=12, chain_independant=True)
+        assert tmp_o_12_3.time_before_cooldown_sub[2] == 0        
+    
+    def test_maintenance(self):
+        obs = self.env.reset()   # no maintenance
+        obs = self.env.reset()  # maintenance
+        dn = self.env.action_space()
+        assert obs.time_next_maintenance[5] == 6        
+        assert obs.duration_next_maintenance[5] == 4    
+        
+        # check it properly applies in "simulate"
+        obs_1, *_ = self.env.step(dn)
+        assert obs_1.time_next_maintenance[5] == 5
+        assert obs.time_next_maintenance[5] == 6  
+        tmp_o_1, reward, done, info = obs.simulate(dn, time_step=1, chain_independant=True)
+        assert not done
+        assert tmp_o_1.time_next_maintenance[5] == 5
+        
+        obs_2, *_ = self.env.step(dn)
+        assert obs_2.time_next_maintenance[5] == 4
+        tmp_o_2, *_ = obs.simulate(dn, time_step=2, chain_independant=True)
+        assert tmp_o_2.time_next_maintenance[5] == 4
+        
+        obs_3, *_ = self.env.step(dn)
+        assert obs_3.time_next_maintenance[5] == 3        
+        tmp_o_3, *_ = obs.simulate(dn, time_step=3, chain_independant=True)
+        assert tmp_o_3.time_next_maintenance[5] == 3
 
+        obs_4, *_ = self.env.step(dn)
+        assert obs_4.time_next_maintenance[5] == 2           
+        tmp_o_4, *_ = obs.simulate(dn, time_step=4, chain_independant=True)
+        assert tmp_o_4.time_next_maintenance[5] == 2
+        
+        obs_5, *_ = self.env.step(dn)
+        assert obs_5.time_next_maintenance[5] == 1          
+        tmp_o_5, *_ = obs.simulate(dn, time_step=5, chain_independant=True)
+        assert tmp_o_5.time_next_maintenance[5] == 1
+        
+        # first corner case: line should be disconnected (first step)
+        obs_6, *_ = self.env.step(dn)
+        assert obs_6.time_next_maintenance[5] == 0 
+        assert obs_6.duration_next_maintenance[5] == 4
+        tmp_o_6, *_ = obs.simulate(dn, time_step=6, chain_independant=True)
+        assert tmp_o_6.time_next_maintenance[5] == 0
+        assert tmp_o_6.duration_next_maintenance[5] == 4
+        assert not tmp_o_6.line_status[5] 
+        
+        # now the "duration next maintenance" should decrease of 1
+        tmp_o_7, *_ = obs.simulate(dn, time_step=7, chain_independant=True)
+        assert tmp_o_7.time_next_maintenance[5] == 0
+        assert tmp_o_7.duration_next_maintenance[5] == 3
+        assert not tmp_o_7.line_status[5] 
+        
+        tmp_o_8, *_ = obs.simulate(dn, time_step=8, chain_independant=True)
+        assert tmp_o_8.time_next_maintenance[5] == 0
+        assert tmp_o_8.duration_next_maintenance[5] == 2
+        assert not tmp_o_8.line_status[5] 
+        
+        tmp_o_9, *_ = obs.simulate(dn, time_step=9, chain_independant=True)
+        assert tmp_o_9.time_next_maintenance[5] == 0
+        assert tmp_o_9.duration_next_maintenance[5] == 1
+        assert not tmp_o_9.line_status[5] 
+        
+        # second corner case: line should not be modified 
+        # maintenance is totally 'skiped' : forecast horizon is after maintenance
+        # occured
+        tmp_o_10, *_ = obs.simulate(dn, time_step=10, chain_independant=True)
+        assert tmp_o_10.time_next_maintenance[5] == -1
+        assert tmp_o_10.duration_next_maintenance[5] == 0
+        assert tmp_o_10.line_status[5] 
+
+        tmp_o_12, *_ = obs.simulate(dn, time_step=12, chain_independant=True)
+        assert tmp_o_12.time_next_maintenance[5] == -1
+        assert tmp_o_12.duration_next_maintenance[5] == 0
+        assert tmp_o_12.line_status[5] 
+        
+        
 class ChainSimulateTester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
@@ -151,12 +260,12 @@ class ChainSimulateTester(unittest.TestCase):
         tmp_o_1, *_ = obs.simulate(self.env.action_space(),
                                    time_step=1,
                                    chain_independant=True)
-        self.aux_test_for_consistent(obs, tmp_o_1, 1)
+        self.aux_test_for_consistent_independant(obs, tmp_o_1, 1)
         
         tmp_o_2, *_ = tmp_o_1.simulate(self.env.action_space(),
                                        time_step=1,
                                        chain_independant=True)
-        self.aux_test_for_consistent(obs, tmp_o_2, 2)
+        self.aux_test_for_consistent_independant(obs, tmp_o_2, 2)
         _ = tmp_o_1.simulate(self.env.action_space(),
                              time_step=11,
                              chain_independant=True)
@@ -169,7 +278,7 @@ class ChainSimulateTester(unittest.TestCase):
         tmp_o_3, *_ = tmp_o_2.simulate(self.env.action_space(),
                                        time_step=1,
                                        chain_independant=True)
-        self.aux_test_for_consistent(obs, tmp_o_3, 3)
+        self.aux_test_for_consistent_independant(obs, tmp_o_3, 3)
         _ = tmp_o_2.simulate(self.env.action_space(),
                              time_step=10,
                              chain_independant=True)
@@ -210,9 +319,42 @@ class ChainSimulateTester(unittest.TestCase):
         # check that the original simulate is not "broken"
         tmp_o_1_base, *_ = obs.simulate(dn, time_step=1)
         assert (tmp_o_1_base.topo_vect[[9, 11]] == [1, 1]).all()
+    
+    def test_cooldown_when_chained(self):
+        obs = self.env.reset()
+        dn = self.env.action_space()
+                
+        act = self.env.action_space({"set_bus": {"substations_id": [(2, (2, 1, 2, 1))]}})
+        tmp_o_1_1, *_ = obs.simulate(act, time_step=1)
+        assert (tmp_o_1_1.topo_vect[[9, 11]] == [2, 2]).all()
+        assert tmp_o_1_1.time_before_cooldown_sub[2] == 3
         
+        tmp_o_2, *_ = tmp_o_1_1.simulate(dn, time_step=1)
+        assert tmp_o_2.time_before_cooldown_sub[2] == 2
         
-# TODO check cooldowns
+        tmp_o_2_2, reward, done, info = tmp_o_1_1.simulate(act, time_step=1)
+        assert info["is_illegal"]
+        assert tmp_o_2_2.time_before_cooldown_sub[2] == 2
+        
+        tmp_o_3, r, done, info = tmp_o_2.simulate(dn, time_step=1)
+        assert not done
+        assert tmp_o_3.time_before_cooldown_sub[2] == 1
+        
+        tmp_o_4, r, done, info = tmp_o_3.simulate(dn, time_step=1)
+        assert not done
+        assert tmp_o_4.time_before_cooldown_sub[2] == 0
+        
+        tmp_o_4_2, r, done, info = tmp_o_3.simulate(act, time_step=1)
+        assert not done
+        assert info["is_illegal"]  # because cooldown > 0 for tmp_o_3
+        assert tmp_o_4_2.time_before_cooldown_sub[2] == 0
+        
+        tmp_o_5, reward, done, info = tmp_o_4.simulate(act, time_step=1)
+        assert not done
+        assert not info["is_illegal"]
+        assert tmp_o_5.time_before_cooldown_sub[2] == 3
+           
 # TODO check "thermal limit when soft overflow"
+# TODO check maintenance
 if __name__ == "__main__":
     unittest.main()

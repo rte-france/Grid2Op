@@ -303,7 +303,9 @@ class PandaPowerBackend(Backend):
         and deep_copy it to itself instead of calling load_grid again
         """
         # Assign the content of itself as saved at the end of load_grid
-        self._grid = copy.deepcopy(self.__pp_backend_initial_grid)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            self._grid = copy.deepcopy(self.__pp_backend_initial_grid)
         self._reset_all_nan()
         self._topo_vect[:] = self._get_topo_vect()
         self.comp_time = 0.0
@@ -797,14 +799,14 @@ class PandaPowerBackend(Backend):
         """
         if backendAction is None:
             return
-
+                    
         (
             active_bus,
             (prod_p, prod_v, load_p, load_q, storage),
             topo__,
             shunts__,
         ) = backendAction()
-
+     
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if np.any(prod_p.changed):
             tmp_prod_p.iloc[prod_p.changed] = prod_p.values[prod_p.changed]
@@ -1032,6 +1034,7 @@ class PandaPowerBackend(Backend):
                                                             " produces 0. instead. Please check generators: "
                                                             f"{np.where(~self._grid.gen['in_service'])[0]}"
                                                             )
+                    
                 if is_dc:
                     pp.rundcpp(self._grid, check_connectivity=False)
                     self._nb_bus_before = (
@@ -1047,7 +1050,7 @@ class PandaPowerBackend(Backend):
                         max_iteration=self._max_iter,
                         distributed_slack=self._dist_slack,
                     )
-
+                    
                 # stores the computation time
                 if "_ppc" in self._grid:
                     if "et" in self._grid["_ppc"]:

@@ -370,6 +370,8 @@ class BaseObservation(GridObjects):
         # handles the forecasts here
         self._forecasted_grid_act = {}
         self._forecasted_inj = []
+        self._env_internal_params = {}
+        
         self._obs_env = obs_env
 
         # calendar data
@@ -555,6 +557,7 @@ class BaseObservation(GridObjects):
         # handles the forecasts here
         res._forecasted_grid_act = copy.copy(self._forecasted_grid_act)
         res._forecasted_inj = copy.copy(self._forecasted_inj)
+        res._env_internal_params  = copy.copy(self._env_internal_params )
 
         return res
 
@@ -575,6 +578,7 @@ class BaseObservation(GridObjects):
         # handles the forecasts here
         res._forecasted_grid_act = copy.deepcopy(self._forecasted_grid_act, memodict)
         res._forecasted_inj = copy.deepcopy(self._forecasted_inj, memodict)
+        res._env_internal_params = copy.deepcopy(self._env_internal_params, memodict)
 
         return res
 
@@ -1028,6 +1032,7 @@ class BaseObservation(GridObjects):
         # forecasts
         self._forecasted_inj = []
         self._forecasted_grid_act = {}
+        self._env_internal_params = {}
 
         # redispatching
         self.target_dispatch[:] = np.NaN
@@ -1112,6 +1117,7 @@ class BaseObservation(GridObjects):
         # forecasts
         self._forecasted_inj = []
         self._forecasted_grid_act = {}
+        self._env_internal_params = {}
 
         # redispatching
         self.target_dispatch[:] = 0.0
@@ -2335,8 +2341,7 @@ class BaseObservation(GridObjects):
         self._obs_env.init(
             inj_action,
             time_stamp=timestamp,
-            timestep_overflow=self.timestep_overflow,
-            topo_vect=self.topo_vect,
+            obs=self,
             time_step=time_step,
         )
 
@@ -2345,13 +2350,15 @@ class BaseObservation(GridObjects):
         if self._forecasted_inj:
             # allow "chain" to simulate
             sim_obs.action_helper = self.action_helper  # no copy !
-            if chain_independant:
-                sim_obs._obs_env = self._obs_env  # no copy !
-            else:
-                # copy here
-                sim_obs._obs_env = self._obs_env.copy()
-                sim_obs._obs_env.update_grid(self._obs_env)
+            sim_obs._obs_env = self._obs_env  # no copy
+            # if chain_independant:
+            #     sim_obs._obs_env = self._obs_env  # no copy !
+            # else:
+            #     # copy here
+            #     sim_obs._obs_env = self._obs_env.copy()
+            #     sim_obs._obs_env.update_grid(self._obs_env)
             sim_obs._forecasted_inj = self._forecasted_inj[1:]  # remove the first one
+            sim_obs._update_internal_env_params(self._obs_env)
         return (sim_obs, *rest)  # parentheses are needed for python 3.6 at least.
 
     def copy(self):
@@ -3069,6 +3076,31 @@ class BaseObservation(GridObjects):
             self.gen_theta[:] = 0.
             self.storage_theta[:] = 0.
 
+    def _update_internal_env_params(self, env):
+        # this is only done if the env supports forecast
+        # some parameters used for the "forecast env"
+        # but not directly accessible in the observation
+        self._env_internal_params = {
+            "_storage_previous_charge": 1.0 * env._storage_previous_charge,
+            "_amount_storage": 1.0 * env._amount_storage,
+            "_amount_storage_prev": 1.0 * env._amount_storage_prev,
+            "_sum_curtailment_mw": 1.0 * env._sum_curtailment_mw,
+            "_sum_curtailment_mw_prev": 1.0 * env._sum_curtailment_mw_prev,
+            "_line_status_env": env.get_current_line_status().astype(dt_int),  # false -> 0 true -> 1
+            "_gen_activeprod_t": 1.0 * env._gen_activeprod_t,
+            "_gen_activeprod_t_redisp": 1.0 * env._gen_activeprod_t_redisp,
+            "_already_modified_gen": True ^ env._already_modified_gen,
+        }
+        self._env_internal_params["_line_status_env"]  *= 2  # false -> 0 true -> 2
+        self._env_internal_params["_line_status_env"] -= 1  # false -> -1; true -> 1
+        
+        if env._has_attention_budget:
+            self._env_internal_params["_attention_budget_state"] = env._attention_budget.get_state()
+        
+        # TODO this looks suspicious !
+        (self._env_internal_params["opp_space_state"], 
+         self._env_internal_params["opp_state"]) = env._oppSpace._get_state()
+        
     def _update_obs_complete(self, env, with_forecast=True):
         """
         update all the observation attributes as if it was a complete, fully
@@ -3113,6 +3145,8 @@ class BaseObservation(GridObjects):
             self._forecasted_inj = [(timestamp, inj_action)]
             self._forecasted_inj += env.chronics_handler.forecasts()
             self._forecasted_grid = [None for _ in self._forecasted_inj]
+            self._env_internal_params = {}
+            self._update_internal_env_params(env)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line[:] = env._times_before_line_status_actionable

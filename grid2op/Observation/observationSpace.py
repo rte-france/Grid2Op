@@ -149,6 +149,7 @@ class ObservationSpace(SerializableObservationSpace):
             attention_budget_cls=env._attention_budget_cls,
             kwargs_attention_budget=env._kwargs_attention_budget,
             max_episode_duration=env.max_episode_duration(),
+            delta_time_seconds=env.delta_time_seconds,
             logger=self.logger,
             _complete_action_cls=env._complete_action_cls,
             _ptr_orig_obs_space=self,
