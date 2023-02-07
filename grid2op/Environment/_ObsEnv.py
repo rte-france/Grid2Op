@@ -131,6 +131,7 @@ class _ObsEnv(BaseEnv):
             legalActClass=legalActClass,
         )
 
+        self.delta_time_seconds = delta_time_seconds
         ####
         # to be able to save and import (using env.generate_classes) correctly
         self._actionClass = action_helper.subtype
@@ -139,9 +140,7 @@ class _ObsEnv(BaseEnv):
         self._action_space = (
             action_helper  # obs env and env share the same action space
         )
-        self._observation_space = (
-            action_helper  # not used here, so it's definitely a hack !
-        )
+        
         self._ptr_orig_obs_space = _ptr_orig_obs_space
         ####
 
@@ -161,8 +160,6 @@ class _ObsEnv(BaseEnv):
             self._backend_action_set = None
         else:
             self._backend_action_set = self._backend_action_class()
-
-        self.delta_time_seconds = delta_time_seconds
         
         # opponent
         # self.opp_space_state = None
@@ -241,7 +238,7 @@ class _ObsEnv(BaseEnv):
         self.chronics_handler = chronics_handler
         self.backend = backend
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
-
+        
         if not issubclass(legalActClass, BaseRules):
             raise Grid2OpException(
                 'Parameter "legalActClass" used to build the Environment should derived form the '
@@ -254,6 +251,14 @@ class _ObsEnv(BaseEnv):
         # self._action_space = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
 
+        from grid2op.Observation import ObservationSpace
+        from grid2op.Reward import FlatReward
+        self._observation_space = ObservationSpace(backend,
+                                                   env=self,
+                                                   with_forecast=False,
+                                                   rewardClass=FlatReward,
+                                                   _with_obs_env=False)
+        
         # create the opponent
         self._create_opponent()
 
@@ -503,8 +508,6 @@ class _ObsEnv(BaseEnv):
         """
         self.reset()  # reset the "BaseEnv"
         self.backend.set_thermal_limit(obs._thermal_limit)
-        self._backend_action_set.all_changed()
-        self._backend_action = copy.deepcopy(self._backend_action_set)
         self._oppSpace._set_state(obs._env_internal_params["opp_space_state"], 
                                   obs._env_internal_params["opp_state"])
         # storage unit
@@ -529,9 +532,6 @@ class _ObsEnv(BaseEnv):
         if self._has_attention_budget:
             self._attention_budget.set_state(obs._env_internal_params["_attention_budget_state"])
             
-        self._gen_activeprod_t[:] = obs._env_internal_params["_gen_activeprod_t"]
-        self._gen_activeprod_t_redisp[:] = obs._env_internal_params["_gen_activeprod_t_redisp"]
-        
         # cooldown
         self._times_before_line_status_actionable[
             :
@@ -548,6 +548,8 @@ class _ObsEnv(BaseEnv):
         self._target_dispatch[:] = obs.target_dispatch
         self._actual_dispatch[:] = obs.actual_dispatch
         self._already_modified_gen[:] = obs._env_internal_params["_already_modified_gen"]
+        self._gen_activeprod_t[:] = obs._env_internal_params["_gen_activeprod_t"]
+        self._gen_activeprod_t_redisp[:] = obs._env_internal_params["_gen_activeprod_t_redisp"]
         
         # current step
         self.nb_time_step = obs.current_step

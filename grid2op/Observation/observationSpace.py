@@ -68,6 +68,7 @@ class ObservationSpace(SerializableObservationSpace):
         with_forecast=True,
         kwargs_observation=None,
         logger=None,
+        _with_obs_env=True,  # pass
     ):
         """
         INTERNAL
@@ -77,13 +78,11 @@ class ObservationSpace(SerializableObservationSpace):
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
         """
 
-        from grid2op.Environment._ObsEnv import (
-            _ObsEnv,
-        )  # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
+        # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
+        from grid2op.Environment._ObsEnv import _ObsEnv
 
         if actionClass is None:
             from grid2op.Action import CompleteAction
-
             actionClass = CompleteAction
             
         if logger is None:
@@ -130,32 +129,37 @@ class ObservationSpace(SerializableObservationSpace):
         )
         _ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
         setattr(sys.modules[_ObsEnv.__module__], _ObsEnv_class.__name__, _ObsEnv_class)
-        self.obs_env = _ObsEnv_class(
-            init_env_path=None,  # don't leak the path of the real grid to the observation space
-            init_grid_path=None,  # don't leak the path of the real grid to the observation space
-            backend_instanciated=self._backend_obs,
-            obsClass=CompleteObservation,  # do not put self.observationClass otherwise it's initialized twice
-            parameters=self._simulate_parameters,
-            reward_helper=self.reward_helper,
-            action_helper=self.action_helper_env,
-            thermal_limit_a=env.get_thermal_limit(),
-            legalActClass=copy.deepcopy(env._legalActClass),
-            other_rewards=other_rewards,
-            helper_action_class=env._helper_action_class,
-            helper_action_env=env._helper_action_env,
-            epsilon_poly=env._epsilon_poly,
-            tol_poly=env._tol_poly,
-            has_attention_budget=env._has_attention_budget,
-            attention_budget_cls=env._attention_budget_cls,
-            kwargs_attention_budget=env._kwargs_attention_budget,
-            max_episode_duration=env.max_episode_duration(),
-            delta_time_seconds=env.delta_time_seconds,
-            logger=self.logger,
-            _complete_action_cls=env._complete_action_cls,
-            _ptr_orig_obs_space=self,
-        )
-        for k, v in self.obs_env.other_rewards.items():
-            v.initialize(env)
+        if _with_obs_env:
+            self.obs_env = _ObsEnv_class(
+                init_env_path=None,  # don't leak the path of the real grid to the observation space
+                init_grid_path=None,  # don't leak the path of the real grid to the observation space
+                backend_instanciated=self._backend_obs,
+                obsClass=CompleteObservation,  # do not put self.observationClass otherwise it's initialized twice
+                parameters=self._simulate_parameters,
+                reward_helper=self.reward_helper,
+                action_helper=self.action_helper_env,
+                thermal_limit_a=env.get_thermal_limit(),
+                legalActClass=copy.deepcopy(env._legalActClass),
+                other_rewards=other_rewards,
+                helper_action_class=env._helper_action_class,
+                helper_action_env=env._helper_action_env,
+                epsilon_poly=env._epsilon_poly,
+                tol_poly=env._tol_poly,
+                has_attention_budget=env._has_attention_budget,
+                attention_budget_cls=env._attention_budget_cls,
+                kwargs_attention_budget=env._kwargs_attention_budget,
+                max_episode_duration=env.max_episode_duration(),
+                delta_time_seconds=env.delta_time_seconds,
+                logger=self.logger,
+                _complete_action_cls=env._complete_action_cls,
+                _ptr_orig_obs_space=self,
+            )
+            for k, v in self.obs_env.other_rewards.items():
+                v.initialize(env)
+        else:
+            self.with_forecast = False
+            self.obs_env = None
+            self._backend_obs = None
 
         self._empty_obs = self._template_obj
         self._update_env_time = 0.0
@@ -271,6 +275,12 @@ class ObservationSpace(SerializableObservationSpace):
                            "function when you cannot simulate (because the "
                            "backend could not be copied)")
 
+    def set_thermal_limit(self, thermal_limit_a):
+        if self.obs_env is not None:
+            self.obs_env.set_thermal_limit(thermal_limit_a)
+        if self._backend_obs is not None:
+            self._backend_obs.set_thermal_limit(thermal_limit_a)
+        
     def reset_space(self):
         if self.with_forecast:
             if self.obs_env.is_valid():

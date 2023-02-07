@@ -1452,8 +1452,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 f"is not supported."
             )
 
-        self._thermal_limit_a = tmp
+        self._thermal_limit_a[:] = tmp
         self.backend.set_thermal_limit(self._thermal_limit_a)
+        self.observation_space.set_thermal_limit(self._thermal_limit_a)
 
     def _reset_redispatching(self):
         # redispatching
@@ -1578,7 +1579,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             valid = except_ is None
         return valid, except_
 
-    def _compute_dispatch_vect(self, already_modified_gen, new_p):
+    def _compute_dispatch_vect(self, already_modified_gen, new_p):        
         except_ = None
         # first i define the participating generators
         # these are the generators that will be adjusted for redispatching
@@ -1689,6 +1690,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             + self._amount_storage
             - self._sum_curtailment_mw
         )
+        
+        # print(f"{self}: {self._sum_curtailment_mw = }")
+        # print(f"{self}: {self._amount_storage = }")
+        
         # gen increase in the chronics
         new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
 
