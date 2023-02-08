@@ -419,7 +419,135 @@ class ChainSimulateTester(unittest.TestCase):
         assert tmp_o_12.duration_next_maintenance[5] == 0
         # no reason to reconnect the line automatically
         assert not tmp_o_12.line_status[5] 
-           
-# TODO check "thermal limit when soft overflow"
+
+
+class SoftOverflowTester(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # this needs to be tested with pandapower backend
+            self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"), test=True)
+        self.env.seed(0)
+        self.env.set_id(0)
+        a_or_first = np.array([442.308, 198.55365, 116.50534,  93.63006,
+                               442.2703 , 110.96754, 110.96754,  92.05039])
+        th_lim = a_or_first * 2.
+        th_lim[5] /= 2.5
+        self.env.set_thermal_limit(th_lim)
+        param = self.env.parameters
+        param.NO_OVERFLOW_DISCONNECTION = False
+        param.NB_TIMESTEP_RECONNECTION = 3
+        self.env.change_parameters(param)
+        self.env.change_forecast_parameters(param)
+        
+    def test_my_env_is_correct(self):
+        obs = self.env.reset()
+        assert obs.timestep_overflow[5] == 0
+        
+        obs, *_ = self.env.step(self.env.action_space())
+        assert obs.timestep_overflow[5] == 1
+        assert obs.line_status[5]
+        
+        obs, *_ = self.env.step(self.env.action_space())
+        assert obs.timestep_overflow[5] == 2
+        assert obs.line_status[5]
+        
+        # now it should be disconnected
+        obs, *_ = self.env.step(self.env.action_space())
+        assert not obs.line_status[5]
+        assert obs.timestep_overflow[5] == 0
+    
+    def test_simulate_multi_h(self):
+        reco = self.env.action_space({"set_line_status": [(5, +1)]})
+        obs = self.env.reset()
+        assert obs.timestep_overflow[5] == 0
+        
+        sim_o1, *_ = obs.simulate(self.env.action_space(), 1)
+        assert sim_o1.line_status[5]
+        assert sim_o1.timestep_overflow[5] == 1
+        
+        sim_o2, *_ = obs.simulate(self.env.action_space(), 2)
+        assert sim_o2.line_status[5]
+        assert sim_o2.timestep_overflow[5] == 2
+        
+        # now it should be disconnected
+        sim_o3, *_ = obs.simulate(self.env.action_space(), 3)
+        assert not sim_o3.line_status[5]
+        assert sim_o3.timestep_overflow[5] == 0
+        assert sim_o3.time_before_cooldown_line[5] == 3  # because it's like that in the parameters
+        
+        # still disconnected
+        sim_o4, *_ = obs.simulate(self.env.action_space(), 4)
+        assert not sim_o4.line_status[5]
+        assert sim_o4.timestep_overflow[5] == 0
+        # assert sim_o4.time_before_cooldown_line[5] == 2
+
+        # still disconnected
+        sim_o5, *_ = obs.simulate(self.env.action_space(), 5)
+        assert not sim_o5.line_status[5]
+        assert sim_o5.timestep_overflow[5] == 0
+        # assert sim_o5.time_before_cooldown_line[5] == 1
+        
+        # still disconnected
+        sim_o6, *_ = obs.simulate(self.env.action_space(), 6)
+        assert not sim_o6.line_status[5]
+        assert sim_o6.timestep_overflow[5] == 0
+        # assert sim_o6.time_before_cooldown_line[5] == 0
+        
+        # still disconnected
+        sim_o7, *_ = obs.simulate(self.env.action_space(), 7)
+        assert not sim_o7.line_status[5]
+        assert sim_o7.timestep_overflow[5] == 0
+        # assert sim_o7.time_before_cooldown_line[5] == 0
+                
+        # still disconnected
+        sim_o12, *_ = obs.simulate(self.env.action_space(), 12)
+        assert not sim_o12.line_status[5]
+        # assert sim_o12.time_before_cooldown_line[5] == 0
+        
+    def test_simulate_chained(self):
+        reco = self.env.action_space({"set_line_status": [(5, +1)]})
+        obs = self.env.reset()
+        assert obs.timestep_overflow[5] == 0
+        
+        sim_o1, *_ = obs.simulate(self.env.action_space(), 1)
+        assert sim_o1.line_status[5]
+        assert sim_o1.timestep_overflow[5] == 1
+        
+        sim_o2, *_ = sim_o1.simulate(self.env.action_space(), 1)
+        assert sim_o2.line_status[5]
+        assert sim_o2.timestep_overflow[5] == 2
+        
+        # now it should be disconnected
+        sim_o3, *_ = sim_o2.simulate(self.env.action_space(), 1)
+        assert not sim_o3.line_status[5]
+        assert sim_o3.timestep_overflow[5] == 0
+        assert sim_o3.time_before_cooldown_line[5] == 3  # because it's like that in the parameters
+        
+        # still disconnected
+        sim_o4, *_ = sim_o3.simulate(self.env.action_space(), 1)
+        assert not sim_o4.line_status[5]
+        assert sim_o4.timestep_overflow[5] == 0
+        # assert sim_o4.time_before_cooldown_line[5] == 2
+
+        # still disconnected
+        sim_o5, *_ = sim_o4.simulate(self.env.action_space(), 1)
+        assert not sim_o5.line_status[5]
+        assert sim_o5.timestep_overflow[5] == 0
+        # assert sim_o5.time_before_cooldown_line[5] == 1
+        
+        # still disconnected
+        sim_o6, *_ = sim_o5.simulate(self.env.action_space(), 1)
+        assert not sim_o6.line_status[5]
+        assert sim_o6.timestep_overflow[5] == 0
+        # assert sim_o6.time_before_cooldown_line[5] == 0
+        
+        # still disconnected, but I can reconnect it if I want
+        sim_o7, *_ = sim_o6.simulate(self.env.action_space(), 1)
+        assert not sim_o7.line_status[5]
+        assert sim_o7.timestep_overflow[5] == 0
+        # assert sim_o7.time_before_cooldown_line[5] == 0
+        
+                
 if __name__ == "__main__":
     unittest.main()

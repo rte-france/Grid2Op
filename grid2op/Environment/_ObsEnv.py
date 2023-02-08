@@ -308,12 +308,14 @@ class _ObsEnv(BaseEnv):
         self._topo_vect[:] = obs.topo_vect
         
         if time_step >= 1:
-            # handle the compoenents that depends on the time
+            is_overflow = obs.rho > 1.
+            
+            # handle the components that depends on the time
             (
                 still_in_maintenance,
                 reconnected,
                 first_ts_maintenance,
-            ) = self._update_vector_with_timestep(time_step)
+            ) = self._update_vector_with_timestep(time_step, is_overflow)
             if np.any(first_ts_maintenance):
                 set_status = np.array(self._line_status_me, dtype=dt_int)
                 set_status[first_ts_maintenance] = -1
@@ -360,9 +362,6 @@ class _ObsEnv(BaseEnv):
         self.is_init = True
         self.current_obs.reset()
         self.time_stamp = time_stamp
-        
-        # TODO here !
-        self._timestep_overflow[:] = obs.timestep_overflow
 
     def _get_new_prod_setpoint(self, action):
         new_p = 1.0 * self._backend_action_set.prod_p.values
@@ -380,7 +379,7 @@ class _ObsEnv(BaseEnv):
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
 
-    def _update_vector_with_timestep(self, time_step):
+    def _update_vector_with_timestep(self, horizon, is_overflow):
         """
         INTERNAL
 
@@ -392,10 +391,10 @@ class _ObsEnv(BaseEnv):
         
         # update the cooldowns
         self._times_before_line_status_actionable[:] = np.maximum(
-            self._times_before_line_status_actionable - (time_step - 1), 0
+            self._times_before_line_status_actionable - (horizon - 1), 0
         )
         self._times_before_topology_actionable[:] = np.maximum(
-            self._times_before_topology_actionable - (time_step - 1), 0
+            self._times_before_topology_actionable - (horizon - 1), 0
         )
 
         # update the maintenance
@@ -407,22 +406,22 @@ class _ObsEnv(BaseEnv):
         maint_started = np.full(cls.n_line, fill_value=False)
         maint_over = np.full(cls.n_line, fill_value=False)
         
-        maint_started[has_maint] = (tnm_orig[has_maint] <= time_step)
+        maint_started[has_maint] = (tnm_orig[has_maint] <= horizon)
         maint_over[has_maint] = (tnm_orig[has_maint] + dnm_orig[has_maint] 
-                                 <= time_step)
+                                 <= horizon)
         
-        reconnected[has_maint] = tnm_orig[has_maint] + dnm_orig[has_maint] == time_step
-        first_ts_maintenance = tnm_orig == time_step
+        reconnected[has_maint] = tnm_orig[has_maint] + dnm_orig[has_maint] == horizon
+        first_ts_maintenance = tnm_orig == horizon
         still_in_maintenance = maint_started & (~maint_over) & (~first_ts_maintenance)
         
         # count down time next maintenance
         self._time_next_maintenance[:] = np.maximum(
-            self._time_next_maintenance - time_step, -1
+            self._time_next_maintenance - horizon, -1
         )
         
         # powerline that are still in maintenance at this time step
         self._time_next_maintenance[still_in_maintenance] = 0
-        self._duration_next_maintenance[still_in_maintenance] -= (time_step - tnm_orig[still_in_maintenance])
+        self._duration_next_maintenance[still_in_maintenance] -= (horizon - tnm_orig[still_in_maintenance])
 
         # powerline that will be in maintenance at this time step
         self._time_next_maintenance[first_ts_maintenance] = 0
@@ -431,6 +430,10 @@ class _ObsEnv(BaseEnv):
         self._time_next_maintenance[reconnected | maint_over] = -1
         self._duration_next_maintenance[reconnected | maint_over] = 0
 
+        # soft overflow
+        # this is tricky here because I have no model to predict the future... 
+        # As i cannot do better, I simply do "if I am in overflow now, i will be later"
+        self._timestep_overflow[is_overflow] += (horizon - 1)
         return still_in_maintenance, reconnected, first_ts_maintenance
 
     def reset(self):
@@ -497,6 +500,9 @@ class _ObsEnv(BaseEnv):
         # current step
         self.nb_time_step = obs.current_step
         self.delta_time_seconds = 60. * obs.delta_time
+        
+        # soft overflow
+        self._timestep_overflow[:] = obs.timestep_overflow
 
     def simulate(self, action):
         """

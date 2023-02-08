@@ -390,6 +390,7 @@ class ObservationSpace(SerializableObservationSpace):
         new_obj._backend_obs = self._backend_obs  # ptr to a backend for simulate
         new_obj.obs_env = self.obs_env  # it is None anyway !
         new_obj._update_env_time = self._update_env_time
+        new_obj.__can_never_use_simulate = self.__can_never_use_simulate
         new_obj.__nb_simulate_called_this_step = self.__nb_simulate_called_this_step
         new_obj.__nb_simulate_called_this_episode = (
             self.__nb_simulate_called_this_episode
