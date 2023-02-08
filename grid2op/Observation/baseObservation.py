@@ -361,7 +361,11 @@ class BaseObservation(GridObjects):
     # value to assess if two observations are equal
     _tol_equal = 1e-3
 
-    def __init__(self, obs_env=None, action_helper=None, random_prng=None):
+    def __init__(self,
+                 obs_env=None,
+                 action_helper=None,
+                 random_prng=None,
+                 kwargs_env=None):
         GridObjects.__init__(self)
         self._is_done = True
         self.random_prng = random_prng
@@ -373,6 +377,7 @@ class BaseObservation(GridObjects):
         self._env_internal_params = {}
         
         self._obs_env = obs_env
+        self._ptr_kwargs_env = kwargs_env
 
         # calendar data
         self.year = dt_int(1970)
@@ -543,7 +548,9 @@ class BaseObservation(GridObjects):
             getattr(other, attr_nm)[:] = getattr(self, attr_nm)
 
     def __copy__(self):
-        res = type(self)(obs_env=self._obs_env, action_helper=self.action_helper)
+        res = type(self)(obs_env=self._obs_env,
+                         action_helper=self.action_helper,
+                         kwargs_env=self._ptr_kwargs_env)
 
         # copy regular attributes
         self._aux_copy(other=res)
@@ -562,7 +569,9 @@ class BaseObservation(GridObjects):
         return res
 
     def __deepcopy__(self, memodict={}):
-        res = type(self)(obs_env=self._obs_env, action_helper=self.action_helper)
+        res = type(self)(obs_env=self._obs_env,
+                         action_helper=self.action_helper,
+                         kwargs_env=self._ptr_kwargs_env)
 
         # copy regular attributes
         self._aux_copy(other=res)
@@ -1299,8 +1308,11 @@ class BaseObservation(GridObjects):
             )
         tmp_obs_env = self._obs_env
         self._obs_env = None  # keep aside the backend
+        _ptr_kwargs_env = self._ptr_kwargs_env
+        self._ptr_kwargs_env = None  # keep aside the pointer to the env kwargs
         res = copy.deepcopy(self)
         self._obs_env = tmp_obs_env
+        self._ptr_kwargs_env = _ptr_kwargs_env
         for stat_nm in self._attr_eq:
             me_ = getattr(self, stat_nm)
             oth_ = getattr(other, stat_nm)
@@ -2369,6 +2381,9 @@ class BaseObservation(GridObjects):
         action_helper = self.action_helper
         self.action_helper = None
 
+        _ptr_kwargs_env = self._ptr_kwargs_env
+        self._ptr_kwargs_env = None
+        
         res = copy.deepcopy(self)
 
         self._obs_env = obs_env
@@ -2376,6 +2391,10 @@ class BaseObservation(GridObjects):
 
         self.action_helper = action_helper
         res.action_helper = action_helper
+        
+        self._ptr_kwargs_env = _ptr_kwargs_env
+        res._ptr_kwargs_env = _ptr_kwargs_env
+        
         return res
 
     @property
@@ -3219,4 +3238,62 @@ class BaseObservation(GridObjects):
 
         res = Simulator(backend=self._obs_env.backend)
         res.set_state(self)
+        return res
+
+    def _get_array_from_forecast(self, name):
+        if len(self._forecasted_inj) <= 1:
+            # self._forecasted_inj already embed the current step
+            raise NoForecastAvailable("It appears this environment does not support any forecast at all.")
+        nb_h = len(self._forecasted_inj)
+        nb_el = self._forecasted_inj[0][1]['injection'][name].shape[0]
+        prev = 1.0 * self._forecasted_inj[0][1]['injection'][name]
+        res = np.zeros((nb_h, nb_el))
+        for h in range(nb_h):
+            dict_tmp = self._forecasted_inj[h][1]['injection']
+            if name in dict_tmp:
+                this_row = 1.0 * dict_tmp[name]
+                prev = 1.0 * this_row
+            else:
+                this_row = 1.0 * prev
+            res[h,:] = this_row
+        return res
+    
+    def _generate_forecasted_maintenance_for_simenv(self, nb_h: int):
+        n_line = type(self).n_line
+        res = np.full((nb_h, n_line), fill_value=False, dtype=dt_bool)
+        for l_id in range(n_line):
+            tnm = self.time_next_maintenance[l_id]
+            if tnm != -1:
+                dnm = self.duration_next_maintenance[l_id]
+                res[tnm:(tnm+dnm),l_id] = True
+        return res
+    
+    def get_forecast_env(self) -> "Environment":
+        if not self._ptr_kwargs_env:
+            raise BaseObservationError("Cannot build a environment with the forecast "
+                                       "data as this Observation does not appear to "
+                                       "support forecast.")
+        # build the forecast
+        from grid2op.Chronics import FromNPY, ChronicsHandler
+        load_p = self._get_array_from_forecast("load_p")
+        load_q = self._get_array_from_forecast("load_q")
+        prod_p = self._get_array_from_forecast("prod_p")
+        prod_v = self._get_array_from_forecast("prod_v")
+        maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
+        
+        ch = ChronicsHandler(FromNPY,
+                             load_p=load_p,
+                             load_q=load_q,
+                             prod_p=prod_p,
+                             prod_v=prod_v,
+                             maintenance=maintenance)
+        # TODO maintenance
+        backend = self._obs_env.backend.copy()
+        backend._is_loaded = False  # to be able to reuse it in an environment
+        from grid2op.Environment import Environment
+        res = Environment(**self._ptr_kwargs_env,
+                          backend=backend,
+                          chronics_handler=ch,
+                          _init_obs=self,
+                          )
         return res

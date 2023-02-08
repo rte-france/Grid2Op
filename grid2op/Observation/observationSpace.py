@@ -109,8 +109,8 @@ class ObservationSpace(SerializableObservationSpace):
         self.reward_helper = RewardHelper(reward_func=self._reward_func, logger=self.logger)
         self.reward_helper.initialize(env)
 
-        # TODO here: have another backend class maybe
         self.__can_never_use_simulate = False
+        # TODO here: have another backend class maybe
         _with_obs_env = _with_obs_env and self._create_backend_obs(env)
             
         _ObsEnv_class = _ObsEnv.init_grid(
@@ -135,7 +135,27 @@ class ObservationSpace(SerializableObservationSpace):
         if kwargs_observation is None:
             kwargs_observation = {}
         self._ptr_kwargs_observation = kwargs_observation
-
+        
+        self._real_env_kwargs = {}
+    
+    def set_real_env_kwargs(self, env):
+        if not self.with_forecast:
+            return 
+        
+        # I don't need the backend nor the chronics_handler
+        self._real_env_kwargs = env.get_kwargs(False, False)
+        
+        # i also "remove" the opponent
+        from grid2op.Action import DontAct
+        from grid2op.Opponent import BaseOpponent, NeverAttackBudget
+        self._real_env_kwargs["opponent_action_class"] = DontAct
+        self._real_env_kwargs["opponent_class"] = BaseOpponent
+        self._real_env_kwargs["opponent_init_budget"] = 0.
+        self._real_env_kwargs["opponent_budget_per_ts"] = 0.
+        self._real_env_kwargs["opponent_budget_class"] = NeverAttackBudget
+        self._real_env_kwargs["opponent_attack_duration"] = 0
+        self._real_env_kwargs["opponent_attack_cooldown"] = 999999
+        
     def _create_obs_env(self, _ObsEnv_class, env):
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
         self.obs_env = _ObsEnv_class(
@@ -210,7 +230,8 @@ class ObservationSpace(SerializableObservationSpace):
                 self.obs_env.close()
                 self.obs_env = None
             self._create_obs_env(env)
-            
+        
+        self.set_real_env_kwargs(env)
         self.with_forecast = True
         
     def simulate_called(self):
@@ -336,6 +357,7 @@ class ObservationSpace(SerializableObservationSpace):
             obs_env=obs_env_obs,
             action_helper=self.action_helper_env,
             random_prng=self.space_prng,
+            kwargs_env=self._real_env_kwargs,
             **self._ptr_kwargs_observation
         )
         self.__nb_simulate_called_this_step = 0

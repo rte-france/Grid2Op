@@ -267,6 +267,10 @@ class _ObsEnv(BaseEnv):
         self.backend = backend
         return res
 
+    def _reset_to_orig_state(self, obs):
+        super()._reset_to_orig_state(obs)
+        self._line_status_me[:] = obs._env_internal_params["_line_status_env"]
+        
     def init(
         self,
         new_state_action,
@@ -304,6 +308,7 @@ class _ObsEnv(BaseEnv):
             raise EnvError("Impossible to use a Observation backend with an "
                            "environment that cannot be copied.")
         
+        self.reset()  # reset the "BaseEnv"
         self._reset_to_orig_state(obs)
         self._topo_vect[:] = obs.topo_vect
         
@@ -379,130 +384,12 @@ class _ObsEnv(BaseEnv):
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
 
-    def _update_vector_with_timestep(self, horizon, is_overflow):
-        """
-        INTERNAL
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-        update the value of the "time dependant" attributes
-        """
-        cls = type(self)
-        
-        # update the cooldowns
-        self._times_before_line_status_actionable[:] = np.maximum(
-            self._times_before_line_status_actionable - (horizon - 1), 0
-        )
-        self._times_before_topology_actionable[:] = np.maximum(
-            self._times_before_topology_actionable - (horizon - 1), 0
-        )
-
-        # update the maintenance
-        tnm_orig = 1 * self._time_next_maintenance
-        dnm_orig = 1 * self._duration_next_maintenance
-        
-        has_maint = self._time_next_maintenance != -1
-        reconnected = np.full(cls.n_line, fill_value=False)
-        maint_started = np.full(cls.n_line, fill_value=False)
-        maint_over = np.full(cls.n_line, fill_value=False)
-        
-        maint_started[has_maint] = (tnm_orig[has_maint] <= horizon)
-        maint_over[has_maint] = (tnm_orig[has_maint] + dnm_orig[has_maint] 
-                                 <= horizon)
-        
-        reconnected[has_maint] = tnm_orig[has_maint] + dnm_orig[has_maint] == horizon
-        first_ts_maintenance = tnm_orig == horizon
-        still_in_maintenance = maint_started & (~maint_over) & (~first_ts_maintenance)
-        
-        # count down time next maintenance
-        self._time_next_maintenance[:] = np.maximum(
-            self._time_next_maintenance - horizon, -1
-        )
-        
-        # powerline that are still in maintenance at this time step
-        self._time_next_maintenance[still_in_maintenance] = 0
-        self._duration_next_maintenance[still_in_maintenance] -= (horizon - tnm_orig[still_in_maintenance])
-
-        # powerline that will be in maintenance at this time step
-        self._time_next_maintenance[first_ts_maintenance] = 0
-        
-        # powerline that will be in maintenance at this time step
-        self._time_next_maintenance[reconnected | maint_over] = -1
-        self._duration_next_maintenance[reconnected | maint_over] = 0
-
-        # soft overflow
-        # this is tricky here because I have no model to predict the future... 
-        # As i cannot do better, I simply do "if I am in overflow now, i will be later"
-        self._timestep_overflow[is_overflow] += (horizon - 1)
-        return still_in_maintenance, reconnected, first_ts_maintenance
-
     def reset(self):
         if self.__unusable:
             raise EnvError("Impossible to use a Observation backend with an "
                            "environment that cannot be copied.")
         super().reset()
         self.current_obs = self.current_obs_init
-
-    def _reset_to_orig_state(self, obs):
-        """
-        INTERNAL
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-        reset this "environment" to the state it should be
-        """
-        self.reset()  # reset the "BaseEnv"
-        self.backend.set_thermal_limit(obs._thermal_limit)
-        if "opp_space_state" in obs._env_internal_params:
-            self._oppSpace._set_state(obs._env_internal_params["opp_space_state"], 
-                                      obs._env_internal_params["opp_state"])
-        # storage unit
-        self._storage_current_charge[:] = obs.storage_charge
-        self._storage_previous_charge[:] = obs._env_internal_params["_storage_previous_charge"]
-        self._action_storage[:] = obs.storage_power_target
-        self._storage_power[:] = obs.storage_power
-        self._amount_storage = obs._env_internal_params["_amount_storage"]
-        self._amount_storage_prev = obs._env_internal_params["_amount_storage_prev"]
-
-        # curtailment
-        self._limit_curtailment[:] = obs.curtailment_limit
-        self._gen_before_curtailment[:] = obs.gen_p_before_curtail
-        self._sum_curtailment_mw = obs._env_internal_params["_sum_curtailment_mw"]
-        self._sum_curtailment_mw_prev = obs._env_internal_params["_sum_curtailment_mw_prev"]
-
-        # line status
-        self._line_status[:] = obs._env_internal_params["_line_status_env"] == 1
-        self._line_status_me[:] = obs._env_internal_params["_line_status_env"]
-
-        # attention budget
-        if self._has_attention_budget:
-            self._attention_budget.set_state(obs._env_internal_params["_attention_budget_state"])
-            
-        # cooldown
-        self._times_before_line_status_actionable[
-            :
-        ] = obs.time_before_cooldown_line
-        self._times_before_topology_actionable[
-            :
-        ] = obs.time_before_cooldown_sub
-        
-        # maintenance
-        self._time_next_maintenance[:] = obs.time_next_maintenance
-        self._duration_next_maintenance[:] = obs.duration_next_maintenance
-        
-        # redisp
-        self._target_dispatch[:] = obs.target_dispatch
-        self._actual_dispatch[:] = obs.actual_dispatch
-        self._already_modified_gen[:] = obs._env_internal_params["_already_modified_gen"]
-        self._gen_activeprod_t[:] = obs._env_internal_params["_gen_activeprod_t"]
-        self._gen_activeprod_t_redisp[:] = obs._env_internal_params["_gen_activeprod_t_redisp"]
-        
-        # current step
-        self.nb_time_step = obs.current_step
-        self.delta_time_seconds = 60. * obs.delta_time
-        
-        # soft overflow
-        self._timestep_overflow[:] = obs.timestep_overflow
 
     def simulate(self, action):
         """

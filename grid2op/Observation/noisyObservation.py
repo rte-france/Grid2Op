@@ -68,6 +68,7 @@ class NoisyObservation(BaseObservation):
         obs_env=None,
         action_helper=None,
         random_prng=None,
+        kwargs_env=None,
         sigma_load_p=0.01,  # multiplicative (log normal)
         sigma_load_q=0.01,  # multiplicative (log normal)
         sigma_gen_p=0.01,  # multiplicative (log normal)
@@ -79,7 +80,11 @@ class NoisyObservation(BaseObservation):
     ):
 
         BaseObservation.__init__(
-            self, obs_env=obs_env, action_helper=action_helper, random_prng=random_prng
+            self,
+            obs_env=obs_env,
+            action_helper=action_helper,
+            random_prng=random_prng,
+            kwargs_env=kwargs_env
         )
         self._dictionnarized = None
         self._sigma_load_p = sigma_load_p  # multiplicative (log normal)
