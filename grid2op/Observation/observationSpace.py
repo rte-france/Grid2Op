@@ -109,22 +109,9 @@ class ObservationSpace(SerializableObservationSpace):
         self.reward_helper = RewardHelper(reward_func=self._reward_func, logger=self.logger)
         self.reward_helper.initialize(env)
 
-        other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
-
         # TODO here: have another backend class maybe
-        if env.backend._can_be_copied:
-            try:
-                self._backend_obs = env.backend.copy()
-            except Exception as exc_:
-                self._backend_obs = None
-                self.logger.warn(f"Backend cannot be copied, simulate feature will "
-                                 f"be unsusable. Error was: {exc_}")
-                self._deactivate_simulate(env)
-                _with_obs_env = False
-        else:
-            self._backend_obs = None
-            self._deactivate_simulate(env)
-            _with_obs_env = False
+        self.__can_never_use_simulate = False
+        _with_obs_env = _with_obs_env and self._create_backend_obs(env)
             
         _ObsEnv_class = _ObsEnv.init_grid(
             type(env.backend), force_module=_ObsEnv.__module__
@@ -132,36 +119,12 @@ class ObservationSpace(SerializableObservationSpace):
         _ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
         setattr(sys.modules[_ObsEnv.__module__], _ObsEnv_class.__name__, _ObsEnv_class)
         if _with_obs_env:
-            self.obs_env = _ObsEnv_class(
-                init_env_path=None,  # don't leak the path of the real grid to the observation space
-                init_grid_path=None,  # don't leak the path of the real grid to the observation space
-                backend_instanciated=self._backend_obs,
-                obsClass=CompleteObservation,  # do not put self.observationClass otherwise it's initialized twice
-                parameters=self._simulate_parameters,
-                reward_helper=self.reward_helper,
-                action_helper=self.action_helper_env,
-                thermal_limit_a=env.get_thermal_limit(),
-                legalActClass=copy.deepcopy(env._legalActClass),
-                other_rewards=other_rewards,
-                helper_action_class=env._helper_action_class,
-                helper_action_env=env._helper_action_env,
-                epsilon_poly=env._epsilon_poly,
-                tol_poly=env._tol_poly,
-                has_attention_budget=env._has_attention_budget,
-                attention_budget_cls=env._attention_budget_cls,
-                kwargs_attention_budget=env._kwargs_attention_budget,
-                max_episode_duration=env.max_episode_duration(),
-                delta_time_seconds=env.delta_time_seconds,
-                logger=self.logger,
-                _complete_action_cls=env._complete_action_cls,
-                _ptr_orig_obs_space=self,
-            )
-            for k, v in self.obs_env.other_rewards.items():
-                v.initialize(env)
+            self._create_obs_env(_ObsEnv_class, env)
         else:
             self.with_forecast = False
             self.obs_env = None
             self._backend_obs = None
+            self.__can_never_use_simulate = True
 
         self._empty_obs = self._template_obj
         self._update_env_time = 0.0
@@ -173,13 +136,82 @@ class ObservationSpace(SerializableObservationSpace):
             kwargs_observation = {}
         self._ptr_kwargs_observation = kwargs_observation
 
+    def _create_obs_env(self, _ObsEnv_class, env):
+        other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
+        self.obs_env = _ObsEnv_class(
+            init_env_path=None,  # don't leak the path of the real grid to the observation space
+            init_grid_path=None,  # don't leak the path of the real grid to the observation space
+            backend_instanciated=self._backend_obs,
+            obsClass=CompleteObservation,  # do not put self.observationClass otherwise it's initialized twice
+            parameters=self._simulate_parameters,
+            reward_helper=self.reward_helper,
+            action_helper=self.action_helper_env,
+            thermal_limit_a=env.get_thermal_limit(),
+            legalActClass=copy.deepcopy(env._legalActClass),
+            other_rewards=other_rewards,
+            helper_action_class=env._helper_action_class,
+            helper_action_env=env._helper_action_env,
+            epsilon_poly=env._epsilon_poly,
+            tol_poly=env._tol_poly,
+            has_attention_budget=env._has_attention_budget,
+            attention_budget_cls=env._attention_budget_cls,
+            kwargs_attention_budget=env._kwargs_attention_budget,
+            max_episode_duration=env.max_episode_duration(),
+            delta_time_seconds=env.delta_time_seconds,
+            logger=self.logger,
+            _complete_action_cls=env._complete_action_cls,
+            _ptr_orig_obs_space=self,
+        )
+        for k, v in self.obs_env.other_rewards.items():
+            v.initialize(env)
+    
+    def _create_backend_obs(self, env):
+        _with_obs_env = True
+        if env.backend._can_be_copied:
+            try:
+                self._backend_obs = env.backend.copy()
+            except Exception as exc_:
+                self._backend_obs = None
+                self.logger.warn(f"Backend cannot be copied, simulate feature will "
+                                 f"be unsusable. Error was: {exc_}")
+                self._deactivate_simulate(env)
+                _with_obs_env = False
+                self.__can_never_use_simulate = True
+        else:
+            self._backend_obs = None
+            self._deactivate_simulate(env)
+            _with_obs_env = False
+            self.__can_never_use_simulate = True
+        return _with_obs_env
+    
     def _deactivate_simulate(self, env):
-        self._backend_obs = None
+        if self._backend_obs is not None:
+            self._backend_obs.close()
+            self._backend_obs = None
         self.with_forecast = False
         env.deactivate_forecast()
         env.backend._can_be_copied = False
         self.logger.warn("Forecasts have been deactivated because "
                          "the backend cannot be copied.")
+    
+    def reactivate_forecast(self, env):
+        if self.__can_never_use_simulate:
+            raise EnvError("You cannot use `simulate` for this environment, either because the "
+                           "backend you used cannot be copied, or because this observation space "
+                           "does not support this feature.")
+            
+        if self.obs_env is None or self._backend_obs is None:
+            # force create of everything in this case
+            if self._backend_obs is not None:
+                self._backend_obs.close()
+                self._backend_obs = None
+            self._create_backend_obs(env)
+            if self.obs_env is None :
+                self.obs_env.close()
+                self.obs_env = None
+            self._create_obs_env(env)
+            
+        self.with_forecast = True
         
     def simulate_called(self):
         """
@@ -252,30 +284,31 @@ class ObservationSpace(SerializableObservationSpace):
         """
         from grid2op.Reward import BaseReward
         from grid2op.Exceptions import Grid2OpException
+        if self.obs_env is not None:
+            self.obs_env.other_rewards = {}
+            for k, v in dict_reward.items():
+                if not issubclass(v, BaseReward):
+                    raise Grid2OpException(
+                        'All values of "rewards" key word argument should be classes that inherit '
+                        'from "grid2op.BaseReward"'
+                    )
+                if not isinstance(k, str):
+                    raise Grid2OpException(
+                        'All keys of "rewards" should be of string type.'
+                    )
+                self.obs_env.other_rewards[k] = RewardHelper(v)
 
-        self.obs_env.other_rewards = {}
-        for k, v in dict_reward.items():
-            if not issubclass(v, BaseReward):
-                raise Grid2OpException(
-                    'All values of "rewards" key word argument should be classes that inherit '
-                    'from "grid2op.BaseReward"'
-                )
-            if not isinstance(k, str):
-                raise Grid2OpException(
-                    'All keys of "rewards" should be of string type.'
-                )
-            self.obs_env.other_rewards[k] = RewardHelper(v)
-
-        for k, v in self.obs_env.other_rewards.items():
-            v.initialize(self.obs_env)
+            for k, v in self.obs_env.other_rewards.items():
+                v.initialize(self.obs_env)
 
     def change_reward(self, reward_func):
-        if self.obs_env.is_valid():
-            self.obs_env._reward_helper.change_reward(reward_func)
-        else:
-            raise EnvError("Impossible to change the reward of the simulate "
-                           "function when you cannot simulate (because the "
-                           "backend could not be copied)")
+        if self.obs_env is not None:
+            if self.obs_env.is_valid():
+                self.obs_env._reward_helper.change_reward(reward_func)
+            else:
+                raise EnvError("Impossible to change the reward of the simulate "
+                            "function when you cannot simulate (because the "
+                            "backend could not be copied)")
 
     def set_thermal_limit(self, thermal_limit_a):
         if self.obs_env is not None:

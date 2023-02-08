@@ -728,7 +728,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed, you cannot get its path.")
-        # return os.path.split(self._init_grid_path)[0]
         res = self._init_env_path if self._init_env_path is not None else ""
         return res
 
@@ -865,7 +864,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not isinstance(new_parameters, Parameters):
             raise EnvError(
                 'The new parameters "new_parameters" should be an instance of '
-                "grid2op.Parameters.Parameters."
+                "grid2op.Parameters.Parameters. "
             )
         new_parameters.check_valid()  # check the provided parameters are valid
         self.__new_param = new_parameters
@@ -1332,11 +1331,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        
         if not self.backend._can_be_copied:
             raise EnvError("Impossible to activate the forecasts with a "
                            "backend that cannot be copied.")
         if self._observation_space is not None:
-            self._observation_space.with_forecast = True
+            self._observation_space.reactivate_forecast(self)
         self.with_forecast = True
 
     @abstractmethod
@@ -1400,7 +1400,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise EnvError("This environment is closed, you cannot use it.")
         if not self.__is_init:
             raise Grid2OpException(
-                "Impossible to set the thermal limit to a non initialized Environment"
+                "Impossible to set the thermal limit to a non initialized Environment. "
+                "Have you called `env.reset()` after last game over ?"
             )
         if isinstance(thermal_limit, dict):
             tmp = np.full(self.n_line, fill_value=np.NaN, dtype=dt_float)
@@ -1451,7 +1452,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 f'the grid. You provided something with type "{type(thermal_limit)}" which '
                 f"is not supported."
             )
-
         self._thermal_limit_a[:] = tmp
         self.backend.set_thermal_limit(self._thermal_limit_a)
         self.observation_space.set_thermal_limit(self._thermal_limit_a)
@@ -1690,10 +1690,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             + self._amount_storage
             - self._sum_curtailment_mw
         )
-        
-        # print(f"{self}: {self._sum_curtailment_mw = }")
-        # print(f"{self}: {self._amount_storage = }")
-        
         # gen increase in the chronics
         new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
 
@@ -2091,7 +2087,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise EnvError("This environment is closed. You cannot use it anymore.")
         if not self.__is_init:
             raise EnvError(
-                "This environment is not initialized. You cannot retrieve its observation."
+                "This environment is not initialized. You cannot retrieve its observation. "
+                "Have you called `env.reset()` after last game over ?"
             )
         if self._last_obs is None:
             self._last_obs = self._observation_space(
@@ -2121,6 +2118,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        if not self.__is_init:
+            raise EnvError(
+                "This environment is not initialized. It has no thermal limits. "
+                "Have you called `env.reset()` after last game over ?"
+            )
         return 1.0 * self._thermal_limit_a
 
     def _withdraw_storage_losses(self):
@@ -2973,6 +2975,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        
         return self._reward_helper.template_reward
 
     def _is_done(self, has_error, is_done):
@@ -3338,6 +3341,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        if not self.__is_init:
+            raise EnvError("This environment is not intialized. "
+                           "Have you called `env.reset()` after last game over ?")
         nb_timestep = int(nb_timestep)
 
         # Go to the timestep requested minus one
@@ -3407,6 +3413,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Change the reward function used for the environment.
 
+        TODO examples !
+        
         Parameters
         ----------
         new_reward_func:
@@ -3420,6 +3428,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        
         is_ok = isinstance(new_reward_func, BaseReward) or issubclass(
             new_reward_func, BaseReward
         )

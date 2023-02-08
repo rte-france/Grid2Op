@@ -58,36 +58,44 @@ class N1Reward(BaseReward):
 
     def __init__(self, l_id=0, logger=None):
         BaseReward.__init__(self, logger=logger)
-        self.backend = None
+        self._backend = None
+        self._backend_action = None
         self.l_id = l_id
 
     def initialize(self, env):
-        self.backend = env.backend.copy()
+        self._backend = env.backend.copy()
         bk_act_cls = _BackendAction.init_grid(env.backend)
-        self.backend_action = bk_act_cls()
+        self._backend_action = bk_act_cls()
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if is_done:
             return self.reward_min
+        self._backend_action.reset()
         act = env.backend.get_action_to_set()
         th_lim = env.get_thermal_limit()
         th_lim[th_lim <= 1] = 1  # assign 1 for the thermal limit
-
         this_n1 = copy.deepcopy(act)
-        self.backend_action += this_n1
-        self.backend.apply_action(self.backend_action)
-        self.backend._disconnect_line(self.l_id)
+        self._backend_action += this_n1
+            
+        self._backend.apply_action(self._backend_action)
+        self._backend._disconnect_line(self.l_id)
+        div_exc_ = None
         try:
             # TODO there is a bug in lightsimbackend that make it crash instead of diverging
-            conv = self.backend.runpf()
+            conv, div_exc_ = self._backend.runpf()
         except Exception as exc_:
             conv = False
+            div_exc_ = exc_
 
         if conv:
-            flow = self.backend.get_line_flow()
-        return (flow / th_lim).max()
+            flow = self._backend.get_line_flow()
+            res = (flow / th_lim).max()
+        else:
+            self.logger.info(f"Divergence of the backend at step {env.nb_time_step} for N1Reward with error `{div_exc_}`")
+            res = -1
+        return res
 
     def close(self):
-        self.backend.close()
-        del self.backend
-        self.backend = None
+        self._backend.close()
+        del self._backend
+        self._backend = None

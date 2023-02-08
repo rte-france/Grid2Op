@@ -2213,7 +2213,7 @@ class BaseObservation(GridObjects):
         )
         return res
 
-    def simulate(self, action, time_step=1, chain_independant=False):
+    def simulate(self, action, time_step=1):
         """
         This method is used to simulate the effect of an action on a forecast powergrid state. This forecast
         state is built upon the current observation.
@@ -2228,9 +2228,6 @@ class BaseObservation(GridObjects):
 
         It has the same return
         value as the :func:`grid2op.Environment.Environment.step` function.
-
-        .. versionadded:: 1.8.3
-            The `chain_independant` parameters.
             
         Parameters
         ----------
@@ -2241,12 +2238,6 @@ class BaseObservation(GridObjects):
             The time step of the forecasted grid to perform the action on. If no forecast are available for this
             time step, a :class:`grid2op.Exceptions.NoForecastAvailable` is thrown.
 
-        chain_independant: ``bool``
-            Whether or not to chain the call to "simulate" in an independant manner (see doc below TODO) or not.
-            If calls are independant, it will be much faster, but an action will be "forgotten" between the chained
-            calls (cooldown will not be impacted, neither thermal limits, etc.). 
-            By default it's `False`, meaning it takes longer to compute but is more "straightforward".
-            
         Raises
         ------
         :class:`grid2op.Exceptions.NoForecastAvailable`
@@ -2311,7 +2302,7 @@ class BaseObservation(GridObjects):
                 "and no simulated environment are set)."
             )
         if self._obs_env is None:
-            raise BaseObservationError(
+            raise NoForecastAvailable(
                 'This observation has no "environment used for simulation" (_obs_env) is not created. '
                 "This is the case if you loaded this observation from a disk (for example using "
                 "EpisodeData) "
@@ -2351,12 +2342,6 @@ class BaseObservation(GridObjects):
             # allow "chain" to simulate
             sim_obs.action_helper = self.action_helper  # no copy !
             sim_obs._obs_env = self._obs_env  # no copy
-            # if chain_independant:
-            #     sim_obs._obs_env = self._obs_env  # no copy !
-            # else:
-            #     # copy here
-            #     sim_obs._obs_env = self._obs_env.copy()
-            #     sim_obs._obs_env.update_grid(self._obs_env)
             sim_obs._forecasted_inj = self._forecasted_inj[1:]  # remove the first one
             sim_obs._update_internal_env_params(self._obs_env)
         return (sim_obs, *rest)  # parentheses are needed for python 3.6 at least.
@@ -3097,9 +3082,9 @@ class BaseObservation(GridObjects):
         if env._has_attention_budget:
             self._env_internal_params["_attention_budget_state"] = env._attention_budget.get_state()
         
-        # TODO this looks suspicious !
-        (self._env_internal_params["opp_space_state"], 
-         self._env_internal_params["opp_state"]) = env._oppSpace._get_state()
+        # # TODO this looks suspicious !
+        # (self._env_internal_params["opp_space_state"], 
+        #  self._env_internal_params["opp_state"]) = env._oppSpace._get_state()
         
     def _update_obs_complete(self, env, with_forecast=True):
         """

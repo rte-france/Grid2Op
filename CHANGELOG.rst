@@ -43,6 +43,7 @@ Change Log
      they are connected to a disconnected bus (in this case I chose to put `theta=0`) 
   2) the `obs.as_networkx()` method did not check, when updating nodes attributes if powerlines 
      were connected or not, which was wrong in some cases 
+- [FIXED] the `N1Reward` that was broken
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWIthForecasts` is now able to read forecast from multiple steps
@@ -56,6 +57,7 @@ Change Log
   resulting graph object.
 - [IMPROVED] possibility to set `data_feeding_kwargs` from the config file directly.
 - [IMPROVED] so "FutureWarnings" are silenced (depending on pandas and pandapower version)
+- [IMPROVED] error messages when "env.reset()" has not been called and some functions are not available.
 
 [1.8.1] - 2023-01-11
 ---------------------
