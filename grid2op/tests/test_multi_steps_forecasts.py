@@ -166,6 +166,8 @@ class MultiStepsForcaTester(unittest.TestCase):
         assert tmp_o_12_3.time_before_cooldown_sub[2] == 0        
     
     def test_maintenance(self):
+        # TODO test this for the "chained simulate"!
+        
         obs = self.env.reset()   # no maintenance
         obs = self.env.reset()  # maintenance
         dn = self.env.action_space()

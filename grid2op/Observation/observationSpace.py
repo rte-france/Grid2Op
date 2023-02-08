@@ -120,9 +120,11 @@ class ObservationSpace(SerializableObservationSpace):
                 self.logger.warn(f"Backend cannot be copied, simulate feature will "
                                  f"be unsusable. Error was: {exc_}")
                 self._deactivate_simulate(env)
+                _with_obs_env = False
         else:
             self._backend_obs = None
             self._deactivate_simulate(env)
+            _with_obs_env = False
             
         _ObsEnv_class = _ObsEnv.init_grid(
             type(env.backend), force_module=_ObsEnv.__module__
@@ -292,11 +294,13 @@ class ObservationSpace(SerializableObservationSpace):
         self.action_helper_env.actionClass.reset_space()
 
     def __call__(self, env, _update_state=True):
+        obs_env_obs = None
         if self.with_forecast:
             self.obs_env.update_grid(env)
-
+            obs_env_obs = self.obs_env if self.obs_env.is_valid() else None
+        
         res = self.observationClass(
-            obs_env=self.obs_env if self.obs_env.is_valid() else None,
+            obs_env=obs_env_obs,
             action_helper=self.action_helper_env,
             random_prng=self.space_prng,
             **self._ptr_kwargs_observation
@@ -327,11 +331,12 @@ class ObservationSpace(SerializableObservationSpace):
 
     def reset(self, real_env):
         """reset the observation space with the new values of the environment"""
-        self.obs_env._reward_helper.reset(real_env)
         self.__nb_simulate_called_this_step = 0
         self.__nb_simulate_called_this_episode = 0
-        for k, v in self.obs_env.other_rewards.items():
-            v.reset(real_env)
+        if self.with_forecast:
+            self.obs_env._reward_helper.reset(real_env)
+            for k, v in self.obs_env.other_rewards.items():
+                v.reset(real_env)
         self._env_param = copy.deepcopy(real_env.parameters)
 
     def _custom_deepcopy_for_copy(self, new_obj):

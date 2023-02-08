@@ -253,11 +253,12 @@ class _ObsEnv(BaseEnv):
 
         from grid2op.Observation import ObservationSpace
         from grid2op.Reward import FlatReward
-        self._observation_space = ObservationSpace(backend,
-                                                   env=self,
-                                                   with_forecast=False,
-                                                   rewardClass=FlatReward,
-                                                   _with_obs_env=False)
+        ob_sp_cls = ObservationSpace.init_grid(backend)
+        self._observation_space = ob_sp_cls(backend,
+                                            env=self,
+                                            with_forecast=False,
+                                            rewardClass=FlatReward,
+                                            _with_obs_env=False)
         
         # create the opponent
         self._create_opponent()
