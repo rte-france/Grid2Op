@@ -47,9 +47,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
     prod_v_forecast: ``numpy.ndarray``, dtype: ``float``
         Array used to store the forecasts of the generator voltage magnitude setpoint.
 
-    maintenance_forecast: ``numpy.ndarray``, dtype: ``float``
-        Array used to store the forecasts of the _maintenance operations.
-
     """
 
     def __init__(
@@ -66,14 +63,12 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         self.load_q_forecast = None
         self.prod_p_forecast = None
         self.prod_v_forecast = None
-        self.maintenance_forecast = None
 
         # for when you read data in chunk
         self._order_load_p_forecasted = None
         self._order_load_q_forecasted = None
         self._order_prod_p_forecasted = None
         self._order_prod_v_forecasted = None
-        self._order_maintenance_forecasted = None
         self._data_already_in_mem = False  # says if the "main" value from the base class had to be reloaded (used for chunk)
         self._nb_forecast = len(h_forecast)
         self._h_forecast = copy.deepcopy(h_forecast)
@@ -129,9 +124,8 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         """
         The same condition as :class:`GridStateFromFile.initialize` applies also for
         :attr:`GridStateFromFileWithForecasts.load_p_forecast`,  :attr:`GridStateFromFileWithForecasts.load_q_forecast`,
-        :attr:`GridStateFromFileWithForecasts.prod_p_forecast`,
-        :attr:`GridStateFromFileWithForecasts.prod_v_forecast` and
-        :attr:`GridStateFromFileWithForecasts.maintenance_forecast`.
+        :attr:`GridStateFromFileWithForecasts.prod_p_forecast`, and 
+        :attr:`GridStateFromFileWithForecasts.prod_v_forecast`.
 
         Parameters
         ----------
@@ -163,21 +157,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         prod_v_iter = self._get_data("prod_v_forecasted",
                                      chunk_size, nrows_to_load)
         hazards = None  # no hazards in forecast
-
-        nrows = None
-        if self.max_iter > 0:
-            nrows = self.max_iter + 1
-        read_compressed = self._get_fileext("maintenance_forecasted")
-        if read_compressed is not None:
-            maintenance = pd.read_csv(
-                os.path.join(
-                    self.path, "maintenance_forecasted{}".format(read_compressed)
-                ),
-                sep=self.sep,
-                nrows=nrows,
-            )
-        else:
-            maintenance = None
+        maintenance = None  # maintenance are read from the real data and propagated in the chronics
 
         if self.chunk_size is None:
             load_p = load_p_iter
@@ -218,15 +198,13 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         self._order_load_q_forecasted = np.argsort(order_backend_load_q)
         self._order_prod_p_forecasted = np.argsort(order_backend_prod_p)
         self._order_prod_v_forecasted = np.argsort(order_backend_prod_v)
-        self._order_maintenance_forecasted = np.argsort(order_backend_maintenance)
 
         self._init_attrs_forecast(
-            load_p, load_q, prod_p, prod_v, maintenance=maintenance
+            load_p, load_q, prod_p, prod_v
         )
 
-    def _init_attrs_forecast(self, load_p, load_q, prod_p, prod_v, maintenance=None):
+    def _init_attrs_forecast(self, load_p, load_q, prod_p, prod_v):
         # TODO refactor that with _init_attrs from super()
-        self.maintenance_forecast = None
         self.load_p_forecast = None
         self.load_q_forecast = None
         self.prod_p_forecast = None
@@ -248,16 +226,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             self.prod_v_forecast = copy.deepcopy(
                 prod_v.values[:, self._order_prod_v_forecasted].astype(dt_float)
             )
-
-        if maintenance is not None:
-            if maintenance is not None:
-                self.maintenance_forecast = copy.deepcopy(
-                    maintenance.values[:, np.argsort(self._order_maintenance)]
-                )
-
-            # there are _maintenance and hazards only if the value in the file is not 0.
-            self.maintenance_forecast = self.maintenance != 0.0
-            self.maintenance_forecast = self.maintenance_forecast.astype(dt_bool)
 
     def check_validity(self, backend):
         super(GridStateFromFileWithForecasts, self).check_validity(backend)
@@ -295,14 +263,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
                 )
             at_least_one = True
 
-        if self.maintenance_forecast is not None:
-            if self.maintenance_forecast.shape[1] != backend.n_line:
-                raise IncorrectNumberOfLines(
-                    "for the _maintenance. It should be {} but is in fact {}"
-                    "".format(backend.n_line, len(self.maintenance))
-                )
-            at_least_one = True
-
         if not at_least_one:
             raise ChronicsError(
                 "You used a class that read forecasted data, yet there is no forecasted data in"
@@ -311,13 +271,12 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             )
 
         for name_arr, arr in zip(
-            ["load_q", "load_p", "prod_v", "prod_p", "maintenance"],
+            ["load_q", "load_p", "prod_v", "prod_p"],
             [
                 self.load_q_forecast,
                 self.load_p_forecast,
                 self.prod_v_forecast,
-                self.prod_p_forecast,
-                self.maintenance_forecast,
+                self.prod_p_forecast
             ],
         ):
             if arr is not None:
@@ -383,9 +342,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             if dict_:
                 res_d["injection"] = dict_
 
-            if self.maintenance_forecast is not None:
-                res_d["maintenance"] = self.maintenance_forecast[self.current_index, :]
-
             forecast_datetime = self.current_datetime + timedelta(minutes=h)
             res.append((forecast_datetime, res_d))
         return res
@@ -398,7 +354,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         res_load_q_f = None
         res_prod_p_f = None
         res_prod_v_f = None
-        res_maintenance_f = None
         if self.prod_p_forecast is not None:
             res_prod_p_f = np.zeros((nb_rows, self.n_gen), dtype=dt_float)
         if self.prod_v_forecast is not None:
@@ -407,11 +362,10 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             res_load_p_f = np.zeros((nb_rows, self.n_load), dtype=dt_float)
         if self.load_q_forecast is not None:
             res_load_q_f = np.zeros((nb_rows, self.n_load), dtype=dt_float)
-        if self.maintenance_forecast is not None:
-            res_maintenance_f = np.zeros((nb_rows, self.n_line), dtype=dt_float)
+            
         res = super()._init_res_split(nb_rows)
         res += tuple(
-            [res_prod_p_f, res_prod_v_f, res_load_p_f, res_load_q_f, res_maintenance_f]
+            [res_prod_p_f, res_prod_v_f, res_load_p_f, res_load_q_f]
         )
         return res
 
@@ -421,8 +375,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             res_prod_p_f,
             res_prod_v_f,
             res_load_p_f,
-            res_load_q_f,
-            res_maintenance_f,
+            res_load_q_f
         ) = arrays
         super()._update_res_split(i, tmp, *args_super)
         if res_prod_p_f is not None:
@@ -433,8 +386,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             res_load_p_f[i, :] = tmp._extract_array("load_p_forecast")
         if res_load_q_f is not None:
             res_load_q_f[i, :] = tmp._extract_array("load_q_forecast")
-        if res_maintenance_f is not None:
-            res_maintenance_f[i, :] = tmp._extract_array("maintenance_forecast")
 
     def _clean_arrays(self, i, *arrays):
         (
@@ -442,8 +393,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             res_prod_p_f,
             res_prod_v_f,
             res_load_p_f,
-            res_load_q_f,
-            res_maintenance_f,
+            res_load_q_f
         ) = arrays
         res = super()._clean_arrays(i, *args_super)
         if res_prod_p_f is not None:
@@ -454,10 +404,9 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             res_load_p_f = res_load_p_f[:i, :]
         if res_load_q_f is not None:
             res_load_q_f = res_load_q_f[:i, :]
-        if res_maintenance_f is not None:
-            res_maintenance_f = res_maintenance_f[:i, :]
+            
         res += tuple(
-            [res_prod_p_f, res_prod_v_f, res_load_p_f, res_load_q_f, res_maintenance_f]
+            [res_prod_p_f, res_prod_v_f, res_load_p_f, res_load_q_f]
         )
         return res
 
@@ -467,8 +416,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             "prod_p_forecasted",
             "prod_v_forecasted",
             "load_p_forecasted",
-            "load_q_forecasted",
-            "maintenance_forecasted",
+            "load_q_forecasted"
         ]
         return res
 
@@ -479,8 +427,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
                 self._order_backend_prods,
                 self._order_backend_prods,
                 self._order_backend_loads,
-                self._order_backend_loads,
-                self._order_backend_lines,
+                self._order_backend_loads
             ]
         )
         return res

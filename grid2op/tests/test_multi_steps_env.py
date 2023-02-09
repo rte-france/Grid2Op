@@ -77,7 +77,7 @@ class ForecastEnvTester(unittest.TestCase):
         f_obs3, *_ = forecast_env.step(self.dn)
         assert f_obs3.timestep_overflow[5] == 0
         assert not f_obs3.line_status[5]
-        assert f_obs.time_before_cooldown_line[5] == 4
+        assert f_obs3.time_before_cooldown_line[5] == 4
         
         f_obs4, *_ = forecast_env.step(self.dn)
         assert not f_obs4.line_status[5]
@@ -245,6 +245,30 @@ class ForecastEnvTester(unittest.TestCase):
         assert np.all(f2_obs1.load_p != forecast_env_cpy.get_obs().load_p)
         assert np.all(f2_obs1.load_p != forecast_env.get_obs().load_p)
 
-             
+    def test_right_parameters(self):
+        # the forecasted env should start with the same "values" for cooldowns, soft overflows etc.
+        assert self.env.parameters.NB_TIMESTEP_RECONNECTION == 10
+        
+        param = self.env.parameters
+        param.NO_OVERFLOW_DISCONNECTION = False
+        param.NB_TIMESTEP_RECONNECTION = 4
+        self.env.change_parameters(param)
+        obs = self.env.reset()
+        assert self.env.parameters.NB_TIMESTEP_RECONNECTION == 4
+        forecast_env = obs.get_forecast_env()
+        f_obs = forecast_env.reset()
+        assert forecast_env.parameters.NB_TIMESTEP_RECONNECTION == 10
+        
+        self.env.change_forecast_parameters(param)
+        obs2 = self.env.reset()
+        forecast_env2 = obs2.get_forecast_env()
+        assert forecast_env2.parameters.NB_TIMESTEP_RECONNECTION == 4
+        
+        param.NB_TIMESTEP_RECONNECTION = 17
+        forecast_env2.change_parameters(param)
+        obs3 = forecast_env2.reset()
+        assert forecast_env2.parameters.NB_TIMESTEP_RECONNECTION == 17
+        
+        
 if __name__ == "__main__":
     unittest.main()

@@ -737,7 +737,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Get the path that allows to create this environment.
 
-        It can be used for example in `grid2op.utils.underlying_statistics` to save the information directly inside
+        It can be used for example in :func:`grid2op.utils.EpisodeStatistics` 
+        to save the information directly inside
         the environment data.
 
         """
@@ -757,7 +758,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         I cannot use "self.name_line" for example.
 
-        This function update the backend INSTANCE. The backend class is then updated in the env._init_backend(...)
+        This function update the backend INSTANCE. The backend class is then updated in the 
+        :func:`BaseEnv._init_backend`
         function with a call to `self.backend.assert_grid_correct()`
 
         Returns
@@ -886,7 +888,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def change_forecast_parameters(self, new_parameters):
         """
-        Allows to change the parameters of a "forecast environment".
+        Allows to change the parameters of a "forecast environment" that is for
+        the method :func:`grid2op.Observation.BaseObservation.simulate` and 
+        :func:`grid2op.Observation.BaseObservation.get_forecast_env`
 
         Notes
         ------
@@ -899,6 +903,28 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_parameters: :class:`grid2op.Parameters.Parameters`
             The new parameters you want the environment to get.
 
+        Examples
+        --------
+        
+        This can be used like:
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            
+            param = env.parameters
+            param.NO_OVERFLOW_DISCONNECTION = True  # or any other properties of the environment
+            env.change_forecast_parameters(param)
+            # at this point this has no impact.
+            
+            obs = env.reset()
+            # now, after the reset, the right parameters are used
+            sim_obs, sim_reward, sim_done, sim_info = obs.simulate(env.action_space())
+            # the new parameters `param` are used for this 
+            # and also for
+            forecasted_env = obs.get_forecast_env()
         """
 
         if self.__closed:
@@ -2068,15 +2094,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def get_obs(self, _update_state=True):
         """
-        Return the observations of the current environment made by the :class:`grid2op.BaseAgent.BaseAgent`.
+        Return the observations of the current environment made by the :class:`grid2op.Agent.BaseAgent`.
 
         .. note::
             This function is called twice when the env is reset, otherwise once per step
 
         Returns
         -------
-        res: :class:`grid2op.Observation.Observation`
-            The current BaseObservation given to the :class:`grid2op.BaseAgent.BaseAgent` / bot / controler.
+        res: :class:`grid2op.Observation.BaseObservation`
+            The current observation usually given to the :class:`grid2op.Agent.BaseAgent` / bot / controler.
 
         Examples
         ---------
@@ -3386,7 +3412,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-            prefer using :attr:`grid2op.BaseObservation.line_status`
+            prefer using :attr:`grid2op.Observation.BaseObservation.line_status`
 
         This method allows to retrieve the line status.
         """
@@ -3403,12 +3429,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Return a deepcopy of the parameters used by the environment
 
-        It is a deepcopy, so modifying it will have absolutely no effect.
+        It is a deepcopy, so modifying it will have absolutely no effect on the environment.
 
         If you want to change the parameters of an environment, please use either
         :func:`grid2op.Environment.BaseEnv.change_parameters` to change the parameters of this environment or
         :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` to change the parameter of the environment
-        used by `simulate`.
+        used by :func:`grid2op.Observation.BaseObservation.simulate` or 
+        :func:`grid2op.Observation.BaseObservation.get_forecast_env`
         """
 
         if self.__closed:
@@ -3481,8 +3508,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         Use with extra care !
         If you get into trouble like :
 
-        AttributeError: Can't get attribute 'ActionSpace_l2rpn_icaps_2021_small' on <module 'grid2op.Space.GridObjects' from '/home/benjamin/Documents/grid2op_dev/grid2op/Space/GridObjects.py'>
-
+        .. code-block:: none
+        
+            AttributeError: Can't get attribute 'ActionSpace_l2rpn_icaps_2021_small' 
+            on <module 'grid2op.Space.GridObjects' from
+            /home/benjamin/Documents/grid2op_dev/grid2op/Space/GridObjects.py'>
+        
         You might want to call this function and that MIGHT solve your problem.
 
         This function will create a subdirectory ino the env directory, that will be accessed when loadin the class
@@ -3495,16 +3526,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         First step, generated the classes once and for all.
 
-        **NB** you need to redo this step each time
-        you customize the environment. This customization includes, but is not limited to:
+        .. warning::
+            You need to redo this step each time
+            you customize the environment. This customization includes, but is not limited to:
 
-        - change the backend type: `grid2op.make(..., backend=...)`
-        - change the action class: `grid2op.make(..., action_class=...)`
-        - change observation class: `grid2op.make(..., observation_class=...)`
-        - change the `volagecontroler_class`
-        - change the `grid_path`
-        - change the `opponent_action_class`
-        - etc.
+            - change the backend type: `grid2op.make(..., backend=...)`
+            - change the action class: `grid2op.make(..., action_class=...)`
+            - change observation class: `grid2op.make(..., observation_class=...)`
+            - change the `volagecontroler_class`
+            - change the `grid_path`
+            - change the `opponent_action_class`
+            - etc.
 
         .. code-block:: python
 

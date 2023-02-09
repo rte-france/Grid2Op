@@ -113,13 +113,13 @@ class ObservationSpace(SerializableObservationSpace):
         # TODO here: have another backend class maybe
         _with_obs_env = _with_obs_env and self._create_backend_obs(env)
             
-        _ObsEnv_class = _ObsEnv.init_grid(
+        self._ObsEnv_class = _ObsEnv.init_grid(
             type(env.backend), force_module=_ObsEnv.__module__
         )
-        _ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
-        setattr(sys.modules[_ObsEnv.__module__], _ObsEnv_class.__name__, _ObsEnv_class)
+        self._ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
+        setattr(sys.modules[_ObsEnv.__module__], self._ObsEnv_class.__name__, self._ObsEnv_class)
         if _with_obs_env:
-            self._create_obs_env(_ObsEnv_class, env)
+            self._create_obs_env(env)
         else:
             self.with_forecast = False
             self.obs_env = None
@@ -145,6 +145,9 @@ class ObservationSpace(SerializableObservationSpace):
         # I don't need the backend nor the chronics_handler
         self._real_env_kwargs = env.get_kwargs(False, False)
         
+        # remove the parameters anyways
+        del self._real_env_kwargs["parameters"]
+        
         # i also "remove" the opponent
         from grid2op.Action import DontAct
         from grid2op.Opponent import BaseOpponent, NeverAttackBudget
@@ -156,9 +159,9 @@ class ObservationSpace(SerializableObservationSpace):
         self._real_env_kwargs["opponent_attack_duration"] = 0
         self._real_env_kwargs["opponent_attack_cooldown"] = 999999
         
-    def _create_obs_env(self, _ObsEnv_class, env):
+    def _create_obs_env(self, env):
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
-        self.obs_env = _ObsEnv_class(
+        self.obs_env = self._ObsEnv_class(
             init_env_path=None,  # don't leak the path of the real grid to the observation space
             init_grid_path=None,  # don't leak the path of the real grid to the observation space
             backend_instanciated=self._backend_obs,
@@ -183,7 +186,7 @@ class ObservationSpace(SerializableObservationSpace):
             _ptr_orig_obs_space=self,
         )
         for k, v in self.obs_env.other_rewards.items():
-            v.initialize(env)
+            v.initialize(self.obs_env)
     
     def _create_backend_obs(self, env):
         _with_obs_env = True
@@ -226,7 +229,7 @@ class ObservationSpace(SerializableObservationSpace):
                 self._backend_obs.close()
                 self._backend_obs = None
             self._create_backend_obs(env)
-            if self.obs_env is None :
+            if self.obs_env is not None :
                 self.obs_env.close()
                 self.obs_env = None
             self._create_obs_env(env)
@@ -392,6 +395,7 @@ class ObservationSpace(SerializableObservationSpace):
             self.obs_env._reward_helper.reset(real_env)
             for k, v in self.obs_env.other_rewards.items():
                 v.reset(real_env)
+            self.obs_env.reset()
         self._env_param = copy.deepcopy(real_env.parameters)
 
     def _custom_deepcopy_for_copy(self, new_obj):
@@ -425,6 +429,8 @@ class ObservationSpace(SerializableObservationSpace):
         
         # real env kwargs, these is a "pointer" anyway
         new_obj._real_env_kwargs = self._real_env_kwargs
+        
+        new_obj._ObsEnv_class = self._ObsEnv_class
 
     def copy(self, copy_backend=False):
         """
