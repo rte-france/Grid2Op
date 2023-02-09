@@ -725,7 +725,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._has_just_been_seeded = self._has_just_been_seeded
         
         # time_dependant attributes for the "forecast env"
-        new_obj._init_obs = self._init_obs.copy()
+        if self._init_obs is None:
+            new_obj._init_obs = None
+        else:
+            new_obj._init_obs = self._init_obs.copy()
         
         # do not forget !
         new_obj._is_test = self._is_test
