@@ -25,7 +25,6 @@ class MultiStepsForcaTester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            # this needs to be tested with pandapower backend
             self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"), test=True)
         self.env.seed(0)
         self.env.set_id(0)
@@ -102,7 +101,6 @@ class MultiStepsForcaTester(unittest.TestCase):
     def test_cache(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            # this needs to be tested with pandapower backend
             env = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"),
                                test=True,
                                chronics_class=MultifolderWithCache)
@@ -242,7 +240,6 @@ class ChainSimulateTester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            # this needs to be tested with pandapower backend
             self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"), test=True)
         self.env.seed(0)
         self.env.set_id(0)
@@ -425,7 +422,6 @@ class SoftOverflowTester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            # this needs to be tested with pandapower backend
             self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"), test=True)
         self.env.seed(0)
         self.env.set_id(0)

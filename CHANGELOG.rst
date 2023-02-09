@@ -44,6 +44,8 @@ Change Log
   2) the `obs.as_networkx()` method did not check, when updating nodes attributes if powerlines 
      were connected or not, which was wrong in some cases 
 - [FIXED] the `N1Reward` that was broken
+- [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
+  forecasts data in the observation. This is especially useful in model based RL.
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWIthForecasts` is now able to read forecast from multiple steps

@@ -10,6 +10,7 @@ import grid2op
 import unittest
 import warnings
 import numpy as np
+import copy
 import pdb
 import os
 
@@ -19,7 +20,7 @@ import grid2op
 import numpy as np
 
 
-class MultiStepsForcaTester(unittest.TestCase):
+class ForecastEnvTester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -31,6 +32,9 @@ class MultiStepsForcaTester(unittest.TestCase):
     
     def _check_ok(self, f_obs, obs, h):
         sim_obs, *_ = obs.simulate(self.dn, h)
+        self._check_obs(sim_obs, f_obs, h)
+    
+    def _check_obs(self, sim_obs, f_obs, h):
         assert np.all(sim_obs.load_p == f_obs.load_p), f"error for h={h}"
         assert np.all(sim_obs.load_q == f_obs.load_q), f"error for h={h}"
         assert np.all(sim_obs.gen_p == f_obs.gen_p), f"error for h={h}"
@@ -152,17 +156,95 @@ class MultiStepsForcaTester(unittest.TestCase):
         assert f_obs11.line_status[5]
         assert not info["is_illegal"]
     
-# TODO same results as simulate / as expected:
-# X regurlarly (do nothing)
-#   X regurlarly (standard) 
-#   X maintenance
-#   X cooldown
-#   X soft overflow
-# > with some actions (carefull chain of simulate !)
+    def test_with_actions(self):
+        disco = self.env.action_space({"set_line_status": [(5, -1)]})
+        reco = self.env.action_space({"set_line_status": [(5, 1)]})
+        change_bus = self.env.action_space({"set_bus": {"substations_id": [(0, [1, 2, 1, 2, 1, 2])]}})
+          
+        obs = self.env.reset()  # no maintenance
+        forecast_env = obs.get_forecast_env()
+        
+        f_obs1, *_ = forecast_env.step(disco)
+        sim_obs1, *_ = obs.simulate(disco)
+        self._check_obs(f_obs1, sim_obs1, 1)
+        assert np.all(f_obs1.time_before_cooldown_line == sim_obs1.time_before_cooldown_line)
+        
+        f_obs2, *_ = forecast_env.step(self.dn)
+        sim_obs2, *_ = sim_obs1.simulate(self.dn)
+        self._check_obs(f_obs2, sim_obs2, 2)
+        
+        f_obs3, f_r, f_d, f_info = forecast_env.step(change_bus)
+        sim_obs3, s_r, s_d, s_info = sim_obs2.simulate(change_bus)
+        assert not f_d
+        assert not s_d
+        self._check_obs(f_obs3, sim_obs3, 3)
+        assert np.all(f_obs3.time_before_cooldown_line == sim_obs3.time_before_cooldown_line)
+        assert np.all(f_obs3.time_before_cooldown_sub == sim_obs3.time_before_cooldown_sub)
+        
+        f_obs4, *_ = forecast_env.step(self.dn)
+        sim_obs4, *_ = sim_obs3.simulate(self.dn)
+        self._check_obs(f_obs4, sim_obs4, 4)
+        assert np.all(f_obs4.time_before_cooldown_line == sim_obs4.time_before_cooldown_line)
+        assert np.all(f_obs4.time_before_cooldown_sub == sim_obs4.time_before_cooldown_sub)
+        
+        f_obs5, *_ = forecast_env.step(reco)
+        sim_obs5, *_ = sim_obs4.simulate(reco)
+        self._check_obs(f_obs5, sim_obs5, 1)
+        assert np.all(f_obs5.time_before_cooldown_line == sim_obs5.time_before_cooldown_line)
+        assert np.all(f_obs5.time_before_cooldown_sub == sim_obs5.time_before_cooldown_sub)
+    
+    def _aux_equal_tuple(self, ref, other):
+        assert len(ref) == len(other)
+        for i, (el_ref, el_other) in enumerate(zip(ref, other)):
+            assert np.all(el_ref == el_other), f"error for arrays {i}"
+        
+    def test_simulate_does_not_impact_reality(self):   
+        disco = self.env.action_space({"set_line_status": [(5, -1)]})
+             
+        obs = self.env.reset()  # no maintenance
+        forecast_env = obs.get_forecast_env()
+        forecast_env_cpy = forecast_env.copy()
+        forecast_env2 = obs.get_forecast_env()
 
-# TODO test that backend is properly copied
-# TODO test that whatever I do in the simulated env it has no impact "on the reality"             
-# TODO test that whatever I do in the simulated env it has no impact "on simulate"
+        loads_init = copy.deepcopy(self.env.backend.loads_info())
+        gens_init = copy.deepcopy(self.env.backend.generators_info())
+        lines_or_init = copy.deepcopy(self.env.backend.lines_or_info())
+        lines_ex_init = copy.deepcopy(self.env.backend.lines_ex_info())
+        
+        # backend is properly copied
+        assert self.env.backend is not forecast_env.backend
+        assert self.env.backend is not forecast_env2.backend
+        assert forecast_env.backend is not forecast_env2.backend
+        assert forecast_env.backend is not forecast_env_cpy.backend
+        
+        # I do an action in one of the simulate, it has only an impact there
+        f_obs, *_ = forecast_env.step(self.dn)
+        self._aux_equal_tuple(loads_init, self.env.backend.loads_info())
+        self._aux_equal_tuple(gens_init, self.env.backend.generators_info())
+        self._aux_equal_tuple(lines_or_init, self.env.backend.lines_or_info())
+        self._aux_equal_tuple(lines_ex_init, self.env.backend.lines_ex_info())
+        
+        assert np.all(f_obs.load_p != forecast_env_cpy.get_obs().load_p)
+        assert np.all(f_obs.load_p != forecast_env2.get_obs().load_p)
+        
+        # now try to do a real action
+        f_obs2, *_ = forecast_env.step(disco)
+        self._aux_equal_tuple(loads_init, self.env.backend.loads_info())
+        self._aux_equal_tuple(gens_init, self.env.backend.generators_info())
+        self._aux_equal_tuple(lines_or_init, self.env.backend.lines_or_info())
+        self._aux_equal_tuple(lines_ex_init, self.env.backend.lines_ex_info())
+        assert np.all(f_obs2.load_p != forecast_env_cpy.get_obs().load_p)
+        assert np.all(f_obs2.load_p != forecast_env2.get_obs().load_p)
+        
+        # now try to do a real action
+        f2_obs1, *_ = forecast_env2.step(disco)
+        self._aux_equal_tuple(loads_init, self.env.backend.loads_info())
+        self._aux_equal_tuple(gens_init, self.env.backend.generators_info())
+        self._aux_equal_tuple(lines_or_init, self.env.backend.lines_or_info())
+        self._aux_equal_tuple(lines_ex_init, self.env.backend.lines_ex_info())
+        assert np.all(f2_obs1.load_p != forecast_env_cpy.get_obs().load_p)
+        assert np.all(f2_obs1.load_p != forecast_env.get_obs().load_p)
+
              
 if __name__ == "__main__":
     unittest.main()

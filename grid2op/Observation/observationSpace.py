@@ -422,6 +422,9 @@ class ObservationSpace(SerializableObservationSpace):
         # as it's a "pointer" it's init from the env when needed here
         # this is why i don't deep copy it here !
         new_obj._ptr_kwargs_observation = self._ptr_kwargs_observation
+        
+        # real env kwargs, these is a "pointer" anyway
+        new_obj._real_env_kwargs = self._real_env_kwargs
 
     def copy(self, copy_backend=False):
         """
