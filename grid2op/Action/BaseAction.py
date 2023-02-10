@@ -1117,7 +1117,7 @@ class BaseAction(GridObjects):
         return self._lines_impacted, self._subs_impacted
 
     def remove_line_status_from_topo(self,
-                                     obs: "grid2op.Observation.BaseObservation",
+                                     obs: "grid2op.Observation.BaseObservation" = None,
                                      check_cooldown: bool = True):
         """
         .. versionadded:: 1.8.0
@@ -1219,10 +1219,15 @@ class BaseAction(GridObjects):
             
             
         """
-        status = obs.line_status
-        line_under_cooldown = obs.time_before_cooldown_line > 0
         if not check_cooldown:
-            line_under_cooldown[:] = True
+            line_under_cooldown = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+            if obs is None:
+                status = np.full(self.n_line, fill_value=False, dtype=dt_bool)
+            else:
+                status = obs.line_status
+        else:
+            line_under_cooldown = obs.time_before_cooldown_line > 0
+            status = obs.line_status
             
         cls = type(self)
         

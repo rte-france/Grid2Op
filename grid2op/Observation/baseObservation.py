@@ -3294,7 +3294,7 @@ class BaseObservation(GridObjects):
 
         self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.0)
 
-    def get_simulator(self) -> "Simulator":
+    def get_simulator(self) -> "grid2op.simulator.Simulator":
         """This function allows to retrieve a valid and properly initialized "Simulator"
 
         A :class:`grid2op.simulator.Simulator` can be used to simulate the impact of

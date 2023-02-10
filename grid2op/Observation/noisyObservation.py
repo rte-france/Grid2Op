@@ -24,16 +24,16 @@ class NoisyObservation(BaseObservation):
 
     The affected attributes are :
 
-    - load_p: *= lognormal (to keep the sign)
-    - load_q: *= lognormal (to keep the sign)
-    - gen_p: *= lognormal (to keep the sign)
-    - gen_q: *= lognormal (to keep the sign)
+    - load_p: \*= lognormal (to keep the sign)
+    - load_q: \*= lognormal (to keep the sign)
+    - gen_p: \*= lognormal (to keep the sign)
+    - gen_q: \*= lognormal (to keep the sign)
     - p_or += normal
     - p_ex += normal
     - q_or += normal
     - q_ex += normal
-    - a_or: *= lognormal (to keep the sign)
-    - a_ex: *= lognormal (to keep the sign)
+    - a_or: \*= lognormal (to keep the sign)
+    - a_ex: \*= lognormal (to keep the sign)
     - rho: same noise as a_or (because rho is not "physical" it's the result of a computation)
     - storage_power += normal
 
