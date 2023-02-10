@@ -499,6 +499,35 @@ class Simulator(object):
             the new consumption reactive values, by default None
         do_copy : bool, optional
             Whether to make a copy or not, by default True
+        
+        Examples
+        ---------
+        
+        A possible example is:
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = ...  # any environment name available (eg. "l2rpn_case14_sandbox")
+            env = grid2op.make(env_name)
+
+            obs = env.reset()
+
+            #### later in the code, for example in an Agent:
+
+            simulator = obs.get_simulator()
+
+            load_p_stressed = obs.load_p * 1.05
+            gen_p_stressed = obs.gen_p * 1.05
+            do_nothing = env.action_space()
+            simulator_stressed = simulator.predict(act=do_nothing,
+                                                new_gen_p=gen_p_stressed,
+                                                new_load_p=load_p_stressed)
+            if not simulator_stressed.converged:
+                # the solver fails to find a solution for this action
+                # you are likely to run into trouble if you use that...
+                ...  # do something
+            obs_stressed = simulator_stressed.current_obs
             
         Returns
         -------

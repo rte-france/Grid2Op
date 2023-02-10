@@ -64,8 +64,26 @@ Main module content
    grid2op
    makeenv
    available_envs
-   modeled_elements
+
+Learn by example
+---------------------
+.. toctree::
+   :maxdepth: 2
+   :caption: Learn by Example
+
+   optimization
    gym
+   model_free
+   model_based
+
+Model
+-------
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Models
+
+   modeled_elements
    grid_graph
 
 Plotting capabilities
@@ -92,6 +110,7 @@ Technical Documentation
    createbackend
    environment
    episode
+   exception
    observation
    opponent
    parameters
@@ -102,13 +121,5 @@ Technical Documentation
    space
    utils
    voltagecontroler
-
-Main Exceptions
------------------------
-.. toctree::
-   :maxdepth: 2
-   :caption: Miscellaneous
-
-   exception
 
 .. include:: final.rst

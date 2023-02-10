@@ -50,6 +50,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         time_interval=timedelta(minutes=5),
         max_iter=-1,
         chunk_size=None,
+        h_forecast=(5, )
     ):
         super().__init__(
             path=path,
@@ -57,6 +58,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
             time_interval=time_interval,
             max_iter=max_iter,
             chunk_size=chunk_size,
+            h_forecast=h_forecast
         )
         self.maintenance_starting_hour = None
         self.maintenance_ending_hour = None

@@ -65,7 +65,9 @@ class Multifolder(GridValue):
         max_iter=-1,
         chunk_size=None,
         filter_func=None,
+        **kwargs
     ):
+        self._kwargs = kwargs
         GridValue.__init__(
             self,
             time_interval=time_interval,
@@ -412,6 +414,7 @@ class Multifolder(GridValue):
             path=this_path,
             max_iter=self.max_iter,
             chunk_size=self.chunk_size,
+            **self._kwargs
         )
         if self.seed is not None:
             max_int = np.iinfo(dt_int).max

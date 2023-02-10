@@ -195,7 +195,7 @@ This grid looks like:
 |l2rpn_case14_sandbox_layout|
 
 
-.. _l2rpn_wcci_2022_dev:
+.. _l2rpn_wcci_2022:
 
 l2rpn_wcci_2022
 ++++++++++++++++
