@@ -1159,11 +1159,14 @@ class BaseAction(GridObjects):
             part is ignored: bus will NOT be changed
         
         .. warning::
-            This modifies the action in-place.
+            This modifies the action in-place, especially the "set_bus" and "change_bus" attributes.
         
         .. note::
             This function does not check the cooldowns if you specify `check_cooldown=False`
         
+        .. note::
+            As from version 1.8.2 you are no longer forced to provide an observation if `check_cooldown=False`
+            
         Examples
         ---------
         
@@ -1222,12 +1225,15 @@ class BaseAction(GridObjects):
         if not check_cooldown:
             line_under_cooldown = np.full(self.n_line, fill_value=True, dtype=dt_bool)
             if obs is None:
-                status = np.full(self.n_line, fill_value=False, dtype=dt_bool)
+                connected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+                disconnected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
             else:
-                status = obs.line_status
+                connected = obs.line_status
+                disconnected = ~obs.line_status
         else:
             line_under_cooldown = obs.time_before_cooldown_line > 0
-            status = obs.line_status
+            connected = obs.line_status
+            disconnected = ~obs.line_status
             
         cls = type(self)
         
@@ -1235,12 +1241,12 @@ class BaseAction(GridObjects):
         mask_reco = np.full(cls.dim_topo, fill_value=False)
         reco_or_ = np.full(cls.n_line, fill_value=False)
         reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & 
-                 (~status) & line_under_cooldown] = True
+                 disconnected & line_under_cooldown] = True
         mask_reco[cls.line_or_pos_topo_vect] = reco_or_
         
         reco_ex_ = np.full(cls.n_line, fill_value=False)
         reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & 
-                 (~status) & line_under_cooldown] = True
+                 disconnected & line_under_cooldown] = True
         mask_reco[cls.line_ex_pos_topo_vect] = reco_ex_
         
         self._set_topo_vect[mask_reco] = 0
@@ -1249,12 +1255,12 @@ class BaseAction(GridObjects):
         mask_disco = np.full(cls.dim_topo, fill_value=False)
         reco_or_ = np.full(cls.n_line, fill_value=False)
         reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] < 0) & 
-                 status & line_under_cooldown] = True
+                 connected & line_under_cooldown] = True
         mask_disco[cls.line_or_pos_topo_vect] = reco_or_
         
         reco_ex_ = np.full(cls.n_line, fill_value=False)
         reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0) & 
-                 status & line_under_cooldown] = True
+                 connected & line_under_cooldown] = True
         mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
         
         self._set_topo_vect[mask_disco] = 0
@@ -1263,12 +1269,12 @@ class BaseAction(GridObjects):
         mask_disco = np.full(cls.dim_topo, fill_value=False)
         reco_or_ = np.full(cls.n_line, fill_value=False)
         reco_or_[self._change_bus_vect[cls.line_or_pos_topo_vect] & 
-                 (~status) & line_under_cooldown] = True
+                 disconnected & line_under_cooldown] = True
         mask_disco[cls.line_or_pos_topo_vect] = reco_or_
         
         reco_ex_ = np.full(cls.n_line, fill_value=False)
         reco_ex_[self._change_bus_vect[cls.line_ex_pos_topo_vect] & 
-                 (~status) & line_under_cooldown] = True
+                 disconnected & line_under_cooldown] = True
         mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
         
         self._change_bus_vect[mask_disco] = False
@@ -2435,6 +2441,9 @@ class BaseAction(GridObjects):
         if self._modif_set_bus or self._modif_change_bus:
             idx = self._set_line_status == -1
             id_disc = np.where(idx)[0]
+            
+            idx2 = self._set_line_status == 1
+            id_reco = np.where(idx2)[0]
 
         if self._modif_set_bus:
             if "set_bus" not in self.authorized_keys:
@@ -2447,6 +2456,14 @@ class BaseAction(GridObjects):
                 raise InvalidLineStatus(
                     "You ask to disconnect a powerline but also to connect it "
                     "to a certain bus."
+                )
+                
+            if np.any(
+                self._set_topo_vect[self.line_or_pos_topo_vect[id_reco]] == -1
+            ) or np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_reco]] == -1):
+                raise InvalidLineStatus(
+                    "You ask to reconnect a powerline but also to disconnect it "
+                    "from a certain bus."
                 )
         if self._modif_change_bus:
             if "change_bus" not in self.authorized_keys:

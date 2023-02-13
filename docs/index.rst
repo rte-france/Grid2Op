@@ -65,7 +65,7 @@ Main module content
    makeenv
    available_envs
 
-Learn by example
+Usage examples
 ---------------------
 .. toctree::
    :maxdepth: 2
@@ -76,8 +76,8 @@ Learn by example
    model_free
    model_based
 
-Model
--------
+Modeling
+----------
 
 .. toctree::
    :maxdepth: 2

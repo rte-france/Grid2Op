@@ -44,6 +44,8 @@ Change Log
   2) the `obs.as_networkx()` method did not check, when updating nodes attributes if powerlines 
      were connected or not, which was wrong in some cases 
 - [FIXED] the `N1Reward` that was broken
+- [FIXED] the `act._check_for_ambiguity`: a case where missing (when you used topology to disconnect a powerline, 
+  but also set_bus to connect it)
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
@@ -60,6 +62,10 @@ Change Log
 - [IMPROVED] possibility to set `data_feeding_kwargs` from the config file directly.
 - [IMPROVED] so "FutureWarnings" are silenced (depending on pandas and pandapower version)
 - [IMPROVED] error messages when "env.reset()" has not been called and some functions are not available.
+- [IMPROVED] `act.remove_line_status_from_topo` can now be used without an observation and will "remove"
+  all the impact on line status from the topology if it causes "AmbiguousAction" (this includes removing
+  `set_bus` to 1 or 2 with `set_line_status` is -1 or to remove `set_bus` to -1 when `set_line_status` is 1
+  or to remove `change_bus` when `set_line_status` is -1)
 
 [1.8.1] - 2023-01-11
 ---------------------
