@@ -28,7 +28,7 @@ class TestGymEnvRenderer(unittest.TestCase):
         genv = GymEnv(self.env)
         _ = genv.reset()
         array = genv.render()
-        assert array.shape == (1280, 720, 3)
+        assert array.shape == (720, 1280, 3)
         with self.assertRaises(TypeError):
             array = genv.render(render_mode="rgb_array")
         

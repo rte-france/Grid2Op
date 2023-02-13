@@ -1,4 +1,5 @@
 .. currentmodule:: grid2op.simulator
+.. _simulator_page:
 
 Simulator
 ===================================
@@ -43,7 +44,9 @@ You can use it to assess if the grid state is "resilient enough" if the loads an
     load_p_stressed = obs.load_p * 1.05
     gen_p_stressed = obs.gen_p * 1.05
     do_nothing = env.action_space()
-    simulator_stressed = simulator.predict(act=do_nothing, new_gen_p=gen_p_stressed, new_load_p=load_p_stressed)
+    simulator_stressed = simulator.predict(act=do_nothing,
+                                           new_gen_p=gen_p_stressed,
+                                           new_load_p=load_p_stressed)
     if not simulator_stressed.converged:
         # the solver fails to find a solution for this action
         # you are likely to run into trouble if you use that...
