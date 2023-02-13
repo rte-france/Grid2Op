@@ -23,7 +23,7 @@ class BaseTestPlot(unittest.TestCase):
     def test_render(self):
         obs = self.env.reset()
         arr_ = self.env.render()
-        assert arr_.shape == (1280, 720, 3)
+        assert arr_.shape == (720, 1280, 3)
         assert arr_.min() == 0
         assert arr_.max() == 255
 

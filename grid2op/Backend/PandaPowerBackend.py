@@ -303,7 +303,9 @@ class PandaPowerBackend(Backend):
         and deep_copy it to itself instead of calling load_grid again
         """
         # Assign the content of itself as saved at the end of load_grid
-        self._grid = copy.deepcopy(self.__pp_backend_initial_grid)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            self._grid = copy.deepcopy(self.__pp_backend_initial_grid)
         self._reset_all_nan()
         self._topo_vect[:] = self._get_topo_vect()
         self.comp_time = 0.0
@@ -766,9 +768,12 @@ class PandaPowerBackend(Backend):
 
         # Create a deep copy of itself in the initial state
         # Store it under super private attribute
-        self.__pp_backend_initial_grid = copy.deepcopy(
-            self._grid
-        )  # will be initialized in the "assert_grid_correct"
+        with warnings.catch_warnings():
+            # raised on some versions of pandapower / pandas
+            warnings.simplefilter("ignore", FutureWarning)
+            self.__pp_backend_initial_grid = copy.deepcopy(
+                self._grid
+            )  # will be initialized in the "assert_grid_correct"
 
     def storage_deact_for_backward_comaptibility(self):
         self._init_private_attrs()
@@ -797,14 +802,14 @@ class PandaPowerBackend(Backend):
         """
         if backendAction is None:
             return
-
+                    
         (
             active_bus,
             (prod_p, prod_v, load_p, load_q, storage),
             topo__,
             shunts__,
         ) = backendAction()
-
+     
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if np.any(prod_p.changed):
             tmp_prod_p.iloc[prod_p.changed] = prod_p.values[prod_p.changed]
@@ -1032,6 +1037,7 @@ class PandaPowerBackend(Backend):
                                                             " produces 0. instead. Please check generators: "
                                                             f"{np.where(~self._grid.gen['in_service'])[0]}"
                                                             )
+                    
                 if is_dc:
                     pp.rundcpp(self._grid, check_connectivity=False)
                     self._nb_bus_before = (
@@ -1047,7 +1053,7 @@ class PandaPowerBackend(Backend):
                         max_iteration=self._max_iter,
                         distributed_slack=self._dist_slack,
                     )
-
+                    
                 # stores the computation time
                 if "_ppc" in self._grid:
                     if "et" in self._grid["_ppc"]:
@@ -1206,7 +1212,11 @@ class PandaPowerBackend(Backend):
         )
 
         # copy from base class (backend)
-        res._grid = copy.deepcopy(self._grid)
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            # warnings depending on pandas version and pp version
+            res._grid = copy.deepcopy(self._grid)
         res.thermal_limit_a = copy.deepcopy(self.thermal_limit_a)
         res._sh_vnkv = copy.deepcopy(self._sh_vnkv)
         res.comp_time = self.comp_time
@@ -1253,10 +1263,7 @@ class PandaPowerBackend(Backend):
         res._what_object_where = copy.deepcopy(self._fact_mult_gen)
         res._number_true_line = self._number_true_line
         res._corresp_name_fun = copy.deepcopy(self._corresp_name_fun)
-        # res._get_vector_inj = copy.deepcopy(self._get_vector_inj)  # ptr to functions member
         res.dim_topo = self.dim_topo
-        # self._vars_action = BaseAction.attr_list_vect  # init from class, so should be good
-        # self._vars_action_set = BaseAction.attr_list_vect  # init from class, so should be good
         res.cst_1 = self.cst_1
         res._topo_vect = copy.deepcopy(self._topo_vect)
         res.slack_id = self.slack_id
@@ -1275,10 +1282,9 @@ class PandaPowerBackend(Backend):
         res._get_vector_inj = copy.deepcopy(self._get_vector_inj)
         res._big_topo_to_obj = copy.deepcopy(self._big_topo_to_obj)
         res._big_topo_to_backend = copy.deepcopy(self._big_topo_to_backend)
-        res.__pp_backend_initial_grid = copy.deepcopy(self.__pp_backend_initial_grid)
-
-        # Mapping some fun to apply bus updates
-        # self._type_to_bus_set =  ...   # function ptr to function member
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)  
+            res.__pp_backend_initial_grid = copy.deepcopy(self.__pp_backend_initial_grid)
 
         res.tol = (
             self.tol

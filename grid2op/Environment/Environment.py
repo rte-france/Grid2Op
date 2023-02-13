@@ -100,6 +100,7 @@ class Environment(BaseEnv):
         has_attention_budget=False,
         logger=None,
         kwargs_observation=None,
+        _init_obs=None,
         _raw_backend_class=None,
         _compat_glop_version=None,
         _read_from_local_dir=True,  # TODO runner and all here !
@@ -132,6 +133,7 @@ class Environment(BaseEnv):
             if logger is not None
             else None,
             kwargs_observation=kwargs_observation,
+            _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )
         if name == "unknown":
@@ -819,6 +821,9 @@ class Environment(BaseEnv):
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
                 "Available information are: {}".format(info)
             )
+            
+        # assign the right
+        self._observation_space.set_real_env_kwargs(self)
 
     def add_text_logger(self, logger=None):
         """
@@ -894,8 +899,13 @@ class Environment(BaseEnv):
 
         # and reset also the "simulated env" in the observation space
         self._observation_space.reset(self)
+        self._observation_space.set_real_env_kwargs(self)
 
         self._last_obs = None  # force the first observation to be generated properly
+        
+        if self._init_obs is not None:
+            self._reset_to_orig_state(self._init_obs)
+            
         return self.get_obs()
 
     def render(self, mode="rgb_array"):
@@ -951,7 +961,7 @@ class Environment(BaseEnv):
         self.viewer_fig = fig
         
         # Return the rgb array
-        rgb_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(self._viewer.width,self._viewer.height,3)
+        rgb_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(self._viewer.height, self._viewer.width, 3)
         return rgb_array
 
     def _custom_deepcopy_for_copy(self, new_obj):
@@ -992,7 +1002,7 @@ class Environment(BaseEnv):
         self._custom_deepcopy_for_copy(res)
         return res
 
-    def get_kwargs(self, with_backend=True):
+    def get_kwargs(self, with_backend=True, with_chronics_handler=True):
         """
         This function allows to make another Environment with the same parameters as the one that have been used
         to make this one.
@@ -1030,7 +1040,8 @@ class Environment(BaseEnv):
         res = {}
         res["init_env_path"] = self._init_env_path
         res["init_grid_path"] = self._init_grid_path
-        res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
+        if with_chronics_handler:
+            res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
             if not self.backend._can_be_copied:
                 raise RuntimeError("Impossible to get the kwargs for this "

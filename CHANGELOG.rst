@@ -35,6 +35,8 @@ Change Log
 --------------------
 - [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
   "human" has been removed because it needs some fixes. This should not impact lots of code.
+- [BREAKING] the "maintenance_forecast" file is deprecated and is no longer used (this should not
+  not impact anything)
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
@@ -43,6 +45,15 @@ Change Log
      they are connected to a disconnected bus (in this case I chose to put `theta=0`) 
   2) the `obs.as_networkx()` method did not check, when updating nodes attributes if powerlines 
      were connected or not, which was wrong in some cases 
+- [FIXED] the `N1Reward` that was broken
+- [FIXED] the `act._check_for_ambiguity`: a case where missing (when you used topology to disconnect a powerline, 
+  but also set_bus to connect it)
+- [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
+  forecasts data in the observation. This is especially useful in model based RL.
+- [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
+  horizon are available.
+- [IMPROVED] the `GridStateFromFileWIthForecasts` is now able to read forecast from multiple steps
+  ahead (provided that it knows the horizons in its constructor)
 - [IMPROVED] documentation of the gym `DiscreteActSpace`: it is now explicit that the "do nothing" action
   is by default encoded by `0`
 - [IMPROVED] documentation of `BaseObservation` and its attributes
@@ -50,6 +61,13 @@ Change Log
   it should still converge in `DC`) see https://github.com/rte-france/Grid2Op/issues/391
 - [IMPROVED] `obs.as_networkx()` method: almost all powerlines attributes can now be read from the 
   resulting graph object.
+- [IMPROVED] possibility to set `data_feeding_kwargs` from the config file directly.
+- [IMPROVED] so "FutureWarnings" are silenced (depending on pandas and pandapower version)
+- [IMPROVED] error messages when "env.reset()" has not been called and some functions are not available.
+- [IMPROVED] `act.remove_line_status_from_topo` can now be used without an observation and will "remove"
+  all the impact on line status from the topology if it causes "AmbiguousAction" (this includes removing
+  `set_bus` to 1 or 2 with `set_line_status` is -1 or to remove `set_bus` to -1 when `set_line_status` is 1
+  or to remove `change_bus` when `set_line_status` is -1)
 
 [1.8.1] - 2023-01-11
 ---------------------

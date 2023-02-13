@@ -361,7 +361,11 @@ class BaseObservation(GridObjects):
     # value to assess if two observations are equal
     _tol_equal = 1e-3
 
-    def __init__(self, obs_env=None, action_helper=None, random_prng=None):
+    def __init__(self,
+                 obs_env=None,
+                 action_helper=None,
+                 random_prng=None,
+                 kwargs_env=None):
         GridObjects.__init__(self)
         self._is_done = True
         self.random_prng = random_prng
@@ -370,7 +374,10 @@ class BaseObservation(GridObjects):
         # handles the forecasts here
         self._forecasted_grid_act = {}
         self._forecasted_inj = []
+        self._env_internal_params = {}
+        
         self._obs_env = obs_env
+        self._ptr_kwargs_env = kwargs_env
 
         # calendar data
         self.year = dt_int(1970)
@@ -541,7 +548,9 @@ class BaseObservation(GridObjects):
             getattr(other, attr_nm)[:] = getattr(self, attr_nm)
 
     def __copy__(self):
-        res = type(self)(obs_env=self._obs_env, action_helper=self.action_helper)
+        res = type(self)(obs_env=self._obs_env,
+                         action_helper=self.action_helper,
+                         kwargs_env=self._ptr_kwargs_env)
 
         # copy regular attributes
         self._aux_copy(other=res)
@@ -555,11 +564,14 @@ class BaseObservation(GridObjects):
         # handles the forecasts here
         res._forecasted_grid_act = copy.copy(self._forecasted_grid_act)
         res._forecasted_inj = copy.copy(self._forecasted_inj)
+        res._env_internal_params  = copy.copy(self._env_internal_params )
 
         return res
 
     def __deepcopy__(self, memodict={}):
-        res = type(self)(obs_env=self._obs_env, action_helper=self.action_helper)
+        res = type(self)(obs_env=self._obs_env,
+                         action_helper=self.action_helper,
+                         kwargs_env=self._ptr_kwargs_env)
 
         # copy regular attributes
         self._aux_copy(other=res)
@@ -575,6 +587,7 @@ class BaseObservation(GridObjects):
         # handles the forecasts here
         res._forecasted_grid_act = copy.deepcopy(self._forecasted_grid_act, memodict)
         res._forecasted_inj = copy.deepcopy(self._forecasted_inj, memodict)
+        res._env_internal_params = copy.deepcopy(self._env_internal_params, memodict)
 
         return res
 
@@ -1028,6 +1041,7 @@ class BaseObservation(GridObjects):
         # forecasts
         self._forecasted_inj = []
         self._forecasted_grid_act = {}
+        self._env_internal_params = {}
 
         # redispatching
         self.target_dispatch[:] = np.NaN
@@ -1112,6 +1126,7 @@ class BaseObservation(GridObjects):
         # forecasts
         self._forecasted_inj = []
         self._forecasted_grid_act = {}
+        self._env_internal_params = {}
 
         # redispatching
         self.target_dispatch[:] = 0.0
@@ -1293,8 +1308,11 @@ class BaseObservation(GridObjects):
             )
         tmp_obs_env = self._obs_env
         self._obs_env = None  # keep aside the backend
+        _ptr_kwargs_env = self._ptr_kwargs_env
+        self._ptr_kwargs_env = None  # keep aside the pointer to the env kwargs
         res = copy.deepcopy(self)
         self._obs_env = tmp_obs_env
+        self._ptr_kwargs_env = _ptr_kwargs_env
         for stat_nm in self._attr_eq:
             me_ = getattr(self, stat_nm)
             oth_ = getattr(other, stat_nm)
@@ -2222,7 +2240,14 @@ class BaseObservation(GridObjects):
 
         It has the same return
         value as the :func:`grid2op.Environment.Environment.step` function.
-
+        
+        .. seealso::
+            :func:`BaseObservation.get_forecast_env`
+        
+        .. versionadded:: 1.8.2
+            If the data of the :class:`grid2op.Environment.Environment` you are using supports it, then you can
+            now "chain" the simulate calls.
+            
         Parameters
         ----------
         action: :class:`grid2op.Action.Action`
@@ -2259,7 +2284,8 @@ class BaseObservation(GridObjects):
         will get in the next step.
 
         Also, in some circumstances, the "Backend" (ie the powerflow) used to do the simulation may not be the
-        same one as the one used by the environment. This is to model a real fact: as accurate your powerflow is, it does
+        same one as the one used by the environment. This is to model a real fact: as accurate your powerflow is,
+        it does
         not model all the reality (*"all models are wrong"*). Having a different solver for the environment (
         "the reality") than the one used to anticipate the impact of the action (this "simulate" function)
         is a way to represent this fact.
@@ -2273,7 +2299,8 @@ class BaseObservation(GridObjects):
 
             import grid2op
             # retrieve an environment
-            env = grid2op.make()
+            env_name = ...
+            env = grid2op.make(env_name)
 
             # retrieve an observation, this is the same for all observations
             obs = env.reset()
@@ -2288,6 +2315,88 @@ class BaseObservation(GridObjects):
             # `simulated_done` will indicate whether or not the simulation ended up in a "game over"
             # `simulated_info` gives extra information on this forecast state
 
+
+        You can now chain the calls to simulate (if your environment supports it)
+        
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            obs = env.reset()
+            
+            act_1 = ...  # a grid2op action
+            # you can do that (if your environment provide forecasts more tha 1 step ahead):
+            sim_obs_1, *_ = obs.simulate(act_1)
+            
+            act_2 = ...  # a grid2op action
+            # but also (if your environment provide forecast more than 2 steps ahead)
+            sim_obs_2, *_ = sim_obs_1.simulate(act_2)
+            
+            act_3 = ... # a grid2op action
+            # but also (if your environment provide forecast more than 3 steps ahead)
+            sim_obs_3, *_ = sim_obs_2.simulate(act_3)
+            
+            # you get the idea!
+            
+        .. note::
+            The code above is closely related to the :func:`BaseObservation.get_forecast_env` and a 
+            very similar result (up to some corner cases beyond the scope of this documentation)
+            could be achieved with:
+            
+            .. code-block:: python
+
+                import grid2op
+                env_name = ...
+                env = grid2op.make(env_name)
+                obs = env.reset()
+                
+                forecast_env = obs.get_forecast_env()
+                f_obs = forecast_env.reset()
+                
+                act_1 = ...  # a grid2op action
+                f_obs_1, *_ = forecast_env.step(act_1)
+                # f_obs_1 should be sim_obs_1
+                
+                act_2 = ...  # a grid2op action
+                f_obs_2, *_ = forecast_env.step(act_2)
+                # f_obs_2 should be sim_obs_2
+                
+                act_3 = ... # a grid2op action
+                f_obs_3, *_ = forecast_env.step(act_3)
+                # f_obs_3 should be sim_obs_3
+            
+        Finally, another possible use of this method is to get a "glimpse" of the 
+        effect of an action if you delay it a maximum, you can also use the `time_step`
+        parameters.
+        
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            obs = env.reset()
+            
+            act = ...  # a grid2op action
+            
+            sim_obs_1, *_ = obs.simulate(act, time_step=1)
+            sim_obs_2, *_ = obs.simulate(act, time_step=2)
+            sim_obs_3, *_ = obs.simulate(act, time_step=3)
+            # in this case:
+            #    + sim_obs_1 give the results after 1 step (if your agent survives)
+            #      of applying the action `act`
+            #    + sim_obs_2 give the results after 2 steps (if your agent survives)
+            #      of applying the action `act`
+            #    + sim_obs_3 give the results after 3 steps (if your agent survives)
+            #      of applying the action `act`
+        
+        This is an approximation as the "time is not simulated". Here you only make 1 simulation
+        of the effect of your action regardless of the horizon you want to target. It is related
+        to the :ref:`simulator_page` if used this way.
+        
+        This might be used to chose the "best" time at which you could do an action for example. 
+        There is no coupling between the different simulation that you perform here.
+        
         """
         if self.action_helper is None:
             raise NoForecastAvailable(
@@ -2296,7 +2405,7 @@ class BaseObservation(GridObjects):
                 "and no simulated environment are set)."
             )
         if self._obs_env is None:
-            raise BaseObservationError(
+            raise NoForecastAvailable(
                 'This observation has no "environment used for simulation" (_obs_env) is not created. '
                 "This is the case if you loaded this observation from a disk (for example using "
                 "EpisodeData) "
@@ -2326,13 +2435,18 @@ class BaseObservation(GridObjects):
         self._obs_env.init(
             inj_action,
             time_stamp=timestamp,
-            timestep_overflow=self.timestep_overflow,
-            topo_vect=self.topo_vect,
+            obs=self,
             time_step=time_step,
         )
 
         sim_obs, *rest = self._obs_env.simulate(action)
         sim_obs = copy.deepcopy(sim_obs)
+        if self._forecasted_inj:
+            # allow "chain" to simulate
+            sim_obs.action_helper = self.action_helper  # no copy !
+            sim_obs._obs_env = self._obs_env  # no copy
+            sim_obs._forecasted_inj = self._forecasted_inj[1:]  # remove the first one
+            sim_obs._update_internal_env_params(self._obs_env)
         return (sim_obs, *rest)  # parentheses are needed for python 3.6 at least.
 
     def copy(self):
@@ -2358,6 +2472,9 @@ class BaseObservation(GridObjects):
         action_helper = self.action_helper
         self.action_helper = None
 
+        _ptr_kwargs_env = self._ptr_kwargs_env
+        self._ptr_kwargs_env = None
+        
         res = copy.deepcopy(self)
 
         self._obs_env = obs_env
@@ -2365,6 +2482,10 @@ class BaseObservation(GridObjects):
 
         self.action_helper = action_helper
         res.action_helper = action_helper
+        
+        self._ptr_kwargs_env = _ptr_kwargs_env
+        res._ptr_kwargs_env = _ptr_kwargs_env
+        
         return res
 
     @property
@@ -3050,6 +3171,31 @@ class BaseObservation(GridObjects):
             self.gen_theta[:] = 0.
             self.storage_theta[:] = 0.
 
+    def _update_internal_env_params(self, env):
+        # this is only done if the env supports forecast
+        # some parameters used for the "forecast env"
+        # but not directly accessible in the observation
+        self._env_internal_params = {
+            "_storage_previous_charge": 1.0 * env._storage_previous_charge,
+            "_amount_storage": 1.0 * env._amount_storage,
+            "_amount_storage_prev": 1.0 * env._amount_storage_prev,
+            "_sum_curtailment_mw": 1.0 * env._sum_curtailment_mw,
+            "_sum_curtailment_mw_prev": 1.0 * env._sum_curtailment_mw_prev,
+            "_line_status_env": env.get_current_line_status().astype(dt_int),  # false -> 0 true -> 1
+            "_gen_activeprod_t": 1.0 * env._gen_activeprod_t,
+            "_gen_activeprod_t_redisp": 1.0 * env._gen_activeprod_t_redisp,
+            "_already_modified_gen": copy.deepcopy(env._already_modified_gen),
+        }
+        self._env_internal_params["_line_status_env"]  *= 2  # false -> 0 true -> 2
+        self._env_internal_params["_line_status_env"] -= 1  # false -> -1; true -> 1
+        
+        if env._has_attention_budget:
+            self._env_internal_params["_attention_budget_state"] = env._attention_budget.get_state()
+        
+        # # TODO this looks suspicious !
+        # (self._env_internal_params["opp_space_state"], 
+        #  self._env_internal_params["opp_state"]) = env._oppSpace._get_state()
+        
     def _update_obs_complete(self, env, with_forecast=True):
         """
         update all the observation attributes as if it was a complete, fully
@@ -3094,6 +3240,8 @@ class BaseObservation(GridObjects):
             self._forecasted_inj = [(timestamp, inj_action)]
             self._forecasted_inj += env.chronics_handler.forecasts()
             self._forecasted_grid = [None for _ in self._forecasted_inj]
+            self._env_internal_params = {}
+            self._update_internal_env_params(env)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line[:] = env._times_before_line_status_actionable
@@ -3146,7 +3294,7 @@ class BaseObservation(GridObjects):
 
         self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.0)
 
-    def get_simulator(self) -> "Simulator":
+    def get_simulator(self) -> "grid2op.simulator.Simulator":
         """This function allows to retrieve a valid and properly initialized "Simulator"
 
         A :class:`grid2op.simulator.Simulator` can be used to simulate the impact of
@@ -3158,7 +3306,22 @@ class BaseObservation(GridObjects):
         injections for example.
 
         You can find more information about simulator on the dedicated page of the
-        documentation.
+        documentation :ref:`simulator_page`. TODO
+        
+        Basic usage are:
+        
+        ..code-block:: python
+        
+            import grid2op
+            env_name = ...
+            
+            env = grid2op.make(env_name)
+            obs = env.reset()
+            
+            simulator = obs.get_simulator()
+            
+        Please consult the page :ref:`simulator_page` for more information about how to use them.
+        
         """
         # BaseObservation is only used for typing in the simulator...
         if self._obs_env is None:
@@ -3181,4 +3344,145 @@ class BaseObservation(GridObjects):
 
         res = Simulator(backend=self._obs_env.backend)
         res.set_state(self)
+        return res
+
+    def _get_array_from_forecast(self, name):
+        if len(self._forecasted_inj) <= 1:
+            # self._forecasted_inj already embed the current step
+            raise NoForecastAvailable("It appears this environment does not support any forecast at all.")
+        nb_h = len(self._forecasted_inj)
+        nb_el = self._forecasted_inj[0][1]['injection'][name].shape[0]
+        prev = 1.0 * self._forecasted_inj[0][1]['injection'][name]
+        res = np.zeros((nb_h, nb_el))
+        for h in range(nb_h):
+            dict_tmp = self._forecasted_inj[h][1]['injection']
+            if name in dict_tmp:
+                this_row = 1.0 * dict_tmp[name]
+                prev = 1.0 * this_row
+            else:
+                this_row = 1.0 * prev
+            res[h,:] = this_row
+        return res
+    
+    def _generate_forecasted_maintenance_for_simenv(self, nb_h: int):
+        n_line = type(self).n_line
+        res = np.full((nb_h, n_line), fill_value=False, dtype=dt_bool)
+        for l_id in range(n_line):
+            tnm = self.time_next_maintenance[l_id]
+            if tnm != -1:
+                dnm = self.duration_next_maintenance[l_id]
+                res[tnm:(tnm+dnm),l_id] = True
+        return res
+    
+    def get_forecast_env(self) -> "grid2op.Environment.Environment":
+        """
+        .. versionadded:: 1.8.2
+        
+        This function will return a grid2op "environment" where the data (load, generation and maintenance)
+        comes from the forecast data in the observation.
+        
+        This "forecasted environment" can be used like any grid2op environment. It checks the same "rules" as the 
+        :func:`BaseObservation.simulate` (if you want to change them, make sure to use
+        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters`), with the exact same behaviour 
+        as "env.step(...)".
+        
+        With this function, your agent can now make some predictions about the future.
+        
+        This can be particularly useful for model based RL for example. 
+
+        .. seealso::
+            :func:`BaseObservation.simulate`
+            
+        Examples
+        --------
+        A typical use might look like
+        
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            obs = env.reset()
+            
+            # and now retrieve the "forecasted_env"
+            forcast_env = obs.get_forecast_env()
+            
+            # when reset this should be at the same "step" as the action
+            forecast_obs = forcast_env.reset()
+            # forecast_obs == obs  # should be True
+            
+            done = False
+            while not done:
+                next_forecast_obs, reward, done, info = forcast_env.step(env.action_space())
+
+        .. note::
+            The code above is closely related to the :func:`BaseObservation.simulate` and a 
+            very similar result (up to some corner cases beyond the scope of this documentation) 
+            can be obtained with:
+            
+            .. code-block:: python
+
+                import grid2op
+                env_name = ...
+                env = grid2op.make(env_name)
+                obs = env.reset()
+                
+                forecast_env = obs.get_forecast_env()
+                f_obs = forecast_env.reset()
+                
+                act_1 = ...  # a grid2op action
+                f_obs_1, *_ = forecast_env.step(act_1)
+                sim_obs_1, *_ = obs.simulate(act_1)
+                # f_obs_1 should be sim_obs_1
+                
+                act_2 = ...  # a grid2op action
+                f_obs_2, *_ = forecast_env.step(act_2)
+                sim_obs_2, *_ = sim_obs_1.simulate(act_2)
+                # f_obs_2 should be sim_obs_2
+                
+                act_3 = ... # a grid2op action
+                f_obs_3, *_ = forecast_env.step(act_3)
+                sim_obs_3, *_ = sim_obs_2.simulate(act_3)
+                # f_obs_3 should be sim_obs_3
+                
+        Returns
+        -------
+        grid2op.Environment.Environment
+            The "forecasted environment" that is a grid2op environment with the data corresponding to the 
+            forecast made at the time of the observation.
+
+        Raises
+        ------
+        BaseObservationError
+            When no forecast are available, for example.
+            
+        """
+        if not self._ptr_kwargs_env:
+            raise BaseObservationError("Cannot build a environment with the forecast "
+                                       "data as this Observation does not appear to "
+                                       "support forecast.")
+        # build the forecast
+        from grid2op.Chronics import FromNPY, ChronicsHandler
+        load_p = self._get_array_from_forecast("load_p")
+        load_q = self._get_array_from_forecast("load_q")
+        prod_p = self._get_array_from_forecast("prod_p")
+        prod_v = self._get_array_from_forecast("prod_v")
+        maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
+        
+        ch = ChronicsHandler(FromNPY,
+                             load_p=load_p,
+                             load_q=load_q,
+                             prod_p=prod_p,
+                             prod_v=prod_v,
+                             maintenance=maintenance)
+        
+        backend = self._obs_env.backend.copy()
+        backend._is_loaded = False  # to be able to reuse it in an environment
+        from grid2op.Environment import Environment
+        res = Environment(**self._ptr_kwargs_env,
+                          backend=backend,
+                          chronics_handler=ch,
+                          parameters=self._obs_env.parameters,
+                          _init_obs=self
+                          )
         return res

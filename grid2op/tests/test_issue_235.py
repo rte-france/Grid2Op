@@ -15,9 +15,13 @@ from grid2op.Observation import CompleteObservation
 
 
 class Issue235TesterObs(CompleteObservation):
-    def __init__(self, obs_env=None, action_helper=None, random_prng=None):
+    def __init__(self,
+                 obs_env=None,
+                 action_helper=None,
+                 random_prng=None,
+                 kwargs_env=None):
         CompleteObservation.__init__(
-            self, obs_env, action_helper, random_prng=random_prng
+            self, obs_env, action_helper, random_prng=random_prng, kwargs_env=kwargs_env
         )
         self._is_updated = False
 

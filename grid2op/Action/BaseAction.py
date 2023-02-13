@@ -1117,7 +1117,7 @@ class BaseAction(GridObjects):
         return self._lines_impacted, self._subs_impacted
 
     def remove_line_status_from_topo(self,
-                                     obs: "grid2op.Observation.BaseObservation",
+                                     obs: "grid2op.Observation.BaseObservation" = None,
                                      check_cooldown: bool = True):
         """
         .. versionadded:: 1.8.0
@@ -1158,12 +1158,28 @@ class BaseAction(GridObjects):
           - if this line is disconnected and the bus to one of its side is "changed", then this
             part is ignored: bus will NOT be changed
         
+        And regardless of cooldowns it also:
+        
+          - if a powerline is affected to a certain bus at one of its end with `set_bus` (for example 
+            `set_bus` to 1 or 2) and at the same time disconnected (`set_line_status` is -1) then
+            the `set_bus` part is ignore to avoid `AmbiguousAction`
+          - if a powerline is disconnect from its bus at one of its end with `set_bus` (for example 
+            `set_bus` to -1) and at the same time reconnected (`set_line_status` is 1) then
+            the `set_bus` part is ignore to avoid `AmbiguousAction`
+          - if a powerline is affected to a certain bus at one of its end with `change_bus` (`change_bus` is 
+            ``True``) and at the same time disconnected (`set_line_status` is -1) then
+            the `change_bus` part is ignore to avoid `AmbiguousAction`
+            
+            
         .. warning::
-            This modifies the action in-place.
+            This modifies the action in-place, especially the "set_bus" and "change_bus" attributes.
         
         .. note::
             This function does not check the cooldowns if you specify `check_cooldown=False`
         
+        .. note::
+            As from version 1.8.2 you are no longer forced to provide an observation if `check_cooldown=False`
+            
         Examples
         ---------
         
@@ -1219,10 +1235,18 @@ class BaseAction(GridObjects):
             
             
         """
-        status = obs.line_status
-        line_under_cooldown = obs.time_before_cooldown_line > 0
         if not check_cooldown:
-            line_under_cooldown[:] = True
+            line_under_cooldown = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+            if obs is None:
+                connected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+                disconnected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+            else:
+                connected = obs.line_status
+                disconnected = ~obs.line_status
+        else:
+            line_under_cooldown = obs.time_before_cooldown_line > 0
+            connected = obs.line_status
+            disconnected = ~obs.line_status
             
         cls = type(self)
         
@@ -1230,12 +1254,12 @@ class BaseAction(GridObjects):
         mask_reco = np.full(cls.dim_topo, fill_value=False)
         reco_or_ = np.full(cls.n_line, fill_value=False)
         reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & 
-                 (~status) & line_under_cooldown] = True
+                 disconnected & line_under_cooldown] = True
         mask_reco[cls.line_or_pos_topo_vect] = reco_or_
         
         reco_ex_ = np.full(cls.n_line, fill_value=False)
         reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & 
-                 (~status) & line_under_cooldown] = True
+                 disconnected & line_under_cooldown] = True
         mask_reco[cls.line_ex_pos_topo_vect] = reco_ex_
         
         self._set_topo_vect[mask_reco] = 0
@@ -1244,12 +1268,12 @@ class BaseAction(GridObjects):
         mask_disco = np.full(cls.dim_topo, fill_value=False)
         reco_or_ = np.full(cls.n_line, fill_value=False)
         reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] < 0) & 
-                 status & line_under_cooldown] = True
+                 connected & line_under_cooldown] = True
         mask_disco[cls.line_or_pos_topo_vect] = reco_or_
         
         reco_ex_ = np.full(cls.n_line, fill_value=False)
         reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0) & 
-                 status & line_under_cooldown] = True
+                 connected & line_under_cooldown] = True
         mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
         
         self._set_topo_vect[mask_disco] = 0
@@ -1258,12 +1282,12 @@ class BaseAction(GridObjects):
         mask_disco = np.full(cls.dim_topo, fill_value=False)
         reco_or_ = np.full(cls.n_line, fill_value=False)
         reco_or_[self._change_bus_vect[cls.line_or_pos_topo_vect] & 
-                 (~status) & line_under_cooldown] = True
+                 disconnected & line_under_cooldown] = True
         mask_disco[cls.line_or_pos_topo_vect] = reco_or_
         
         reco_ex_ = np.full(cls.n_line, fill_value=False)
         reco_ex_[self._change_bus_vect[cls.line_ex_pos_topo_vect] & 
-                 (~status) & line_under_cooldown] = True
+                 disconnected & line_under_cooldown] = True
         mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
         
         self._change_bus_vect[mask_disco] = False
@@ -2430,6 +2454,9 @@ class BaseAction(GridObjects):
         if self._modif_set_bus or self._modif_change_bus:
             idx = self._set_line_status == -1
             id_disc = np.where(idx)[0]
+            
+            idx2 = self._set_line_status == 1
+            id_reco = np.where(idx2)[0]
 
         if self._modif_set_bus:
             if "set_bus" not in self.authorized_keys:
@@ -2442,6 +2469,14 @@ class BaseAction(GridObjects):
                 raise InvalidLineStatus(
                     "You ask to disconnect a powerline but also to connect it "
                     "to a certain bus."
+                )
+                
+            if np.any(
+                self._set_topo_vect[self.line_or_pos_topo_vect[id_reco]] == -1
+            ) or np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_reco]] == -1):
+                raise InvalidLineStatus(
+                    "You ask to reconnect a powerline but also to disconnect it "
+                    "from a certain bus."
                 )
         if self._modif_change_bus:
             if "change_bus" not in self.authorized_keys:
