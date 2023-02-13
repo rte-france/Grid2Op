@@ -35,6 +35,8 @@ Change Log
 --------------------
 - [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
   "human" has been removed because it needs some fixes. This should not impact lots of code.
+- [BREAKING] the "maintenance_forecast" file is deprecated and is no longer used (this should not
+  not impact anything)
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 

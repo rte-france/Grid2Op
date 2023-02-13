@@ -1158,6 +1158,19 @@ class BaseAction(GridObjects):
           - if this line is disconnected and the bus to one of its side is "changed", then this
             part is ignored: bus will NOT be changed
         
+        And regardless of cooldowns it also:
+        
+          - if a powerline is affected to a certain bus at one of its end with `set_bus` (for example 
+            `set_bus` to 1 or 2) and at the same time disconnected (`set_line_status` is -1) then
+            the `set_bus` part is ignore to avoid `AmbiguousAction`
+          - if a powerline is disconnect from its bus at one of its end with `set_bus` (for example 
+            `set_bus` to -1) and at the same time reconnected (`set_line_status` is 1) then
+            the `set_bus` part is ignore to avoid `AmbiguousAction`
+          - if a powerline is affected to a certain bus at one of its end with `change_bus` (`change_bus` is 
+            ``True``) and at the same time disconnected (`set_line_status` is -1) then
+            the `change_bus` part is ignore to avoid `AmbiguousAction`
+            
+            
         .. warning::
             This modifies the action in-place, especially the "set_bus" and "change_bus" attributes.
         
