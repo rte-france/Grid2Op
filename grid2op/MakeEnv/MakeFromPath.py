@@ -503,6 +503,7 @@ def make_from_dataset_path(
     chronics_class_cfg = ChangeNothing
     if "chronics_class" in config_data and config_data["chronics_class"] is not None:
         chronics_class_cfg = config_data["chronics_class"]
+        
     # Get default Grid class
     grid_value_class_cfg = GridStateFromFile
     if (
@@ -551,7 +552,6 @@ def make_from_dataset_path(
             f"Impossible to find the chronics for your environment. Please make sure to provide "
             f'a folder "{NAME_CHRONICS_FOLDER}" within your environment folder.'
         )
-
     data_feeding_kwargs["chronicsClass"] = chronics_class_used
     data_feeding = _get_default_aux(
         "data_feeding",

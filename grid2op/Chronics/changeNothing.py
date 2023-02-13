@@ -76,7 +76,11 @@ class ChangeNothing(GridValue):
         self.n_gen = None
         self.n_load = None
         self.n_line = None
-
+        
+        self.maintenance_time = None
+        self.maintenance_duration = None
+        self.hazard_duration = None
+        
     def initialize(
         self,
         order_backend_loads,
