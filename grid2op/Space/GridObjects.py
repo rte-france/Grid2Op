@@ -1419,7 +1419,7 @@ class GridObjects:
                 "storage_{}_{}".format(bus_id, sto_id)
                 for sto_id, bus_id in enumerate(cls.storage_to_subid)
             ]
-            cls.name_storage = np.array(cls.name_sub)
+            cls.name_storage = np.array(cls.name_storage)
             warnings.warn(
                 "name_storage is None so default storage unit names have been assigned to your grid. "
                 "(FYI: storage names are used to make the correspondence between the chronics and "

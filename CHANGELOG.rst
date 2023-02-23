@@ -48,8 +48,11 @@ Change Log
 - [FIXED] the `N1Reward` that was broken
 - [FIXED] the `act._check_for_ambiguity`: a case where missing (when you used topology to disconnect a powerline, 
   but also set_bus to connect it)
+- [FIXED] a bug when the storage unit names where not set in the backend and needed to be set
+  automatically (wrong names were used)
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
+- [ADDED] an example on how to write a backend.
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWIthForecasts` is now able to read forecast from multiple steps
