@@ -196,7 +196,7 @@ class CSVHandler:
                 read_compressed = None
         return read_compressed
 
-    def _get_data(self, chunksize=-1, nrows=None):   # in csvhandler        
+    def _get_data(self, chunksize=-1, nrows=None):   # in csvhandler     
         if nrows is None:
             if self.max_iter > 0:
                 nrows = self.max_iter + 1
@@ -249,7 +249,13 @@ class CSVHandler:
                         sorted(list(dict_convert[self.array_name].keys())),
                     )
                 )
-                
+    
+    def set_chunk_size(self, chunk_size):
+        self.chunk_size = int(chunk_size)
+    
+    def set_max_iter(self, max_iter):
+        self.max_iter = int(max_iter)
+        
     def _get_next_chunk(self):
         res = None
         if self._data_chunk[self.array_name] is not None:
@@ -269,7 +275,6 @@ class CSVHandler:
         return False
     
     def _load_next_chunk_in_memory(self):
-        # print("I loaded another chunk")
         # i load the next chunk as dataframes
         array = self._get_next_chunk()  # array: load_p
         # i put these dataframes in the right order (columns)
@@ -289,6 +294,8 @@ class CSVHandler:
 # done OK
 # initialize OK
 # get_max_iter OK
+# set_max_iter
+# set_chunk_size
 # next_chronics
 # load_next_maintenance SOON
 # load_next_hazard SOON
@@ -344,10 +351,11 @@ class FromHandlers(GridValue):
         self._no_mh_duration = None
         
         # set the path if needed
-        if chunk_size is not None:
-            warnings.warn("chunk_size has no effect here, please set it in the handler directly (*eg* `CSVHandler(chunk_size=...)`) instead")
-        if max_iter==-1:
-            warnings.warn("max_iter has no effect here, please set it in the handler directly (*eg* `CSVHandler(max_iter=...)`) instead")
+        # if chunk_size is not None:
+        #     warnings.warn("chunk_size has no effect here, please set it in the handler directly (*eg* `CSVHandler(chunk_size=...)`) instead")
+        
+        # if max_iter != -1:
+        #     warnings.warn("max_iter has no effect here, please set it in the handler directly (*eg* `CSVHandler(max_iter=...)`) instead")
         
         # define the active handlers
         self._active_handlers = [self.gen_p_handler, self.gen_v_handler, self.load_p_handler, self.load_q_handler]
@@ -367,6 +375,12 @@ class FromHandlers(GridValue):
         # set the current path of the time series
         self._set_path(self.path)
         
+        if chunk_size is not None:
+            self.set_chunk_size(chunk_size)
+        
+        if max_iter != -1:
+            self.set_max_iter(max_iter)
+            
     def initialize(
         self,
         order_backend_loads,
@@ -497,7 +511,13 @@ class FromHandlers(GridValue):
     
     def set_chunk_size(self, new_chunk_size):
         # TODO
-        pass
+        for el in self._active_handlers:
+            el.set_chunk_size(new_chunk_size)
+    
+    def set_max_iter(self, max_iter):
+        # TODO
+        for el in self._active_handlers:
+            el.set_max_iter(max_iter)
         
     def _set_path(self, path):
         """tell the handler where this chronics is located"""

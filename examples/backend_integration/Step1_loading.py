@@ -15,6 +15,9 @@ This script :
 
 I can also be used as "test" to make sure your backend can be loaded properly for example.
 
+Of course, this script is highly inefficient and can be optimized in multiple ways. Its only
+purpose is to be as clear and minimal as possible.
+
 """
 
 import os
@@ -26,7 +29,7 @@ from grid2op.Backend import Backend   # required
 import pandapower as pp
 
 
-class CustomBackend(Backend):
+class CustomBackend_0(Backend):
     def load_grid(self, path, filename=None):
         # first load the grid from the file
         full_path = path
@@ -111,7 +114,7 @@ if __name__ == "__main__":
     
     a_grid = os.path.join(path_data_test, env_name, "grid.json")
     
-    backend = CustomBackend()
+    backend = CustomBackend_0()
     backend.load_grid(a_grid)
     
     # grid2op then performs basic check to make sure that the grid is "consistent"

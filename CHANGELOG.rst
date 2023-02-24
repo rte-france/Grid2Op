@@ -45,6 +45,7 @@ Change Log
      they are connected to a disconnected bus (in this case I chose to put `theta=0`) 
   2) the `obs.as_networkx()` method did not check, when updating nodes attributes if powerlines 
      were connected or not, which was wrong in some cases 
+
 - [FIXED] the `N1Reward` that was broken
 - [FIXED] the `act._check_for_ambiguity`: a case where missing (when you used topology to disconnect a powerline, 
   but also set_bus to connect it)
@@ -53,6 +54,10 @@ Change Log
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
+- [ADDED] some convenient function of `gridobject` class to convert back and forth "local bus id" (1 or 2) to
+  "global bus id" (0, 1, 2, ... 2*n_sub) [see `gridobject.global_bus_to_local` or `gridobject.local_bus_to_global`]
+- [ADDED] a step by step (very detailed) example on how to build a Backend from an existing grid "solver".
+- [ADDED] some test when the shunt bus are modified.
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWIthForecasts` is now able to read forecast from multiple steps

@@ -8,6 +8,24 @@ It can be usefull for people wanting to implement a new backend for the grid2op 
 Please refer to the documentation here https://grid2op.readthedocs.io/en/latest/createbackend.html 
 for more information.
 
+Basically, the typical "grid2op use" is:
+
+```python
+
+# called once
+backend.load_grid(...)
+
+# called for each "step", thousands of times
+backend.apply_action()  # modify the topology, load, generation etc.
+backend.runpf()  # run the solver
+
+backend.get_topo_vect() # retrieve the results
+backend.loads_info() # retrieve the results
+backend.generators_info() # retrieve the results
+backend.lines_or_info() # retrieve the results
+backend.lines_ex_info() # retrieve the results
+```
+
 ## Reminder
 
 Grid2op is totally agnostic from the grid equations. In grid2op agents only manipulate "high level" objects
@@ -62,6 +80,13 @@ Once you have that, implementing a backend can be done in 4 different steps, eac
 
 This step is called only ONCE, when the grid2op environment is created. In this step, you read a grid file (in the format that you want) and the backend should inform grid2op about the "objects" on this powergrid and their location.
 
+This is done by the method:
+
+```python
+def load_grid(self, path, filename=None):
+    TODO !
+```
+
 Basically, once you have loaded the file in your solver you should first fill `self.n_sub` (number of substations on your grid)
 
 Then for each type of elements (among "load", "gen", "line_or", "line_ex" and "storage"), you fill :
@@ -82,6 +107,94 @@ An example is given in the [Step1_loading](Step1_loading.py) script.
 
 ## Step 2: modifying the state
 
+This step is "first step" of the "grid2Op backend loop" (which is summarized by: "modify", "run the model", "retrieve the state of the elemtns", repeat).
+
+It is implemented in the method `apply_action` (that does not return anything):
+
+```python
+def apply_action(self, action=None):
+    TODO !
+```
+
+Classically, you can divide this method into different modifications:
+- continuous modifications: change the active / reactive consumption of loads or storage units, the active power at generators or the voltage setpoint at these generators.
+- discrete / topological modifications: connect / disconnect powerlines or change the bus to which an element is connected.
+
+To implement it, you simply need to implement all the above part. Detailed examples are provided in the scripts "StepK_change_load.py" or "StepK_change_gen.py" for examples. Indeed we not find convenient to test "simply" that the setpoint has been modified. We prefer testing that the setpoint can be changed and then that the results can be read back (see steps 3 and 4 below).
+
+**NB** the "action" here is not a grid2op.Action.BaseAction. It is a grid2op.Action._BackendAction !
+
 ## Step 3: solves the equations
 
+This is the second step of the "grid2op backend loop" (which is still "modify", "run", "retrieve the results"). It is implemented in the function:
+
+```python
+def runpf(self, is_dc: bool=False) -> Tuple[bool, Union[None, Exception]]:
+    TODO
+    return has_converged, exception_if_diverged_otherwise_None
+```
+
+This is probably the most straightforward function to implement as you only need to call something like 'compute()' or 'run_pf' or 'solve' on your underlying model.
+
+Detailed examples are provided in the scripts "StepK_change_load.py" or "StepK_change_gen.py" for examples. Indeed we not find convenient to test "simply" that the setpoint has been modified. We prefer testing that the setpoint can be changed and then that the results can be read back (see step 4 below).
+
 ## Step 4: reading the states
+
+This is the third and final "call" of the "grid2op backend loop". At this stage, you are expected to export the results of your computation python side. Results should follow some given convention (*eg* units).
+
+It is implemented in the functions:
+
+```python
+    def get_topo_vect(self):
+        TODO
+    
+    def loads_info(self):
+        TODO
+
+    def generators_info(self):
+        TODO
+    
+    def lines_or_info(self):
+        TODO
+    
+    def lines_ex_info(self):
+        TODO
+```
+
+Detailed examples are provided in the scripts "StepK_change_load.py" or "StepK_change_gen.py" for examples where the whole "backend loop" is exposed "element by element.
+
+More explicitely:
+
+- **get_topo_vect(self):** returns the topology vector
+- **generators_info(self):** returns gen_p (in MW), gen_q (in MVAr), gen_v (in kV) [gen_v is the voltage magnitude at the bus to which the generator is connected]
+- **loads_info(self):** returns load_p (in MW), load_q (in MVAr), load_v (in kV) [load_v is the voltage magnitude at the bus to which the generator is connected]
+- **lines_or_info(self):** returns p_or (in MW), q_or (in MVAr), v_or (in kV), a_or (in A) [all the flows at the origin side of the powerline (remember it includes "trafo") + the voltage magnitude at the bus to which the origin side of the powerline is connected]
+- **lines_or_info(self):** returns p_ex (in MW), q_ex (in MVAr), v_ex (in kV), a_ex (in A) [all the flows at the extremity side of the powerline (remember it includes "trafo") + the voltage magnitude at the bus to which the extremity side of the powerline is connected]
+
+
+## Breakpoint :-)
+
+At this stage, you can already use your backend with grid2op and all its eco system, even though some functionalities might still be missing (seed the "advanced" features below). The script TODO allows to check that everything can be done without any issue.
+
+
+## (advanced): handling of storage units
+
+TODO (do not forget the storage description file !)
+
+## (advanced): handling of shunts
+
+TODO
+
+## (advanced): handling of other generators attributes (cost, ramps, pmin / pmax etc.)
+
+TODO
+
+## (advanced): copy
+
+TODO
+
+## (advanced): automatic testing
+
+TODO
+
+How to use grid2op tests to test your backend in depth?
