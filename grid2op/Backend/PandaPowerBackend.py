@@ -802,14 +802,21 @@ class PandaPowerBackend(Backend):
         """
         if backendAction is None:
             return
-                    
+        cls = type(self)
+        
         (
             active_bus,
             (prod_p, prod_v, load_p, load_q, storage),
             topo__,
             shunts__,
         ) = backendAction()
-     
+
+        # handle bus status
+        bus_is = self._grid.bus["in_service"]
+        for i, (bus1_status, bus2_status) in enumerate(active_bus):
+            bus_is[i] = bus1_status  # no iloc for bus, don't ask me why please :-/
+            bus_is[i + self.__nb_bus_before] = bus2_status
+            
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if np.any(prod_p.changed):
             tmp_prod_p.iloc[prod_p.changed] = prod_p.values[prod_p.changed]
@@ -868,19 +875,10 @@ class PandaPowerBackend(Backend):
                 ]
             if np.any(shunt_bus.changed):
                 sh_service = shunt_bus.values[shunt_bus.changed] != -1
-                self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service
-                sh_bus1 = np.arange(len(shunt_bus))[
-                    shunt_bus.changed & shunt_bus.values == 1
-                ]
-                sh_bus2 = np.arange(len(shunt_bus))[
-                    shunt_bus.changed & shunt_bus.values == 2
-                ]
-                if len(sh_bus1) > 0:
-                    self._grid.shunt["bus"].iloc[sh_bus1] = self.shunt_to_subid[sh_bus1]
-                if len(sh_bus2) > 0:
-                    self._grid.shunt["bus"].iloc[sh_bus2] = (
-                        self.shunt_to_subid[sh_bus2] + self.__nb_bus_before
-                    )
+                self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service           
+                chg_and_in_service = sh_service & shunt_bus.changed
+                self._grid.shunt["bus"].loc[chg_and_in_service] = cls.local_bus_to_global(shunt_bus.values[chg_and_in_service],
+                                                                                         cls.shunt_to_subid[chg_and_in_service])
 
         # i made at least a real change, so i implement it in the backend
         for id_el, new_bus in topo__:
@@ -889,14 +887,9 @@ class PandaPowerBackend(Backend):
             if type_obj is not None:
                 # storage unit are handled elsewhere
                 self._type_to_bus_set[type_obj](new_bus, id_el_backend, id_topo)
-
-        bus_is = self._grid.bus["in_service"]
-        for i, (bus1_status, bus2_status) in enumerate(active_bus):
-            bus_is[i] = bus1_status  # no iloc for bus, don't ask me why please :-/
-            bus_is[i + self.__nb_bus_before] = bus2_status
-
+        
     def _apply_load_bus(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_load[id_el_backend]
         )
         if new_bus_backend >= 0:
@@ -907,7 +900,7 @@ class PandaPowerBackend(Backend):
             self._grid.load["bus"].iat[id_el_backend] = -1
 
     def _apply_gen_bus(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_gen[id_el_backend]
         )
         if new_bus_backend >= 0:
@@ -925,7 +918,7 @@ class PandaPowerBackend(Backend):
             # in this case the slack bus cannot be disconnected
 
     def _apply_lor_bus(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_lor[id_el_backend]
         )
         self.change_bus_powerline_or(id_el_backend, new_bus_backend)
@@ -938,7 +931,7 @@ class PandaPowerBackend(Backend):
             self._grid.line["in_service"].iat[id_powerline_backend] = False
 
     def _apply_lex_bus(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_lex[id_el_backend]
         )
         self.change_bus_powerline_ex(id_el_backend, new_bus_backend)
@@ -951,7 +944,7 @@ class PandaPowerBackend(Backend):
             self._grid.line["in_service"].iat[id_powerline_backend] = False
 
     def _apply_trafo_hv(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_lor[id_el_backend]
         )
         self.change_bus_trafo_hv(id_topo, new_bus_backend)
@@ -964,7 +957,7 @@ class PandaPowerBackend(Backend):
             self._grid.trafo["in_service"].iat[id_powerline_backend] = False
 
     def _apply_trafo_lv(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_lex[id_el_backend]
         )
         self.change_bus_trafo_lv(id_topo, new_bus_backend)
@@ -975,17 +968,6 @@ class PandaPowerBackend(Backend):
             self._grid.trafo["lv_bus"].iat[id_powerline_backend] = new_bus_backend
         else:
             self._grid.trafo["in_service"].iat[id_powerline_backend] = False
-
-    def _pp_bus_from_grid2op_bus(self, grid2op_bus, grid2op_bus_init):
-        if grid2op_bus == 1:
-            res = grid2op_bus_init
-        elif grid2op_bus == 2:
-            res = grid2op_bus_init + self.__nb_bus_before
-        elif grid2op_bus == -1:
-            res = -1
-        else:
-            raise BackendError("grid2op bus must be -1, 1 or 2")
-        return int(res)
 
     def _aux_get_line_info(self, colname1, colname2):
         res = np.concatenate(
@@ -1518,11 +1500,14 @@ class PandaPowerBackend(Backend):
             .loc[self._grid.shunt["bus"].values]
             .values.astype(dt_float)
         )
-        shunt_bus = self._grid.shunt["bus"].values < self.__nb_bus_before
-        shunt_bus = 1 * shunt_bus
-        shunt_bus = shunt_bus.astype(dt_int)
-        shunt_v[~self._grid.shunt["in_service"].values] = -1.0
+        shunt_bus = type(self).global_bus_to_local(self._grid.shunt["bus"].values, self.shunt_to_subid)
+        shunt_v[~self._grid.shunt["in_service"].values] = 0.
         shunt_bus[~self._grid.shunt["in_service"].values] = -1
+        
+        # handle shunt alone on a bus (in this case it should probably diverge...)
+        alone = ~np.isfinite(shunt_v)
+        shunt_v[alone] = 0.
+        shunt_bus[alone] = -1
         return shunt_p, shunt_q, shunt_v, shunt_bus
 
     def storages_info(self):
