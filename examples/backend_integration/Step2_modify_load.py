@@ -14,12 +14,11 @@ It get back the loading function from Step1, implements the "apply_action" relev
 
 """
 import pandapower as pp
-from Step1_loading import CustomBackend_0
+from Step1_loading import CustomBackend_Step1
 
 
-class CustomBackend_1(CustomBackend_0):
+class CustomBackend_Step2(CustomBackend_Step1):
     def apply_action(self, action):
-        
         # the following few lines are highly recommended
         if action is None:
             return
@@ -83,7 +82,7 @@ if __name__ == "__main__":
     
     # we highly recommend to do these 3 steps (this is done automatically by grid2op... of course. See an example of the "complete" 
     # backend)
-    backend = CustomBackend_1()
+    backend = CustomBackend_Step2()
     backend.load_grid(a_grid)
     backend.assert_grid_correct()  
     #########
@@ -107,7 +106,7 @@ if __name__ == "__main__":
     # vector of different size... this is why we use the obs.load_p and obs.load_q that already
     # have the proper size)
     
-    # this is technical to grid2op
+    # this is technical to grid2op (done internally)
     bk_act = env._backend_action_class()
     bk_act += action
     #############

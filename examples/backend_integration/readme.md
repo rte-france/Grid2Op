@@ -122,7 +122,7 @@ Classically, you can divide this method into different modifications:
 
 To implement it, you simply need to implement all the above part. Detailed examples are provided in the scripts "StepK_change_load.py" or "StepK_change_gen.py" for examples. Indeed we not find convenient to test "simply" that the setpoint has been modified. We prefer testing that the setpoint can be changed and then that the results can be read back (see steps 3 and 4 below).
 
-**NB** the "action" here is not a grid2op.Action.BaseAction. It is a grid2op.Action._BackendAction !
+**NB** the "action" here is NOT a grid2op.Action.BaseAction. It is a grid2op.Action._BackendAction !
 
 ## Step 3: solves the equations
 
@@ -161,7 +161,7 @@ It is implemented in the functions:
         TODO
 ```
 
-Detailed examples are provided in the scripts "StepK_change_load.py" or "StepK_change_gen.py" for examples where the whole "backend loop" is exposed "element by element.
+Detailed examples are provided in the scripts "StepK_change_load.py" or "StepK_change_gen.py" for examples where the whole "backend loop" is exposed "element by element".
 
 More explicitely:
 

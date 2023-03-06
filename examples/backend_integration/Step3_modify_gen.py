@@ -7,24 +7,27 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 """
-This script provides a possible implementation, based on pandapower of the "change the load" part of the "grid2op backend loop".
+This script provides a possible implementation, based on pandapower of 
+the "change the generators" part of the "grid2op backend loop".
 
-It get back the loading function from Step1, implements the "apply_action" relevant for the "change_load", the "runpf" method
-(to compute the powerflow) and then the "loads_info"
+It get back the loading function from Step2, implements 
+the "apply_action" relevant for the "change generators" 
+and the "generators_info".
+
+NB: the "runpf" is taken from CustomBackend_Step2 
 
 """
-import pandapower as pp
-from Step2_modify_load import CustomBackend_1
+from Step2_modify_load import CustomBackend_Step2
 
 
-class CustomBackend_2(CustomBackend_1):
+class CustomBackend_Step3(CustomBackend_Step2):
     def apply_action(self, action):
-        # loads are modified in the previous script
-        super().apply_action(action)
-        
         # the following few lines are highly recommended
         if action is None:
             return
+        
+        # loads are modified in the previous script
+        super().apply_action(action)
         
         (
             active_bus,
@@ -78,7 +81,7 @@ if __name__ == "__main__":
     
     # we highly recommend to do these 3 steps (this is done automatically by grid2op... of course. See an example of the "complete" 
     # backend)
-    backend = CustomBackend_2()
+    backend = CustomBackend_Step3()
     backend.load_grid(a_grid)
     backend.assert_grid_correct()  
     #########
@@ -102,7 +105,7 @@ if __name__ == "__main__":
     # vector of different size... this is why we use the obs.gen_p and obs.gen_v that already
     # have the proper size)
     
-    # this is technical to grid2op
+    # this is technical to grid2op (done internally)
     bk_act = env._backend_action_class()
     bk_act += action
     #############
@@ -119,4 +122,5 @@ if __name__ == "__main__":
     print(f"{gen_p = }")
     print(f"{gen_q = }")
     print(f"{gen_v = }")
-    # some gen_q might be slightly different than the setpoint due to the slack !
+    # some gen_p might be slightly different than the setpoint 
+    # due to the slack !

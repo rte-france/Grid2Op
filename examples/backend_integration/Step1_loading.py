@@ -29,7 +29,7 @@ from grid2op.Backend import Backend   # required
 import pandapower as pp
 
 
-class CustomBackend_0(Backend):
+class CustomBackend_Step1(Backend):
     def load_grid(self, path, filename=None):
         # first load the grid from the file
         full_path = path
@@ -65,6 +65,10 @@ class CustomBackend_0(Backend):
         self.set_no_storage()
         
         # finally handle powerlines
+        # NB: grid2op considers that trafos are powerlines.
+        # so we decide here to say: first n "powerlines" of grid2Op
+        # will be pandapower powerlines and
+        # last k "powerlines" of grid2op will be the trafos of pandapower.
         self.n_line = self._grid.line.shape[0] + self._grid.trafo.shape[0]
         self.line_or_to_subid = np.zeros(self.n_line, dtype=int)
         self.line_ex_to_subid = np.zeros(self.n_line, dtype=int)
@@ -76,6 +80,15 @@ class CustomBackend_0(Backend):
         for trafo_id in range(self._grid.trafo.shape[0]):
             self.line_or_to_subid[trafo_id + nb_powerline] = self._grid.trafo.iloc[trafo_id]["hv_bus"]
             self.line_ex_to_subid[trafo_id + nb_powerline] = self._grid.trafo.iloc[trafo_id]["lv_bus"]
+            
+        # and now the thermal limit
+        self.thermal_limit_a = 1000. * np.concatenate(
+            (
+                self._grid.line["max_i_ka"].values,
+                self._grid.trafo["sn_mva"].values
+                / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values),
+            )
+        )
             
         self._compute_pos_big_topo()
 
@@ -114,7 +127,7 @@ if __name__ == "__main__":
     
     a_grid = os.path.join(path_data_test, env_name, "grid.json")
     
-    backend = CustomBackend_0()
+    backend = CustomBackend_Step1()
     backend.load_grid(a_grid)
     
     # grid2op then performs basic check to make sure that the grid is "consistent"
@@ -123,32 +136,32 @@ if __name__ == "__main__":
     # and you can check all the attribute that are required by grid2op (exhaustive list in the
     # GridObjects class)
     
-    # name_load = None
-    # name_gen = None
-    # name_line = None
-    # name_sub = None
-    # name_storage = None
+    # name_load
+    # name_gen
+    # name_line
+    # name_sub
+    # name_storage
     
-    # # to which substation is connected each element
-    # load_to_subid = None
-    # gen_to_subid = None
-    # line_or_to_subid = None
-    # line_ex_to_subid = None
-    # storage_to_subid = None
-
+    # to which substation is connected each element
+    # load_to_subid
+    # gen_to_subid
+    # line_or_to_subid
+    # line_ex_to_subid
+    # storage_to_subid
+    
     # # which index has this element in the substation vector
-    # load_to_sub_pos = None
-    # gen_to_sub_pos = None
-    # line_or_to_sub_pos = None
-    # line_ex_to_sub_pos = None
-    # storage_to_sub_pos = None
+    # load_to_sub_pos
+    # gen_to_sub_pos
+    # line_or_to_sub_pos
+    # line_ex_to_sub_pos
+    # storage_to_sub_pos
 
     # # which index has this element in the topology vector
-    # load_pos_topo_vect = None
-    # gen_pos_topo_vect = None
-    # line_or_pos_topo_vect = None
-    # line_ex_pos_topo_vect = None
-    # storage_pos_topo_vect = None
+    # load_pos_topo_vect
+    # gen_pos_topo_vect
+    # line_or_pos_topo_vect
+    # line_ex_pos_topo_vect
+    # storage_pos_topo_vect
     
     # for example
     print(type(backend).name_load)
