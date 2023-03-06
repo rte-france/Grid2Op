@@ -504,19 +504,27 @@ class _BackendAction(GridObjects):
             shunts = self.shunt_p, self.shunt_q, self.shunt_bus
         self._get_active_bus()
         return self.activated_bus, injections, topo, shunts
-
+    
     def get_loads_bus(self):
         if self._loads_bus is None:
             self._loads_bus = ValueStore(self.n_load, dtype=dt_int)
         self._loads_bus.copy_from_index(self.current_topo, self.load_pos_topo_vect)
         return self._loads_bus
 
+    def get_loads_bus_global(self):
+        tmp_ = self.get_loads_bus()
+        return type(self).local_bus_to_global(tmp_, self.load_to_subid)
+    
     def get_gens_bus(self):
         if self._gens_bus is None:
             self._gens_bus = ValueStore(self.n_gen, dtype=dt_int)
         self._gens_bus.copy_from_index(self.current_topo, self.gen_pos_topo_vect)
         return self._gens_bus
 
+    def get_gens_bus_global(self):
+        tmp_ = self.get_gens_bus()
+        return type(self).local_bus_to_global(tmp_, self.gen_to_subid)
+    
     def get_lines_or_bus(self):
         if self._lines_or_bus is None:
             self._lines_or_bus = ValueStore(self.n_line, dtype=dt_int)
@@ -524,6 +532,10 @@ class _BackendAction(GridObjects):
             self.current_topo, self.line_or_pos_topo_vect
         )
         return self._lines_or_bus
+    
+    def get_lines_or_bus_global(self):
+        tmp_ = self.get_lines_or_bus()
+        return type(self).local_bus_to_global(tmp_, self.line_or_to_subid)
 
     def get_lines_ex_bus(self):
         if self._lines_ex_bus is None:
@@ -532,12 +544,20 @@ class _BackendAction(GridObjects):
             self.current_topo, self.line_ex_pos_topo_vect
         )
         return self._lines_ex_bus
+    
+    def get_lines_ex_bus_global(self):
+        tmp_ = self.get_lines_ex_bus()
+        return type(self).local_bus_to_global(tmp_, self.line_ex_to_subid)
 
     def get_storages_bus(self):
         if self._storage_bus is None:
             self._storage_bus = ValueStore(self.n_storage, dtype=dt_int)
         self._storage_bus.copy_from_index(self.current_topo, self.storage_pos_topo_vect)
         return self._storage_bus
+    
+    def get_storages_bus_global(self):
+        tmp_ = self.get_storages_bus()
+        return type(self).local_bus_to_global(tmp_)
 
     def _get_active_bus(self):
         self.activated_bus[:] = False
