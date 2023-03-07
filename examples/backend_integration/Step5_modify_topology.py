@@ -46,11 +46,10 @@ class CustomBackend_Minimal(CustomBackend_Step4):
         
     def _aux_change_bus_or_disconnect(self, new_bus, dt, key, el_id):
         if new_bus == -1:
-            dt["in_service"][el_id] = False
+            dt["in_service"].iloc[el_id] = False
         else:
-            dt["in_service"][el_id] = True
-            dt[key][el_id] = new_bus
-            
+            dt["in_service"].iloc[el_id] = True
+            dt[key].iloc[el_id] = new_bus
             
     # As a "bonus" (see the comments above the "load_grid" function), we can also use the
     # grid2op built-in "***_global()" functions that allows to retrieve the global id
@@ -91,32 +90,47 @@ class CustomBackend_Minimal(CustomBackend_Step4):
             if line_id < n_line_pp:
                 dt = self._grid.line
                 key = "from_bus"
-                line_id_db = line_id
+                line_id_pp = line_id
             else:
                 dt = self._grid.trafo
                 key = "hv_bus"
-                line_id_db = line_id - n_line_pp
+                line_id_pp = line_id - n_line_pp
                 
             self._aux_change_bus_or_disconnect(new_bus,
                                                dt,
                                                key,
-                                               line_id_db)
+                                               line_id_pp)
         
         lines_ex_bus = action.get_lines_ex_bus_global()
         for line_id, new_bus in lines_ex_bus:
             if line_id < n_line_pp:
                 dt = self._grid.line
                 key = "to_bus"
-                line_id_db = line_id
+                line_id_pp = line_id
             else:
                 dt = self._grid.trafo
                 key = "lv_bus"
-                line_id_db = line_id - n_line_pp
+                line_id_pp = line_id - n_line_pp
                 
             self._aux_change_bus_or_disconnect(new_bus,
                                                dt,
                                                key,
-                                               line_id_db)
+                                               line_id_pp)        
+            
+        # and now handle the bus data frame status (specific to pandapower)    
+        # we reuse the fact that there is n_sub substation on the grid, 
+        # the bus (pandapower) for substation i will be bus i and bus i + n_sub
+        # as we explained.
+        (
+            active_bus,
+            (prod_p, prod_v, load_p, load_q, storage),
+            _,
+            shunts__,
+        ) = action()
+        bus_is = self._grid.bus["in_service"]
+        for i, (bus1_status, bus2_status) in enumerate(active_bus):
+            bus_is[i] = bus1_status
+            bus_is[i + type(self).n_sub] = bus2_status
     
     def _aux_get_topo_vect(self, res, dt, key, pos_topo_vect, add_id=0):
         # we loop through each element of the table
@@ -124,18 +138,19 @@ class CustomBackend_Minimal(CustomBackend_Step4):
         # then we assign the right bus (local - eg 1 or 2) to the right
         # component of the vector "res"  (the component is given by the "pos_topo_vect" - eg self.load_pos_topo_vect
         # when we look at the loads)
-        for el_id, (status, bus_id) in dt[["in_service", key]].iterrows():
+        el_id = 0
+        for (status, bus_id) in dt[["in_service", key]].values:
             my_pos_topo_vect = pos_topo_vect[el_id + add_id]
             if status:
                 local_bus = self.global_bus_to_local_int(bus_id, my_pos_topo_vect)
             else:
                 local_bus = -1
             res[my_pos_topo_vect] = local_bus
+            el_id += 1
         
     # it should return, in the correct order, on which bus each element is connected        
     def get_topo_vect(self):
         res = np.full(self.dim_topo, fill_value=-2, dtype=int)
-        
         # read results for load
         self._aux_get_topo_vect(res, self._grid.load, "bus", self.load_pos_topo_vect)
         # then for generators
@@ -143,6 +158,7 @@ class CustomBackend_Minimal(CustomBackend_Step4):
         # then each side of powerlines
         self._aux_get_topo_vect(res, self._grid.line, "from_bus", self.line_or_pos_topo_vect)
         self._aux_get_topo_vect(res, self._grid.line, "to_bus", self.line_ex_pos_topo_vect)
+        
         # then for the trafos, but remember pandapower trafos are powerlines in grid2Op....
         # so we need to trick it a bit
         # (we can do this trick because we put the trafo "at the end" of the powerline in grid2op
@@ -155,19 +171,19 @@ class CustomBackend_Minimal(CustomBackend_Step4):
 
 if __name__ == "__main__":
     import grid2op
-    from grid2op.Action import CompleteAction
     import os
-    import warnings
+    from Step0_make_env import make_env_for_backend
     
     path_grid2op = grid2op.__file__
     path_data_test = os.path.join(os.path.split(path_grid2op)[0], "data")
     
-    env_name = "rte_case5_example"
+    env_name = "l2rpn_wcci_2022_dev"
     # one of:
     # - rte_case5_example: the grid in the documentation (completely fake grid)
     # - l2rpn_case14_sandbox: inspired from IEEE 14
     # - l2rpn_neurips_2020_track1: inspired from IEEE 118 (only a third of it)
     # - l2rpn_wcci_2022_dev: inspired from IEEE 118 (entire grid)
+    env, obs = make_env_for_backend(env_name, CustomBackend_Minimal)
     
     a_grid = os.path.join(path_data_test, env_name, "grid.json")
     
@@ -177,14 +193,6 @@ if __name__ == "__main__":
     backend.load_grid(a_grid)
     backend.assert_grid_correct()  
     #########
-    
-    # change the load (to be more consistent with standard grid2op usage, we do it
-    # using an environment that uses a real backend, and not our "second step toward a backend")
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        env = grid2op.make(env_name, test=True, action_class=CompleteAction)
-    obs = env.reset()
-    #################
     
     # this is how "user" manipute the grid
     if env_name == "rte_case5_example":
@@ -202,12 +210,12 @@ if __name__ == "__main__":
     else:
         raise RuntimeError(f"Unknown grid2op environment name {env_name}")
     action = env.action_space({"set_bus": {"substations_id": [(sub_id, local_topo)]}})
-        
+    #############################    
     
     # this is technical to grid2op
     bk_act = env._backend_action_class()
     bk_act += action
-    #############
+    ####################################
     
     # this is what the backend receive:
     backend.apply_action(bk_act)
@@ -225,4 +233,23 @@ if __name__ == "__main__":
     print(f"{a_or = }")
     
     topo_vect = backend.get_topo_vect()
-    print(f"{topo_vect = }")
+    beg_ = np.sum(env.sub_info[:sub_id])
+    end_ = beg_ + env.sub_info[sub_id]
+    assert np.all(topo_vect[beg_:end_] == local_topo)
+    
+    # and you can also make a "more powerful" test
+    # that test if, from grid2op point of view, the KCL are met or not
+    p_subs, q_subs, p_bus, q_bus, diff_v_bus = backend.check_kirchoff()
+    # p_subs: active power mismatch at the substation level [shape: nb_substation ]
+    # p_subs: reactive power mismatch at the substation level [shape: nb_substation ]
+    # p_bus: active power mismatch at the bus level [shape: (nb substation, 2)]
+    # p_bus: reactive power mismatch at the bus level [shape: (nb substation, 2)]
+    # diff_v_bus: difference between the highest voltage level and the lowest voltage level for 
+    #             among all elements connected to the same bus
+    # if your "solver" meets the KCL then it should all be 0. (*ie* less than a small tolerance)
+    tol = 1e-4
+    assert np.all(p_subs <= tol)
+    # assert np.all(q_subs <= tol)  # does not work if there are shunts on the grid (not yet coded in the backend)
+    assert np.all(p_bus <= tol) 
+    # assert np.all(q_bus <= tol)  # does not work if there are shunts on the grid (not yet coded in the backend)
+    assert np.all(diff_v_bus <= tol)

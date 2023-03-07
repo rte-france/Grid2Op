@@ -59,10 +59,10 @@ class CustomBackend_Step4(CustomBackend_Step3):
 
             if new_bus == -1:
                 # element was disconnected
-                dt["in_service"][line_id_db] = False
+                dt["in_service"].iloc[line_id_db] = False
             else:
                 # element was connected
-                dt["in_service"][line_id_db] = True
+                dt["in_service"].iloc[line_id_db] = True
 
         lines_ex_bus = action.get_lines_ex_bus()
         for line_id, new_bus in lines_ex_bus:
@@ -77,10 +77,10 @@ class CustomBackend_Step4(CustomBackend_Step3):
 
             if new_bus == -1:
                 # element was disconnected
-                dt["in_service"][line_id_db] = False
+                dt["in_service"].iloc[line_id_db] = False
             else:
                 # element was connected
-                dt["in_service"][line_id_db] = True
+                dt["in_service"].iloc[line_id_db] = True
                 
     def _aux_get_line_info(self, colname_powerline, colname_trafo):
         """
@@ -120,7 +120,7 @@ class CustomBackend_Step4(CustomBackend_Step3):
                 self._grid.trafo["hv_bus"].values,
             )
         )
-        v_or *= self._grid.bus.loc[bus_id]["vn_kv"].values
+        v_or *= self._grid.bus.iloc[bus_id]["vn_kv"].values
         
         # there would be a bug in v_or because of the way pandapower
         # internally looks at the extremity of powerlines / trafos.
@@ -159,7 +159,7 @@ class CustomBackend_Step4(CustomBackend_Step3):
                 self._grid.trafo["lv_bus"].values,
             )
         )
-        v_ex *= self._grid.bus.loc[bus_id]["vn_kv"].values
+        v_ex *= self._grid.bus.iloc[bus_id]["vn_kv"].values
         
         # there would be a bug in v_ex because of the way pandapower
         # internally looks at the extremity of powerlines / trafos.
@@ -176,9 +176,8 @@ class CustomBackend_Step4(CustomBackend_Step3):
 
 if __name__ == "__main__":
     import grid2op
-    from grid2op.Action import CompleteAction
     import os
-    import warnings
+    from Step0_make_env import make_env_for_backend
     
     path_grid2op = grid2op.__file__
     path_data_test = os.path.join(os.path.split(path_grid2op)[0], "data")
@@ -189,6 +188,7 @@ if __name__ == "__main__":
     # - l2rpn_case14_sandbox: inspired from IEEE 14
     # - l2rpn_neurips_2020_track1: inspired from IEEE 118 (only a third of it)
     # - l2rpn_wcci_2022_dev: inspired from IEEE 118 (entire grid)
+    env, obs = make_env_for_backend(env_name, CustomBackend_Step4)
     
     a_grid = os.path.join(path_data_test, env_name, "grid.json")
     
@@ -198,14 +198,6 @@ if __name__ == "__main__":
     backend.load_grid(a_grid)
     backend.assert_grid_correct()  
     #########
-    
-    # change the load (to be more consistent with standard grid2op usage, we do it
-    # using an environment that uses a real backend, and not our "second step toward a backend")
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        env = grid2op.make(env_name, test=True, action_class=CompleteAction)
-    obs = env.reset()
-    #################
     
     # this is how "user" manipute the grid
     # in this I disconnect powerline 0
@@ -221,6 +213,7 @@ if __name__ == "__main__":
     
     # now run a powerflow
     conv, exc_ = backend.runpf()
+    assert conv, "powerflow has diverged"
     
     # and retrieve the results
     p_or, q_or, v_or, a_or = backend.lines_or_info()
@@ -246,6 +239,7 @@ if __name__ == "__main__":
     
     # this is what the backend receive:
     backend.apply_action(bk_act)
+    assert conv, "powerflow has diverged"
     
     # now run a powerflow
     conv, exc_ = backend.runpf()
@@ -253,7 +247,7 @@ if __name__ == "__main__":
     # and retrieve the results
     p_or, q_or, v_or, a_or = backend.lines_or_info()
     
-    print("After reconnecting powerline 0: ")
+    print("\nAfter reconnecting powerline 0: ")
     print(f"{p_or = }")
     print(f"{q_or = }")
     print(f"{v_or = }")
@@ -262,7 +256,8 @@ if __name__ == "__main__":
 
     # this is how "user" manipute the grid
     # in this I disconnect the last powerline
-    action = env.action_space({"set_line_status": [(env.n_line - 1, -1)]})
+    line_id = env.n_line - 1
+    action = env.action_space({"set_line_status": [(line_id, -1)]})
     
     # this is technical to grid2op (done internally)
     bk_act = env._backend_action_class()
@@ -274,16 +269,17 @@ if __name__ == "__main__":
     
     # now run a powerflow
     conv, exc_ = backend.runpf()
+    assert conv, "powerflow has diverged"
     
     # and retrieve the results
     p_or, q_or, v_or, a_or = backend.lines_or_info()
     
-    print("After disconnecting the last powerline")
+    print(f"\nAfter disconnecting powerline id {line_id}")
     print(f"{p_or = }")
     print(f"{q_or = }")
     print(f"{v_or = }")
     print(f"{a_or = }")
-    assert p_or[env.n_line - 1] == 0.
-    assert q_or[env.n_line - 1] == 0.
-    assert v_or[env.n_line - 1] == 0.
-    assert a_or[env.n_line - 1] == 0.
+    assert p_or[line_id] == 0.
+    assert q_or[line_id] == 0.
+    assert v_or[line_id] == 0.
+    assert a_or[line_id] == 0.

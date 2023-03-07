@@ -862,7 +862,7 @@ class PandaPowerBackend(Backend):
                 self.storage_pos_topo_vect[stor_bus.changed][~activated]
             ] = -1
 
-        if self.shunts_data_available:
+        if type(backendAction).shunts_data_available:
             shunt_p, shunt_q, shunt_bus = shunts__
 
             if np.any(shunt_p.changed):

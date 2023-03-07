@@ -174,8 +174,29 @@ More explicitely:
 
 ## Breakpoint :-)
 
-At this stage, you can already use your backend with grid2op and all its eco system, even though some functionalities might still be missing (seed the "advanced" features below). The script TODO allows to check that everything can be done without any issue.
+At this stage, you can already use your backend with grid2op and all its eco system, even though some functionalities might still be missing (seed the "advanced" features below). The scripts `Step0` to `Step6` propose a possible way to split the coding
+of all these functions into different independant tasks and to have basic "tests" (more preciselys examples of what could be some tests).
 
+More precisely:
+
+- [Step0_make_env](./Step0_make_env.py): create a grid2op environment that you can use even if your backend is not completely coded.
+  It does that by relying on the computation of the powerflow by the default backend (of course it assumes the same grid can be loaded 
+  by your backend and by Pandapower, which might involve converting some data from pandapower format (json specific representation)
+  to your format. You can use some utilities of pandapower for such purpose, see *eg* https://pandapower.readthedocs.io/en/latest/converter.html)
+- [Step1_loading](./Step1_loading.py): gives and example on how to implement the "load the grid from a file and define everything needed by grid2op"
+- [Step2_modify_load](./Step2_modify_load.py): gives and example on how to implement the powerflow and on how to modify the load setpoints
+- [Step3_modify_gen](./Step3_modify_gen.py): gives and example on how to modify the generator setpoints
+- [Step4_modify_line_status](./Step4_modify_line_status.py): gives and example on how to modify powerline status (disconnect / reconnect) powerlines
+- [Step5_modify_topology](./Step5_modify_topology.py): gives some examples on the topology changes connect object to different busbars
+  at the substation they are connected to.
+- [Step6_integration](./Step6_integration.py): gives some examples of agents interacting on the grid (and powerflow are carried out by your backend)
+
+
+## (advanced): automatic testing
+
+TODO
+
+How to use grid2op tests to test your backend in depth?
 
 ## (advanced): handling of storage units
 
@@ -192,9 +213,3 @@ TODO
 ## (advanced): copy
 
 TODO
-
-## (advanced): automatic testing
-
-TODO
-
-How to use grid2op tests to test your backend in depth?
