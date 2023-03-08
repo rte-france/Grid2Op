@@ -344,12 +344,12 @@ class MultiDiscreteActSpace(MultiDiscrete):
                                 ],
                             )
 
-                    if el not in box_space.dict_properties:
+                    if el not in box_space._dict_properties:
                         raise RuntimeError(
                             f"Impossible to dertmine lowest and maximum value for "
                             f'key "{el}".'
                         )
-                    low_, high_, shape_, dtype_ = box_space.dict_properties[el]
+                    low_, high_, shape_, dtype_ = box_space._dict_properties[el]
                     tmp_box = Box(low=low_, high=high_, dtype=dtype_)
                     tmp_binarizer = ContinuousToDiscreteConverter(
                         init_space=tmp_box, nb_bins=self._nb_bins[el]
