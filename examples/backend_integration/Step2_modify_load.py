@@ -13,13 +13,13 @@ It get back the loading function from Step1, implements the "apply_action" relev
 (to compute the powerflow) and then the "loads_info"
 
 """
+import numpy as np
 import pandapower as pp
-from Step1_loading import CustomBackend_0
+from Step1_loading import CustomBackend_Step1
 
 
-class CustomBackend_1(CustomBackend_0):
+class CustomBackend_Step2(CustomBackend_Step1):
     def apply_action(self, action):
-        
         # the following few lines are highly recommended
         if action is None:
             return
@@ -59,15 +59,15 @@ class CustomBackend_1(CustomBackend_0):
         # in pandapower this is not straightforward. We first need to retrieve the
         # voltage in per unit of the bus to which each load is connected.
         # And then we convert the pu to kV. This is what is done below.
-        load_v = self._grid.res_bus.loc[self._grid.load["bus"].values]["vm_pu"].values  # in pu
-        load_v *= self._grid.bus.loc[self._grid.load["bus"].values]["vn_kv"].values # in kv
+        load_v = self._grid.res_bus.iloc[self._grid.load["bus"].values]["vm_pu"].values  # in pu
+        load_v *= self._grid.bus.iloc[self._grid.load["bus"].values]["vn_kv"].values # in kv
         return load_p, load_q, load_v
+
 
 if __name__ == "__main__":
     import grid2op
-    from grid2op.Action import CompleteAction
     import os
-    import warnings
+    from Step0_make_env import make_env_for_backend
     
     path_grid2op = grid2op.__file__
     path_data_test = os.path.join(os.path.split(path_grid2op)[0], "data")
@@ -78,27 +78,22 @@ if __name__ == "__main__":
     # - l2rpn_case14_sandbox: inspired from IEEE 14
     # - l2rpn_neurips_2020_track1: inspired from IEEE 118 (only a third of it)
     # - l2rpn_wcci_2022_dev: inspired from IEEE 118 (entire grid)
+    env, obs = make_env_for_backend(env_name, CustomBackend_Step2)
     
     a_grid = os.path.join(path_data_test, env_name, "grid.json")
     
     # we highly recommend to do these 3 steps (this is done automatically by grid2op... of course. See an example of the "complete" 
     # backend)
-    backend = CustomBackend_1()
+    backend = CustomBackend_Step2()
     backend.load_grid(a_grid)
     backend.assert_grid_correct()  
     #########
-    
-    # change the load (to be more consistent with standard grid2op usage, we do it
-    # using an environment that uses a real backend, and not our "second step toward a backend")
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        env = grid2op.make(env_name, test=True, action_class=CompleteAction)
-    obs = env.reset()
-    #################
-    
+       
     # this is how "user" manipute the grid
-    action = env.action_space({"injection": {"load_p": obs.load_p * 1.1,
-                                             "load_q": obs.load_q * 1.1}})
+    new_load_p = obs.load_p * 1.1
+    new_load_q = obs.load_q * 0.9
+    action = env.action_space({"injection": {"load_p": new_load_p,
+                                             "load_q": new_load_q}})
     # we could have written 
     # > action = env.action_space({"injection": {"load_p": [9. , 7.9, 7.7],
     # >                                          "load_q": [6.3, 5.5, 5.4]}})
@@ -107,7 +102,7 @@ if __name__ == "__main__":
     # vector of different size... this is why we use the obs.load_p and obs.load_q that already
     # have the proper size)
     
-    # this is technical to grid2op
+    # this is technical to grid2op (done internally)
     bk_act = env._backend_action_class()
     bk_act += action
     #############
@@ -117,6 +112,7 @@ if __name__ == "__main__":
     
     # now run a powerflow
     conv, exc_ = backend.runpf()
+    assert conv, "powerflow has diverged"
     
     # and retrieve the results
     load_p, load_q, load_v = backend.loads_info()
@@ -124,4 +120,6 @@ if __name__ == "__main__":
     print(f"{load_p = }")
     print(f"{load_q = }")
     print(f"{load_v = }")
+    assert np.isclose(np.sum(load_p), np.sum(new_load_p))
+    assert np.isclose(np.sum(load_q), np.sum(new_load_q))
     

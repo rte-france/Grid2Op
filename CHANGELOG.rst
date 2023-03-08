@@ -51,6 +51,7 @@ Change Log
   but also set_bus to connect it)
 - [FIXED] a bug when the storage unit names where not set in the backend and needed to be set
   automatically (wrong names were used)
+- [FIXED] a bug in `PandaPowerBackend` when using `BackendConverter` and one the backend do not support shunts.
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
@@ -76,6 +77,15 @@ Change Log
   all the impact on line status from the topology if it causes "AmbiguousAction" (this includes removing
   `set_bus` to 1 or 2 with `set_line_status` is -1 or to remove `set_bus` to -1 when `set_line_status` is 1
   or to remove `change_bus` when `set_line_status` is -1)
+- [IMPROVED] possibility, for `BackendConverter` to converter between backends where one does support 
+  storage units (the one making powerflow) and the other one don't (the one the user will see).
+- [IMPROVED] in `BackendConverter` names of the "source backend" can be used to match the time series data
+  when the "use_target_backend_name=True" (new kwargs)
+- [IMPROVED] environment do not crash when it fails to load redispatching data. It issues a warning and continue as if
+  the description file was not present.
+- [IMPROVED] `BackendConverter` is now able to automatically map between different backend with different naming convention 
+  under some hypothesis. CAREFUL: the generated mapping might not be the one you "have in mind" ! As for everything automatic,
+  it's good because it's fast. It's terrible when you think it does something but in fact it does something else.
 
 [1.8.1] - 2023-01-11
 ---------------------

@@ -230,7 +230,13 @@ class Environment(BaseEnv):
         self.backend.load_grid(
             self._init_grid_path
         )  # the real powergrid of the environment
-        self.backend.load_redispacthing_data(self.get_path_env())
+        try:
+            self.backend.load_redispacthing_data(self.get_path_env())
+        except BackendError as exc_:
+            self.backend.redispatching_unit_commitment_availble = False
+            warnings.warn(f"Impossible to load redispatching data. This is not an error but you will not be able "
+                          f"to use all grid2op functionalities. "
+                          f"The error was: \"{exc_}\"")
         self.backend.load_storage_data(self.get_path_env())
         exc_ = self.backend.load_grid_layout(self.get_path_env())
         if exc_ is not None:
@@ -335,6 +341,9 @@ class Environment(BaseEnv):
                     type(chronics_handler)
                 )
             )
+        if names_chronics_to_backend is None and type(self.backend).IS_BK_CONVERTER:
+            names_chronics_to_backend = self.backend.names_target_to_source
+            
         self.chronics_handler = chronics_handler
         self.chronics_handler.initialize(
             self.name_load,
