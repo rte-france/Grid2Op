@@ -32,7 +32,7 @@ class Issue418Tester(unittest.TestCase):
             year = 1249
             day = 28
         else:
-            obs = gymenv.reset(42)
+            obs = gymenv.reset(seed=42)
             curt = np.array([1,1.,0.18852758,0.5537014,0.43770432,1])
             year = 571
             day = 9

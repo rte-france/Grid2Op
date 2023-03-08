@@ -29,7 +29,7 @@ class Issue283Tester(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env_gym.action_space = BoxGymActSpace(self.env.action_space)
         # self.env_gym.seed(0)
-        self.env_gym.reset(0)
+        self.env_gym.reset(seed=0)
 
     def tearDown(self):
         self.env.close()
