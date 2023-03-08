@@ -14,8 +14,7 @@ from grid2op.Chronics import Multifolder
 from grid2op.Exceptions import Grid2OpException
 from grid2op.gym_compat.gym_obs_space import GymObservationSpace
 from grid2op.gym_compat.gym_act_space import GymActionSpace
-from grid2op.gym_compat.utils import (check_gym_version, sample_seed,
-                                      _MAX_GYM_VERSION_RANDINT, GYM_VERSION)
+from grid2op.gym_compat.utils import (check_gym_version, sample_seed)
 
 
 def conditional_decorator(condition):
@@ -27,7 +26,7 @@ def conditional_decorator(condition):
     return decorator
 
 
-class GymEnv(gym.Env):
+class _AuxGymEnv(gym.Env):
     """
     fully implements the openAI gym API by using the :class:`GymActionSpace` and :class:`GymObservationSpace`
     for compliance with openAI gym.
@@ -41,6 +40,11 @@ class GymEnv(gym.Env):
         class behave differently depending on the version of gym you have installed !
         
         The main changes involve the functions `env.step` and `env.reset`
+        
+    If you want to use the same version of the GymEnv regardless of the gym version installed you can use:
+    
+    - :class:`GymEnv_Legacy` for gym < 0.26
+    - :class:`GymEnv_Modern` for gym >= 0.26
 
     Notes
     ------
@@ -72,23 +76,9 @@ class GymEnv(gym.Env):
         self._shuffle_chronics = shuffle_chronics
             
         gym.Env.__init__(self)
-
-    def reset(self, *args, **kwargs):
-        if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
-            return self._aux_reset(*args, **kwargs)
-        else:
-            return self._aux_reset_new(*args, **kwargs)
-
-    def step(self, *args, **kwargs):
-        if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
-            return self._aux_step(*args, **kwargs)
-        else:
-            return self._aux_step_new(*args, **kwargs)
-        
-    @conditional_decorator(GYM_VERSION <= _MAX_GYM_VERSION_RANDINT)
-    def seed(self, *args, **kwargs):
-        # defined only on some cases
-        return self._aux_seed(*args, **kwargs)
+        if not hasattr(self, "_np_random"):
+            # for older version of gym it does not exist
+            self._np_random = np.random.RandomState()
         
     def _aux_step(self, gym_action):
         # used for gym < 0.26
@@ -196,3 +186,28 @@ class GymEnv(gym.Env):
     def __del__(self):
         # delete possible dangling reference
         self.close()
+
+
+class GymEnv_Legacy(_AuxGymEnv):
+    # for old version of gym        
+    def reset(self, *args, **kwargs):
+        return self._aux_reset(*args, **kwargs)
+
+    def step(self, action):
+        return self._aux_step(action)
+
+    def seed(self, seed):
+        # defined only on some cases
+        return self._aux_seed(seed)
+
+
+class GymEnv_Modern(_AuxGymEnv):
+    # for new version of gym
+    def reset(self,
+              *,
+              seed=None,
+              options=None,):
+        return self._aux_reset_new(seed, options)
+
+    def step(self, action):
+        return self._aux_step_new(action)

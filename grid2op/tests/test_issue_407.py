@@ -33,8 +33,6 @@ class Issue407Tester(unittest.TestCase):
     
     def test_reset(self):
         gym_env = CustomGym(self.env)
-        import pdb
-        pdb.set_trace()
         obs = gym_env.reset()
         assert gym_env._reset_called == 1
 
