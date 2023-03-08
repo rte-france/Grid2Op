@@ -102,6 +102,10 @@ class BackendConverter(Backend):
             use_target_backend_name=use_target_backend_name,
             kwargs_target_backend=kwargs_target_backend,
             kwargs_source_backend=kwargs_source_backend,
+            source_backend_class=source_backend_class,
+            target_backend_class=target_backend_class,
+            sub_source_target=sub_source_target,
+            target_backend_grid_path=target_backend_grid_path,
         )
         difcf = detailed_infos_for_cascading_failures
         if kwargs_source_backend is None:
@@ -399,15 +403,20 @@ class BackendConverter(Backend):
     def assert_grid_correct(self):
         # this is done before a call to this function, by the environment
         env_name = type(self).env_name
-        type(self.target_backend).set_env_name(env_name)
-        type(self.source_backend).set_env_name(env_name)
+        
+        cls_target = type(self.target_backend)
+        cls_source = type(self.source_backend)
+        
+        cls_target.set_env_name(env_name)
+        cls_source.set_env_name(env_name)
+        self.source_backend.env_name = cls_source.env_name
 
         # handle specifc case of shunt data:
-        if not self.target_backend.shunts_data_available:
+        if not cls_target.shunts_data_available:
             # disable the shunt data in grid2op.
-            self.source_backend.shunts_data_available = False
-            self.source_backend.n_shunt = None
-            self.source_backend.name_shunt = np.empty(0, dtype=str)
+            cls_source.shunts_data_available = False
+            cls_source.n_shunt = None
+            cls_source.name_shunt = np.empty(0, dtype=str)
 
         self._init_class_attr(obj=self.source_backend)
         if self.path_redisp is not None:
@@ -439,7 +448,7 @@ class BackendConverter(Backend):
 
         # init the target backend (the one that does the computation and that is initialized)
         self.target_backend.assert_grid_correct()
-
+        
         # initialize the other one, because, well the grid should be seen from both backend
         self.source_backend._init_class_attr(obj=self)
         self.source_backend.assert_grid_correct()
@@ -466,7 +475,7 @@ class BackendConverter(Backend):
         self._check_both_consistent(self._gen_tg2sr, self._gen_sr2tg)
         self._check_both_consistent(self._sub_tg2sr, self._sub_sr2tg)
         
-        if self.n_storage == type(self.target_backend).n_storage:
+        if self.n_storage == cls_target.n_storage:
             # both source and target supports storage units
             self._check_both_consistent(self._topo_tg2sr, self._topo_sr2tg)
         elif self.n_storage == 0:
@@ -477,10 +486,10 @@ class BackendConverter(Backend):
             assert np.all(sorted(self._topo_sr2tg[self._topo_tg2sr]) == np.arange(self.dim_topo))
             
             topo_sr2tg_without_storage = self._topo_sr2tg[self._topo_sr2tg >= 0]
-            assert np.sum(self._topo_sr2tg == -1) == type(self.target_backend).n_storage
+            assert np.sum(self._topo_sr2tg == -1) == cls_target.n_storage
             assert np.all(self._topo_tg2sr[topo_sr2tg_without_storage] >= 0)
-            target_without_storage = np.array([i for i in range(type(self.target_backend).dim_topo) 
-                                               if not i in type(self.target_backend).storage_pos_topo_vect])
+            target_without_storage = np.array([i for i in range(cls_target.dim_topo) 
+                                               if not i in cls_target.storage_pos_topo_vect])
             assert np.all(sorted(self._topo_tg2sr[topo_sr2tg_without_storage]) == target_without_storage)
             self._topo_sr2tg = topo_sr2tg_without_storage
 
@@ -488,17 +497,17 @@ class BackendConverter(Backend):
             self._check_both_consistent(self._shunt_tg2sr, self._shunt_sr2tg)
 
         # finally check that powergrids are identical (up to the env name)
-        type(self.target_backend).same_grid_class(type(self.source_backend))
+        cls_target.same_grid_class(cls_source)
         
         # once everything is done, make the converter for the names
         cls = type(self)        
-        d_loads = {type(self.target_backend).name_load[i]: type(self.source_backend).name_load[self._load_sr2tg[i]]
+        d_loads = {cls_target.name_load[i]: cls_source.name_load[self._load_sr2tg[i]]
                     for i in range(cls.n_load)}
-        d_gens = {type(self.target_backend).name_gen[i]: type(self.source_backend).name_gen[self._gen_sr2tg[i]]
+        d_gens = {cls_target.name_gen[i]: cls_source.name_gen[self._gen_sr2tg[i]]
                     for i in range(cls.n_gen)}
-        d_lines = {type(self.target_backend).name_line[i]: type(self.source_backend).name_line[self._line_sr2tg[i]]
+        d_lines = {cls_target.name_line[i]: cls_source.name_line[self._line_sr2tg[i]]
                     for i in range(cls.n_line)}
-        d_subs = {type(self.target_backend).name_sub[i]: type(self.source_backend).name_sub[self._sub_sr2tg[i]]
+        d_subs = {cls_target.name_sub[i]: cls_source.name_sub[self._sub_sr2tg[i]]
                     for i in range(cls.n_sub)}
         dict_ = {"loads": d_loads, "lines": d_lines, "prods": d_gens, "subs": d_subs}
         self.names_target_to_source = dict_
@@ -720,5 +729,5 @@ class BackendConverter(Backend):
         # env has the powerline stored in the order of the source backend, but i need
         # to have them stored in the order of the target backend for such function
         pass
-
+        
     # TODO update_from_obs too, maybe ?

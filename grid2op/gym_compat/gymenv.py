@@ -11,6 +11,7 @@ import gym
 
 from grid2op.dtypes import dt_int
 from grid2op.Chronics import Multifolder
+from grid2op.Exceptions import Grid2OpException
 from grid2op.gym_compat.gym_obs_space import GymObservationSpace
 from grid2op.gym_compat.gym_act_space import GymActionSpace
 from grid2op.gym_compat.utils import (check_gym_version, sample_seed,
@@ -62,12 +63,15 @@ class GymEnv(gym.Env):
         self._shuffle_chronics = shuffle_chronics
         
         if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
-            self.seed = self._aux_seed
-            self.reset = self._aux_reset
-            self.step = self._aux_step
+            type(self).seed = self._aux_seed
+            type(self).reset = self._aux_reset
+            type(self).step = self._aux_step
+            self._np_random = np.random.RandomState()
         else:
-            self.reset = self._aux_reset_new
-            self.step = self._aux_step_new
+            type(self).reset = self._aux_reset_new
+            type(self).step = self._aux_step_new
+            
+        gym.Env.__init__(self)
             
     def _aux_step(self, gym_action):
         # used for gym < 0.26
@@ -111,7 +115,26 @@ class GymEnv(gym.Env):
 
     def _aux_reset_new(self, seed=None, options=None):
         # used for gym > 0.26
-        return self._aux_reset(seed, True, options)
+        if self._shuffle_chronics and isinstance(
+            self.init_env.chronics_handler.real_data, Multifolder
+        ):
+            self.init_env.chronics_handler.sample_next_chronics()
+        
+        super().reset(seed=seed)    
+        if seed is not None:
+            self._aux_seed_spaces()
+            seed, next_seed, underlying_env_seeds = self._aux_seed_g2op(seed)
+            
+        g2op_obs = self.init_env.reset()
+        gym_obs = self.observation_space.to_gym(g2op_obs)
+            
+        chron_id = self.init_env.chronics_handler.get_id()
+        info = {"time serie id": chron_id}
+        if seed is not None:
+            info["seed"] = seed
+            info["grid2op_env_seed"] = next_seed
+            info["underlying_env_seeds"] = underlying_env_seeds
+            return gym_obs, info
         
     def render(self):
         """for compatibility with open ai gym render function"""
@@ -129,16 +152,28 @@ class GymEnv(gym.Env):
             self.observation_space.close()
         self.observation_space = None
 
-    def _aux_seed(self, seed=None):
-        # deprecated in gym >=0.26
-        if seed is not None:
-            # seed the gym env
-            super().reset(seed=seed)
+    def _aux_seed_spaces(self):
+        max_ = np.iinfo(dt_int).max 
+        next_seed = sample_seed(max_, self._np_random)
+        self.action_space.seed(next_seed)
+        next_seed = sample_seed(max_, self._np_random)
+        self.observation_space.seed(next_seed)
+            
+    def _aux_seed_g2op(self, seed):
             # then seed the underlying grid2op env
             max_ = np.iinfo(dt_int).max 
             next_seed = sample_seed(max_, self._np_random)
             underlying_env_seeds = self.init_env.seed(next_seed)
             return seed, next_seed, underlying_env_seeds
+        
+    def _aux_seed(self, seed=None):
+        # deprecated in gym >=0.26
+        if seed is not None:
+            # seed the gym env
+            super().seed(seed)
+            self._np_random.seed(seed)
+            self._aux_seed_spaces()
+            return self._aux_seed_g2op(seed)
         return None, None, None
 
     def __del__(self):
