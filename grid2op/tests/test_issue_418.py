@@ -14,7 +14,7 @@ import numpy as np
 from grid2op.gym_compat.utils import (check_gym_version, sample_seed,
                                       _MAX_GYM_VERSION_RANDINT, GYM_VERSION)
 
-class Issue389Tester(unittest.TestCase):
+class Issue418Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

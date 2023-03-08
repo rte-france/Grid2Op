@@ -18,6 +18,15 @@ from grid2op.gym_compat.utils import (check_gym_version, sample_seed,
                                       _MAX_GYM_VERSION_RANDINT, GYM_VERSION)
 
 
+def conditional_decorator(condition):
+    def decorator(func):
+        if condition:
+            # Return the function unchanged, not decorated.
+            return func
+        return NotImplementedError()  # anything that is not a callbe anyway
+    return decorator
+
+
 class GymEnv(gym.Env):
     """
     fully implements the openAI gym API by using the :class:`GymActionSpace` and :class:`GymObservationSpace`
@@ -61,18 +70,26 @@ class GymEnv(gym.Env):
         self.metadata = self.init_env.metadata
         self.init_env.render_mode = render_mode
         self._shuffle_chronics = shuffle_chronics
-        
-        if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
-            type(self).seed = self._aux_seed
-            type(self).reset = self._aux_reset
-            type(self).step = self._aux_step
-            self._np_random = np.random.RandomState()
-        else:
-            type(self).reset = self._aux_reset_new
-            type(self).step = self._aux_step_new
             
         gym.Env.__init__(self)
-            
+
+    def reset(self, *args, **kwargs):
+        if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
+            return self._aux_reset(*args, **kwargs)
+        else:
+            return self._aux_reset_new(*args, **kwargs)
+
+    def step(self, *args, **kwargs):
+        if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
+            return self._aux_step(*args, **kwargs)
+        else:
+            return self._aux_step_new(*args, **kwargs)
+        
+    @conditional_decorator(GYM_VERSION <= _MAX_GYM_VERSION_RANDINT)
+    def seed(self, *args, **kwargs):
+        # defined only on some cases
+        return self._aux_seed(*args, **kwargs)
+        
     def _aux_step(self, gym_action):
         # used for gym < 0.26
         g2op_act = self.action_space.from_gym(gym_action)
@@ -134,7 +151,7 @@ class GymEnv(gym.Env):
             info["seed"] = seed
             info["grid2op_env_seed"] = next_seed
             info["underlying_env_seeds"] = underlying_env_seeds
-            return gym_obs, info
+        return gym_obs, info
         
     def render(self):
         """for compatibility with open ai gym render function"""
