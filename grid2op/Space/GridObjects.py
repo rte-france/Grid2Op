@@ -1182,7 +1182,10 @@ class GridObjects:
 
     def _init_class_attr(self, obj=None):
         """init the class attribute from an instance of the class
+        
         THIS IS NOT A CLASS ATTR
+        
+        obj should be an object and NOT a class !
         """
         if obj is None:
             obj = self

@@ -52,6 +52,8 @@ Change Log
 - [FIXED] a bug when the storage unit names where not set in the backend and needed to be set
   automatically (wrong names were used)
 - [FIXED] a bug in `PandaPowerBackend` when using `BackendConverter` and one the backend do not support shunts.
+- [FIXED] 2 issues related to gym env: https://github.com/rte-france/Grid2Op/issues/407 and 
+  https://github.com/rte-france/Grid2Op/issues/418
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
