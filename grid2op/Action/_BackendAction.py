@@ -511,9 +511,14 @@ class _BackendAction(GridObjects):
         self._loads_bus.copy_from_index(self.current_topo, self.load_pos_topo_vect)
         return self._loads_bus
 
+    def _aux_to_global(self, value_store, to_subid):
+        value_store = copy.deepcopy(value_store)
+        value_store.values = type(self).local_bus_to_global(value_store.values, to_subid)
+        return value_store
+        
     def get_loads_bus_global(self):
         tmp_ = self.get_loads_bus()
-        return type(self).local_bus_to_global(tmp_, self.load_to_subid)
+        return self._aux_to_global(tmp_, self.load_to_subid)
     
     def get_gens_bus(self):
         if self._gens_bus is None:
@@ -522,8 +527,8 @@ class _BackendAction(GridObjects):
         return self._gens_bus
 
     def get_gens_bus_global(self):
-        tmp_ = self.get_gens_bus()
-        return type(self).local_bus_to_global(tmp_, self.gen_to_subid)
+        tmp_ = copy.deepcopy(self.get_gens_bus())
+        return self._aux_to_global(tmp_, self.gen_to_subid)
     
     def get_lines_or_bus(self):
         if self._lines_or_bus is None:
@@ -535,7 +540,7 @@ class _BackendAction(GridObjects):
     
     def get_lines_or_bus_global(self):
         tmp_ = self.get_lines_or_bus()
-        return type(self).local_bus_to_global(tmp_, self.line_or_to_subid)
+        return self._aux_to_global(tmp_, self.line_or_to_subid)
 
     def get_lines_ex_bus(self):
         if self._lines_ex_bus is None:
@@ -547,7 +552,7 @@ class _BackendAction(GridObjects):
     
     def get_lines_ex_bus_global(self):
         tmp_ = self.get_lines_ex_bus()
-        return type(self).local_bus_to_global(tmp_, self.line_ex_to_subid)
+        return self._aux_to_global(tmp_, self.line_ex_to_subid)
 
     def get_storages_bus(self):
         if self._storage_bus is None:
@@ -557,7 +562,7 @@ class _BackendAction(GridObjects):
     
     def get_storages_bus_global(self):
         tmp_ = self.get_storages_bus()
-        return type(self).local_bus_to_global(tmp_)
+        return self._aux_to_global(tmp_, self.storage_to_subid)
 
     def _get_active_bus(self):
         self.activated_bus[:] = False

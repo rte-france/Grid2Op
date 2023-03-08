@@ -347,6 +347,9 @@ def make_from_dataset_path(
         name_converter = config_data["names_chronics_to_grid"]
     if name_converter is None:
         name_converter = {}
+        is_none = True
+    else:
+        is_none = False
     names_chronics_to_backend = _get_default_aux(
         "names_chronics_to_backend",
         kwargs,
@@ -354,6 +357,9 @@ def make_from_dataset_path(
         defaultinstance=name_converter,
         msg_error=ERR_MSG_KWARGS["names_chronics_to_grid"],
     )
+    if is_none and names_chronics_to_backend  == {}:
+        names_chronics_to_backend = None
+        
     # Get default backend class
     backend_class_cfg = PandaPowerBackend
     if "backend_class" in config_data and config_data["backend_class"] is not None:

@@ -318,7 +318,7 @@ class EducPandaPowerBackend(Backend):
         bus_is = self._grid.bus["in_service"]
         for i, (bus1_status, bus2_status) in enumerate(active_bus):
             bus_is[i] = bus1_status  # no iloc for bus, don't ask me why please :-/
-            bus_is[i + self._nb_real_line_pandapower] = bus2_status
+            bus_is[i + self.n_sub] = bus2_status
 
     ###### computes powerflow
     def runpf(self, is_dc=False):

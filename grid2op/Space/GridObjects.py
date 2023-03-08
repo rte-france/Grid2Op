@@ -3793,14 +3793,14 @@ class GridObjects:
             On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., 2 * self.n_sub. They represent some kind of 
             "universal" labelling of the busbars of all the grid. For example, substation 0 might have busbar `0` and `self.n_sub`, 
             substation 1 have busbar `1` and `self.n_sub + 1` etc.
-            
+            [on_bus_1]
             Local and global bus id represents the same thing. The difference comes down to convention.
         """
         global_bus = 1 * local_bus  # make a copy
         on_bus_1 = global_bus == 1
         on_bus_2 = global_bus == 2
-        global_bus[on_bus_1] = to_sub_id
-        global_bus[on_bus_2] = to_sub_id + cls.n_sub
+        global_bus[on_bus_1] = to_sub_id[on_bus_1]
+        global_bus[on_bus_2] = to_sub_id[on_bus_2] + cls.n_sub
         return global_bus
 
     @classmethod

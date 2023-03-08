@@ -7,24 +7,28 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 """
-This script provides a possible implementation, based on pandapower of the "change the load" part of the "grid2op backend loop".
+This script provides a possible implementation, based on pandapower of 
+the "change the generators" part of the "grid2op backend loop".
 
-It get back the loading function from Step1, implements the "apply_action" relevant for the "change_load", the "runpf" method
-(to compute the powerflow) and then the "loads_info"
+It get back the loading function from Step2, implements 
+the "apply_action" relevant for the "change generators" 
+and the "generators_info".
+
+NB: the "runpf" is taken from CustomBackend_Step2 
 
 """
-import pandapower as pp
-from Step2_modify_load import CustomBackend_1
+import numpy as np
+from Step2_modify_load import CustomBackend_Step2
 
 
-class CustomBackend_2(CustomBackend_1):
+class CustomBackend_Step3(CustomBackend_Step2):
     def apply_action(self, action):
-        # loads are modified in the previous script
-        super().apply_action(action)
-        
         # the following few lines are highly recommended
         if action is None:
             return
+        
+        # loads are modified in the previous script
+        super().apply_action(action)
         
         (
             active_bus,
@@ -60,9 +64,8 @@ class CustomBackend_2(CustomBackend_1):
 
 if __name__ == "__main__":
     import grid2op
-    from grid2op.Action import CompleteAction
     import os
-    import warnings
+    from Step0_make_env import make_env_for_backend
     
     path_grid2op = grid2op.__file__
     path_data_test = os.path.join(os.path.split(path_grid2op)[0], "data")
@@ -73,27 +76,22 @@ if __name__ == "__main__":
     # - l2rpn_case14_sandbox: inspired from IEEE 14
     # - l2rpn_neurips_2020_track1: inspired from IEEE 118 (only a third of it)
     # - l2rpn_wcci_2022_dev: inspired from IEEE 118 (entire grid)
+    env, obs = make_env_for_backend(env_name, CustomBackend_Step3)
     
     a_grid = os.path.join(path_data_test, env_name, "grid.json")
     
     # we highly recommend to do these 3 steps (this is done automatically by grid2op... of course. See an example of the "complete" 
     # backend)
-    backend = CustomBackend_2()
+    backend = CustomBackend_Step3()
     backend.load_grid(a_grid)
     backend.assert_grid_correct()  
     #########
     
-    # change the load (to be more consistent with standard grid2op usage, we do it
-    # using an environment that uses a real backend, and not our "second step toward a backend")
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        env = grid2op.make(env_name, test=True, action_class=CompleteAction)
-    obs = env.reset()
-    #################
-    
+    new_gen_p = obs.gen_p * 1.1
+    new_gen_v = obs.gen_v * 1.05
     # this is how "user" manipute the grid
-    action = env.action_space({"injection": {"prod_p": obs.gen_p * 1.1,
-                                             "prod_v": obs.gen_v * 1.05}})
+    action = env.action_space({"injection": {"prod_p": new_gen_p,
+                                             "prod_v": new_gen_v}})
     # we could have written 
     # > action = env.action_space({"injection": {"prod_p": [ 0.99    , 29.688126],
     # >                                          "prod_v": [107.1, 107.1]}})
@@ -102,7 +100,7 @@ if __name__ == "__main__":
     # vector of different size... this is why we use the obs.gen_p and obs.gen_v that already
     # have the proper size)
     
-    # this is technical to grid2op
+    # this is technical to grid2op (done internally)
     bk_act = env._backend_action_class()
     bk_act += action
     #############
@@ -112,6 +110,7 @@ if __name__ == "__main__":
     
     # now run a powerflow
     conv, exc_ = backend.runpf()
+    assert conv, "powerflow has diverged"
     
     # and retrieve the results
     gen_p, gen_q, gen_v = backend.generators_info()
@@ -119,4 +118,7 @@ if __name__ == "__main__":
     print(f"{gen_p = }")
     print(f"{gen_q = }")
     print(f"{gen_v = }")
-    # some gen_q might be slightly different than the setpoint due to the slack !
+    # some gen_p might be slightly different than the setpoint 
+    # due to the slack ! (this is why we cannot assert things based on gen_p...)
+    assert np.allclose(gen_v, new_gen_v) 
+    # the assertion above works because there is no limit on reactive power absorbed / produced by generators in pandapower.
