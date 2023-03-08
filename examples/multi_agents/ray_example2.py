@@ -6,7 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""example with centralized observation and local actions"""
+"""example with local observation and local actions"""
+
 import warnings
 import numpy as np
 
@@ -30,11 +31,13 @@ ACTION_DOMAINS = {
         'agent_0' : [0, 1, 2, 3, 4],
         'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
     }
+
+OBSERVATION_DOMAINS = {"agent_0": [0, 1, 2, 3, 4, 5, 8, 6],
+                        "agent_1": [5, 6, 7, 8, 9, 10, 11, 12, 13, 4, 3]}
     
 env_for_cls = grid2op.make(ENV_NAME,
                            action_class=PlayableAction,
                            backend=LightSimBackend())
-ma_env_for_cls = MultiAgentEnv(env_for_cls, ACTION_DOMAINS)
 
 # wrapper for gym env
 class MAEnvWrapper(MAEnv):
@@ -46,7 +49,10 @@ class MAEnvWrapper(MAEnv):
                            backend=LightSimBackend())  
 
 
-        self.ma_env = MultiAgentEnv(env, ACTION_DOMAINS)
+        self.ma_env = MultiAgentEnv(env,
+                                    ACTION_DOMAINS,
+                                    OBSERVATION_DOMAINS)
+        
         self._agent_ids = set(self.ma_env.agents)
         self.ma_env.seed(0)
         self._agent_ids = self.ma_env.agents
@@ -64,12 +70,21 @@ class MAEnvWrapper(MAEnv):
         # we did not experiment yet with the "partially observable" setting
         # so for now we suppose all agents see the same observation
         # which is the full grid                                
-        self.observation_space = Box(shape=self._gym_env.observation_space.shape,
-                                     high=self._gym_env.observation_space.high,
-                                     low=self._gym_env.observation_space.low,
-                                     dtype=np.float32
-                                     )
-        
+        self._aux_observation_space = {
+            agent_id : BoxGymObsSpace(self.ma_env.observation_spaces[agent_id],
+                                      attr_to_keep=["gen_p", "rho"],
+                                      replace_nan_by_0=True  # replace Nan by 0.
+                                      )
+            for agent_id in self.ma_env.agents
+        }
+        # to avoid "weird" pickle issues
+        self.observation_space = {
+            agent_id : Box(low=self._aux_observation_space[agent_id].low,
+                           high=self._aux_observation_space[agent_id].high,
+                           dtype=self._aux_observation_space[agent_id].dtype)
+            for agent_id in self.ma_env.agents
+        }
+                
         # we represent the action as discrete action for now. 
         # It should work to encode then differently using the 
         # gym_compat module for example
@@ -92,16 +107,13 @@ class MAEnvWrapper(MAEnv):
         
     
     def _format_obs(self, grid2op_obs):
-        # NB we heavily use here that all agents see the same things 
         # grid2op_obs is a dictionnary, representing a "multi agent grid2op action"
         
-        # convert the observation to a gym one (remember we suppose all agents see
-        # all the grid)
-        gym_obs = self._gym_env.observation_space.to_gym(grid2op_obs[next(iter(self.ma_env.agents))])
+        # convert the observation to a gym one
         
         # return the proper dictionnary
         return {
-            agent_id : gym_obs.copy()
+            agent_id : self._aux_observation_space[agent_id].to_gym(grid2op_obs[agent_id])
             for agent_id in self.ma_env.agents
         }
         
@@ -148,7 +160,7 @@ if __name__ == "__main__":
     
     ray_ma_env = MAEnvWrapper()
     
-    checkpoint_root = "./ma_ppo_test"
+    checkpoint_root = "./ma_ppo_test_2ndsetting"
     
     # Where checkpoints are written:
     shutil.rmtree(checkpoint_root, ignore_errors=True, onerror=None)
@@ -180,10 +192,12 @@ if __name__ == "__main__":
     config["multiagent"] = {
         "policies" : {
             "agent_0" : PolicySpec(
-                action_space=ray_ma_env.action_space["agent_0"]
+                action_space=ray_ma_env.action_space["agent_0"],
+                observation_space=ray_ma_env.observation_space["agent_0"],
             ),
             "agent_1" : PolicySpec(
-                action_space=ray_ma_env.action_space["agent_1"]
+                action_space=ray_ma_env.action_space["agent_1"],
+                observation_space=ray_ma_env.observation_space["agent_1"],
             )
             },
         "policy_mapping_fn": policy_mapping_fn,
