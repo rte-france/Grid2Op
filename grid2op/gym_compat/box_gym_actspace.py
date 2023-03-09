@@ -332,7 +332,13 @@ class BoxGymActSpace(Box):
                 shape = (shape[0] + shape_[0],)
 
             # handle low / high
-            # NB: the formula is: glop = gym * multiply + add
+            # NB: the formula is: glop = gym * multiply + add                
+            if el in self._add:
+                low_ =  1.0 * low_.astype(dtype)
+                high_ =  1.0 * high_.astype(dtype)
+                low_ -= self._add[el]
+                high_ -= self._add[el]
+                
             if el in self._multiply:
                 # special case if a 0 were entered
                 arr_ = 1.0 * self._multiply[el]
@@ -342,12 +348,6 @@ class BoxGymActSpace(Box):
                 high_ =  1.0 * high_.astype(dtype)
                 low_[is_nzero] /= arr_[is_nzero]
                 high_[is_nzero] /= arr_[is_nzero]
-                
-            if el in self._add:
-                low_ =  1.0 * low_.astype(dtype)
-                high_ =  1.0 * high_.astype(dtype)
-                low_ -= self._add[el]
-                high_ -= self._add[el]
 
             # "fix" the low / high : they can be inverted if self._multiply < 0. for example
             tmp_l = copy.deepcopy(low_)
