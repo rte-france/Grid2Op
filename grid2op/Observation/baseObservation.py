@@ -2218,6 +2218,13 @@ class BaseObservation(GridObjects):
         networkx.freeze(graph)  
         return graph
 
+    def get_complete_graph(self):
+        # extra layer of security: prevent accidental modification of this graph
+        graph = networkx.Graph()
+        for sub_id in range(self.n_sub):
+            pass
+        networkx.freeze(graph)  
+        return graph
     def get_forecasted_inj(self, time_step=1):
         """
         This function allows you to retrieve directly the "forecast" injections for the step `time_step`.

@@ -57,6 +57,8 @@ Change Log
 - [FIXED] 2 issues related to gym env: https://github.com/rte-france/Grid2Op/issues/407 and 
   https://github.com/rte-france/Grid2Op/issues/418
 - [FIXED] some bus in the "as_networkx()" for the cooldowns of substation
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/396
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/403
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
