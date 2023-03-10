@@ -37,6 +37,8 @@ Change Log
   "human" has been removed because it needs some fixes. This should not impact lots of code.
 - [BREAKING] the "maintenance_forecast" file is deprecated and is no longer used (this should not
   not impact anything)
+- [BREAKING] the attribute "connected" as been removed in the edges of the observation converted as
+  as a networkx graph. It is replaced by a "nb_connected" attribute. More information on the doc.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
@@ -54,6 +56,9 @@ Change Log
 - [FIXED] a bug in `PandaPowerBackend` when using `BackendConverter` and one the backend do not support shunts.
 - [FIXED] 2 issues related to gym env: https://github.com/rte-france/Grid2Op/issues/407 and 
   https://github.com/rte-france/Grid2Op/issues/418
+- [FIXED] some bus in the "as_networkx()" for the cooldowns of substation
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/396
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/403
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
@@ -88,6 +93,9 @@ Change Log
 - [IMPROVED] `BackendConverter` is now able to automatically map between different backend with different naming convention 
   under some hypothesis. CAREFUL: the generated mapping might not be the one you "have in mind" ! As for everything automatic,
   it's good because it's fast. It's terrible when you think it does something but in fact it does something else.
+- [IMPROVED] the "obs.as_networkx()" method with added attributes for edges (origin and extremity substation, as well as origin and
+  extremity buses)
+- [IMPROVED] the doc of the "obs.as_networkx()"
 
 [1.8.1] - 2023-01-11
 ---------------------

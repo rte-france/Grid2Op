@@ -7,9 +7,6 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
-import tempfile
-import json
-import pdb
 
 from grid2op.tests.helper_path_test import *
 

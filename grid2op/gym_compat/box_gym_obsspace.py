@@ -193,7 +193,7 @@ class BoxGymObsSpace(Box):
         )  # add to gen_p otherwise ... well it can crash
         extra_for_losses = _compute_extra_power_for_losses(ob_sp)
         
-        self.dict_properties = {
+        self._dict_properties = {
             "year": (
                 np.zeros(1, dtype=dt_int),
                 np.zeros(1, dtype=dt_int) + 2200,
@@ -525,13 +525,13 @@ class BoxGymObsSpace(Box):
                 dt_float,
             ),
         }
-        self.dict_properties["max_step"] = copy.deepcopy(self.dict_properties["current_step"])
-        self.dict_properties["delta_time"] = copy.deepcopy(self.dict_properties["current_step"])
-        self.dict_properties["prod_p"] = copy.deepcopy(self.dict_properties["gen_p"])
-        self.dict_properties["prod_q"] = copy.deepcopy(self.dict_properties["gen_q"])
-        self.dict_properties["prod_v"] = copy.deepcopy(self.dict_properties["gen_v"])
-        self.dict_properties["gen_p_before_curtail"] = copy.deepcopy(self.dict_properties["gen_p"])
-        self.dict_properties["curtailment_limit_effective"] = copy.deepcopy(self.dict_properties[
+        self._dict_properties["max_step"] = copy.deepcopy(self._dict_properties["current_step"])
+        self._dict_properties["delta_time"] = copy.deepcopy(self._dict_properties["current_step"])
+        self._dict_properties["prod_p"] = copy.deepcopy(self._dict_properties["gen_p"])
+        self._dict_properties["prod_q"] = copy.deepcopy(self._dict_properties["gen_q"])
+        self._dict_properties["prod_v"] = copy.deepcopy(self._dict_properties["gen_v"])
+        self._dict_properties["gen_p_before_curtail"] = copy.deepcopy(self._dict_properties["gen_p"])
+        self._dict_properties["curtailment_limit_effective"] = copy.deepcopy(self._dict_properties[
             "curtailment_limit"
         ])
         
@@ -624,12 +624,12 @@ class BoxGymObsSpace(Box):
                         f"fix the low_ / high_ in the tuple ( callable_, low_, high_, shape_, dtype_)."
                     )
 
-            elif el in self.dict_properties:
+            elif el in self._dict_properties:
                 # el is an attribute of an observation, for example "load_q" or "topo_vect"
-                low_, high_, shape_, dtype_ = self.dict_properties[el]
+                low_, high_, shape_, dtype_ = self._dict_properties[el]
             else:
                 li_keys = "\n\t-".join(
-                    sorted(list(self.dict_properties.keys()) + list(self.__func.keys()))
+                    sorted(list(self._dict_properties.keys()) + list(self.__func.keys()))
                 )
                 raise RuntimeError(
                     f'Unknown observation attributes "{el}". Supported attributes are: '
@@ -651,13 +651,14 @@ class BoxGymObsSpace(Box):
 
             # handle low / high
             if el in self._subtract:
-                low_ =  low_.astype(dtype)
-                high_ =  high_.astype(dtype)
+                low_ =  1.0 * low_.astype(dtype)
+                high_ =  1.0 * high_.astype(dtype)
                 low_ -= self._subtract[el]
                 high_ -= self._subtract[el]
+                
             if el in self._divide:
-                low_ =  low_.astype(dtype)
-                high_ =  high_.astype(dtype)
+                low_ =  1.0 * low_.astype(dtype)
+                high_ =  1.0 * high_.astype(dtype)
                 low_ /= self._divide[el]
                 high_ /= self._divide[el]
             if low is None:

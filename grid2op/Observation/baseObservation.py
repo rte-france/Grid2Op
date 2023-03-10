@@ -1906,13 +1906,26 @@ class BaseObservation(GridObjects):
 
         return res, (load_bus, prod_bus, stor_bus, lor_bus, lex_bus)
 
-    def _add_edges_simple(self, vector, attr_nm, lor_bus, lex_bus, graph):
+    def _add_edges_simple(self, vector, attr_nm, lor_bus, lex_bus, graph, fun_reduce=None):
         """add the edges, when the attributes are common for the all the powerline"""
-        dict_ = {(lor_bus[lid], lex_bus[lid]): val for lid, val in enumerate(vector)}
-        dict_2 = {}
-        for (k1, k2), val in dict_.items():
-            dict_2[(k2, k1)] = val
-        dict_.update(dict_2)
+        dict_ = {}
+        for lid, val in enumerate(vector):
+            tup_ = (lor_bus[lid], lex_bus[lid])
+            if not tup_ in dict_:
+                # data is not in the graph, I insert it
+                dict_[tup_] = val
+            else:
+                # data is already in the graph, so I need to either "reduce" the 2 data (if 
+                # they are not the same) or "do nothing"
+                # in the case i need to "reduce" the two and I did not provide a "fun_reduce"
+                # I throw an error
+                if fun_reduce is None:
+                    if val != dict_[tup_]:
+                        raise BaseObservationError(f"Impossible to merge data of type '{attr_nm}'. There are "
+                                                    f"some parrallel lines merged into the same edges "
+                                                    f"but I don't know how to merge their data.")
+                else:
+                    dict_[tup_] = fun_reduce(dict_[tup_], val)
         networkx.set_edge_attributes(graph, dict_, attr_nm)
 
     def _add_edges_multi(self, vector_or, vector_ex, attr_nm, lor_bus, lex_bus, graph):
@@ -1959,7 +1972,8 @@ class BaseObservation(GridObjects):
 
     def as_networkx(self):
         """
-        Convert this observation as a networkx graph.
+        Convert this observation as a networkx graph. This graph is the graph "seen" by
+        "the electron" / "the energy" of the power grid.
 
         Notes
         ------
@@ -1971,34 +1985,53 @@ class BaseObservation(GridObjects):
         - it counts as many nodes as the number of buses of the grid
         - it counts less edges than the number of lines of the grid (two lines connecting the same buses are "merged"
           into one single edge - this is the case for parallel line, that are hence "merged" into the same edge)
-        - nodes have attributes:
+        - nodes (represents "buses" of the grid) have attributes:
 
             - `p`: the active power produced at this node (negative means the sum of power produce minus power absorbed
-              is negative)
-            - `q`: the reactive power produced at this node
+              is negative) in MW
+            - `q`: the reactive power produced at this node in MVAr
             - `v`: the voltage magnitude at this node
             - `cooldown`: how much longer you need to wait before being able to merge / split or change this node
+            - 'sub_id': the id of the substation to which it is connected (typically between `0` and `obs.n_sub - 1`)
+            - (optional) `theta`: the voltage angle (in degree) at this nodes
+            - `cooldown` : the time you need to wait (in number of steps) before being able to act on the
+              substation to which this bus is connected.
+            
+        - edges have attributes too (in this modeling an edge might represent more than one powerline, all
+          parallel powerlines are represented by the same edge):
 
-        - edges have attributes too:
-
-            - `rho`: the relative flow on this powerline
-            - `cooldown`: the number of step you need to wait before being able to act on this powerline
-            - `status`: whether this powerline is connected or not
-            - `thermal_limit`: maximum flow allowed on the the powerline (this is the "a_or" flow)
-            - `timestep_overflow`: number of time steps during which the powerline is on overflow
-            - `p_or`: active power injected at this node at the "origin side".
-            - `p_ex`: active power injected at this node at the "extremity side".
-            - `q_or`: reactive power injected at this node at the "origin side".
-            - `q_ex`: reactive power injected at this node at the "extremity side".
-            - `a_or`: current flow injected at this node at the "origin side".
-            - `a_ex`: current flow injected at this node at the "extremity side".
+            - `nb_connected`: number of connected powerline represented by this edge.
+            - `rho`: the relative flow on this powerline (in %) (sum over all powerlines))
+            - `cooldown`: the number of step you need to wait before being able to act on this powerline (max over all powerlines)
+            - `thermal_limit`: maximum flow allowed on the the powerline (sum over all powerlines)
+            - `timestep_overflow`: number of time steps during which the powerline is on overflow (max over all powerlines)
+            - `p_or`: active power injected at this node at the "origin side" (in MW) (sum over all the powerlines).
+            - `p_ex`: active power injected at this node at the "extremity side" (in MW) (sum over all the powerlines).
+            - `q_or`: reactive power injected at this node at the "origin side" (in MVAr) (sum over all the powerlines).
+            - `q_ex`: reactive power injected at this node at the "extremity side" (in MVAr) (sum over all the powerlines).
+            - `a_or`: current flow injected at this node at the "origin side" (in A) (sum over all the powerlines) (sum over all powerlines).
+            - `a_ex`: current flow injected at this node at the "extremity side" (in A) (sum over all the powerlines) (sum over all powerlines).
+            - `p`: active power injected at the "or" side (equal to p_or) (in MW)
+            - `v_or`: voltage magnitude at the "or" bus (in kV)
+            - `v_ex`: voltage magnitude at the "ex" bus (in kV)
+            - (optional) `theta_or`: voltage angle at the "or" bus (in deg)
+            - (optional) `theta_ex`: voltage angle at the "ex" bus (in deg)
+            - `time_next_maintenance`: see :attr:`BaseObservation.time_next_maintenance` (min over all powerline)
+            - `duration_next_maintenance` see :attr:`BaseObservation.duration_next_maintenance` (max over all powerlines)
+            - `sub_id_or`: id of the substation of the "or" side of the powerlines
+            - `sub_id_ex`: id of the substation of the "ex" side of the powerlines
+            - `node_id_or`: id of the node (in this graph) of the "or" side of the powergraph
+            - `node_id_ex`: id of the node (in this graph) of the "ex" side of the powergraph
+            - `bus_or`: on which bus [1 or 2] is this powerline connected to at its "or" substation
+            - `bus_ex`: on which bus [1 or 2] is this powerline connected to at its "ex" substation
 
         .. danger::
-            **IMPORTANT NOTE** the "origin" and "extremity" of the networkx graph is not necessarily the same as the one
-            in grid2op. The "origin" side will always be the nodes with the lowest id. For example, if an edges connects
-            the bus 6 to the bus 8, then the "origin" of this powerline is bus 6 (**eg** the active power
-            injected at node 6 from this edge will be *p_or*) and the "extremity" side is bus 8
-            (**eg** the active power injected at node 8 from this edge will be *p_ex*).
+            **IMPORTANT NOTE** edges represents "fusion" of 1 or more powerlines. This graph is intended to be
+            a Graph and not a MultiGraph on purpose. This is why sometimes some attributes of the edges are not 
+            the same of the attributes of a given powerlines. For example, in the case of 2 parrallel powerlines
+            (say powerlines 3 and 4)
+            going from bus 10 to bus 12 (for example), the edges graph.edges[(10, 12)]["nb_connected"] will be `2`
+            and you will get `graph.edges[(10, 12)]["p_or"] = obs.p_or[3] + obs.p_or[4]`
 
         .. warning::
             The graph returned by this function has not a fixed size. Its
@@ -2096,7 +2129,10 @@ class BaseObservation(GridObjects):
         except AttributeError:
             # oldest version of scipy did not have the `from_scipy_sparse_array` function
             graph = networkx.from_scipy_sparse_matrix(mat_p, edge_attribute="p")
-
+        
+        if not len(graph.edges):
+            return graph
+        
         # add the nodes attributes
         networkx.set_node_attributes(
             graph, {el: val for el, val in enumerate(bus_p)}, "p"
@@ -2114,51 +2150,81 @@ class BaseObservation(GridObjects):
             networkx.set_node_attributes(
                 graph, {el: val for el, val in enumerate(bus_theta)}, "theta"
             )
-
-        dict_cooldown = {
-            el: val for el, val in enumerate(self.time_before_cooldown_sub)
-        }
-        dict_cooldown2 = {}
-        for k, v in dict_cooldown.items():
-            dict_cooldown2[k + self.n_sub] = v
-        dict_cooldown.update(dict_cooldown2)
-        networkx.set_node_attributes(graph, dict_cooldown, "cooldown")
+        networkx.set_node_attributes(graph,
+                                     {el: self.time_before_cooldown_sub[val] for el, val in enumerate(bus_subid)},
+                                     "cooldown")
 
         # add the edges attributes
         self._add_edges_multi(self.p_or, self.p_ex, "p", lor_bus, lex_bus, graph)
         self._add_edges_multi(self.q_or, self.q_ex, "q", lor_bus, lex_bus, graph)
         self._add_edges_multi(self.a_or, self.a_ex, "a", lor_bus, lex_bus, graph)
-        self._add_edges_multi(self.v_or, self.v_ex, "v", lor_bus, lex_bus, graph)
         if self.support_theta:
             self._add_edges_multi(
                 self.theta_or, self.theta_ex, "theta", lor_bus, lex_bus, graph
             )
+        self._add_edges_simple(self.v_or, "v_or", lor_bus, lex_bus, graph)
+        self._add_edges_simple(self.v_ex, "v_ex", lor_bus, lex_bus, graph)
 
-        self._add_edges_simple(self.rho, "rho", lor_bus, lex_bus, graph)
+        self._add_edges_simple(self.rho, "rho", lor_bus, lex_bus, graph,
+                               fun_reduce=max)
         self._add_edges_simple(
-            self.time_before_cooldown_line, "cooldown", lor_bus, lex_bus, graph
+            self.time_before_cooldown_line, "cooldown", lor_bus, lex_bus, graph,
+            fun_reduce=max
         )
         self._add_edges_simple(
-            self._thermal_limit, "thermal_limit", lor_bus, lex_bus, graph
+            self._thermal_limit, "thermal_limit", lor_bus, lex_bus, graph,
+            fun_reduce=lambda x, y: x+y
         )
         self._add_edges_simple(
             self.time_next_maintenance, "time_next_maintenance", lor_bus, lex_bus, 
-            graph)
+            graph,
+            fun_reduce=min)
         self._add_edges_simple(
             self.duration_next_maintenance, "duration_next_maintenance", lor_bus, 
-            lex_bus, graph)
-        self._add_edges_simple(self.line_status, "status", lor_bus, lex_bus, graph)
+            lex_bus, graph,
+            fun_reduce=max)
+        self._add_edges_simple(1 * self.line_status, "nb_connected", lor_bus, lex_bus, graph,
+                               fun_reduce=lambda x, y: x + y)
         self._add_edges_simple(
-            self.thermal_limit, "thermal_limit", lor_bus, lex_bus, graph
+            self.timestep_overflow, "timestep_overflow", lor_bus, lex_bus, graph,
+            fun_reduce=max
         )
         self._add_edges_simple(
-            self.timestep_overflow, "timestep_overflow", lor_bus, lex_bus, graph
+            self.line_or_to_subid,
+            "sub_id_or", lor_bus, lex_bus, graph
         )
-        networkx.freeze(
-            graph
-        )  # extra layer of security: prevent accidental modification of this graph
+        self._add_edges_simple(
+            self.line_ex_to_subid,
+            "sub_id_ex", lor_bus, lex_bus, graph
+        )
+        self._add_edges_simple(
+            lor_bus,
+            "node_id_or", lor_bus, lex_bus, graph
+        )
+        self._add_edges_simple(
+            lex_bus,
+            "node_id_ex", lor_bus, lex_bus, graph
+        )
+        self._add_edges_simple(
+            self.line_or_bus,
+            "bus_or", lor_bus, lex_bus, graph
+        )
+        self._add_edges_simple(
+            self.line_ex_bus,
+            "bus_ex", lor_bus, lex_bus, graph
+        )
+        
+        # extra layer of security: prevent accidental modification of this graph
+        networkx.freeze(graph)  
         return graph
 
+    def get_complete_graph(self):
+        # extra layer of security: prevent accidental modification of this graph
+        graph = networkx.Graph()
+        for sub_id in range(self.n_sub):
+            pass
+        networkx.freeze(graph)  
+        return graph
     def get_forecasted_inj(self, time_step=1):
         """
         This function allows you to retrieve directly the "forecast" injections for the step `time_step`.
