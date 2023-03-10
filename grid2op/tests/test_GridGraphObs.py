@@ -49,6 +49,60 @@ class TestNetworkXGraph(unittest.TestCase):
         assert np.max(np.abs(ps - p_out)) <= self.tol, "error for active flow"
         assert np.max(np.abs(qs - q_out)) <= self.tol, "error for reactive flow"
 
-
+    def test_global_bus(self):
+        obs = self.env.reset()
+        act = self.env.action_space({"set_bus": {"substations_id": [(1, (1, 2, 1, 2, 1, 2))]}})
+        obs, reward, done, info = self.env.step(act)
+        assert not done
+        graph = obs.as_networkx()
+        assert len(graph.nodes) == self.env.n_sub + 1
+        assert (4, 36) in graph.edges
+        assert graph.edges[(4, 36)]["bus_or"] == 2
+        assert graph.edges[(4, 36)]["sub_id_or"] == 1
+        assert graph.edges[(4, 36)]["sub_id_ex"] == 4
+        assert graph.edges[(4, 36)]["node_id_or"] == 36
+    
+    def test_bus_cooldown(self):
+        obs = self.env.reset()
+        act = self.env.action_space({"set_bus": {"substations_id": [(1, (1, 2, 1, 2, 1, 2))]}})
+        obs, reward, done, info = self.env.step(act)
+        assert not done
+        graph = obs.as_networkx()
+        assert graph.nodes[1]["cooldown"] == 3
+        assert graph.nodes[36]["cooldown"] == 3
+        
+    def test_parrallel_lines(self):
+        obs = self.env.reset()
+        graph_init = obs.as_networkx()
+        assert (9, 16) in graph_init.edges
+        assert graph_init.edges[(9, 16)]["p_or"] == obs.p_or[18] + obs.p_or[19]
+        assert graph_init.edges[(9, 16)]["p_ex"] == obs.p_ex[18] + obs.p_ex[19]
+        assert graph_init.edges[(9, 16)]["v_or"] == obs.v_or[18]
+        assert graph_init.edges[(9, 16)]["v_ex"] == obs.v_ex[18]
+        assert graph_init.edges[(9, 16)]["nb_connected"] == 2
+        
+        act = self.env.action_space({"set_line_status": [(19, -1)]})  # parrallel to line 18
+        obs, reward, done, info = self.env.step(act)
+        assert not done
+        graph = obs.as_networkx()
+        assert len(graph.edges) == len(graph_init.edges)
+        assert (9, 16) in graph.edges
+        assert graph.edges[(9, 16)]["p_or"] == obs.p_or[18]
+        assert graph.edges[(9, 16)]["p_ex"] == obs.p_ex[18]
+        assert graph.edges[(9, 16)]["v_or"] == obs.v_or[18]
+        assert graph.edges[(9, 16)]["v_ex"] == obs.v_ex[18]
+        assert graph.edges[(9, 16)]["nb_connected"] == 1, f'{graph.edges[(9, 16)]["nb_connected"]}'
+        
+    def test_disconnected_line(self):
+        obs = self.env.reset()
+        graph_init = obs.as_networkx()
+        assert (2, 3) in graph_init.edges
+        act = self.env.action_space({"set_line_status": [(0, -1)]})  # parrallel to line 18
+        obs, reward, done, info = self.env.step(act)
+        assert not done
+        graph = obs.as_networkx()
+        assert (2, 3) not in graph.edges
+        
+        
 if __name__ == "__main__":
     unittest.main()
