@@ -39,6 +39,8 @@ Change Log
   not impact anything)
 - [BREAKING] the attribute "connected" as been removed in the edges of the observation converted as
   as a networkx graph. It is replaced by a "nb_connected" attribute. More information on the doc.
+- [BREAKING] the function "obs.as_networkx" will be renamed "obs.get_energy_graph" and the 
+  description has been adapted.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
@@ -66,9 +68,11 @@ Change Log
   "global bus id" (0, 1, 2, ... 2*n_sub) [see `gridobject.global_bus_to_local` or `gridobject.local_bus_to_global`]
 - [ADDED] a step by step (very detailed) example on how to build a Backend from an existing grid "solver".
 - [ADDED] some test when the shunt bus are modified.
+- [ADDED] a function to get the "elements graph" from the grid2op observation (represented as a networkx graph)
+  as well as its description on the documentation.
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
-- [IMPROVED] the `GridStateFromFileWIthForecasts` is now able to read forecast from multiple steps
+- [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
   ahead (provided that it knows the horizons in its constructor)
 - [IMPROVED] documentation of the gym `DiscreteActSpace`: it is now explicit that the "do nothing" action
   is by default encoded by `0`

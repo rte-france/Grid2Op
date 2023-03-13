@@ -29,10 +29,10 @@ section :ref:`get-the-graph-gridgraph`.
 
 .. _powersystem-desc-gridgraph:
 
-Description of a powergrid adopting the "graph" representation
-----------------------------------------------------------------
+Description of a powergrid adopting the "energy graph" representation
+---------------------------------------------------------------------------
 
-A powergrid can be represented as a "graph" (in the mathematical meaning) where:
+A powergrid is traditionally represented as a "graph" (in the mathematical meaning) where:
 
 - nodes / vertices are represented by "buses" (or "busbars"): that is the place that different elements of the grid
   are interconnected. Only "connected" buses are represented in this graph. This means that if no element (*eg* no lines, 
@@ -40,6 +40,16 @@ A powergrid can be represented as a "graph" (in the mathematical meaning) where:
 - links / edges are represented by "powerlines". Usually, for a graph, it is convenient that there is no "parallel edges".
   This is a property we want to ensure here and this is why when there is 2 powerlines connecting the same buses, they are 
   merged into one edges in this graph.
+
+This graph will be called the "physical graph". It the graph that allows the energy
+to be transmitted from the producers to the consumers thanks to the grid.
+
+In the "model" where the electrons transmit the energy (classical model of a
+grid where the electrons move), this is the graph on which the electrons can move.
+
+It can be accessed with the function :func:`grid2op.Observation.BaseObservation.get_energy_graph` 
+and it is represented as a "networkx" graph.
+
 
 Nodes attributes
 ~~~~~~~~~~~~~~~~~~
@@ -62,6 +72,10 @@ The nodes of this graph have attributes:
 - "sub_id": the id of the substation to which this bus belongs.
 - "cooldown": if 0 it means you can split or merge this nodes with other nodes at the same substation, otherwise it
   gives the number of steps you need to wait before being able to split / merge it.
+
+.. note::
+  See documentation of :func:`grid2op.Observation.BaseObservation.get_energy_graph` for an updated list
+  of all available attributes.
 
 Edges attributes
 ~~~~~~~~~~~~~~~~~~
@@ -88,14 +102,11 @@ The edges of this graph have attributes:
 - "theta_or": (optional) the voltage angle at the origin side of the powerline
 - "theta_ex": (optional) the voltage angle at the extremity side of the powerline
 
-.. warning::
-  A convention needs to be chosen (without loss of generality) for the orientation of the powerlines. When
-  adopting the "graph representation" powerlines are oriented in this manner: if a powerline is connected at substation
-  `j` on one side and at substation `k` on the other and `j < k`, then its origin side will be on the `j` side
-  and its extremity side will be attached to `k`. To make it clear: if an edges connects substation 12 to 14, then
-  its origin side will be connected to 12 and it's origin side to 14.
+.. note::
+  See documentation of :func:`grid2op.Observation.BaseObservation.get_energy_graph` for an updated list
+  of all available attributes.
 
-.. alertblock::
+.. warning::
   The size of this graph (both numuber of edges and number of nodes) can change during the same episode. This will be
   the case if you perform a topological action (for example assigning some elements to the busbar 2 of a substation and
   no elements were connected to this busbar beforehand): in this case, the graph will count one more node.
@@ -335,10 +346,11 @@ A summary of the types of graph that can be used to (sometimes partially) repres
 ========================  ================  =====================================================================
 Type of graph             described in      grid2op method
 ========================  ================  =====================================================================
-"normal graph"            :ref:`graph1-gg`  :func:`grid2op.Observation.BaseObservation.as_networkx`
-"connectivity graph"      :ref:`graph2-gg`  :func:`grid2op.Observation.BaseObservation.connectivity_matrix`
-"bus connectivity graph"  :ref:`graph3-gg`  :func:`grid2op.Observation.BaseObservation.bus_connectivity_matrix`
-"flow bus graph"          :ref:`graph4-gg`  :func:`grid2op.Observation.BaseObservation.flow_bus_matrix`
+"energy graph"            :ref:`graph1-gg`  :func:`grid2op.Observation.BaseObservation.get_energy_graph`
+"elements graph"          :ref:`graph2-gg`  :func:`grid2op.Observation.BaseObservation.get_elements_graph`
+"connectivity graph"      :ref:`graph3-gg`  :func:`grid2op.Observation.BaseObservation.connectivity_matrix`
+"bus connectivity graph"  :ref:`graph4-gg`  :func:`grid2op.Observation.BaseObservation.bus_connectivity_matrix`
+"flow bus graph"          :ref:`graph5-gg`  :func:`grid2op.Observation.BaseObservation.flow_bus_matrix`
 ========================  ================  =====================================================================
 
 .. note::
@@ -354,7 +366,8 @@ And their respective properties:
 ========================  ================  ========================  =====================
 Type of graph             always same size  encode all observation    has flow information
 ========================  ================  ========================  =====================
-"normal graph"            no                yes                       yes
+"energy graph"            no                almost                    yes
+"elements graph"          yes for nodes     yes                       yes
 "connectivity graph"      yes               no                        no
 "bus connectivity graph"  no                no                        no
 "flow bus graph"          no                no                        yes
@@ -498,7 +511,220 @@ the two red powerlines, another where there are the two green)
 
 .. _graph2-gg:
 
-Graph2: the "connectivity graph"
+Graph2: the "elements graph"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As opposed to the previous graph, this one has a fixed number of **nodes**: each
+nodes will represent an "element" of the powergrid. In this graph, there is
+`n_sub` nodes each representing a substation and `2 * n_sub` nodes, each 
+representing a "busbar" and `n_load`  nodes each representing a load etc. 
+In total, there is then: 
+`n_sub + 2*n_sub + n_load + n_gen + n_line + n_storage + n_shunt` nodes.
+
+Depending on its type, a node can have different properties. 
+
+In this graph, each **edge** represent a link between two elements. The edges
+are directed and at time of writing, each "edge" represent the 
+"origin node is connected to extremity node". For example, 
+if an edge connects nodes `18` to nodes `0` it means that whatever element is 
+represented by the node `18` is connected to the element
+represented by the node `0`. This is why the number of edges can vary. For 
+example if an element is diconnected, then there will not be any "edge"
+outgoing from the node represented by this element.
+
+You have access to this graph when you call the :func:`grid2op.Observation.BaseObservation.get_elements_graph` function.
+From this graph, you can retrieve every properties of the underlying `Observation` (
+if you notice a property missing, please fill a github issue)
+
+Nodes and edges have different attributes depending on their type. The tables bellow show, depending on the value of 
+`type` in the nodes (or edges) what will be the attributes.
+
+========================  =========================
+Type of the node          described in     
+========================  =========================
+"substation"              :ref:`sub-elem-g-gg`
+"bus"                     :ref:`bus-elem-g-gg`
+"load"                    :ref:`load-elem-g-gg`
+"gen"                     :ref:`gen-elem-g-gg`
+"line"                    :ref:`line-elem-g-gg`
+"storage"                 :ref:`storage-elem-g-gg`
+"shunt"                   :ref:`shunt-elem-g-gg`
+========================  =========================
+
+========================  =========================
+Type of the edge          described in     
+========================  =========================
+"bus_to_substation"       :ref:`bus-elem-g-gg`
+"load_to_bus"             :ref:`load-elem-g-gg`
+"gen_to_bus"              :ref:`gen-elem-g-gg`
+"line_to_bus"             :ref:`line-elem-g-gg`
+"storage_to_bus"          :ref:`storage-elem-g-gg`
+"shunt_to_bus"            :ref:`shunt-elem-g-gg`
+========================  =========================
+
+.. _sub-elem-g-gg:
+
+Substations properties
++++++++++++++++++++++++
+
+The first `n_sub` nodes of the graph represent the "substation". The substation have the attributes:
+
+- `id`: which substation does this node represent
+- `type`: always "substation"
+- `name`: the name of this substation (equal to `obs.name_sub[id]`)
+- `cooldown`: corresponds to `obs.time_before_cooldown_sub[id]`
+
+There are no outgoing edges from substation.
+
+.. _bus-elem-g-gg:
+
+Bus properties
++++++++++++++++++++++++
+
+The next `2 * n_sub` nodes of the "elements graph" represent the "buses" of the grid. They have the attributes:
+
+- `id`: which bus does this node represent
+- `type`: always "bus"
+- `connected`: whether or not this bus is "connected" to the grid.
+- `v`: the voltage magnitude of this bus (in kV, optional only when the bus is connected)
+- `theta`: the voltage angle of this bus (in deg, optional only when the bus is connected)
+
+The outgoing edges from the nodes representing buses tells at which substation this bus is connected. These edges are "fixed": 
+if they are present (meaning the bus is connected) they always connect the bus to the same substation. They have only
+one attribute:
+
+- `type`: always "bus_to_substation"
+
+.. _load-elem-g-gg:
+
+Load properties
+++++++++++++++++++++++++
+
+The next `n_load` nodes of the "elements graph" represent the "loads" of the grid. They have attributes:
+
+- `id`: which load does this node represent (between 0 and `n_load - 1`)
+- `type`: always "loads"
+- `name`: the name of this load (equal to `obs.name_load[id]`)
+- `connected`: whether or not this load is connected to the grid.
+
+The outgoing edges from the nodes representing loads tell at which bus this load is connected (for each load,
+there is only one outgoing edge). They have attributes:
+
+- `id`: the id of the load concerned
+- `type`: always "load_to_bus"
+- `p`: the active power going from the bus to the load (corresponds to `obs.load_p[id]`, load convention, in MW)
+- `q`: the reactive power going from the bus to the load (corresponds to `obs.load_q[id]`, load convention, in MVAr)
+- `v`: voltage magnitude of the bus to which the load is connected (corresponds to `obs.load_v[id]`, in kV )
+- `theta`: (optional, only if the backend supports it) the voltage angle of the bus to which the load is connected (corresponds to `obs.load_theta[id]`, in deg)
+
+.. _gen-elem-g-gg:
+
+Generator properties
+++++++++++++++++++++++++
+
+The next `n_gen` nodes of the "elements graph" represent the "generators" of the grid. They have attributes:
+
+- `id`: which generator does this node represent (between 0 and `n_gen - 1`)
+- `type`: always "gen"
+- `name`: the name of this generator (equal to `obs.name_gen[id]`)
+- `connected`: whether or not this generator is connected to the grid.
+- `target_dispatch`: same as `obs.target_dispatch[id]`, see :attr:`grid2op.Observation.BaseObservation.target_dispatch`
+- `actual_dispatch`: same as `obs.actual_dispatch[id]`, see :attr:`grid2op.Observation.BaseObservation.actual_dispatch`
+- `gen_p_before_curtail`: same as `obs.gen_p_before_curtail[id]`, see :attr:`grid2op.Observation.BaseObservation.gen_p_before_curtail`
+- `curtailment_mw`: same as `obs.curtailment_mw[id]`, see :attr:`grid2op.Observation.BaseObservation.curtailment_mw`
+- `curtailment`: same as `obs.curtailment[id]`, see :attr:`grid2op.Observation.BaseObservation.curtailment`
+- `curtailment_limit`: same as `obs.curtailment_limit[id]`, see :attr:`grid2op.Observation.BaseObservation.curtailment_limit`
+- `gen_margin_up`: same as `obs.gen_margin_up[id]`, see :attr:`grid2op.Observation.BaseObservation.gen_margin_up`
+- `gen_margin_down`: same as `obs.gen_margin_down[id]`, see :attr:`grid2op.Observation.BaseObservation.gen_margin_down`
+
+The outgoing edges from the nodes representing generators tell at which bus this generator is connected (for each generator,
+there is only one outgoing edge). They have attributes:
+
+- `id`: the id of the generator concerned
+- `type`: always "gen_to_bus"
+- `p`: the active power going from the bus to the generator (corresponds to `- obs.gen_p[id]`, load convention, in MW)
+- `q`: the reactive power going from the bus to the generator (corresponds to `obs.gen_q[id]`, load convention, in MVAr)
+- `v`: voltage magnitude of the bus to which the generator is connected (corresponds to `obs.gen_v[id]`, in kV )
+- `theta`: (optional, only if the backend supports it) the voltage angle of the bus to which the generator is connected (corresponds to `obs.gen_theta[id]`, in deg)
+
+.. warning::
+  For consistency, all data in the "elements graph" uses the same convention (the "load convention"). This means that most of the generator will
+  have edges with negative "p" as usually such elements inject power to the grid. So the total power going from the bus to them is negative.
+
+
+.. _line-elem-g-gg:
+
+Line properties
+++++++++++++++++++++++++
+
+The next `n_line` nodes represent the powerlines (including transformers). They have attributes:
+
+- `id`: which line does this node represent (between 0 and `n_line - 1`)
+- `type`: always "line"
+- `name`: the name of this line (equal to `obs.name_line[id]`)
+- `connected`: whether or not this line is connected to the grid (equal to `obs.line_status[id]`)
+- `rho`: same as `obs.rho[id]`, see :attr:`grid2op.Observation.BaseObservation.rho`
+- `timestep_overflow`: same as `obs.timestep_overflow[id]`, see :attr:`grid2op.Observation.BaseObservation.timestep_overflow`
+- `time_before_cooldown_line`: same as `obs.time_before_cooldown_line[id]`, see :attr:`grid2op.Observation.BaseObservation.time_before_cooldown_line`
+- `time_next_maintenance`: same as `obs.time_next_maintenance[id]`, see :attr:`grid2op.Observation.BaseObservation.time_next_maintenance`
+- `duration_next_maintenance`: same as `obs.duration_next_maintenance[id]`, see :attr:`grid2op.Observation.BaseObservation.duration_next_maintenance`
+
+There are 2 outgoing edges for each powerline, each edge represent a "side" of the powerline. Both these edges have the properties:
+
+- `id`: which line does this node represent (between 0 and `n_line - 1`)
+- `type`: always "line_to_bus"
+- `p`: the active power going from the bus to this side of the line (corresponds to `obs.p_or[id]` or `obs.p_ex[id]`, load convention, in MW)
+- `q`: the reactive power going from the bus to this side of the line (corresponds to `obs.q_or[id]` or `obs.q_ex[id]`, load convention, in MVAr)
+- `v`: voltage magnitude of the bus to which this side of the line is connected (corresponds to `obs.v_or[id]` or `obs.v_ex[id]`, in kV )
+- `a`: the current flow on this side of the line (corresponds to `obs.a_or[id]` or `obs.a_or[id]`, in A)
+- `theta`: (optional, only if the backend supports it) the voltage angle of the bus to which this side of the line is connected 
+  (corresponds to `obs.theta_or[id]` or `obs.theta_ex[id]`, in deg)
+
+.. _storage-elem-g-gg:
+
+Storage properties
+++++++++++++++++++++++++
+
+The next `n_storage` nodes represent the storage units. They have attributes:
+
+- `id`: which storage does this node represent (between 0 and `n_storage - 1`)
+- `type`: always "storage"
+- `name`: the name of this storage unit (equal to `obs.name_storage[id]`)
+- `connected`: whether or not this storage unit is connected to the grid2op
+- `storage_charge`: same as `obs.storage_charge[id]`, see :attr:`grid2op.Observation.BaseObservation.storage_charge`
+- `storage_power_target`: same as `obs.storage_power_target[id]`, see :attr:`grid2op.Observation.BaseObservation.storage_power_target`
+
+The outgoing edges from the nodes representing storage units tells at which bus this load is connected (for each load,
+there is only one outgoing edge). They have attributes:
+
+- `id`: the id of the storage unit concerned
+- `type`: always "storage_to_bus"
+- `p`: the active power going from the bus to this side of the line (corresponds to `obs.storage_power[id]`, load convention, in MW)
+
+.. _shunt-elem-g-gg:
+
+Shunt properties
+++++++++++++++++++++++++
+
+The next `n_shunt` nodes represent the storage units. They have attributes:
+
+- `id`: which shunt does this node represent (between 0 and `n_shunt - 1`)
+- `type`: always "shunt"
+- `name`: the name of this shunt (equal to `obs.name_shunt[id]`)
+- `connected`: whether or not this shunt is connected to the grid2op
+
+The outgoing edges from the nodes representing sthuns tell at which bus this shunt is connected (for each load,
+there is only one outgoing edge). They have attributes:
+
+- `id`: the id of the load concerned
+- `type`: always "load_to_bus"
+- `p`: the active power going from the bus to the shunt (corresponds to `obs._shunt_p[id]`, load convention, in MW)
+- `q`: the reactive power going from the bus to the shunt (corresponds to `obs._shunt_q[id]`, load convention, in MVAr)
+- `v`: voltage magnitude of the bus to which the shunt is connected (corresponds to `obs._shunt_v[id]`, in kV )
+
+.. _graph3-gg:
+
+Graph3: the "connectivity graph"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TODO: Work in progress, any help welcome
 
@@ -511,9 +737,9 @@ In the mean time, some documentation are available at :func:`grid2op.Observation
     It has no informations about the flows. It is a simple graph that indicates whether or not two objects
     are on the same bus or not.
 
-.. _graph3-gg:
+.. _graph4-gg:
 
-Graph3: the "bus connectivity graph"
+Graph4: the "bus connectivity graph"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TODO: Work in progress, any help welcome
 
@@ -527,9 +753,9 @@ In the mean time, some documentation are available at :func:`grid2op.Observation
     
     Its size can change.
 
-.. _graph4-gg:
+.. _graph5-gg:
 
-Graph4: the "flow bus graph"
+Graph5: the "flow bus graph"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TODO: Work in progress, any help welcome
 
