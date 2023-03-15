@@ -32,7 +32,7 @@ class TestNetworkXGraph(unittest.TestCase):
         in case of parallel lines
         """
         obs = self.env.reset()
-        graph = obs.as_networkx()
+        graph = obs.get_energy_graph()
         assert isinstance(graph, networkx.Graph), "graph should be a networkx object"
         ps = np.array([graph.nodes[el]["p"] for el in graph.nodes])
         qs = np.array([graph.nodes[el]["q"] for el in graph.nodes])
@@ -54,7 +54,7 @@ class TestNetworkXGraph(unittest.TestCase):
         act = self.env.action_space({"set_bus": {"substations_id": [(1, (1, 2, 1, 2, 1, 2))]}})
         obs, reward, done, info = self.env.step(act)
         assert not done
-        graph = obs.as_networkx()
+        graph = obs.get_energy_graph()
         assert len(graph.nodes) == self.env.n_sub + 1
         assert (4, 36) in graph.edges
         assert graph.edges[(4, 36)]["bus_or"] == 2
@@ -67,13 +67,13 @@ class TestNetworkXGraph(unittest.TestCase):
         act = self.env.action_space({"set_bus": {"substations_id": [(1, (1, 2, 1, 2, 1, 2))]}})
         obs, reward, done, info = self.env.step(act)
         assert not done
-        graph = obs.as_networkx()
+        graph = obs.get_energy_graph()
         assert graph.nodes[1]["cooldown"] == 3
         assert graph.nodes[36]["cooldown"] == 3
         
     def test_parrallel_lines(self):
         obs = self.env.reset()
-        graph_init = obs.as_networkx()
+        graph_init = obs.get_energy_graph()
         assert (9, 16) in graph_init.edges
         assert graph_init.edges[(9, 16)]["p_or"] == obs.p_or[18] + obs.p_or[19]
         assert graph_init.edges[(9, 16)]["p_ex"] == obs.p_ex[18] + obs.p_ex[19]
@@ -84,7 +84,7 @@ class TestNetworkXGraph(unittest.TestCase):
         act = self.env.action_space({"set_line_status": [(19, -1)]})  # parrallel to line 18
         obs, reward, done, info = self.env.step(act)
         assert not done
-        graph = obs.as_networkx()
+        graph = obs.get_energy_graph()
         assert len(graph.edges) == len(graph_init.edges)
         assert (9, 16) in graph.edges
         assert graph.edges[(9, 16)]["p_or"] == obs.p_or[18]
@@ -95,12 +95,12 @@ class TestNetworkXGraph(unittest.TestCase):
         
     def test_disconnected_line(self):
         obs = self.env.reset()
-        graph_init = obs.as_networkx()
+        graph_init = obs.get_energy_graph()
         assert (2, 3) in graph_init.edges
         act = self.env.action_space({"set_line_status": [(0, -1)]})  # parrallel to line 18
         obs, reward, done, info = self.env.step(act)
         assert not done
-        graph = obs.as_networkx()
+        graph = obs.get_energy_graph()
         assert (2, 3) not in graph.edges
         
         

@@ -33,7 +33,7 @@ class Issue389Tester(unittest.TestCase):
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert not np.isnan(obs.theta_ex[-1])
-        G = obs.as_networkx()
+        G = obs.get_energy_graph()
         assert not np.isnan(G.nodes[4]["theta"])
         assert G.edges[(0, 4)]["theta_or"] == G.nodes[0]["theta"]
         assert G.edges[(0, 4)]["theta_ex"] == G.nodes[4]["theta"]

@@ -114,7 +114,7 @@ The edges of this graph have attributes:
 .. warning::
   By convention, if the observation corresponds to a "game over", then this graph will have only one node and no edge at all.
 
-  This is a convention made in grid2op to ensure some properties about the returned value of the function `obs.as_networkx()`.
+  This is a convention made in grid2op to ensure some properties about the returned value of the function `obs.get_energy_graph()`.
   Mathematically speaking, in such case, the graph would be empty (no connected bus).
 
 Some clarifications
@@ -343,15 +343,15 @@ fact the graph of the grid can be represented in different manners. Some of them
 
 A summary of the types of graph that can be used to (sometimes partially) represent a powergrid is:
 
-========================  ================  =====================================================================
-Type of graph             described in      grid2op method
-========================  ================  =====================================================================
-"energy graph"            :ref:`graph1-gg`  :func:`grid2op.Observation.BaseObservation.get_energy_graph`
-"elements graph"          :ref:`graph2-gg`  :func:`grid2op.Observation.BaseObservation.get_elements_graph`
-"connectivity graph"      :ref:`graph3-gg`  :func:`grid2op.Observation.BaseObservation.connectivity_matrix`
-"bus connectivity graph"  :ref:`graph4-gg`  :func:`grid2op.Observation.BaseObservation.bus_connectivity_matrix`
-"flow bus graph"          :ref:`graph5-gg`  :func:`grid2op.Observation.BaseObservation.flow_bus_matrix`
-========================  ================  =====================================================================
+========================  ======================  =====================================================================
+Type of graph             described in            grid2op method
+========================  ======================  =====================================================================
+"energy graph"            :ref:`graph1-gg`        :func:`grid2op.Observation.BaseObservation.get_energy_graph`
+"elements graph"          :ref:`elmnt-graph-gg`   :func:`grid2op.Observation.BaseObservation.get_elements_graph`
+"connectivity graph"      :ref:`graph3-gg`        :func:`grid2op.Observation.BaseObservation.connectivity_matrix`
+"bus connectivity graph"  :ref:`graph4-gg`        :func:`grid2op.Observation.BaseObservation.bus_connectivity_matrix`
+"flow bus graph"          :ref:`graph5-gg`        :func:`grid2op.Observation.BaseObservation.flow_bus_matrix`
+========================  ======================  =====================================================================
 
 .. note::
 
@@ -375,13 +375,13 @@ Type of graph             always same size  encode all observation    has flow i
 
 .. _graph1-gg:
 
-Graph1: the "normal graph"
+Graph1: the "energy graph"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Because we don't really find fancy name for it, let's call it the "normal" graph of the grid. This graph, you
-might have guessed is the graph defined at the very top of this page of the documentation.
+This graph is the one defined at the top of this page of the documentation. It is the graph "seen" by the energy
+when it "flows" from the producers to the consumers.
 
-Each edge is "a" powerline and each node is a "bus" (remember: by definition two objects are directly
+Each edge is "a" powerline (one or more) and each node is a "bus" (remember: by definition two objects are directly
 connected together if they are connected at the same "bus").
 
 .. note:: 
@@ -393,7 +393,7 @@ connected together if they are connected at the same "bus").
     edge and one single node.
      
 
-This graph can be retrieved using the `obs.as_networkx()` command that returns a networkx graph for the entire
+This graph can be retrieved using the `obs.get_energy_graph()` command that returns a networkx graph for the entire
 observation, that has all the attributes described in :ref:`powersystem-desc-gridgraph`.
 
 You can retrieve it with:
@@ -407,7 +407,7 @@ You can retrieve it with:
     # retrieve the state, as a grid2op observation
     obs = env.reset()
     # the same state, as a graph
-    state_as_graph = obs.as_networkx()
+    state_as_graph = obs.get_energy_graph()
 
     # attributes of node 0
     print(state_as_graph.nodes[0])
@@ -438,7 +438,7 @@ Now, let's do a topological action on this graph, and print the results:
     # retrieve the state, as a grid2op observation
     obs = env.reset()
     # the same state, as a graph
-    state_as_graph = obs.as_networkx()
+    state_as_graph = obs.get_energy_graph()
 
     ##############################################################################
     # now plot this first graph (use some pretty color and layout...)
@@ -464,7 +464,7 @@ Now, let's do a topological action on this graph, and print the results:
     # perform an action to split substation 4 on two buses
     action = env.action_space({"set_bus": {"substations_id": [(sub_id, [1, 2, 2, 1, 1])]}})
     new_obs, *_ = env.step(action)
-    new_graph = new_obs.as_networkx()
+    new_graph = new_obs.get_energy_graph()
 
     ##############################################################################
     # now pretty plot it
@@ -509,7 +509,7 @@ the two red powerlines, another where there are the two green)
 
     For an easier to read representation, feel free to consult the :ref:`grid2op-plot-module`
 
-.. _graph2-gg:
+.. _elmnt-graph-gg:
 
 Graph2: the "elements graph"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -532,7 +532,8 @@ represented by the node `0`. This is why the number of edges can vary. For
 example if an element is diconnected, then there will not be any "edge"
 outgoing from the node represented by this element.
 
-You have access to this graph when you call the :func:`grid2op.Observation.BaseObservation.get_elements_graph` function.
+You have access to this graph when you call the :func:`grid2op.Observation.BaseObservation.get_elements_graph` 
+function *eg* `elmnt_graph = obs.get_elements_graph()` .
 From this graph, you can retrieve every properties of the underlying `Observation` (
 if you notice a property missing, please fill a github issue)
 
@@ -562,6 +563,43 @@ Type of the edge          described in
 "shunt_to_bus"            :ref:`shunt-elem-g-gg`
 ========================  =========================
 
+Graph level properties
++++++++++++++++++++++++
+
+The graph itself has different attributes (accessible by calling `elmnt_graph.graph`):
+
+- `max_step`: represents :attr:`grid2op.Observation.BaseObservation.max_step`
+- `current_step`: represents :attr:`grid2op.Observation.BaseObservation.current_step`
+- `delta_time`: represents :attr:`grid2op.Observation.BaseObservation.delta_time`
+- `year`: represents :attr:`grid2op.Observation.BaseObservation.year`
+- `month`: represents :attr:`grid2op.Observation.BaseObservation.month`
+- `day`: represents :attr:`grid2op.Observation.BaseObservation.day`
+- `hour_of_day`: represents :attr:`grid2op.Observation.BaseObservation.hour_of_day`
+- `minute_of_hour`: represents :attr:`grid2op.Observation.BaseObservation.minute_of_hour`
+- `day_of_week`: represents :attr:`grid2op.Observation.BaseObservation.day_of_week`
+- `time_stamp`: represents :func:`grid2op.Observation.BaseObservation.get_time_stamp`
+- `substation_nodes_id`: a numpy array indicating for each substation of the grid, which node 
+  of this graph represents it. So `elmnt_graphnodes.nodes[elmnt_graph.graph["substation_nodes_id"][sub_id]]` 
+  is the node representing substation `sub_id`
+- `bus_nodes_id`: a numpy array indicating for each bus of the grid, which node 
+  of this graph represents it. So `elmnt_graphnodes.nodes[elmnt_graph.graph["bus_nodes_id"][bus_id]]` 
+  is the node representing bus `bus_id`
+- `load_nodes_id`: a numpy array indicating for each load of the grid, which node 
+  of this graph represents it. So `elmnt_graphnodes.nodes[elmnt_graph.graph["load_nodes_id"][load_id]]` 
+  is the node representing load `load_id`
+- `gen_nodes_id`: a numpy array indicating for each generators of the grid, which node 
+  of this graph represents it. So `elmnt_graphnodes.nodes[elmnt_graph.graph["gen_nodes_id"][gen_id]]` 
+  is the node representing generator `gen_id`
+- `line_nodes_id`: a numpy array indicating for each powerlines of the grid, which node 
+  of this graph represents it. So `elmnt_graphnodes.nodes[elmnt_graph.graph["line_nodes_id"][line_id]]` 
+  is the node representing powerline `line_id`
+- `storage_nodes_id`: a numpy array indicating for each storage unit of the grid, which node 
+  of this graph represents it. So `elmnt_graphnodes.nodes[elmnt_graph.graph["storage_nodes_id"][sto_id]]` 
+  is the node representing storage unit `sto_id`
+- `shunt_nodes_id`: a numpy array indicating for each shunts of the grid, which node 
+  of this graph represents it. So `elmnt_graphnodes.nodes[elmnt_graph.graph["shunt_nodes_id"][shunt_id]]` 
+  is the node representing shunt `shunt_id`
+
 .. _sub-elem-g-gg:
 
 Substations properties
@@ -583,7 +621,9 @@ Bus properties
 
 The next `2 * n_sub` nodes of the "elements graph" represent the "buses" of the grid. They have the attributes:
 
-- `id`: which bus does this node represent
+- `id`: which bus does this node represent (global id: `0 <= id < 2*env.n_sub`)
+- `global_id`: same as "id" 
+- `local_id`: which bus (in the substation) does this busbar represents (local id: `1 <= local_id <= 2`)
 - `type`: always "bus"
 - `connected`: whether or not this bus is "connected" to the grid.
 - `v`: the voltage magnitude of this bus (in kV, optional only when the bus is connected)
@@ -673,11 +713,18 @@ There are 2 outgoing edges for each powerline, each edge represent a "side" of t
 
 - `id`: which line does this node represent (between 0 and `n_line - 1`)
 - `type`: always "line_to_bus"
-- `p`: the active power going from the bus to this side of the line (corresponds to `obs.p_or[id]` or `obs.p_ex[id]`, load convention, in MW)
-- `q`: the reactive power going from the bus to this side of the line (corresponds to `obs.q_or[id]` or `obs.q_ex[id]`, load convention, in MVAr)
-- `v`: voltage magnitude of the bus to which this side of the line is connected (corresponds to `obs.v_or[id]` or `obs.v_ex[id]`, in kV )
+- `side`: "or" or "ex" which side do you have to look at to get this edge. For example, if `side=="or"` 
+  then `p` will corresponds to `obs.p_or[id]`, `q` to `obs.q_or[id]` etc.
+  and if `side=="ex"` then `p` will corresponds to `obs.p_ex[id]` etc.
+- `p`: the active power going from the bus to this side of the line (corresponds to `obs.p_or[id]`
+  or `obs.p_ex[id]`, load convention, in MW)
+- `q`: the reactive power going from the bus to this side of the line (corresponds to `obs.q_or[id]` 
+  or `obs.q_ex[id]`, load convention, in MVAr)
+- `v`: voltage magnitude of the bus to which this side of the line is connected (corresponds to `obs.v_or[id]` 
+  or `obs.v_ex[id]`, in kV )
 - `a`: the current flow on this side of the line (corresponds to `obs.a_or[id]` or `obs.a_or[id]`, in A)
-- `theta`: (optional, only if the backend supports it) the voltage angle of the bus to which this side of the line is connected 
+- `theta`: (optional, only if the backend supports it) the voltage angle of the bus to which this side 
+  of the line is connected 
   (corresponds to `obs.theta_or[id]` or `obs.theta_ex[id]`, in deg)
 
 .. _storage-elem-g-gg:

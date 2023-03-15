@@ -3878,7 +3878,6 @@ class GridObjects:
             
             Local and global bus id represents the same thing. The difference comes down to convention.
         """
-        res = 1 * global_bus
         if global_bus < cls.n_sub:
             return 1
         if global_bus >= cls.n_sub:

@@ -39,7 +39,7 @@ Change Log
   not impact anything)
 - [BREAKING] the attribute "connected" as been removed in the edges of the observation converted as
   as a networkx graph. It is replaced by a "nb_connected" attribute. More information on the doc.
-- [BREAKING] the function "obs.as_networkx" will be renamed "obs.get_energy_graph" and the 
+- [BREAKING] the function "obs.as_networkx" will be renamed "`obs.get_energy_graph`" and the 
   description has been adapted.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
@@ -47,7 +47,8 @@ Change Log
 
   1) the `PandapowerBackend` did not compute the `theta` correctly on powerline especially if
      they are connected to a disconnected bus (in this case I chose to put `theta=0`) 
-  2) the `obs.as_networkx()` method did not check, when updating nodes attributes if powerlines 
+  2) the `obs.get_energy_graph` (previously `obs.as_networkx()`) method did not check, 
+     when updating nodes attributes if powerlines 
      were connected or not, which was wrong in some cases 
 
 - [FIXED] the `N1Reward` that was broken
@@ -58,7 +59,7 @@ Change Log
 - [FIXED] a bug in `PandaPowerBackend` when using `BackendConverter` and one the backend do not support shunts.
 - [FIXED] 2 issues related to gym env: https://github.com/rte-france/Grid2Op/issues/407 and 
   https://github.com/rte-france/Grid2Op/issues/418
-- [FIXED] some bus in the "as_networkx()" for the cooldowns of substation
+- [FIXED] some bus in the `obs.get_energy_graph` (previously `obs.as_networkx()`) for the cooldowns of substation
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/396
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/403
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
@@ -70,6 +71,7 @@ Change Log
 - [ADDED] some test when the shunt bus are modified.
 - [ADDED] a function to get the "elements graph" from the grid2op observation (represented as a networkx graph)
   as well as its description on the documentation.
+- [ADDED] a method to retrieve the "elements graph" (see doc) fom an observation `obs.get_elements_graph()`
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
@@ -79,7 +81,8 @@ Change Log
 - [IMPROVED] documentation of `BaseObservation` and its attributes
 - [IMPROVED] `PandapowerBackend` can now be loaded even if the underlying grid does not converge in `AC` (but
   it should still converge in `DC`) see https://github.com/rte-france/Grid2Op/issues/391
-- [IMPROVED] `obs.as_networkx()` method: almost all powerlines attributes can now be read from the 
+- [IMPROVED] `obs.get_energy_graph` (previously `obs.as_networkx()`) method:
+  almost all powerlines attributes can now be read from the 
   resulting graph object.
 - [IMPROVED] possibility to set `data_feeding_kwargs` from the config file directly.
 - [IMPROVED] so "FutureWarnings" are silenced (depending on pandas and pandapower version)
@@ -97,9 +100,9 @@ Change Log
 - [IMPROVED] `BackendConverter` is now able to automatically map between different backend with different naming convention 
   under some hypothesis. CAREFUL: the generated mapping might not be the one you "have in mind" ! As for everything automatic,
   it's good because it's fast. It's terrible when you think it does something but in fact it does something else.
-- [IMPROVED] the "obs.as_networkx()" method with added attributes for edges (origin and extremity substation, as well as origin and
+- [IMPROVED] the `obs.get_energy_graph` (previously `obs.as_networkx()`) method with added attributes for edges (origin and extremity substation, as well as origin and
   extremity buses)
-- [IMPROVED] the doc of the "obs.as_networkx()"
+- [IMPROVED] the doc of the `obs.get_energy_graph` (previously `obs.as_networkx()`)
 
 [1.8.1] - 2023-01-11
 ---------------------

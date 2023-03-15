@@ -1970,13 +1970,13 @@ class BaseObservation(GridObjects):
         networkx.set_edge_attributes(graph, dict_or, "{}_or".format(attr_nm))
         networkx.set_edge_attributes(graph, dict_ex, "{}_ex".format(attr_nm))
 
-    def as_networkx(self):
+    def as_networkx(self) -> networkx.Graph:
         """Old name for :func:`BaseObservation.get_energy_graph`,
         will be removed in the future.
         """
         return self.get_energy_graph()
     
-    def get_energy_graph(self):
+    def get_energy_graph(self) -> networkx.Graph:
         """
         Convert this observation as a networkx graph. This graph is the graph "seen" by
         "the electron" / "the energy" of the power grid.
@@ -2069,7 +2069,7 @@ class BaseObservation(GridObjects):
             obs = env.reset()
 
             # retrieve the networkx graph
-            graph = obs.as_networkx()
+            graph = obs.get_energy_graph()
 
             # perform the check for every nodes
             for node_id in graph.nodes:
@@ -2241,9 +2241,9 @@ class BaseObservation(GridObjects):
                        edges_prop,
                        graph
                        ):
-        edges_el = [(el_ids[el_id], cls.n_sub + el_global_bus[el_id])
-                      for el_id in range(nb_el) 
-                      if el_connected[el_id]]
+        edges_el = [(el_ids[el_id], cls.n_sub + el_global_bus[el_id]) if el_connected[el_id] else None
+                    for el_id in range(nb_el) 
+                   ]
         li_el_edges = [(*edges_el[el_id],
                         {"id": el_id,
                          "type": f"{el_name}_to_bus"})
@@ -2299,6 +2299,7 @@ class BaseObservation(GridObjects):
                 for prop_nm, prop_vect in nodes_prop:
                     li_el_node[el_id][-1][prop_nm] = prop_vect[el_id]
         graph.add_nodes_from(li_el_node)
+        graph.graph[f"{el_name}_nodes_id"] = el_ids
         
         if el_bus is None and el_to_sub_id is None:
             return el_ids
@@ -2320,6 +2321,8 @@ class BaseObservation(GridObjects):
         bus_li = [
             (bus_ids[bus_id],
              {"id": bus_id,
+              "global_id": bus_id,
+              "local_id":  type(self).global_bus_to_local_int(bus_id, None),
               "type": "bus",
               "connected": conn_bus[bus_id]}
              )
@@ -2331,6 +2334,7 @@ class BaseObservation(GridObjects):
                         {"type": "bus_to_substation"})
                        for id_, bus_id in enumerate(bus_ids) if conn_bus[id_]]
         graph.add_edges_from(edge_bus_li)
+        graph.graph["bus_nodes_id"] = bus_ids
         return bus_ids
         
     def _aux_add_loads(self, graph, cls, first_id):
@@ -2405,6 +2409,7 @@ class BaseObservation(GridObjects):
                                 bus,
                                 sub_id,
                                 line_node_ids,
+                                side,
                                 p_vect,
                                 q_vect,
                                 v_vect,
@@ -2417,6 +2422,7 @@ class BaseObservation(GridObjects):
             ("q", q_vect),
             ("v", v_vect),
             ("a", a_vect),
+            ("side", [side for _ in range(p_vect.size)])
         ]
         if theta_vect is not None:
             edges_prop.append(("theta", theta_vect))
@@ -2455,6 +2461,7 @@ class BaseObservation(GridObjects):
                                      self.line_or_bus,
                                      cls.line_or_to_subid,
                                      lin_ids,
+                                     "or",
                                      self.p_or,
                                      self.q_or,
                                      self.v_or,
@@ -2467,6 +2474,7 @@ class BaseObservation(GridObjects):
                                      self.line_ex_bus,
                                      cls.line_ex_to_subid,
                                      lin_ids,
+                                     "ex",
                                      self.p_ex,
                                      self.q_ex,
                                      self.v_ex,
@@ -2494,13 +2502,60 @@ class BaseObservation(GridObjects):
                                                  )
         return sto_ids
     
-    def get_elements_graph(self):
-        """TODO
+    def get_elements_graph(self) -> networkx.DiGraph:
+        """This function returns the "elements graph" as a networkx object.
+        
+        .. seealso::
+            This object is extensively described in the documentation, see :ref:`elmnt-graph-gg` for more information.
+        
+        Basically, each "element" of the grid (element = a substation, a bus, a load, a generator, 
+        a powerline, a storate unit or a shunt) is represented by a node in this graph.
+        
+        There might be some edges between the nodes representing buses and the nodes representing 
+        substations, indicating "this bus is part of this substation".
+        
+        There might be some edges between the nodes representing load / generator / powerline / 
+        storage unit / shunt and the nodes representing buses, indicating "this load / generator /
+        powerline / storage unit is connected to this bus".
+        
+        Nodes and edges of this graph have different attributes depending on the underlying element
+        they represent. For a detailed description, please refer to the documentation: 
+        :ref:`elmnt-graph-gg` 
+        
+        Examples
+        ---------
+        
+        You can use, for example to "check" Kirchoff Current Law (or at least that no energy is created
+        at none of the buses):
+        
+        .. code-block:: python
 
+            import grid2op
+            env_name = "l2rpn_case14_sandbox" # or any other name...
+            
+            env = grid2op.make(env_name)
+            obs = env.reset()
+            
+            # retrieve the graph and do something
+            elmnt_graph = obs.get_elements_graph()
+            for bus_id, node_id in enumerate(elmnt_graph.graph["bus_nodes_id"]):
+                sum_p = 0.
+                sum_q = 0.
+                for ancestor in graph.predecessors(node_id):
+                    # ancestor is the id of a node representing an element connected to this
+                    # bus
+                    this_edge = graph.edges[(ancestor, node_id)]
+                    if "p" in this_edge:
+                        sum_p += this_edge["p"]
+                    if "q" in this_edge:
+                        sum_q += this_edge["q"]
+                assert abs(sum_p) <= self.tol, f"error for node {node_id} representing bus {bus_id}: {abs(sum_p)} != 0."
+                assert abs(sum_q) <= self.tol, f"error for node {node_id} representing bus {bus_id}: {abs(sum_q)} != 0."
+            
         Returns
         -------
-        _type_
-            _description_
+        networkx.DiGraph
+            The "elements graph", see :ref:`elmnt-graph-gg` .
         """
         cls = type(self)
         
@@ -2525,6 +2580,7 @@ class BaseObservation(GridObjects):
                     "cooldown": self.time_before_cooldown_sub[sub_id]}
                    ) for sub_id in range(cls.n_sub)]
         graph.add_nodes_from(sub_li)
+        graph.graph["substation_nodes_id"] = np.arange(cls.n_sub)
         
         # handle the buses
         bus_ids = self._aux_add_buses(graph, cls, cls.n_sub)
@@ -2541,13 +2597,13 @@ class BaseObservation(GridObjects):
         # handle storages
         sto_ids = self._aux_add_storages(graph, cls, line_ids[-1] + 1)
         next_id = line_ids[-1] + 1
-        if sto_ids:
+        if sto_ids.size > 0:
             next_id = sto_ids[-1] + 1
             
         # handle shunts
         if cls.shunts_data_available:
             shunt_ids = self._aux_add_shunts(graph, cls, next_id)
-            if shunt_ids:
+            if shunt_ids.size > 0:
                 next_id = shunt_ids[-1] + 1
         
         # and now we use the data above to put the right properties to the nodes for the buses
