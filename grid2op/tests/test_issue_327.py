@@ -34,11 +34,11 @@ class Issue327Tester(unittest.TestCase):
         assert done
         return obs
      
-    def test_as_networkx(self):
+    def test_get_energy_graph(self):
         obs = self._aux_set_game_over()
         with warnings.catch_warnings():
             warnings.filterwarnings("error")
-            graph = obs.as_networkx()
+            graph = obs.get_energy_graph()
         assert graph.number_of_nodes() == 1
         assert graph.number_of_edges() == 0
     
