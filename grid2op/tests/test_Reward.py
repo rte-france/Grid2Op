@@ -257,10 +257,11 @@ class TestN1Reward(unittest.TestCase):
 
         obs = env.reset()
         obs, reward, *_ = env.step(env.action_space())
+        # obs._obs_env._reward_helper.template_reward._DEBUG = True
         obs_n1, *_ = obs.simulate(
             env.action_space({"set_line_status": [(L_ID, -1)]}), time_step=0
         )
-
+        assert obs_n1.rho[L_ID] == 0  # line should have been disconnected
         assert (
             abs(reward - obs_n1.rho.max()) <= 1e-5
         ), "the correct reward has not been computed"

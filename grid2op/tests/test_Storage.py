@@ -941,3 +941,6 @@ class TestStorageEnv(HelperTests):
         obs, reward, done, info = self.env.step(act)
         assert info["exception"]  # this is a game over
         assert done
+
+if __name__ == "__main__":
+    unittest.main()

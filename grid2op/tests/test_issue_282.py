@@ -28,7 +28,7 @@ class Issue282Tester(unittest.TestCase):
         self.env_gym.action_space = BoxGymActSpace(
             self.env.action_space, attr_to_keep=self._default_act_attr_to_keep
         )
-        self.env_gym.reset(0)  #reset and seed
+        self.env_gym.reset(seed=0)  #reset and seed
 
     def tearDown(self):
         self.env.close()

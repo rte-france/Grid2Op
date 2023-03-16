@@ -243,14 +243,12 @@ def make_from_dataset_path(
 
     # TODO update doc with attention budget
 
-
-
     Returns
     -------
     env: :class:`grid2op.Environment.Environment`
         The created environment with the given properties.
 
-    """
+    """    
     # Compute and find root folder
     _check_path(dataset_path, "Dataset root directory")
     dataset_path_abs = os.path.abspath(dataset_path)
@@ -347,6 +345,9 @@ def make_from_dataset_path(
         name_converter = config_data["names_chronics_to_grid"]
     if name_converter is None:
         name_converter = {}
+        is_none = True
+    else:
+        is_none = False
     names_chronics_to_backend = _get_default_aux(
         "names_chronics_to_backend",
         kwargs,
@@ -354,6 +355,9 @@ def make_from_dataset_path(
         defaultinstance=name_converter,
         msg_error=ERR_MSG_KWARGS["names_chronics_to_grid"],
     )
+    if is_none and names_chronics_to_backend  == {}:
+        names_chronics_to_backend = None
+        
     # Get default backend class
     backend_class_cfg = PandaPowerBackend
     if "backend_class" in config_data and config_data["backend_class"] is not None:
@@ -503,6 +507,7 @@ def make_from_dataset_path(
     chronics_class_cfg = ChangeNothing
     if "chronics_class" in config_data and config_data["chronics_class"] is not None:
         chronics_class_cfg = config_data["chronics_class"]
+        
     # Get default Grid class
     grid_value_class_cfg = GridStateFromFile
     if (
@@ -519,6 +524,11 @@ def make_from_dataset_path(
         "gridvalueClass": grid_value_class_cfg,
     }
 
+    if "data_feeding_kwargs" in config_data and config_data["data_feeding_kwargs"] is not None:
+        dfkwargs_cfg = config_data["data_feeding_kwargs"]
+        for el in dfkwargs_cfg:
+            default_chronics_kwargs[el] = dfkwargs_cfg[el]
+            
     data_feeding_kwargs = _get_default_aux(
         "data_feeding_kwargs",
         kwargs,
@@ -546,7 +556,6 @@ def make_from_dataset_path(
             f"Impossible to find the chronics for your environment. Please make sure to provide "
             f'a folder "{NAME_CHRONICS_FOLDER}" within your environment folder.'
         )
-
     data_feeding_kwargs["chronicsClass"] = chronics_class_used
     data_feeding = _get_default_aux(
         "data_feeding",
@@ -759,7 +768,7 @@ def make_from_dataset_path(
         msg_error=ERR_MSG_KWARGS["kwargs_observation"],
         isclass=False,
     )
-
+    
     # Finally instantiate env from config & overrides
     env = Environment(
         init_env_path=os.path.abspath(dataset_path),

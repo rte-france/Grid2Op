@@ -314,7 +314,9 @@ class PlotMatplot(BasePlot):
         self.ax = figure.subplots()
 
     def convert_figure_to_numpy_HWC(self, figure):
-        w, h = figure.canvas.get_width_height()
+        w, h = figure.get_size_inches() * figure.dpi
+        w = int(w)
+        h = int(h)
         buf = io.BytesIO()
         figure.canvas.print_raw(buf)
         buf.seek(0)

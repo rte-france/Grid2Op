@@ -337,7 +337,7 @@ def make(
     # Select how to create the environment:
     # Default with make from path
     make_from_path_fn = make_from_dataset_path
-
+    
     # dataset arg is a valid path: load it
     if os.path.exists(dataset):
         # check if its a test environment
@@ -365,12 +365,14 @@ def make(
                 return _aux_make_multimix(*args, test=True, **kwargs)
 
             make_from_path_fn = make_from_path_fn_
+        
         if not "logger" in kwargs:
             kwargs["logger"] = logger
         if not "experimental_read_from_local_dir" in kwargs:
             kwargs[
                 "experimental_read_from_local_dir"
             ] = experimental_read_from_local_dir
+        
         return make_from_path_fn(
             dataset_path=dataset,
             _add_to_name=_add_to_name_tmp,
@@ -387,7 +389,7 @@ def make(
     # Unknown dev env
     if test and dataset_name not in TEST_DEV_ENVS:
         raise Grid2OpException(_MAKE_UNKNOWN_ENV.format(dataset))
-
+    
     # Known test env and test flag enabled
     if test:
         warnings.warn(_MAKE_DEV_ENV_WARN)

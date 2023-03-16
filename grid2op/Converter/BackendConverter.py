@@ -8,9 +8,11 @@
 
 import numpy as np
 import copy
+import warnings
+
 from grid2op.dtypes import dt_float, dt_int
 from grid2op.Backend import Backend
-from grid2op.Exceptions import Grid2OpException
+from grid2op.Exceptions import Grid2OpException, BackendError
 
 ERROR_NB_ELEMENTS = (
     "Impossible to make a BackendConverter with backends having different number of {}."
@@ -24,10 +26,19 @@ ERROR_INVALID_VECTOR = "invalid vector: some element are not found in either sou
 
 class BackendConverter(Backend):
     """
-    Convert two instance of backend to "align" them.
+    Convert two instance of backend to "align" them. This can be usefull if you have time series
+    from a given "type of backend" (with certain names) but want to use another type 
+    of backend to run the computation.
+    
+    Another usecase is if you have agents trained with certain backend type (so having loads, 
+    generators etc. in certain order) but want to use a different backend to run the powerflow. You train
+    your agent with a "simple and fast" powerflow but want to test them with a "more realistic" one.
 
     This means that grid2op will behave exactly as is the "source backend" class is used everywhere, but
     the powerflow computation will be carried out by the "target backend".
+    
+    # TODO: rename: "source backend" as "user backend" and "target backend" as "powerflow backend" or something
+    like that.
 
     This means that from grid2op point of view, and from the agent point of view, line will be the order given
     by "source backend", load will be in the order of "source backend", topology will be given with the
@@ -42,6 +53,10 @@ class BackendConverter(Backend):
     Note that these backend need to access the grid description file from both "source backend" and "target backend"
     class. The underlying grid must be the same.
 
+    # TODO: have a "mapping" from source name to target name in the constructor. If not provided it's the current
+    behaviour (everything is automatic) but if present it maps the things according to this mapping. This mapping
+    could be like `names_chronics_to_backend`
+    
     Examples
     ---------
     Here is a (dummy and useless) example of how to use this class.
@@ -68,7 +83,8 @@ class BackendConverter(Backend):
             # do regular computations here
 
     """
-
+    IS_BK_CONVERTER = True
+    
     def __init__(
         self,
         source_backend_class,
@@ -76,17 +92,29 @@ class BackendConverter(Backend):
         target_backend_grid_path=None,
         sub_source_target=None,
         detailed_infos_for_cascading_failures=False,
+        use_target_backend_name=False,
+        kwargs_target_backend=None,
+        kwargs_source_backend=None,
     ):
         Backend.__init__(
             self,
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
+            use_target_backend_name=use_target_backend_name,
+            kwargs_target_backend=kwargs_target_backend,
+            kwargs_source_backend=kwargs_source_backend,
         )
         difcf = detailed_infos_for_cascading_failures
+        if kwargs_source_backend is None:
+            kwargs_source_backend = {}
         self.source_backend = source_backend_class(
-            detailed_infos_for_cascading_failures=difcf
+            detailed_infos_for_cascading_failures=difcf,
+            **kwargs_source_backend
         )  # the one for the order of the elements
+        if kwargs_target_backend is None:
+            kwargs_target_backend = {}
         self.target_backend = target_backend_class(
-            detailed_infos_for_cascading_failures=difcf
+            detailed_infos_for_cascading_failures=difcf,
+            **kwargs_target_backend
         )  # the one to computes powerflow
         # if the target backend (the one performing the powerflows) needs a different file
         self.target_backend_grid_path = target_backend_grid_path
@@ -121,6 +149,10 @@ class BackendConverter(Backend):
         # for easier copy of np array
         self.cst1 = dt_float(1.0)
 
+        # which name to use when loading the data (if names_chronics_to_backend has not been set)
+        self.use_target_backend_name = use_target_backend_name 
+        self.names_target_to_source = None
+        
         # TODO storage check all this class ! + the doc of the backend
 
     def load_grid(self, path=None, filename=None):
@@ -135,16 +167,27 @@ class BackendConverter(Backend):
     def _assert_same_grid(self):
         """basic assertion that self and the target backend have the same grid
         but not necessarily the same object at the same place of course"""
-        if type(self).n_sub != type(self.target_backend).n_sub:
+        cls = type(self)
+        tg_cls = type(self.target_backend)
+        if cls.n_sub != tg_cls.n_sub:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("substations"))
-        if type(self).n_gen != type(self.target_backend).n_gen:
+        if cls.n_gen != tg_cls.n_gen:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("generators"))
-        if type(self).n_load != type(self.target_backend).n_load:
+        if cls.n_load != tg_cls.n_load:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("loads"))
-        if type(self).n_line != type(self.target_backend).n_line:
+        if cls.n_line != tg_cls.n_line:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("lines"))
-        if type(self).n_storage != type(self.target_backend).n_storage:
-            raise Grid2OpException(ERROR_NB_ELEMENTS.format("storages"))
+        if cls.n_storage > 0:
+            if cls.n_storage != tg_cls.n_storage:
+                raise Grid2OpException(ERROR_NB_ELEMENTS.format("storages"))
+        else:
+            # a possible reason is that the "source backend" do not support storage
+            # but the target one does. In this case I issue a warning,
+            # and make sure I have not storage.
+            if tg_cls.n_storage > 0:
+                warnings.warn("BackendConverter: the source backend does not appear to support storage units, "
+                              "but the target one does (and there are some storage units on the grid). "
+                              "Be aware that the converted backend will NOT support storage units.")
 
     def _init_myself(self):
         # shortcut to set all information related to the class, except the name of the environment
@@ -206,22 +249,24 @@ class BackendConverter(Backend):
         self._auto_fill_vect_powerline()
 
         # e) and now the topology vectors.
-        self._topo_tg2sr = np.full(self.dim_topo, fill_value=-1, dtype=dt_int)
-        self._topo_sr2tg = np.full(self.dim_topo, fill_value=-1, dtype=dt_int)
+        self._topo_tg2sr = np.full(self.source_backend.dim_topo, fill_value=-1, dtype=dt_int)
+        self._topo_sr2tg = np.full(self.target_backend.dim_topo, fill_value=-1, dtype=dt_int)
         self._auto_fill_vect_topo()
 
         # f) for the storage units
         self._storage_tg2sr = np.full(self.n_storage, fill_value=-1, dtype=dt_int)
         self._storage_sr2tg = np.full(self.n_storage, fill_value=-1, dtype=dt_int)
+        
         # automatic mode
-        self._auto_fill_vect_load_gen_shunt(
-            n_element=self.n_storage,
-            source_2_id_sub=self.source_backend.storage_to_subid,
-            target_2_id_sub=self.target_backend.storage_to_subid,
-            tg2sr=self._storage_tg2sr,
-            sr2tg=self._storage_sr2tg,
-            nm="storage",
-        )
+        if self.n_storage:
+            self._auto_fill_vect_load_gen_shunt(
+                n_element=self.n_storage,
+                source_2_id_sub=self.source_backend.storage_to_subid,
+                target_2_id_sub=self.target_backend.storage_to_subid,
+                tg2sr=self._storage_tg2sr,
+                sr2tg=self._storage_sr2tg,
+                nm="storage",
+            )
 
         # shunt are available if both source and target provide it
         self.shunts_data_available = (
@@ -339,12 +384,14 @@ class BackendConverter(Backend):
             self.target_backend.line_ex_pos_topo_vect,
             self._line_sr2tg,
         )
-        self._auto_fill_vect_topo_aux(
-            self.n_storage,
-            self.source_backend.storage_pos_topo_vect,
-            self.target_backend.storage_pos_topo_vect,
-            self._storage_sr2tg,
-        )
+        
+        if self.n_storage:
+            self._auto_fill_vect_topo_aux(
+                self.n_storage,
+                self.source_backend.storage_pos_topo_vect,
+                self.target_backend.storage_pos_topo_vect,
+                self._storage_sr2tg,
+            )
 
     def _auto_fill_vect_topo_aux(self, n_elem, source_pos, target_pos, sr2tg):
         # TODO that might not be working as intented... it always says it's the identity...
@@ -353,9 +400,12 @@ class BackendConverter(Backend):
 
     def assert_grid_correct(self):
         # this is done before a call to this function, by the environment
+        tg_cls = type(self.target_backend)
+        sr_cls = type(self.source_backend)
+        
         env_name = type(self).env_name
-        type(self.target_backend).set_env_name(env_name)
-        type(self.source_backend).set_env_name(env_name)
+        tg_cls.set_env_name(env_name)
+        sr_cls.set_env_name(env_name)
 
         # handle specifc case of shunt data:
         if not self.target_backend.shunts_data_available:
@@ -367,11 +417,16 @@ class BackendConverter(Backend):
         self._init_class_attr(obj=self.source_backend)
         if self.path_redisp is not None:
             # redispatching data were available
-            super().load_redispacthing_data(self.path_redisp, name=self.name_redisp)
-            self.source_backend.load_redispacthing_data(
-                self.path_redisp, name=self.name_redisp
-            )
-            #  self.target_backend.load_redispacthing_data(self.path_redisp, name=self.name_redisp)
+            try:
+                super().load_redispacthing_data(self.path_redisp, name=self.name_redisp)
+                self.source_backend.load_redispacthing_data(
+                    self.path_redisp, name=self.name_redisp
+                )
+            except BackendError as exc_:
+                self.redispatching_unit_commitment_availble = False
+                warnings.warn(f"Impossible to load redispatching data. This is not an error but you will not be able "
+                            f"to use all grid2op functionalities. "
+                            f"The error was: \"{exc_}\"")
         if self.path_storage_data is not None:
             super().load_storage_data(self.path_storage_data, self.name_storage_data)
             self.source_backend.load_storage_data(
@@ -398,6 +453,11 @@ class BackendConverter(Backend):
 
         # everything went well, so i can properly terminate my initialization
         self._init_myself()
+        
+        # redefine this as the class changed after "assert grid correct"
+        tg_cls = type(self.target_backend)
+        sr_cls = type(self.source_backend)
+        cls = type(self)
 
         if self.sub_source_target is None:
             # automatic mode for substations, names must match
@@ -415,12 +475,42 @@ class BackendConverter(Backend):
         self._check_both_consistent(self._load_tg2sr, self._load_sr2tg)
         self._check_both_consistent(self._gen_tg2sr, self._gen_sr2tg)
         self._check_both_consistent(self._sub_tg2sr, self._sub_sr2tg)
-        self._check_both_consistent(self._topo_tg2sr, self._topo_sr2tg)
+        
+        if cls.n_storage == tg_cls.n_storage:
+            # both source and target supports storage units
+            self._check_both_consistent(self._topo_tg2sr, self._topo_sr2tg)
+        elif self.n_storage == 0:
+            # n_storage == 0 and there are storage units on the source backend
+            # this means that the target_backend supports storage but not
+            # the source one
+            assert np.all(self._topo_sr2tg[self._topo_tg2sr] >= 0)
+            assert np.all(sorted(self._topo_sr2tg[self._topo_tg2sr]) == np.arange(self.dim_topo))
+            
+            topo_sr2tg_without_storage = self._topo_sr2tg[self._topo_sr2tg >= 0]
+            assert np.sum(self._topo_sr2tg == -1) == tg_cls.n_storage
+            assert np.all(self._topo_tg2sr[topo_sr2tg_without_storage] >= 0)
+            target_without_storage = np.array([i for i in range(tg_cls.dim_topo) 
+                                               if not i in tg_cls.storage_pos_topo_vect])
+            assert np.all(sorted(self._topo_tg2sr[topo_sr2tg_without_storage]) == target_without_storage)
+            self._topo_sr2tg = topo_sr2tg_without_storage
+
         if self.shunts_data_available:
             self._check_both_consistent(self._shunt_tg2sr, self._shunt_sr2tg)
 
         # finally check that powergrids are identical (up to the env name)
-        type(self.target_backend).same_grid_class(type(self.source_backend))
+        tg_cls.same_grid_class(sr_cls)
+        
+        # once everything is done, make the converter for the names
+        d_loads = {tg_cls.name_load[i]: sr_cls.name_load[self._load_sr2tg[i]]
+                    for i in range(cls.n_load)}
+        d_gens = {tg_cls.name_gen[i]: sr_cls.name_gen[self._gen_sr2tg[i]]
+                    for i in range(cls.n_gen)}
+        d_lines = {tg_cls.name_line[i]: sr_cls.name_line[self._line_sr2tg[i]]
+                    for i in range(cls.n_line)}
+        d_subs = {tg_cls.name_sub[i]: sr_cls.name_sub[self._sub_sr2tg[i]]
+                    for i in range(cls.n_sub)}
+        dict_ = {"loads": d_loads, "lines": d_lines, "prods": d_gens, "subs": d_subs}
+        self.names_target_to_source = dict_
 
     def _check_vect_valid(self, vect):
         assert np.all(
@@ -543,9 +633,9 @@ class BackendConverter(Backend):
     def storages_info(self):
         p_, q_, v_ = self.target_backend.storages_info()
         return (
-            self.cst1 * p_[self._storage_sr2tg],
-            self.cst1 * q_[self._storage_sr2tg],
-            self.cst1 * v_[self._storage_sr2tg],
+            self.cst1 * p_[self._storage_tg2sr],
+            self.cst1 * q_[self._storage_tg2sr],
+            self.cst1 * v_[self._storage_tg2sr],
         )
 
     def shunt_info(self):

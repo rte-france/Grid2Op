@@ -369,7 +369,7 @@ class TestObservationMaintenance(unittest.TestCase):
         sim_obs, *_ = obs.simulate(self.env.action_space(), time_step=1)
         assert not sim_obs.line_status[4]
         assert sim_obs.time_next_maintenance[4] == 0
-        assert sim_obs.duration_next_maintenance[4] == 11
+        assert sim_obs.duration_next_maintenance[4] == 12
         
         # simulation at current step
         sim_obs, *_ = obs.simulate(self.env.action_space(), time_step=0)
@@ -381,7 +381,7 @@ class TestObservationMaintenance(unittest.TestCase):
         sim_obs, *_ = obs.simulate(self.env.action_space(), time_step=1)
         assert not sim_obs.line_status[4]
         assert sim_obs.time_next_maintenance[4] == 0
-        assert sim_obs.duration_next_maintenance[4] == 11
+        assert sim_obs.duration_next_maintenance[4] == 12
 
         for ts in range(11):
             obs, reward, done, info = self.env.step(self.env.action_space())

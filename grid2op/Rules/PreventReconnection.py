@@ -42,8 +42,8 @@ class PreventReconnection(BaseRules):
                 0
             ]
             return False, IllegalAction(
-                "Powerline with ids {} have been modified illegally (cooldown)".format(
-                    ids
+                "Powerline with ids {} have been modified illegally (cooldown of {})".format(
+                    ids, env._times_before_line_status_actionable[ids]
                 )
             )
 
@@ -51,8 +51,8 @@ class PreventReconnection(BaseRules):
             # I tried to act on a topology too shortly after a previous action
             ids = np.where((env._times_before_topology_actionable > 0) & aff_subs)[0]
             return False, IllegalAction(
-                "Substation with ids {} have been modified illegally (cooldown)".format(
-                    ids
+                "Substation with ids {} have been modified illegally (cooldown of {})".format(
+                    ids, env._times_before_topology_actionable[ids]
                 )
             )
 
