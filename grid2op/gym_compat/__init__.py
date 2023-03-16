@@ -8,6 +8,8 @@
 
 __all__ = [
     "BaseGymAttrConverter",
+    "GymEnv_Legacy",
+    "GymEnv_Modern",
     "GymEnv",
     "GymObservationSpace",
     "GymActionSpace",
@@ -21,8 +23,15 @@ __all__ = [
 ]
 
 from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
-from grid2op.gym_compat.gymenv import GymEnv
+from grid2op.gym_compat.gymenv import GymEnv_Legacy, GymEnv_Modern
 
+from grid2op.gym_compat.utils import _MAX_GYM_VERSION_RANDINT, GYM_VERSION
+if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
+    GymEnv = GymEnv_Legacy
+else:
+    GymEnv = GymEnv_Modern
+    
+    
 from grid2op.gym_compat.gym_act_space import GymActionSpace
 from grid2op.gym_compat.gym_obs_space import GymObservationSpace
 from grid2op.gym_compat.scaler_attr_converter import ScalerAttrConverter

@@ -1182,7 +1182,10 @@ class GridObjects:
 
     def _init_class_attr(self, obj=None):
         """init the class attribute from an instance of the class
+        
         THIS IS NOT A CLASS ATTR
+        
+        obj should be an object and NOT a class !
         """
         if obj is None:
             obj = self
@@ -3875,7 +3878,6 @@ class GridObjects:
             
             Local and global bus id represents the same thing. The difference comes down to convention.
         """
-        res = 1 * global_bus
         if global_bus < cls.n_sub:
             return 1
         if global_bus >= cls.n_sub:

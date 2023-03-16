@@ -243,14 +243,12 @@ def make_from_dataset_path(
 
     # TODO update doc with attention budget
 
-
-
     Returns
     -------
     env: :class:`grid2op.Environment.Environment`
         The created environment with the given properties.
 
-    """
+    """    
     # Compute and find root folder
     _check_path(dataset_path, "Dataset root directory")
     dataset_path_abs = os.path.abspath(dataset_path)
@@ -770,7 +768,7 @@ def make_from_dataset_path(
         msg_error=ERR_MSG_KWARGS["kwargs_observation"],
         isclass=False,
     )
-
+    
     # Finally instantiate env from config & overrides
     env = Environment(
         init_env_path=os.path.abspath(dataset_path),

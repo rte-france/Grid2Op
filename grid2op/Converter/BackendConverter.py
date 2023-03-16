@@ -167,22 +167,24 @@ class BackendConverter(Backend):
     def _assert_same_grid(self):
         """basic assertion that self and the target backend have the same grid
         but not necessarily the same object at the same place of course"""
-        if type(self).n_sub != type(self.target_backend).n_sub:
+        cls = type(self)
+        tg_cls = type(self.target_backend)
+        if cls.n_sub != tg_cls.n_sub:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("substations"))
-        if type(self).n_gen != type(self.target_backend).n_gen:
+        if cls.n_gen != tg_cls.n_gen:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("generators"))
-        if type(self).n_load != type(self.target_backend).n_load:
+        if cls.n_load != tg_cls.n_load:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("loads"))
-        if type(self).n_line != type(self.target_backend).n_line:
+        if cls.n_line != tg_cls.n_line:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("lines"))
-        if type(self).n_storage > 0:
-            if type(self).n_storage != type(self.target_backend).n_storage:
+        if cls.n_storage > 0:
+            if cls.n_storage != tg_cls.n_storage:
                 raise Grid2OpException(ERROR_NB_ELEMENTS.format("storages"))
         else:
             # a possible reason is that the "source backend" do not support storage
             # but the target one does. In this case I issue a warning,
             # and make sure I have not storage.
-            if type(self.target_backend).n_storage > 0:
+            if tg_cls.n_storage > 0:
                 warnings.warn("BackendConverter: the source backend does not appear to support storage units, "
                               "but the target one does (and there are some storage units on the grid). "
                               "Be aware that the converted backend will NOT support storage units.")
@@ -398,9 +400,12 @@ class BackendConverter(Backend):
 
     def assert_grid_correct(self):
         # this is done before a call to this function, by the environment
+        tg_cls = type(self.target_backend)
+        sr_cls = type(self.source_backend)
+        
         env_name = type(self).env_name
-        type(self.target_backend).set_env_name(env_name)
-        type(self.source_backend).set_env_name(env_name)
+        tg_cls.set_env_name(env_name)
+        sr_cls.set_env_name(env_name)
 
         # handle specifc case of shunt data:
         if not self.target_backend.shunts_data_available:
@@ -448,6 +453,11 @@ class BackendConverter(Backend):
 
         # everything went well, so i can properly terminate my initialization
         self._init_myself()
+        
+        # redefine this as the class changed after "assert grid correct"
+        tg_cls = type(self.target_backend)
+        sr_cls = type(self.source_backend)
+        cls = type(self)
 
         if self.sub_source_target is None:
             # automatic mode for substations, names must match
@@ -466,7 +476,7 @@ class BackendConverter(Backend):
         self._check_both_consistent(self._gen_tg2sr, self._gen_sr2tg)
         self._check_both_consistent(self._sub_tg2sr, self._sub_sr2tg)
         
-        if self.n_storage == type(self.target_backend).n_storage:
+        if cls.n_storage == tg_cls.n_storage:
             # both source and target supports storage units
             self._check_both_consistent(self._topo_tg2sr, self._topo_sr2tg)
         elif self.n_storage == 0:
@@ -477,10 +487,10 @@ class BackendConverter(Backend):
             assert np.all(sorted(self._topo_sr2tg[self._topo_tg2sr]) == np.arange(self.dim_topo))
             
             topo_sr2tg_without_storage = self._topo_sr2tg[self._topo_sr2tg >= 0]
-            assert np.sum(self._topo_sr2tg == -1) == type(self.target_backend).n_storage
+            assert np.sum(self._topo_sr2tg == -1) == tg_cls.n_storage
             assert np.all(self._topo_tg2sr[topo_sr2tg_without_storage] >= 0)
-            target_without_storage = np.array([i for i in range(type(self.target_backend).dim_topo) 
-                                               if not i in type(self.target_backend).storage_pos_topo_vect])
+            target_without_storage = np.array([i for i in range(tg_cls.dim_topo) 
+                                               if not i in tg_cls.storage_pos_topo_vect])
             assert np.all(sorted(self._topo_tg2sr[topo_sr2tg_without_storage]) == target_without_storage)
             self._topo_sr2tg = topo_sr2tg_without_storage
 
@@ -488,17 +498,16 @@ class BackendConverter(Backend):
             self._check_both_consistent(self._shunt_tg2sr, self._shunt_sr2tg)
 
         # finally check that powergrids are identical (up to the env name)
-        type(self.target_backend).same_grid_class(type(self.source_backend))
+        tg_cls.same_grid_class(sr_cls)
         
         # once everything is done, make the converter for the names
-        cls = type(self)        
-        d_loads = {type(self.target_backend).name_load[i]: type(self.source_backend).name_load[self._load_sr2tg[i]]
+        d_loads = {tg_cls.name_load[i]: sr_cls.name_load[self._load_sr2tg[i]]
                     for i in range(cls.n_load)}
-        d_gens = {type(self.target_backend).name_gen[i]: type(self.source_backend).name_gen[self._gen_sr2tg[i]]
+        d_gens = {tg_cls.name_gen[i]: sr_cls.name_gen[self._gen_sr2tg[i]]
                     for i in range(cls.n_gen)}
-        d_lines = {type(self.target_backend).name_line[i]: type(self.source_backend).name_line[self._line_sr2tg[i]]
+        d_lines = {tg_cls.name_line[i]: sr_cls.name_line[self._line_sr2tg[i]]
                     for i in range(cls.n_line)}
-        d_subs = {type(self.target_backend).name_sub[i]: type(self.source_backend).name_sub[self._sub_sr2tg[i]]
+        d_subs = {tg_cls.name_sub[i]: sr_cls.name_sub[self._sub_sr2tg[i]]
                     for i in range(cls.n_sub)}
         dict_ = {"loads": d_loads, "lines": d_lines, "prods": d_gens, "subs": d_subs}
         self.names_target_to_source = dict_

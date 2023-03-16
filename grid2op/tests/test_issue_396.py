@@ -9,15 +9,15 @@
 import grid2op
 import unittest
 import warnings
-import numpy as np
+import os
 import pdb
 
-    
-import grid2op
-import numpy as np
+import tempfile
+from grid2op.Runner import Runner
+from grid2op.Episode import EpisodeReplay, EpisodeData
 
 
-class Issue389Tester(unittest.TestCase):
+class Issue396Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -25,21 +25,21 @@ class Issue389Tester(unittest.TestCase):
             self.env = grid2op.make("rte_case5_example", test=True)
         self.env.seed(0)
         self.env.set_id(0)
+    
+    def test_gif(self):
+        with tempfile.TemporaryDirectory() as path:
+            runner = Runner(**self.env.get_params_for_runner())
+            _ = runner.run(path_save=path,
+                           nb_episode=1,
+                           nb_process=1,
+                           max_iter=10,
+                            )
+            li_ep = EpisodeData.list_episode(path)
+            ep_replay = EpisodeReplay(li_ep[0][0])
+            ep_replay.replay_episode(episode_id=li_ep[0][1],
+                                     gif_name=li_ep[0][1],
+                                     display=False)
 
-    def test_issue(self):
-        act = self.env.action_space({"set_bus":{ "substations_id": [(4, (2, 1, 2))]}})
-        obs, reward, done, info = self.env.step(act)
-        act = self.env.action_space({"set_bus":{ "lines_or_id": [(7, -1)]}})
-        obs, reward, done, info = self.env.step(act)
-        assert not done
-        assert not np.isnan(obs.theta_ex[-1])
-        G = obs.get_energy_graph()
-        assert not np.isnan(G.nodes[4]["theta"])
-        assert G.edges[(0, 4)]["theta_or"] == G.nodes[0]["theta"]
-        assert G.edges[(0, 4)]["theta_ex"] == G.nodes[4]["theta"]
-
-        assert G.edges[(0, 4)]["v_or"] == G.nodes[0]["v"]
-        assert G.edges[(0, 4)]["v_ex"] == G.nodes[4]["v"]
 
 if __name__ == "__main__":
     unittest.main()

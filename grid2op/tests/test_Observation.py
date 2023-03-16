@@ -1055,7 +1055,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_networkx_graph(self):
         obs = self.env.observation_space(self.env)
-        graph = obs.as_networkx()
+        graph = obs.get_energy_graph()
         for node_id in graph.nodes:
             # retrieve power (active and reactive) produced at this node
             p_ = graph.nodes[node_id]["p"]
