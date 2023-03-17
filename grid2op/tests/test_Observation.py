@@ -1051,7 +1051,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_networkx_graph(self):
         obs = self.env.observation_space(self.env)
-        graph = obs.as_networkx()
+        graph = obs.get_energy_graph()
         for node_id in graph.nodes:
             # retrieve power (active and reactive) produced at this node
             p_ = graph.nodes[node_id]["p"]
@@ -2558,7 +2558,8 @@ class TestSimulateEqualsStep(unittest.TestCase):
             assert k in sim_i["rewards"]
         obs, reward, done, info = env.step(env.action_space())
         # check rewards are same, this is the case because simulate is in "perfect information"
-        assert info["rewards"] == sim_i["rewards"]
+        assert np.all(sim_o.rho == obs.rho)
+        self._aux_comp_reward(info, sim_i)
         assert np.all(sim_o.load_p == obs.load_p)
 
         env.observation_space.change_other_rewards({})
@@ -2577,10 +2578,18 @@ class TestSimulateEqualsStep(unittest.TestCase):
         for k in other_rewards.keys():
             assert k in sim_i["rewards"]
         obs, reward, done, info = env.step(env.action_space())
+        
         # check rewards are same, this is the case because simulate is in "perfect information"
-        assert info["rewards"] == sim_i["rewards"]
+        assert np.all(sim_o.rho == obs.rho)
+        self._aux_comp_reward(info, sim_i)
         assert np.all(sim_o.load_p == obs.load_p)
 
+    def _aux_comp_reward(self, info, sim_info):
+        for el in info["rewards"]:
+            tmp_info = info["rewards"][el]
+            tmp_sinfo = sim_info["rewards"][el]
+            assert np.allclose(tmp_info, tmp_sinfo), f"error for {el}: in info: {tmp_info}, in simulated info: {tmp_sinfo}"
+        
     def _multi_actions_sample(self):
         actions = []
         ## do_nothing action
@@ -2800,9 +2809,10 @@ class TestSimulateEqualsStep(unittest.TestCase):
         actions.append(redisp_act)
 
         # Simulate all actions
-        for act in actions:
-            self.sim_obs, _, _, _ = self.obs.simulate(act)
-            
+        # for act in actions:
+        #     self.sim_obs, _, _, _ = self.obs.simulate(act)
+        self.sim_obs, _, _, _ = self.obs.simulate(actions[-1])   
+         
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         

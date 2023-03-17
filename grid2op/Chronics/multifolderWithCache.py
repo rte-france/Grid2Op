@@ -21,7 +21,7 @@ class MultifolderWithCache(Multifolder):
     For now it's only compatible (because it only present some kind of interest) with :class:`GridValue` class
     inheriting from :class:`GridStateFromFile`.
 
-    The function :func:`MultifolderWithCache.reset_cache` will redo the cache from scratch. You can filter which
+    The function :func:`MultifolderWithCache.reset` will redo the cache from scratch. You can filter which
     type of data will be cached or not with the :func:`MultifolderWithCache.set_filter` function.
 
     **NB** Efficient use of this class can dramatically increase the speed of the learning algorithm, especially at
@@ -96,6 +96,7 @@ class MultifolderWithCache(Multifolder):
         max_iter=-1,
         chunk_size=None,
         filter_func=None,
+        **kwargs,
     ):
         Multifolder.__init__(
             self,
@@ -107,6 +108,7 @@ class MultifolderWithCache(Multifolder):
             max_iter=max_iter,
             chunk_size=None,
             filter_func=filter_func,
+            **kwargs
         )
         self._cached_data = None
         self.cache_size = 0

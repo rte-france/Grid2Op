@@ -111,7 +111,7 @@ class PandaPowerBackend(Backend):
     def __init__(
         self,
         detailed_infos_for_cascading_failures=False,
-        ligthsim2grid=False,  # use lightsim2grid as pandapower powerflow solver
+        lightsim2grid=False,  # use lightsim2grid as pandapower powerflow solver
         dist_slack=False,
         max_iter=10,
         can_be_copied=True,
@@ -120,7 +120,7 @@ class PandaPowerBackend(Backend):
             self,
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
             can_be_copied=can_be_copied,
-            ligthsim2grid=ligthsim2grid,
+            lightsim2grid=lightsim2grid,
             dist_slack=dist_slack,
             max_iter=max_iter
         )
@@ -207,7 +207,7 @@ class PandaPowerBackend(Backend):
         self.gen_theta = None
         self.storage_theta = None
 
-        self._ligthsim2grid = ligthsim2grid
+        self._lightsim2grid = lightsim2grid
         self._dist_slack = dist_slack
         self._max_iter = max_iter
 
@@ -303,7 +303,9 @@ class PandaPowerBackend(Backend):
         and deep_copy it to itself instead of calling load_grid again
         """
         # Assign the content of itself as saved at the end of load_grid
-        self._grid = copy.deepcopy(self.__pp_backend_initial_grid)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            self._grid = copy.deepcopy(self.__pp_backend_initial_grid)
         self._reset_all_nan()
         self._topo_vect[:] = self._get_topo_vect()
         self.comp_time = 0.0
@@ -348,13 +350,22 @@ class PandaPowerBackend(Backend):
         self._id_bus_added = None
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            pp.runpp(
-                self._grid,
-                numba=numba_,
-                lightsim2grid=self._ligthsim2grid,
-                distributed_slack=self._dist_slack,
-                max_iteration=self._max_iter,
-            )
+            try:
+                pp.runpp(
+                    self._grid,
+                    numba=numba_,
+                    lightsim2grid=self._lightsim2grid,
+                    distributed_slack=self._dist_slack,
+                    max_iteration=self._max_iter,
+                )
+            except pp.powerflow.LoadflowNotConverged:
+                pp.rundcpp(
+                    self._grid,
+                    numba=numba_,
+                    lightsim2grid=self._lightsim2grid,
+                    distributed_slack=self._dist_slack,
+                    max_iteration=self._max_iter,
+                )
         new_pp_version = False
         if not "slack_weight" in self._grid.gen:
             self._grid.gen["slack_weight"] = 1.0
@@ -382,33 +393,36 @@ class PandaPowerBackend(Backend):
 
                     bus_gen_added = ppc2pd[int(el)]
                     # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
-                    if new_pp_version:
-                        id_added = pp.create_gen(
-                            self._grid,
-                            bus_gen_added,
-                            p_mw=self._grid._ppc["gen"][gen_id_pp, 1],
-                            vm_pu=self._grid._ppc["gen"][gen_id_pp, 5],
-                            min_p_mw=self._grid._ppc["gen"][gen_id_pp, 9],
-                            max_p_mw=self._grid._ppc["gen"][gen_id_pp, 8],
-                            max_q_mvar=self._grid._ppc["gen"][gen_id_pp, 3],
-                            min_q_mvar=self._grid._ppc["gen"][gen_id_pp, 4],
-                            slack=i_ref is None,
-                            slack_weight=1.0,
-                            controllable=True,
-                        )
-                    else:
-                        id_added = pp.create_gen(
-                            self._grid,
-                            bus_gen_added,
-                            p_mw=self._grid._ppc["gen"][gen_id_pp, 1],
-                            vm_pu=self._grid._ppc["gen"][gen_id_pp, 5],
-                            min_p_mw=self._grid._ppc["gen"][gen_id_pp, 9],
-                            max_p_mw=self._grid._ppc["gen"][gen_id_pp, 8],
-                            max_q_mvar=self._grid._ppc["gen"][gen_id_pp, 3],
-                            min_q_mvar=self._grid._ppc["gen"][gen_id_pp, 4],
-                            slack=i_ref is None,
-                            controllable=True,
-                        )
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore")
+                        # some warnings are issued depending on pp and pandas version
+                        if new_pp_version:
+                            id_added = pp.create_gen(
+                                self._grid,
+                                bus_gen_added,
+                                p_mw=self._grid._ppc["gen"][gen_id_pp, 1],
+                                vm_pu=self._grid._ppc["gen"][gen_id_pp, 5],
+                                min_p_mw=self._grid._ppc["gen"][gen_id_pp, 9],
+                                max_p_mw=self._grid._ppc["gen"][gen_id_pp, 8],
+                                max_q_mvar=self._grid._ppc["gen"][gen_id_pp, 3],
+                                min_q_mvar=self._grid._ppc["gen"][gen_id_pp, 4],
+                                slack=i_ref is None,
+                                slack_weight=1.0,
+                                controllable=True,
+                            )
+                        else:
+                            id_added = pp.create_gen(
+                                self._grid,
+                                bus_gen_added,
+                                p_mw=self._grid._ppc["gen"][gen_id_pp, 1],
+                                vm_pu=self._grid._ppc["gen"][gen_id_pp, 5],
+                                min_p_mw=self._grid._ppc["gen"][gen_id_pp, 9],
+                                max_p_mw=self._grid._ppc["gen"][gen_id_pp, 8],
+                                max_q_mvar=self._grid._ppc["gen"][gen_id_pp, 3],
+                                min_q_mvar=self._grid._ppc["gen"][gen_id_pp, 4],
+                                slack=i_ref is None,
+                                controllable=True,
+                            )
 
                     if i_ref is None:
                         i_ref = gen_id_pp
@@ -421,13 +435,22 @@ class PandaPowerBackend(Backend):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            pp.runpp(
-                self._grid,
-                numba=numba_,
-                lightsim2grid=self._ligthsim2grid,
-                distributed_slack=self._dist_slack,
-                max_iteration=self._max_iter,
-            )
+            try:
+                pp.runpp(
+                    self._grid,
+                    numba=numba_,
+                    lightsim2grid=self._lightsim2grid,
+                    distributed_slack=self._dist_slack,
+                    max_iteration=self._max_iter,
+                )
+            except pp.powerflow.LoadflowNotConverged:
+                pp.rundcpp(
+                    self._grid,
+                    numba=numba_,
+                    lightsim2grid=self._lightsim2grid,
+                    distributed_slack=self._dist_slack,
+                    max_iteration=self._max_iter,
+                )
 
         self.__nb_bus_before = self._grid.bus.shape[0]
         self.__nb_powerline = self._grid.line.shape[0]
@@ -492,7 +515,6 @@ class PandaPowerBackend(Backend):
                 for i, (_, row) in enumerate(self._grid.gen.iterrows())
             ]
         self.name_gen = np.array(self.name_gen)
-
         self.n_load = copy.deepcopy(self._grid.load.shape[0])
         if (
             "name" in self._grid.load.columns
@@ -749,9 +771,12 @@ class PandaPowerBackend(Backend):
 
         # Create a deep copy of itself in the initial state
         # Store it under super private attribute
-        self.__pp_backend_initial_grid = copy.deepcopy(
-            self._grid
-        )  # will be initialized in the "assert_grid_correct"
+        with warnings.catch_warnings():
+            # raised on some versions of pandapower / pandas
+            warnings.simplefilter("ignore", FutureWarning)
+            self.__pp_backend_initial_grid = copy.deepcopy(
+                self._grid
+            )  # will be initialized in the "assert_grid_correct"
 
     def storage_deact_for_backward_comaptibility(self):
         self._init_private_attrs()
@@ -780,7 +805,8 @@ class PandaPowerBackend(Backend):
         """
         if backendAction is None:
             return
-
+        cls = type(self)
+        
         (
             active_bus,
             (prod_p, prod_v, load_p, load_q, storage),
@@ -788,6 +814,12 @@ class PandaPowerBackend(Backend):
             shunts__,
         ) = backendAction()
 
+        # handle bus status
+        bus_is = self._grid.bus["in_service"]
+        for i, (bus1_status, bus2_status) in enumerate(active_bus):
+            bus_is[i] = bus1_status  # no iloc for bus, don't ask me why please :-/
+            bus_is[i + self.__nb_bus_before] = bus2_status
+            
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if np.any(prod_p.changed):
             tmp_prod_p.iloc[prod_p.changed] = prod_p.values[prod_p.changed]
@@ -833,7 +865,7 @@ class PandaPowerBackend(Backend):
                 self.storage_pos_topo_vect[stor_bus.changed][~activated]
             ] = -1
 
-        if self.shunts_data_available:
+        if type(backendAction).shunts_data_available:
             shunt_p, shunt_q, shunt_bus = shunts__
 
             if np.any(shunt_p.changed):
@@ -846,19 +878,10 @@ class PandaPowerBackend(Backend):
                 ]
             if np.any(shunt_bus.changed):
                 sh_service = shunt_bus.values[shunt_bus.changed] != -1
-                self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service
-                sh_bus1 = np.arange(len(shunt_bus))[
-                    shunt_bus.changed & shunt_bus.values == 1
-                ]
-                sh_bus2 = np.arange(len(shunt_bus))[
-                    shunt_bus.changed & shunt_bus.values == 2
-                ]
-                if len(sh_bus1) > 0:
-                    self._grid.shunt["bus"].iloc[sh_bus1] = self.shunt_to_subid[sh_bus1]
-                if len(sh_bus2) > 0:
-                    self._grid.shunt["bus"].iloc[sh_bus2] = (
-                        self.shunt_to_subid[sh_bus2] + self.__nb_bus_before
-                    )
+                self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service           
+                chg_and_in_service = sh_service & shunt_bus.changed
+                self._grid.shunt["bus"].loc[chg_and_in_service] = cls.local_bus_to_global(shunt_bus.values[chg_and_in_service],
+                                                                                         cls.shunt_to_subid[chg_and_in_service])
 
         # i made at least a real change, so i implement it in the backend
         for id_el, new_bus in topo__:
@@ -867,14 +890,9 @@ class PandaPowerBackend(Backend):
             if type_obj is not None:
                 # storage unit are handled elsewhere
                 self._type_to_bus_set[type_obj](new_bus, id_el_backend, id_topo)
-
-        bus_is = self._grid.bus["in_service"]
-        for i, (bus1_status, bus2_status) in enumerate(active_bus):
-            bus_is[i] = bus1_status  # no iloc for bus, don't ask me why please :-/
-            bus_is[i + self.__nb_bus_before] = bus2_status
-
+        
     def _apply_load_bus(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_load[id_el_backend]
         )
         if new_bus_backend >= 0:
@@ -885,7 +903,7 @@ class PandaPowerBackend(Backend):
             self._grid.load["bus"].iat[id_el_backend] = -1
 
     def _apply_gen_bus(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_gen[id_el_backend]
         )
         if new_bus_backend >= 0:
@@ -903,7 +921,7 @@ class PandaPowerBackend(Backend):
             # in this case the slack bus cannot be disconnected
 
     def _apply_lor_bus(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_lor[id_el_backend]
         )
         self.change_bus_powerline_or(id_el_backend, new_bus_backend)
@@ -916,7 +934,7 @@ class PandaPowerBackend(Backend):
             self._grid.line["in_service"].iat[id_powerline_backend] = False
 
     def _apply_lex_bus(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_lex[id_el_backend]
         )
         self.change_bus_powerline_ex(id_el_backend, new_bus_backend)
@@ -929,7 +947,7 @@ class PandaPowerBackend(Backend):
             self._grid.line["in_service"].iat[id_powerline_backend] = False
 
     def _apply_trafo_hv(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_lor[id_el_backend]
         )
         self.change_bus_trafo_hv(id_topo, new_bus_backend)
@@ -942,7 +960,7 @@ class PandaPowerBackend(Backend):
             self._grid.trafo["in_service"].iat[id_powerline_backend] = False
 
     def _apply_trafo_lv(self, new_bus, id_el_backend, id_topo):
-        new_bus_backend = self._pp_bus_from_grid2op_bus(
+        new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_lex[id_el_backend]
         )
         self.change_bus_trafo_lv(id_topo, new_bus_backend)
@@ -953,17 +971,6 @@ class PandaPowerBackend(Backend):
             self._grid.trafo["lv_bus"].iat[id_powerline_backend] = new_bus_backend
         else:
             self._grid.trafo["in_service"].iat[id_powerline_backend] = False
-
-    def _pp_bus_from_grid2op_bus(self, grid2op_bus, grid2op_bus_init):
-        if grid2op_bus == 1:
-            res = grid2op_bus_init
-        elif grid2op_bus == 2:
-            res = grid2op_bus_init + self.__nb_bus_before
-        elif grid2op_bus == -1:
-            res = -1
-        else:
-            raise BackendError("grid2op bus must be -1, 1 or 2")
-        return int(res)
 
     def _aux_get_line_info(self, colname1, colname2):
         res = np.concatenate(
@@ -1003,11 +1010,19 @@ class PandaPowerBackend(Backend):
 
                 if np.any(~self._grid.load["in_service"]):
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    raise pp.powerflow.LoadflowNotConverged("Isolated load")
+                    raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
+                                                            " disconnected load. If you want to disconnect one, say it"
+                                                            " consumes 0. instead. Please check loads: "
+                                                            f"{np.where(~self._grid.load['in_service'])[0]}"
+                                                            )
                 if np.any(~self._grid.gen["in_service"]):
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    raise pp.powerflow.LoadflowNotConverged("Isolated gen")
-
+                    raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
+                                                            " disconnected generators. If you want to disconnect one, say it"
+                                                            " produces 0. instead. Please check generators: "
+                                                            f"{np.where(~self._grid.gen['in_service'])[0]}"
+                                                            )
+                    
                 if is_dc:
                     pp.rundcpp(self._grid, check_connectivity=False)
                     self._nb_bus_before = (
@@ -1019,11 +1034,11 @@ class PandaPowerBackend(Backend):
                         check_connectivity=False,
                         init=self._pf_init,
                         numba=numba_,
-                        ligthsim2grid=self._ligthsim2grid,
+                        lightsim2grid=self._lightsim2grid,
                         max_iteration=self._max_iter,
                         distributed_slack=self._dist_slack,
                     )
-
+                    
                 # stores the computation time
                 if "_ppc" in self._grid:
                     if "et" in self._grid["_ppc"]:
@@ -1031,7 +1046,7 @@ class PandaPowerBackend(Backend):
                 if self._grid.res_gen.isnull().values.any():
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     # sometimes pandapower does not detect divergence and put Nan.
-                    raise pp.powerflow.LoadflowNotConverged("Isolated gen")
+                    raise pp.powerflow.LoadflowNotConverged("Divergence due to Nan values in res_gen table.")
 
                 (
                     self.prod_p[:],
@@ -1064,7 +1079,7 @@ class PandaPowerBackend(Backend):
                             for g_id in ind_gens:
                                 if (
                                     self._topo_vect[self.load_pos_topo_vect[l_id]]
-                                    == self._topo_vect[self.load_pos_topo_vect[g_id]]
+                                    == self._topo_vect[self.gen_pos_topo_vect[g_id]]
                                 ):
                                     self.load_v[l_id] = self.prod_v[g_id]
                                     break
@@ -1096,6 +1111,10 @@ class PandaPowerBackend(Backend):
                 self.v_ex[~self.line_status] = 0.0
                 self.v_or[:] *= self.lines_or_pu_to_kv
                 self.v_ex[:] *= self.lines_ex_pu_to_kv
+                
+                # see issue https://github.com/rte-france/Grid2Op/issues/389
+                self.theta_or[~np.isfinite(self.theta_or)] = 0.0
+                self.theta_ex[~np.isfinite(self.theta_ex)] = 0.0
 
                 self._nb_bus_before = None
                 self._grid._ppc["gen"][self._iref_slack, 1] = 0.0
@@ -1173,12 +1192,14 @@ class PandaPowerBackend(Backend):
         As pandapower is pure python, the deep copy operator is perfectly suited for the task.
         """
         # res = copy.deepcopy(self)  # this was really slow...
-        res = type(self)(
-            detailed_infos_for_cascading_failures=self.detailed_infos_for_cascading_failures
-        )
+        res = type(self)(**self._my_kwargs)
 
         # copy from base class (backend)
-        res._grid = copy.deepcopy(self._grid)
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            # warnings depending on pandas version and pp version
+            res._grid = copy.deepcopy(self._grid)
         res.thermal_limit_a = copy.deepcopy(self.thermal_limit_a)
         res._sh_vnkv = copy.deepcopy(self._sh_vnkv)
         res.comp_time = self.comp_time
@@ -1225,10 +1246,7 @@ class PandaPowerBackend(Backend):
         res._what_object_where = copy.deepcopy(self._fact_mult_gen)
         res._number_true_line = self._number_true_line
         res._corresp_name_fun = copy.deepcopy(self._corresp_name_fun)
-        # res._get_vector_inj = copy.deepcopy(self._get_vector_inj)  # ptr to functions member
         res.dim_topo = self.dim_topo
-        # self._vars_action = BaseAction.attr_list_vect  # init from class, so should be good
-        # self._vars_action_set = BaseAction.attr_list_vect  # init from class, so should be good
         res.cst_1 = self.cst_1
         res._topo_vect = copy.deepcopy(self._topo_vect)
         res.slack_id = self.slack_id
@@ -1247,10 +1265,9 @@ class PandaPowerBackend(Backend):
         res._get_vector_inj = copy.deepcopy(self._get_vector_inj)
         res._big_topo_to_obj = copy.deepcopy(self._big_topo_to_obj)
         res._big_topo_to_backend = copy.deepcopy(self._big_topo_to_backend)
-        res.__pp_backend_initial_grid = copy.deepcopy(self.__pp_backend_initial_grid)
-
-        # Mapping some fun to apply bus updates
-        # self._type_to_bus_set =  ...   # function ptr to function member
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)  
+            res.__pp_backend_initial_grid = copy.deepcopy(self.__pp_backend_initial_grid)
 
         res.tol = (
             self.tol
@@ -1337,7 +1354,7 @@ class PandaPowerBackend(Backend):
         return self._topo_vect
 
     def _get_topo_vect(self):
-        res = np.full(self.dim_topo, fill_value=np.NaN, dtype=dt_int)
+        res = np.full(self.dim_topo, fill_value=np.iinfo(dt_int).max, dtype=dt_int)
 
         line_status = self.get_line_status()
 
@@ -1484,11 +1501,14 @@ class PandaPowerBackend(Backend):
             .loc[self._grid.shunt["bus"].values]
             .values.astype(dt_float)
         )
-        shunt_bus = self._grid.shunt["bus"].values < self.__nb_bus_before
-        shunt_bus = 1 * shunt_bus
-        shunt_bus = shunt_bus.astype(dt_int)
-        shunt_v[~self._grid.shunt["in_service"].values] = -1.0
+        shunt_bus = type(self).global_bus_to_local(self._grid.shunt["bus"].values, self.shunt_to_subid)
+        shunt_v[~self._grid.shunt["in_service"].values] = 0.
         shunt_bus[~self._grid.shunt["in_service"].values] = -1
+        
+        # handle shunt alone on a bus (in this case it should probably diverge...)
+        alone = ~np.isfinite(shunt_v)
+        shunt_v[alone] = 0.
+        shunt_bus[alone] = -1
         return shunt_p, shunt_q, shunt_v, shunt_bus
 
     def storages_info(self):

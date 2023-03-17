@@ -72,7 +72,7 @@ if __name__ == "__main__":
             "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1). "
             "Please modify \"--version\" argument")
 
-    regex_version = "[0-9]+\.[0-9]+\.[0-9]+(.post[0-9]+){0,1}(.rc[0-9]+){0,1}(.pre[0-9]+){0,1}"
+    regex_version = "[0-9]+\.[0-9]+\.[0-9]+(.post[0-9]+){0,1}(.rc[0-9]+){0,1}(.pre[0-9]+){0,1}(.dev[0-9]+){0,1}"
     # TODO use the official regex !
     # see https://semver.org/ and https://regex101.com/r/Ly7O1x/3/
     # regex_version = r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
@@ -84,7 +84,7 @@ if __name__ == "__main__":
                 version))
 
     # TODO re.search(reg_, "0.0.4-rc1").group("prerelease") -> rc1 (if regex_version is the official one)
-    if re.search(f".*\.(rc|pre)[0-9]+$", version) is not None:
+    if re.search(f".*\.(rc|pre|dev)[0-9]+$", version) is not None:
         is_prerelease = True
         print("This is a pre release, docker will NOT be pushed, github tag will NOT be made")
         time.sleep(2)
@@ -117,6 +117,7 @@ if __name__ == "__main__":
         old_version = re.sub("\\.rc[0-9]+", "", old_version)
         old_version = re.sub("\\.post[0-9]+", "", old_version)
         old_version = re.sub("\\.pre[0-9]+", "", old_version)
+        old_version = re.sub("\\.dev[0-9]+", "", old_version)
         if version < old_version:
             raise RuntimeError("You provided the \"new\" version \"{}\" which is older (or equal) to the current version "
                                "found: \"{}\".".format(version, old_version))

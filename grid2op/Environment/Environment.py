@@ -60,8 +60,8 @@ class Environment(BaseEnv):
     spec: ``None``
         For Gym compatibility, do not use
 
-    viewer: ``object``
-        Used to display the powergrid. Currently not supported.
+    _viewer: ``object``
+        Used to display the powergrid. Currently properly supported.
 
     """
 
@@ -100,6 +100,9 @@ class Environment(BaseEnv):
         has_attention_budget=False,
         logger=None,
         kwargs_observation=None,
+        observation_bk_class=None,
+        observation_bk_kwargs=None,
+        _init_obs=None,
         _raw_backend_class=None,
         _compat_glop_version=None,
         _read_from_local_dir=True,  # TODO runner and all here !
@@ -132,6 +135,9 @@ class Environment(BaseEnv):
             if logger is not None
             else None,
             kwargs_observation=kwargs_observation,
+            observation_bk_class=observation_bk_class,
+            observation_bk_kwargs=observation_bk_kwargs,
+            _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )
         if name == "unknown":
@@ -146,7 +152,7 @@ class Environment(BaseEnv):
         # self.action_space = None
         # self.observation_space = None
         self.reward_range = None
-        self.viewer = None
+        self._viewer = None
         self.metadata = None
         self.spec = None
 
@@ -169,7 +175,7 @@ class Environment(BaseEnv):
         )
         self._actionClass_orig = actionClass
         self._observationClass_orig = observationClass
-
+        
     def _init_backend(
         self,
         chronics_handler,
@@ -212,36 +218,46 @@ class Environment(BaseEnv):
                 'grid2op.Backend class, type provided is "{}"'.format(type(backend))
             )
         self.backend = backend
-        if self.backend.is_loaded:
+        if self.backend.is_loaded and self._init_obs is None:
             raise EnvError(
                 "Impossible to use the same backend twice. Please create your environment with a "
                 "new backend instance (new object)."
-            )
+            )            
+        if not self.backend.is_loaded:
+            # usual case: the backend is not loaded
+            # NB it is loaded when the backend comes from an observation for
+            # example
+            if self._read_from_local_dir:
+                # test to support pickle conveniently
+                self.backend._PATH_ENV = self.get_path_env()
 
-        if self._read_from_local_dir:
-            # test to support pickle conveniently
-            self.backend._PATH_ENV = self.get_path_env()
+            # all the above should be done in this exact order, otherwise some weird behaviour might occur
+            # this is due to the class attribute
+            self.backend.set_env_name(self.name)
+            self.backend.load_grid(
+                self._init_grid_path
+            )  # the real powergrid of the environment
+            try:
+                self.backend.load_redispacthing_data(self.get_path_env())
+            except BackendError as exc_:
+                self.backend.redispatching_unit_commitment_availble = False
+                warnings.warn(f"Impossible to load redispatching data. This is not an error but you will not be able "
+                            f"to use all grid2op functionalities. "
+                            f"The error was: \"{exc_}\"")
+            self.backend.load_storage_data(self.get_path_env())
+            exc_ = self.backend.load_grid_layout(self.get_path_env())
+            if exc_ is not None:
+                warnings.warn(
+                    f"No layout have been found for you grid (or the layout provided was corrupted). You will "
+                    f'not be able to use the renderer, plot the grid etc. The error was "{exc_}"'
+                )
+            self.backend.is_loaded = True
 
-        # all the above should be done in this exact order, otherwise some weird behaviour might occur
-        # this is due to the class attribute
-        self.backend.set_env_name(self.name)
-        self.backend.load_grid(
-            self._init_grid_path
-        )  # the real powergrid of the environment
-        self.backend.load_redispacthing_data(self.get_path_env())
-        self.backend.load_storage_data(self.get_path_env())
-        exc_ = self.backend.load_grid_layout(self.get_path_env())
-        if exc_ is not None:
-            warnings.warn(
-                f"No layout have been found for you grid (or the layout provided was corrupted). You will "
-                f'not be able to use the renderer, plot the grid etc. The error was "{exc_}"'
-            )
-        self.backend.is_loaded = True
+            # alarm set up
+            self.load_alarm_data()
+            # to force the initialization of the backend to the proper type
+            self.backend.assert_grid_correct()
 
-        # alarm set up
-        self.load_alarm_data()
-        # to force the initialization of the backend to the proper type
-        self.backend.assert_grid_correct()
         self._handle_compat_glop_version()
 
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
@@ -333,6 +349,9 @@ class Environment(BaseEnv):
                     type(chronics_handler)
                 )
             )
+        if names_chronics_to_backend is None and type(self.backend).IS_BK_CONVERTER:
+            names_chronics_to_backend = self.backend.names_target_to_source
+            
         self.chronics_handler = chronics_handler
         self.chronics_handler.initialize(
             self.name_load,
@@ -357,6 +376,8 @@ class Environment(BaseEnv):
             rewardClass=rewardClass,
             env=self,
             kwargs_observation=self._kwargs_observation,
+            observation_bk_class=self._observation_bk_class,
+            observation_bk_kwargs=self._observation_bk_kwargs
         )
 
         # test to make sure the backend is consistent with the chronics generator
@@ -405,10 +426,10 @@ class Environment(BaseEnv):
 
         # for gym compatibility
         self.reward_range = self._reward_helper.range()
-        self.viewer = None
+        self._viewer = None
         self.viewer_fig = None
 
-        self.metadata = {"render.modes": []}
+        self.metadata = {"render.modes": ["rgb_array"]}
         self.spec = None
 
         self.current_reward = self.reward_range[0]
@@ -767,7 +788,7 @@ class Environment(BaseEnv):
 
         """
         # Viewer already exists: skip
-        if self.viewer is not None:
+        if self._viewer is not None:
             return
 
         # Do we have the dependency
@@ -780,10 +801,10 @@ class Environment(BaseEnv):
             )
             raise Grid2OpException(err_msg) from None
 
-        self.viewer = PlotMatplot(self._observation_space)
+        self._viewer = PlotMatplot(self._observation_space)
         self.viewer_fig = None
         # Set renderer modes
-        self.metadata = {"render.modes": ["human", "silent"]}
+        self.metadata = {"render.modes": ["silent", "rgb_array"]}  # "human", 
 
     def __str__(self):
         return "<{} instance named {}>".format(type(self).__name__, self.name)
@@ -819,6 +840,9 @@ class Environment(BaseEnv):
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
                 "Available information are: {}".format(info)
             )
+            
+        # assign the right
+        self._observation_space.set_real_env_kwargs(self)
 
     def add_text_logger(self, logger=None):
         """
@@ -835,7 +859,7 @@ class Environment(BaseEnv):
         self.logger = logger
         return self
 
-    def reset(self):
+    def reset(self) -> BaseObservation:
         """
         Reset the environment to a clean state.
         It will reload the next chronics if any. And reset the grid to a clean state.
@@ -894,11 +918,16 @@ class Environment(BaseEnv):
 
         # and reset also the "simulated env" in the observation space
         self._observation_space.reset(self)
+        self._observation_space.set_real_env_kwargs(self)
 
         self._last_obs = None  # force the first observation to be generated properly
+        
+        if self._init_obs is not None:
+            self._reset_to_orig_state(self._init_obs)
+            
         return self.get_obs()
 
-    def render(self, mode="human"):
+    def render(self, mode="rgb_array"):
         """
         Render the state of the environment on the screen, using matplotlib
         Also returns the Matplotlib figure
@@ -937,7 +966,7 @@ class Environment(BaseEnv):
             raise Grid2OpException(err_msg.format(mode, self.metadata["render.modes"]))
 
         # Render the current observation
-        fig = self.viewer.plot_obs(
+        fig = self._viewer.plot_obs(
             self.current_obs, figure=self.viewer_fig, redraw=True
         )
 
@@ -949,8 +978,10 @@ class Environment(BaseEnv):
 
         # Store to re-use the figure
         self.viewer_fig = fig
-        # Return the figure in case it needs to be saved/used
-        return self.viewer_fig
+        
+        # Return the rgb array
+        rgb_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(self._viewer.height, self._viewer.width, 3)
+        return rgb_array
 
     def _custom_deepcopy_for_copy(self, new_obj):
         super()._custom_deepcopy_for_copy(new_obj)
@@ -965,7 +996,7 @@ class Environment(BaseEnv):
         new_obj._actionClass_orig = self._actionClass_orig
         new_obj._observationClass_orig = self._observationClass_orig
 
-    def copy(self):
+    def copy(self) -> "Environment":
         """
         Performs a deep copy of the environment
 
@@ -990,7 +1021,7 @@ class Environment(BaseEnv):
         self._custom_deepcopy_for_copy(res)
         return res
 
-    def get_kwargs(self, with_backend=True):
+    def get_kwargs(self, with_backend=True, with_chronics_handler=True):
         """
         This function allows to make another Environment with the same parameters as the one that have been used
         to make this one.
@@ -1028,7 +1059,8 @@ class Environment(BaseEnv):
         res = {}
         res["init_env_path"] = self._init_env_path
         res["init_grid_path"] = self._init_grid_path
-        res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
+        if with_chronics_handler:
+            res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
             if not self.backend._can_be_copied:
                 raise RuntimeError("Impossible to get the kwargs for this "
@@ -1068,6 +1100,8 @@ class Environment(BaseEnv):
         res["_read_from_local_dir"] = self._read_from_local_dir
         res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
         res["logger"] = self.logger
+        res["observation_bk_class"] = self._observation_bk_class
+        res["observation_bk_kwargs"] = self._observation_bk_kwargs
         return res
 
     def _chronics_folder_name(self):
@@ -1678,6 +1712,8 @@ class Environment(BaseEnv):
         res["_read_from_local_dir"] = self._read_from_local_dir
         res["logger"] = self.logger
         res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
+        res["observation_bk_class"] = self._observation_bk_class
+        res["observation_bk_kwargs"] = self._observation_bk_kwargs
         res["_is_test"] = self._is_test  # TODO not implemented !!
         return res
 

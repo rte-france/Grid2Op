@@ -160,7 +160,7 @@ class BoxGymActSpace(Box):
         nb_curtail = np.sum(act_sp.gen_renewable)
         curtail = np.full(shape=(nb_curtail,), fill_value=0.0, dtype=dt_float)
         curtail_mw = np.full(shape=(nb_curtail,), fill_value=0.0, dtype=dt_float)
-        self.dict_properties = {
+        self._dict_properties = {
             "set_line_status": (
                 np.full(shape=(act_sp.n_line,), fill_value=-1, dtype=dt_int),
                 np.full(shape=(act_sp.n_line,), fill_value=1, dtype=dt_int),
@@ -289,7 +289,7 @@ class BoxGymActSpace(Box):
                     * (high_[finite_both] - low_[finite_both])
                     + low_[finite_both]
                 )
-                vect_right_properties[fintte_high] += low_[fintte_high]
+                vect_right_properties[fintte_low] += low_[fintte_low]
 
                 try:
                     tmp = callable_(vect_right_properties)
@@ -306,12 +306,12 @@ class BoxGymActSpace(Box):
 
                 self.__func[el] = callable_
 
-            elif el in self.dict_properties:
+            elif el in self._dict_properties:
                 # el is an attribute of an observation, for example "load_q" or "topo_vect"
-                low_, high_, shape_, dtype_ = self.dict_properties[el]
+                low_, high_, shape_, dtype_ = self._dict_properties[el]
             else:
                 li_keys = "\n\t- ".join(
-                    sorted(list(self.dict_properties.keys()) + list(self.__func.keys()))
+                    sorted(list(self._dict_properties.keys()) + list(self.__func.keys()))
                 )
                 raise RuntimeError(
                     f'Unknown action attributes "{el}". Supported attributes are: '
@@ -332,8 +332,10 @@ class BoxGymActSpace(Box):
                 shape = (shape[0] + shape_[0],)
 
             # handle low / high
-            # NB: the formula is: glop = gym * multiply + add
+            # NB: the formula is: glop = gym * multiply + add                
             if el in self._add:
+                low_ =  1.0 * low_.astype(dtype)
+                high_ =  1.0 * high_.astype(dtype)
                 low_ -= self._add[el]
                 high_ -= self._add[el]
                 
@@ -341,6 +343,9 @@ class BoxGymActSpace(Box):
                 # special case if a 0 were entered
                 arr_ = 1.0 * self._multiply[el]
                 is_nzero = arr_ != 0.0
+                
+                low_ =  1.0 * low_.astype(dtype)
+                high_ =  1.0 * high_.astype(dtype)
                 low_[is_nzero] /= arr_[is_nzero]
                 high_[is_nzero] /= arr_[is_nzero]
 

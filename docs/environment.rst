@@ -551,8 +551,8 @@ into memory.
     
     1) create the environment: `env = make(...,chronics_class=MultifolderWithCache)`
     2) (optional but recommended) select some scenarios: 
-      `env.chronics_handler.real_data.set_filter(lambda x: re.match(".*december.*", x) is not None)` 
-    3) load the data in memory: `env.chronics_handler.reset()`
+       `env.chronics_handler.real_data.set_filter(lambda x: re.match(".*december.*", x) is not None)` 
+    3) load the data in memory: `env.chronics_handler.reset()` (see *eg* :func:`grid2op.Chronics.MultifolderWithCache.reset`)
     4) do whatever you want using `env`
 
 
