@@ -35,6 +35,7 @@ TEST_DEV_ENVS = {
     "l2rpn_neurips_2020_track2": DEV_DATASET.format("l2rpn_neurips_2020_track2"),
     "l2rpn_neurips_2020_track1": DEV_DATASET.format("l2rpn_neurips_2020_track1"),
     "l2rpn_case14_sandbox": DEV_DATASET.format("l2rpn_case14_sandbox"),
+    "l2rpn_case14_sandbox_diff_grid": DEV_DATASET.format("l2rpn_case14_sandbox_diff_grid"),
     "l2rpn_icaps_2021": DEV_DATASET.format("l2rpn_icaps_2021"),
     "l2rpn_wcci_2022_dev": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
     "l2rpn_wcci_2022": DEV_DATASET.format("l2rpn_wcci_2022_dev"),

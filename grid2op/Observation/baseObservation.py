@@ -3941,7 +3941,7 @@ class BaseObservation(GridObjects):
                              maintenance=maintenance)
         
         backend = self._obs_env.backend.copy()
-        backend._is_loaded = False  # to be able to reuse it in an environment
+        backend._is_loaded = True
         from grid2op.Environment import Environment
         res = Environment(**self._ptr_kwargs_env,
                           backend=backend,

@@ -9,6 +9,7 @@
 import sys
 import copy
 import logging
+import os
 from grid2op.Exceptions.EnvExceptions import EnvError
 
 from grid2op.Observation.serializableObservationSpace import (
@@ -67,6 +68,8 @@ class ObservationSpace(SerializableObservationSpace):
         actionClass=None,
         with_forecast=True,
         kwargs_observation=None,
+        observation_bk_class=None,
+        observation_bk_kwargs=None,
         logger=None,
         _with_obs_env=True,  # pass
     ):
@@ -111,7 +114,7 @@ class ObservationSpace(SerializableObservationSpace):
 
         self.__can_never_use_simulate = False
         # TODO here: have another backend class maybe
-        _with_obs_env = _with_obs_env and self._create_backend_obs(env)
+        _with_obs_env = _with_obs_env and self._create_backend_obs(env, observation_bk_class, observation_bk_kwargs)
             
         self._ObsEnv_class = _ObsEnv.init_grid(
             type(env.backend), force_module=_ObsEnv.__module__
@@ -137,6 +140,8 @@ class ObservationSpace(SerializableObservationSpace):
         self._ptr_kwargs_observation = kwargs_observation
         
         self._real_env_kwargs = {}
+        self._observation_bk_class = observation_bk_class
+        self._observation_bk_kwargs = observation_bk_kwargs
     
     def set_real_env_kwargs(self, env):
         if not self.with_forecast:
@@ -145,7 +150,8 @@ class ObservationSpace(SerializableObservationSpace):
         # I don't need the backend nor the chronics_handler
         self._real_env_kwargs = env.get_kwargs(False, False)
         
-        # remove the parameters anyways
+        # remove the parameters anyways (the 'forecast parameters will be used
+        # when building the forecasted_env)
         del self._real_env_kwargs["parameters"]
         
         # i also "remove" the opponent
@@ -158,6 +164,12 @@ class ObservationSpace(SerializableObservationSpace):
         self._real_env_kwargs["opponent_budget_class"] = NeverAttackBudget
         self._real_env_kwargs["opponent_attack_duration"] = 0
         self._real_env_kwargs["opponent_attack_cooldown"] = 999999
+        
+        # and finally I remove the extra bk_class and bk_kwargs
+        if "observation_bk_class" in self._real_env_kwargs:
+            del self._real_env_kwargs["observation_bk_class"]
+        if "observation_bk_kwargs" in self._real_env_kwargs:
+            del self._real_env_kwargs["observation_bk_kwargs"]
         
     def _create_obs_env(self, env):
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
@@ -188,9 +200,42 @@ class ObservationSpace(SerializableObservationSpace):
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(self.obs_env)
     
-    def _create_backend_obs(self, env):
+    def _aux_create_backend(self, env, observation_bk_class, observation_bk_kwargs, path_grid_for):
+        if observation_bk_kwargs is None:
+            observation_bk_kwargs = env.backend._my_kwargs
+        self._backend_obs = observation_bk_class(**observation_bk_kwargs)   
+        self._backend_obs.set_env_name(env.name)
+        self._backend_obs.load_grid(path_grid_for)
+        self._backend_obs.assert_grid_correct()
+        self._backend_obs.runpf()
+        self._backend_obs.assert_grid_correct_after_powerflow()
+        self._backend_obs.set_thermal_limit(env.get_thermal_limit())
+            
+    def _create_backend_obs(self, env, observation_bk_class, observation_bk_kwargs):
         _with_obs_env = True
-        if env.backend._can_be_copied:
+        path_sim_bk = os.path.join(env.get_path_env(), "grid_forecast.json")
+        if observation_bk_class is not None or observation_bk_kwargs is not None:   
+            # backend used for simulate is of a different class (or build with different arguments)                
+            if observation_bk_class is not None:
+                self.logger.warn("Using a backend for the 'forecast' of a different class. Make sure the "
+                                 "elements of the grid are in the same order and have the same name ! "
+                                 "Do not hesitate to use a 'BackendConverter' if that is not the case.")
+            else:
+                observation_bk_class = env._raw_backend_class
+                 
+            if os.path.exists(path_sim_bk) and os.path.isfile(path_sim_bk):
+                path_grid_for = path_sim_bk
+            else:
+                path_grid_for = os.path.join(env.get_path_env(), "grid.json")
+            self._aux_create_backend(env, observation_bk_class, observation_bk_kwargs, path_grid_for)
+        elif os.path.exists(path_sim_bk) and os.path.isfile(path_sim_bk):
+            # backend used for simulate will use the same class with same args as the env
+            # backend, but with a different grid
+            observation_bk_class = env._raw_backend_class
+            self._aux_create_backend(env, observation_bk_class, observation_bk_kwargs, path_sim_bk)
+        elif env.backend._can_be_copied:
+            # case where I can copy the backend for the 'simulate' and I don't need to build 
+            # it (uses same class and same grid)
             try:
                 self._backend_obs = env.backend.copy()
             except Exception as exc_:
@@ -201,6 +246,7 @@ class ObservationSpace(SerializableObservationSpace):
                 _with_obs_env = False
                 self.__can_never_use_simulate = True
         else:
+            # no 'simulate' can be made unfortunately
             self._backend_obs = None
             self._deactivate_simulate(env)
             _with_obs_env = False
@@ -228,7 +274,7 @@ class ObservationSpace(SerializableObservationSpace):
             if self._backend_obs is not None:
                 self._backend_obs.close()
                 self._backend_obs = None
-            self._create_backend_obs(env)
+            self._create_backend_obs(env, self._observation_bk_class, self._observation_bk_kwargs)
             if self.obs_env is not None :
                 self.obs_env.close()
                 self.obs_env = None
@@ -429,6 +475,8 @@ class ObservationSpace(SerializableObservationSpace):
         
         # real env kwargs, these is a "pointer" anyway
         new_obj._real_env_kwargs = self._real_env_kwargs
+        new_obj._observation_bk_class = self._observation_bk_class
+        new_obj._observation_bk_kwargs = self._observation_bk_kwargs
         
         new_obj._ObsEnv_class = self._ObsEnv_class
 
