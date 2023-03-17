@@ -88,13 +88,13 @@ class TestMultiMixEnvironment(unittest.TestCase):
         class DummyBackend2(PandaPowerBackend):
             def __init__(self, detailed_infos_for_cascading_failures=False,
                          can_be_copied=True,
-                         ligthsim2grid=False,
+                         lightsim2grid=False,
                          dist_slack=False,
                          max_iter=10):
                 super().__init__(
                     detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
                     can_be_copied=can_be_copied,
-                    ligthsim2grid=ligthsim2grid,
+                    lightsim2grid=lightsim2grid,
                     dist_slack=dist_slack,
                     max_iter=max_iter
                 )
@@ -169,14 +169,14 @@ class TestMultiMixEnvironment(unittest.TestCase):
             def __init__(self, 
                          detailed_infos_for_cascading_failures=False,
                          can_be_copied=True,
-                         ligthsim2grid=False,
+                         lightsim2grid=False,
                          dist_slack=False,
                          max_iter=10
                          ):
                 super().__init__(
                     detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
                     can_be_copied=can_be_copied,
-                    ligthsim2grid=ligthsim2grid,
+                    lightsim2grid=lightsim2grid,
                     dist_slack=dist_slack,
                     max_iter=max_iter
                 )
@@ -188,10 +188,12 @@ class TestMultiMixEnvironment(unittest.TestCase):
             def dummy(self):
                 return self._dummy
 
-        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
-                                  backend=DummyBackend3(),
-                                  _test=True)
-        mme.reset()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
+                                    backend=DummyBackend3(),
+                                    _test=True)
+            mme.reset()
         assert mme.current_env.backend.dummy() == 1
 
     def test_reset_with_opponent(self):

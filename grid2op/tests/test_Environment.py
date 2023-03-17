@@ -31,12 +31,12 @@ if PROFILE_CODE:
 
 
 class TestLoadingBackendPandaPower(unittest.TestCase):
-    def get_backend(self):
-        return PandaPowerBackend()
+    def get_backend(self, detailed_infos_for_cascading_failures=True):
+        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
 
     def setUp(self):
         # powergrid
-        self.backend = self.get_backend()
+        self.backend = self.get_backend(True)
         self.path_matpower = PATH_DATA_TEST_PP
         self.case_file = "test_case14.json"
 
@@ -49,9 +49,6 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         self.tolvect = dt_float(1e-2)
         self.tol_one = dt_float(1e-5)
         self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
-
-        # force the verbose backend
-        self.backend.detailed_infos_for_cascading_failures = True
 
         self.names_chronics_to_backend = {
             "loads": {

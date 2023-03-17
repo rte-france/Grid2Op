@@ -83,6 +83,11 @@ ERR_MSG_KWARGS = {
     "kwargs_observation": "The extra kwargs argument used to properly initialized each observations "
     '("kwargs_observation") should '
     "be a dictionary.",
+    "observation_backend_class": ("The class used to build the observation backend (used for Simulator "
+                                  "obs.simulate and obs.get_forecasted_env). If provided, this should "
+                                  "be a type / class and not an instance of this class. (by default it's None)"),
+    "observation_backend_kwargs": ("key-word arguments to build the observation backend (used for Simulator, "
+    " obs.simulate and obs.get_forecasted_env). This should be a dictionnary. (by default it's None)")
 }
 
 NAME_CHRONICS_FOLDER = "chronics"
@@ -235,6 +240,16 @@ def make_from_dataset_path(
                                     **kwargs_observation  # <- this kwargs is used here
                                    )
 
+    observation_backend_class:
+        The class used to build the observation backend (used for Simulator 
+        obs.simulate and obs.get_forecasted_env). If provided, this should 
+        be a type / class and not an instance of this class. (by default it's None)
+        
+    observation_backend_kwargs:
+        The key-word arguments to build the observation backend (used for Simulator, 
+        obs.simulate and obs.get_forecasted_env). This should be a dictionnary. 
+        (by default it's None)
+    
     _add_to_name:
         Internal, used for test only. Do not attempt to modify under any circumstances.
 
@@ -769,6 +784,48 @@ def make_from_dataset_path(
         isclass=False,
     )
     
+    # backend for the observation 
+    observation_backend_class_cfg = Backend
+    if (
+        "observation_backend_class" in config_data
+        and config_data["observation_backend_class"] is not None
+    ):
+        observation_backend_class_cfg = config_data["observation_backend_class"]
+    observation_backend_class = _get_default_aux(
+        "observation_backend_class",
+        kwargs,
+        defaultClass=observation_backend_class_cfg,
+        defaultClassApp=Backend,
+        msg_error=ERR_MSG_KWARGS["observation_backend_class"],
+        isclass=True,
+    )
+    if observation_backend_class is Backend:
+        # in this case nothing is provided neither in the call to "make" 
+        # nor in the config
+        observation_backend_class = None
+    
+    # kwargs for observation backend
+    observation_backend_kwargs_cfg_ = {"null": True} 
+    # None and {} have specific meanings, so I "hack" it
+    # to make the difference between "observation_backend_kwargs is not in config nor in 
+    # the kwargs" and "observation_backend_kwargs is {} in the config or in the kwargs"
+    observation_backend_kwargs_cfg = observation_backend_kwargs_cfg_
+    if (
+        "observation_backend_kwargs" in config_data
+        and config_data["observation_backend_kwargs"] is not None
+    ):
+        observation_backend_kwargs_cfg = config_data["observation_backend_kwargs"]
+    observation_backend_kwargs = _get_default_aux(
+        "observation_backend_kwargs",
+        kwargs,
+        defaultClassApp=dict,
+        defaultinstance=observation_backend_kwargs_cfg,
+        msg_error=ERR_MSG_KWARGS["kwargs_observation"],
+        isclass=False,
+    ) 
+    if observation_backend_kwargs is observation_backend_kwargs_cfg_:
+        observation_backend_kwargs = None
+        
     # Finally instantiate env from config & overrides
     env = Environment(
         init_env_path=os.path.abspath(dataset_path),
@@ -800,6 +857,8 @@ def make_from_dataset_path(
         _compat_glop_version=_compat_glop_version,
         _read_from_local_dir=experimental_read_from_local_dir,
         kwargs_observation=kwargs_observation,
+        observation_bk_class=observation_backend_class,
+        observation_bk_kwargs=observation_backend_kwargs,
     )
 
     # Update the thermal limit if any

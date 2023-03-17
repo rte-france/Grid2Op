@@ -251,6 +251,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         kwargs_attention_budget: dict = None,
         logger: Optional[logging.Logger] = None,
         kwargs_observation: Optional[dict] = None,
+        observation_bk_class=None,  # type of backend for the observation space
+        observation_bk_kwargs=None,  # type of backend for the observation space
         _is_test: bool = False,  # TODO not implemented !!
         _init_obs: Optional[BaseObservation] =None
     ):
@@ -498,7 +500,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._init_obs._obs_env = None
         else:
             self._init_obs = None
-
+            
+        self._observation_bk_class = observation_bk_class
+        self._observation_bk_kwargs = observation_bk_kwargs
+        
     def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
         if self.__closed:
             raise RuntimeError("Impossible to make a copy of a closed environment !")
@@ -729,6 +734,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             new_obj._init_obs = None
         else:
             new_obj._init_obs = self._init_obs.copy()
+        
+        new_obj._observation_bk_class = self._observation_bk_class
+        new_obj._observation_bk_kwargs = self._observation_bk_kwargs
         
         # do not forget !
         new_obj._is_test = self._is_test
