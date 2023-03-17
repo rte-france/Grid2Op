@@ -14,7 +14,8 @@ import warnings
 from grid2op.tests.helper_path_test import *
 
 import grid2op
-from grid2op.Chronics.time_series_from_handlers import CSVHandler, FromHandlers
+from grid2op.Chronics.time_series_from_handlers import FromHandlers
+from grid2op.Chronics.handlers.csvHandler import CSVHandler
 from grid2op.Runner import Runner
 
 import warnings
