@@ -393,33 +393,36 @@ class PandaPowerBackend(Backend):
 
                     bus_gen_added = ppc2pd[int(el)]
                     # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
-                    if new_pp_version:
-                        id_added = pp.create_gen(
-                            self._grid,
-                            bus_gen_added,
-                            p_mw=self._grid._ppc["gen"][gen_id_pp, 1],
-                            vm_pu=self._grid._ppc["gen"][gen_id_pp, 5],
-                            min_p_mw=self._grid._ppc["gen"][gen_id_pp, 9],
-                            max_p_mw=self._grid._ppc["gen"][gen_id_pp, 8],
-                            max_q_mvar=self._grid._ppc["gen"][gen_id_pp, 3],
-                            min_q_mvar=self._grid._ppc["gen"][gen_id_pp, 4],
-                            slack=i_ref is None,
-                            slack_weight=1.0,
-                            controllable=True,
-                        )
-                    else:
-                        id_added = pp.create_gen(
-                            self._grid,
-                            bus_gen_added,
-                            p_mw=self._grid._ppc["gen"][gen_id_pp, 1],
-                            vm_pu=self._grid._ppc["gen"][gen_id_pp, 5],
-                            min_p_mw=self._grid._ppc["gen"][gen_id_pp, 9],
-                            max_p_mw=self._grid._ppc["gen"][gen_id_pp, 8],
-                            max_q_mvar=self._grid._ppc["gen"][gen_id_pp, 3],
-                            min_q_mvar=self._grid._ppc["gen"][gen_id_pp, 4],
-                            slack=i_ref is None,
-                            controllable=True,
-                        )
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore")
+                        # some warnings are issued depending on pp and pandas version
+                        if new_pp_version:
+                            id_added = pp.create_gen(
+                                self._grid,
+                                bus_gen_added,
+                                p_mw=self._grid._ppc["gen"][gen_id_pp, 1],
+                                vm_pu=self._grid._ppc["gen"][gen_id_pp, 5],
+                                min_p_mw=self._grid._ppc["gen"][gen_id_pp, 9],
+                                max_p_mw=self._grid._ppc["gen"][gen_id_pp, 8],
+                                max_q_mvar=self._grid._ppc["gen"][gen_id_pp, 3],
+                                min_q_mvar=self._grid._ppc["gen"][gen_id_pp, 4],
+                                slack=i_ref is None,
+                                slack_weight=1.0,
+                                controllable=True,
+                            )
+                        else:
+                            id_added = pp.create_gen(
+                                self._grid,
+                                bus_gen_added,
+                                p_mw=self._grid._ppc["gen"][gen_id_pp, 1],
+                                vm_pu=self._grid._ppc["gen"][gen_id_pp, 5],
+                                min_p_mw=self._grid._ppc["gen"][gen_id_pp, 9],
+                                max_p_mw=self._grid._ppc["gen"][gen_id_pp, 8],
+                                max_q_mvar=self._grid._ppc["gen"][gen_id_pp, 3],
+                                min_q_mvar=self._grid._ppc["gen"][gen_id_pp, 4],
+                                slack=i_ref is None,
+                                controllable=True,
+                            )
 
                     if i_ref is None:
                         i_ref = gen_id_pp

@@ -805,7 +805,11 @@ def make_from_dataset_path(
         observation_backend_class = None
     
     # kwargs for observation backend
-    observation_backend_kwargs_cfg = {}
+    observation_backend_kwargs_cfg_ = {"null": True} 
+    # None and {} have specific meanings, so I "hack" it
+    # to make the difference between "observation_backend_kwargs is not in config nor in 
+    # the kwargs" and "observation_backend_kwargs is {} in the config or in the kwargs"
+    observation_backend_kwargs_cfg = observation_backend_kwargs_cfg_
     if (
         "observation_backend_kwargs" in config_data
         and config_data["observation_backend_kwargs"] is not None
@@ -819,6 +823,8 @@ def make_from_dataset_path(
         msg_error=ERR_MSG_KWARGS["kwargs_observation"],
         isclass=False,
     ) 
+    if observation_backend_kwargs is observation_backend_kwargs_cfg_:
+        observation_backend_kwargs = None
         
     # Finally instantiate env from config & overrides
     env = Environment(

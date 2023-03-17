@@ -28,12 +28,12 @@ class PPExtraArgs(PandaPowerBackend):
     def __init__(self,
                  stuff="",
                  detailed_infos_for_cascading_failures=False,
-                 ligthsim2grid=False,
+                 lightsim2grid=False,
                  dist_slack=False,
                  max_iter=10,
                  can_be_copied=True):
         super().__init__(detailed_infos_for_cascading_failures,
-                         ligthsim2grid,
+                         lightsim2grid,
                          dist_slack,
                          max_iter,
                          can_be_copied=can_be_copied)

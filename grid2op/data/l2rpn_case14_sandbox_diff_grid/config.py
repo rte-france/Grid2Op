@@ -36,5 +36,5 @@ config = {
         1986.0,
         1572.0,
     ],
-    "names_chronics_to_grid": None,
+    "names_chronics_to_grid": None
 }
