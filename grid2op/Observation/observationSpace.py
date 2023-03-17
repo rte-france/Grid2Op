@@ -140,6 +140,8 @@ class ObservationSpace(SerializableObservationSpace):
         self._ptr_kwargs_observation = kwargs_observation
         
         self._real_env_kwargs = {}
+        self._observation_bk_class = observation_bk_class
+        self._observation_bk_kwargs = observation_bk_kwargs
     
     def set_real_env_kwargs(self, env):
         if not self.with_forecast:
@@ -272,7 +274,7 @@ class ObservationSpace(SerializableObservationSpace):
             if self._backend_obs is not None:
                 self._backend_obs.close()
                 self._backend_obs = None
-            self._create_backend_obs(env)
+            self._create_backend_obs(env, self._observation_bk_class, self._observation_bk_kwargs)
             if self.obs_env is not None :
                 self.obs_env.close()
                 self.obs_env = None
@@ -473,6 +475,8 @@ class ObservationSpace(SerializableObservationSpace):
         
         # real env kwargs, these is a "pointer" anyway
         new_obj._real_env_kwargs = self._real_env_kwargs
+        new_obj._observation_bk_class = self._observation_bk_class
+        new_obj._observation_bk_kwargs = self._observation_bk_kwargs
         
         new_obj._ObsEnv_class = self._ObsEnv_class
 
