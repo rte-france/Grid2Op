@@ -27,7 +27,7 @@ class BaseGymAttrConverter(object):
         self._my_g2op_to_gym = None
         self.my_space = None
 
-        if self.my_space is not None:
+        if space is not None:
             self.base_initialize(space, gym_to_g2op, g2op_to_gym)
 
     def base_initialize(self, space, gym_to_g2op, g2op_to_gym):
