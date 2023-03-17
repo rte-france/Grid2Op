@@ -8,16 +8,17 @@
 
 import tempfile
 
+import warnings
 from grid2op.tests.helper_path_test import *
 from grid2op.Environment import MultiMixEnvironment
 from grid2op.Environment import BaseEnv
-from grid2op.Observation import CompleteObservation
 from grid2op.Parameters import Parameters
 from grid2op.Reward import GameplayReward, L2RPNReward
 from grid2op.Exceptions import EnvError, NoForecastAvailable
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Opponent import BaseOpponent
 from grid2op.dtypes import dt_float
+
 
 
 class TestMultiMixEnvironment(unittest.TestCase):
