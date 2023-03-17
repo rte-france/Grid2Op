@@ -1545,7 +1545,7 @@ class TestGlobalObservation(unittest.TestCase):
     def test_simulate(self):
         self.ma_env.seed(0)
         obs = self.ma_env.reset()
-        for _ in range(10):
+        for nb_step in range(10):
             actions = {
                 agent : _aux_sample_withtout_interco(self.ma_env.action_spaces[agent])
                 for agent in self.ma_env.agents
@@ -1566,7 +1566,6 @@ class TestGlobalObservation(unittest.TestCase):
                 assert [f"{el}" for el in sim_i_g["exception"]] == [f"{el}" for el in sim_i["exception"]]
                 assert sim_o_g == sim_o
                 assert sim_r_g == sim_r
-                
             obss, rewards, dones, infos = self.ma_env.step(actions)
             if dones[self.ma_env.agents[0]]:
                 obs = self.ma_env.reset()

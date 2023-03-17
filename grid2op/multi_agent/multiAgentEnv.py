@@ -277,7 +277,7 @@ class MultiAgentEnv(RandomObject):
     def reset(self) -> MADict:
         # TODO : done, NOT tested
         cent_observation = self._cent_env.reset()
-        self._update_observations(cent_observation)
+        self._update_observations(cent_observation, True)
         return self.observations
     
     def _handle_illegal_action(self, reason):
@@ -333,8 +333,7 @@ class MultiAgentEnv(RandomObject):
         cent_observation, reward, done, info = self._cent_env.step(self.global_action)
         
         self._dispatch_reward_done_info(reward, done, info)
-
-        self._update_observations(cent_observation)
+        self._update_observations(cent_observation, _update_state=not done)
 
         return self.observations, self.rewards, self.done, self.info 
     
@@ -735,10 +734,11 @@ class MultiAgentEnv(RandomObject):
         Args:
             observation (BaseObservation): _description_
         """
-        
         for agent_nm in self.agents:
             self.observations[agent_nm] = self.observation_spaces[agent_nm](self, cent_observation, _update_state=_update_state)
-    
+            if not _update_state:
+                self.observations[agent_nm].set_game_over(self._cent_env)
+                
     def _verify_domains(self, domains : MADict, is_action_domain=True) -> None:
         """It verifies if substation ids are valid
 

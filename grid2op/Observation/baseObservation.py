@@ -1176,7 +1176,7 @@ class BaseObservation(GridObjects):
             self.day_of_week = dt_int(env.time_stamp.weekday())
 
         if env is not None:
-            self._thermal_limit[:] = env.get_thermal_limit()
+            self._thermal_limit[:] = 1.0 * env._thermal_limit_a  # function get_thermal_limit() "crashes" (because env is game over)
         else:
             self._thermal_limit[:] = 0. 
         
