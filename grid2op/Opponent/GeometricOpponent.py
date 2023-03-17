@@ -334,7 +334,8 @@ class GeometricOpponent(BaseOpponent):
     def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
         super()._custom_deepcopy_for_copy(new_obj, dict_)
         if dict_ is None:
-            dict_ = {}
+            raise OpponentError("Impossible to deep copy an Opponent without a pointer "
+                                "to the original env, named `partial_env`.")
 
         new_obj._attacks = copy.deepcopy(self._attacks)
         new_obj._lines_ids = copy.deepcopy(self._lines_ids)
