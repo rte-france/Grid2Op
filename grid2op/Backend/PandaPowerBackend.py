@@ -111,7 +111,7 @@ class PandaPowerBackend(Backend):
     def __init__(
         self,
         detailed_infos_for_cascading_failures=False,
-        ligthsim2grid=False,  # use lightsim2grid as pandapower powerflow solver
+        lightsim2grid=False,  # use lightsim2grid as pandapower powerflow solver
         dist_slack=False,
         max_iter=10,
         can_be_copied=True,
@@ -120,7 +120,7 @@ class PandaPowerBackend(Backend):
             self,
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
             can_be_copied=can_be_copied,
-            ligthsim2grid=ligthsim2grid,
+            lightsim2grid=lightsim2grid,
             dist_slack=dist_slack,
             max_iter=max_iter
         )
@@ -207,7 +207,7 @@ class PandaPowerBackend(Backend):
         self.gen_theta = None
         self.storage_theta = None
 
-        self._ligthsim2grid = ligthsim2grid
+        self._lightsim2grid = lightsim2grid
         self._dist_slack = dist_slack
         self._max_iter = max_iter
 
@@ -354,7 +354,7 @@ class PandaPowerBackend(Backend):
                 pp.runpp(
                     self._grid,
                     numba=numba_,
-                    lightsim2grid=self._ligthsim2grid,
+                    lightsim2grid=self._lightsim2grid,
                     distributed_slack=self._dist_slack,
                     max_iteration=self._max_iter,
                 )
@@ -362,7 +362,7 @@ class PandaPowerBackend(Backend):
                 pp.rundcpp(
                     self._grid,
                     numba=numba_,
-                    lightsim2grid=self._ligthsim2grid,
+                    lightsim2grid=self._lightsim2grid,
                     distributed_slack=self._dist_slack,
                     max_iteration=self._max_iter,
                 )
@@ -436,7 +436,7 @@ class PandaPowerBackend(Backend):
                 pp.runpp(
                     self._grid,
                     numba=numba_,
-                    lightsim2grid=self._ligthsim2grid,
+                    lightsim2grid=self._lightsim2grid,
                     distributed_slack=self._dist_slack,
                     max_iteration=self._max_iter,
                 )
@@ -444,7 +444,7 @@ class PandaPowerBackend(Backend):
                 pp.rundcpp(
                     self._grid,
                     numba=numba_,
-                    lightsim2grid=self._ligthsim2grid,
+                    lightsim2grid=self._lightsim2grid,
                     distributed_slack=self._dist_slack,
                     max_iteration=self._max_iter,
                 )
@@ -1031,7 +1031,7 @@ class PandaPowerBackend(Backend):
                         check_connectivity=False,
                         init=self._pf_init,
                         numba=numba_,
-                        ligthsim2grid=self._ligthsim2grid,
+                        lightsim2grid=self._lightsim2grid,
                         max_iteration=self._max_iter,
                         distributed_slack=self._dist_slack,
                     )
@@ -1189,9 +1189,7 @@ class PandaPowerBackend(Backend):
         As pandapower is pure python, the deep copy operator is perfectly suited for the task.
         """
         # res = copy.deepcopy(self)  # this was really slow...
-        res = type(self)(
-            detailed_infos_for_cascading_failures=self.detailed_infos_for_cascading_failures
-        )
+        res = type(self)(**self._my_kwargs)
 
         # copy from base class (backend)
         

@@ -270,6 +270,8 @@ class Runner(object):
         has_attention_budget=False,
         logger=None,
         kwargs_observation=None,
+        observation_bk_class=None,
+        observation_bk_kwargs=None,
         # experimental: whether to read from local dir or generate the classes on the fly:
         _read_from_local_dir=False,
         _is_test=False,  # TODO not implemented !!
@@ -440,8 +442,8 @@ class Runner(object):
         if agentClass is not None:
             if agentInstance is not None:
                 raise RuntimeError(
-                    "Impossible to build the backend. Only one of AgentClass or agentInstance can be "
-                    "used (both are not None)."
+                    "Impossible to build the Runner. Only one of agentClass or agentInstance can be "
+                    "used (both are set / both are not None)."
                 )
             if not isinstance(agentClass, type):
                 raise Grid2OpException(
@@ -482,6 +484,8 @@ class Runner(object):
         self.agentInstance = agentInstance
 
         self._read_from_local_dir = _read_from_local_dir
+        self._observation_bk_class = observation_bk_class
+        self._observation_bk_kwargs = observation_bk_kwargs
 
         self.logger = ConsoleLog(DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
         if logger is None:
@@ -630,6 +634,8 @@ class Runner(object):
                 has_attention_budget=self._has_attention_budget,
                 logger=self.logger,
                 kwargs_observation=self._kwargs_observation,
+                observation_bk_class=self._observation_bk_class,
+                observation_bk_kwargs=self._observation_bk_kwargs,
                 _raw_backend_class=self.backendClass,
                 _read_from_local_dir=self._read_from_local_dir,
             )
