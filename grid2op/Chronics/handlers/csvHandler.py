@@ -12,7 +12,7 @@ import numpy as np
 import copy
 
 from grid2op.Exceptions import (
-    ChronicsError,
+    ChronicsError, HandlerError
 )
 
 from grid2op.dtypes import dt_int, dt_float
@@ -20,6 +20,8 @@ from grid2op.dtypes import dt_int, dt_float
 
 class CSVHandler:
     """Read the time series from a csv.
+    
+    Only for Environment data, not for FORECAST
     """
     def __init__(self,
                  array_name,  # eg "load_p"
@@ -50,7 +52,7 @@ class CSVHandler:
         
         # max iter
         self.max_iter = max_iter
-    
+        
     def set_path(self, path):
         self._file_ext = self._get_fileext(path)
         self.path = os.path.join(path, f"{self.array_name}{self._file_ext}")
@@ -76,9 +78,10 @@ class CSVHandler:
             if array is not None:
                 self.tmp_max_index = array.shape[0]
             else:
-                raise ChronicsError(
+                raise HandlerError(
                     'No files are found in directory "{}". If you don\'t want to load any chronics,'
-                    ' use  "ChangeNothing" and not "{}" to load chronics.'
+                    ' use  "DoNothingHandler" (`from grid2op.Chronics.handlers import DoNothingHandler`) '
+                    'and not "{}" to load chronics.'
                     "".format(self.path, type(self))
                 )
 
@@ -246,6 +249,7 @@ class CSVHandler:
                 )
     
     def set_chunk_size(self, chunk_size):
+        print(f"set_chunk_size called for {self.array_name}")
         self.chunk_size = int(chunk_size)
     
     def set_max_iter(self, max_iter):
@@ -273,7 +277,7 @@ class CSVHandler:
         # i load the next chunk as dataframes
         array = self._get_next_chunk()  # array: load_p
         # i put these dataframes in the right order (columns)
-        self._init_attrs(array)  # TODO
+        self._init_attrs(array)
         # i don't forget to reset the reading index to 0
         self.current_index = 0
         
@@ -284,6 +288,11 @@ class CSVHandler:
             self.tmp_max_index = array.shape[0]
         return array
 
+    def forecast(self, *args, **kwargs):
+        raise HandlerError("You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
+                           "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
+                           "for your forecast data.")
+        
 # handler:
 # set_path OK
 # done OK

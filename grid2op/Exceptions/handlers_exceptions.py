@@ -6,10 +6,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-__all__ = ["CSVHandler",
-           "CSVHandlerForecast",
-           "DoNothingHandler"]
+from grid2op.Exceptions.ChronicsExceptions import ChronicsError
 
-from .csvHandler import CSVHandler
-from .do_nothing_handler import DoNothingHandler
-from .csvHandlerForecast import CSVHandlerForecast
+
+class HandlerError(ChronicsError):
+    """This class indicates that the "handler" you are trying to use is not suitable."""
+    pass
