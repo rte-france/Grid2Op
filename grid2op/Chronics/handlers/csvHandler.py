@@ -160,7 +160,7 @@ class CSVHandler:
         if self.max_iter > 0:
             if self.curr_iter >= self.max_iter:
                 raise StopIteration    
-        return 1.0 * self.array[self.current_index, :]
+        return copy.deepcopy(self.array[self.current_index, :])
     
     def get_max_iter(self):
         if self.max_iter != -1:
@@ -319,6 +319,11 @@ class CSVHandler:
                            "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
                            "for your forecast data.")
     
+    def load_next_maintenance(self):
+        raise HandlerError("You should only use this class for ENVIRONMENT data, and not for FORECAST data nor MAINTENANCE data. "
+                           "Please consider using `CSVHandlerMaintenance` (`from grid2op.Chronics.handlers import CSVHandlerMaintenance`) "
+                           "for your maintenance data.")
+        
     def next_chronics(self):
         self.current_index = -1
         self.curr_iter = 0

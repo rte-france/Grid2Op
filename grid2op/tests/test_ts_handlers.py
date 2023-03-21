@@ -11,16 +11,15 @@ import pdb
 import time
 import warnings
 
-from lightsim2grid import LightSimBackend
-
 from grid2op.tests.helper_path_test import *
 
 import grid2op
 from grid2op.Chronics import GridStateFromFileWithForecasts, GridStateFromFile, GridStateFromFileWithForecastsWithoutMaintenance
 from grid2op.Chronics.time_series_from_handlers import FromHandlers
-from grid2op.Chronics.handlers import CSVHandler, DoNothingHandler, CSVHandlerForecast
+from grid2op.Chronics.handlers import CSVHandler, DoNothingHandler, CSVHandlerForecast, CSVHandlerMaintenance
 from grid2op.Runner import Runner
 from grid2op.Exceptions import HandlerError
+from grid2op.Parameters import Parameters
 
 import warnings
 
@@ -71,7 +70,7 @@ class TestCSVHandlerEnv(HelperTests):
         return super().tearDown()
 
     def _aux_compare_one(self, it_nm, obs1, obs2, descr=""):
-        for attr_nm in ["load_p", "load_q", "gen_v", "rho", "gen_p"]:
+        for attr_nm in ["load_p", "load_q", "gen_v", "rho", "gen_p", "line_status"]:
             # assert np.all(getattr(obs1, attr_nm) == getattr(obs2, attr_nm)), f"error for {attr_nm}{descr} at iteration {it_nm}: {getattr(obs1, attr_nm)} vs {getattr(obs2, attr_nm)}"
             assert np.allclose(getattr(obs1, attr_nm), getattr(obs2, attr_nm)), f"error for {attr_nm}{descr} at iteration {it_nm}: {getattr(obs1, attr_nm)} vs {getattr(obs2, attr_nm)}"
     
@@ -86,6 +85,8 @@ class TestCSVHandlerEnv(HelperTests):
             obs2, reward2, done2, info2 = env2.step(env2.action_space())
             assert done2 == done1, f"error at iteration {k}"
             assert reward1 == reward2, f"error at iteration {k}"
+            if done1:
+                break
             self._aux_compare_one(k, obs1, obs2)
                 
     def test_step_equal(self):
@@ -178,11 +179,7 @@ class TestCSVHandlerEnv(HelperTests):
 # TODO:
 # test when "names_chronics_to_backend"
 # test sample_next_chronics
-# test next_chronics
-# test tell_id
-# test set_id
 # test I can "finish" an environment completely (without max_iter, when data are over)
-# test with forecasts
 # test with maintenance
 
 # test without "multi folder" X
@@ -190,6 +187,11 @@ class TestCSVHandlerEnv(HelperTests):
 # test env copy X
 # test when max_iter `env.set_max_iter` X
 # test when "set_chunk" X
+# test with forecasts
+# test next_chronics
+# test tell_id
+# test set_id
+
 
 class TestSomeFileMissingEnv(TestCSVHandlerEnv):
     """test the env part of the storage functionality"""
@@ -348,5 +350,39 @@ class TestForecastHandler5MultiSteps(TestCSVHandlerEnv):
         super()._aux_compare_one(it_nm, sim_obs1_3, sim_obs2_3, " forecast 3")
 
 
+class TestMaintenanceCSV(TestForecastHandler14):
+    def setUp(self) -> None:
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = grid2op.make(os.path.join(PATH_DATA_TEST, "env_14_test_maintenance"),
+                                     test=True,
+                                     param=param
+                                     )  # regular env
+            self.env2 = grid2op.make(os.path.join(PATH_DATA_TEST, "env_14_test_maintenance"),
+                                     data_feeding_kwargs={"gridvalueClass": FromHandlers,
+                                                          "gen_p_handler": CSVHandler("prod_p"),
+                                                          "load_p_handler": CSVHandler("load_p"),
+                                                          "load_q_handler": CSVHandler("load_q"),
+                                                          "gen_v_handler": CSVHandler("prod_v"),
+                                                          "maintenance_handler": CSVHandlerMaintenance(),
+                                                          "gen_p_for_handler": CSVHandlerForecast("prod_p_forecasted"),
+                                                          "gen_v_for_handler": CSVHandlerForecast("prod_v_forecasted"),
+                                                          "load_p_for_handler": CSVHandlerForecast("load_p_forecasted"),
+                                                          "load_q_for_handler": CSVHandlerForecast("load_q_forecasted"),
+                                                          },
+                                     _add_to_name="TestMaintenanceCSV",
+                                     test=True,
+                                     param=param)
+        self._aux_reproducibility()
+        assert np.all(self.env1.chronics_handler.real_data.data.maintenance == 
+                      self.env2.chronics_handler.real_data.data.maintenance_handler.array)
+        assert np.all(self.env1.chronics_handler.real_data.data.maintenance_time == 
+                      self.env2.chronics_handler.real_data.data.maintenance_handler.maintenance_time)
+        assert np.all(self.env1.chronics_handler.real_data.data.maintenance_duration == 
+                      self.env2.chronics_handler.real_data.data.maintenance_handler.maintenance_duration)
+        
+        
 if __name__ == "__main__":
     unittest.main()

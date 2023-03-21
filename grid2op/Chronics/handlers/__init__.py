@@ -8,8 +8,10 @@
 
 __all__ = ["CSVHandler",
            "CSVHandlerForecast",
-           "DoNothingHandler"]
+           "DoNothingHandler",
+           "CSVHandlerMaintenance"]
 
 from .csvHandler import CSVHandler
 from .do_nothing_handler import DoNothingHandler
 from .csvHandlerForecast import CSVHandlerForecast
+from .csvHandlerMaintenance import CSVHandlerMaintenance

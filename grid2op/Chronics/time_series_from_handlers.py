@@ -160,16 +160,16 @@ class FromHandlers(GridValue):
         
         # load maintenance
         if self.maintenance_handler is not None:
-            maintenance_time, maintenance_duration = self.maintenance_handler.load_next_maintenance()
             res["maintenance"] = self.maintenance_handler.load_next(res)
+            maintenance_time, maintenance_duration = self.maintenance_handler.load_next_maintenance()
         else:
             maintenance_time = self._no_mh_time
             maintenance_duration = self._no_mh_duration
         
         # load hazards
         if self.hazard_duration is not None:
-            hazard_duration = self.hazards_handler.load_next_hazard()
             res["hazards"] = self.hazards_handler.load_next(res)
+            hazard_duration = self.hazards_handler.load_next_hazard()
         else:
             hazard_duration = self._no_mh_duration
             
