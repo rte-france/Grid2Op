@@ -19,7 +19,10 @@ from grid2op.Chronics.gridValue import GridValue
 from grid2op.dtypes import dt_int, dt_float
 
 
-class FromHandlers(GridValue):    
+class FromHandlers(GridValue): 
+    
+    MULTI_CHRONICS = False
+       
     def __init__(
         self,
         path,  # can be None !
@@ -38,6 +41,7 @@ class FromHandlers(GridValue):
         max_iter=-1,
         start_datetime=datetime(year=2019, month=1, day=1),
         chunk_size=None,
+        h_forecast=(5,),
     ):
         GridValue.__init__(
             self,
@@ -93,6 +97,8 @@ class FromHandlers(GridValue):
         if self.load_q_for_handler is not None:
             self._active_handlers.append(self.load_q_for_handler)
             self._forcast_handlers.append(self.load_q_for_handler)
+        for handl in self._forcast_handlers:
+            handl.set_h_forecast(h_forecast)
             
         # set the current path of the time series
         self._set_path(self.path)
@@ -189,13 +195,15 @@ class FromHandlers(GridValue):
         self._update_max_iter()
     
     def done(self):
-        res = False
-        # if self.current_index > self.n_:
-        #     res = True
+        # I am done if the part I control is "over"
         if self.max_iter > 0:
             if self.curr_iter > self.max_iter:
-                res = True
-        return res
+                return True
+        # or if any of the handler is "done"
+        for handl in self._active_handlers:
+            if handl.done():
+                return True
+        return False
     
     def check_validity(self, backend):
         for el in self._active_handlers:
@@ -250,16 +258,24 @@ class FromHandlers(GridValue):
         return res
             
     def get_kwargs(self, dict_):
-        # TODO
-        raise NotImplementedError()
-    
-    def tell_id(self, id_num, previous=False):
-        # TODO
-        raise NotImplementedError()
+        dict_["gen_p_handler"] = copy.deepcopy(self.gen_p_handler)._clear() if self.gen_p_handler is not None else None
+        dict_["gen_v_handler"] = copy.deepcopy(self.gen_v_handler)._clear() if self.gen_v_handler is not None else None
+        dict_["load_p_handler"] = copy.deepcopy(self.load_p_handler)._clear() if self.load_p_handler is not None else None
+        dict_["load_q_handler"] = copy.deepcopy(self.load_q_handler)._clear() if self.load_q_handler is not None else None
+        dict_["maintenance_handler"] = copy.deepcopy(self.maintenance_handler)._clear() if self.maintenance_handler is not None else None
+        dict_["hazards_handler"] = copy.deepcopy(self.hazards_handler)._clear() if self.hazards_handler is not None else None
+        dict_["gen_p_for_handler"] = copy.deepcopy(self.gen_p_for_handler)._clear() if self.gen_p_for_handler is not None else None
+        dict_["gen_v_for_handler"] = copy.deepcopy(self.gen_v_for_handler)._clear() if self.gen_v_for_handler is not None else None
+        dict_["load_p_for_handler"] = copy.deepcopy(self.load_p_for_handler)._clear() if self.load_p_for_handler is not None else None
+        dict_["load_q_for_handler"] = copy.deepcopy(self.load_q_for_handler)._clear() if self.load_q_for_handler is not None else None
+        return dict_
     
     def get_id(self) -> str:
-        # TODO
-        raise NotImplementedError()
+        if self.path is not None:
+            return self.path
+        else:
+            # TODO
+            raise NotImplementedError()
     
     def shuffle(self, shuffler=None):
         # TODO
@@ -275,7 +291,7 @@ class FromHandlers(GridValue):
             el.set_chunk_size(new_chunk_size)
     
     def set_max_iter(self, max_iter):
-        # TODO
+        self.max_iter = int(max_iter)
         for el in self._active_handlers:
             el.set_max_iter(max_iter)
         
@@ -288,8 +304,12 @@ class FromHandlers(GridValue):
             el.set_path(path)
             
     def _update_max_iter(self):
+        # get the max iter from the handlers
         max_iters = [el.get_max_iter() for el in self._active_handlers]
         max_iters = [el for el in max_iters if el != -1]
+        # get the max iter from myself
+        max_iters.append(self.max_iter)
+        # take the minimum
         self.max_iter = np.min(max_iters)
         
     def _load_injection(self):

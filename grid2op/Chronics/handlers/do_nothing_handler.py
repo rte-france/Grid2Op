@@ -14,9 +14,8 @@ class DoNothingHandler:
     
     The environment will act as if the time series this Handler is reponsible for will never change.
     """
-    def __init__(self,
-                 h_forecast=(5, ),) -> None:
-        self._h_forecast = copy.deepcopy(h_forecast)
+    def __init__(self) -> None:
+        self._h_forecast = None
     
     def set_path(self, path):
         pass
@@ -38,6 +37,12 @@ class DoNothingHandler:
 
     def get_available_horizons(self):
         return copy.deepcopy(self._h_forecast)
+    
+    def set_h_forecast(self, h_forecast):
+        self._h_forecast = h_forecast
+        
+    def done(self):
+        return False
     
     def forecast(self,
                  forecast_horizon_id,

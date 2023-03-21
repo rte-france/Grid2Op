@@ -3702,7 +3702,7 @@ class BaseObservation(GridObjects):
             # inj_action = self.action_helper(inj_action)
             timestamp = self.get_time_stamp()
             self._forecasted_inj = [(timestamp, inj_action)]
-            self._forecasted_inj += env.chronics_handler.forecasts()
+            self._forecasted_inj += env.forecasts()
             self._forecasted_grid = [None for _ in self._forecasted_inj]
             self._env_internal_params = {}
             self._update_internal_env_params(env)

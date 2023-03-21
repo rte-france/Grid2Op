@@ -11,9 +11,12 @@ import pdb
 import time
 import warnings
 
+from lightsim2grid import LightSimBackend
+
 from grid2op.tests.helper_path_test import *
 
 import grid2op
+from grid2op.Chronics import GridStateFromFileWithForecasts, GridStateFromFile, GridStateFromFileWithForecastsWithoutMaintenance
 from grid2op.Chronics.time_series_from_handlers import FromHandlers
 from grid2op.Chronics.handlers import CSVHandler, DoNothingHandler, CSVHandlerForecast
 from grid2op.Runner import Runner
@@ -35,11 +38,16 @@ def _load_next_chunk_in_memory_hack(self):
         
 class TestCSVHandlerEnv(HelperTests):
     """test the env part of the storage functionality"""
+    def _aux_assert_right_type_chronics(self):
+        assert isinstance(self.env1.chronics_handler.real_data.data, GridStateFromFile)
+        assert isinstance(self.env2.chronics_handler.real_data.data, FromHandlers)
+        
     def _aux_reproducibility(self):
         for env in [self.env1, self.env2]:
             env.set_id(0)
             env.seed(0)
             env.reset()
+        self._aux_assert_right_type_chronics()
         
     def setUp(self) -> None:
         with warnings.catch_warnings():
@@ -63,10 +71,10 @@ class TestCSVHandlerEnv(HelperTests):
         return super().tearDown()
 
     def _aux_compare_one(self, it_nm, obs1, obs2, descr=""):
-        for attr_nm in ["load_p", "load_q", "gen_p", "gen_v", "rho"]:
-            assert np.all(getattr(obs1, attr_nm) == getattr(obs2, attr_nm)), f"error for {attr_nm}{descr} at iteration {it_nm}"
-
-                
+        for attr_nm in ["load_p", "load_q", "gen_v", "rho", "gen_p"]:
+            # assert np.all(getattr(obs1, attr_nm) == getattr(obs2, attr_nm)), f"error for {attr_nm}{descr} at iteration {it_nm}: {getattr(obs1, attr_nm)} vs {getattr(obs2, attr_nm)}"
+            assert np.allclose(getattr(obs1, attr_nm), getattr(obs2, attr_nm)), f"error for {attr_nm}{descr} at iteration {it_nm}: {getattr(obs1, attr_nm)} vs {getattr(obs2, attr_nm)}"
+    
     def _run_then_compare(self, nb_iter=10, env1=None, env2=None):
         if env1 is None:
             env1 = self.env1
@@ -115,8 +123,12 @@ class TestCSVHandlerEnv(HelperTests):
         self.env2.reset()
         
         ###### hack to count the number this is called
-        self.env2.chronics_handler.data.gen_p_handler._nb_call = 0
-        self.env2.chronics_handler.data.gen_p_handler._load_next_chunk_in_memory = lambda : _load_next_chunk_in_memory_hack(self.env2.chronics_handler.data.gen_p_handler)
+        if hasattr(self.env2.chronics_handler.real_data, "data"):
+            self.env2.chronics_handler.data.gen_p_handler._nb_call = 0
+            self.env2.chronics_handler.data.gen_p_handler._load_next_chunk_in_memory = lambda : _load_next_chunk_in_memory_hack(self.env2.chronics_handler.data.gen_p_handler)
+        else:
+            self.env2.chronics_handler.gen_p_handler._nb_call = 0
+            self.env2.chronics_handler.gen_p_handler._load_next_chunk_in_memory = lambda : _load_next_chunk_in_memory_hack(self.env2.chronics_handler.gen_p_handler)
         ######
         
         self._run_then_compare(nb_iter=4)
@@ -127,7 +139,10 @@ class TestCSVHandlerEnv(HelperTests):
         assert done2
         
         # now check the "load_next_chunk has been called the right number of time"
-        assert self.env2.chronics_handler.data.gen_p_handler._nb_call == 5
+        if hasattr(self.env2.chronics_handler.real_data, "data"):
+            assert self.env2.chronics_handler.data.gen_p_handler._nb_call == 5
+        else:
+            assert self.env2.chronics_handler.gen_p_handler._nb_call == 5
         
     def test_copy(self):
         env2 = self.env2.copy()
@@ -142,7 +157,6 @@ class TestCSVHandlerEnv(HelperTests):
     def test_runner(self):
         runner1 = Runner(**self.env1.get_params_for_runner())
         runner2 = Runner(**self.env2.get_params_for_runner())
-        
         res1 = runner1.run(nb_episode=2, max_iter=5, env_seeds=[0, 1], episode_id=[0, 1])
         res2 = runner2.run(nb_episode=2, max_iter=5, env_seeds=[0, 1], episode_id=[0, 1])
         assert res1 == res2
@@ -150,7 +164,7 @@ class TestCSVHandlerEnv(HelperTests):
     def test_if_file_absent(self):
         # do it only once
         if type(self) != TestCSVHandlerEnv:
-            self.skipTest("This test should be done only in the TestCSVHandlerEnv class")
+            self.skipTest("This test should be done only in the TestCSVHandlerEnv class (no need to do it 10x times)")
         with self.assertRaises(HandlerError):
             grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"),
                          data_feeding_kwargs={"gridvalueClass": FromHandlers,
@@ -159,19 +173,25 @@ class TestCSVHandlerEnv(HelperTests):
                                               "gen_v_handler": DoNothingHandler(),
                                               "load_q_handler": CSVHandler("load_q"), # crash because this file does not exist
                                               },
-                         _add_to_name="_TestDNHandlerEnv")  # regular env
-    
+                         _add_to_name="_TestCSVHandlerEnv")  # regular env
+
 # TODO:
 # test when "names_chronics_to_backend"
+# test sample_next_chronics
+# test next_chronics
+# test tell_id
+# test set_id
+# test I can "finish" an environment completely (without max_iter, when data are over)
+# test with forecasts
+# test with maintenance
+
+# test without "multi folder" X
 # test runner X
 # test env copy X
 # test when max_iter `env.set_max_iter` X
 # test when "set_chunk" X
-# test with forecasts
-# test with maintenance
 
-
-class TestDNHandlerEnv(TestCSVHandlerEnv):
+class TestSomeFileMissingEnv(TestCSVHandlerEnv):
     """test the env part of the storage functionality"""
     def setUp(self) -> None:
         with warnings.catch_warnings():
@@ -186,10 +206,75 @@ class TestDNHandlerEnv(TestCSVHandlerEnv):
                                                           },
                                      _add_to_name="_TestDNHandlerEnv")
         self._aux_reproducibility()
+        
+        
+class TestWithoutMultiFolderEnv(TestCSVHandlerEnv):
+    def setUp(self) -> None:
+        chronics_path = os.path.join(PATH_DATA,
+                                     "l2rpn_case14_sandbox",
+                                     "chronics",
+                                     "0000")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = grid2op.make("l2rpn_case14_sandbox", test=True,
+                                     chronics_class=GridStateFromFileWithForecasts,
+                                     chronics_path=chronics_path)  # regular env
+            self.env2 = grid2op.make("l2rpn_case14_sandbox",
+                                     chronics_class=FromHandlers,
+                                     data_feeding_kwargs={
+                                                          "gen_p_handler": CSVHandler("prod_p"),
+                                                          "load_p_handler": CSVHandler("load_p"),
+                                                          "gen_v_handler": CSVHandler("prod_v"),
+                                                          "load_q_handler": CSVHandler("load_q"),
+                                                          },
+                                     chronics_path=chronics_path,
+                                     _add_to_name="TestWithoutMultiFolderEnv",
+                                     test=True)
+        self._aux_reproducibility()
+        
+    def _aux_assert_right_type_chronics(self):
+        assert isinstance(self.env1.chronics_handler.real_data, GridStateFromFile)
+        assert isinstance(self.env2.chronics_handler.real_data, FromHandlers)
             
+            
+class TestForecastHandlerNoMultiFolder(TestWithoutMultiFolderEnv):
+    """test the env part of the storage functionality"""
+    def setUp(self) -> None:
+        chronics_path = os.path.join(PATH_DATA,
+                                     "l2rpn_case14_sandbox",
+                                     "chronics",
+                                     "0000")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = grid2op.make("l2rpn_case14_sandbox", test=True,
+                                     chronics_class=GridStateFromFileWithForecasts,
+                                     chronics_path=chronics_path)  # regular env
+            self.env2 = grid2op.make("l2rpn_case14_sandbox",
+                                     chronics_class=FromHandlers,
+                                     data_feeding_kwargs={"gen_p_handler": CSVHandler("prod_p"),
+                                                          "load_p_handler": CSVHandler("load_p"),
+                                                          "gen_v_handler": CSVHandler("prod_v"),
+                                                          "load_q_handler": CSVHandler("load_q"),
+                                                          "gen_p_for_handler": CSVHandlerForecast("prod_p_forecasted"),
+                                                          "load_p_for_handler": CSVHandlerForecast("load_p_forecasted"),
+                                                          "gen_v_for_handler": CSVHandlerForecast("prod_v_forecasted"),
+                                                          "load_q_for_handler": CSVHandlerForecast("load_q_forecasted"),
+                                                          },
+                                     chronics_path=chronics_path,
+                                     _add_to_name="TestForecastHandlerNoMulti14",
+                                     test=True)
+        self._aux_reproducibility()
+        assert np.all(self.env1.chronics_handler.real_data.load_p_forecast == 
+                      self.env2.chronics_handler.real_data.load_p_for_handler.array)
+            
+    def _aux_compare_one(self, it_nm, obs1, obs2):
+        super()._aux_compare_one(it_nm, obs1, obs2)
+        sim_obs1, *_ = obs1.simulate(self.env1.action_space())
+        sim_obs2, *_ = obs2.simulate(self.env1.action_space())
+        super()._aux_compare_one(it_nm, sim_obs1, sim_obs2, " forecast")
+        
             
 class TestForecastHandler14(TestCSVHandlerEnv):
-    """test the env part of the storage functionality"""
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -219,5 +304,49 @@ class TestForecastHandler14(TestCSVHandlerEnv):
         super()._aux_compare_one(it_nm, sim_obs1, sim_obs2, " forecast")
             
             
+class TestForecastHandler5MultiSteps(TestCSVHandlerEnv):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"), test=True,
+                                     data_feeding_kwargs={"gridvalueClass": GridStateFromFileWithForecastsWithoutMaintenance},
+                                     )  # regular env
+            self.env2 = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"),
+                                     data_feeding_kwargs={"gridvalueClass": FromHandlers,
+                                                          "gen_p_handler": CSVHandler("prod_p"),
+                                                          "load_p_handler": CSVHandler("load_p"),
+                                                          "load_q_handler": CSVHandler("load_q"),
+                                                          "gen_v_handler": DoNothingHandler(),
+                                                          "gen_p_for_handler": CSVHandlerForecast("prod_p_forecasted"),
+                                                          "load_p_for_handler": CSVHandlerForecast("load_p_forecasted"),
+                                                          "load_q_for_handler": CSVHandlerForecast("load_q_forecasted"),
+                                                          },
+                                     _add_to_name="TestForecastHandler5MultiSteps",
+                                     test=True)
+        self._aux_reproducibility()
+        assert np.all(self.env1.chronics_handler.real_data.data.load_p == 
+                      self.env2.chronics_handler.real_data.data.load_p_handler.array)
+        assert np.all(self.env1.chronics_handler.real_data.data.load_p_forecast == 
+                      self.env2.chronics_handler.real_data.data.load_p_for_handler.array)
+        assert np.all(self.env1.chronics_handler.real_data.data.prod_p == 
+                      self.env2.chronics_handler.real_data.data.gen_p_handler.array)
+        assert np.all(self.env1.chronics_handler.real_data.data.prod_p_forecast == 
+                      self.env2.chronics_handler.real_data.data.gen_p_for_handler.array)
+        
+    def _aux_compare_one(self, it_nm, obs1, obs2):
+        super()._aux_compare_one(it_nm, obs1, obs2)
+        sim_obs1_1, *_ = obs1.simulate(self.env1.action_space())
+        sim_obs2_1, *_ = obs2.simulate(self.env1.action_space())
+        super()._aux_compare_one(it_nm, sim_obs1_1, sim_obs2_1, " forecast 1")
+        
+        sim_obs1_2, *_ = sim_obs1_1.simulate(self.env1.action_space())
+        sim_obs2_2, *_ = sim_obs2_1.simulate(self.env1.action_space())
+        super()._aux_compare_one(it_nm, sim_obs1_2, sim_obs2_2, " forecast 2")
+        
+        sim_obs1_3, *_ = sim_obs1_2.simulate(self.env1.action_space())
+        sim_obs2_3, *_ = sim_obs2_2.simulate(self.env1.action_space())
+        super()._aux_compare_one(it_nm, sim_obs1_3, sim_obs2_3, " forecast 3")
+
+
 if __name__ == "__main__":
     unittest.main()

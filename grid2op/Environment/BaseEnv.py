@@ -292,6 +292,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         parameters.check_valid()  # check the provided parameters are valid
         self._parameters: Parameters = copy.deepcopy(parameters)
         self.with_forecast: bool = with_forecast
+        self._forecasts = None
 
         # some timers
         self._time_apply_act: float = dt_float(0)
@@ -316,7 +317,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.delta_time_seconds = None  # number of seconds between two consecutive step
 
         # observation
-        self.current_obs: BaseObservation = None
+        self.current_obs: Optional[BaseObservation] = None
         self._line_status: np.ndarray = None
 
         self._ignore_min_up_down_times: bool = self._parameters.IGNORE_MIN_UP_DOWN_TIME
@@ -521,6 +522,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._DEBUG = self._DEBUG
         new_obj._parameters = copy.deepcopy(self._parameters)
         new_obj.with_forecast = self.with_forecast
+        new_obj._forecasts = copy.deepcopy(self._forecasts)
 
         # some timers
         new_obj._time_apply_act = self._time_apply_act
@@ -1348,6 +1350,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         .. warning::
             Forecast are deactivated by default (and cannot be reactivated) if the
             backend cannot be copied.
+        
+        .. warning::
+            You need to call 'env.reset()' for this function to work properly. It is NOT recommended
+            to reactivate forecasts in the middle of an episode.
             
         Notes
         ------
@@ -1372,6 +1378,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # obs.simulate(do_nothing_action)  # DO NOT RUN IT RAISES AN ERROR
 
             env.reactivate_forecast()
+            obs = env.reset()  # you need to reset the env for this function to have any effects
             obs, reward, done, info = env.step(do_nothing_action)
 
             # and now forecast are available again
@@ -2865,7 +2872,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._disc_lines[:] = -1
 
         beg_step = time.perf_counter()
-        self._last_obs = None
+        self._last_obs : Optional[BaseObservation] = None
+        self._forecasts = None  # force reading the forecast from the time series
         try:
             beg_ = time.perf_counter()
 
@@ -2958,7 +2966,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         except StopIteration:
             # episode is over
+            print("I got a StopIteration")
             is_done = True
+            
         self._backend_action.reset()
         end_step = time.perf_counter()
         self._time_step += end_step - beg_step
@@ -3763,3 +3773,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         # soft overflow
         self._timestep_overflow[:] = obs.timestep_overflow
+
+    def forecasts(self):
+        # ensure that the "env.chronics_handler.forecasts" is called at most once per step
+        # this should NOT be called is self.deactive_forecast is true
+        if not self.with_forecast:
+            raise Grid2OpException("Attempt to retrieve the forecasts when they are not available.")
+        
+        if self._forecasts is None:
+            self._forecasts = self.chronics_handler.forecasts()
+        return self._forecasts

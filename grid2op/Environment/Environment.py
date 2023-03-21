@@ -924,7 +924,6 @@ class Environment(BaseEnv):
         
         if self._init_obs is not None:
             self._reset_to_orig_state(self._init_obs)
-            
         return self.get_obs()
 
     def render(self, mode="rgb_array"):

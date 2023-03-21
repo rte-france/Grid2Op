@@ -43,6 +43,7 @@ Change Log
   description has been adapted.
 - [BREAKING] In `PandaPowerBackend` the kwargs argument "ligthsim2grid" was misspelled and is now properly
   renamed `lightsim2grid`
+- [BREAKING] you can no longer use the `env.reactivate_forecast()` in the middle of an episode.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
@@ -65,6 +66,8 @@ Change Log
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/396
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/403
 - [FIXED] a bug in `PandaPowerBackend` when it was copied (the kwargs used to build it were not propagated)
+- [FIXED] a bug in the `Runner` when the time series class used is not `MultiFolder` (*eg* `GridStateFromFile`): we could 
+  not run twice the same environment. 
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
@@ -108,6 +111,9 @@ Change Log
 - [IMPROVED] the doc of the `obs.get_energy_graph` (previously `obs.as_networkx()`)
 - [IMPROVED] it is now possible to use a different backend, a different grid or different kwargs between the
   env backend and the obs backend.
+- [IMPROVED] the environment now called the "chronics_handler.forecast" function at most once per step.
+- [IMPROVED] make it easier to create an environment without `MultiFolder` or `MultifolderWithCache`
+
 
 [1.8.1] - 2023-01-11
 ---------------------

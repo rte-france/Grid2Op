@@ -603,6 +603,11 @@ class Runner(object):
         self.__used = False
 
     def _new_env(self, chronics_handler, parameters):
+        # the same chronics_handler is used for all the environments.
+        # make sure to "reset" it properly
+        # (this is handled elsewhere in case of "multi chronics")
+        if not self.chronics_handler.chronicsClass.MULTI_CHRONICS:
+            self.chronics_handler.next_chronics()  
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             res = self.envClass(

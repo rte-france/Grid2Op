@@ -30,16 +30,26 @@ class CSVHandlerForecast(CSVHandler):
                  array_name,
                  sep=";",
                  chunk_size=None,
-                 max_iter=-1,
-                 h_forecast=(5, ),) -> None:
+                 max_iter=-1) -> None:
         super().__init__(array_name, sep, chunk_size, max_iter)
-        self._h_forecast = copy.deepcopy(h_forecast)
+        self._h_forecast = None
+        self._nb_row_per_step = 1
         
     def load_next(self, dict_):
         raise HandlerError("You should only use this class for FORECAST data, and not for ENVIRONMENT data. "
                            "Please consider using `CSVHandler` (`from grid2op.Chronics.handlers import CSVHandler`) "
                            "for your environment data.")
     
+    def set_chunk_size(self, chunk_size):
+        super().set_chunk_size(self._nb_row_per_step * int(chunk_size))
+        
+    def set_max_iter(self, max_iter):
+        super().set_max_iter(self._nb_row_per_step * int(max_iter))
+    
+    def set_h_forecast(self, h_forecast):
+        self._h_forecast = copy.deepcopy(h_forecast)
+        self._nb_row_per_step = len(self._h_forecast) 
+        
     def get_available_horizons(self):
         return copy.deepcopy(self._h_forecast)
     
@@ -51,4 +61,5 @@ class CSVHandlerForecast(CSVHandler):
                  gen_p_handler,
                  gen_v_handler
                  ):
-        return super().load_next(inj_dict_previous_forecast)
+        res = super().load_next(inj_dict_previous_forecast)
+        return res

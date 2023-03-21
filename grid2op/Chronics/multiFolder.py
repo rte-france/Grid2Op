@@ -54,6 +54,7 @@ class Multifolder(GridValue):
         :attr:`MultiFolder.gridvalueClass`.
 
     """
+    MULTI_CHRONICS = True
 
     def __init__(
         self,

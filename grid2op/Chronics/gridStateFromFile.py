@@ -115,6 +115,7 @@ class GridStateFromFile(GridValue):
         This directory matches the name of the objects (line extremity, generator or load) to the same object in the
         backed. See the help of :func:`GridValue.initialize` for more information).
     """
+    MULTI_CHRONICS = False
 
     def __init__(
         self,
@@ -194,6 +195,38 @@ class GridStateFromFile(GridValue):
         self._order_backend_prods = None
         self._order_backend_lines = None
 
+    def _clear(self):        
+        self.n_ = None  # maximum number of rows of the array
+        self.tmp_max_index = None  # size maximum of the current tables in memory
+        self.load_p = None  # numpy array corresponding to the current active load values in the power _grid. It has the same size as the number of loads
+        self.load_q = None  # numpy array corresponding to the current reactive load values in the power _grid. It has the same size as the number of loads
+        self.prod_p = None  # numpy array corresponding to the current active production values in the power _grid. It has the same size as the number of generators
+        self.prod_v = None  # numpy array corresponding to the current voltage production setpoint values in the power _grid. It has the same size as the number of generators
+
+        # for the two following vector, the convention is the following: False(line is disconnected) / True(line is connected)
+        self.hazards = None  # numpy array representing the outage (unplanned), same size as the number of powerlines on the _grid.
+        self.maintenance = None  # numpy array representing the _maintenance (planned withdrawal of a powerline), same size as the number of powerlines on the _grid.
+        self.maintenance_time = None
+        self.maintenance_duration = None
+
+        self.current_index = -1
+
+        self.names_chronics_to_backend = None
+
+        # added to provide an easier access to read data in chunk
+        self._data_chunk = {}
+        self._order_load_p = None
+        self._order_load_q = None
+        self._order_prod_p = None
+        self._order_prod_v = None
+        self._order_hazards = None
+        self._order_maintenance = None
+
+        # order of the names in the backend
+        self._order_backend_loads = None
+        self._order_backend_prods = None
+        self._order_backend_lines = None
+        
     def _assert_correct(self, dict_convert, order_backend):
         len_backend = len(order_backend)
         len_dict_keys = len(dict_convert)
@@ -780,8 +813,8 @@ class GridStateFromFile(GridValue):
         if not self._data_in_memory():
             try:
                 self._load_next_chunk_in_memory()
-            except StopIteration as e:
-                raise e
+            except StopIteration as exc_:
+                raise exc_
 
         if self.current_index >= self.tmp_max_index:
             raise StopIteration
@@ -801,7 +834,6 @@ class GridStateFromFile(GridValue):
             dict_["prod_p"] = 1.0 * self.prod_p[self.current_index, :]
         if self.prod_v is not None:
             prod_v = 1.0 * self.prod_v[self.current_index, :]
-            # dict_["prod_v"] = prod_v
         if dict_:
             res["injection"] = dict_
 
@@ -960,6 +992,8 @@ class GridStateFromFile(GridValue):
         self.current_datetime = self.start_datetime
         self.current_index = -1
         self.curr_iter = 0
+        if self.chunk_size is not None:
+            self._clear()  # remove previously loaded data [only needed if chunk size is set, I assume]
 
     def get_id(self) -> str:
         return self.path

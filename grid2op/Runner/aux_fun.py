@@ -107,7 +107,6 @@ def _aux_run_one_episode(
 
     # reset it
     obs = env.reset()
-
     # seed and reset the agent
     if agent_seed is not None:
         agent.seed(agent_seed)
@@ -213,7 +212,7 @@ def _aux_run_one_episode(
             end__ = time.perf_counter()
             time_act += end__ - beg__
 
-            obs, reward, done, info = env.step(act)  # should load the first time stamp
+            obs, reward, done, info = env.step(act)
             cum_reward += reward
             time_step += 1
             pbar_.update(1)

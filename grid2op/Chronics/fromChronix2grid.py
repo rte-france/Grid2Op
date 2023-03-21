@@ -70,6 +70,7 @@ class FromChronix2grid(GridValue):
     REQUIRED_FILES = ["loads_charac.csv", "params.json", "params_load.json",
                       "params_loss.json", "params_opf.json", "params_res.json", 
                       "prods_charac.csv", "scenario_params.json"]
+    MULTI_CHRONICS = False
     def __init__(self,
                  env_path: os.PathLike,
                  with_maintenance: bool,

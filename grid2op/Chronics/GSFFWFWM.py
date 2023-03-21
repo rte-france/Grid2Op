@@ -43,6 +43,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
 
     """
 
+    MULTI_CHRONICS = False
     def __init__(
         self,
         path,

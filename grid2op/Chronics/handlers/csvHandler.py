@@ -53,6 +53,22 @@ class CSVHandler:
         # max iter
         self.max_iter = max_iter
         
+        #
+        self._nb_row_per_step = 1
+    
+    def _clear(self):
+        """reset to a state as if it was just created"""
+        self.path = None
+        self._file_ext = None
+        self.tmp_max_index = None
+        self.array = None
+        self.current_index = - 1
+        self.names_chronics_to_backend = None
+        self._data_chunk = {}
+        self._order_array = None
+        self._order_backend_arrays = None
+        return self
+    
     def set_path(self, path):
         self._file_ext = self._get_fileext(path)
         self.path = os.path.join(path, f"{self.array_name}{self._file_ext}")
@@ -121,10 +137,13 @@ class CSVHandler:
             Whether the episode has reached its end or not.
 
         """
-        res = False
-        if self.current_index > self.n_:
-            res = True
-        return res
+        if self.max_iter > 0:
+            if self.curr_iter > self.max_iter:
+                return True
+        if self.chunk_size is None:
+            if self.current_index >= self.array.shape[0]:
+                return True
+        return False
     
     def load_next(self, dict_):
         self.current_index += 1
@@ -133,22 +152,26 @@ class CSVHandler:
             try:
                 self._load_next_chunk_in_memory()
             except StopIteration as exc_:
-                raise exc_
+                raise StopIteration
 
-        if self.current_index >= self.tmp_max_index:
+        if self.current_index > self.tmp_max_index:
             raise StopIteration
 
         if self.max_iter > 0:
-            if self.curr_iter > self.max_iter:
-                raise StopIteration
-    
+            if self.curr_iter >= self.max_iter:
+                raise StopIteration    
         return 1.0 * self.array[self.current_index, :]
     
     def get_max_iter(self):
         if self.max_iter != -1:
             return self.max_iter
         else:
-            return -1  # TODO
+            if self.chunk_size is None and self.array is not None:
+                return self.array.shape[0]
+            else:
+                import warnings
+                warnings.warn("Unable to read the 'max_iter' when there is a chunk size set and no \"max_iter\"")
+                return -1 # TODO
                 
     def check_validity(self, backend):
         # TODO
@@ -163,9 +186,8 @@ class CSVHandler:
         raise NotImplementedError()
 
     def get_kwargs(self, dict_):
-        # TODO
-        raise NotImplementedError()
-
+        pass
+    
     def _init_attrs(
         self, array
     ):
@@ -197,7 +219,7 @@ class CSVHandler:
     def _get_data(self, chunksize=-1, nrows=None):   # in csvhandler     
         if nrows is None:
             if self.max_iter > 0:
-                nrows = self.max_iter + 1
+                nrows = self.max_iter + self._nb_row_per_step
             
         if self._file_ext is not None:
             if chunksize == -1:
@@ -249,7 +271,6 @@ class CSVHandler:
                 )
     
     def set_chunk_size(self, chunk_size):
-        print(f"set_chunk_size called for {self.array_name}")
         self.chunk_size = int(chunk_size)
     
     def set_max_iter(self, max_iter):
@@ -292,6 +313,17 @@ class CSVHandler:
         raise HandlerError("You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
                            "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
                            "for your forecast data.")
+        
+    def set_h_forecast(self, h_forecasts):
+        raise HandlerError("You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
+                           "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
+                           "for your forecast data.")
+    
+    def next_chronics(self):
+        self.current_index = -1
+        self.curr_iter = 0
+        if self.chunk_size is not None:
+            self._clear()  # we should have to reload everything if all data have been already loaded
         
 # handler:
 # set_path OK
