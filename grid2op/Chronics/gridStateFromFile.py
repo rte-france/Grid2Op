@@ -678,7 +678,8 @@ class GridStateFromFile(GridValue):
             self.max_iter = self.n_ - 1
 
         self._init_attrs(
-            load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=maintenance
+            load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=maintenance,
+            is_init=True
         )
 
         self.curr_iter = 0
@@ -689,17 +690,21 @@ class GridStateFromFile(GridValue):
         return res
 
     def _init_attrs(
-        self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None
+        self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None,
+        is_init=False
     ):
+        # this called at the initialization but also each time more data should
+        # be read from the disk (at the end of each chunk for example)
         self.load_p = None
         self.load_q = None
         self.prod_p = None
         self.prod_v = None
-        self.hazards = None
-        self.hazard_duration = None
-        self.maintenance = None
-        self.maintenance_time = None
-        self.maintenance_duration = None
+        if is_init:
+            self.hazards = None
+            self.hazard_duration = None
+            self.maintenance = None
+            self.maintenance_time = None
+            self.maintenance_duration = None
 
         if load_p is not None:
             self.load_p = copy.deepcopy(
@@ -732,7 +737,6 @@ class GridStateFromFile(GridValue):
                 )
 
             self.hazards = self.hazards != 0.0
-
         if maintenance is not None:
             self.maintenance = copy.deepcopy(
                 maintenance.values[:, self._order_maintenance]
@@ -808,7 +812,8 @@ class GridStateFromFile(GridValue):
         self.current_index = 0
 
     def load_next(self):
-        self.current_index += 1
+        self.current_index += 1  # index in the chunk
+        # for the "global" index use self.curr_iter
 
         if not self._data_in_memory():
             try:
@@ -838,17 +843,14 @@ class GridStateFromFile(GridValue):
             res["injection"] = dict_
 
         if self.maintenance is not None:
-            res["maintenance"] = self.maintenance[self.current_index, :]
+            res["maintenance"] = self.maintenance[self.curr_iter, :]
         if self.hazards is not None:
-            res["hazards"] = self.hazards[self.current_index, :]
-
-        self.current_datetime += self.time_interval
-        self.curr_iter += 1
+            res["hazards"] = self.hazards[self.curr_iter, :]
 
         if self.maintenance_time is not None:
-            maintenance_time = dt_int(1 * self.maintenance_time[self.current_index, :])
+            maintenance_time = dt_int(1 * self.maintenance_time[self.curr_iter, :])
             maintenance_duration = dt_int(
-                1 * self.maintenance_duration[self.current_index, :]
+                1 * self.maintenance_duration[self.curr_iter, :]
             )
         else:
             maintenance_time = np.full(self.n_line, fill_value=-1, dtype=dt_int)
@@ -859,6 +861,8 @@ class GridStateFromFile(GridValue):
         else:
             hazard_duration = np.full(self.n_line, fill_value=-1, dtype=dt_int)
 
+        self.current_datetime += self.time_interval
+        self.curr_iter += 1
         return (
             self.current_datetime,
             res,

@@ -83,8 +83,8 @@ class TestCSVHandlerEnv(HelperTests):
         for k in range(nb_iter):
             obs1, reward1, done1, info1 = env1.step(env1.action_space())
             obs2, reward2, done2, info2 = env2.step(env2.action_space())
-            assert done2 == done1, f"error at iteration {k}"
-            assert reward1 == reward2, f"error at iteration {k}"
+            assert done2 == done1, f"error at iteration {k} for done"
+            assert reward1 == reward2, f"error at iteration {k} for reward"
             if done1:
                 break
             self._aux_compare_one(k, obs1, obs2)
@@ -115,13 +115,13 @@ class TestCSVHandlerEnv(HelperTests):
         self.env1.set_chunk_size(1)
         self.env2.set_chunk_size(1)
         
-        # hugly copy paste from above otherwise the hack do not work...
+        # hugly copy paste from above otherwise the hack does not work...
         # because of the reset
         self.env1.set_max_iter(5)
         self.env2.set_max_iter(5)
-        
-        self.env1.reset()
-        self.env2.reset()
+        obs1 = self.env1.reset()
+        obs2 = self.env2.reset()
+        self._aux_compare_one(0, obs1, obs2)
         
         ###### hack to count the number this is called
         if hasattr(self.env2.chronics_handler.real_data, "data"):
@@ -181,6 +181,7 @@ class TestCSVHandlerEnv(HelperTests):
 # test sample_next_chronics
 # test I can "finish" an environment completely (without max_iter, when data are over)
 # test with maintenance
+# test fast_forward_chronics
 
 # test without "multi folder" X
 # test runner X

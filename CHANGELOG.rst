@@ -68,6 +68,9 @@ Change Log
 - [FIXED] a bug in `PandaPowerBackend` when it was copied (the kwargs used to build it were not propagated)
 - [FIXED] a bug in the `Runner` when the time series class used is not `MultiFolder` (*eg* `GridStateFromFile`): we could 
   not run twice the same environment. 
+- [FIXED] a bug n the `GridStateFromFile`, `GridStateFromFileWithForecasts` and 
+  `GridStateFromFileWithForecastsWithoutMaintenance` classes that caused the maintenance file to be 
+  ignored when "chunk_size" was set.
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
