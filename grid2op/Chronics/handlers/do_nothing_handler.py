@@ -6,19 +6,16 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import copy
+from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
 
-class DoNothingHandler:
+class DoNothingHandler(BaseHandler):
     """This is the type of Time Series Handler that does nothing. 
     
     The environment will act as if the time series this Handler is reponsible for will never change.
     """
-    def __init__(self) -> None:
-        self._h_forecast = None
-    
-    def set_path(self, path):
-        pass
+    def __init__(self, array_name="do nothing") -> None:
+        super().__init__("do nothing")
     
     def initialize(self, order_backend_prods, names_chronics_to_backend):
         pass
@@ -28,22 +25,13 @@ class DoNothingHandler:
     
     def load_next(self, dict):
         pass
-    
-    def set_max_iter(self, max_iter):
-        pass
-    
-    def set_chunk_size(self, chunk_size):
-        pass    
-
-    def get_available_horizons(self):
-        return copy.deepcopy(self._h_forecast)
-    
-    def set_h_forecast(self, h_forecast):
-        self._h_forecast = h_forecast
         
     def done(self):
         return False
-    
+
+    def load_next(self, dict_):
+        return None
+        
     def forecast(self,
                  forecast_horizon_id,
                  inj_dict_previous_forecast,
@@ -52,5 +40,8 @@ class DoNothingHandler:
                  gen_p_handler,
                  gen_v_handler
                  ):
-        pass
+        return None
+    
+    def load_next_maintenance(self):
+        return None, None
     

@@ -6,12 +6,16 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-__all__ = ["CSVHandler",
+__all__ = ["BaseHandler",
+           "CSVHandler",
            "CSVHandlerForecast",
            "DoNothingHandler",
-           "CSVHandlerMaintenance"]
+           "CSVHandlerMaintenance",
+           "JSONHandlerMaintenance"]
 
+from .baseHandler import BaseHandler
 from .csvHandler import CSVHandler
 from .do_nothing_handler import DoNothingHandler
 from .csvHandlerForecast import CSVHandlerForecast
 from .csvHandlerMaintenance import CSVHandlerMaintenance
+from .jsonHandlerMaintenance import JSONHandlerMaintenance

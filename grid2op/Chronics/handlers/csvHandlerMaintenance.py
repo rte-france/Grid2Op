@@ -69,7 +69,7 @@ class CSVHandlerMaintenance(CSVHandler):
         maint_time = 1 * self.maintenance_time[self.current_index, :]
         maint_duration = 1 * self.maintenance_duration[self.current_index, :]
         return maint_time, maint_duration
-
+    
     def set_chunk_size(self, chunk_size):
-        # not relevant for maintenance
-        pass
+        # skip the definition in CSVHandler to jump to the level "above"
+        return super(CSVHandler, self).set_chunk_size(chunk_size)

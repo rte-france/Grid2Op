@@ -16,9 +16,10 @@ from grid2op.Exceptions import (
 )
 
 from grid2op.dtypes import dt_int, dt_float
+from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
 
-class CSVHandler:
+class CSVHandler(BaseHandler):
     """Read the time series from a csv.
     
     Only for Environment data, not for FORECAST
@@ -28,7 +29,7 @@ class CSVHandler:
                  sep=";",
                  chunk_size=None,
                  max_iter=-1) -> None:
-        
+        super().__init__(array_name, max_iter)
         self.path = None
         self._file_ext = None
         self.tmp_max_index = None  # size maximum of the current tables in memory
@@ -47,17 +48,12 @@ class CSVHandler:
         # 
         self._order_backend_arrays = None
         
-        # 
-        self.array_name = array_name
-        
-        # max iter
-        self.max_iter = max_iter
-        
         #
         self._nb_row_per_step = 1
     
     def _clear(self):
         """reset to a state as if it was just created"""
+        super()._clear()
         self.path = None
         self._file_ext = None
         self.tmp_max_index = None
@@ -116,8 +112,10 @@ class CSVHandler:
         self._init_attrs(array)
 
         self.curr_iter = 0
+        
+        if self.chunk_size is None:
+            self.max_episode_duration = self.array.shape[0] - 1
 
-    
     def done(self):
         """
         INTERNAL
@@ -165,28 +163,26 @@ class CSVHandler:
     def get_max_iter(self):
         if self.max_iter != -1:
             return self.max_iter
-        else:
-            if self.chunk_size is None and self.array is not None:
-                return self.array.shape[0]
-            else:
-                import warnings
-                warnings.warn("Unable to read the 'max_iter' when there is a chunk size set and no \"max_iter\"")
-                return -1 # TODO
+        if self.max_episode_duration is not None:
+            return self.max_episode_duration
+            
+        if self.chunk_size is None and self.array is not None:
+            return self.array.shape[0] - 1
+        
+        if self.array is None:
+            return -1
+        
+        import warnings
+        warnings.warn("Unable to read the 'max_iter' when there is a chunk size set and no \"max_iter\"")
+        return -1 # TODO
                 
     def check_validity(self, backend):
         # TODO
         return True
     
-    def load_next_maintenance(self, *args, **kwargs):
-        # TODO
-        raise NotImplementedError()
-    
     def load_next_hazard(self, *args, **kwargs):
         # TODO
         raise NotImplementedError()
-
-    def get_kwargs(self, dict_):
-        pass
     
     def _init_attrs(
         self, array
@@ -272,9 +268,6 @@ class CSVHandler:
     
     def set_chunk_size(self, chunk_size):
         self.chunk_size = int(chunk_size)
-    
-    def set_max_iter(self, max_iter):
-        self.max_iter = int(max_iter)
         
     def _get_next_chunk(self):
         res = None
@@ -310,17 +303,22 @@ class CSVHandler:
         return array
 
     def forecast(self, *args, **kwargs):
-        raise HandlerError("You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
+        raise HandlerError(f"forecast {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
                            "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
                            "for your forecast data.")
         
-    def set_h_forecast(self, h_forecasts):
-        raise HandlerError("You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
+    # def set_h_forecast(self, h_forecasts):
+    #     raise HandlerError("You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
+    #                        "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
+    #                        "for your forecast data.")
+        
+    def get_available_horizons(self):
+        raise HandlerError(f"get_available_horizons {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
                            "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
                            "for your forecast data.")
-    
+        
     def load_next_maintenance(self):
-        raise HandlerError("You should only use this class for ENVIRONMENT data, and not for FORECAST data nor MAINTENANCE data. "
+        raise HandlerError(f"load_next_maintenance {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST data nor MAINTENANCE data. "
                            "Please consider using `CSVHandlerMaintenance` (`from grid2op.Chronics.handlers import CSVHandlerMaintenance`) "
                            "for your maintenance data.")
         

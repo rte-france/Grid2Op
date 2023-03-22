@@ -6,15 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import pandas as pd
-import numpy as np
-import copy
-
 from grid2op.Exceptions import (
     ChronicsError, HandlerError
 )
-from grid2op.dtypes import dt_int, dt_float
+
 from grid2op.Chronics.handlers.csvHandler import CSVHandler
 
 
@@ -47,12 +42,13 @@ class CSVHandlerForecast(CSVHandler):
         super().set_max_iter(self._nb_row_per_step * int(max_iter))
     
     def set_h_forecast(self, h_forecast):
-        self._h_forecast = copy.deepcopy(h_forecast)
+        super().set_h_forecast(h_forecast)
         self._nb_row_per_step = len(self._h_forecast) 
         
     def get_available_horizons(self):
-        return copy.deepcopy(self._h_forecast)
-    
+        # skip the definition in CSVHandler to jump to the level "above"
+        return super(CSVHandler, self).get_available_horizons()
+        
     def forecast(self,
                  forecast_horizon_id,
                  inj_dict_previous_forecast,

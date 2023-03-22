@@ -35,6 +35,7 @@ from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Action._BackendAction import _BackendAction
+from grid2op.Chronics import ChronicsHandler
 
 # TODO put in a separate class the redispatching function
 
@@ -376,7 +377,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.done = False
         self.current_reward = None
         self._helper_action_env: ActionSpace = None
-        self.chronics_handler = None
+        self.chronics_handler : ChronicsHandler = None
         self._game_rules = None
         self._action_space: ActionSpace = None
 

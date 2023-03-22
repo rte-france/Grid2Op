@@ -10,12 +10,15 @@ from datetime import datetime, timedelta
 import os
 import numpy as np
 import copy
+from typing import Optional
 
 from grid2op.Exceptions import (
-    ChronicsNotFoundError,
+    ChronicsNotFoundError, HandlerError
 )
 
 from grid2op.Chronics.gridValue import GridValue
+from grid2op.Chronics.handlers import BaseHandler
+
 from grid2op.dtypes import dt_int, dt_float
 
 
@@ -56,28 +59,21 @@ class FromHandlers(GridValue):
             self._init_date_time()
             
         # all my "handlers" (I need to perform a deepcopy otherwise data are kept between episode...)
-        self.gen_p_handler = copy.deepcopy(gen_p_handler)
-        self.gen_v_handler = copy.deepcopy(gen_v_handler)
-        self.load_p_handler = copy.deepcopy(load_p_handler)
-        self.load_q_handler = copy.deepcopy(load_q_handler)
-        self.maintenance_handler = copy.deepcopy(maintenance_handler)
-        self.hazards_handler = copy.deepcopy(hazards_handler)
-        self.gen_p_for_handler = copy.deepcopy(gen_p_for_handler)
-        self.gen_v_for_handler = copy.deepcopy(gen_v_for_handler)
-        self.load_p_for_handler = copy.deepcopy(load_p_for_handler)
-        self.load_q_for_handler = copy.deepcopy(load_q_for_handler)
+        self.gen_p_handler : BaseHandler = copy.deepcopy(gen_p_handler)
+        self.gen_v_handler : BaseHandler = copy.deepcopy(gen_v_handler)
+        self.load_p_handler : BaseHandler = copy.deepcopy(load_p_handler)
+        self.load_q_handler : BaseHandler = copy.deepcopy(load_q_handler)
+        self.maintenance_handler : Optional[BaseHandler] = copy.deepcopy(maintenance_handler)
+        self.hazards_handler : Optional[BaseHandler] = copy.deepcopy(hazards_handler)
+        self.gen_p_for_handler : Optional[BaseHandler] = copy.deepcopy(gen_p_for_handler)
+        self.gen_v_for_handler : Optional[BaseHandler] = copy.deepcopy(gen_v_for_handler)
+        self.load_p_for_handler : Optional[BaseHandler] = copy.deepcopy(load_p_for_handler)
+        self.load_q_for_handler : Optional[BaseHandler] = copy.deepcopy(load_q_for_handler)
         
         # when there are no maintenance / hazards, build this only once 
         self._no_mh_time = None
         self._no_mh_duration = None
-        
-        # set the path if needed
-        # if chunk_size is not None:
-        #     warnings.warn("chunk_size has no effect here, please set it in the handler directly (*eg* `CSVHandler(chunk_size=...)`) instead")
-        
-        # if max_iter != -1:
-        #     warnings.warn("max_iter has no effect here, please set it in the handler directly (*eg* `CSVHandler(max_iter=...)`) instead")
-        
+
         # define the active handlers
         self._active_handlers = [self.gen_p_handler, self.gen_v_handler, self.load_p_handler, self.load_q_handler]
         self._forcast_handlers = []
@@ -97,6 +93,9 @@ class FromHandlers(GridValue):
         if self.load_q_for_handler is not None:
             self._active_handlers.append(self.load_q_for_handler)
             self._forcast_handlers.append(self.load_q_for_handler)
+        self._check_types()
+        
+        # now synch all handlers
         for handl in self._forcast_handlers:
             handl.set_h_forecast(h_forecast)
             
@@ -109,6 +108,14 @@ class FromHandlers(GridValue):
         if max_iter != -1:
             self.set_max_iter(max_iter)
             
+        self.init_datetime()
+    
+    def _check_types(self):
+        for handl in self._active_handlers:
+            if not isinstance(handl, BaseHandler):
+                raise HandlerError("One of the \"handler\" used in your time series does not "
+                                   "inherit from `BaseHandler`. This is not supported.")
+            
     def initialize(
         self,
         order_backend_loads,
@@ -120,6 +127,9 @@ class FromHandlers(GridValue):
         # set the current path of the time series
         self._set_path(self.path)
         
+        # give the right date and times to the "handlers"
+        self.init_datetime()
+        
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
         self.n_line = len(order_backend_lines)
@@ -127,27 +137,30 @@ class FromHandlers(GridValue):
         
         self.gen_p_handler.initialize(order_backend_prods, names_chronics_to_backend)
         self.gen_v_handler.initialize(order_backend_prods, names_chronics_to_backend)
+        self.load_p_handler.initialize(order_backend_loads, names_chronics_to_backend)
+        self.load_q_handler.initialize(order_backend_loads, names_chronics_to_backend)
+        
+        self._update_max_iter()  # might be used in the forecast
         if self.gen_p_for_handler is not None:
             self.gen_p_for_handler.initialize(order_backend_prods, names_chronics_to_backend)
         if self.gen_v_for_handler is not None:
             self.gen_v_for_handler.initialize(order_backend_prods, names_chronics_to_backend)
-            
-        self.load_p_handler.initialize(order_backend_loads, names_chronics_to_backend)
-        self.load_q_handler.initialize(order_backend_loads, names_chronics_to_backend)
         if self.load_p_for_handler is not None:
             self.load_p_for_handler.initialize(order_backend_loads, names_chronics_to_backend)
         if self.load_q_for_handler is not None:
             self.load_q_for_handler.initialize(order_backend_loads, names_chronics_to_backend)
-            
+        
+        self._update_max_iter()  # might be used in the maintenance
         if self.maintenance_handler is not None:
             self.maintenance_handler.initialize(order_backend_lines, names_chronics_to_backend)
-            
         if self.hazards_handler is not None:
             self.hazards_handler.initialize(order_backend_lines, names_chronics_to_backend)
             
         # when there are no maintenance / hazards, build this only once 
         self._no_mh_time = np.full(self.n_line, fill_value=-1, dtype=dt_int)
         self._no_mh_duration = np.full(self.n_line, fill_value=0, dtype=dt_int)
+        
+        self._update_max_iter()
             
     def load_next(self):
         self.current_datetime += self.time_interval
@@ -160,8 +173,10 @@ class FromHandlers(GridValue):
         
         # load maintenance
         if self.maintenance_handler is not None:
-            res["maintenance"] = self.maintenance_handler.load_next(res)
-            maintenance_time, maintenance_duration = self.maintenance_handler.load_next_maintenance()
+            tmp_ = self.maintenance_handler.load_next(res)
+            if tmp_ is not None:
+                res["maintenance"] = tmp_
+                maintenance_time, maintenance_duration = self.maintenance_handler.load_next_maintenance()
         else:
             maintenance_time = self._no_mh_time
             maintenance_duration = self._no_mh_duration
@@ -199,6 +214,7 @@ class FromHandlers(GridValue):
         if self.max_iter > 0:
             if self.curr_iter > self.max_iter:
                 return True
+            
         # or if any of the handler is "done"
         for handl in self._active_handlers:
             if handl.done():
@@ -210,10 +226,6 @@ class FromHandlers(GridValue):
             el.check_validity(backend)
         # TODO other things here maybe ???
         return True
-    
-    def fast_forward(self, nb_timestep):
-        # TODO
-        super().fast_forward(nb_timestep)
 
     def forecasts(self):
         res = []
@@ -225,7 +237,6 @@ class FromHandlers(GridValue):
             res_d = {}
             dict_ = {}
             
-            prod_v = None
             if self.load_p_for_handler is not None:
                 tmp_ = self.load_p_for_handler.forecast(h_id, dict_,
                                                         self.load_p_handler, self.load_q_handler,
@@ -294,6 +305,44 @@ class FromHandlers(GridValue):
         self.max_iter = int(max_iter)
         for el in self._active_handlers:
             el.set_max_iter(max_iter)
+    
+    def init_datetime(self):
+        for handl in self._active_handlers:
+            handl.set_times(self.start_datetime, self.time_interval)
+    
+    def seed(self, seed):
+        super().seed(seed)
+        max_seed = np.iinfo(dt_int).max
+        seeds = self.space_prng.randint(max_seed, size=10)
+        # this way of doing ensure the same seed given by the environment is
+        # used even if some "handlers" are missing
+        # (if env.seed(0) is called, then regardless of maintenance_handler or not, 
+        # gen_p_for_handler will always be seeded with the same number)
+        gp_seed = self.gen_p_handler.seed(seeds[0])
+        gv_seed = self.gen_v_handler.seed(seeds[1])
+        lp_seed = self.load_p_handler.seed(seeds[2])
+        lq_seed = self.load_q_handler.seed(seeds[3])
+        maint_seed = None
+        if self.maintenance_handler is not None:
+            maint_seed = self.maintenance_handler.seed(seeds[4])
+        haz_seed = None
+        if self.hazards_handler is not None:
+            haz_seed = self.hazards_handler.seed(seeds[5])
+        gpf_seed = None
+        if self.gen_p_for_handler is not None:
+            gpf_seed = self.gen_p_for_handler.seed(seeds[6])
+        gvf_seed = None
+        if self.gen_v_for_handler is not None:
+            gvf_seed = self.gen_v_for_handler.seed(seeds[7])
+        lpf_seed = None
+        if self.load_p_for_handler is not None:
+            lpf_seed = self.load_p_for_handler.seed(seeds[8])    
+        lqf_seed = None
+        if self.load_q_for_handler is not None:
+            lqf_seed = self.load_q_for_handler.seed(seeds[9])   
+        return (seed, gp_seed, gv_seed, lp_seed, lq_seed, 
+                maint_seed, haz_seed, gpf_seed, gvf_seed,
+                lpf_seed, lqf_seed) 
         
     def _set_path(self, path):
         """tell the handler where this chronics is located"""
@@ -302,6 +351,10 @@ class FromHandlers(GridValue):
         
         for el in self._active_handlers:
             el.set_path(path)
+    
+    def set_max_episode_duration(self, max_ep_dur):
+        for handl in self._active_handlers:
+            handl.set_max_episode_duration(max_ep_dur)
             
     def _update_max_iter(self):
         # get the max iter from the handlers
@@ -311,6 +364,18 @@ class FromHandlers(GridValue):
         max_iters.append(self.max_iter)
         # take the minimum
         self.max_iter = np.min(max_iters)
+        
+        # update everyone with the "new" max iter
+        max_ep_dur = [el.max_episode_duration for el in self._active_handlers]
+        max_ep_dur = [el for el in max_ep_dur if el is not None]
+        if max_ep_dur:
+            if self.max_iter == -1:
+                self.max_iter = np.min(max_ep_dur)
+            else:
+                self.max_iter = min(self.max_iter, np.min(max_ep_dur))
+            
+        if self.max_iter != -1:
+            self.set_max_episode_duration(self.max_iter)
         
     def _load_injection(self):
         dict_ = {}
@@ -364,4 +429,9 @@ class FromHandlers(GridValue):
                     "format."
                 )
             self.time_interval = timedelta(hours=tmp.hour, minutes=tmp.minute)
-    
+            
+    def fast_forward(self, nb_timestep):
+        for _ in range(nb_timestep):
+            self.load_next()
+            # for this class I suppose the real data AND the forecast are read each step
+            self.forecasts()

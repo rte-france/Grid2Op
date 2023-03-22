@@ -768,3 +768,6 @@ class Multifolder(GridValue):
                     'Impossible to save the "metadata" for the chronics with error:\n"{}"'
                     "".format(exc_)
                 )
+                
+    def fast_forward(self, nb_timestep):
+        self.data.fast_forward(nb_timestep)
