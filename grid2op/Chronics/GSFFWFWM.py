@@ -117,13 +117,17 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         )
 
     def _init_attrs(
-        self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None
+        self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None,
+        is_init=False
     ):
         super()._init_attrs(
-            load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=None
+            load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=None,
+            is_init=is_init
         )
-        # ignore the maitenance but keep hazards
-        self._sample_maintenance()
+        if is_init:
+            # ignore the maitenance but keep hazards
+            self._sample_maintenance()
+            # sampled only at the initialization of the episode, and not at each chunk !
 
     def _sample_maintenance(self):
         ########
