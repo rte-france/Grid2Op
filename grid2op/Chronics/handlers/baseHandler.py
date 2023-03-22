@@ -8,9 +8,10 @@
 
 import copy
 import os
-from typing import Optional
+from typing import Optional, Tuple
 from grid2op.Space import RandomObject
 from datetime import timedelta, datetime
+
 
 class BaseHandler(RandomObject):
     def __init__(self, array_name, max_iter=-1, h_forecast=(5, )):
@@ -28,6 +29,7 @@ class BaseHandler(RandomObject):
             self.max_iter = int(max_iter)
         else:
             self.max_iter = -1
+            
     def set_max_episode_duration(self, max_episode_duration):
         if max_episode_duration is not None:
             self.max_episode_duration = int(max_episode_duration)
@@ -81,14 +83,15 @@ class BaseHandler(RandomObject):
     def load_next_hazard(self):
         # TODO
         raise NotImplementedError()
-    
-    def forecast(self,
-                 forecast_horizon_id,
-                 inj_dict_previous_forecast,
-                 load_p_handler,
-                 load_q_handler,
-                 gen_p_handler,
-                 gen_v_handler):
-        raise NotImplementedError()
         
+    def forecast(self,
+                 forecast_horizon_id : int,
+                 inj_dict_env : dict,
+                 inj_dict_previous_forecast : dict,
+                 # eg gen_p_handler if this is set to gen_p_for_handler:
+                 env_handler : "BaseHandler",  
+                 # list of the 4 env handlers: (load_p_handler, load_q_handler, gen_p_handler, gen_v_handler)
+                 env_handlers : Tuple["BaseHandler", "BaseHandler", "BaseHandler", "BaseHandler"]
+                 ):
+        raise NotImplementedError()
     

@@ -109,6 +109,7 @@ class FromHandlers(GridValue):
             self.set_max_iter(max_iter)
             
         self.init_datetime()
+        self.current_inj = None
     
     def _check_types(self):
         for handl in self._active_handlers:
@@ -134,6 +135,7 @@ class FromHandlers(GridValue):
         self.n_load = len(order_backend_loads)
         self.n_line = len(order_backend_lines)
         self.curr_iter = 0
+        self.current_inj = None
         
         self.gen_p_handler.initialize(order_backend_prods, names_chronics_to_backend)
         self.gen_v_handler.initialize(order_backend_prods, names_chronics_to_backend)
@@ -187,7 +189,8 @@ class FromHandlers(GridValue):
             hazard_duration = self.hazards_handler.load_next_hazard()
         else:
             hazard_duration = self._no_mh_duration
-            
+        
+        self.current_inj = res
         return (
             self.current_datetime,
             res,
@@ -238,27 +241,27 @@ class FromHandlers(GridValue):
             dict_ = {}
             
             if self.load_p_for_handler is not None:
-                tmp_ = self.load_p_for_handler.forecast(h_id, dict_,
-                                                        self.load_p_handler, self.load_q_handler,
-                                                        self.gen_p_handler, self.gen_v_handler)
+                tmp_ = self.load_p_for_handler.forecast(h_id, self.current_inj, dict_, self.load_p_handler,
+                                                        (self.load_p_handler, self.load_q_handler,
+                                                         self.gen_p_handler, self.gen_v_handler))
                 if tmp_ is not None:
                     dict_["load_p"] = dt_float(1.0) * tmp_
             if self.load_q_for_handler is not None:
-                tmp_ = self.load_q_for_handler.forecast(h_id, dict_,
-                                                        self.load_p_handler, self.load_q_handler,
-                                                        self.gen_p_handler, self.gen_v_handler)
+                tmp_ = self.load_q_for_handler.forecast(h_id, self.current_inj, dict_, self.load_q_handler,
+                                                        (self.load_p_handler, self.load_q_handler,
+                                                         self.gen_p_handler, self.gen_v_handler))
                 if tmp_ is not None:
                     dict_["load_q"] = dt_float(1.0) * tmp_
             if self.gen_p_for_handler is not None:
-                tmp_ = self.gen_p_for_handler.forecast(h_id, dict_,
-                                                        self.load_p_handler, self.load_q_handler,
-                                                        self.gen_p_handler, self.gen_v_handler)
+                tmp_ = self.gen_p_for_handler.forecast(h_id, self.current_inj, dict_, self.gen_p_handler,
+                                                       (self.load_p_handler, self.load_q_handler,
+                                                        self.gen_p_handler, self.gen_v_handler))
                 if tmp_ is not None:
                     dict_["prod_p"] = dt_float(1.0) * tmp_
             if self.gen_v_for_handler is not None:
-                tmp_ = self.gen_v_for_handler.forecast(h_id, dict_,
-                                                       self.load_p_handler, self.load_q_handler,
-                                                       self.gen_p_handler, self.gen_v_handler)
+                tmp_ = self.gen_v_for_handler.forecast(h_id, self.current_inj, dict_, self.gen_v_handler, 
+                                                       (self.load_p_handler, self.load_q_handler,
+                                                        self.gen_p_handler, self.gen_v_handler))
                 if tmp_ is not None:
                     dict_["prod_v"] = dt_float(1.0) * tmp_
             if dict_:

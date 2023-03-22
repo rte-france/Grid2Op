@@ -302,16 +302,18 @@ class CSVHandler(BaseHandler):
             self.tmp_max_index = array.shape[0]
         return array
 
-    def forecast(self, *args, **kwargs):
+    def forecast(self,
+                 inj_dict_env,
+                 forecast_horizon_id,
+                 inj_dict_previous_forecast,
+                 # eg gen_p_handler if this is set to gen_p_for_handler:
+                 env_handler,  
+                 # list of the 4 env handlers: (load_p_handler, load_q_handler, gen_p_handler, gen_v_handler)
+                 env_handlers):
         raise HandlerError(f"forecast {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
                            "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
                            "for your forecast data.")
-        
-    # def set_h_forecast(self, h_forecasts):
-    #     raise HandlerError("You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
-    #                        "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
-    #                        "for your forecast data.")
-        
+    
     def get_available_horizons(self):
         raise HandlerError(f"get_available_horizons {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
                            "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "

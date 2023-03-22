@@ -14,6 +14,7 @@ import warnings
 from grid2op.tests.helper_path_test import *
 
 import grid2op
+from grid2op.Exceptions import NoForecastAvailable
 from grid2op.Chronics import GridStateFromFileWithForecasts, GridStateFromFile, GridStateFromFileWithForecastsWithoutMaintenance
 from grid2op.Chronics.time_series_from_handlers import FromHandlers
 from grid2op.Chronics.handlers import (CSVHandler,
@@ -21,6 +22,7 @@ from grid2op.Chronics.handlers import (CSVHandler,
                                        CSVHandlerForecast,
                                        CSVHandlerMaintenance,
                                        JSONHandlerMaintenance,
+                                       PersistenceHandler,
                                        )
 from grid2op.Runner import Runner
 from grid2op.Exceptions import HandlerError
@@ -479,6 +481,44 @@ class TestMaintenanceJson(unittest.TestCase):
         assert np.all(np.isin(type(self.env2).name_line[all_ln_nm], line_to_maintenance))
         assert np.all(np.isin(line_to_maintenance, type(self.env2).name_line[all_ln_nm]))
         
+
+class TestPersistenceHandler(unittest.TestCase):
+    def setUp(self) -> None:   
+        hs_ = [5*i for i in range(12)]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("l2rpn_case14_sandbox",
+                                     data_feeding_kwargs={"gridvalueClass": FromHandlers,
+                                                          "gen_p_handler": CSVHandler("prod_p"),
+                                                          "load_p_handler": CSVHandler("load_p"),
+                                                          "gen_v_handler": CSVHandler("prod_v"),
+                                                          "load_q_handler": CSVHandler("load_q"),
+                                                          "h_forecast": hs_,
+                                                          "gen_p_for_handler": PersistenceHandler("prod_p_forecasted"),
+                                                          "load_p_for_handler": PersistenceHandler("load_p_forecasted"),
+                                                          "load_q_for_handler": PersistenceHandler("load_q_forecasted"),
+                                                          },
+                                     _add_to_name="TestForecastHandlerNoMulti14",
+                                     test=True)  
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()  
+    
+    def test_step(self):
+        obs = self.env.reset()
+        assert len(obs._forecasted_inj) == 13 # 12 + 1
+        init_obj = obs._forecasted_inj[0]
+        for el in obs._forecasted_inj:
+            for k_ in ["load_p", "load_q"]:
+                assert np.all(el[1]["injection"][k_] == init_obj[1]["injection"][k_])
+            k_ = "prod_p"  # because of slack...
+            assert np.all(el[1]["injection"][k_][:-1] == init_obj[1]["injection"][k_][:-1]) 
+            
+        obs.simulate(self.env.action_space(), 12)
+        with self.assertRaises(NoForecastAvailable):
+            obs.simulate(self.env.action_space(), 13)
+    
+    
         
 if __name__ == "__main__":
     unittest.main()

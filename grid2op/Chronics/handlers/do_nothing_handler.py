@@ -34,12 +34,12 @@ class DoNothingHandler(BaseHandler):
         
     def forecast(self,
                  forecast_horizon_id,
+                 inj_dict_env,
                  inj_dict_previous_forecast,
-                 load_p_handler,
-                 load_q_handler,
-                 gen_p_handler,
-                 gen_v_handler
-                 ):
+                 # eg gen_p_handler if this is set to gen_p_for_handler:
+                 env_handler,  
+                 # list of the 4 env handlers: (load_p_handler, load_q_handler, gen_p_handler, gen_v_handler)
+                 env_handlers):
         return None
     
     def load_next_maintenance(self):
