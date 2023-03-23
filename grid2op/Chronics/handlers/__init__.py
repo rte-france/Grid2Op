@@ -8,16 +8,18 @@
 
 __all__ = ["BaseHandler",
            "CSVHandler",
-           "CSVHandlerForecast",
+           "CSVForecastHandler",
            "DoNothingHandler",
-           "CSVHandlerMaintenance",
-           "JSONHandlerMaintenance",
-           "PersistenceHandler"]
+           "CSVMaintenanceHandler",
+           "JSONMaintenanceHandler",
+           "PersistenceForecastHandler",
+           "PerfectForecastHandler"]
 
 from .baseHandler import BaseHandler
 from .csvHandler import CSVHandler
 from .do_nothing_handler import DoNothingHandler
-from .csvHandlerForecast import CSVHandlerForecast
-from .csvHandlerMaintenance import CSVHandlerMaintenance
-from .jsonHandlerMaintenance import JSONHandlerMaintenance
-from .persitenceHandler import PersistenceHandler
+from .csvForecastHandler import CSVForecastHandler
+from .csvMaintenanceHandler import CSVMaintenanceHandler
+from .jsonMaintenanceHandler import JSONMaintenanceHandler
+from .persitenceForecastHandler import PersistenceForecastHandler
+from .perfectForecastHandler import PerfectForecastHandler

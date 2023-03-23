@@ -20,7 +20,7 @@ from grid2op.Chronics.handlers.csvHandler import CSVHandler
 
 
 
-class CSVHandlerMaintenance(CSVHandler):
+class CSVMaintenanceHandler(CSVHandler):
     """Read the time series from a csv.
     
     Only for Maintenance data, not for environment nor for forecasts

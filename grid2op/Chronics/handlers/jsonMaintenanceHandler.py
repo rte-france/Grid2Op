@@ -14,7 +14,7 @@ from grid2op.Chronics.gridValue import GridValue
 
 from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
-class JSONHandlerMaintenance(BaseHandler):
+class JSONMaintenanceHandler(BaseHandler):
     def __init__(self,
                  array_name="maintenance",
                  json_file_name="maintenance_meta.json",

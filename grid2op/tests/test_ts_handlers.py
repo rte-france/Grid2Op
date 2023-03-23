@@ -19,10 +19,11 @@ from grid2op.Chronics import GridStateFromFileWithForecasts, GridStateFromFile, 
 from grid2op.Chronics.time_series_from_handlers import FromHandlers
 from grid2op.Chronics.handlers import (CSVHandler,
                                        DoNothingHandler,
-                                       CSVHandlerForecast,
-                                       CSVHandlerMaintenance,
-                                       JSONHandlerMaintenance,
-                                       PersistenceHandler,
+                                       CSVForecastHandler,
+                                       CSVMaintenanceHandler,
+                                       JSONMaintenanceHandler,
+                                       PersistenceForecastHandler,
+                                       PerfectForecastHandler
                                        )
 from grid2op.Runner import Runner
 from grid2op.Exceptions import HandlerError
@@ -297,10 +298,10 @@ class TestForecastHandlerNoMultiFolder(TestWithoutMultiFolderEnv):
                                                           "load_p_handler": CSVHandler("load_p"),
                                                           "gen_v_handler": CSVHandler("prod_v"),
                                                           "load_q_handler": CSVHandler("load_q"),
-                                                          "gen_p_for_handler": CSVHandlerForecast("prod_p_forecasted"),
-                                                          "load_p_for_handler": CSVHandlerForecast("load_p_forecasted"),
-                                                          "gen_v_for_handler": CSVHandlerForecast("prod_v_forecasted"),
-                                                          "load_q_for_handler": CSVHandlerForecast("load_q_forecasted"),
+                                                          "gen_p_for_handler": CSVForecastHandler("prod_p_forecasted"),
+                                                          "load_p_for_handler": CSVForecastHandler("load_p_forecasted"),
+                                                          "gen_v_for_handler": CSVForecastHandler("prod_v_forecasted"),
+                                                          "load_q_for_handler": CSVForecastHandler("load_q_forecasted"),
                                                           },
                                      chronics_path=chronics_path,
                                      _add_to_name="TestForecastHandlerNoMulti14",
@@ -327,10 +328,10 @@ class TestForecastHandler14(TestCSVHandlerEnv):
                                                           "load_p_handler": CSVHandler("load_p"),
                                                           "gen_v_handler": CSVHandler("prod_v"),
                                                           "load_q_handler": CSVHandler("load_q"),
-                                                          "gen_p_for_handler": CSVHandlerForecast("prod_p_forecasted"),
-                                                          "load_p_for_handler": CSVHandlerForecast("load_p_forecasted"),
-                                                          "gen_v_for_handler": CSVHandlerForecast("prod_v_forecasted"),
-                                                          "load_q_for_handler": CSVHandlerForecast("load_q_forecasted"),
+                                                          "gen_p_for_handler": CSVForecastHandler("prod_p_forecasted"),
+                                                          "load_p_for_handler": CSVForecastHandler("load_p_forecasted"),
+                                                          "gen_v_for_handler": CSVForecastHandler("prod_v_forecasted"),
+                                                          "load_q_for_handler": CSVForecastHandler("load_q_forecasted"),
                                                           },
                                      _add_to_name="TestForecastHandlerEnv",
                                      test=True)
@@ -359,9 +360,9 @@ class TestForecastHandler5MultiSteps(TestCSVHandlerEnv):
                                                           "load_p_handler": CSVHandler("load_p"),
                                                           "load_q_handler": CSVHandler("load_q"),
                                                           "gen_v_handler": DoNothingHandler(),
-                                                          "gen_p_for_handler": CSVHandlerForecast("prod_p_forecasted"),
-                                                          "load_p_for_handler": CSVHandlerForecast("load_p_forecasted"),
-                                                          "load_q_for_handler": CSVHandlerForecast("load_q_forecasted"),
+                                                          "gen_p_for_handler": CSVForecastHandler("prod_p_forecasted"),
+                                                          "load_p_for_handler": CSVForecastHandler("load_p_forecasted"),
+                                                          "load_q_for_handler": CSVForecastHandler("load_q_forecasted"),
                                                           },
                                      _add_to_name="TestForecastHandler5MultiSteps",
                                      test=True)
@@ -406,11 +407,11 @@ class TestMaintenanceCSV(TestForecastHandler14):
                                                           "load_p_handler": CSVHandler("load_p"),
                                                           "load_q_handler": CSVHandler("load_q"),
                                                           "gen_v_handler": CSVHandler("prod_v"),
-                                                          "maintenance_handler": CSVHandlerMaintenance(),
-                                                          "gen_p_for_handler": CSVHandlerForecast("prod_p_forecasted"),
-                                                          "gen_v_for_handler": CSVHandlerForecast("prod_v_forecasted"),
-                                                          "load_p_for_handler": CSVHandlerForecast("load_p_forecasted"),
-                                                          "load_q_for_handler": CSVHandlerForecast("load_q_forecasted"),
+                                                          "maintenance_handler": CSVMaintenanceHandler(),
+                                                          "gen_p_for_handler": CSVForecastHandler("prod_p_forecasted"),
+                                                          "gen_v_for_handler": CSVForecastHandler("prod_v_forecasted"),
+                                                          "load_p_for_handler": CSVForecastHandler("load_p_forecasted"),
+                                                          "load_q_for_handler": CSVForecastHandler("load_q_forecasted"),
                                                           },
                                      _add_to_name="TestMaintenanceCSV",
                                      test=True,
@@ -436,10 +437,10 @@ class TestMaintenanceJson(unittest.TestCase):
                                                           "load_p_handler": CSVHandler("load_p"),
                                                           "load_q_handler": CSVHandler("load_q"),
                                                           "gen_v_handler": CSVHandler("prod_v"),
-                                                          "maintenance_handler": JSONHandlerMaintenance(),
-                                                          "gen_p_for_handler": CSVHandlerForecast("prod_p_forecasted"),
-                                                          "load_p_for_handler": CSVHandlerForecast("load_p_forecasted"),
-                                                          "load_q_for_handler": CSVHandlerForecast("load_q_forecasted"),
+                                                          "maintenance_handler": JSONMaintenanceHandler(),
+                                                          "gen_p_for_handler": CSVForecastHandler("prod_p_forecasted"),
+                                                          "load_p_for_handler": CSVForecastHandler("load_p_forecasted"),
+                                                          "load_q_for_handler": CSVForecastHandler("load_q_forecasted"),
                                                           },
                                      _add_to_name="TestMaintenanceCSV",
                                      test=True,
@@ -484,7 +485,7 @@ class TestMaintenanceJson(unittest.TestCase):
 
 class TestPersistenceHandler(unittest.TestCase):
     def setUp(self) -> None:   
-        hs_ = [5*i for i in range(12)]
+        hs_ = [5*(i+1) for i in range(12)]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("l2rpn_case14_sandbox",
@@ -494,18 +495,18 @@ class TestPersistenceHandler(unittest.TestCase):
                                                           "gen_v_handler": CSVHandler("prod_v"),
                                                           "load_q_handler": CSVHandler("load_q"),
                                                           "h_forecast": hs_,
-                                                          "gen_p_for_handler": PersistenceHandler("prod_p_forecasted"),
-                                                          "load_p_for_handler": PersistenceHandler("load_p_forecasted"),
-                                                          "load_q_for_handler": PersistenceHandler("load_q_forecasted"),
+                                                          "gen_p_for_handler": PersistenceForecastHandler("prod_p_forecasted"),
+                                                          "load_p_for_handler": PersistenceForecastHandler("load_p_forecasted"),
+                                                          "load_q_for_handler": PersistenceForecastHandler("load_q_forecasted"),
                                                           },
-                                     _add_to_name="TestForecastHandlerNoMulti14",
+                                     _add_to_name="TestPersistenceHandler",
                                      test=True)  
+            
     def tearDown(self) -> None:
         self.env.close()
         return super().tearDown()  
     
-    def test_step(self):
-        obs = self.env.reset()
+    def _aux_test_obs(self, obs, max_it=12):
         assert len(obs._forecasted_inj) == 13 # 12 + 1
         init_obj = obs._forecasted_inj[0]
         for el in obs._forecasted_inj:
@@ -517,8 +518,94 @@ class TestPersistenceHandler(unittest.TestCase):
         obs.simulate(self.env.action_space(), 12)
         with self.assertRaises(NoForecastAvailable):
             obs.simulate(self.env.action_space(), 13)
-    
-    
         
+    def test_step(self):
+        obs = self.env.reset()
+        self._aux_test_obs(obs)
+        obs, *_ = self.env.step(self.env.action_space())
+        self._aux_test_obs(obs)
+        
+        obs = self.env.reset()
+        self._aux_test_obs(obs)
+        obs, *_ = self.env.step(self.env.action_space())
+        self._aux_test_obs(obs)
+        
+    def test_fast_forward_chronics(self):
+        obs = self.env.reset()
+        self.env.fast_forward_chronics(5)
+        obs, *_ = self.env.step(self.env.action_space())
+        self._aux_test_obs(obs)
+        self.env.fast_forward_chronics(7)
+        obs, *_ = self.env.step(self.env.action_space())
+        self._aux_test_obs(obs)
+    
+    def test_copy(self):
+        env_cpy = self.env.copy()
+        obs_cpy = env_cpy.reset()
+        obs = self.env.reset()
+        self._aux_test_obs(obs_cpy)
+        for el, el_cpy in zip(obs._forecasted_inj, obs_cpy._forecasted_inj):
+            for k_ in ["load_p", "load_q", "prod_p"]:
+                assert np.all(el[1]["injection"][k_] == el_cpy[1]["injection"][k_])
+    
+    def test_runner(self):
+        from grid2op.Agent import BaseAgent
+        class TestAgent(BaseAgent):
+            def __init__(self, action_space, tester):
+                super().__init__(action_space)
+                self.tester = tester
+            def act(self, obs, reward, done=False):
+                self.tester._aux_test_obs(obs, max_it=5 - obs.current_step)
+                _ = self.tester.env.step(self.action_space())   # for TestPerfectForecastHandler: self.tester.env should be synch with the runner env...
+                return self.action_space()
+            def reset(self, obs):
+                self.tester.env.reset()  # for TestPerfectForecastHandler
+                return super().reset(obs)
+            
+        testagent = TestAgent(self.env.action_space, self)
+        self.env.set_id(0)  # for TestPerfectForecastHandler
+        runner = Runner(**self.env.get_params_for_runner(), agentClass=None, agentInstance=testagent)
+        res = runner.run(nb_episode=2, episode_id=[0, 1], env_seeds=[2, 3], max_iter=5)
+        
+
+class TestPerfectForecastHandler(TestPersistenceHandler):
+    def setUp(self) -> None:   
+        hs_ = [5*(i+1) for i in range(12)]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("l2rpn_case14_sandbox",
+                                     data_feeding_kwargs={"gridvalueClass": FromHandlers,
+                                                          "gen_p_handler": CSVHandler("prod_p"),
+                                                          "load_p_handler": CSVHandler("load_p"),
+                                                          "gen_v_handler": CSVHandler("prod_v"),
+                                                          "load_q_handler": CSVHandler("load_q"),
+                                                          "h_forecast": hs_,
+                                                          "gen_p_for_handler": PerfectForecastHandler("prod_p_forecasted"),
+                                                          "gen_v_for_handler": PerfectForecastHandler("prod_v_forecasted"),
+                                                          "load_p_for_handler": PerfectForecastHandler("load_p_forecasted"),
+                                                          "load_q_for_handler": PerfectForecastHandler("load_q_forecasted"),
+                                                          },
+                                     _add_to_name="TestPerfectForecastHandler",
+                                     test=True)  
+    def tearDown(self) -> None:
+        self.env.close()
+
+    def _aux_test_obs(self, obs, max_it=13):
+        assert len(obs._forecasted_inj) == 13 # 12 + 1
+        env_cpy = self.env.copy()
+        for it_num, el in enumerate(obs._forecasted_inj[1:]):
+            next_obs, *_ = env_cpy.step(self.env.action_space())
+            for k_ in ["load_p", "load_q", "prod_v"]:
+                assert np.allclose(el[1]["injection"][k_], getattr(next_obs, k_)), f"error for {k_} at iteration {it_num}"
+            k_ = "prod_p"  # because of slack...
+            assert np.all(el[1]["injection"][k_][:-1] == getattr(next_obs, k_)[:-1]) 
+            if max_it > it_num:
+                break
+                
+        obs.simulate(self.env.action_space(), 12)
+        with self.assertRaises(NoForecastAvailable):
+            obs.simulate(self.env.action_space(), 13)
+                     
+            
 if __name__ == "__main__":
     unittest.main()

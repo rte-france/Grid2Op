@@ -311,17 +311,17 @@ class CSVHandler(BaseHandler):
                  # list of the 4 env handlers: (load_p_handler, load_q_handler, gen_p_handler, gen_v_handler)
                  env_handlers):
         raise HandlerError(f"forecast {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
-                           "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
+                           "Please consider using `CSVForecastHandler` (`from grid2op.Chronics.handlers import CSVForecastHandler`) "
                            "for your forecast data.")
     
     def get_available_horizons(self):
         raise HandlerError(f"get_available_horizons {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
-                           "Please consider using `CSVHandlerForecast` (`from grid2op.Chronics.handlers import CSVHandlerForecast`) "
+                           "Please consider using `CSVForecastHandler` (`from grid2op.Chronics.handlers import CSVForecastHandler`) "
                            "for your forecast data.")
         
     def load_next_maintenance(self):
         raise HandlerError(f"load_next_maintenance {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST data nor MAINTENANCE data. "
-                           "Please consider using `CSVHandlerMaintenance` (`from grid2op.Chronics.handlers import CSVHandlerMaintenance`) "
+                           "Please consider using `CSVMaintenanceHandler` (`from grid2op.Chronics.handlers import CSVMaintenanceHandler`) "
                            "for your maintenance data.")
         
     def next_chronics(self):
@@ -329,16 +329,15 @@ class CSVHandler(BaseHandler):
         self.curr_iter = 0
         if self.chunk_size is not None:
             self._clear()  # we should have to reload everything if all data have been already loaded
-        
-# handler:
-# set_path OK
-# done OK
-# initialize OK
-# get_max_iter OK
-# set_max_iter OK
-# set_chunk_size OK
-# next_chronics
-# load_next_maintenance SOON
-# load_next_hazard SOON
-# load_next OK
-# check_validity(backend) SOON
+    
+    def get_future_data(self, horizon: int):
+        horizon = int(horizon)
+        tmp_index = self.current_index + horizon // (self.time_interval.total_seconds() // 60)
+        tmp_index = int(tmp_index)
+        if tmp_index < self.array.shape[0]:
+            res = self.array[tmp_index, :]
+        else:
+            import warnings
+            warnings.warn(f"{type(self)} {self.array_name}: No more data to get, the last known data is returned.")
+            res = self.array[-1, :]
+        return copy.deepcopy(res)

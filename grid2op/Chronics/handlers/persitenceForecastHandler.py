@@ -12,13 +12,13 @@ from grid2op.Exceptions import HandlerError
 from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
 
-class PersistenceHandler(BaseHandler):
+class PersistenceForecastHandler(BaseHandler):
     INJ_KEYS = ("load_p", "load_q", "prod_p", "prod_v")
     def __init__(self, array_name, max_iter=-1):
         super().__init__(array_name, max_iter)
         tmp = re.sub("_for.*$", "", array_name)
         tmp = re.sub("gen", "prod", tmp)
-        if tmp in self.INJ_KEYS:
+        if tmp in type(self).INJ_KEYS:
              self._possible_key = tmp
         else:   
             self._possible_key = None

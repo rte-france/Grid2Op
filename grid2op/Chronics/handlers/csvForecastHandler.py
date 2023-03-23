@@ -13,7 +13,7 @@ from grid2op.Exceptions import (
 from grid2op.Chronics.handlers.csvHandler import CSVHandler
 
 
-class CSVHandlerForecast(CSVHandler):
+class CSVForecastHandler(CSVHandler):
     """Read the time series from a csv.
     
     Only for FORECAST data, not for ENVIRONMENT

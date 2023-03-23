@@ -95,3 +95,6 @@ class BaseHandler(RandomObject):
                  ):
         raise NotImplementedError()
     
+    def get_future_data(self, horizon: int):
+        return None
+    
