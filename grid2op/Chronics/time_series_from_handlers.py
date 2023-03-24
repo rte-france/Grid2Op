@@ -23,7 +23,25 @@ from grid2op.dtypes import dt_int, dt_float
 
 
 class FromHandlers(GridValue): 
-    
+    """This class allows to use the :class:`grid2op.Chronics.handlers.BaseHandler` to 
+    generate the "input time series" of the environment.
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    HandlerError
+        _description_
+    NotImplementedError
+        _description_
+    ChronicsNotFoundError
+        _description_
+    ChronicsNotFoundError
+        _description_
+    """
     MULTI_CHRONICS = False
        
     def __init__(

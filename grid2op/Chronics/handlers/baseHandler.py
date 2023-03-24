@@ -15,6 +15,25 @@ from datetime import timedelta, datetime
 
 # TODO logger !
 class BaseHandler(RandomObject):
+    """This is the base class that represents a time series "handler".
+    
+    Basically a "handler" will, for a certain type of data (*eg* load_p or maintenance etc.)
+    handle the way this data type is generated.
+    
+    To be a valid "handler" an class must first inherit from :class:`BaseHandler` and then implements:
+    TODO
+    
+    
+    If the data represents "real time" data (*ie* the data seen by the agent in real 
+    time in the observation) then it needs to implement TODO
+    
+    If the data represents "forecast data" (*ie* the data accessed by the agent when it uses
+    :func:`grid2op.Observation.BaseObservation.simulate` or :class:`grid2op.simulator.Simulator`
+    or :func:`grid2op.Observation.BaseObservation.get_forecasted_env`) then it needs to implement
+    TODO
+    
+    And if the "handler" represents a 
+    """
     def __init__(self, array_name, max_iter=-1, h_forecast=(5, )):
         super().__init__()
         self.max_iter : int = max_iter
@@ -44,6 +63,8 @@ class BaseHandler(RandomObject):
         self.path = path
     
     def set_chunk_size(self, chunk_size):
+        # Chunk size is part of public API but has no sense for 
+        # data not read from a disk
         pass
         
     def set_times(self,
@@ -57,6 +78,7 @@ class BaseHandler(RandomObject):
         self.time_interval = None
 
     def get_kwargs(self, dict_):
+        # no need to remember special kwargs for the base class
         pass
     
     def set_h_forecast(self, h_forecast):
@@ -98,4 +120,3 @@ class BaseHandler(RandomObject):
     
     def get_future_data(self, horizon: int):
         return None
-    

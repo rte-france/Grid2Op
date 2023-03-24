@@ -62,8 +62,18 @@ Main module content
 
    quickstart
    grid2op
-   makeenv
+
+Environments
+---------------
+.. toctree::
+   :maxdepth: 2
+   :caption: Focus on an "environment"
+
    available_envs
+   makeenv
+   env_content
+   create_an_environment
+   dive_into_time_series
 
 Usage examples
 ---------------------
