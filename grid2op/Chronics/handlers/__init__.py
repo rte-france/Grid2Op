@@ -13,7 +13,8 @@ __all__ = ["BaseHandler",
            "CSVMaintenanceHandler",
            "JSONMaintenanceHandler",
            "PersistenceForecastHandler",
-           "PerfectForecastHandler"]
+           "PerfectForecastHandler",
+           "NoisyForecastHandler"]
 
 from .baseHandler import BaseHandler
 from .csvHandler import CSVHandler
@@ -23,3 +24,4 @@ from .csvMaintenanceHandler import CSVMaintenanceHandler
 from .jsonMaintenanceHandler import JSONMaintenanceHandler
 from .persitenceForecastHandler import PersistenceForecastHandler
 from .perfectForecastHandler import PerfectForecastHandler
+from .noisyForecastHandlerWithNoise import NoisyForecastHandler

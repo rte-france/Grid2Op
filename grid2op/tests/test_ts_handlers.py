@@ -23,7 +23,8 @@ from grid2op.Chronics.handlers import (CSVHandler,
                                        CSVMaintenanceHandler,
                                        JSONMaintenanceHandler,
                                        PersistenceForecastHandler,
-                                       PerfectForecastHandler
+                                       PerfectForecastHandler,
+                                       NoisyForecastHandler,
                                        )
 from grid2op.Runner import Runner
 from grid2op.Exceptions import HandlerError
@@ -606,6 +607,99 @@ class TestPerfectForecastHandler(TestPersistenceHandler):
         with self.assertRaises(NoForecastAvailable):
             obs.simulate(self.env.action_space(), 13)
                      
-            
+
+class TestPerfectForecastHandler(unittest.TestCase):
+    def setUp(self) -> None:   
+        hs_ = [5*(i+1) for i in range(12)]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("l2rpn_case14_sandbox",
+                                     data_feeding_kwargs={"gridvalueClass": FromHandlers,
+                                                          "gen_p_handler": CSVHandler("prod_p"),
+                                                          "load_p_handler": CSVHandler("load_p"),
+                                                          "gen_v_handler": CSVHandler("prod_v"),
+                                                          "load_q_handler": CSVHandler("load_q"),
+                                                          "h_forecast": hs_,
+                                                          "gen_p_for_handler": NoisyForecastHandler("prod_p_forecasted"),
+                                                          "load_p_for_handler": NoisyForecastHandler("load_p_forecasted"),
+                                                          "load_q_for_handler": NoisyForecastHandler("load_q_forecasted"),
+                                                          },
+                                     _add_to_name="TestPerfectForecastHandler",
+                                     test=True)  
+    def tearDown(self) -> None:
+        self.env.close()
+
+    def _aux_obs_equal(self, obs1, obs2):
+        assert np.all(obs1.load_p == obs2.load_p)
+        assert np.all(obs1.load_q == obs2.load_q)
+        assert np.all(obs1.gen_p == obs2.gen_p)
+        assert np.all(obs1.rho == obs2.rho)
+        
+    def test_seed(self):
+        self.env.set_id(0)
+        self.env.seed(0)
+        obs = self.env.reset()
+        sim_obs, *_ = obs.simulate(self.env.action_space(), 12)
+        
+        # assert same results when called multiple times
+        sim_obs_, *_ = obs.simulate(self.env.action_space(), 12)
+        self._aux_obs_equal(sim_obs, sim_obs_)
+        
+        # assert same results when env seeded
+        self.env.set_id(0)
+        self.env.seed(0)
+        obs2 = self.env.reset()
+        sim_obs2, *_ = obs2.simulate(self.env.action_space(), 12)
+        self._aux_obs_equal(sim_obs, sim_obs2)
+        
+        # assert not the same when not seeded
+        obs3 = self.env.reset()
+        sim_obs3, *_ = obs3.simulate(self.env.action_space(), 12)
+        assert np.all(sim_obs3.load_p != sim_obs.load_p)
+        
+    def test_get_list(self):
+        handler : NoisyForecastHandler = self.env.chronics_handler.real_data.data.gen_p_for_handler
+        # default behaviour
+        assert handler.sigma is None 
+        assert np.allclose(handler._my_noise, [0.022360679774997897, 0.0316227766016838, 0.03872983346207417,
+                                               0.044721359549995794, 0.05, 0.05477225575051661, 0.05916079783099616,
+                                               0.0632455532033676, 0.0670820393249937, 0.07071067811865475,
+                                               0.07416198487095663, 0.07745966692414834])
+        # with a callable
+        handler.sigma = lambda x: x
+        handler.set_h_forecast(handler._h_forecast)
+        assert np.all(handler._my_noise == [5 * (i+1) for i in range(12)])
+        
+        # with a complete list
+        handler.sigma = [6 * (i+1) for i in range(12)]
+        handler.set_h_forecast(handler._h_forecast)
+        assert np.all(handler._my_noise == handler.sigma)
+        
+        # with a complete list
+        handler.sigma = [6 * (i+1) for i in range(12)]
+        handler.set_h_forecast(handler._h_forecast)
+        assert np.all(handler._my_noise == handler.sigma)
+        
+        # with a complete list (too big)
+        handler.sigma = [6 * (i+1) for i in range(15)]
+        handler.set_h_forecast(handler._h_forecast)
+        assert np.all(handler._my_noise == handler.sigma)
+        
+        # with a complete list (too short)
+        handler.sigma = [6 * (i+1) for i in range(10)]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            handler.set_h_forecast(handler._h_forecast)
+            assert np.all(handler._my_noise == (handler.sigma + [60., 60.]))
+        
+        # with a complete list (too short)
+        # test that a warnings is issued
+        handler.sigma = [6 * (i+1) for i in range(10)]
+        with self.assertRaises(UserWarning):
+            with warnings.catch_warnings():
+                warnings.filterwarnings("error")
+                handler.set_h_forecast(handler._h_forecast)
+        
+        
 if __name__ == "__main__":
     unittest.main()

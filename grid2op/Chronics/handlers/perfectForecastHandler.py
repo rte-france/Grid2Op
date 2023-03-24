@@ -9,7 +9,6 @@
 from typing import Tuple
 from grid2op.Exceptions import HandlerError
 from grid2op.Chronics.handlers.baseHandler import BaseHandler
-from grid2op.Chronics.handlers.persitenceForecastHandler import PersistenceForecastHandler
 
 
 class PerfectForecastHandler(BaseHandler):    

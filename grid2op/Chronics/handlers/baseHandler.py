@@ -13,6 +13,7 @@ from grid2op.Space import RandomObject
 from datetime import timedelta, datetime
 
 
+# TODO logger !
 class BaseHandler(RandomObject):
     def __init__(self, array_name, max_iter=-1, h_forecast=(5, )):
         super().__init__()
