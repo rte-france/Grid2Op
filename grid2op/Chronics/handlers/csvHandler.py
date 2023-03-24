@@ -180,10 +180,6 @@ class CSVHandler(BaseHandler):
         # TODO
         return True
     
-    def load_next_hazard(self, *args, **kwargs):
-        # TODO
-        raise NotImplementedError()
-    
     def _init_attrs(
         self, array
     ):
@@ -323,6 +319,11 @@ class CSVHandler(BaseHandler):
         raise HandlerError(f"load_next_maintenance {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST data nor MAINTENANCE data. "
                            "Please consider using `CSVMaintenanceHandler` (`from grid2op.Chronics.handlers import CSVMaintenanceHandler`) "
                            "for your maintenance data.")
+    
+    def load_next_hazard(self):
+        raise HandlerError(f"load_next_hazard {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST "
+                           "data nor MAINTENANCE nor HAZARDS data. (NB HAZARDS data are not yet supported) "
+                           "by handlers.")
         
     def next_chronics(self):
         self.current_index = -1

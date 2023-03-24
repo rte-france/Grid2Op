@@ -14,7 +14,9 @@ __all__ = ["BaseHandler",
            "JSONMaintenanceHandler",
            "PersistenceForecastHandler",
            "PerfectForecastHandler",
-           "NoisyForecastHandler"]
+           "NoisyForecastHandler",
+           "LoadQFromPHandler",
+           ]
 
 from .baseHandler import BaseHandler
 from .csvHandler import CSVHandler
@@ -25,3 +27,4 @@ from .jsonMaintenanceHandler import JSONMaintenanceHandler
 from .persitenceForecastHandler import PersistenceForecastHandler
 from .perfectForecastHandler import PerfectForecastHandler
 from .noisyForecastHandlerWithNoise import NoisyForecastHandler
+from .load_q_from_p_handler import LoadQFromPHandler

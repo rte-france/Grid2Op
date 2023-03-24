@@ -28,9 +28,6 @@ class DoNothingHandler(BaseHandler):
         
     def done(self):
         return False
-
-    def load_next(self, dict_):
-        return None
         
     def forecast(self,
                  forecast_horizon_id,
@@ -44,4 +41,7 @@ class DoNothingHandler(BaseHandler):
     
     def load_next_maintenance(self):
         return None, None
+    
+    def load_next_hazard(self):
+        return None
     

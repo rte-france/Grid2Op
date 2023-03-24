@@ -25,6 +25,7 @@ from grid2op.Chronics.handlers import (CSVHandler,
                                        PersistenceForecastHandler,
                                        PerfectForecastHandler,
                                        NoisyForecastHandler,
+                                       LoadQFromPHandler
                                        )
 from grid2op.Runner import Runner
 from grid2op.Exceptions import HandlerError
@@ -43,7 +44,8 @@ def _load_next_chunk_in_memory_hack(self):
     self._init_attrs(array)  # TODO
     # i don't forget to reset the reading index to 0
     self.current_index = 0
-        
+   
+     
 class TestCSVHandlerEnv(HelperTests):
     """test the env part of the storage functionality"""
     def _aux_assert_right_type_chronics(self):
@@ -700,6 +702,28 @@ class TestPerfectForecastHandler(unittest.TestCase):
                 warnings.filterwarnings("error")
                 handler.set_h_forecast(handler._h_forecast)
         
-        
+ 
+class TestLoadQPHandler14(TestCSVHandlerEnv):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = grid2op.make(os.path.join(PATH_DATA_TEST, "l2rpn_case14_sandbox_qp_cste"),
+                                     test=True)  # regular env
+            self.env2 = grid2op.make(os.path.join(PATH_DATA_TEST, "l2rpn_case14_sandbox_qp_cste"),
+                                     data_feeding_kwargs={"gridvalueClass": FromHandlers,
+                                                          "gen_p_handler": CSVHandler("prod_p"),
+                                                          "load_p_handler": CSVHandler("load_p"),
+                                                          "gen_v_handler": CSVHandler("prod_v"),
+                                                          "load_q_handler": LoadQFromPHandler("load_q"),
+                                                          "gen_p_for_handler": CSVForecastHandler("prod_p_forecasted"),
+                                                          "gen_v_for_handler": CSVForecastHandler("prod_v_forecasted"),
+                                                          "load_p_for_handler": CSVForecastHandler("load_p_forecasted"),
+                                                          "load_q_for_handler": LoadQFromPHandler("load_q_forecasted"),
+                                                          },
+                                     _add_to_name="TestForecastHandlerEnv",
+                                     test=True)
+        self._aux_reproducibility()
+               
+               
 if __name__ == "__main__":
     unittest.main()
