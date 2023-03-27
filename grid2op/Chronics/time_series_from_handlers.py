@@ -262,13 +262,13 @@ class FromHandlers(GridValue):
         
         handlers = (self.load_p_handler, self.load_q_handler, self.gen_p_handler, self.gen_v_handler)
         for h_id, h in enumerate(self._forcast_handlers[0].get_available_horizons()):
-            res_d = {}
             dict_ = {}
+            self._aux_forecasts(h_id, dict_, "load_p", self.load_p_for_handler, self.load_p_handler, handlers)
+            self._aux_forecasts(h_id, dict_, "load_q", self.load_q_for_handler, self.load_q_handler, handlers)
+            self._aux_forecasts(h_id, dict_, "prod_p", self.gen_p_for_handler, self.gen_p_handler, handlers)
+            self._aux_forecasts(h_id, dict_, "prod_v", self.gen_v_for_handler, self.gen_v_handler, handlers)
             
-            self._aux_forecasts(h_id, self.current_inj, dict_, "load_p", self.load_p_for_handler, self.load_p_handler, handlers)
-            self._aux_forecasts(h_id, self.current_inj, dict_, "load_q", self.load_q_for_handler, self.load_q_handler, handlers)
-            self._aux_forecasts(h_id, self.current_inj, dict_, "prod_p", self.gen_p_for_handler, self.gen_p_handler, handlers)
-            self._aux_forecasts(h_id, self.current_inj, dict_, "prod_v", self.gen_v_for_handler, self.gen_v_handler, handlers)
+            res_d = {}
             if dict_:
                 res_d["injection"] = dict_
 
