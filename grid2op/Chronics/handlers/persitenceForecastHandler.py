@@ -17,13 +17,14 @@ class PersistenceForecastHandler(BaseHandler):
     def __init__(self, array_name, max_iter=-1):
         super().__init__(array_name, max_iter)
         tmp = re.sub("_for.*$", "", array_name)
-        tmp = re.sub("gen", "prod", tmp)
+        tmp = tmp.replace("gen", "prod")
         if tmp in type(self).INJ_KEYS:
              self._possible_key = tmp
         else:   
             self._possible_key = None
              
     def initialize(self, order_backend_arrays, names_chronics_to_backend):
+        # nothing particular to do at initialization
         pass
     
     def done(self):

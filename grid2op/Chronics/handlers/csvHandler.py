@@ -10,6 +10,7 @@ import os
 import pandas as pd
 import numpy as np
 import copy
+from typing import Optional, Tuple
 
 from grid2op.Exceptions import (
     ChronicsError, HandlerError
@@ -135,12 +136,10 @@ class CSVHandler(BaseHandler):
             Whether the episode has reached its end or not.
 
         """
-        if self.max_iter > 0:
-            if self.curr_iter > self.max_iter:
-                return True
-        if self.chunk_size is None:
-            if self.current_index >= self.array.shape[0]:
-                return True
+        if self.max_iter > 0 and self.curr_iter > self.max_iter:
+            return True
+        if self.chunk_size is None and self.current_index >= self.array.shape[0]:
+            return True
         return False
     
     def load_next(self, dict_):
@@ -150,7 +149,7 @@ class CSVHandler(BaseHandler):
             try:
                 self._load_next_chunk_in_memory()
             except StopIteration as exc_:
-                raise StopIteration
+                raise StopIteration from exc_
 
         if self.current_index > self.tmp_max_index:
             raise StopIteration
@@ -299,13 +298,13 @@ class CSVHandler(BaseHandler):
         return array
 
     def forecast(self,
-                 inj_dict_env,
-                 forecast_horizon_id,
-                 inj_dict_previous_forecast,
+                 forecast_horizon_id : int,
+                 inj_dict_env : dict,
+                 inj_dict_previous_forecast : dict,
                  # eg gen_p_handler if this is set to gen_p_for_handler:
-                 env_handler,  
+                 env_handler : "BaseHandler",  
                  # list of the 4 env handlers: (load_p_handler, load_q_handler, gen_p_handler, gen_v_handler)
-                 env_handlers):
+                 env_handlers : Tuple["BaseHandler", "BaseHandler", "BaseHandler", "BaseHandler"]):
         raise HandlerError(f"forecast {self.array_name}: You should only use this class for ENVIRONMENT data, and not for FORECAST data. "
                            "Please consider using `CSVForecastHandler` (`from grid2op.Chronics.handlers import CSVForecastHandler`) "
                            "for your forecast data.")

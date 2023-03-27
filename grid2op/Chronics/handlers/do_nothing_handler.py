@@ -15,18 +15,22 @@ class DoNothingHandler(BaseHandler):
     The environment will act as if the time series this Handler is reponsible for will never change.
     """
     def __init__(self, array_name="do nothing") -> None:
-        super().__init__("do nothing")
+        super().__init__(array_name)
     
     def initialize(self, order_backend_prods, names_chronics_to_backend):
+        # there is nothing to do for the DoNothingHandler
         pass
     
     def check_validity(self, backend):
+        # there is nothing to do for the DoNothingHandler
         pass
     
     def load_next(self, dict):
+        # there is nothing to do for the DoNothingHandler
         pass
         
     def done(self):
+        # there is nothing to do for the DoNothingHandler
         return False
         
     def forecast(self,
@@ -37,6 +41,7 @@ class DoNothingHandler(BaseHandler):
                  env_handler,  
                  # list of the 4 env handlers: (load_p_handler, load_q_handler, gen_p_handler, gen_v_handler)
                  env_handlers):
+        # there is nothing to do for the DoNothingHandler
         return None
     
     def load_next_maintenance(self):

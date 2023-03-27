@@ -6,10 +6,12 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import Optional, Tuple
+
 from grid2op.Exceptions import (
     ChronicsError, HandlerError
 )
-
+from grid2op.Chronics.handlers.baseHandler import BaseHandler
 from grid2op.Chronics.handlers.csvHandler import CSVHandler
 
 
@@ -50,12 +52,12 @@ class CSVForecastHandler(CSVHandler):
         return super(CSVHandler, self).get_available_horizons()
         
     def forecast(self,
-                 forecast_horizon_id,
-                 inj_dict_env,
-                 inj_dict_previous_forecast,
+                 forecast_horizon_id : int,
+                 inj_dict_env : dict,
+                 inj_dict_previous_forecast : dict,
                  # eg gen_p_handler if this is set to gen_p_for_handler:
-                 env_handler,  
+                 env_handler : "BaseHandler",  
                  # list of the 4 env handlers: (load_p_handler, load_q_handler, gen_p_handler, gen_v_handler)
-                 env_handlers):
+                 env_handlers : Tuple["BaseHandler", "BaseHandler", "BaseHandler", "BaseHandler"]):
         res = super().load_next(inj_dict_previous_forecast)
         return res

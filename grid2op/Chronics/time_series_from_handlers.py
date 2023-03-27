@@ -232,9 +232,8 @@ class FromHandlers(GridValue):
     
     def done(self):
         # I am done if the part I control is "over"
-        if self.max_iter > 0:
-            if self.curr_iter > self.max_iter:
-                return True
+        if self.max_iter > 0 and self.curr_iter > self.max_iter:
+            return True
             
         # or if any of the handler is "done"
         for handl in self._active_handlers:
@@ -248,40 +247,28 @@ class FromHandlers(GridValue):
         # TODO other things here maybe ???
         return True
 
+    def _aux_forecasts(self, h_id, dict_, key,
+                       for_handler, base_handler, handlers):
+        if for_handler is not None:
+            tmp_ = for_handler.forecast(h_id, self.current_inj, dict_, base_handler, handlers)
+            if tmp_ is not None:
+                dict_[key] = dt_float(1.0) * tmp_
+        
     def forecasts(self):
         res = []
         if not self._forcast_handlers:
             # nothing to handle forecast in this class
             return res
         
+        handlers = (self.load_p_handler, self.load_q_handler, self.gen_p_handler, self.gen_v_handler)
         for h_id, h in enumerate(self._forcast_handlers[0].get_available_horizons()):
             res_d = {}
             dict_ = {}
             
-            if self.load_p_for_handler is not None:
-                tmp_ = self.load_p_for_handler.forecast(h_id, self.current_inj, dict_, self.load_p_handler,
-                                                        (self.load_p_handler, self.load_q_handler,
-                                                         self.gen_p_handler, self.gen_v_handler))
-                if tmp_ is not None:
-                    dict_["load_p"] = dt_float(1.0) * tmp_
-            if self.load_q_for_handler is not None:
-                tmp_ = self.load_q_for_handler.forecast(h_id, self.current_inj, dict_, self.load_q_handler,
-                                                        (self.load_p_handler, self.load_q_handler,
-                                                         self.gen_p_handler, self.gen_v_handler))
-                if tmp_ is not None:
-                    dict_["load_q"] = dt_float(1.0) * tmp_
-            if self.gen_p_for_handler is not None:
-                tmp_ = self.gen_p_for_handler.forecast(h_id, self.current_inj, dict_, self.gen_p_handler,
-                                                       (self.load_p_handler, self.load_q_handler,
-                                                        self.gen_p_handler, self.gen_v_handler))
-                if tmp_ is not None:
-                    dict_["prod_p"] = dt_float(1.0) * tmp_
-            if self.gen_v_for_handler is not None:
-                tmp_ = self.gen_v_for_handler.forecast(h_id, self.current_inj, dict_, self.gen_v_handler, 
-                                                       (self.load_p_handler, self.load_q_handler,
-                                                        self.gen_p_handler, self.gen_v_handler))
-                if tmp_ is not None:
-                    dict_["prod_v"] = dt_float(1.0) * tmp_
+            self._aux_forecasts(h_id, self.current_inj, dict_, "load_p", self.load_p_for_handler, self.load_p_handler, handlers)
+            self._aux_forecasts(h_id, self.current_inj, dict_, "load_q", self.load_q_for_handler, self.load_q_handler, handlers)
+            self._aux_forecasts(h_id, self.current_inj, dict_, "prod_p", self.gen_p_for_handler, self.gen_p_handler, handlers)
+            self._aux_forecasts(h_id, self.current_inj, dict_, "prod_v", self.gen_v_for_handler, self.gen_v_handler, handlers)
             if dict_:
                 res_d["injection"] = dict_
 

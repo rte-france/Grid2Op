@@ -608,7 +608,6 @@ class GridValue(RandomObject, ABC):
             'Class {} doesn\'t handle different input folder. "tell_id" method has no impact.'
             "".format(type(self).__name__)
         )
-        pass
 
     def get_id(self) -> str:
         """

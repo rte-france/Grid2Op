@@ -16,6 +16,7 @@ class PerfectForecastHandler(BaseHandler):
         super().__init__(array_name, max_iter)
              
     def initialize(self, order_backend_arrays, names_chronics_to_backend):
+        # nothing particular to do at initialization
         pass
     
     def done(self):

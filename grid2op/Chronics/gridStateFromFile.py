@@ -819,7 +819,7 @@ class GridStateFromFile(GridValue):
             try:
                 self._load_next_chunk_in_memory()
             except StopIteration as exc_:
-                raise exc_
+                raise StopIteration from exc_
 
         if self.current_index >= self.tmp_max_index:
             raise StopIteration
