@@ -74,6 +74,7 @@ Environments
    env_content
    create_an_environment
    dive_into_time_series
+   data_pipeline
 
 Usage examples
 ---------------------
@@ -129,6 +130,7 @@ Technical Documentation
    runner
    simulator
    space
+   timeserie_handlers
    utils
    voltagecontroler
 
