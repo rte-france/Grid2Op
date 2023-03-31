@@ -5,7 +5,12 @@
 Time Series Handlers
 ======================
 
-TODO
+TODO:
+
+- description
+- equivalent between "normal" chronics and handlers
+- same results for standard environment using "handlers"
+
 
 Detailed Documentation by class
 --------------------------------

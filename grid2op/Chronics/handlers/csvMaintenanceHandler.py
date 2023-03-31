@@ -6,18 +6,13 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
+from typing import Tuple
 import pandas as pd
 import numpy as np
-import copy
 
-from grid2op.Exceptions import (
-    ChronicsError, HandlerError
-)
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Chronics.gridValue import GridValue
 from grid2op.Chronics.handlers.csvHandler import CSVHandler
-
 
 
 class CSVMaintenanceHandler(CSVHandler):
@@ -65,7 +60,7 @@ class CSVMaintenanceHandler(CSVHandler):
         self.array = self.array != 0.0
         self.array = self.array.astype(dt_bool)
     
-    def load_next_maintenance(self):
+    def load_next_maintenance(self) -> Tuple[np.ndarray, np.ndarray]:
         maint_time = 1 * self.maintenance_time[self.current_index, :]
         maint_duration = 1 * self.maintenance_duration[self.current_index, :]
         return maint_time, maint_duration
