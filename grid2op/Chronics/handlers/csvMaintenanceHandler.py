@@ -16,17 +16,39 @@ from grid2op.Chronics.handlers.csvHandler import CSVHandler
 
 
 class CSVMaintenanceHandler(CSVHandler):
-    """Read the time series from a csv.
+    """Reads and produce time series if given by a csv file (possibly compressed).
     
-    Only for Maintenance data, not for environment nor for forecasts
+    The separator used can be specified as input. 
     
-    Allows to read maintenance data in a csv format. Each row of the csv indicates a time step. Each
-    column of the table a powerline.
+    The file name should match the "array_name". If you want to use
+    the maintenance file present in the file "my_maintenance_file.csv.gz"
+    then you should create a CSVMaintenanceHandler with 
+    `array_name="my_maintenance_file"`.
     
-    There is a 0 in this csv if the given line is not in maitnenance at the given step, otherwise there 
-    should be a 1.
+    The csv should be structured as follow:
     
-    It uses pandas to read files. File can be compressed.
+    - it should not have any "index" or anything, only data used by 
+      grid2op will be used
+    - Each element powerline is represented by a `column`.
+    - It should have a header with the name of the powerlines that
+      should match the one in the environment. For example 
+      if "0_1_0" is the name of a powerline in your environment, 
+      then a column should be called "0_1_0".
+    - each time step is represented as a `row` and in order. For example
+      (removing the header), row 1 (first row) will be step 1, row 2 will
+      be step 2 etc.
+    - only binary data (0 or 1) should be present in the file. No "bool", 
+      no string etc.
+      
+    .. warning::
+        Use this class only for the ENVIRONMENT data ("load_p", "load_q",
+        "prod_p" or "prod_v") and not for maintenance (in this case
+        use :class:`CSVMaintenanceHandler`) nor for 
+        forecast (in this case use :class:`CSVForecastHandler`) 
+    
+    This is the default way to provide data to grid2op and its used for
+    most l2rpn environments.
+    
     """
     def __init__(self,
                  array_name="maintenance",

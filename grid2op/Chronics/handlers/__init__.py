@@ -26,5 +26,5 @@ from .csvMaintenanceHandler import CSVMaintenanceHandler
 from .jsonMaintenanceHandler import JSONMaintenanceHandler
 from .persitenceForecastHandler import PersistenceForecastHandler
 from .perfectForecastHandler import PerfectForecastHandler
-from .noisyForecastHandlerWithNoise import NoisyForecastHandler
+from .noisyForecastHandler import NoisyForecastHandler
 from .load_q_from_p_handler import LoadQFromPHandler

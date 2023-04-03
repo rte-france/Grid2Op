@@ -13,6 +13,12 @@ from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
 
 class PersistenceForecastHandler(BaseHandler):
+    """
+    This type of handler will generate the "persitence" type of forecast: basically it will copy
+    paste the last known data of the environment.
+    
+    You should use it only for FORECAST data and not for environment data as the name suggest.
+    """
     INJ_KEYS = ("load_p", "load_q", "prod_p", "prod_v")
     def __init__(self, array_name, max_iter=-1):
         super().__init__(array_name, max_iter)

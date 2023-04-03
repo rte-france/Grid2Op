@@ -12,6 +12,23 @@ from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
 
 class PerfectForecastHandler(BaseHandler):    
+    """This class is allows to generate "perfect forecast", with this class the agent
+    will know what will be the exact production, loads etc for the near future.
+    
+    This is a strong "assumption" and it is not realistic. 
+    
+    To have make things more realistic, you can use the :class:`NoisyForecastHandler` but again, 
+    this class is far from perfect.
+    
+    More "research" is needed in this area and any contribution is more than welcome !
+    
+    As the name suggest, you should use this class only for the FORECAST data and not for environment or maintenance.
+    
+    .. warning::
+        It only works if the handlers of the environments supports the :func:`BaseHandler.get_future_data` is implemented
+        for the environment handlers. 
+        
+    """
     def __init__(self, array_name, max_iter=-1):
         super().__init__(array_name, max_iter)
              

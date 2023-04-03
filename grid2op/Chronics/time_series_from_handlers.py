@@ -23,42 +23,116 @@ from grid2op.dtypes import dt_int, dt_float
 
 
 class FromHandlers(GridValue): 
-    """This class allows to use the :class:`grid2op.Chronics.handlers.BaseHandler` to 
+    """This class allows to use the :class:`grid2op.Chronics.handlers.BaseHandler` 
+    (and all the derived class, see :ref:`tshandler-module`) to 
     generate the "input time series" of the environment.
+    
+    This class does nothing in particular beside making sure the "formalism" of the
+    Handlers can be adapted to generate compliant grid2op data.
+    
+    .. seealso::
+        :ref:`tshandler-module` for more information
+    
+    In order to use the handlers you need to:
+    
+    - tell grid2op that you are going to generate time series from "handlers" by using `FromHandlers` class
+    - for each type of data ("gen_p", "gen_v", "load_p", "load_q", "maintenance", "gen_p_forecasted", 
+      "load_p_forecasted", "load_q_forecasted" and "load_v_forecasted") you need to provide a way to 
+      "handle" this type of data: you need a specific handler.
+      
+    You need at least to provide handlers for the environment data types ("gen_p", "gen_v", "load_p", "load_q").
+    
+    If you do not provide handlers for some data (*e.g* for "maintenance", "gen_p_forecasted", 
+    "load_p_forecasted", "load_q_forecasted" and "load_v_forecasted") then it will be treated like "change nothing":
+    
+    - there will be no maintenance if you do not provide a handler for maintenance
+    - for forecast it's a bit different... You will benefit from forecast if at least one handler generates 
+      some (**though we do not recommend to do it**). And in that case, the "missing handlers" will be treated as 
+      "no data available, keep as it was last time"
+    
+    .. warning::
+        You cannot mix up all types of handler with each other. We wrote in the description of each Handlers 
+        some conditions for them to work well.
+    
+    Examples
+    ---------
+    You can use the handers this way:
+    
+    .. code-block:: python
+    
+        import grid2op
+        from grid2op.Chronics import FromHandlers
+        from grid2op.Chronics.handlers import CSVHandler, DoNothingHandler, PerfectForecastHandler
+        env_name = "l2rpn_case14_sandbox"
+        
+        env = grid2op.make(env_name,
+                       data_feeding_kwargs={"gridvalueClass": FromHandlers,
+                                            "gen_p_handler": CSVHandler("prod_p"),
+                                            "load_p_handler": CSVHandler("load_p"),
+                                            "gen_v_handler": DoNothingHandler("prod_v"),
+                                            "load_q_handler": CSVHandler("load_q"),
+                                            "gen_p_for_handler": PerfectForecastHandler("prod_p_forecasted"),
+                                            "load_p_for_handler": PerfectForecastHandler("load_p_forecasted"),
+                                            "load_q_for_handler": PerfectForecastHandler("load_q_forecasted"),
+                                           }
+                      )
 
-    Returns
-    -------
-    _type_
-        _description_
-
-    Raises
+        obs = env.reset()
+    
+        # and now you can use "env" as any grid2op environment.
+        
+    More examples are given in the :ref:`tshandler-module` .
+    
+    Notes
     ------
-    HandlerError
-        _description_
-    NotImplementedError
-        _description_
-    ChronicsNotFoundError
-        _description_
-    ChronicsNotFoundError
-        _description_
+    
+    For the environment, data, the handler are called in the order: "load_p", "load_q", "gen_p" and finally "gen_v".
+    They are called once per step (per handler) at most.
+    
+    Then the maintenance (and hazards) data are generated with the appropriate handler.
+    
+    Finally, the forecast data are called after the environment data (and the maintenance data) once per step and per horizon.
+    Horizon are called "in the order" (all data "for 5 minutes", all data "for 10 minutes", all data for "15 minutes" etc.). And
+    for a given horizon, like the environment it is called in the order: "load_p", "load_q", "gen_p" and "gen_v".
+    
+    About the seeding, the handlers are seeded in the order:
+    
+    - load_p
+    - load_q
+    - gen_p
+    - gen_v
+    - maintenance
+    - hazards
+    - load_p_for
+    - load_q_for
+    - gen_p_for
+    - gen_v_for
+    
+    Each individual handler will have its own pseudo random generator and the same seed will be used regardless of 
+    the presence / absence of other handlers.
+    
+    For example, regardless of the fact that you have a `maintenance_handler`, if you type `env.seed(0)` the 
+    `load_p_for_handler` will behave exactly the same (it will generate the same numbers whether or not you have
+    maintenance or not.)
+     
     """
     MULTI_CHRONICS = False
        
     def __init__(
         self,
         path,  # can be None !
-        gen_p_handler,
-        gen_v_handler,
         load_p_handler,
         load_q_handler,
+        gen_p_handler,
+        gen_v_handler,
         maintenance_handler=None,
         hazards_handler=None,
-        gen_p_for_handler=None,
-        gen_v_for_handler=None,
         load_p_for_handler=None,
         load_q_for_handler=None,
+        gen_p_for_handler=None,
+        gen_v_for_handler=None,
         time_interval=timedelta(minutes=5),
-        sep=";",
+        sep=";",  # here for compatibility with grid2op, but not used
         max_iter=-1,
         start_datetime=datetime(year=2019, month=1, day=1),
         chunk_size=None,
@@ -326,28 +400,28 @@ class FromHandlers(GridValue):
         # used even if some "handlers" are missing
         # (if env.seed(0) is called, then regardless of maintenance_handler or not, 
         # gen_p_for_handler will always be seeded with the same number)
-        gp_seed = self.gen_p_handler.seed(seeds[0])
-        gv_seed = self.gen_v_handler.seed(seeds[1])
-        lp_seed = self.load_p_handler.seed(seeds[2])
-        lq_seed = self.load_q_handler.seed(seeds[3])
+        lp_seed = self.load_p_handler.seed(seeds[0])
+        lq_seed = self.load_q_handler.seed(seeds[1])
+        gp_seed = self.gen_p_handler.seed(seeds[2])
+        gv_seed = self.gen_v_handler.seed(seeds[3])
         maint_seed = None
         if self.maintenance_handler is not None:
             maint_seed = self.maintenance_handler.seed(seeds[4])
         haz_seed = None
         if self.hazards_handler is not None:
             haz_seed = self.hazards_handler.seed(seeds[5])
-        gpf_seed = None
-        if self.gen_p_for_handler is not None:
-            gpf_seed = self.gen_p_for_handler.seed(seeds[6])
-        gvf_seed = None
-        if self.gen_v_for_handler is not None:
-            gvf_seed = self.gen_v_for_handler.seed(seeds[7])
         lpf_seed = None
         if self.load_p_for_handler is not None:
-            lpf_seed = self.load_p_for_handler.seed(seeds[8])    
+            lpf_seed = self.load_p_for_handler.seed(seeds[6])    
         lqf_seed = None
         if self.load_q_for_handler is not None:
-            lqf_seed = self.load_q_for_handler.seed(seeds[9])   
+            lqf_seed = self.load_q_for_handler.seed(seeds[7])   
+        gpf_seed = None
+        if self.gen_p_for_handler is not None:
+            gpf_seed = self.gen_p_for_handler.seed(seeds[8])
+        gvf_seed = None
+        if self.gen_v_for_handler is not None:
+            gvf_seed = self.gen_v_for_handler.seed(seeds[9])
         return (seed, gp_seed, gv_seed, lp_seed, lq_seed, 
                 maint_seed, haz_seed, gpf_seed, gvf_seed,
                 lpf_seed, lqf_seed) 

@@ -37,6 +37,7 @@ class BaseHandler(RandomObject):
     - :func:`BaseHandler.check_validity` : check if the input data are valid with the backend, 
       for example if you read from a csv
       number of columns should match number of element
+    - :func:`BaseHandler.next_chronics` : called just before the start of a scenario.
     
     If the data represents "real time" data (*ie* the data seen by the agent in real 
     time in the observation) then it needs also to implement:
@@ -422,22 +423,57 @@ class BaseHandler(RandomObject):
             Similar to the `dict_` parameters of :func:`BaseHandler.load_next`
             
         env_handler : BaseHandler
-            _description_
+            The handler of the same type as this one, but for the environment.
+            
+            For example, if this handler deals with "`load_q_forecasted`" then 
+            `env_handler` will be the handler of `load_q`.
             
         env_handlers : Tuple[:class:`BaseHandler`, :class:`BaseHandler`, :class:`BaseHandler`, :class:`BaseHandler`]
-            _description_
+            In these you have all the environment handlers in a tuple.
+            
+            The order is: "load_p", "load_q", "prod_p", "prod_v".
 
         Returns
         -------
         Optional[np.ndarray]
-            _description_
-
-        Raises
-        ------
-        NotImplementedError
-            _description_
+            The forecast (in the shape of numpy array) or None if nothing should be returned.
         """
         raise NotImplementedError()
     
-    def get_future_data(self, horizon: int):
+    def get_future_data(self, horizon: int) -> Optional[np.ndarray]:
+        """        
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+        
+        This function is for example used in the 
+        :class:`grid2op.Chronics.handlers.PerfectForecastHandler`: to generate a 
+        "perfect forecast" this class will use this function to "have a look"
+        into the future through this function.
+        
+        This function is for example implemented in 
+        :class:`grid2op.Chronics.handlers.CSVHandler`
+
+        Parameters
+        ----------
+        horizon : int
+            The horizon (in minutes) to which we want the data.
+
+        Returns
+        -------
+        Optional[np.ndarray]
+            The data that will be generated  in `horizon` minutes.
+        """
+        return None
+    
+    def next_chronics() -> None:
+        
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            
+        This function is called by the :class:`grid2op.Chronics.FromHandlers` at the
+        end of each episode when the next episode is loaded.
+        """
         return None
