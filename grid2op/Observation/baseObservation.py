@@ -18,7 +18,6 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
     Grid2OpException,
     NoForecastAvailable,
-    EnvError,
     BaseObservationError,
 )
 from grid2op.Space import GridObjects
@@ -1910,6 +1909,9 @@ class BaseObservation(GridObjects):
         """add the edges, when the attributes are common for the all the powerline"""
         dict_ = {}
         for lid, val in enumerate(vector):
+            if not self.line_status[lid]:
+                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if not tup_ in dict_:
                 # data is not in the graph, I insert it
@@ -1935,6 +1937,9 @@ class BaseObservation(GridObjects):
         """
         dict_or_glop = {}
         for lid, val in enumerate(vector_or):
+            if not self.line_status[lid]:
+                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if tup_ in dict_or_glop:
                 dict_or_glop[tup_] += val
@@ -1943,6 +1948,9 @@ class BaseObservation(GridObjects):
 
         dict_ex_glop = {}
         for lid, val in enumerate(vector_ex):
+            if not self.line_status[lid]:
+                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if tup_ in dict_ex_glop:
                 dict_ex_glop[tup_] += val
