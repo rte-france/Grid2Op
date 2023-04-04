@@ -11,7 +11,7 @@ from grid2op.tests.helper_path_test import *
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
     os.path.join(PATH_CHRONICS, "test_multi_chronics")
 )
-PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
+PATH_PREVIOUS_RUNNER = os.path.join(data_test_dir, "runner_data")
 
 from grid2op.Reward import L2RPNSandBoxScore
 from grid2op.MakeEnv import make

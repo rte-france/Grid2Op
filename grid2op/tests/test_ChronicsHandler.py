@@ -1289,7 +1289,7 @@ class TestCFFWFWM(HelperTests):
                     == 0
                 )
 
-                assert maintenanceChronic[linesPossiblyInMaintenance].sum().sum() >= 1
+                assert maintenanceChronic[list(linesPossiblyInMaintenance)].sum().sum() >= 1
 
                 nb_mainteance_timestep = maintenanceChronic.sum(axis=1)
                 assert np.all(nb_mainteance_timestep <= maxMaintenancePerDay)

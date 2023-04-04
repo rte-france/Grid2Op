@@ -40,6 +40,7 @@ __all__ = [
     "DivergingPowerFlow",
     "BaseObservationError",
     "NoForecastAvailable",
+    "SimulateError",
     "SimulateUsedTooMuchThisStep",
     "SimulateUsedTooMuchThisEpisode",
     "ChronicsError",
@@ -52,6 +53,7 @@ __all__ = [
     "NotEnoughAttentionBudget",
     "AgentError",
     "SimulatorError",
+    "HandlerError"
 ]
 
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
@@ -102,12 +104,14 @@ from grid2op.Exceptions.PowerflowExceptions import DivergingPowerFlow
 
 from grid2op.Exceptions.ObservationExceptions import BaseObservationError
 from grid2op.Exceptions.ObservationExceptions import NoForecastAvailable
+from grid2op.Exceptions.ObservationExceptions import SimulateError
 from grid2op.Exceptions.ObservationExceptions import SimulateUsedTooMuchThisStep
 from grid2op.Exceptions.ObservationExceptions import SimulateUsedTooMuchThisEpisode
 
 from grid2op.Exceptions.ChronicsExceptions import ChronicsError
 from grid2op.Exceptions.ChronicsExceptions import ChronicsNotFoundError
 from grid2op.Exceptions.ChronicsExceptions import InsufficientData
+from grid2op.Exceptions.handlers_exceptions import HandlerError
 
 from grid2op.Exceptions.BackendExceptions import BackendError
 

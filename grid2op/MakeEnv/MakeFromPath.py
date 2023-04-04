@@ -534,9 +534,9 @@ def make_from_dataset_path(
     ## the chronics to use
     ### the arguments used to build the data, note that the arguments must be compatible with the chronics class
     default_chronics_kwargs = {
-        "chronicsClass": chronics_class_cfg,
         "path": chronics_path_abs,
-        "gridvalueClass": grid_value_class_cfg,
+        "chronicsClass": chronics_class_cfg,
+        # "gridvalueClass": grid_value_class_cfg,
     }
 
     if "data_feeding_kwargs" in config_data and config_data["data_feeding_kwargs"] is not None:
@@ -554,7 +554,8 @@ def make_from_dataset_path(
     for el in default_chronics_kwargs:
         if el not in data_feeding_kwargs:
             data_feeding_kwargs[el] = default_chronics_kwargs[el]
-
+            
+            
     ### the chronics generator
     chronics_class_used = _get_default_aux(
         "chronics_class",
@@ -571,7 +572,15 @@ def make_from_dataset_path(
             f"Impossible to find the chronics for your environment. Please make sure to provide "
             f'a folder "{NAME_CHRONICS_FOLDER}" within your environment folder.'
         )
+    
     data_feeding_kwargs["chronicsClass"] = chronics_class_used
+    if chronics_class_used.MULTI_CHRONICS:
+        # add the default "gridvalueClass" in case of multi chronics and if the
+        # parameters is not given in the "make" function but present in the config file
+        if "gridvalueClass" not in data_feeding_kwargs:
+            data_feeding_kwargs["gridvalueClass"] = grid_value_class_cfg
+    
+    # now build the chronics handler
     data_feeding = _get_default_aux(
         "data_feeding",
         kwargs,

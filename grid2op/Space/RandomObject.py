@@ -8,6 +8,7 @@
 
 import copy
 import numpy as np
+from typing import Optional
 
 
 class RandomObject(object):
@@ -103,8 +104,8 @@ class RandomObject(object):
     """
 
     def __init__(self):
-        self.space_prng = np.random.RandomState()
-        self.seed_used = None
+        self.space_prng : np.random.RandomState = np.random.RandomState()
+        self.seed_used : Optional[int] = None
 
     def seed(self, seed):
         """
