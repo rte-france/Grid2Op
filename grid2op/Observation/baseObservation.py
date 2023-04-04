@@ -18,7 +18,6 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
     Grid2OpException,
     NoForecastAvailable,
-    EnvError,
     BaseObservationError,
 )
 from grid2op.Space import GridObjects
@@ -1910,6 +1909,9 @@ class BaseObservation(GridObjects):
         """add the edges, when the attributes are common for the all the powerline"""
         dict_ = {}
         for lid, val in enumerate(vector):
+            if not self.line_status[lid]:
+                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if not tup_ in dict_:
                 # data is not in the graph, I insert it
@@ -1935,6 +1937,9 @@ class BaseObservation(GridObjects):
         """
         dict_or_glop = {}
         for lid, val in enumerate(vector_or):
+            if not self.line_status[lid]:
+                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if tup_ in dict_or_glop:
                 dict_or_glop[tup_] += val
@@ -1943,6 +1948,9 @@ class BaseObservation(GridObjects):
 
         dict_ex_glop = {}
         for lid, val in enumerate(vector_ex):
+            if not self.line_status[lid]:
+                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if tup_ in dict_ex_glop:
                 dict_ex_glop[tup_] += val
@@ -2703,18 +2711,67 @@ class BaseObservation(GridObjects):
         time `t + 5` mins) if you were to do the action at this step.
 
         It has the same return
-        value as the :func:`grid2op.Environment.Environment.step` function.
+        value as the :func:`grid2op.Environment.BaseEnv.step` function.
         
         .. seealso::
             :func:`BaseObservation.get_forecast_env`
         
-        .. versionadded:: 1.8.2
-            If the data of the :class:`grid2op.Environment.Environment` you are using supports it, then you can
-            now "chain" the simulate calls.
+        .. seealso::
+            :ref:`model_based_rl`
             
+        .. versionadded:: 1.8.2
+            If the data of the :class:`grid2op.Environment.Environment` you are using supports it
+            (**ie** you can access multiple steps ahead forecasts), then you can
+            now "chain" the simulate calls.
+        
+        Examples
+        ---------
+        
+        If forecast are available, you can use this function like this:
+        
+        .. code-block:: python
+        
+            import grid2op
+            
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            
+            obs = env.reset()
+            
+            an_action = env.action_space()  # or any other action
+            simobs, sim_reward, sim_done, sim_info = obs.simulate(an_action)
+        
+            # in this case, simobs will be an APPROXIMATION of the observation you will
+            # get after performing `an_action`
+            # obs, *_ = env.step(an_action)
+            
+        And if your environment allows to use "multiple steps ahead forecast" you can even
+        chain the calls like this:
+        
+        .. code-block:: python
+        
+            import grid2op
+            
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            
+            obs = env.reset()
+            
+            an_action = env.action_space()  # or any other action
+            simobs1, sim_reward1, sim_done1, sim_info1 = obs.simulate(an_action)   
+            
+            another_action = env.action_space()  # or any other action
+            simobs2, sim_reward2, sim_done2, sim_info2 = simobs1.simulate(another_action)     
+            
+            # in this case, simobs will be an APPROXIMATION of the observation you will
+            # get after performing `an_action` and then `another_action`:
+            # *_ = env.step(an_action)
+            # obs, *_ = env.step(another_action) 
+        
+
         Parameters
         ----------
-        action: :class:`grid2op.Action.Action`
+        action: :class:`grid2op.Action.BaseAction`
             The action to simulate
 
         time_step: ``int``
@@ -2728,7 +2785,7 @@ class BaseObservation(GridObjects):
 
         Returns
         -------
-        simulated_observation: :class:`grid2op.Observation.Observation`
+        simulated_observation: :class:`grid2op.Observation.BaseObservation`
             agent's observation of the current environment after the application of the action "act" on the
             the current state.
 
@@ -3702,7 +3759,7 @@ class BaseObservation(GridObjects):
             # inj_action = self.action_helper(inj_action)
             timestamp = self.get_time_stamp()
             self._forecasted_inj = [(timestamp, inj_action)]
-            self._forecasted_inj += env.chronics_handler.forecasts()
+            self._forecasted_inj += env.forecasts()
             self._forecasted_grid = [None for _ in self._forecasted_inj]
             self._env_internal_params = {}
             self._update_internal_env_params(env)
@@ -3786,6 +3843,9 @@ class BaseObservation(GridObjects):
             
         Please consult the page :ref:`simulator_page` for more information about how to use them.
         
+        .. seealso::
+            :ref:`model_based_rl`
+            
         """
         # BaseObservation is only used for typing in the simulator...
         if self._obs_env is None:
@@ -3856,6 +3916,10 @@ class BaseObservation(GridObjects):
 
         .. seealso::
             :func:`BaseObservation.simulate`
+        
+        
+        .. seealso::
+            :ref:`model_based_rl`
             
         Examples
         --------

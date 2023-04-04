@@ -25,7 +25,7 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
     DEPRECATED, this class is no longer used nor tested.
 
     """
-
+    MULTI_CHRONICS = False
     def __init__(
         self,
         path,

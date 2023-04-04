@@ -32,8 +32,6 @@ from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 
-from grid2op.Backend import PandaPowerBackend
-
 
 class Environment(BaseEnv):
     """
@@ -924,7 +922,6 @@ class Environment(BaseEnv):
         
         if self._init_obs is not None:
             self._reset_to_orig_state(self._init_obs)
-            
         return self.get_obs()
 
     def render(self, mode="rgb_array"):

@@ -85,7 +85,8 @@ class MultifolderWithCache(Multifolder):
             obs, reward, done, info = env.step(act)  # and step will NOT load any data from disk.
 
     """
-
+    MULTI_CHRONICS = True
+    
     def __init__(
         self,
         path,

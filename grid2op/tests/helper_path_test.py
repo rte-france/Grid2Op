@@ -20,21 +20,23 @@ from grid2op.dtypes import dt_float
 
 test_dir = Path(__file__).parent.absolute()
 grid2op_dir = os.fspath(test_dir.parent.absolute())
-data_dir = os.path.abspath(os.path.join(grid2op_dir, "data_test"))
+data_test_dir = os.path.abspath(os.path.join(grid2op_dir, "data_test"))
+data_dir = os.path.abspath(os.path.join(grid2op_dir, "data"))
 
 sys.path.insert(0, grid2op_dir)
 
-PATH_DATA_TEST = data_dir
-PATH_CHRONICS = data_dir
+PATH_DATA = data_dir
+PATH_DATA_TEST = data_test_dir
+PATH_CHRONICS = data_test_dir
 PATH_CHRONICS_Make2 = os.path.abspath(os.path.join(grid2op_dir, "data"))
 PATH_DATA_TEST_PP = os.path.abspath(os.path.join(PATH_DATA_TEST, "test_PandaPower"))
 EXAMPLE_CHRONICSPATH = os.path.abspath(
-    os.path.join(data_dir, "5bus_example", "chronics")
+    os.path.join(data_test_dir, "5bus_example", "chronics")
 )
 EXAMPLE_CASEFILE = os.path.abspath(
-    os.path.join(data_dir, "5bus_example", "5bus_example.json")
+    os.path.join(data_test_dir, "5bus_example", "5bus_example.json")
 )
-PATH_DATA_MULTIMIX = os.path.abspath(os.path.join(data_dir, "multimix"))
+PATH_DATA_MULTIMIX = os.path.abspath(os.path.join(data_test_dir, "multimix"))
 
 
 class HelperTests(unittest.TestCase):
