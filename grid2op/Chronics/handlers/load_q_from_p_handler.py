@@ -54,6 +54,7 @@ class LoadQFromPHandler(BaseHandler):
         return None
     
     def initialize(self, order_backend_prods, names_chronics_to_backend):
+        # nothing to do for this particular handler
         pass
     
     def check_validity(self, backend):
