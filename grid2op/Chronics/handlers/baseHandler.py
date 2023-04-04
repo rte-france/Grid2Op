@@ -467,7 +467,6 @@ class BaseHandler(RandomObject):
         return None
     
     def next_chronics(self) -> None:
-        
         """
         INTERNAL
 

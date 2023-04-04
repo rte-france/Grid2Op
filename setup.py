@@ -66,7 +66,7 @@ pkgs = {
                  "gym>=0.26"
                  ],
         "chronix2grid": [
-            "ChroniX2Grid>=1.1.0.post1"
+            "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/ramp_forecast"
             ]
     }
 }
