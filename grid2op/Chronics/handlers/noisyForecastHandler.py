@@ -11,7 +11,7 @@ from typing import Union, Callable, Iterable, Tuple
 try:
     from typing import Literal
 except ImportError:
-    # not available in python 3.7
+    # Literal not available in python 3.7
     from typing_extensions import Literal
 
 from grid2op.dtypes import dt_float

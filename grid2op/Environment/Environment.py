@@ -32,8 +32,6 @@ from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 
-from grid2op.Backend import PandaPowerBackend
-
 
 class Environment(BaseEnv):
     """
