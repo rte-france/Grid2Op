@@ -81,6 +81,8 @@ Change Log
 - [ADDED] a function to get the "elements graph" from the grid2op observation (represented as a networkx graph)
   as well as its description on the documentation.
 - [ADDED] a method to retrieve the "elements graph" (see doc) fom an observation `obs.get_elements_graph()`
+- [ADDED] a whole new way to deal with input time series data (see the module `grid2op.Chronics.handlers` 
+  for more information)
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
