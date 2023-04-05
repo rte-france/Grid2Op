@@ -6,20 +6,33 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import pandas as pd
 import numpy as np
-import copy
 
 from grid2op.Exceptions import (
-    ChronicsError, HandlerError
+    HandlerError
 )
 
-from grid2op.dtypes import dt_int, dt_float
+from grid2op.dtypes import  dt_float
 from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
 
 class LoadQFromPHandler(BaseHandler):
+    """This handler is specific for "load_q" type of data.
+    
+    You can use it for both "forecast" ("load_q_forecasted")
+    and for environment data ("load_q").
+    
+    It will generate load_q based on a "q over p" ratio provided
+    as input. Basically, whenever called, it will
+    return (when possible): `load_q = ratio * load_p`
+
+    .. note::
+        Its current implementation heavily relies on the fact that
+        when the "load_q" / "load_q_forecasted" handlers 
+        are called the "load_p" / "load_p_forecasted" data are already
+        computed and known.
+        
+    """
     def __init__(self,
                  array_name="load_q",
                  qp_ratio: float=0.7,
@@ -41,6 +54,7 @@ class LoadQFromPHandler(BaseHandler):
         return None
     
     def initialize(self, order_backend_prods, names_chronics_to_backend):
+        # nothing to do for this particular handler
         pass
     
     def check_validity(self, backend):

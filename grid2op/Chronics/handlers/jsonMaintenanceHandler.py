@@ -14,7 +14,33 @@ from grid2op.Chronics.gridValue import GridValue
 
 from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
+
 class JSONMaintenanceHandler(BaseHandler):
+    """This type of handlers will generate maintenance based on some json files.
+    
+    Maintenance generated with this class will be stochastic: some different 
+    maintenance time / duration will be generated for each new episode (of course
+    you can seed your environment for a purely deterministic process)
+    
+    The json file it will read should be called `json_file_name` (by default 
+    `"maintenance_meta.json"`)
+    
+    It should contain the data:
+    
+    - "line_to_maintenance": the list of the name of the powerline that can be 
+      "in maintenance" for this episode
+    - "maintenance_starting_hour" : the starting hour for all maintenance
+    - "maintenance_ending_hour" : the hour at which each maintenance ends
+    - "daily_proba_per_month_maintenance" : it's a list having 12 elements (one 
+      for each month of the year) that gives, for each month the probability
+      for any given line to be in maintenance. For example if 
+      `daily_proba_per_month_maintenance[6] = 0.1` it means that for the 
+      6th month of the year (june) there is a 10% for each powerline to be in
+      maintenance
+    - "max_daily_number_per_month_maintenance": maximum number of powerlines
+      allowed in maintenance at the same time.
+    
+    """
     def __init__(self,
                  array_name="maintenance",
                  json_file_name="maintenance_meta.json",

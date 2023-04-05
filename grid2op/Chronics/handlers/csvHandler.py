@@ -10,7 +10,7 @@ import os
 import pandas as pd
 import numpy as np
 import copy
-from typing import Optional, Tuple
+from typing import Tuple
 
 from grid2op.Exceptions import (
     ChronicsError, HandlerError
@@ -21,9 +21,41 @@ from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
 
 class CSVHandler(BaseHandler):
-    """Read the time series from a csv.
+    """Reads and produce time series if given by a csv file (possibly compressed).
     
-    Only for Environment data, not for FORECAST
+    The separator used can be specified as input. 
+    
+    The file name should match the "array_name":
+    for example if the data you want to use for "load_p" in the environment
+    are in the file "my_load_p_data.csv.bz2" should name this handler 
+    "my_load_p_data" and not "load_p" nor "my_load_p_data.csv" nor
+    "my_load_p_data.csv.bz2"
+    
+    The csv should be structured as follow:
+    
+    - it should not have any "index" or anything, only data used by 
+      grid2op will be used
+    - Each element (for example a load) is represented by a `column`.
+    - It should have a header with the name of the elements it "handles" and 
+      this name should match the one in the environment. For example 
+      if "load_1_0" is the name of a load and you read data for "load_p"
+      or "load_q" then one column of your csv should be named "load_1_0".
+    - each time step is represented as a `row` and in order. For example
+      (removing the header), row 1 (first row) will be step 1, row 2 will
+      be step 2 etc.
+    - only floating point numbers should be present in the data (no bool, string
+      and integers will be casted to float)
+      
+      
+    .. warning::
+        Use this class only for the ENVIRONMENT data ("load_p", "load_q",
+        "prod_p" or "prod_v") and not for maintenance (in this case
+        use :class:`CSVMaintenanceHandler`) nor for 
+        forecast (in this case use :class:`CSVForecastHandler`) 
+    
+    This is the default way to provide data to grid2op and its used for
+    most l2rpn environments.
+    
     """
     def __init__(self,
                  array_name,  # eg "load_p"

@@ -10,9 +10,10 @@ from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
 
 class DoNothingHandler(BaseHandler):
-    """This is the type of Time Series Handler that does nothing. 
+    """This is the specific types of handler that does nothing.
     
-    The environment will act as if the time series this Handler is reponsible for will never change.
+    You can use if for any data type that you want.
+    
     """
     def __init__(self, array_name="do nothing") -> None:
         super().__init__(array_name)
