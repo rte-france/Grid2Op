@@ -2967,7 +2967,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         except StopIteration:
             # episode is over
-            print("I got a StopIteration")
             is_done = True
             
         self._backend_action.reset()
