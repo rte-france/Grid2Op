@@ -20,7 +20,10 @@ from grid2op.Exceptions import OpponentError
 
 
 class GeometricOpponentMultiArea(BaseOpponent):
-
+    """
+    This opponent is a combination of several similar opponents (of Kind Geometric Opponent at this stage) attacking on different areas.
+    The difference between unitary opponents is mainly the attackable lines (which belongs to different pre-identified areas
+    """
 
     GRID_AREA_FILE_NAME = "grid_areas.json"
 
@@ -34,13 +37,38 @@ class GeometricOpponentMultiArea(BaseOpponent):
         self,
         partial_env,
         lines_attacked=None,#list(list()),
-        #lines_attacked=(),
         attack_every_xxx_hour=24,
         average_attack_duration_hour=4,
         minimum_attack_duration_hour=2,
         pmax_pmin_ratio=4,
         **kwargs,
     ):
+        """
+        Generic function used to initialize the derived classes. For example, if an opponent reads from a file, the
+        path where is the file is located should be pass with this method.
+        This is based on init from GeometricOpponent, only parameter lines_attacked becomes a list of list
+
+        Parameters
+        ----------
+        partial_env: grid2op Environment
+            see the GeometricOpponent::init documentation
+
+        lines_attacked: ``list(list)``
+            The lists of lines attacked by each unitary opponent
+
+        attack_every_xxx_hour: ``float``
+            see the GeometricOpponent::init documentation
+
+        average_attack_duration_hour: ``float``
+            see the GeometricOpponent::init documentation
+
+        minimum_attack_duration_hour: ``int``
+            see the GeometricOpponent::init documentation
+
+        pmax_pmin_ratio: ``float``
+            see the GeometricOpponent::init documentation
+
+        """
 
         self.list_opponents=[GeometricOpponent(action_space=partial_env.action_space) for el in lines_attacked]
 
@@ -65,6 +93,37 @@ class GeometricOpponentMultiArea(BaseOpponent):
 
 
     def attack(self, observation, agent_action, env_action, budget, previous_fails):
+        """
+        This method is the equivalent of "attack" for a regular agent.
+        Opponent, in this framework can have more information than a regular agent (in particular it can
+        view time step t+1), it has access to its current budget etc.
+        Here we take the combination of unitary opponent attacks if they happen at the same time.
+        We choose the attack duration as the minimum duration of several simultaneous attacks if that happen.
+
+        Parameters
+        ----------
+        observation: :class:`grid2op.Observation.Observation`
+            see the GeometricOpponent::attack documentation
+        opp_reward: ``float``
+            see the GeometricOpponent::attack documentation
+        done: ``bool``
+            see the GeometricOpponent::attack documentation
+        agent_action: :class:`grid2op.Action.Action`
+            see the GeometricOpponent::attack documentation
+        env_action: :class:`grid2op.Action.Action`
+            see the GeometricOpponent::attack documentation
+        budget: ``float``
+            see the GeometricOpponent::attack documentation
+        previous_fails: ``bool``
+            see the GeometricOpponent::attack documentation
+        Returns
+        -------
+        attack: :class:`grid2op.Action.Action`
+            see the GeometricOpponent::attack documentation
+        duration: ``int``
+            see the GeometricOpponent::attack documentation
+        """
+
         #go through opponents and check if attack or not. As soon as one attack, stop there
         self._new_attack_time_counters+=-1
         self._new_attack_time_counters[self._new_attack_time_counters<-1]=-1
@@ -111,6 +170,26 @@ class GeometricOpponentMultiArea(BaseOpponent):
 
 
     def seed(self, seed):
+        """
+        INTERNAL
+
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            We do not recommend to use this function outside of the two examples given in the description of this class.
+
+        Set the seeds of the source of pseudo random number used for these several unitary opponents.
+
+        Parameters
+        ----------
+        seed: ``int``
+            The root seed to be set for the random number generator.
+
+        Returns
+        -------
+        seeds: ``list``
+            The associated list of seeds used.
+
+        """
+
         max_seed = np.iinfo(dt_int).max  # 2**32 - 1
         seeds=[]
         super().seed(seed)
