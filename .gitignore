@@ -365,6 +365,8 @@ test_doc.py
 test_render.py
 requirements_issue_389.txt
 test_multi_step_for.py
+test_vecenv.7z
+test_vecenv.py
 
 # profiling files
 **.prof

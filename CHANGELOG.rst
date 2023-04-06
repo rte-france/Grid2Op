@@ -43,6 +43,7 @@ Change Log
   description has been adapted.
 - [BREAKING] In `PandaPowerBackend` the kwargs argument "ligthsim2grid" was misspelled and is now properly
   renamed `lightsim2grid`
+- [BREAKING] you can no longer use the `env.reactivate_forecast()` in the middle of an episode.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
@@ -65,6 +66,11 @@ Change Log
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/396
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/403
 - [FIXED] a bug in `PandaPowerBackend` when it was copied (the kwargs used to build it were not propagated)
+- [FIXED] a bug in the `Runner` when the time series class used is not `MultiFolder` (*eg* `GridStateFromFile`): we could 
+  not run twice the same environment. 
+- [FIXED] a bug n the `GridStateFromFile`, `GridStateFromFileWithForecasts` and 
+  `GridStateFromFileWithForecastsWithoutMaintenance` classes that caused the maintenance file to be 
+  ignored when "chunk_size" was set.
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
@@ -75,6 +81,8 @@ Change Log
 - [ADDED] a function to get the "elements graph" from the grid2op observation (represented as a networkx graph)
   as well as its description on the documentation.
 - [ADDED] a method to retrieve the "elements graph" (see doc) fom an observation `obs.get_elements_graph()`
+- [ADDED] a whole new way to deal with input time series data (see the module `grid2op.Chronics.handlers` 
+  for more information)
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
@@ -108,6 +116,9 @@ Change Log
 - [IMPROVED] the doc of the `obs.get_energy_graph` (previously `obs.as_networkx()`)
 - [IMPROVED] it is now possible to use a different backend, a different grid or different kwargs between the
   env backend and the obs backend.
+- [IMPROVED] the environment now called the "chronics_handler.forecast" function at most once per step.
+- [IMPROVED] make it easier to create an environment without `MultiFolder` or `MultifolderWithCache`
+
 
 [1.8.1] - 2023-01-11
 ---------------------

@@ -31,7 +31,15 @@ class NoForecastAvailable(Grid2OpException):
     pass
 
 
-class SimulateUsedTooMuch(Grid2OpException):
+class SimulateError(BaseObservationError):
+    """
+    This is the generic exception related to :func:`grid2op.Observation.BaseObservation.simulate` function
+    """
+
+    pass
+
+
+class SimulateUsedTooMuch(SimulateError):
     pass
 
 

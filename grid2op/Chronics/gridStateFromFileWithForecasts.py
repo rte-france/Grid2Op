@@ -48,6 +48,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         Array used to store the forecasts of the generator voltage magnitude setpoint.
 
     """
+    MULTI_CHRONICS = False
 
     def __init__(
         self,
@@ -84,6 +85,20 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             chunk_size=chunk_size,
         )
     
+    def _clear(self):
+        super()._clear()
+        self.load_p_forecast = None
+        self.load_q_forecast = None
+        self.prod_p_forecast = None
+        self.prod_v_forecast = None
+
+        # for when you read data in chunk
+        self._order_load_p_forecasted = None
+        self._order_load_q_forecasted = None
+        self._order_prod_p_forecasted = None
+        self._order_prod_v_forecasted = None
+        self._data_already_in_mem = False  # says if the "main" value from the base class had to be reloaded (used for chunk)
+        
     def _check_hs_consistent(self, h_forecast, time_interval):
         prev = timedelta(minutes=0)
         for i, h in enumerate(h_forecast):
@@ -317,7 +332,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
                 self._load_next_chunk_in_memory_forecast()
             except StopIteration as exc_:
                 raise exc_
-            
         res = []
         for h_id, h in enumerate(self._h_forecast):
             res_d = {}

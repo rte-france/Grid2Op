@@ -109,6 +109,7 @@ class FromNPY(GridValue):
     ----------
     TODO
     """
+    MULTI_CHRONICS = False
 
     def __init__(
         self,

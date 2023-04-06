@@ -782,7 +782,6 @@ class GridValue(RandomObject, ABC):
         00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
         the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
 
-
         Parameters
         ----------
         nb_timestep: ``int``
