@@ -6,14 +6,11 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import warnings
-import copy
+from typing import Optional, List
 import numpy as np
-from grid2op.Exceptions.Grid2OpException import Grid2OpException
 
 from grid2op.dtypes import dt_int
-import os
-import json
+
 from grid2op.Opponent import BaseOpponent
 from grid2op.Opponent import GeometricOpponent
 from grid2op.Exceptions import OpponentError
@@ -25,13 +22,11 @@ class GeometricOpponentMultiArea(BaseOpponent):
     The difference between unitary opponents is mainly the attackable lines (which belongs to different pre-identified areas
     """
 
-    GRID_AREA_FILE_NAME = "grid_areas.json"
-
     def __init__(self, action_space):
         BaseOpponent.__init__(self, action_space)
-        self.list_opponents=[]
-        self._new_attack_time_counters=[]
-        self._is_opp_attack_continue=[]
+        self.list_opponents : Optional[List[GeometricOpponent]] = None
+        self._new_attack_time_counters : Optional[np.ndarray] = None
+        self._is_opp_attack_continue : Optional[np.ndarray] = None
 
     def init(
         self,
@@ -54,7 +49,9 @@ class GeometricOpponentMultiArea(BaseOpponent):
             see the GeometricOpponent::init documentation
 
         lines_attacked: ``list(list)``
-            The lists of lines attacked by each unitary opponent
+            The lists of lines attacked by each unitary opponent (this is a list of list: the size 
+            of the outer list is the number of underlying opponent / number of areas and for each inner 
+            list it gives the name of the lines to attack.)
 
         attack_every_xxx_hour: ``float``
             see the GeometricOpponent::init documentation
@@ -70,27 +67,27 @@ class GeometricOpponentMultiArea(BaseOpponent):
 
         """
 
-        self.list_opponents=[GeometricOpponent(action_space=partial_env.action_space) for el in lines_attacked]
+        self.list_opponents = [GeometricOpponent(action_space=partial_env.action_space) for _ in lines_attacked]
 
-        for el,opp in zip(lines_attacked,self.list_opponents):
+        for lines_attacked, opp in zip(lines_attacked, self.list_opponents):
             opp.init(
                 partial_env=partial_env,
-                lines_attacked=el,
+                lines_attacked=lines_attacked,
                 attack_every_xxx_hour=attack_every_xxx_hour,
                 average_attack_duration_hour=average_attack_duration_hour,
                 minimum_attack_duration_hour=minimum_attack_duration_hour,
                 pmax_pmin_ratio=pmax_pmin_ratio,
                 **kwargs,
             )
-        self._new_attack_time_counters=np.array([-1 for el in lines_attacked])#ou plutôt 0 comme dans Geometric Opponent ?
-        self._is_opp_attack_continue=np.array([False for el in lines_attacked])
-
+        self._new_attack_time_counters = np.array([-1 for _ in lines_attacked])#ou plutôt 0 comme dans Geometric Opponent ?
+        self._is_opp_attack_continue = np.array([False for _ in lines_attacked])
 
     def reset(self, initial_budget):
+        self._new_attack_time_counters = np.array([-1 for _ in self.list_opponents])
+        self._is_opp_attack_continue = np.array([False for _ in self.list_opponents])
+
         for opp in self.list_opponents:  # maybe loop in different orders each time
             opp.reset(initial_budget)
-
-
 
     def attack(self, observation, agent_action, env_action, budget, previous_fails):
         """
@@ -125,28 +122,26 @@ class GeometricOpponentMultiArea(BaseOpponent):
         """
 
         #go through opponents and check if attack or not. As soon as one attack, stop there
-        self._new_attack_time_counters+=-1
-        self._new_attack_time_counters[self._new_attack_time_counters<-1]=-1
+        self._new_attack_time_counters -= 1
+        self._new_attack_time_counters[self._new_attack_time_counters < -1] = -1
 
         attack_combined=None
         attack_combined_duration=None
 
-        for i,opp in enumerate(self.list_opponents):#maybe loop in different orders each time
-            opp._new_attack_time_counters[i]
-
-            if(self._new_attack_time_counters[i]==-1):
+        for i, opp in enumerate(self.list_opponents):#maybe loop in different orders each timeq
+            if(self._new_attack_time_counters[i] == -1):
                 attack_opp, attack_duration_opp=opp.attack(observation, agent_action, env_action, budget, previous_fails)
 
                 if(attack_opp is not None):
-                    self._new_attack_time_counters[i]=attack_duration_opp
-                    self._is_opp_attack_continue[i]=True
+                    self._new_attack_time_counters[i] = attack_duration_opp
+                    self._is_opp_attack_continue[i] = True
                     if attack_combined is None:
-                        attack_combined=attack_opp
-                        attack_combined_duration=attack_duration_opp
+                        attack_combined = attack_opp
+                        attack_combined_duration = attack_duration_opp
                     else:
-                        attack_combined+=attack_opp
-                        if attack_duration_opp<attack_combined_duration:
-                            attack_combined_duration=attack_duration_opp
+                        attack_combined += attack_opp
+                        if attack_duration_opp < attack_combined_duration:
+                            attack_combined_duration = attack_duration_opp
             else:
                 opp.tell_attack_continues()
 
@@ -189,13 +184,10 @@ class GeometricOpponentMultiArea(BaseOpponent):
             The associated list of seeds used.
 
         """
-
-        max_seed = np.iinfo(dt_int).max  # 2**32 - 1
         seeds=[]
         super().seed(seed)
+        max_seed = np.iinfo(dt_int).max  # 2**32 - 1
         for opp in self.list_opponents:
             seed = self.space_prng.randint(max_seed)
-
             seeds.append(opp.seed(seed))
         return seeds
-
