@@ -950,5 +950,36 @@ class TestMaxIter(unittest.TestCase):
             self.env.set_max_iter(0)
 
 
+class TestTimedOutEnvironment(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # TODO : Comment on fait avec un time out ?
+            self.env1 = make("rte_case14_test", test=True, time_out_ms=1e3)
+            
+
+    def tearDown(self) -> None:
+        self.env1.close()
+
+    def test_action_b4_time_out(self):
+        obs = self.env1.reset()
+        obs, reward, done, info = self.env1.step(self.env1.action_space())
+        # TODO : comment on récupère le time_step
+        assert self.obs.current_step==1
+
+    def test_action_after_1_time_out(self):
+        obs = self.env1.reset()
+        time.sleep(1.2 * self.env1.time_out_ms/1e3)                                 # sleep in seconds
+        obs, reward, done, info = self.env1.step(self.env1.action_space())
+        # TODO : comment on récupère le time_step
+        assert self.obs.current_step==2
+
+    def test_action_after_3_time_out(self):
+        obs = self.env1.reset()
+        time.sleep(3.2 * self.env1.time_out_ms/1e3)                                 # sleep in seconds
+        obs, reward, done, info = self.env1.step(self.env1.action_space())
+        # TODO : comment on récupère le time_step
+        assert self.obs.current_step==4
+
 if __name__ == "__main__":
     unittest.main()
