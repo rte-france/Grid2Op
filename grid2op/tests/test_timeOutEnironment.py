@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -8,46 +8,141 @@
 
 import time
 import warnings
+import unittest
 
-from grid2op.tests.helper_path_test import *
-
-from grid2op.Exceptions import *
-from grid2op.Environment import Environment
-from grid2op.MakeEnv import make
-from grid2op.dtypes import dt_float
+import grid2op
+from grid2op.Environment import TimedOutEnvironment
+from grid2op.Agent import BaseAgent
 
 
-class TestTimedOutEnvironment(unittest.TestCase):
+class AgentOK(BaseAgent):
+    def __init__(self, env):
+        super().__init__(env.action_space)
+        self.time_out_ms = 0.8 * env.time_out_ms
+        
+    def act(self, obs, reward, done):
+        time.sleep(1e-3 * self.time_out_ms)
+        return self.action_space()
+    
+    
+class AgentKO(BaseAgent):
+    def __init__(self, env):
+        super().__init__(env.action_space)
+        self.time_out_ms = 1 * env.time_out_ms
+        
+    def act(self, obs, reward, done):
+        time.sleep(1e-3 * self.time_out_ms)
+        return self.action_space()
+    
+    
+class AgentKO1(BaseAgent):
+    def __init__(self, env):
+        super().__init__(env.action_space)
+        self.time_out_ms = 1.8 * env.time_out_ms
+        
+    def act(self, obs, reward, done):
+        time.sleep(1e-3 * self.time_out_ms)
+        return self.action_space()
+            
+            
+class AgentKO2(BaseAgent):
+    def __init__(self, env):
+        super().__init__(env.action_space)
+        self.time_out_ms = 2.0 * env.time_out_ms
+        
+    def act(self, obs, reward, done):
+        time.sleep(1e-3 * self.time_out_ms)
+        return self.action_space()
+            
+            
+class TestTimedOutEnvironment100(unittest.TestCase):
+    def get_timeout_ms(self):
+        return 100
+        
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # TODO : Comment on fait avec un time out ?
-            self.env1 = make("rte_case14_test", test=True, time_out_ms=1e3)
+            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox"),
+                                            time_out_ms=self.get_timeout_ms())
+        params = self.env1.parameters
+        params.NO_OVERFLOW_DISCONNECTION = True
+        self.env1.change_parameters(params)
+
+    def test_no_dn(self):
+        agentok = AgentOK(self.env1)
+        obs = self.env1.reset()
+        assert self.env1._nb_dn_last == 0
+        for i in range(10):
+            act = agentok.act(None, None, None)
+            obs, reward, done, info = self.env1.step(act)
+            assert info["nb_do_nothing"] == 0
+            assert info["nb_do_nothing_made"] == 0
+            assert self.env1._nb_dn_last == 0
             
-
-    def tearDown(self) -> None:
-        self.env1.close()
-
-    def test_action_b4_time_out(self):
+    def test_one_dn(self):
+        agentko = AgentKO(self.env1)
         obs = self.env1.reset()
-        obs, reward, done, info = self.env1.step(self.env1.action_space())
-        # TODO : comment on récupère le time_step
-        assert self.obs.current_step==1
-
-    def test_action_after_1_time_out(self):
+        assert self.env1._nb_dn_last == 0
+        for i in range(10):
+            act = agentko.act(None, None, None)
+            obs, reward, done, info = self.env1.step(act)
+            assert info["nb_do_nothing"] == 1
+            assert info["nb_do_nothing_made"] == 1
+            assert self.env1._nb_dn_last == 1
+            
+    def test_one_dn2(self):
+        agentko = AgentKO1(self.env1)
         obs = self.env1.reset()
-        time.sleep(1.2 * self.env1.time_out_ms/1e3)                                 # sleep in seconds
-        obs, reward, done, info = self.env1.step(self.env1.action_space())
-        # TODO : comment on récupère le time_step
-        assert self.obs.current_step==2
+        assert self.env1._nb_dn_last == 0
+        for i in range(10):
+            act = agentko.act(None, None, None)
+            obs, reward, done, info = self.env1.step(act)
+            assert info["nb_do_nothing"] == 1
+            assert info["nb_do_nothing_made"] == 1
+            assert self.env1._nb_dn_last == 1
 
-    def test_action_after_3_time_out(self):
+    def test_two_dn(self):
+        agentko2 = AgentKO2(self.env1)
         obs = self.env1.reset()
-        time.sleep(3.2 * self.env1.time_out_ms/1e3)                                 # sleep in seconds
-        obs, reward, done, info = self.env1.step(self.env1.action_space())
-        # TODO : comment on récupère le time_step
-        assert self.obs.current_step==4
+        assert self.env1._nb_dn_last == 0
+        for i in range(10):
+            act = agentko2.act(None, None, None)
+            obs, reward, done, info = self.env1.step(act)
+            assert info["nb_do_nothing"] == 2
+            assert info["nb_do_nothing_made"] == 2
+            assert self.env1._nb_dn_last == 2
+    
+    def test_diff_dn(self):
+        agentok = AgentOK(self.env1)
+        agentko = AgentKO(self.env1)
+        agentko2 = AgentKO2(self.env1)
+        obs = self.env1.reset()
+        assert self.env1._nb_dn_last == 0
+        for i, agent in enumerate([agentok, agentko, agentko2] * 2):
+            act = agent.act(None, None, None)
+            obs, reward, done, info = self.env1.step(act)
+            assert info["nb_do_nothing"] == i % 3
+            assert info["nb_do_nothing_made"] == i % 3
+            assert self.env1._nb_dn_last == i % 3
+        
 
+class TestTimedOutEnvironment50(TestTimedOutEnvironment100):
+    def get_timeout_ms(self):
+        return 50
+
+
+class TestTimedOutEnvironmentCpy(TestTimedOutEnvironment100):
+    def setUp(self) -> None:
+        super().setUp()
+        self.env0 = self.env1
+        self.env1 = self.env0.copy()
+        
+
+# TODO test runner
+# TODO test when used in gym (GymEnv)
+# TODO test that the "obs.simulate" and obs.get_forecast_env does not "do nothing"
+# TODO think about other tests
 
 if __name__ == "__main__":
     unittest.main()
