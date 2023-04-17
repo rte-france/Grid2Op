@@ -44,19 +44,17 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
     _viewer: ``object``
         Used to display the powergrid. Currently properly supported.
 
-    """
-
-
-    def __init__(self, time_out_ms: int=1e3) -> None:
-        super().__init__()
-        self.__last_act_send = 0.
-        self.__last_act_received = 0.
+    """    
+    def __init__(self,
+                 grid2op_env: Environment,
+                 time_out_ms: int=1e3) -> None:
         self.time_out_ms = time_out_ms  # in ms
-    
-    @staticmethod
-    def __call__(regular_env):  # TimedOutEnvironment(regular_env)
-        # TODO benjamin !
-        raise NotImplementedError()
+        self.__last_act_send = time.perf_counter()
+        self.__last_act_received = self.__last_act_send
+        self._nb_dn_last = 0
+        self._is_init_dn = False
+        super().__init__(**grid2op_env.get_kwargs())
+        self._is_init_dn = True
 
     def step(self, action):
         """Overload of the step function defined in BaseEnv.
@@ -71,21 +69,40 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
         """        
         self.__last_act_received = time.perf_counter()
         
-        # do the "do nothing"
-        nb_dn = floor(1000. * (self.__last_act_received  - self.__last_act_send) / (self.time_out_ms))
+        # do the "do nothing" actions
+        self._nb_dn_last = 0
+        if self._is_init_dn:
+            nb_dn = floor(1000. * (self.__last_act_received  - self.__last_act_send) / (self.time_out_ms))
+        else:
+            nb_dn = 0
         do_nothing_action = self.action_space()
         for _ in range(nb_dn):
             obs, reward, done, info = super().step(do_nothing_action)
             if done:
+                info["nb_do_nothing"] = nb_dn
+                info["nb_do_nothing_made"] = self._nb_dn_last
                 return obs, reward, done, info
+            self._nb_dn_last += 1
         
         # now do the action
         obs, reward, done, info = super().step(action)
         info["nb_do_nothing"] = nb_dn
+        info["nb_do_nothing_made"] = self._nb_dn_last
         self.__last_act_send = time.perf_counter()
         return obs, reward, done, info
 
     def reset(self):
+        self.__last_act_send = time.perf_counter()
+        self.__last_act_received = self.__last_act_send
+        self._is_init_dn = False
         res = super().reset()
         self.__last_act_send = time.perf_counter()
+        self._is_init_dn = True
         return res
+    
+    def _custom_deepcopy_for_copy(self, new_obj):
+        super()._custom_deepcopy_for_copy(new_obj)
+        new_obj.__last_act_send = time.perf_counter()
+        new_obj.__last_act_received = new_obj.__last_act_send
+        new_obj._is_init_dn = self._is_init_dn
+        new_obj.time_out_ms = self.time_out_ms
