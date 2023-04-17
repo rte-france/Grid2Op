@@ -460,7 +460,7 @@ class TestICAPSSCORE(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make(
-                os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"),
+                os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"),
                 test=True,
             ) as env:
                 scores = ScoreICAPS2021(
