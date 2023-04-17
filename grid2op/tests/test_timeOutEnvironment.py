@@ -14,11 +14,12 @@ import grid2op
 from grid2op.Environment import TimedOutEnvironment
 from grid2op.Agent import BaseAgent
 
+# Nota : time.sleep vs time.perf_counter() seems precise up to approx. 30 ms.
 
 class AgentOK(BaseAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 0.8 * env.time_out_ms
+        self.time_out_ms = 0.7 * env.time_out_ms
         
     def act(self, obs, reward, done):
         time.sleep(1e-3 * self.time_out_ms)
@@ -28,7 +29,7 @@ class AgentOK(BaseAgent):
 class AgentKO(BaseAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 1 * env.time_out_ms
+        self.time_out_ms = 1.3 * env.time_out_ms
         
     def act(self, obs, reward, done):
         time.sleep(1e-3 * self.time_out_ms)
@@ -38,7 +39,7 @@ class AgentKO(BaseAgent):
 class AgentKO1(BaseAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 1.8 * env.time_out_ms
+        self.time_out_ms = 1.7 * env.time_out_ms
         
     def act(self, obs, reward, done):
         time.sleep(1e-3 * self.time_out_ms)
@@ -48,7 +49,7 @@ class AgentKO1(BaseAgent):
 class AgentKO2(BaseAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 2.0 * env.time_out_ms
+        self.time_out_ms = 2.3 * env.time_out_ms
         
     def act(self, obs, reward, done):
         time.sleep(1e-3 * self.time_out_ms)
@@ -63,7 +64,7 @@ class TestTimedOutEnvironment100(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # TODO : Comment on fait avec un time out ?
-            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox"),
+            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True),
                                             time_out_ms=self.get_timeout_ms())
         params = self.env1.parameters
         params.NO_OVERFLOW_DISCONNECTION = True
