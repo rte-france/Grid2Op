@@ -76,7 +76,7 @@ pkgs["extras"]["test"] += pkgs["extras"]["chronix2grid"]
 if sys.version_info.minor <= 7:
     # typing "Literal" not available on python 3.7
     pkgs["required"].append("typing_extensions")
-    pkgs["required"][3] = "pandapower>=2.2.2<2.12"
+    pkgs["required"][3] = "pandapower>=2.2.2,<2.12"
 
 setup(description='An gym compatible environment to model sequential decision making  for powersystems',
       long_description=long_description,
