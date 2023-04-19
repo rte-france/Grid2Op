@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -28,7 +28,9 @@ class TestAlert(unittest.TestCase):
         self.env_nm = os.path.join(
             PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
         )
-        self.env = make(self.env_nm, test=True)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make(self.env_nm, test=True)
 
         
         self.env.seed(0)
