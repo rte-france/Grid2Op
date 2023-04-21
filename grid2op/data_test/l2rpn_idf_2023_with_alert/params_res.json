@@ -1,0 +1,16 @@
+{
+  "Lx": 1000,
+  "Ly": 1000,
+  "dx_corr": 250,
+  "dy_corr": 250,
+  "long_wind_corr": 5000,
+  "medium_wind_corr": 720,
+  "short_wind_corr": 120,
+  "solar_corr": 20,
+  "smoothdist": 0.001,
+  "std_solar_noise": 0.4,
+  "std_short_wind_noise": 0.1,
+  "std_medium_wind_noise": 0.15,
+  "std_long_wind_noise": 0.2,
+  "year_solar_pattern": 2007
+}

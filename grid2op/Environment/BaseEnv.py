@@ -762,6 +762,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Internal
 
+        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+
         Notes
         ------
         This is called when the environment class is not created, so i need to read the data of the grid from the
@@ -777,9 +779,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         -------
 
         """
-        file_alerts = os.path.join(self.get_path_env(), BaseEnv.ALARM_FILE_NAME)
-        if os.path.exists(file_alerts) and os.path.isfile(file_alerts):
-            with open(file_alerts, mode="r", encoding="utf-8") as f:
+        file_alarms = os.path.join(self.get_path_env(), BaseEnv.ALARM_FILE_NAME)
+        if os.path.exists(file_alarms) and os.path.isfile(file_alarms):
+            with open(file_alarms, mode="r", encoding="utf-8") as f:
                 dict_alarm = json.load(f)
             key = "fixed"
             if key not in dict_alarm:
@@ -800,7 +802,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         raise EnvError(
                             f"You provided a description of the area of the grid for the alarms, but a "
                             f'line named "{line}" is present in your file but not in the grid. Please '
-                            f"check the file {file_alerts} and make sure it contains only the line named "
+                            f"check the file {file_alarms} and make sure it contains only the line named "
                             f"{sorted(self.backend.name_line)}."
                         )
                     # update the list and dictionary that remembers everything
