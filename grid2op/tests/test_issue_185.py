@@ -24,7 +24,7 @@ import pdb
 
 
 ENV_WITH_ALARM_NAME = os.path.join(
-    PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"
+    PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"
 )
 
 

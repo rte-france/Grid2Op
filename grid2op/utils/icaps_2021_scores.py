@@ -167,7 +167,7 @@ if __name__ == "__main__":
     from grid2op.Agent import RandomAgent, DoNothingAgent
 
     env = grid2op.make(
-        "/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alert",
+        "/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alarm",
         backend=LightSimBackend(),
     )
     # env = grid2op.make("l2rpn_case14_sandbox", backend=LightSimBackend())
