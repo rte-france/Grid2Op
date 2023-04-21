@@ -2714,7 +2714,7 @@ class BaseObservation(GridObjects):
         value as the :func:`grid2op.Environment.BaseEnv.step` function.
         
         .. seealso::
-            :func:`BaseObservation.get_forecast_env`
+            :func:`BaseObservation.get_forecast_env` and :func:`BaseObservation.get_env_from_external_forecasts`
         
         .. seealso::
             :ref:`model_based_rl`
@@ -3907,7 +3907,8 @@ class BaseObservation(GridObjects):
         
         This "forecasted environment" can be used like any grid2op environment. It checks the same "rules" as the 
         :func:`BaseObservation.simulate` (if you want to change them, make sure to use
-        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters`), with the exact same behaviour 
+        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` or 
+        :func:`BaseObservation.change_forecast_parameters`), with the exact same behaviour 
         as "env.step(...)".
         
         With this function, your agent can now make some predictions about the future.
@@ -3915,8 +3916,7 @@ class BaseObservation(GridObjects):
         This can be particularly useful for model based RL for example. 
 
         .. seealso::
-            :func:`BaseObservation.simulate`
-        
+            :func:`BaseObservation.simulate` and :func:`BaseObservation.get_env_from_external_forecasts`
         
         .. seealso::
             :ref:`model_based_rl`
@@ -3990,13 +3990,122 @@ class BaseObservation(GridObjects):
                                        "data as this Observation does not appear to "
                                        "support forecast.")
         # build the forecast
-        from grid2op.Chronics import FromNPY, ChronicsHandler
         load_p = self._get_array_from_forecast("load_p")
         load_q = self._get_array_from_forecast("load_q")
         prod_p = self._get_array_from_forecast("prod_p")
         prod_v = self._get_array_from_forecast("prod_v")
         maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
+        return self._make_env_from_arays(load_p, load_q, prod_p, prod_v, maintenance)
+
+    def get_forecast_arrays(self):
+        """
+        This functions allows to retrieve (as numpy arrays) the values for all the loads / generators / maintenance
+        for the forseable future (they are the forecast availble in :func:`BaseObservation.simulate` and
+        :func:`BaseObservation.get_forecast_env`)
         
+        .. versionadded:: 1.8.2
+        
+        Examples
+        -----------
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            
+            obs = env.reset()
+            
+            load_p, load_q, prod_p, prod_v, maintenance = obs.get_forecast_arrays()
+            
+        """
+        load_p = self._get_array_from_forecast("load_p")
+        load_q = self._get_array_from_forecast("load_q")
+        prod_p = self._get_array_from_forecast("prod_p")
+        prod_v = self._get_array_from_forecast("prod_v")
+        maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
+        return load_p, load_q, prod_p, prod_v, maintenance
+    
+    def get_env_from_external_forecasts(self,
+                                        load_p,
+                                        load_q,
+                                        prod_p,
+                                        prod_v,
+                                        ) -> "grid2op.Environment.Environment":
+        """
+        .. versionadded:: 1.8.2
+        
+        This function will return a grid2op "environment" where the data (load, generation and maintenance)
+        comes from the provided forecast data.
+        
+        This "forecasted environment" can be used like any grid2op environment. It checks the same "rules" as the 
+        :func:`BaseObservation.simulate` (if you want to change them, make sure to use
+        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` or 
+        :func:`BaseObservation.change_forecast_parameters`), with the exact same behaviour 
+        as "env.step(...)".
+        
+        This can be particularly useful for model based RL for example. 
+
+        .. seealso::
+            :func:`BaseObservation.simulate` and :func:`BaseObservation.get_forecast_env`
+        
+        .. seealso::
+            :ref:`model_based_rl`
+        
+        .. note::
+            With this method, you can have as many "steps" in the forecasted environment as you want. You are
+            not limited with the amount of data provided.
+            
+        Examples
+        --------
+        A typical use might look like
+        
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            obs = env.reset()
+            
+            # make some "forecast" with the method of your choice
+            load_p_forecasted = ...
+            load_q_forecasted = ...
+            gen_p_forecasted = ...
+            gen_v_forecasted = ...
+            
+            # and now retrieve the associated "forecasted_env"
+            forcast_env = obs.get_env_from_external_forecasts(load_p_forecasted,
+                                                              load_q_forecasted,
+                                                              gen_p_forecasted,
+                                                              gen_v_forecasted)
+            
+            # when reset this should be at the same "step" as the action
+            forecast_obs = forcast_env.reset()
+            # forecast_obs == obs  # should be True
+            
+            done = False
+            while not done:
+                next_forecast_obs, reward, done, info = forcast_env.step(env.action_space())
+                
+        Returns
+        -------
+        grid2op.Environment.Environment
+            The "forecasted environment" that is a grid2op environment with the data corresponding to the 
+            forecasts provided as input.
+            
+        """
+        # TODO add "self" to the initialization
+        maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
+        return self._make_env_from_arays(load_p, load_q, prod_p, prod_v, maintenance)
+    
+    def _make_env_from_arays(self,
+                             load_p,
+                             load_q,
+                             prod_p,
+                             prod_v,
+                             maintenance):
+        from grid2op.Chronics import FromNPY, ChronicsHandler
+        from grid2op.Environment import Environment
         ch = ChronicsHandler(FromNPY,
                              load_p=load_p,
                              load_q=load_q,
@@ -4006,7 +4115,6 @@ class BaseObservation(GridObjects):
         
         backend = self._obs_env.backend.copy()
         backend._is_loaded = True
-        from grid2op.Environment import Environment
         res = Environment(**self._ptr_kwargs_env,
                           backend=backend,
                           chronics_handler=ch,
@@ -4014,3 +4122,43 @@ class BaseObservation(GridObjects):
                           _init_obs=self
                           )
         return res
+
+    def change_forecast_parameters(self, params):
+        """This function allows to change the parameters (see :class:`grid2op.Parameters.Parameters` 
+        for more information) that are used for the `obs.simulate()` and `obs.get_forecast_env()` method.
+        
+        .. danger::
+            This function has a global impact. It changes the parameters for all sucessive calls to
+            :func:`BaseObservation.simulate` and :func:`BaseObservation.get_forecast_env` !
+        
+        .. seealso::
+            :func:`grid2op.Environment.BaseEnv.change_parameters` to change the parameters of the environment
+            of :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` to change the paremters used
+            for the `obs.simulate` and `obs.get_forecast_env` functions.
+            
+            The main advantages of this function is that you do not require to have access to an environment
+            to change them.
+        
+        .. versionadded:: 1.8.2
+        
+        Examples
+        -----------
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            
+            obs = env.reset()
+            
+            new_params = env.parameters
+            new_params.NO_OVERFLOW_DISCONNECTION = True
+            obs.change_forecast_parameters(new_params)
+            
+            obs.simulate(...)  # uses the parameters `new_params`
+            f_env = obs.get_forecast_evn()  # uses also the parameters `new_params`
+            
+        """
+        self._obs_env.change_parameters(params)
+        self._obs_env._parameters = params
