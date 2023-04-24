@@ -1714,7 +1714,7 @@ class Environment(BaseEnv):
         res["_is_test"] = self._is_test  # TODO not implemented !!
         return res
 
-    def generate_data(self, nb_year=1, nb_core=1, seed=None):
+    def generate_data(self, nb_year=1, nb_core=1, seed=None, **kwargs):
         """This function uses the chronix2grid package to generate more data that will then
         be available locally. You need to install it independently (see https://github.com/BDonnot/ChroniX2Grid#installation
         for more information)
@@ -1762,6 +1762,8 @@ class Environment(BaseEnv):
             number of computer cores to use, by default 1.
         seed: int, optional
             If the same seed is given, then the same data will be generated.
+        **kwargs:
+            key word arguments passed to `add_data` function of `chronix2grid.grid2op_utils` module
         """
         try:
             from chronix2grid.grid2op_utils import add_data
@@ -1771,6 +1773,18 @@ class Environment(BaseEnv):
                 f"Please visit https://github.com/bdonnot/chronix2grid#installation "
                 f"for further install instructions."
             ) from exc_
+        pot_file = None
+        if self.get_path_env() is not None:
+            pot_file = os.path.join(self.get_path_env(), "chronix2grid_adddata_kwargs.json")
+        if os.path.exists(pot_file) and os.path.isfile(pot_file):
+            import json
+            with open(pot_file, "r", encoding="utf-8") as f:
+                kwargs_default = json.load(f)
+            for el in kwargs_default:
+                if not el in kwargs:
+                    kwargs[el] = kwargs_default[el]
+        # TODO logger here for the kwargs used (including seed=seed, nb_scenario=nb_year, nb_core=nb_core)
         add_data(
-            env=self, seed=seed, nb_scenario=nb_year, nb_core=nb_core, with_loss=True
+            env=self, seed=seed, nb_scenario=nb_year, nb_core=nb_core,
+            **kwargs
         )

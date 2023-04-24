@@ -13,6 +13,7 @@ import networkx
 from abc import abstractmethod
 import numpy as np
 from scipy.sparse import csr_matrix
+from typing import Optional
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
@@ -263,21 +264,21 @@ class BaseObservation(GridObjects):
 
     is_alarm_illegal: ``bool``
         whether the last alarm has been illegal (due to budget constraint). It can only be ``True`` if an alarm
-        was raised by the agent on the previous step. Otherwise it is always ``False``
+        was raised by the agent on the previous step. Otherwise it is always ``False`` (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     time_since_last_alarm: ``int``
-        Number of steps since the last successful alarm has been raised. It is `-1` if no alarm has been raised yet.
+        Number of steps since the last successful alarm has been raised. It is `-1` if no alarm has been raised yet. (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     last_alarm: :class:`numpy.ndarray`, dtype:int
-        For each zones, gives how many steps since the last alarm was raised successfully for this zone
+        For each zones, gives how many steps since the last alarm was raised successfully for this zone (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     attention_budget: ``int``
         The current attention budget
 
     was_alarm_used_after_game_over: ``bool``
         Was the last alarm used to compute anything related
-        to the attention budget when there was a game over (can only be set to ``True`` if the observation
-        corresponds to a game over, but not necessarily)
+        to the attention budget when there was a game over. It can only be set to ``True`` if the observation
+        corresponds to a game over, but not necessarily. (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     gen_margin_up: :class:`numpy.ndarray`, dtype:float
         From how much can you increase each generators production between this
@@ -2714,7 +2715,7 @@ class BaseObservation(GridObjects):
         value as the :func:`grid2op.Environment.BaseEnv.step` function.
         
         .. seealso::
-            :func:`BaseObservation.get_forecast_env`
+            :func:`BaseObservation.get_forecast_env` and :func:`BaseObservation.get_env_from_external_forecasts`
         
         .. seealso::
             :ref:`model_based_rl`
@@ -3907,7 +3908,8 @@ class BaseObservation(GridObjects):
         
         This "forecasted environment" can be used like any grid2op environment. It checks the same "rules" as the 
         :func:`BaseObservation.simulate` (if you want to change them, make sure to use
-        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters`), with the exact same behaviour 
+        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` or 
+        :func:`BaseObservation.change_forecast_parameters`), with the exact same behaviour 
         as "env.step(...)".
         
         With this function, your agent can now make some predictions about the future.
@@ -3915,8 +3917,7 @@ class BaseObservation(GridObjects):
         This can be particularly useful for model based RL for example. 
 
         .. seealso::
-            :func:`BaseObservation.simulate`
-        
+            :func:`BaseObservation.simulate` and :func:`BaseObservation.get_env_from_external_forecasts`
         
         .. seealso::
             :ref:`model_based_rl`
@@ -3990,13 +3991,194 @@ class BaseObservation(GridObjects):
                                        "data as this Observation does not appear to "
                                        "support forecast.")
         # build the forecast
-        from grid2op.Chronics import FromNPY, ChronicsHandler
         load_p = self._get_array_from_forecast("load_p")
         load_q = self._get_array_from_forecast("load_q")
         prod_p = self._get_array_from_forecast("prod_p")
         prod_v = self._get_array_from_forecast("prod_v")
         maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
+        return self._make_env_from_arays(load_p, load_q, prod_p, prod_v, maintenance)
+
+    def get_forecast_arrays(self):
+        """
+        This functions allows to retrieve (as numpy arrays) the values for all the loads / generators / maintenance
+        for the forseable future (they are the forecast availble in :func:`BaseObservation.simulate` and
+        :func:`BaseObservation.get_forecast_env`)
         
+        .. versionadded:: 1.8.2
+        
+        Examples
+        -----------
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            
+            obs = env.reset()
+            
+            load_p, load_q, prod_p, prod_v, maintenance = obs.get_forecast_arrays()
+            
+        """
+        load_p = self._get_array_from_forecast("load_p")
+        load_q = self._get_array_from_forecast("load_q")
+        prod_p = self._get_array_from_forecast("prod_p")
+        prod_v = self._get_array_from_forecast("prod_v")
+        maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
+        return load_p, load_q, prod_p, prod_v, maintenance
+    
+    def _aux_aux_get_nb_ts(self, res, array) -> int:
+        if res == 0 and array is not None:
+            # first non empty array
+            return array.shape[0]
+        if res > 0 and array is not None:
+            # an array is provided with a shape
+            # and there is another array
+            # I check both shape match
+            if array.shape[0] != res:
+                raise BaseObservationError("Shape mismatch between some of the input arrays")
+            return res
+        # now array is None, so I return res anyway (size not changed)
+        return res
+    
+    def _aux_get_nb_ts(self,
+                       load_p: Optional[np.ndarray] = None,
+                       load_q: Optional[np.ndarray] = None,
+                       gen_p: Optional[np.ndarray] = None,
+                       gen_v: Optional[np.ndarray] = None,
+                       ) -> int:
+        res = 0
+        for arr in [load_p, load_q, gen_p, gen_v]:
+            res = self._aux_aux_get_nb_ts(res, arr)
+        return res
+        
+    def get_env_from_external_forecasts(self,
+                                        load_p: Optional[np.ndarray] = None,
+                                        load_q: Optional[np.ndarray] = None,
+                                        gen_p: Optional[np.ndarray] = None,
+                                        gen_v: Optional[np.ndarray] = None,
+                                        with_maintenance: bool= False,
+                                        ) -> "grid2op.Environment.Environment":
+        """
+        .. versionadded:: 1.8.2
+        
+        This function will return a grid2op "environment" where the data (load, generation and maintenance)
+        comes from the provided forecast data.
+        
+        This "forecasted environment" can be used like any grid2op environment. It checks the same "rules" as the 
+        :func:`BaseObservation.simulate` (if you want to change them, make sure to use
+        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` or 
+        :func:`BaseObservation.change_forecast_parameters`), with the exact same behaviour 
+        as "env.step(...)".
+        
+        This can be particularly useful for model based RL for example. 
+
+        Data should be:
+        
+        - `load_p` a numpy array of float32 (or convertible to it) with n_rows and n_load columns
+          representing the load active values in MW.
+        - `load_q` a numpy array of float32 (or convertible to it) with n_rows and n_load columns
+          representing the load reactive values in MVAr.
+        - `gen_p` a numpy array of float32 (or convertible to it) with n_rows and n_gen columns
+          representing the generation active values in MW.
+        - `gen_v` a numpy array of float32 (or convertible to it) with n_rows and n_gen columns
+          representing the voltage magnitude setpoint in kV.
+        
+        All arrays are optional. If nothing is provided for a given array then it's replaced by the value 
+        in the observation. For example, if you do not provided the `gen_p` value then `obs.gen_p` is used.
+        
+        All provided arrays should have the same number of rows.
+        
+        .. note::
+            Maintenance will be added from the information of the observation. If you don't want to add
+            maintenance, you can passe the kwarg `with_maintenance=False`
+            
+        .. seealso::
+            :func:`BaseObservation.simulate` and :func:`BaseObservation.get_forecast_env`
+        
+        .. seealso::
+            :ref:`model_based_rl`
+        
+        .. note::
+            With this method, you can have as many "steps" in the forecasted environment as you want. You are
+            not limited with the amount of data provided: if you send data with 10 rows, you have 10 steps. If 
+            you have 100 rows then you have 100 steps. 
+        
+        .. warning::
+            We remind that, if you provide some forecasts, it is expected that 
+            
+        Examples
+        --------
+        A typical use might look like
+        
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            obs = env.reset()
+            
+            # make some "forecast" with the method of your choice
+            load_p_forecasted = ...
+            load_q_forecasted = ...
+            gen_p_forecasted = ...
+            gen_v_forecasted = ...
+            
+            # and now retrieve the associated "forecasted_env"
+            forcast_env = obs.get_env_from_external_forecasts(load_p_forecasted,
+                                                              load_q_forecasted,
+                                                              gen_p_forecasted,
+                                                              gen_v_forecasted)
+            
+            # when reset this should be at the same "step" as the action
+            forecast_obs = forcast_env.reset()
+            # forecast_obs == obs  # should be True
+            
+            done = False
+            while not done:
+                next_forecast_obs, reward, done, info = forcast_env.step(env.action_space())
+                
+        Returns
+        -------
+        grid2op.Environment.Environment
+            The "forecasted environment" that is a grid2op environment with the data corresponding to the 
+            forecasts provided as input.
+            
+        """
+        nb_ts = self._aux_get_nb_ts(load_p, load_q, gen_p, gen_v) + 1
+        if load_p is not None:
+            load_p_this = np.concatenate((self.load_p.reshape(1, -1), load_p.astype(dt_float)))
+        else:
+            load_p_this = np.tile(self.load_p, nb_ts).reshape(nb_ts, -1)
+        
+        if load_q is not None:
+            load_q_this = np.concatenate((self.load_q.reshape(1, -1), load_q.astype(dt_float)))
+        else:
+            load_q_this = np.tile(self.load_q, nb_ts).reshape(nb_ts, -1)
+        
+        if gen_p is not None:
+            gen_p_this = np.concatenate((self.gen_p.reshape(1, -1), gen_p.astype(dt_float)))
+        else:
+            gen_p_this = np.tile(self.gen_p, nb_ts).reshape(nb_ts, -1)
+            
+        if gen_v is not None:
+            gen_v_this = np.concatenate((self.gen_v.reshape(1, -1), gen_v.astype(dt_float)))
+        else:
+            gen_v_this = np.tile(self.gen_v, nb_ts).reshape(nb_ts, -1)
+        if with_maintenance:
+            maintenance = self._generate_forecasted_maintenance_for_simenv(nb_ts)
+        else:
+            maintenance = None
+        return self._make_env_from_arays(load_p_this, load_q_this, gen_p_this, gen_v_this, maintenance)
+    
+    def _make_env_from_arays(self,
+                             load_p: np.ndarray,
+                             load_q: np.ndarray,
+                             prod_p: np.ndarray,
+                             prod_v: Optional[np.ndarray] = None,
+                             maintenance: Optional[np.ndarray] = None):
+        from grid2op.Chronics import FromNPY, ChronicsHandler
+        from grid2op.Environment import Environment
         ch = ChronicsHandler(FromNPY,
                              load_p=load_p,
                              load_q=load_q,
@@ -4006,7 +4188,6 @@ class BaseObservation(GridObjects):
         
         backend = self._obs_env.backend.copy()
         backend._is_loaded = True
-        from grid2op.Environment import Environment
         res = Environment(**self._ptr_kwargs_env,
                           backend=backend,
                           chronics_handler=ch,
@@ -4014,3 +4195,43 @@ class BaseObservation(GridObjects):
                           _init_obs=self
                           )
         return res
+
+    def change_forecast_parameters(self, params):
+        """This function allows to change the parameters (see :class:`grid2op.Parameters.Parameters` 
+        for more information) that are used for the `obs.simulate()` and `obs.get_forecast_env()` method.
+        
+        .. danger::
+            This function has a global impact. It changes the parameters for all sucessive calls to
+            :func:`BaseObservation.simulate` and :func:`BaseObservation.get_forecast_env` !
+        
+        .. seealso::
+            :func:`grid2op.Environment.BaseEnv.change_parameters` to change the parameters of the environment
+            of :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` to change the paremters used
+            for the `obs.simulate` and `obs.get_forecast_env` functions.
+            
+            The main advantages of this function is that you do not require to have access to an environment
+            to change them.
+        
+        .. versionadded:: 1.8.2
+        
+        Examples
+        -----------
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            
+            obs = env.reset()
+            
+            new_params = env.parameters
+            new_params.NO_OVERFLOW_DISCONNECTION = True
+            obs.change_forecast_parameters(new_params)
+            
+            obs.simulate(...)  # uses the parameters `new_params`
+            f_env = obs.get_forecast_env()  # uses also the parameters `new_params`
+            
+        """
+        self._obs_env.change_parameters(params)
+        self._obs_env._parameters = params

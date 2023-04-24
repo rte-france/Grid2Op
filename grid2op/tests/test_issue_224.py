@@ -20,7 +20,7 @@ class Issue224Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_nm = os.path.join(
-                PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"
+                PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"
             )
             self.env = grid2op.make(env_nm, test=True, chronics_class=ChangeNothing)
             self.env.seed(0)
@@ -42,7 +42,7 @@ class Issue224Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_nm = os.path.join(
-                PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"
+                PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"
             )
             env = grid2op.make(
                 env_nm, test=True, chronics_class=ChangeNothing, param=param
@@ -59,7 +59,7 @@ class Issue224Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_nm = os.path.join(
-                PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"
+                PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"
             )
             env = grid2op.make(
                 env_nm, test=True, chronics_class=ChangeNothing, param=param
