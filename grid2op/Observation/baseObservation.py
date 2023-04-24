@@ -263,21 +263,21 @@ class BaseObservation(GridObjects):
 
     is_alarm_illegal: ``bool``
         whether the last alarm has been illegal (due to budget constraint). It can only be ``True`` if an alarm
-        was raised by the agent on the previous step. Otherwise it is always ``False``
+        was raised by the agent on the previous step. Otherwise it is always ``False`` (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     time_since_last_alarm: ``int``
-        Number of steps since the last successful alarm has been raised. It is `-1` if no alarm has been raised yet.
+        Number of steps since the last successful alarm has been raised. It is `-1` if no alarm has been raised yet. (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     last_alarm: :class:`numpy.ndarray`, dtype:int
-        For each zones, gives how many steps since the last alarm was raised successfully for this zone
+        For each zones, gives how many steps since the last alarm was raised successfully for this zone (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     attention_budget: ``int``
         The current attention budget
 
     was_alarm_used_after_game_over: ``bool``
         Was the last alarm used to compute anything related
-        to the attention budget when there was a game over (can only be set to ``True`` if the observation
-        corresponds to a game over, but not necessarily)
+        to the attention budget when there was a game over. It can only be set to ``True`` if the observation
+        corresponds to a game over, but not necessarily. (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     gen_margin_up: :class:`numpy.ndarray`, dtype:float
         From how much can you increase each generators production between this

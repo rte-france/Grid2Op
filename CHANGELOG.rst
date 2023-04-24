@@ -118,7 +118,9 @@ Change Log
   env backend and the obs backend.
 - [IMPROVED] the environment now called the "chronics_handler.forecast" function at most once per step.
 - [IMPROVED] make it easier to create an environment without `MultiFolder` or `MultifolderWithCache`
-
+- [IMPROVED] add the possibility to forward kwargs to chronix2grid function when calling `env.generate_data`
+- [IMPROVED] when calling `env.generate_data` an extra file (json) will be read to set default values 
+  passed to `chronix2grid.add_data`
 
 [1.8.1] - 2023-01-11
 ---------------------
