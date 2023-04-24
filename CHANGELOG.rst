@@ -71,6 +71,7 @@ Change Log
 - [FIXED] a bug n the `GridStateFromFile`, `GridStateFromFileWithForecasts` and 
   `GridStateFromFileWithForecastsWithoutMaintenance` classes that caused the maintenance file to be 
   ignored when "chunk_size" was set.
+- [FIXED] a bug when shunts were alone in `backend.check_kirchoff()`
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
@@ -83,6 +84,10 @@ Change Log
 - [ADDED] a method to retrieve the "elements graph" (see doc) fom an observation `obs.get_elements_graph()`
 - [ADDED] a whole new way to deal with input time series data (see the module `grid2op.Chronics.handlers` 
   for more information)
+- [ADDED] possibility to change the parameters used for the `obs.simulate(...)`
+  directly from the grid2op action, see `obs.change_forecast_parameters()`
+- [ADDED] possibility to retrieve a "forecast environment" with custom forecasts, see 
+  `obs.get_env_from_external_forecasts(...)`
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
