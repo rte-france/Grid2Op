@@ -27,8 +27,70 @@ class TestForecastFromArrays(unittest.TestCase):
     def test_basic_behaviour(self):
         obs = self.env.reset()
         
-        nb_ts = 15
+        # test the max step
+        for nb_ts in [1, 3, 10, 30]:
+            load_p_forecasted = np.tile(obs.load_p, nb_ts).reshape(nb_ts, -1)
+            load_q_forecasted = np.tile(obs.load_p, nb_ts).reshape(nb_ts, -1)
+            gen_p_forecasted = np.tile(obs.gen_p, nb_ts).reshape(nb_ts, -1)
+            gen_v_forecasted = np.tile(obs.gen_v, nb_ts).reshape(nb_ts, -1)
+                
+            forcast_env = obs.get_env_from_external_forecasts(load_p_forecasted,
+                                                              load_q_forecasted,
+                                                              gen_p_forecasted,
+                                                              gen_v_forecasted)
+            sim_obs = forcast_env.reset()
+            assert sim_obs.max_step == nb_ts + 1
+        
+        # test with some actions
+        sim_obs1, reward, done, info = forcast_env.step(self.env.action_space())
+        assert sim_obs1.max_step == nb_ts + 1       
+        sim_obs2, reward, done, info = forcast_env.step(self.env.action_space())
+        assert sim_obs2.max_step == nb_ts + 1       
+        sim_obs3, reward, done, info = forcast_env.step(self.env.action_space())
+        assert sim_obs3.max_step == nb_ts + 1       
+    
+    def test_missing_gen_v(self):
+        obs = self.env.reset()
+        nb_ts = 5
+        
+        # test the max step
         load_p_forecasted = np.tile(obs.load_p, nb_ts).reshape(nb_ts, -1)
+        load_q_forecasted = np.tile(obs.load_p, nb_ts).reshape(nb_ts, -1)
+        gen_p_forecasted = np.tile(obs.gen_p, nb_ts).reshape(nb_ts, -1)
+        gen_v_forecasted = None
+            
+        forcast_env = obs.get_env_from_external_forecasts(load_p_forecasted,
+                                                          load_q_forecasted,
+                                                          gen_p_forecasted,
+                                                          gen_v_forecasted)
+        sim_obs = forcast_env.reset()
+        assert (sim_obs.gen_v == obs.gen_v).all()
+        sim_obs1, reward, done, info = forcast_env.step(self.env.action_space())
+    
+    def test_missing_gen_p(self):
+        obs = self.env.reset()
+        nb_ts = 5
+        
+        # test the max step
+        load_p_forecasted = np.tile(obs.load_p, nb_ts).reshape(nb_ts, -1)
+        load_q_forecasted = np.tile(obs.load_p, nb_ts).reshape(nb_ts, -1)
+        gen_p_forecasted = None
+        gen_v_forecasted = np.tile(obs.gen_v, nb_ts).reshape(nb_ts, -1)
+            
+        forcast_env = obs.get_env_from_external_forecasts(load_p_forecasted,
+                                                          load_q_forecasted,
+                                                          gen_p_forecasted,
+                                                          gen_v_forecasted)
+        sim_obs = forcast_env.reset()
+        assert (sim_obs.gen_p == obs.gen_p).all()
+        sim_obs1, reward, done, info = forcast_env.step(self.env.action_space())
+    
+    def test_missing_load_p(self):
+        obs = self.env.reset()
+        nb_ts = 5
+        
+        # test the max step
+        load_p_forecasted = None
         load_q_forecasted = np.tile(obs.load_p, nb_ts).reshape(nb_ts, -1)
         gen_p_forecasted = np.tile(obs.gen_p, nb_ts).reshape(nb_ts, -1)
         gen_v_forecasted = np.tile(obs.gen_v, nb_ts).reshape(nb_ts, -1)
@@ -38,7 +100,61 @@ class TestForecastFromArrays(unittest.TestCase):
                                                           gen_p_forecasted,
                                                           gen_v_forecasted)
         sim_obs = forcast_env.reset()
-        assert sim_obs.max_iter == nb_ts + 1
+        assert (sim_obs.load_p == obs.load_p).all()
+        sim_obs1, reward, done, info = forcast_env.step(self.env.action_space())
+    
+    def test_missing_load_q(self):
+        obs = self.env.reset()
+        nb_ts = 5
+        
+        # test the max step
+        load_p_forecasted = np.tile(obs.load_p, nb_ts).reshape(nb_ts, -1)
+        load_q_forecasted = None
+        gen_p_forecasted = np.tile(obs.gen_p, nb_ts).reshape(nb_ts, -1)
+        gen_v_forecasted = np.tile(obs.gen_v, nb_ts).reshape(nb_ts, -1)
+            
+        forcast_env = obs.get_env_from_external_forecasts(load_p_forecasted,
+                                                          load_q_forecasted,
+                                                          gen_p_forecasted,
+                                                          gen_v_forecasted)
+        sim_obs = forcast_env.reset()
+        assert (sim_obs.load_q == obs.load_q).all()
+        sim_obs1, reward, done, info = forcast_env.step(self.env.action_space())
+    
+    def test_all_missing(self):
+        obs = self.env.reset()
+        
+        # test the max step
+        load_p_forecasted = None
+        load_q_forecasted = None
+        gen_p_forecasted = None
+        gen_v_forecasted = None
+            
+        forcast_env = obs.get_env_from_external_forecasts(load_p_forecasted,
+                                                          load_q_forecasted,
+                                                          gen_p_forecasted,
+                                                          gen_v_forecasted)
+        sim_obs = forcast_env.reset()
+        assert sim_obs.max_step == 1
+    
+    def test_all_without_maintenance(self):
+        obs = self.env.reset()
+        nb_ts = 5
+        
+        # test the max step
+        load_p_forecasted = np.tile(obs.load_p, nb_ts).reshape(nb_ts, -1)
+        load_q_forecasted = np.tile(obs.load_p, nb_ts).reshape(nb_ts, -1)
+        gen_p_forecasted = np.tile(obs.gen_p, nb_ts).reshape(nb_ts, -1)
+        gen_v_forecasted = np.tile(obs.gen_v, nb_ts).reshape(nb_ts, -1)
+            
+        forcast_env = obs.get_env_from_external_forecasts(load_p_forecasted,
+                                                          load_q_forecasted,
+                                                          gen_p_forecasted,
+                                                          gen_v_forecasted,
+                                                          with_maintenance=False)
+        sim_obs = forcast_env.reset()
+        assert sim_obs.max_step == nb_ts + 1
+        
         
 if __name__ == "__main__":
     unittest.main()

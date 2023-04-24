@@ -13,6 +13,7 @@ import networkx
 from abc import abstractmethod
 import numpy as np
 from scipy.sparse import csr_matrix
+from typing import Optional
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
@@ -4026,11 +4027,37 @@ class BaseObservation(GridObjects):
         maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
         return load_p, load_q, prod_p, prod_v, maintenance
     
+    def _aux_aux_get_nb_ts(self, res, array) -> int:
+        if res == 0 and array is not None:
+            # first non empty array
+            return array.shape[0]
+        if res > 0 and array is not None:
+            # an array is provided with a shape
+            # and there is another array
+            # I check both shape match
+            if array.shape[0] != res:
+                raise BaseObservationError("Shape mismatch between some of the input arrays")
+            return res
+        # now array is None, so I return res anyway (size not changed)
+        return res
+    
+    def _aux_get_nb_ts(self,
+                       load_p: Optional[np.ndarray] = None,
+                       load_q: Optional[np.ndarray] = None,
+                       gen_p: Optional[np.ndarray] = None,
+                       gen_v: Optional[np.ndarray] = None,
+                       ) -> int:
+        res = 0
+        for arr in [load_p, load_q, gen_p, gen_v]:
+            res = self._aux_aux_get_nb_ts(res, arr)
+        return res
+        
     def get_env_from_external_forecasts(self,
-                                        load_p,
-                                        load_q,
-                                        prod_p,
-                                        prod_v,
+                                        load_p: Optional[np.ndarray] = None,
+                                        load_q: Optional[np.ndarray] = None,
+                                        gen_p: Optional[np.ndarray] = None,
+                                        gen_v: Optional[np.ndarray] = None,
+                                        with_maintenance: bool= False,
                                         ) -> "grid2op.Environment.Environment":
         """
         .. versionadded:: 1.8.2
@@ -4046,6 +4073,26 @@ class BaseObservation(GridObjects):
         
         This can be particularly useful for model based RL for example. 
 
+        Data should be:
+        
+        - `load_p` a numpy array of float32 (or convertible to it) with n_rows and n_load columns
+          representing the load active values in MW.
+        - `load_q` a numpy array of float32 (or convertible to it) with n_rows and n_load columns
+          representing the load reactive values in MVAr.
+        - `gen_p` a numpy array of float32 (or convertible to it) with n_rows and n_gen columns
+          representing the generation active values in MW.
+        - `gen_v` a numpy array of float32 (or convertible to it) with n_rows and n_gen columns
+          representing the voltage magnitude setpoint in kV.
+        
+        All arrays are optional. If nothing is provided for a given array then it's replaced by the value 
+        in the observation. For example, if you do not provided the `gen_p` value then `obs.gen_p` is used.
+        
+        All provided arrays should have the same number of rows.
+        
+        .. note::
+            Maintenance will be added from the information of the observation. If you don't want to add
+            maintenance, you can passe the kwarg `with_maintenance=False`
+            
         .. seealso::
             :func:`BaseObservation.simulate` and :func:`BaseObservation.get_forecast_env`
         
@@ -4054,7 +4101,11 @@ class BaseObservation(GridObjects):
         
         .. note::
             With this method, you can have as many "steps" in the forecasted environment as you want. You are
-            not limited with the amount of data provided.
+            not limited with the amount of data provided: if you send data with 10 rows, you have 10 steps. If 
+            you have 100 rows then you have 100 steps. 
+        
+        .. warning::
+            We remind that, if you provide some forecasts, it is expected that 
             
         Examples
         --------
@@ -4094,16 +4145,38 @@ class BaseObservation(GridObjects):
             forecasts provided as input.
             
         """
-        # TODO add "self" to the initialization
-        maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
-        return self._make_env_from_arays(load_p, load_q, prod_p, prod_v, maintenance)
+        nb_ts = self._aux_get_nb_ts(load_p, load_q, gen_p, gen_v) + 1
+        if load_p is not None:
+            load_p_this = np.concatenate((self.load_p.reshape(1, -1), load_p.astype(dt_float)))
+        else:
+            load_p_this = np.tile(self.load_p, nb_ts).reshape(nb_ts, -1)
+        
+        if load_q is not None:
+            load_q_this = np.concatenate((self.load_q.reshape(1, -1), load_q.astype(dt_float)))
+        else:
+            load_q_this = np.tile(self.load_q, nb_ts).reshape(nb_ts, -1)
+        
+        if gen_p is not None:
+            gen_p_this = np.concatenate((self.gen_p.reshape(1, -1), gen_p.astype(dt_float)))
+        else:
+            gen_p_this = np.tile(self.gen_p, nb_ts).reshape(nb_ts, -1)
+            
+        if gen_v is not None:
+            gen_v_this = np.concatenate((self.gen_v.reshape(1, -1), gen_v.astype(dt_float)))
+        else:
+            gen_v_this = np.tile(self.gen_v, nb_ts).reshape(nb_ts, -1)
+        if with_maintenance:
+            maintenance = self._generate_forecasted_maintenance_for_simenv(nb_ts)
+        else:
+            maintenance = None
+        return self._make_env_from_arays(load_p_this, load_q_this, gen_p_this, gen_v_this, maintenance)
     
     def _make_env_from_arays(self,
-                             load_p,
-                             load_q,
-                             prod_p,
-                             prod_v,
-                             maintenance):
+                             load_p: np.ndarray,
+                             load_q: np.ndarray,
+                             prod_p: np.ndarray,
+                             prod_v: Optional[np.ndarray] = None,
+                             maintenance: Optional[np.ndarray] = None):
         from grid2op.Chronics import FromNPY, ChronicsHandler
         from grid2op.Environment import Environment
         ch = ChronicsHandler(FromNPY,
@@ -4157,7 +4230,7 @@ class BaseObservation(GridObjects):
             obs.change_forecast_parameters(new_params)
             
             obs.simulate(...)  # uses the parameters `new_params`
-            f_env = obs.get_forecast_evn()  # uses also the parameters `new_params`
+            f_env = obs.get_forecast_env()  # uses also the parameters `new_params`
             
         """
         self._obs_env.change_parameters(params)
