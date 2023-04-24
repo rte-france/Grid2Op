@@ -26,12 +26,12 @@ class GeometricOpponentMultiArea(BaseOpponent):
         BaseOpponent.__init__(self, action_space)
         self.list_opponents : Optional[List[GeometricOpponent]] = None
         self._new_attack_time_counters : Optional[np.ndarray] = None
-        self._is_opp_attack_continue : Optional[np.ndarray] = None
+        self._previous_attacks = None
 
     def init(
         self,
         partial_env,
-        lines_attacked=None,#list(list()),
+        lines_attacked=None,
         attack_every_xxx_hour=24,
         average_attack_duration_hour=4,
         minimum_attack_duration_hour=2,
@@ -67,7 +67,12 @@ class GeometricOpponentMultiArea(BaseOpponent):
 
         """
 
-        self.list_opponents = [GeometricOpponent(action_space=partial_env.action_space) for _ in lines_attacked]
+        if lines_attacked is None:
+            partial_env.logger.warning("GeometricOpponentMultiArea: no area provided, the opponent will be deactivated.")
+            return
+        
+        self.list_opponents = [GeometricOpponent(action_space=self.action_space) for _ in lines_attacked]
+        self._previous_attacks = [None for _ in lines_attacked]
 
         for lines_attacked, opp in zip(lines_attacked, self.list_opponents):
             opp.init(
@@ -80,11 +85,9 @@ class GeometricOpponentMultiArea(BaseOpponent):
                 **kwargs,
             )
         self._new_attack_time_counters = np.array([-1 for _ in lines_attacked])#ou plutôt 0 comme dans Geometric Opponent ?
-        self._is_opp_attack_continue = np.array([False for _ in lines_attacked])
 
     def reset(self, initial_budget):
         self._new_attack_time_counters = np.array([-1 for _ in self.list_opponents])
-        self._is_opp_attack_continue = np.array([False for _ in self.list_opponents])
 
         for opp in self.list_opponents:  # maybe loop in different orders each time
             opp.reset(initial_budget)
@@ -125,44 +128,53 @@ class GeometricOpponentMultiArea(BaseOpponent):
         self._new_attack_time_counters -= 1
         self._new_attack_time_counters[self._new_attack_time_counters < -1] = -1
 
-        attack_combined=None
-        attack_combined_duration=None
-
-        for i, opp in enumerate(self.list_opponents):#maybe loop in different orders each timeq
-            if(self._new_attack_time_counters[i] == -1):
-                attack_opp, attack_duration_opp=opp.attack(observation, agent_action, env_action, budget, previous_fails)
-
-                if(attack_opp is not None):
-                    self._new_attack_time_counters[i] = attack_duration_opp
-                    self._is_opp_attack_continue[i] = True
+        attack_combined = None
+        for opp_id, opp in enumerate(self.list_opponents):
+            if self._new_attack_time_counters[opp_id] == -1:
+                attack_opp, attack_duration_opp = opp.attack(observation, agent_action, env_action, budget, previous_fails)
+                if attack_opp is not None:
+                    self._new_attack_time_counters[opp_id] = attack_duration_opp
+                    self._previous_attacks[opp_id] = attack_opp
                     if attack_combined is None:
-                        attack_combined = attack_opp
-                        attack_combined_duration = attack_duration_opp
+                        attack_combined = attack_opp.copy()
                     else:
                         attack_combined += attack_opp
-                        if attack_duration_opp < attack_combined_duration:
-                            attack_combined_duration = attack_duration_opp
+                else:
+                    self._previous_attacks[opp_id] = None
             else:
-                opp.tell_attack_continues()
-
-        return attack_combined,attack_combined_duration
+                opp.tell_attack_continues(observation, agent_action, env_action, budget)
+                if attack_combined is None:
+                    attack_combined = self._previous_attacks[opp_id].copy()
+                else:
+                    attack_combined += self._previous_attacks[opp_id]
+        return attack_combined, 1
 
 
     def tell_attack_continues(self, observation, agent_action, env_action, budget):
-        pass
+        raise RuntimeError("I should not get there !")
 
-    def get_state(self):#ou get_state avec nom de l'opponent ?
-        return (
-            [opp.get_state() for opp in self.list_opponents],
-        )
+    def get_state(self):
+        return (self._new_attack_time_counters,
+                self._previous_attacks,
+                [opp.get_state() for opp in self.list_opponents])
 
-    def set_state(self, my_state):#ou set_state avec nom de l'opponent ?
-        #check that the dimensions of each array are in the number of opponents ?
-
-        for el,opp in zip(my_state,self.list_opponents):
+    def set_state(self, my_state):
+        self._new_attack_time_counters = np.array(my_state[0])
+        self._previous_attacks = [el.copy() if el is not None else None for el in my_state[1]]
+        for el, opp in zip(my_state[2], self.list_opponents):
             opp.set_state(el)
-
-
+            
+    def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
+        new_obj._new_attack_time_counters = 1 * self._new_attack_time_counters
+        new_obj._previous_attacks = [el.copy() if el is not None else None 
+                                     for el in self._previous_attacks]
+        new_obj.list_opponents = []
+        for opp in self.list_opponents:
+            new_opp = type(opp).__new__(type(opp))
+            opp._custom_deepcopy_for_copy(new_opp, dict_)
+            new_obj.list_opponents.append(new_opp)
+        super()._custom_deepcopy_for_copy(new_obj)
+        return new_obj
 
     def seed(self, seed):
         """
@@ -184,10 +196,10 @@ class GeometricOpponentMultiArea(BaseOpponent):
             The associated list of seeds used.
 
         """
-        seeds=[]
+        seeds = []
         super().seed(seed)
         max_seed = np.iinfo(dt_int).max  # 2**32 - 1
         for opp in self.list_opponents:
-            seed = self.space_prng.randint(max_seed)
-            seeds.append(opp.seed(seed))
-        return seeds
+            this_seed = self.space_prng.randint(max_seed)
+            seeds.append(opp.seed(this_seed))
+        return (seed, seeds)
