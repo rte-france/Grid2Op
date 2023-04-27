@@ -126,6 +126,8 @@ Change Log
 - [IMPROVED] add the possibility to forward kwargs to chronix2grid function when calling `env.generate_data`
 - [IMPROVED] when calling `env.generate_data` an extra file (json) will be read to set default values 
   passed to `chronix2grid.add_data`
+- [IMPROVED] it is no more reasonably possible to misuse the `MultifolderWithCache` (for example by
+  forgetting to `reset()` the cache): an error will be raised in case the proper function has not been called.
 
 [1.8.1] - 2023-01-11
 ---------------------

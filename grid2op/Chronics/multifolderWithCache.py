@@ -11,6 +11,7 @@ from datetime import timedelta, datetime
 from grid2op.dtypes import dt_int
 from grid2op.Chronics.multiFolder import Multifolder
 from grid2op.Chronics.gridStateFromFile import GridStateFromFile
+from grid2op.Exceptions import ChronicsError
 
 
 class MultifolderWithCache(Multifolder):
@@ -30,7 +31,7 @@ class MultifolderWithCache(Multifolder):
     performs less than a few dozen of steps leading to more time spent reading 8600 rows than computing the
     few dozen of steps.
 
-    .. warning::
+    .. danger::
         When you create an environment with this chronics class (*eg* by doing 
         `env = make(...,chronics_class=MultifolderWithCache)`), the "cache" is not
         pre loaded, only the first scenario is loaded in memory (to save loading time).
@@ -86,7 +87,13 @@ class MultifolderWithCache(Multifolder):
 
     """
     MULTI_CHRONICS = True
-    
+    ERROR_MSG_NOT_LOADED = ("We detected a misusage of the `MultifolderWithCache` class: the cache "
+                            "has not been loaded in memory which will most likely cause issues "
+                            "with your environment. Do not forget to call "
+                            "`env.chronics_handler.set_filter(...)` to tell which time series "
+                            "you want to keep and then `env.chronics_handler.reset()` "
+                            "to load them. \nFor more information consult the documentation:\n"
+                            "https://grid2op.readthedocs.io/en/latest/chronics.html#grid2op.Chronics.MultifolderWithCache")
     def __init__(
         self,
         path,
@@ -99,6 +106,26 @@ class MultifolderWithCache(Multifolder):
         filter_func=None,
         **kwargs,
     ):
+        
+        # below: counter to prevent use without explicit call to `env.chronics.handler.reset()`
+        if "_DONTUSE_nb_reset_called" in kwargs:
+            self.__nb_reset_called = int(kwargs["_DONTUSE_nb_reset_called"])
+            del kwargs["_DONTUSE_nb_reset_called"]
+        else:
+            self.__nb_reset_called = -1
+        if "_DONTUSE_nb_step_called" in kwargs:
+            self.__nb_step_called = int(kwargs["_DONTUSE_nb_step_called"])
+            del kwargs["_DONTUSE_nb_step_called"]
+        else:
+            self.__nb_step_called = -1
+            
+        if "_DONTUSE_nb_init_called" in kwargs:
+            self.__nb_init_called = int(kwargs["_DONTUSE_nb_init_called"])
+            del kwargs["_DONTUSE_nb_init_called"]
+        else:
+            self.__nb_init_called = -1
+        
+        # now init the data
         Multifolder.__init__(
             self,
             path=path,
@@ -167,6 +194,7 @@ class MultifolderWithCache(Multifolder):
         if self.cache_size == 0:
             raise RuntimeError("Impossible to initialize the new cache.")
 
+        self.__nb_reset_called += 1
         return self.subpaths[self._order]
 
     def initialize(
@@ -177,6 +205,12 @@ class MultifolderWithCache(Multifolder):
         order_backend_subs,
         names_chronics_to_backend=None,
     ):
+        self.__nb_init_called += 1
+        if self.__nb_reset_called <= 0:
+            if self.__nb_init_called != 0:
+                # authorize the creation of the environment but nothing more
+                raise ChronicsError(type(self).ERROR_MSG_NOT_LOADED)
+        
         self._order_backend_loads = order_backend_loads
         self._order_backend_prods = order_backend_prods
         self._order_backend_lines = order_backend_lines
@@ -193,3 +227,23 @@ class MultifolderWithCache(Multifolder):
         id_scenario = self._order[self._prev_cache_id]
         self.data = self._cached_data[id_scenario]
         self.data.next_chronics()
+        
+    def load_next(self):
+        self.__nb_step_called += 1
+        if self.__nb_reset_called <= 0:
+            if self.__nb_step_called != 0:
+                # authorize the creation of the environment but nothing more
+                raise ChronicsError(type(self).ERROR_MSG_NOT_LOADED)
+        return super().load_next()
+
+    def set_filter(self, filter_fun):
+        self.__nb_reset_called = 0
+        self.__nb_step_called = 0
+        self.__nb_init_called = 0
+        return super().set_filter(filter_fun)
+
+    def get_kwargs(self, dict_):
+        dict_["_DONTUSE_nb_reset_called"] = self.__nb_reset_called
+        dict_["_DONTUSE_nb_step_called"] = self.__nb_step_called
+        dict_["_DONTUSE_nb_init_called"] = self.__nb_init_called
+        return super().get_kwargs(dict_)
