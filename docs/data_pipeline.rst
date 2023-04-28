@@ -113,7 +113,16 @@ Another way is to use a dedicated class that stores the data in memory. This is 
 to avoid long and inefficient I/O that are replaced by reading the the complete dataset once and store it
 into memory.
 
-.. warning::
+.. seealso::
+    The documentation of :class:`grid2op.Chronics.Chronics.MultifolderWithCache` for a more
+    detailed documentation.
+
+.. versionchanged:: 1.8.2
+    Any call to "env.reset()" or "env.step()" without a previous call to `env.chronics_handler.real_data.reset()`
+    will raise an error preventing any use of the environment.
+    (It is no longer assumed people read, at least partially the documentation.)
+
+.. danger::
     When you create an environment with this chronics class (*eg* by doing 
     `env = make(...,chronics_class=MultifolderWithCache)`), the "cache" is not
     pre loaded, only the first scenario is loaded in memory (to save loading time).

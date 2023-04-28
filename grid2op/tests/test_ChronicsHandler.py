@@ -1596,6 +1596,7 @@ class TestWithCache(HelperTests):
                 chronics_class=MultifolderWithCache,
             ) as env:
                 env.seed(123456)  # for reproducible tests !
+                env.chronics_handler.reset()
                 nb_steps = 10
                 # I test that the reset ... reset also the date time and the chronics "state"
                 obs = env.reset()
