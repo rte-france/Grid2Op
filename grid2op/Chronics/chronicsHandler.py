@@ -144,14 +144,18 @@ class ChronicsHandler(RandomObject):
         """
         return str(os.path.split(self.get_id())[-1])
 
-    def set_max_iter(self, max_iter):
+    def set_max_iter(self, max_iter: int):
         """
-        This function is used to set the maximum number of iterations possible before the chronics ends.
+        This function is used to set the maximum number of 
+        iterations possible before the chronics ends.
+        
+        You can reset this by setting it to `-1`.
 
         Parameters
         ----------
         max_iter: ``int``
-            The maximum number of steps that can be done before reaching the end of the episode
+            The maximum number of steps that can be done before reaching
+            the end of the episode
 
         """
 

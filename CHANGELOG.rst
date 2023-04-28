@@ -72,6 +72,9 @@ Change Log
   `GridStateFromFileWithForecastsWithoutMaintenance` classes that caused the maintenance file to be 
   ignored when "chunk_size" was set.
 - [FIXED] a bug when shunts were alone in `backend.check_kirchoff()`
+- [FIXED] an issue with "max_iter" in the runner when `MultifolderWithCache`
+  (see issue https://github.com/rte-france/Grid2Op/issues/447)
+- [FIXED] a bug in `MultifolderWithCache` when seeding was applied
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.

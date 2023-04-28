@@ -166,6 +166,7 @@ class MultifolderWithCache(Multifolder):
         # select the right paths, and store their id in "_order"
         super().reset()
         self.cache_size = 0
+        max_int = np.iinfo(dt_int).max
         for i in self._order:
             # everything in "_order" need to be put in cache
             path = self.subpaths[i]
@@ -176,8 +177,7 @@ class MultifolderWithCache(Multifolder):
                 max_iter=self.max_iter,
                 chunk_size=None,
             )
-            if self.seed is not None:
-                max_int = np.iinfo(dt_int).max
+            if self.seed_used is not None:
                 seed_chronics = self.space_prng.randint(max_int)
                 data.seed(seed_chronics)
 
@@ -193,10 +193,10 @@ class MultifolderWithCache(Multifolder):
 
         if self.cache_size == 0:
             raise RuntimeError("Impossible to initialize the new cache.")
-
+        
         self.__nb_reset_called += 1
         return self.subpaths[self._order]
-
+    
     def initialize(
         self,
         order_backend_loads,
@@ -227,6 +227,32 @@ class MultifolderWithCache(Multifolder):
         id_scenario = self._order[self._prev_cache_id]
         self.data = self._cached_data[id_scenario]
         self.data.next_chronics()
+    
+    @property
+    def max_iter(self):
+        return self._max_iter
+    
+    @max_iter.setter
+    def max_iter(self, value : int):
+        self._max_iter = int(value)
+        for el in self._cached_data:
+            if el is None:
+                continue
+            el.max_iter = value
+    
+    def max_timestep(self):
+        return self.data.max_timestep()
+    
+    def seed(self, seed):
+        res = super().seed(seed)
+        max_int = np.iinfo(dt_int).max
+        for i in self._order:
+            data = self._cached_data[i]
+            if data is None:
+                continue
+            seed_ts = self.space_prng.randint(max_int)
+            data.seed(seed_ts)
+        return res
         
     def load_next(self):
         self.__nb_step_called += 1
