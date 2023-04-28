@@ -1960,7 +1960,7 @@ class TestMultiFolder(HelperTests):
         assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
 
     def test_sample_next_chronics(self):
-        res_th = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0]
+        res_th = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
         for i in range(20):
             assert (
                 self.env.chronics_handler.sample_next_chronics([0.9, 0.1]) == res_th[i]

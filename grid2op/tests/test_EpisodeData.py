@@ -150,6 +150,7 @@ class TestEpisodeData(unittest.TestCase):
             episode_name,
             cum_reward,
             timestep,
+            max_ts,
             episode_data_cached,
         ) = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
@@ -180,7 +181,7 @@ class TestEpisodeData(unittest.TestCase):
             name_env="test_episodedata_env",
             agentClass=OneChange,
         )
-        _, cum_reward, timestep, episode_data = runner.run_one_episode(
+        _, cum_reward, timestep, max_ts, episode_data = runner.run_one_episode(
             max_iter=self.max_iter, detailed_output=True
         )
         # Check that the type of first action is set bus
@@ -193,6 +194,7 @@ class TestEpisodeData(unittest.TestCase):
             episode_name,
             cum_reward,
             timestep,
+            max_ts,
             episode_data_cached,
         ) = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)

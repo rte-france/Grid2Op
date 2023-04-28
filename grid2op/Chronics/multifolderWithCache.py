@@ -159,7 +159,17 @@ class MultifolderWithCache(Multifolder):
 
     def reset(self):
         """
-        Rebuilt the cache as if it were built from scratch. This call might take a while to process.
+        Rebuilt the cache as if it were built from scratch. 
+        This call might take a while to process.
+        
+        .. danger::
+            You NEED to call this function (with `env.chronics_handler.reset()`)
+            if you use the `MultiFolderWithCache` class in your experiments.
+            
+        .. warning::
+            If a seed is set (see :func:`MultiFolderWithCache.seed`) then
+            all the data in the cache are also seeded when this 
+            method is called.
         """
         self._cached_data = [None for _ in self.subpaths]
         self.__i = 0
@@ -243,7 +253,16 @@ class MultifolderWithCache(Multifolder):
     def max_timestep(self):
         return self.data.max_timestep()
     
-    def seed(self, seed):
+    def seed(self, seed : int):
+        """This seeds both the MultiFolderWithCache
+        (which has an impact for example on :func:`MultiFolder.sample_next_chronics`)
+        and each data present in the cache.
+
+        Parameters
+        ----------
+        seed : int
+            The seed to use
+        """
         res = super().seed(seed)
         max_int = np.iinfo(dt_int).max
         for i in self._order:

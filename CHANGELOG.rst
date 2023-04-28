@@ -44,6 +44,8 @@ Change Log
 - [BREAKING] In `PandaPowerBackend` the kwargs argument "ligthsim2grid" was misspelled and is now properly
   renamed `lightsim2grid`
 - [BREAKING] you can no longer use the `env.reactivate_forecast()` in the middle of an episode.
+- [BREAKING] the method `runner.run_one_episode()` (that should not use !) now 
+  returns also the total number of steps of the environment.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 

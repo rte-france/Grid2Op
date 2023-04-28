@@ -55,7 +55,7 @@ class TestRunner(HelperTests):
     def test_one_episode(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            _, cum_reward, timestep, episode_data = self.runner.run_one_episode(
+            _, cum_reward, timestep, max_ts, episode_data = self.runner.run_one_episode(
             max_iter=self.max_iter
         )
         assert int(timestep) == self.max_iter
@@ -64,7 +64,7 @@ class TestRunner(HelperTests):
     def test_one_episode_detailed(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            _, cum_reward, timestep, episode_data = self.runner.run_one_episode(
+            _, cum_reward, timestep, max_ts, episode_data = self.runner.run_one_episode(
             max_iter=self.max_iter, detailed_output=True
         )
         assert int(timestep) == self.max_iter
