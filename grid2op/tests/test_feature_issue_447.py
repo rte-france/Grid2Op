@@ -1,12 +1,19 @@
+# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import grid2op
 from grid2op.Runner import Runner
-from grid2op.Reward import LinesCapacityReward  # or any other rewards
-from lightsim2grid import LightSimBackend  # highly recommended !
 from grid2op.Chronics import MultifolderWithCache  # highly recommended for training
 import warnings
 import unittest
 from grid2op.Exceptions import ChronicsError
 from grid2op.Runner import Runner
+import pdb
 
 
 class TestPreventWrongBehaviour(unittest.TestCase):
@@ -15,8 +22,6 @@ class TestPreventWrongBehaviour(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(env_name,
-                                    reward_class=LinesCapacityReward,
-                                    backend=LightSimBackend(),
                                     chronics_class=MultifolderWithCache,
                                     test=True)
     def tearDown(self) -> None:
@@ -83,6 +88,27 @@ class TestPreventWrongBehaviour(unittest.TestCase):
         env_cpy2.chronics_handler.reset()
         obs = env_cpy2.reset()
         env_cpy2.step(env_cpy2.action_space())
+        
+    def test_runner_max_iter(self):
+        # env_name = "l2rpn_case14_sandbox"            
+        # self.env = grid2op.make(env_name,
+        #                         # chronics_class=MultifolderWithCache,
+        #                         test=True)
+        self.env.chronics_handler.real_data.reset()
+        runner = Runner(**self.env.get_params_for_runner())
+        res = runner.run(nb_episode=1,
+                         nb_process=1,
+                         max_iter=5
+                        )
+        assert res[0][3] == 5, f"Is {res[0][3]} should be 5"
+        assert res[0][4] == 5, f"Is {res[0][4]} should be 5"
+        
+        res = runner.run(nb_episode=1,
+                         nb_process=1
+                        )
+        assert res[0][3] == 575, f"Is {res[0][3]} should be 575"
+        assert res[0][4] == 575, f"Is {res[0][4]} should be 575"
+        
 
 
 if __name__ == "__main__":

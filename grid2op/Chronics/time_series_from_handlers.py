@@ -306,7 +306,7 @@ class FromHandlers(GridValue):
     
     def done(self):
         # I am done if the part I control is "over"
-        if self.max_iter > 0 and self.curr_iter > self.max_iter:
+        if self._max_iter > 0 and self.curr_iter > self._max_iter:
             return True
             
         # or if any of the handler is "done"
@@ -443,7 +443,11 @@ class FromHandlers(GridValue):
         max_iters = [el.get_max_iter() for el in self._active_handlers]
         max_iters = [el for el in max_iters if el != -1]
         # get the max iter from myself
-        max_iters.append(self.max_iter)
+        if self._max_iter != -1:
+            max_iters.append(self.max_iter)
+        # prevent empty list
+        if not max_iters:
+            max_iters.append(self.max_iter)
         # take the minimum
         self.max_iter = np.min(max_iters)
         

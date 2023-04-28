@@ -735,6 +735,8 @@ class Runner(object):
                 agent_seed=agent_seed,
                 detailed_output=detailed_output,
             )
+            if max_iter is not None:
+                env.chronics_handler.set_max_iter(-1)
         return res
 
     def _run_sequential(
@@ -800,7 +802,8 @@ class Runner(object):
               - "episode_data" : The :class:`EpisodeData` corresponding to this episode run
 
         """
-        res = [(None, None, None, None, None) for _ in range(nb_episode)]
+        res = [(None, None, None, None, None, None) 
+               for _ in range(nb_episode)]
 
         next_pbar = [False]
         with _aux_make_progress_bar(pbar, nb_episode, next_pbar) as pbar_:
@@ -818,6 +821,7 @@ class Runner(object):
                     name_chron,
                     cum_reward,
                     nb_time_step,
+                    max_ts,
                     episode_data,
                 ) = self.run_one_episode(
                     path_save=path_save,
@@ -829,7 +833,6 @@ class Runner(object):
                     detailed_output=add_detailed_output,
                 )
                 id_chron = self.chronics_handler.get_id()
-                max_ts = self.chronics_handler.max_timestep()
                 if add_detailed_output:
                     res[i] = (
                         id_chron,

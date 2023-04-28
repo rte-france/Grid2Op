@@ -160,8 +160,8 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         else:
             chunk_size = None
             
-        if self.max_iter > 0:
-            nrows_to_load = (self.max_iter + 1) * self._nb_forecast
+        if self._max_iter > 0:
+            nrows_to_load = (self._max_iter + 1) * self._nb_forecast
             
         load_p_iter = self._get_data("load_p_forecasted",
                                      chunk_size, nrows_to_load)

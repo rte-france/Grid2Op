@@ -97,7 +97,7 @@ class GridValue(RandomObject, ABC):
         self.time_interval = time_interval
         self.current_datetime = start_datetime
         self.start_datetime = start_datetime
-        self.max_iter = max_iter
+        self._max_iter = max_iter
         self.curr_iter = 0
 
         self.maintenance_time = None
@@ -111,6 +111,14 @@ class GridValue(RandomObject, ABC):
         """
         pass
 
+    @property
+    def max_iter(self):
+        return self._max_iter
+    
+    @max_iter.setter
+    def max_iter(self, value : int):
+        self._max_iter = int(value)
+    
     @abstractmethod
     def initialize(
         self,

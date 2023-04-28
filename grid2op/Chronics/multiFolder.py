@@ -730,7 +730,7 @@ class Multifolder(GridValue):
                 time_interval=self.time_interval,
                 sep=self.sep,
                 path=subpath,
-                max_iter=self.max_iter,
+                max_iter=self._max_iter,
                 chunk_size=self.chunk_size,
             )
             seed_chronics = None
