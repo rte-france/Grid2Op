@@ -212,6 +212,11 @@ class MultiDiscreteActSpace(MultiDiscrete):
                 act_sp.dim_alarms,
                 self.ATTR_CHANGE,
             ),
+            "raise_alert": (
+                [2 for _ in range(act_sp.dim_alerts)],
+                act_sp.dim_alerts,
+                self.ATTR_CHANGE,
+            ),
             "sub_set_bus": (
                 None,
                 act_sp.n_sub,

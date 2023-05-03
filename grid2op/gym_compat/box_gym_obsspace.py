@@ -65,6 +65,10 @@ ALL_ATTR_OBS = (
     "last_alarm",
     "attention_budget",
     "was_alarm_used_after_game_over",
+    "is_alert_illegal",
+    "time_since_last_alert",
+    "last_alert",
+    "was_alert_used_after_attack",
     "current_step",
     "max_step",
     "theta_or",
@@ -523,6 +527,34 @@ class BoxGymObsSpace(Box):
                 np.full(shape=(1,), fill_value=np.inf, dtype=dt_float),
                 (1,),
                 dt_float,
+            ),
+            "is_alert_illegal": (
+                np.full(shape=(1,), fill_value=False, dtype=dt_bool),
+                np.full(shape=(1,), fill_value=True, dtype=dt_bool),
+                (1,),
+                dt_bool,
+            ),
+            "time_since_last_alert": (
+                np.full(shape=(1,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(1,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (1,),
+                dt_int,
+            ),
+            "last_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(
+                    shape=(ob_sp.dim_alerts,),
+                    fill_value=np.iinfo(dt_int).max,
+                    dtype=dt_int,
+                ),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "was_alert_used_after_game_over": (
+                np.full(shape=(1,), fill_value=False, dtype=dt_bool),
+                np.full(shape=(1,), fill_value=True, dtype=dt_bool),
+                (1,),
+                dt_bool,
             ),
         }
         self._dict_properties["max_step"] = copy.deepcopy(self._dict_properties["current_step"])

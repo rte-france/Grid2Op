@@ -103,6 +103,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
         "_storage_power": "storage_power",
         "_curtail": "curtail",
         "_raise_alarm": "raise_alarm",
+        "_raise_alert": "raise_alert",
         "shunt_p": "_shunt_p",
         "shunt_q": "_shunt_q",
         "shunt_bus": "_shunt_bus",

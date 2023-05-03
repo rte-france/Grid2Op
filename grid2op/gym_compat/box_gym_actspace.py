@@ -210,6 +210,12 @@ class BoxGymActSpace(Box):
                 (act_sp.dim_alarms,),
                 dt_int,
             ),
+            "raise_alert": (
+                np.full(shape=(act_sp.dim_alerts,), fill_value=0, dtype=dt_int),
+                np.full(shape=(act_sp.dim_alerts,), fill_value=1, dtype=dt_int),
+                (act_sp.dim_alerts,),
+                dt_int,
+            ),
         }
         self._key_dict_to_proptype = {
             "set_line_status": dt_int,
@@ -221,6 +227,7 @@ class BoxGymActSpace(Box):
             "curtail": dt_float,
             "curtail_mw": dt_float,
             "raise_alarm": dt_bool,
+            "raise_alert": dt_bool
         }
 
         if add is not None:

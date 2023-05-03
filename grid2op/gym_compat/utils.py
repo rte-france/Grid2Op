@@ -26,6 +26,7 @@ ALL_ATTR = (
     "set_storage",
     "curtail",
     "raise_alarm",
+    "raise_alert",
 )
 
 ATTR_DISCRETE = (
@@ -39,6 +40,7 @@ ATTR_DISCRETE = (
     "one_sub_set",
     "one_sub_change",
     "raise_alarm"
+    "raise_alert"
 )
 
 

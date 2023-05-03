@@ -252,6 +252,7 @@ class DiscreteActSpace(Discrete):
             "curtail": act_sp.get_all_unitary_curtail,
             "curtail_mw": act_sp.get_all_unitary_curtail,
             "raise_alarm": act_sp.get_all_unitary_alarm,
+            "raise_alert": act_sp.get_all_unitary_alert,
             "set_line_status_simple": act_sp.get_all_unitary_line_set_simple,
         }
 
