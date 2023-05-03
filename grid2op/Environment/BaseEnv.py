@@ -478,6 +478,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._attention_budget_cls = attention_budget_cls
         self._is_alarm_illegal = False
         self._is_alarm_used_in_reward = False
+
+        # alert infos
+        self._is_alert_illegal = False
+        self._is_alert_used_in_reward = False
+
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
 
         # to ensure self.get_obs() has a reproducible behaviour
@@ -726,6 +731,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._attention_budget_cls = self._attention_budget_cls  # const
         new_obj._is_alarm_illegal = copy.deepcopy(self._is_alarm_illegal)
         new_obj._is_alarm_used_in_reward = copy.deepcopy(self._is_alarm_used_in_reward)
+
+        # alert 
+        new_obj._is_alert_illegal = copy.deepcopy(self._is_alert_illegal)
+        new_obj._is_alert_used_in_reward = copy.deepcopy(self._is_alert_used_in_reward)
+        
         new_obj._kwargs_attention_budget = copy.deepcopy(self._kwargs_attention_budget)
 
         new_obj._last_obs = self._last_obs.copy()
@@ -823,6 +833,40 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             bk_cls.alarms_area_names = copy.deepcopy(area_names)
             bk_cls.alarms_lines_area = copy.deepcopy(line_names)
             bk_cls.alarms_area_lines = copy.deepcopy(area_lines)
+
+
+    def load_alert_data(self):
+        """
+        Internal
+
+        Notes
+        ------
+        This is called when the environment class is not created, so i need to read the data of the grid from the
+        backend.
+
+        I cannot use "self.name_line" for example.
+
+        This function update the backend INSTANCE. The backend class is then updated in the 
+        :func:`BaseEnv._init_backend`
+        function with a call to `self.backend.assert_grid_correct()`
+
+        Returns
+        -------
+
+        """
+
+        if hasattr(self._opponent, "_lines_ids"):
+            alertable_line_ids = [el for el in self.backend.name_line 
+                                  if el in self._opponent._lines_ids] # need to be remembered
+            nb_lines = len(alertable_line_ids)
+
+            # every check pass, i update the backend class
+            bk_cls = type(self.backend)
+            bk_cls.dim_alerts = nb_lines
+            bk_cls.alerts_lines = copy.deepcopy(alertable_line_ids)
+        else : 
+            raise ValueError()
+
 
     @property
     def action_space(self) -> ActionSpace:
@@ -2796,6 +2840,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     - "is_illegal_reco" (``bool``) was the action illegal due to a powerline reconnection
                     - "reason_alarm_illegal" (``None`` or ``Exception``) reason for which the alarm is illegal
                       (it's None if no alarm are raised or if the alarm feature is not used)
+                    - "reason_alert_illegal" (``None`` or ``Exception``) reason for which the alert is illegal
+                      (it's None if no alert are raised or if the alert feature is not used)
                     - "opponent_attack_line" (``np.ndarray``, ``bool``) for each powerline, say if the opponent
                       attacked it (``True``) or not (``False``).
                     - "opponent_attack_sub" (``np.ndarray``, ``bool``) for each substation, say if the opponent
@@ -2863,6 +2909,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         reason_alarm_illegal = None
         self._is_alarm_illegal = False
         self._is_alarm_used_in_reward = False
+        reason_alert_illegal = None
+        self._is_alert_illegal = False
+        self._is_alert_used_in_reward = False
         except_ = []
         detailed_info = []
         init_disp = 1.0 * action._redispatch  # dispatching action
@@ -2903,11 +2952,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 except_.append(except_tmp)
 
             if self._has_attention_budget:
-                # this feature is implemented, so i do it
-                reason_alarm_illegal = self._attention_budget.register_action(
-                    self, action, is_illegal, is_ambiguous
-                )
-                self._is_alarm_illegal = reason_alarm_illegal is not None
+                if self.is_alert:
+                    # this feature is implemented, so i do it
+                    reason_alert_illegal = self._attention_budget.register_action(
+                        self, action, is_illegal, is_ambiguous
+                    )
+                    self._is_alert_illegal = reason_alert_illegal is not None
+                else:
+                    # this feature is implemented, so i do it
+                    reason_alarm_illegal = self._attention_budget.register_action(
+                        self, action, is_illegal, is_ambiguous
+                    )
+                    self._is_alarm_illegal = reason_alarm_illegal is not None
+
 
             # get the modification of generator active setpoint from the environment
             self._env_modification, prod_v_chronics = self._update_actions()
@@ -2983,6 +3040,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "is_dispatching_illegal": is_illegal_redisp,
             "is_illegal_reco": is_illegal_reco,
             "reason_alarm_illegal": reason_alarm_illegal,
+            "reason_alert_illegal": reason_alert_illegal,
             "opponent_attack_line": lines_attacked,
             "opponent_attack_sub": subs_attacked,
             "opponent_attack_duration": attack_duration,
@@ -3006,6 +3064,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if hasattr(self._reward_helper.template_reward, "has_alarm_component"):
                 self._is_alarm_used_in_reward = (
                     self._reward_helper.template_reward.is_alarm_used
+                )
+            if hasattr(self._reward_helper.template_reward, "has_alert_component"):
+                self._is_alert_used_in_reward = (
+                    self._reward_helper.template_reward.is_alert_used
                 )
             self.current_obs = self.get_obs(_update_state=False)
             # update the observation so when it's plotted everything is "shutdown"
@@ -3275,6 +3337,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_attention_budget_cls",
             "_is_alarm_illegal",
             "_is_alarm_used_in_reward",
+            "_is_alert_illegal",
+            "_is_alert_used_in_reward",
             "_kwargs_attention_budget",
             "_limited_before",
         ]:

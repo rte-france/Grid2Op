@@ -581,6 +581,17 @@ class GridObjects:
         []
     )  # for each area in the grid, gives which powerlines it contains # TODO
 
+    # alert feature 
+    # # dimension of the alert "space" (number of alerts that can be raised at each step)
+    dim_alerts = 0  # TODO
+    alerts_alert_names = []  # name of each area  # TODO
+    alerts_lines_area = (
+        {}
+    )  # for each lines of the grid, gives on which area(s) it is  # TODO
+    alerts_area_lines = (
+        []
+    )  # for each area in the grid, gives which powerlines it contains # TODO
+
     def __init__(self):
         pass
 
@@ -593,6 +604,17 @@ class GridObjects:
                 "if you environment is read back. We strongly recommend NOT to do this."
             )
         cls.dim_alarms = dim_alarms
+
+    @classmethod
+    def tell_dim_alert(cls, dim_alerts):
+        if cls.dim_alerts != 0:
+            # number of alerts has already been set, i issue a warning
+            warnings.warn(
+                "You will change the number of dimensions of the alert. This might cause trouble "
+                "if you environment is read back. We strongly recommend NOT to do this."
+            )
+        cls.dim_alerts = dim_alerts
+
 
     @classmethod
     def _clear_class_attribute(cls):

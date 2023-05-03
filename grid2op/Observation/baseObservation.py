@@ -352,6 +352,11 @@ class BaseObservation(GridObjects):
         "last_alarm",
         "attention_budget",
         "was_alarm_used_after_game_over",
+        # line alert 
+        "is_alert_illegal",
+        "time_since_last_alert",
+        "last_alert",
+        "was_alert_used_after_game_over",
         # gen up / down
         "gen_margin_up",
         "gen_margin_down",
@@ -506,6 +511,10 @@ class BaseObservation(GridObjects):
             "last_alarm",
             "attention_budget",
             "was_alarm_used_after_game_over",
+            "is_alert_illegal",
+            "time_since_last_alert",
+            "last_alert",
+            "was_alert_used_after_game_over",
             "storage_power",
             "storage_power_target",
             "storage_charge",
@@ -981,6 +990,24 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
+        if cls.glop_version < "1.8.2" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # is_alert_illegal", "time_since_last_alert", "last_alert", "was_alert_used_after_game_over" were added in grid2Op 1.8.2
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
+            for el in [
+                "is_alert_illegal",
+                "time_since_last_alert",
+                "last_alert",
+                "was_alert_used_after_game_over",
+            ]:
+                try:
+                    cls.attr_list_vect.remove(el)
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
+                    pass
+            cls.attr_list_set = set(cls.attr_list_vect)
+
     def reset(self):
         """
         INTERNAL
@@ -1077,6 +1104,13 @@ class BaseObservation(GridObjects):
         self.attention_budget[:] = 0
         self.was_alarm_used_after_game_over[:] = False
 
+        # alert line feature 
+        self.is_alert_illegal[:] = False
+        self.time_since_last_alert[:] = -1
+        self.last_alert[:] = False
+        # Reuse the same attention budget 
+        self.was_alert_used_after_attack[:] = False
+        
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)
         self.delta_time = dt_float(5.0)
@@ -1201,6 +1235,16 @@ class BaseObservation(GridObjects):
             self.was_alarm_used_after_game_over[:] = env._is_alarm_used_in_reward
         else:
             self.was_alarm_used_after_game_over[:] = False
+
+        # related to alert 
+        self.is_alert_illegal[:] = False
+        self.time_since_last_alert[:] = -1
+        self.last_alert[:] = False
+        self.attention_budget[:] = 0
+        if env is not None:
+            self.was_alert_used_after_attack[:] = env._is_alert_used_in_reward
+        else:
+            self.was_alert_used_after_attack[:] = False
 
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
