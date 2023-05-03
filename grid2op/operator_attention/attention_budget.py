@@ -182,3 +182,175 @@ class LinearAttentionBudget:
                 self._max_budget, self._budget_per_ts + self._current_budget
             )
         return None
+
+class LinearAttentionBudgetByLine:
+
+    def __init__(self):
+        self._max_budget = None
+        self._budget_per_ts = None
+        self._alert_cost = None
+        self._current_budget = None
+        self._init_budget = None
+        self._time_last_alert_raised = dt_int(-1)
+        self._time_last_successful_alert_raised = dt_int(-1)
+        self._last_alert_raised = None
+        self._last_successful_alert_raised = None
+        self._all_successful_alerts = []
+
+    @property
+    def time_last_alert_raised(self):
+        """
+        Time step of the last alert raised (-1 if no alert has been raised yet)
+        Returns
+        -------
+
+        """
+        return self._time_last_alert_raised
+
+    @property
+    def time_last_successful_alert_raised(self):
+        """time of the last successful alert raised"""
+        return self._time_last_successful_alert_raised
+
+    @property
+    def current_budget(self):
+        """current attention budget"""
+        return self._current_budget
+
+    @property
+    def last_alert_raised(self):
+        """
+        for each line, says:
+
+          - -1 if no alert have been raised for this line for the entire episode
+          - `k` (with `k>0`) says that the last alert raised for this line was at step `k`
+
+        .. note::
+            This counts both successful and non successful alerts
+        """
+        return self._last_alert_raised
+
+    @property
+    def last_successful_alert_raised(self):
+        """
+        for each line, says:
+
+          - -1 if no alert have been raised for this line for the entire episode
+          - `k` (with `k>0`) says that the last alert raised for this line was at step `k`
+
+        .. note::
+            This counts only successful alerts
+
+        """
+        return self._last_successful_alert_raised
+
+    def init(
+        self, partial_env, init_budget, max_budget, budget_per_ts, alert_cost, **kwargs
+    ):
+        self._max_budget = dt_float(max_budget)
+        self._budget_per_ts = dt_float(budget_per_ts)
+        self._alert_cost = dt_float(alert_cost)
+        self._init_budget = dt_float(init_budget)
+        self._last_alert_raised = np.empty(partial_env.dim_alerts, dtype=dt_int)
+        self._last_successful_alert_raised = np.empty(
+            partial_env.dim_alerts, dtype=dt_int
+        )
+        self.reset()
+
+    def reset(self):
+        """
+        called each time the scenario is over by the environment
+
+        Returns
+        -------
+
+        """
+        self._current_budget = self._init_budget
+        self._time_last_alert_raised = dt_int(-1)
+        self._time_last_successful_alert_raised = dt_int(-1)
+        self._last_alert_raised[:] = -1
+        self._last_successful_alert_raised[:] = -1
+        self._all_successful_alerts = []
+
+    def get_state(self):
+        """used to retrieve the sate in simulate"""
+        res = (
+            self._time_last_alert_raised,
+            self._last_alert_raised,
+            self._current_budget,
+            self._time_last_successful_alert_raised,
+            self._last_successful_alert_raised,
+            self._all_successful_alerts,
+        )
+        return res
+
+    def set_state(self, state):
+        """used to update the internal state of the budget, for simulate"""
+        (
+            _time_last_alert_raised,
+            _last_alert_raised,
+            _current_budget,
+            _time_last_successful_alert_raised,
+            _last_successful_alert_raised,
+            _all_successful_alerts,
+        ) = state
+
+        self._time_last_alert_raised = _time_last_alert_raised
+        self._last_alert_raised[:] = _last_alert_raised
+        self._current_budget = _current_budget
+        self._time_last_successful_alert_raised = _time_last_successful_alert_raised
+        self._last_successful_alert_raised[:] = _last_successful_alert_raised
+        self._all_successful_alerts = copy.copy(_all_successful_alerts)
+
+    def register_action(self, env, action, is_action_illegal, is_action_ambiguous):
+        """
+        INTERNAL
+
+        Called at each step to update the budget according to the action played
+
+        Parameters
+        ----------
+        env
+        action
+        is_action_illegal
+        is_action_ambiguous
+
+        Returns
+        -------
+
+        """
+        if action.dim_alerts == 0 or is_action_illegal or is_action_ambiguous:
+            # this feature is not supported (grid2op <= 1.6.0) or is not activated
+
+            # also, if the action is illegal is ambiguous, it is replaced with do nothing, but i don't really
+            # want to affect the budget on this case
+            return None
+
+        if action.alert_raised().size:
+            # an alert has been raised
+            self._time_last_alert_raised = env.nb_time_step
+            self._last_alert_raised[action.raise_alert] = env.nb_time_step
+            if self._current_budget >= self._alert_cost:
+                # i could raise it
+                self._current_budget -= self._alert_cost
+                self._time_last_successful_alert_raised = env.nb_time_step
+                self._last_successful_alert_raised[
+                    action.raise_aert
+                ] = env.nb_time_step
+                self._all_successful_alert.append(
+                    (env.nb_time_step, copy.deepcopy(action.raise_alert))
+                )
+            else:
+                # not enough budget
+                current_budget = self._current_budget
+                # self._current_budget = 0
+                return NotEnoughAttentionBudget(
+                    f"You need a budget of {self._alert_cost} to raise an alert "
+                    f"but you had only {current_budget}. Nothing is done."
+                )
+        else:
+            # no alert has been raised, budget increases
+            self._current_budget = min(
+                self._max_budget, self._budget_per_ts + self._current_budget
+            )
+        return None

@@ -252,7 +252,10 @@ class Environment(BaseEnv):
             self.backend.is_loaded = True
 
             # alarm set up
-            self.load_alarm_data()
+            if self.is_alert :
+                self.load_alert_data()
+            else :
+                self.load_alarm_data()
             # to force the initialization of the backend to the proper type
             self.backend.assert_grid_correct()
 
