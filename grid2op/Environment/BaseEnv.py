@@ -841,31 +841,24 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Notes
         ------
-        This is called when the environment class is not created, so i need to read the data of the grid from the
-        backend.
-
-        I cannot use "self.name_line" for example.
-
-        This function update the backend INSTANCE. The backend class is then updated in the 
-        :func:`BaseEnv._init_backend`
-        function with a call to `self.backend.assert_grid_correct()`
+        This is called to get the alertable lines when the warning is raised "by line"
 
         Returns
         -------
 
         """
 
-        if hasattr(self._opponent, "_lines_ids"):
+        if "lines_attacked" in self._kwargs_opponent.keys():
             alertable_line_ids = [el for el in self.backend.name_line 
-                                  if el in self._opponent._lines_ids] # need to be remembered
+                                  if el in self._kwargs_opponent['lines_attacked']] # need to be remembered
             nb_lines = len(alertable_line_ids)
 
             # every check pass, i update the backend class
-            bk_cls = type(self.backend)
-            bk_cls.dim_alerts = nb_lines
-            bk_cls.alerts_lines = copy.deepcopy(alertable_line_ids)
+            alertable_lines = copy.deepcopy(alertable_line_ids)
         else : 
-            raise ValueError()
+            alertable_lines = []
+            nb_lines = 0
+        return alertable_lines, nb_lines
 
 
     @property
@@ -2952,7 +2945,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 except_.append(except_tmp)
 
             if self._has_attention_budget:
-                if self.is_alert:
+                if self.parameters.ASSISTANT_WARNING_TYPE == "ZONAL":
                     # this feature is implemented, so i do it
                     reason_alert_illegal = self._attention_budget.register_action(
                         self, action, is_illegal, is_ambiguous

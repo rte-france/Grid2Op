@@ -356,7 +356,7 @@ class BaseObservation(GridObjects):
         "is_alert_illegal",
         "time_since_last_alert",
         "last_alert",
-        "was_alert_used_after_game_over",
+        "was_alert_used_after_attack",
         # gen up / down
         "gen_margin_up",
         "gen_margin_down",
@@ -448,6 +448,13 @@ class BaseObservation(GridObjects):
         self.attention_budget = np.empty(shape=1, dtype=dt_float)
         self.was_alarm_used_after_game_over = np.zeros(shape=1, dtype=dt_bool)
 
+        # alert 
+        self.is_alert_illegal = np.ones(shape=1, dtype=dt_bool)
+        self.time_since_last_alert = np.empty(shape=1, dtype=dt_int)
+        self.last_alert = np.empty(shape=self.dim_alerts, dtype=dt_int)
+        self.attention_budget = np.empty(shape=1, dtype=dt_float)
+        self.was_alert_used_after_attack = np.zeros(shape=1, dtype=dt_bool)
+
         # to save some computation time
         self._connectivity_matrix_ = None
         self._bus_connectivity_matrix_ = None
@@ -514,7 +521,7 @@ class BaseObservation(GridObjects):
             "is_alert_illegal",
             "time_since_last_alert",
             "last_alert",
-            "was_alert_used_after_game_over",
+            "was_alert_used_after_attack",
             "storage_power",
             "storage_power_target",
             "storage_charge",
@@ -991,7 +998,7 @@ class BaseObservation(GridObjects):
             cls.attr_list_set = set(cls.attr_list_vect)
 
         if cls.glop_version < "1.8.2" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
-            # is_alert_illegal", "time_since_last_alert", "last_alert", "was_alert_used_after_game_over" were added in grid2Op 1.8.2
+            # is_alert_illegal", "time_since_last_alert", "last_alert", "was_alert_used_after_attack" were added in grid2Op 1.8.2
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
 
@@ -999,7 +1006,7 @@ class BaseObservation(GridObjects):
                 "is_alert_illegal",
                 "time_since_last_alert",
                 "last_alert",
-                "was_alert_used_after_game_over",
+                "was_alert_used_after_attack",
             ]:
                 try:
                     cls.attr_list_vect.remove(el)

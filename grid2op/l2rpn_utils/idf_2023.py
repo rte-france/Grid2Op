@@ -33,7 +33,7 @@ class ActionIDF2023(PlayableAction):
     attr_list_set = set(attr_list_vect)
     pass
     
-class ObservationWCCI2022(CompleteObservation):
+class ObservationIDF2023(CompleteObservation):
     attr_list_vect = [
         "year",
         "month",

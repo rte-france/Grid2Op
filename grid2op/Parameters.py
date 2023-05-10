@@ -135,6 +135,9 @@ class Parameters:
         Number of steps for which it's worth it to give an alert after an attack. If the alert is sent before, the assistant
         score doesn't take into account that an alert is raised. 
 
+    ASSISTANT_WARNING_TYPE : ``str``
+        Type of warning raised by the assistant when in doubt. Must be either "ZONAL" or "BY_LINE"
+
     MAX_SIMULATE_PER_STEP: ``int``
         Maximum number of calls to `obs.simuate(...)` allowed per step (reset each "env.step(...)"). Defaults to -1 meaning "as much as you want".
 
@@ -200,6 +203,9 @@ class Parameters:
 
         # do i take into account the storage loss in the step function
         self.ACTIVATE_STORAGE_LOSS = True
+
+        # Type of warning raised by the assistant 
+        self.ASSISTANT_WARNING_TYPE = "BY_LINE"
 
         # alarms
         self.ALARM_BEST_TIME = 12
@@ -339,6 +345,10 @@ class Parameters:
             self.ACTIVATE_STORAGE_LOSS = Parameters._isok_txt(
                 dict_["ACTIVATE_STORAGE_LOSS"]
             )
+
+        # assistant warning type 
+        if "ASSISTANT_WARNING_TYPE" in dict_:
+            self.ASSISTANT_WARNING_TYPE = dt_int(dict_["ASSISTANT_WARNING_TYPE"])
 
         # alarm parameters
         if "ALARM_BEST_TIME" in dict_:
@@ -649,6 +659,9 @@ class Parameters:
             raise RuntimeError("self.ALARM_BEST_TIME should be a positive integer !")
         if self.ALERT_TIME_WINDOW <= 0:
             raise RuntimeError("self.ALERT_TIME_WINDOW should be a positive integer !")
+
+        if not self.ASSISTANT_WARNING_TYPE in ['ZONAL', "BY_LINE"]: 
+            raise RuntimeError('ASSISTANT_WARNING_TYPE must be ZONAL or BY_LINE')
 
         try:
             self.MAX_SIMULATE_PER_STEP = int(

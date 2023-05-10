@@ -7,6 +7,13 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Opponent import GeometricOpponent, BaseActionBudget
 from grid2op.operator_attention import LinearAttentionBudget
 
+try:
+    from grid2op.l2rpn_utils import ActionIDF2023, ObservationIDF2023
+except ImportError:
+    warnings.warn("The grid2op version you are trying to use is too old for this environment. Please upgrade it.")
+    ActionIDF2023 = PlayableAction
+    ObservationIDF2023 = CompleteObservation
+
 lines_attacked = [
     "62_58_180",
     "62_63_160",

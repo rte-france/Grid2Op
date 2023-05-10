@@ -584,13 +584,7 @@ class GridObjects:
     # alert feature 
     # # dimension of the alert "space" (number of alerts that can be raised at each step)
     dim_alerts = 0  # TODO
-    alerts_alert_names = []  # name of each area  # TODO
-    alerts_lines_area = (
-        {}
-    )  # for each lines of the grid, gives on which area(s) it is  # TODO
-    alerts_area_lines = (
-        []
-    )  # for each area in the grid, gives which powerlines it contains # TODO
+    alerts_line_names = []  # name of each line to produce an alert on # TODO
 
     def __init__(self):
         pass
@@ -753,6 +747,10 @@ class GridObjects:
         cls.alarms_area_names = []
         cls.alarms_lines_area = {}
         cls.alarms_area_lines = []
+
+        # alerts
+        cls.dim_alerts = 0
+        cls.alerts_line_names = []
 
     @classmethod
     def _update_value_set(cls):
@@ -2056,6 +2054,9 @@ class GridObjects:
         # alarm data
         cls._check_validity_alarm_data()
 
+        # alert data
+        cls._check_validity_alert_data()
+
     @classmethod
     def _check_validity_alarm_data(cls):
         if cls.dim_alarms == 0:
@@ -2127,6 +2128,27 @@ class GridObjects:
                     raise EnvError(
                         f'The powerline "{l_nm}" is not in cls.alarms_lines_area'
                     )
+
+    @classmethod
+    def _check_validity_alert_data(cls):
+        if cls.dim_alerts == 0:
+            # no alert data
+            assert (
+                cls.alerts_line_names == []
+            ), "No alert data is provided, yet cls.alerts_line_names != []"
+        elif cls.dim_alerts < 0:
+            raise EnvError(
+                f"The number of lines for the alert feature should be >= 0. It currently is {cls.dim_alerts}"
+            )
+        else:
+            # the "alert" feature is supported
+            assert isinstance(
+                cls.alerts_line_names, list
+            ), "cls.alerts_line_names should be a list"
+            assert (
+                len(cls.alerts_line_names) == cls.dim_alerts
+            ), "len(cls.alerts_line_names) != cls.dim_alerts"
+            names_to_id = {nm: id_ for id_, nm in enumerate(cls.alerts_line_names)}
 
     @classmethod
     def _check_validity_storage_data(cls):
@@ -2654,7 +2676,9 @@ class GridObjects:
         if cls.glop_version < "1.6.0":
             # this feature did not exist before.
             cls.dim_alarms = 0
-        
+        if cls.glop_version < "1.8.2":
+            cls.dim_alerts = 0 
+
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
         """
@@ -3338,6 +3362,10 @@ class GridObjects:
 
         # area for the alarm feature
         res["dim_alarms"] = cls.dim_alarms
+    
+        # number of line alert for the alert feature
+        res['dim_alerts'] = cls.dim_alerts 
+
         save_to_dict(
             res, cls, "alarms_area_names", (lambda li: [str(el) for el in li]), copy_
         )
@@ -3359,6 +3387,9 @@ class GridObjects:
             "alarms_area_lines",
             (lambda lili: [[str(l_nm) for l_nm in lines] for lines in lili]),
             copy_,
+        )
+        save_to_dict(
+            res, cls, "alerts_line_names", (lambda li: [str(el) for el in li]), copy_
         )
         return res
 
@@ -3622,6 +3653,12 @@ class GridObjects:
             cls.alarms_area_names = copy.deepcopy(dict_["alarms_area_names"])
             cls.alarms_lines_area = copy.deepcopy(dict_["alarms_lines_area"])
             cls.alarms_area_lines = copy.deepcopy(dict_["alarms_area_lines"])
+
+        # alert information 
+        if "dim_alerts" in dict_: 
+            # NB by default the constructor do as if there were no alert so that's great !
+            cls.dim_alerts = dict_["dim_alerts"]
+            cls.alerts_line_names = copy.deepcopy(dict_["alerts_line_names"])
 
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
@@ -4088,6 +4125,8 @@ class GridObjects:
         tmp_tmp_ = ",".join([f"[{format_el(el)}]" for el in cls.alarms_area_lines])
         tmp_ = f"[{tmp_tmp_}]"
         alarms_area_lines_str = "[]" if cls.dim_alarms == 0 else tmp_
+
+        alerts_line_names_str = '' if cls.dim_alarms == 0 else tmp_
         res = f"""# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
@@ -4217,6 +4256,10 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     alarms_area_names = {alarms_area_names_str}
     alarms_lines_area = {alarms_lines_area_str}
     alarms_area_lines = {alarms_area_lines_str}
+
+    # alert feature
+    dim_alert = {cls.dim_alerts}
+    alerts_line_names = {cls.alerts_line_names_str}
 
 """
         return res

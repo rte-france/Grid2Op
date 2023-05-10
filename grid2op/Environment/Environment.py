@@ -252,10 +252,11 @@ class Environment(BaseEnv):
             self.backend.is_loaded = True
 
             # alarm set up
-            if self.is_alert :
-                self.load_alert_data()
-            else :
+            if self.parameters.ASSISTANT_WARNING_TYPE is "BY_LINE":
+                self._alertable_lines, self.dim_alerts = self.load_alert_data()
+            else : 
                 self.load_alarm_data()
+            
             # to force the initialization of the backend to the proper type
             self.backend.assert_grid_correct()
 
