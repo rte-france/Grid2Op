@@ -253,7 +253,7 @@ class Environment(BaseEnv):
 
             # alarm set up
             if self.parameters.ASSISTANT_WARNING_TYPE is "BY_LINE":
-                self._alertable_lines, self.dim_alerts = self.load_alert_data()
+                self.alertable_line_names, self.dim_alerts = self.load_alert_data()
             else : 
                 self.load_alarm_data()
             

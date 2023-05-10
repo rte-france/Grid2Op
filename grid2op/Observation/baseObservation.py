@@ -280,6 +280,21 @@ class BaseObservation(GridObjects):
         to the attention budget when there was a game over. It can only be set to ``True`` if the observation
         corresponds to a game over, but not necessarily. (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
+    is_alert_illegal: ``bool``
+        whether the last alert has been illegal (due to budget constraint). It can only be ``True`` if an alert
+        was raised by the agent on the previous step. Otherwise it is always ``False`` 
+
+    time_since_last_alert: ``int``
+        Number of steps since the last successful alert has been raised. It is `-1` if no alert has been raised yet. 
+
+    last_alert: :class:`numpy.ndarray`, dtype:int
+        For each zones, gives how many steps since the last alert was raised successfully for this zone 
+
+    was_alert_used_after_attack: ``bool``
+        Was the last alert used to compute anything related
+        to the attention budget when there was a game over. It can only be set to ``True`` if the observation
+        corresponds to a game over, but not necessarily. 
+
     gen_margin_up: :class:`numpy.ndarray`, dtype:float
         From how much can you increase each generators production between this
         step and the next.
@@ -3361,6 +3376,18 @@ class BaseObservation(GridObjects):
                 "was_alarm_used_after_game_over"
             ] = self.was_alarm_used_after_game_over[0]
 
+            # alert 
+            self._dictionnarized["is_alert_illegal"] = self.is_alert_illegal[0]
+            self._dictionnarized["time_since_last_alert"] = self.time_since_last_alert[
+                0
+            ]
+            self._dictionnarized["last_alert"] = copy.deepcopy(self.last_alert)
+            self._dictionnarized["attention_budget"] = self.attention_budget[0]
+            self._dictionnarized[
+                "was_alert_used_after_attack"
+            ] = self.was_alert_used_after_attack[0]
+
+
             # current_step / max step
             self._dictionnarized["current_step"] = self.current_step
             self._dictionnarized["max_step"] = self.max_step
@@ -3863,6 +3890,17 @@ class BaseObservation(GridObjects):
             else:
                 self.time_since_last_alarm[:] = -1
             self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
+            self.attention_budget[:] = env._attention_budget.current_budget
+        elif self.dim_alerts and env._has_attention_budget: 
+            self.is_alert_illegal[:] = env._is_alert_illegal
+            if env._attention_budget.time_last_successful_alert_raised > 0:
+                self.time_since_last_alert[:] = (
+                    self.current_step
+                    - env._attention_budget.time_last_successful_alert_raised
+                )
+            else:
+                self.time_since_last_alert[:] = -1
+            self.last_alert[:] = env._attention_budget.last_successful_alert_raised
             self.attention_budget[:] = env._attention_budget.current_budget
 
         self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.0)

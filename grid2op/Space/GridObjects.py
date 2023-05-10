@@ -584,7 +584,7 @@ class GridObjects:
     # alert feature 
     # # dimension of the alert "space" (number of alerts that can be raised at each step)
     dim_alerts = 0  # TODO
-    alerts_line_names = []  # name of each line to produce an alert on # TODO
+    alertable_line_names = []  # name of each line to produce an alert on # TODO
 
     def __init__(self):
         pass
@@ -750,7 +750,7 @@ class GridObjects:
 
         # alerts
         cls.dim_alerts = 0
-        cls.alerts_line_names = []
+        cls.alertable_line_names = []
 
     @classmethod
     def _update_value_set(cls):
@@ -2134,8 +2134,8 @@ class GridObjects:
         if cls.dim_alerts == 0:
             # no alert data
             assert (
-                cls.alerts_line_names == []
-            ), "No alert data is provided, yet cls.alerts_line_names != []"
+                cls.alertable_line_names == []
+            ), "No alert data is provided, yet cls.alertable_line_names != []"
         elif cls.dim_alerts < 0:
             raise EnvError(
                 f"The number of lines for the alert feature should be >= 0. It currently is {cls.dim_alerts}"
@@ -2143,12 +2143,12 @@ class GridObjects:
         else:
             # the "alert" feature is supported
             assert isinstance(
-                cls.alerts_line_names, list
-            ), "cls.alerts_line_names should be a list"
+                cls.alertable_line_names, list
+            ), "cls.alertable_line_names should be a list"
             assert (
-                len(cls.alerts_line_names) == cls.dim_alerts
-            ), "len(cls.alerts_line_names) != cls.dim_alerts"
-            names_to_id = {nm: id_ for id_, nm in enumerate(cls.alerts_line_names)}
+                len(cls.alertable_line_names) == cls.dim_alerts
+            ), "len(cls.alertable_line_names) != cls.dim_alerts"
+            names_to_id = {nm: id_ for id_, nm in enumerate(cls.alertable_line_names)}
 
     @classmethod
     def _check_validity_storage_data(cls):
@@ -3388,8 +3388,9 @@ class GridObjects:
             (lambda lili: [[str(l_nm) for l_nm in lines] for lines in lili]),
             copy_,
         )
+        # save alert line names to dict
         save_to_dict(
-            res, cls, "alerts_line_names", (lambda li: [str(el) for el in li]), copy_
+            res, cls, "alertable_line_names", (lambda li: [str(el) for el in li]), copy_
         )
         return res
 
@@ -3658,7 +3659,7 @@ class GridObjects:
         if "dim_alerts" in dict_: 
             # NB by default the constructor do as if there were no alert so that's great !
             cls.dim_alerts = dict_["dim_alerts"]
-            cls.alerts_line_names = copy.deepcopy(dict_["alerts_line_names"])
+            cls.alertable_line_names = copy.deepcopy(dict_["alertable_line_names"])
 
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
@@ -4126,7 +4127,7 @@ class GridObjects:
         tmp_ = f"[{tmp_tmp_}]"
         alarms_area_lines_str = "[]" if cls.dim_alarms == 0 else tmp_
 
-        alerts_line_names_str = '' if cls.dim_alarms == 0 else tmp_
+        alertable_line_names_str = '' if cls.dim_alarms == 0 else tmp_
         res = f"""# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
@@ -4259,7 +4260,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
 
     # alert feature
     dim_alert = {cls.dim_alerts}
-    alerts_line_names = {cls.alerts_line_names_str}
+    alertable_line_names = {cls.alertable_line_names_str}
 
 """
         return res

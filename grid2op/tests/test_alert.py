@@ -66,8 +66,8 @@ class TestAlert(unittest.TestCase):
             "54_58_154",
         ] 
         
-        assert isinstance(self.env._alertable_lines, list)
-        assert self.env._alertable_lines, true_alertable_lines
+        assert isinstance(self.env.alertable_line_names, list)
+        assert self.env.alertable_line_names, true_alertable_lines
 
     
     def test_first_observation(self) -> None : 
