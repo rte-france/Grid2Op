@@ -357,6 +357,7 @@ class BaseAction(GridObjects):
         "set_storage",
         "curtail",
         "raise_alarm",
+        "raise_alert",
     }
 
     attr_list_vect = [
@@ -374,6 +375,7 @@ class BaseAction(GridObjects):
         "_storage_power",
         "_curtail",
         "_raise_alarm",
+        "_raise_alert",
     ]
     attr_nan_list_set = set()
 
@@ -457,6 +459,10 @@ class BaseAction(GridObjects):
             shape=self.dim_alarms, dtype=dt_bool, fill_value=False
         )  # TODO
 
+        self._raise_alert = np.full(
+            shape=self.dim_alerts, dtype=dt_bool, fill_value=False
+        )  # TODO
+
         # change the stuff
         self._modif_inj = False
         self._modif_set_bus = False
@@ -467,6 +473,7 @@ class BaseAction(GridObjects):
         self._modif_storage = False
         self._modif_curtailment = False
         self._modif_alarm = False
+        self._modif_alert = False
 
     @classmethod
     def process_shunt_satic_data(cls):
@@ -499,6 +506,7 @@ class BaseAction(GridObjects):
             "_modif_storage",
             "_modif_curtailment",
             "_modif_alarm",
+            "_modif_alert",
             "_single_act",
         ]
 
@@ -513,6 +521,7 @@ class BaseAction(GridObjects):
             "_storage_power",
             "_curtail",
             "_raise_alarm",
+            "_raise_alert",
         ]
 
         if self.shunts_data_available:
@@ -589,6 +598,10 @@ class BaseAction(GridObjects):
         """
         res = {}
         # bool elements
+        if self._modif_alert:
+            res["raise_alert"] = [
+                int(id_) for id_, val in enumerate(self._raise_alert) if val
+            ]
         if self._modif_alarm:
             res["raise_alarm"] = [
                 int(id_) for id_, val in enumerate(self._raise_alarm) if val
@@ -693,6 +706,20 @@ class BaseAction(GridObjects):
         """
         return np.where(self._raise_alarm)[0]
 
+    def alert_raised(self) -> np.ndarray:
+        """
+        INTERNAL
+
+        This function is used to know if the given action aimed at raising an alert or not.
+
+        Returns
+        -------
+        res: numpy array
+            The indexes of the lines where the agent has raised an alert.
+
+        """
+        return np.where(self._raise_alert)[0]
+
     @classmethod
     def process_grid2op_compat(cls):
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
@@ -721,6 +748,10 @@ class BaseAction(GridObjects):
         if cls.glop_version < "1.6.0":
             # this feature did not exist before.
             cls.dim_alarms = 0
+        
+        if cls.glop_version < "1.8.2":
+            # this feature did not exist before.
+            cls.dim_alerts = 0
 
     def _reset_modified_flags(self):
         self._modif_inj = False
@@ -732,6 +763,7 @@ class BaseAction(GridObjects):
         self._modif_storage = False
         self._modif_curtailment = False
         self._modif_alarm = False
+        self._modif_alert = False
 
     def can_affect_something(self) -> bool:
         """
@@ -751,6 +783,7 @@ class BaseAction(GridObjects):
             or self._modif_storage
             or self._modif_curtailment
             or self._modif_alarm
+            or self._modif_alert
         )
 
     def _get_array_from_attr_name(self, attr_name):
@@ -783,6 +816,7 @@ class BaseAction(GridObjects):
         self._modif_storage = np.any(self._storage_power != 0.0)
         self._modif_curtailment = np.any(self._curtail != -1.0)
         self._modif_alarm = np.any(self._raise_alarm)
+        self._modif_alert = np.any(self._raise_alert)
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
@@ -951,6 +985,12 @@ class BaseAction(GridObjects):
         # alarm
         if (self._modif_alarm != other._modif_alarm) or not np.array_equal(
             self._raise_alarm, other._raise_alarm
+        ):
+            return False
+    
+        # alarm
+        if (self._modif_alert != other._modif_alert) or not np.array_equal(
+            self._raise_alert, other._raise_alert
         ):
             return False
 
@@ -1216,7 +1256,7 @@ class BaseAction(GridObjects):
             #         - Assign bus 2 to line (origin) id 44 [on substation 28]
             #         - Assign bus 1 to line (extremity) id 57 [on substation 28]
             #         - Assign bus 1 to generator id 16 [on substation 28]
-            #     - Not raise any alarm
+            #     - Not raise any alarm nor alert
 
             obs, reward, done, info = env.step(act_sub28_clean)
             # >>> info["exception"] : []
@@ -1340,7 +1380,10 @@ class BaseAction(GridObjects):
             self.shunt_bus[:] = 0
 
         # alarm
-        self._raise_alarm[:] = False
+        self._raise_alarm[:] = False        
+        
+        # alert
+        self._raise_alert[:] = False
 
         self._reset_modified_flags()
 
@@ -1529,6 +1572,10 @@ class BaseAction(GridObjects):
         # alarm feature
         self._raise_alarm[other._raise_alarm] = True
 
+        # line alert feature
+        self._raise_alert[other._raise_alert] = True
+
+
         # the modif flags
         self._modif_change_bus = self._modif_change_bus or other._modif_change_bus
         self._modif_set_bus = self._modif_set_bus or other._modif_set_bus
@@ -1541,6 +1588,7 @@ class BaseAction(GridObjects):
         self._modif_storage = self._modif_storage or other._modif_storage
         self._modif_curtailment = self._modif_curtailment or other._modif_curtailment
         self._modif_alarm = self._modif_alarm or other._modif_alarm
+        self._modif_alert = self._modif_alert or other._modif_alert
 
         return self
 
@@ -1638,7 +1686,7 @@ class BaseAction(GridObjects):
             shunts["shunt_p"] = self.shunt_p
             shunts["shunt_q"] = self.shunt_q
             shunts["shunt_bus"] = self.shunt_bus
-        # other remark: alarm are not handled in the backend, this is why it does not appear here !
+        # other remark: alarm and alert are not handled in the backend, this is why it does not appear here !
         return (
             dict_inj,
             set_line_status,
@@ -1888,6 +1936,11 @@ class BaseAction(GridObjects):
         if "raise_alarm" in dict_:
             self.raise_alarm = dict_["raise_alarm"]
 
+    
+    def _digest_alert(self, dict_):
+        if "raise_alert" in dict_:
+            self.raise_alert = dict_["raise_alert"]
+
     def _reset_vect(self):
         """
         INTERNAL USE ONLY
@@ -2112,6 +2165,7 @@ class BaseAction(GridObjects):
             self._digest_maintenance(dict_)
             self._digest_change_status(dict_)
             self._digest_alarm(dict_)
+            self._digest_alert(dict_)
 
         return self
 
@@ -2230,6 +2284,15 @@ class BaseAction(GridObjects):
                 )
             if "raise_alarm" not in self.authorized_keys:
                 raise IllegalAction("You illegally send an alarm.")
+
+        if np.any(self._raise_alert):
+            if not self._modif_alert:
+                raise AmbiguousAction(
+                    "Incorrect way to raise some alert, the appropriate flag is not "
+                    "modified properly."
+                )
+            if "raise_alert" not in self.authorized_keys:
+                raise IllegalAction("You illegally send an alert.")
 
     def _check_for_ambiguity(self):
         """
@@ -2563,6 +2626,19 @@ class BaseAction(GridObjects):
                     f"as doing so. Expect wrong behaviour."
                 )
 
+        if self._modif_alert:
+            if self._raise_alert.shape[0] != self.dim_alerts:
+                raise AmbiguousAction(
+                    f"Wrong number of alert raised: {self._raise_alert.shape[0]} raised, expecting "
+                    f"{self.dim_alerts}"
+                )
+        else:
+            if np.any(self._raise_alert):
+                raise AmbiguousAction(
+                    f"Unrecognize alert action: an action acts on the alert, yet it's not tagged "
+                    f"as doing so. Expect wrong behaviour."
+                )
+
     def _is_storage_ambiguous(self):
         """check if storage actions are ambiguous"""
         if self._modif_storage:
@@ -2847,6 +2923,20 @@ class BaseAction(GridObjects):
                 res.append(f"\t - Raise an alarm on area" f"{area_str}")
             else:
                 res.append("\t - Not raise any alarm")
+        
+        if type(self).dim_alerts > 0:
+            my_cls = type(self)
+            if self._modif_alert:
+                li_line = np.array(my_cls.alerts_line_names)[
+                    np.where(self._raise_alert)[0]
+                ]
+                if len(li_line) == 1:
+                    line_str = ": " + li_line[0]
+                else:
+                    line_str = "s: \n\t \t - " + "\n\t \t - ".join(li_line)
+                res.append(f"\t - Raise an alert on line(s) " f"{line_str}")
+            else:
+                res.append("\t - Not raise any alert")
         return "\n".join(res)
 
     def impact_on_objects(self) -> dict:
@@ -4774,6 +4864,61 @@ class BaseAction(GridObjects):
             self._raise_alarm[:] = orig_
             raise IllegalAction(
                 f"Impossible to modify the alarm with your input. "
+                f"Please consult the documentation. "
+                f'The error was:\n"{exc_}"'
+            )
+
+    @property
+    def raise_alert(self) -> np.ndarray:
+        """
+        Property to raise alert.
+
+        If you set it to ``True`` an alert is raised for the given line, otherwise None are raised.
+
+        Notes
+        -----
+        In order to be able to "cancel" an alert properly, if you set "two consecutive alert" on the same line
+        it will behave as if you had set none:
+
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...  # chose an environment that supports the alert feature
+            env = grid2op.make(env_name)
+            act = env.action_space()
+
+            act.raise_alert = [0]
+            # this act will raise an alert on the area 0
+
+            act.raise_alert = [0]
+            # this second call will "cancel" the alert for convenience
+
+        This might be counter intuitive
+
+        """
+        res = copy.deepcopy(self._raise_alert)
+        res.flags.writeable = False
+        return res
+
+    @raise_alert.setter
+    def raise_alert(self, values):
+        if "raise_alert" not in self.authorized_keys:
+            raise IllegalAction("Impossible to send alerts with this action type.")
+        orig_ = copy.deepcopy(self._raise_alert)
+        try:
+            self._aux_affect_object_bool(
+                values,
+                "raise alert",
+                self.dim_alerts,
+                self.alerts_line_names,
+                np.arange(self.dim_alerts),
+                self._raise_alert,
+            )
+            self._modif_alert = True
+        except Exception as exc_:
+            self._raise_alert[:] = orig_
+            raise IllegalAction(
+                f"Impossible to modify the alert with your input. "
                 f"Please consult the documentation. "
                 f'The error was:\n"{exc_}"'
             )
