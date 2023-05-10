@@ -4910,7 +4910,7 @@ class BaseAction(GridObjects):
                 values,
                 "raise alert",
                 self.dim_alerts,
-                self.alerts_line_names,
+                self.alertable_line_names,
                 np.arange(self.dim_alerts),
                 self._raise_alert,
             )

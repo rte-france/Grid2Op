@@ -331,6 +331,8 @@ def _get_action_grid_class():
         "alarms_area_names": [],
         "alarms_lines_area": {},
         "alarms_area_lines": [],
+        "dim_alerts": 0,
+        "alertable_line_names": [],
         "_PATH_ENV": None,
     }
     GridObjects.shunts_data_available = False

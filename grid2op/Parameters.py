@@ -205,7 +205,7 @@ class Parameters:
         self.ACTIVATE_STORAGE_LOSS = True
 
         # Type of warning raised by the assistant 
-        self.ASSISTANT_WARNING_TYPE = "BY_LINE"
+        self.ASSISTANT_WARNING_TYPE = "ZONAL"
 
         # alarms
         self.ALARM_BEST_TIME = 12
