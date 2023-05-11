@@ -347,9 +347,8 @@ class Parameters:
             )
 
         # assistant warning type 
-        if "ASSISTANT_WARNING_TYPE" in dict_:
-            self.ASSISTANT_WARNING_TYPE = dt_int(dict_["ASSISTANT_WARNING_TYPE"])
-
+        if "ASSISTANT_WARNING_TYPE" in dict_: 
+            self.ASSISTANT_WARNING_TYPE = dict_['ASSISTANT_WARNING_TYPE']
         # alarm parameters
         if "ALARM_BEST_TIME" in dict_:
             self.ALARM_BEST_TIME = dt_int(dict_["ALARM_BEST_TIME"])

@@ -30,7 +30,7 @@ class TestAlert(unittest.TestCase):
         )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(self.env_nm, test=True)
+            self.env = make(self.env_nm, test=True, difficulty="1")
         self.env.seed(0)
         self.env.reset()
 
@@ -40,7 +40,9 @@ class TestAlert(unittest.TestCase):
         assert self.env.parameters.ALERT_TIME_WINDOW > 0
 
         param = self.env.parameters
-        param.init_from_dict({"ALERT_TIME_WINDOW": -1})
+        param.init_from_dict({
+            "ALERT_TIME_WINDOW": -1, 
+            "ASSISTANT_WARNING_TYPE": "BY_LINE"})
         
         negative_value_invalid = False
         try: 
@@ -67,11 +69,9 @@ class TestAlert(unittest.TestCase):
         ] 
         
         assert isinstance(self.env.alertable_line_names, list)
-        assert self.env.alertable_line_names, true_alertable_lines
+        assert sorted(self.env.alertable_line_names) == sorted(true_alertable_lines)
+        assert self.env.dim_alerts == len(true_alertable_lines)
 
-    
-    def test_first_observation(self) -> None : 
-        self.env.observation_space
 
 
 
