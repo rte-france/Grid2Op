@@ -252,7 +252,7 @@ class Environment(BaseEnv):
             self.backend.is_loaded = True
 
             # alarm set up
-            if self.parameters.ASSISTANT_WARNING_TYPE is "BY_LINE":
+            if self.parameters.ASSISTANT_WARNING_TYPE == "BY_LINE":
                 self.alertable_line_names, self.dim_alerts = self.load_alert_data()
             else : 
                 self.load_alarm_data()

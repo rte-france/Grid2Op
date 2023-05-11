@@ -290,9 +290,11 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "storage_discharging_efficiency": [],
             "_init_subtype": "grid2op.Observation.completeObservation.CompleteObservation",
             "dim_alarms": 0,
+            "dim_alerts": 0,
             "alarms_area_names": [],
             "alarms_lines_area": {},
             "alarms_area_lines": [],
+            "alertable_line_names": [],
             "_PATH_ENV": None,
         }
 
@@ -835,6 +837,10 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "current_step": [0],
             "max_step": [8064],
             "delta_time": [5.0],
+            "is_alert_illegal": [False],
+            "time_since_last_alert": [-1],
+            "last_alert": [],
+            "was_alert_used_after_attack": [False],
         }
         self.dtypes = np.array(
             [
@@ -895,6 +901,11 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 # gen margins
                 dt_float,
                 dt_float,
+                # alert feature
+                dt_bool,
+                dt_int,
+                dt_int,
+                dt_bool,
             ],
             dtype=object,
         )
@@ -955,9 +966,13 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 1,
                 5,
                 5,
+                1,
+                1,
+                0,
+                1,
             ]
         )
-        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5
+        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5 + 3
 
     def tearDown(self):
         self.env.close()
