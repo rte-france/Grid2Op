@@ -69,7 +69,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
             or (key == "is_alarm_illegal")
             or (key == "was_alarm_used_after_game_over")
             or (key == "is_alert_illegal")
-            or (key == "was_alert_used_after_game_over")
+            or (key == "was_alert_used_after_attack")
         )
         return res
 

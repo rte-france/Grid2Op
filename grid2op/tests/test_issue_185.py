@@ -74,11 +74,19 @@ class Issue185Tester(unittest.TestCase):
                     # gym_env.observation_space.seed(0)
                     # gym_env.action_space.seed(0)
                     obs_gym, *_ = gym_env.reset(seed=0)  # reset and seed
-                    assert obs_gym in gym_env.observation_space, f"error for {env_name}"
+                    assert isinstance(obs_gym, dict), "probably a wrong gym version"
+                    # "was_alert_used_after_attack"
+                    # "was_alarm_used_after_game_over"
+                    for key in gym_env.observation_space.keys():
+                        assert key in obs_gym, f"error for {env_name} for {key}"
+                        assert obs_gym[key] in gym_env.observation_space[key], f"error for {env_name} for {key}"
                     act = gym_env.action_space.sample()
                     assert act in gym_env.action_space, f"error for {env_name}"
                     obs, reward, done, truncated, info = gym_env.step(act)
-                    assert obs in gym_env.observation_space, f"error for {env_name}"
+                    assert isinstance(obs_gym, dict)
+                    for key in gym_env.observation_space.keys():
+                        assert key in obs_gym, f"error for {env_name} for {key}"
+                        assert obs_gym[key] in gym_env.observation_space[key], f"error for {env_name} for {key}"
 
     def test_issue_185_obs_box_space(self):
         for env_name in self.get_list_env():
