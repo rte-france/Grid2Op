@@ -7,6 +7,11 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import numpy as np
 
+from packaging import version
+from importlib.metadata import distribution
+NUMPY_VERSION = version.parse(distribution('numpy').version)
+_MAX_NUMPY_VERSION_NPINT = version.parse("1.20.0") 
+
 dt_int = (
     np.int32
 )  # dtype('int64') or dtype('int32') depending on platform => i force it to int32
@@ -15,3 +20,7 @@ dt_float = (
 )  # dtype('float64') or dtype('float32') depending on platform  => i force it to float32
 
 dt_bool = np.bool_  # mandatory for numpy >= 1.24
+
+int_types = (int, dt_int, np.int64)
+if NUMPY_VERSION <= _MAX_NUMPY_VERSION_NPINT:
+    int_types = (int, dt_int, np.int64, np.int)
