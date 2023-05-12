@@ -93,6 +93,7 @@ Change Log
   directly from the grid2op action, see `obs.change_forecast_parameters()`
 - [ADDED] possibility to retrieve a "forecast environment" with custom forecasts, see 
   `obs.get_env_from_external_forecasts(...)`
+- [ADDED] now requires "importlib-metadata" package at install
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps

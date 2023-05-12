@@ -30,6 +30,7 @@ pkgs = {
         "tqdm>=4.45.0",
         "networkx>=2.4",
         "requests>=2.23.0",
+        "importlib-metadata",
         "packaging"  # because gym changes the way it uses numpy prng in version 0.26 and i need both gym before and after...
     ],
     "extras": {
