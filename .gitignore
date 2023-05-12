@@ -368,6 +368,9 @@ test_multi_step_for.py
 test_vecenv.7z
 test_vecenv.py
 test_timeout_env.py
+test_pp_networks.py
+test_timeout_env.py
+test_timeout_env.py
 
 # profiling files
 **.prof
