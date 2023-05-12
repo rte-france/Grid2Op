@@ -550,7 +550,7 @@ class BoxGymObsSpace(Box):
                 (ob_sp.dim_alerts,),
                 dt_int,
             ),
-            "was_alert_used_after_game_over": (
+            "was_alert_used_after_attack": (
                 np.full(shape=(1,), fill_value=False, dtype=dt_bool),
                 np.full(shape=(1,), fill_value=True, dtype=dt_bool),
                 (1,),

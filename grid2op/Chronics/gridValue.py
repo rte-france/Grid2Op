@@ -433,7 +433,7 @@ class GridValue(RandomObject, ABC):
 
         """
 
-        res = np.full(hazard.shape, fill_value=np.NaN, dtype=dt_int)
+        res = np.full(hazard.shape, fill_value=-99999999999, dtype=dt_int)
         hazard = np.concatenate((hazard, (0, 0)))
         a = np.diff(hazard)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array

@@ -108,10 +108,10 @@ class CompleteObservation(BaseObservation):
             successfully [``int``]
         45. :attr:`BaseObservation.last_alert` : for each alert zone, gives the last step at which an alarm has
             been successfully raised at this zone [:attr:`grid2op.Space.GridObjects.dim_alerts` elements]
-        46. :attr:`BaseObservation.was_alert_used_after_game_over` : was the last ert used to compute anything related
+        46. :attr:`BaseObservation.was_alert_used_after_attack` : was the last ert used to compute anything related
             to the attention budget when there was a game over (can only be set to ``True`` if the observation
             corresponds to a game over) [``bool``]
-        47. :attr:`BaseObservation.confidence` : was the last ert used to compute anything related
+        47. :attr:`BaseObservation.confidence` : was the last alert used to compute anything related
             to the attention budget when there was a game over (can only be set to ``True`` if the observation
             corresponds to a game over) [``bool``]
 

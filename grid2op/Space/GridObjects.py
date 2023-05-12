@@ -4127,8 +4127,10 @@ class GridObjects:
         tmp_ = f"[{tmp_tmp_}]"
         alarms_area_lines_str = "[]" if cls.dim_alarms == 0 else tmp_
 
-        alertable_line_names_str = '' if cls.dim_alarms == 0 else tmp_
-        res = f"""# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+        tmp_tmp_ = ",".join([f"[{format_el(el)}]" for el in cls.alertable_line_names])
+        tmp_ = f"[{tmp_tmp_}]"
+        alertable_line_names_str = '[]' if cls.dim_alerts == 0 else tmp_
+        res = f"""# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -4260,7 +4262,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
 
     # alert feature
     dim_alert = {cls.dim_alerts}
-    alertable_line_names = {cls.alertable_line_names_str}
+    alertable_line_names = {alertable_line_names_str}
 
 """
         return res
