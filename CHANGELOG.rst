@@ -44,6 +44,8 @@ Change Log
 - [BREAKING] In `PandaPowerBackend` the kwargs argument "ligthsim2grid" was misspelled and is now properly
   renamed `lightsim2grid`
 - [BREAKING] you can no longer use the `env.reactivate_forecast()` in the middle of an episode.
+- [BREAKING] the method `runner.run_one_episode()` (that should not use !) now 
+  returns also the total number of steps of the environment.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
@@ -71,6 +73,10 @@ Change Log
 - [FIXED] a bug n the `GridStateFromFile`, `GridStateFromFileWithForecasts` and 
   `GridStateFromFileWithForecastsWithoutMaintenance` classes that caused the maintenance file to be 
   ignored when "chunk_size" was set.
+- [FIXED] a bug when shunts were alone in `backend.check_kirchoff()`
+- [FIXED] an issue with "max_iter" in the runner when `MultifolderWithCache`
+  (see issue https://github.com/rte-france/Grid2Op/issues/447)
+- [FIXED] a bug in `MultifolderWithCache` when seeding was applied
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
@@ -83,6 +89,10 @@ Change Log
 - [ADDED] a method to retrieve the "elements graph" (see doc) fom an observation `obs.get_elements_graph()`
 - [ADDED] a whole new way to deal with input time series data (see the module `grid2op.Chronics.handlers` 
   for more information)
+- [ADDED] possibility to change the parameters used for the `obs.simulate(...)`
+  directly from the grid2op action, see `obs.change_forecast_parameters()`
+- [ADDED] possibility to retrieve a "forecast environment" with custom forecasts, see 
+  `obs.get_env_from_external_forecasts(...)`
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
@@ -121,6 +131,8 @@ Change Log
 - [IMPROVED] add the possibility to forward kwargs to chronix2grid function when calling `env.generate_data`
 - [IMPROVED] when calling `env.generate_data` an extra file (json) will be read to set default values 
   passed to `chronix2grid.add_data`
+- [IMPROVED] it is no more reasonably possible to misuse the `MultifolderWithCache` (for example by
+  forgetting to `reset()` the cache): an error will be raised in case the proper function has not been called.
 
 [1.8.1] - 2023-01-11
 ---------------------

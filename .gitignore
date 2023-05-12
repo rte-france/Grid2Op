@@ -309,6 +309,8 @@ test_issue196.py
 test_increasingreward.py
 PlayWithRedispCurtail.ipynb
 test_jorge/
+grid2op/data_test/l2rpn_neurips_2020_track1_with_alarm.zip
+# For backward compatibility
 grid2op/data_test/l2rpn_neurips_2020_track1_with_alert.zip
 issue_208_res/
 test_issue_208.py
@@ -320,6 +322,8 @@ res_alert/
 env_debug_time_last_alarm_inconsistency.zip
 env_debug_time_last_alarm_inconsistency/
 OpponentCalibration.ipynb
+grid2op/data_test/l2rpn_neurips_2020_track1_with_alarm/_statistics_do_nothing/
+# For backward compatibility
 grid2op/data_test/l2rpn_neurips_2020_track1_with_alert/_statistics_do_nothing/
 save/
 shorten_env.py
@@ -371,6 +375,10 @@ test_timeout_env.py
 test_pp_networks.py
 test_timeout_env.py
 test_timeout_env.py
+test_pp_networks.py
+test_timeout_env.py
+test_pp_dc.py
+et_trace()
 
 # profiling files
 **.prof

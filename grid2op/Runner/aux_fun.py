@@ -11,6 +11,9 @@ import time
 
 import numpy as np
 
+from grid2op.Environment import Environment
+from grid2op.Agent import BaseAgent
+
 from grid2op.Episode import EpisodeData
 from grid2op.Runner.FakePBar import _FakePbar
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -49,7 +52,7 @@ def _aux_one_process_parrallel(
             agt_seed = None
             if agent_seeds is not None:
                 agt_seed = agent_seeds[i]
-            name_chron, cum_reward, nb_time_step, episode_data = _aux_run_one_episode(
+            tmp_ = _aux_run_one_episode(
                 env,
                 agent,
                 runner.logger,
@@ -60,8 +63,8 @@ def _aux_one_process_parrallel(
                 agent_seed=agt_seed,
                 detailed_output=add_detailed_output,
             )
+            (name_chron, cum_reward, nb_time_step, max_ts, episode_data)  = tmp_
             id_chron = chronics_handler.get_id()
-            max_ts = chronics_handler.max_timestep()
             if add_detailed_output:
                 res[i] = (
                     id_chron,
@@ -79,10 +82,10 @@ def _aux_one_process_parrallel(
 
 
 def _aux_run_one_episode(
-    env,
-    agent,
+    env: Environment,
+    agent: BaseAgent,
     logger,
-    indx,
+    indx : int,
     path_save=None,
     pbar=False,
     env_seed=None,
@@ -116,7 +119,8 @@ def _aux_run_one_episode(
     nb_timestep_max = env.chronics_handler.max_timestep()
     efficient_storing = nb_timestep_max > 0
     nb_timestep_max = max(nb_timestep_max, 0)
-
+    max_ts = nb_timestep_max
+    
     if path_save is None and not detailed_output:
         # i don't store anything on drive, so i don't need to store anything on memory
         nb_timestep_max = 0
@@ -231,7 +235,6 @@ def _aux_run_one_episode(
 
         end_ = time.perf_counter()
     episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
-
     li_text = [
         "Env: {:.2f}s",
         "\t - apply act {:.2f}s",
@@ -258,7 +261,9 @@ def _aux_run_one_episode(
 
     episode.to_disk()
     name_chron = env.chronics_handler.get_name()
-    return name_chron, cum_reward, int(time_step), episode
+    return (name_chron, cum_reward,
+            int(time_step), int(max_ts),
+            episode)
 
 
 def _aux_make_progress_bar(pbar, total, next_pbar):

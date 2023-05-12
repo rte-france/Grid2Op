@@ -3799,7 +3799,7 @@ class GridObjects:
             [on_bus_1]
             Local and global bus id represents the same thing. The difference comes down to convention.
         """
-        global_bus = 1 * local_bus  # make a copy
+        global_bus = (1 * local_bus).astype(dt_int)  # make a copy
         on_bus_1 = global_bus == 1
         on_bus_2 = global_bus == 2
         global_bus[on_bus_1] = to_sub_id[on_bus_1]
@@ -3853,7 +3853,7 @@ class GridObjects:
             
             Local and global bus id represents the same thing. The difference comes down to convention.
         """
-        res = 1 * global_bus
+        res = (1 * global_bus).astype(dt_int)  # make a copy
         res[global_bus < cls.n_sub] = 1
         res[global_bus >= cls.n_sub] = 2
         res[global_bus == -1] = -1
@@ -3878,6 +3878,8 @@ class GridObjects:
             
             Local and global bus id represents the same thing. The difference comes down to convention.
         """
+        if global_bus == -1:
+            return -1
         if global_bus < cls.n_sub:
             return 1
         if global_bus >= cls.n_sub:

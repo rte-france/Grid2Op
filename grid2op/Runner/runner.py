@@ -96,6 +96,9 @@ class Runner(object):
         The type of the environment used for the game. The class should be given, and **not** an instance (object) of
         this class. The default is the :class:`grid2op.Environment`. If modified, it should derived from this class.
 
+    other_env_kwargs: ``dict``
+        Other kwargs used to build the environment (None for "nothing")
+        
     actionClass: ``type``
         The type of action that can be performed by the agent / bot / controler. The class should be given, and
         **not** an instance of this class. This type
@@ -241,6 +244,7 @@ class Runner(object):
         rewardClass=FlatReward,
         legalActClass=AlwaysLegal,
         envClass=Environment,
+        other_env_kwargs=None,
         gridStateclass=GridStateFromFile,
         # type of chronics to use. For example GridStateFromFile if forecasts are not used,
         # or GridStateFromFileWithForecasts otherwise
@@ -348,6 +352,10 @@ class Runner(object):
                 ' class. Please modify "envClass" parameter.'
             )
         self.envClass = envClass
+        if other_env_kwargs is not None:
+            self.other_env_kwargs = other_env_kwargs
+        else:
+            self.other_env_kwargs = {}
 
         if not isinstance(actionClass, type):
             raise Grid2OpException(
@@ -610,7 +618,8 @@ class Runner(object):
             self.chronics_handler.next_chronics()  
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            res = self.envClass(
+            res = self.envClass.init_obj_from_kwargs(
+                other_env_kwargs=self.other_env_kwargs,
                 init_env_path=self.init_env_path,
                 init_grid_path=self.init_grid_path,
                 chronics_handler=chronics_handler,
@@ -735,6 +744,8 @@ class Runner(object):
                 agent_seed=agent_seed,
                 detailed_output=detailed_output,
             )
+            if max_iter is not None:
+                env.chronics_handler.set_max_iter(-1)
         return res
 
     def _run_sequential(
@@ -800,7 +811,8 @@ class Runner(object):
               - "episode_data" : The :class:`EpisodeData` corresponding to this episode run
 
         """
-        res = [(None, None, None, None, None) for _ in range(nb_episode)]
+        res = [(None, None, None, None, None, None) 
+               for _ in range(nb_episode)]
 
         next_pbar = [False]
         with _aux_make_progress_bar(pbar, nb_episode, next_pbar) as pbar_:
@@ -818,6 +830,7 @@ class Runner(object):
                     name_chron,
                     cum_reward,
                     nb_time_step,
+                    max_ts,
                     episode_data,
                 ) = self.run_one_episode(
                     path_save=path_save,
@@ -829,7 +842,6 @@ class Runner(object):
                     detailed_output=add_detailed_output,
                 )
                 id_chron = self.chronics_handler.get_id()
-                max_ts = self.chronics_handler.max_timestep()
                 if add_detailed_output:
                     res[i] = (
                         id_chron,

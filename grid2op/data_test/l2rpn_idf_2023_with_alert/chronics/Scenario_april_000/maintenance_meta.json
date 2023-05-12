@@ -1,0 +1,16 @@
+{
+  "maintenance_starting_hour":  9 ,
+  "maintenance_ending_hour": 17,
+  "line_to_maintenance": ["62_58_180",
+                          "62_63_160", 
+                          "48_50_136", 
+                          "48_53_141", 
+                          "41_48_131", 
+                          "39_41_121", 
+                          "43_44_125", 
+                          "44_45_126",
+                          "34_35_110", 
+                          "54_58_154"],
+  "daily_proba_per_month_maintenance": [0.0, 0.0, 0.0, 0.02, 0.02, 0.03, 0.05, 0.06, 0.03, 0.02, 0.0, 0.0],
+  "max_daily_number_per_month_maintenance": [0, 0, 0, 1, 1, 2, 2, 2, 1, 1, 0, 0]
+}

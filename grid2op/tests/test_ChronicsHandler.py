@@ -1596,6 +1596,7 @@ class TestWithCache(HelperTests):
                 chronics_class=MultifolderWithCache,
             ) as env:
                 env.seed(123456)  # for reproducible tests !
+                env.chronics_handler.reset()
                 nb_steps = 10
                 # I test that the reset ... reset also the date time and the chronics "state"
                 obs = env.reset()
@@ -1828,6 +1829,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
 
 class TestMultiFolder(HelperTests):
     def get_multifolder_class(self):
+        self.res_th = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0]
         return Multifolder
 
     def _reset_chron_handl(self, chronics_handler):
@@ -1959,16 +1961,16 @@ class TestMultiFolder(HelperTests):
         assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
 
     def test_sample_next_chronics(self):
-        res_th = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0]
+        
         for i in range(20):
             assert (
-                self.env.chronics_handler.sample_next_chronics([0.9, 0.1]) == res_th[i]
+                self.env.chronics_handler.sample_next_chronics([0.9, 0.1]) == self.res_th[i]
             ), "error for iteration {}" "".format(i)
         # reseed to test it's working accordingly
         self.env.seed(0)
         for i in range(20):
             assert (
-                self.env.chronics_handler.sample_next_chronics([0.9, 0.1]) == res_th[i]
+                self.env.chronics_handler.sample_next_chronics([0.9, 0.1]) == self.res_th[i]
             ), "error for iteration {}" "".format(i)
 
     def test_sample_next_chronics_withfilter(self):
@@ -2094,6 +2096,7 @@ class TestMultiFolder(HelperTests):
 
 class TestMultiFolderWithCache(TestMultiFolder):
     def get_multifolder_class(self):
+        self.res_th = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
         return MultifolderWithCache
 
     def test_the_tests(self):

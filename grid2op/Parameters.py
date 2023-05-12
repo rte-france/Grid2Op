@@ -131,6 +131,10 @@ class Parameters:
         Number of steps for which it's worth it to give an alarm (if an alarm is send outside of the window
         `[ALARM_BEST_TIME - ALARM_WINDOW_SIZE, ALARM_BEST_TIME + ALARM_WINDOW_SIZE]` then it does not grant anything
 
+    ALERT_TIME_WINDOW : ``int``
+        Number of steps for which it's worth it to give an alert after an attack. If the alert is sent before, the assistant
+        score doesn't take into account that an alert is raised. 
+
     MAX_SIMULATE_PER_STEP: ``int``
         Maximum number of calls to `obs.simuate(...)` allowed per step (reset each "env.step(...)"). Defaults to -1 meaning "as much as you want".
 
@@ -200,6 +204,9 @@ class Parameters:
         # alarms
         self.ALARM_BEST_TIME = 12
         self.ALARM_WINDOW_SIZE = 12
+
+        # alert 
+        self.ALERT_TIME_WINDOW = 12
 
         # number of simulate
         self.MAX_SIMULATE_PER_STEP = dt_int(-1)
@@ -339,6 +346,10 @@ class Parameters:
         if "ALARM_WINDOW_SIZE" in dict_:
             self.ALARM_WINDOW_SIZE = dt_int(dict_["ALARM_WINDOW_SIZE"])
 
+        # alert parameters 
+        if "ALERT_TIME_WINDOW" in dict_:
+            self.ALERT_TIME_WINDOW = dt_int(dict_["ALERT_TIME_WINDOW"])
+
         if "MAX_SIMULATE_PER_STEP" in dict_:
             self.MAX_SIMULATE_PER_STEP = dt_int(dict_["MAX_SIMULATE_PER_STEP"])
 
@@ -389,6 +400,7 @@ class Parameters:
         res["ACTIVATE_STORAGE_LOSS"] = bool(self.ACTIVATE_STORAGE_LOSS)
         res["ALARM_BEST_TIME"] = int(self.ALARM_BEST_TIME)
         res["ALARM_WINDOW_SIZE"] = int(self.ALARM_WINDOW_SIZE)
+        res["ALERT_TIME_WINDOW"] = int(self.ALERT_TIME_WINDOW)
         res["MAX_SIMULATE_PER_STEP"] = int(self.MAX_SIMULATE_PER_STEP)
         res["MAX_SIMULATE_PER_EPISODE"] = int(self.MAX_SIMULATE_PER_EPISODE)
         return res
@@ -624,11 +636,19 @@ class Parameters:
             raise RuntimeError(
                 f'Impossible to convert ALARM_BEST_TIME to int with error \n:"{exc_}"'
             )
+        try:
+            self.ALERT_TIME_WINDOW = dt_int(self.ALERT_TIME_WINDOW)
+        except Exception as exc_:
+            raise RuntimeError(
+                f'Impossible to convert ALERT_TIME_WINDOW to int with error \n:"{exc_}"'
+            )
 
         if self.ALARM_WINDOW_SIZE <= 0:
             raise RuntimeError("self.ALARM_WINDOW_SIZE should be a positive integer !")
         if self.ALARM_BEST_TIME <= 0:
             raise RuntimeError("self.ALARM_BEST_TIME should be a positive integer !")
+        if self.ALERT_TIME_WINDOW <= 0:
+            raise RuntimeError("self.ALERT_TIME_WINDOW should be a positive integer !")
 
         try:
             self.MAX_SIMULATE_PER_STEP = int(

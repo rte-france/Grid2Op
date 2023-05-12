@@ -16,8 +16,9 @@ from grid2op.Opponent import (
     BaseOpponent,
     RandomLineOpponent,
     WeightedRandomOpponent,
-    GeometricOpponent,
+    GeometricOpponent
 )
+from grid2op.Opponent.geometricOpponentMultiArea import GeometricOpponentMultiArea
 from grid2op.Action import TopologyAction
 from grid2op.MakeEnv import make
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget
@@ -1924,7 +1925,7 @@ class TestGeometricOpponent(unittest.TestCase):
                 obs, reward, done, info = env.step(dn)
                 assert info["opponent_attack_line"] is not None
 
-    
+
 class TestChangeOppSpace(unittest.TestCase):
     """test i can change the opponent_space_type when creating an environment"""    
     def test_change_opp_space_type(self):

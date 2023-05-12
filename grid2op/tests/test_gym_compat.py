@@ -1635,7 +1635,7 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-                os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"),
+                os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"),
                 test=True,
                 action_class=PlayableAction,
                 _add_to_name="TestAllGymActSpaceWithAlarm",
