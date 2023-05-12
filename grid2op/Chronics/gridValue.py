@@ -85,6 +85,8 @@ class GridValue(RandomObject, ABC):
 
     """
 
+    NAN_BUT_IN_INT = -9999999
+    
     def __init__(
         self,
         time_interval=timedelta(minutes=5),
@@ -280,7 +282,7 @@ class GridValue(RandomObject, ABC):
 
         """
 
-        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=dt_int)
+        res = np.full(maintenance.shape, fill_value=GridValue.NAN_BUT_IN_INT, dtype=dt_int)
         maintenance = np.concatenate((maintenance, (0, 0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
@@ -355,7 +357,7 @@ class GridValue(RandomObject, ABC):
 
         """
 
-        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=dt_int)
+        res = np.full(maintenance.shape, fill_value=GridValue.NAN_BUT_IN_INT, dtype=dt_int)
         maintenance = np.concatenate((maintenance, (0, 0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
@@ -433,7 +435,7 @@ class GridValue(RandomObject, ABC):
 
         """
 
-        res = np.full(hazard.shape, fill_value=-99999999999, dtype=dt_int)
+        res = np.full(hazard.shape, fill_value=GridValue.NAN_BUT_IN_INT, dtype=dt_int)
         hazard = np.concatenate((hazard, (0, 0)))
         a = np.diff(hazard)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
