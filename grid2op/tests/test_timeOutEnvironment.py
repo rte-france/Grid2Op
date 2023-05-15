@@ -13,13 +13,13 @@ import unittest
 import grid2op
 from grid2op.Environment import TimedOutEnvironment
 from grid2op.Agent import BaseAgent
-
+from grid2op.Runner import Runner
 # Nota : time.sleep vs time.perf_counter() seems precise up to approx. 30 ms.
 
 class AgentOK(BaseAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 0.7 * env.time_out_ms
+        self.time_out_ms = 0.9 * env.time_out_ms
         
     def act(self, obs, reward, done):
         time.sleep(1e-3 * self.time_out_ms)
@@ -29,7 +29,7 @@ class AgentOK(BaseAgent):
 class AgentKO(BaseAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 1.3 * env.time_out_ms
+        self.time_out_ms = 1.1 * env.time_out_ms
         
     def act(self, obs, reward, done):
         time.sleep(1e-3 * self.time_out_ms)
@@ -39,7 +39,7 @@ class AgentKO(BaseAgent):
 class AgentKO1(BaseAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 1.7 * env.time_out_ms
+        self.time_out_ms = 1.9 * env.time_out_ms
         
     def act(self, obs, reward, done):
         time.sleep(1e-3 * self.time_out_ms)
@@ -49,7 +49,7 @@ class AgentKO1(BaseAgent):
 class AgentKO2(BaseAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 2.3 * env.time_out_ms
+        self.time_out_ms = 2.1 * env.time_out_ms
         
     def act(self, obs, reward, done):
         time.sleep(1e-3 * self.time_out_ms)
@@ -58,7 +58,7 @@ class AgentKO2(BaseAgent):
             
 class TestTimedOutEnvironment100(unittest.TestCase):
     def get_timeout_ms(self):
-        return 100
+        return 250
         
     def setUp(self) -> None:
         with warnings.catch_warnings():
@@ -130,7 +130,7 @@ class TestTimedOutEnvironment100(unittest.TestCase):
 
 class TestTimedOutEnvironment50(TestTimedOutEnvironment100):
     def get_timeout_ms(self):
-        return 50
+        return 300
 
 
 class TestTimedOutEnvironmentCpy(TestTimedOutEnvironment100):
@@ -140,6 +140,71 @@ class TestTimedOutEnvironmentCpy(TestTimedOutEnvironment100):
         self.env1 = self.env0.copy()
         
 
+class TestTOEnvRunner(unittest.TestCase):
+    def get_timeout_ms(self):
+        return 200
+    
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # TODO : Comment on fait avec un time out ?
+            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True),
+                                            time_out_ms=self.get_timeout_ms())
+        params = self.env1.parameters
+        params.NO_OVERFLOW_DISCONNECTION = True
+        self.env1.change_parameters(params)
+        self.cum_reward = 645.70208
+        self.max_iter = 10
+    
+    def test_runner_can_make(self):
+        runner = Runner(**self.env1.get_params_for_runner())
+        env2 = runner.init_env()
+        assert isinstance(env2, TimedOutEnvironment)
+        assert env2.time_out_ms == self.get_timeout_ms()
+    
+    def test_runner_noskip(self):
+        agent = AgentOK(self.env1)
+        runner = Runner(**self.env1.get_params_for_runner(),
+                        agentClass=None,
+                        agentInstance=agent)
+        res = runner.run(nb_episode=1,
+                         max_iter=self.max_iter)
+        _, _, cum_reward, timestep, max_ts = res[0]
+        assert abs(cum_reward - self.cum_reward) <= 1e-5
+    
+    def test_runner_skip1(self):
+        agent = AgentKO(self.env1)
+        runner = Runner(**self.env1.get_params_for_runner(),
+                        agentClass=None,
+                        agentInstance=agent)
+        res = runner.run(nb_episode=1,
+                         max_iter=self.max_iter)
+        _, _, cum_reward, timestep, max_ts = res[0]
+        assert abs(cum_reward - self.cum_reward) <= 1e-5
+    
+    def test_runner_skip2(self):
+        agent = AgentKO2(self.env1)
+        runner = Runner(**self.env1.get_params_for_runner(),
+                        agentClass=None,
+                        agentInstance=agent)
+        res = runner.run(nb_episode=1,
+                         max_iter=self.max_iter)
+        _, _, cum_reward, timestep, max_ts = res[0]
+        assert abs(cum_reward - self.cum_reward) <= 1e-5
+    
+    def test_runner_skip2_2ep(self):
+        agent = AgentKO2(self.env1)
+        runner = Runner(**self.env1.get_params_for_runner(),
+                        agentClass=None,
+                        agentInstance=agent)
+        res = runner.run(nb_episode=2,
+                         max_iter=self.max_iter)
+        _, _, cum_reward, timestep, max_ts = res[0]
+        assert abs(cum_reward - self.cum_reward) <= 1e-5
+        _, _, cum_reward, timestep, max_ts = res[1]
+        assert abs(cum_reward - 648.90795) <= 1e-5
+    
+        
 # TODO test runner
 # TODO test when used in gym (GymEnv)
 # TODO test that the "obs.simulate" and obs.get_forecast_env does not "do nothing"

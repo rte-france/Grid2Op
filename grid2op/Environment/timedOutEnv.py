@@ -8,7 +8,7 @@
 
 import time
 from math import floor
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 from grid2op.Environment.Environment import Environment
 from grid2op.Action import BaseAction
 from grid2op.Observation import BaseObservation
@@ -16,11 +16,15 @@ from grid2op.Exceptions import EnvError
 
 
 class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc de base
-    """    This class is the grid2op implementation of a "timed out environment" entity in the RL framework.
-    A TimedOutEnvironment instance has an attribute time_out_ms. This attribute represents the duration before a do_nothing action
-    is performed, if no action is received. if the action is received after a x * time_out_ms duration, with n < x < n + 1 
-    (n is an integer), n do_nothing actions are performed before the received action.
+    """This class is the grid2op implementation of a "timed out environment" entity in the RL framework.
 
+    This class is very similar to the
+    standard environment. They only differ in the behaivour 
+    of the `step` function. 
+    
+    For more information, see the documentation of 
+    :func:`TimedOutEnvironment.step` for 
+    
     Attributes
     ----------
 
@@ -48,7 +52,8 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
     _viewer: ``object``
         Used to display the powergrid. Currently properly supported.
 
-    """    
+    """  
+    CAN_SKIP_TS = True  # some steps can be more than one time steps
     def __init__(self,
                  grid2op_env: Union[Environment, dict],
                  time_out_ms: int=1e3) -> None:
@@ -69,6 +74,8 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                            f"either an Environment or a dict "
                            f"for grid2op_env. You provided: {type(grid2op_env)}")
         self._is_init_dn = True
+        self._res_skipped = []
+        self._opp_attacks = []
 
     def step(self, action: BaseAction) -> Tuple[BaseObservation, float, bool, dict]:      
         """This function allows to pass to the 
@@ -113,6 +120,8 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
             _description_
         """
         self.__last_act_received = time.perf_counter()
+        self._res_skipped = []
+        self._opp_attacks = []
         
         # do the "do nothing" actions
         self._nb_dn_last = 0
@@ -123,21 +132,33 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
         do_nothing_action = self.action_space()
         for _ in range(nb_dn):
             obs, reward, done, info = super().step(do_nothing_action)
+            self._nb_dn_last += 1
+            self._opp_attacks.append(self._oppSpace.last_attack)
             if done:
                 info["nb_do_nothing"] = nb_dn
                 info["nb_do_nothing_made"] = self._nb_dn_last
                 info["action_performed"] = False
                 return obs, reward, done, info
-            self._nb_dn_last += 1
+            self._res_skipped.append((obs, reward, done, info))
         
         # now do the action
         obs, reward, done, info = super().step(action)
+        self._opp_attacks.append(self._oppSpace.last_attack)
         info["nb_do_nothing"] = nb_dn
         info["nb_do_nothing_made"] = self._nb_dn_last
         info["action_performed"] = True
         self.__last_act_send = time.perf_counter()
         return obs, reward, done, info
 
+    def steps(self, action) -> Tuple[List[Tuple[BaseObservation, float, bool, dict]],
+                                     List[BaseAction]]:
+        tmp = self.step(action)            
+        res = []
+        for el in self._res_skipped:
+            res.append(el)
+        res.append(tmp)
+        return res, self._opp_attacks
+    
     def get_kwargs(self, with_backend=True, with_chronics_handler=True):
         res = {}
         res["time_out_ms"] = self.time_out_ms
