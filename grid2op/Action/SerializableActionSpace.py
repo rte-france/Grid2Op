@@ -43,7 +43,7 @@ class SerializableActionSpace(SerializableSpace):
     REDISPATCHING_ID = 4
     STORAGE_POWER_ID = 5
     RAISE_ALARM_ID = 6
-    RAISE_ALERT_ID = 6
+    RAISE_ALERT_ID = 7
 
     ERR_MSG_WRONG_TYPE = ('The action to update using `ActionSpace` is of type "{}" '
                          '"which is not the type of action handled by this action space "'
@@ -903,15 +903,6 @@ class SerializableActionSpace(SerializableSpace):
             status = np.full(action_space.dim_alarms, fill_value=False, dtype=dt_bool)
             status[i] = True
             res.append(action_space({"raise_alarm": status}))
-        return res
-    
-    @staticmethod
-    def get_all_unitary_alert(action_space):
-        res = []
-        for i in range(action_space.dim_alerts):
-            status = np.full(action_space.dim_alerts, fill_value=False, dtype=dt_bool)
-            status[i] = True
-            res.append(action_space({"raise_alert": status}))
         return res
 
     @staticmethod

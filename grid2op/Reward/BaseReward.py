@@ -251,3 +251,6 @@ class BaseReward(ABC):
     def close(self):
         """overide this for certain reward that might need specific behaviour"""
         pass
+
+    def is_in_blackout(self, has_error, is_done):
+        return

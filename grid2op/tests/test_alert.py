@@ -13,7 +13,7 @@ import os
 import tempfile
 from grid2op.tests.helper_path_test import *
 
-from grid2op.operator_attention import LinearAttentionBudget
+from grid2op.operator_attention import LinearAttentionBudgetByLine
 from grid2op import make
 from grid2op.Reward import RedispReward, _AlarmScore
 from grid2op.Exceptions import Grid2OpException
@@ -37,6 +37,7 @@ class TestAlert(unittest.TestCase):
     def test_init_default_param(self) -> None : 
         
         assert isinstance(self.env.parameters.ALERT_TIME_WINDOW, np.int32)
+        assert isinstance(self.env._attention_budget, LinearAttentionBudgetByLine)
         assert self.env.parameters.ALERT_TIME_WINDOW > 0
 
         param = self.env.parameters

@@ -6,6 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-__all__ = ["LinearAttentionBudget"]
+__all__ = ["LinearAttentionBudget", 'LinearAttentionBudgetByLine']
 
-from grid2op.operator_attention.attention_budget import LinearAttentionBudget
+from grid2op.operator_attention.attention_budget import LinearAttentionBudget, LinearAttentionBudgetByLine
