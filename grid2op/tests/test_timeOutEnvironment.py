@@ -70,6 +70,10 @@ class TestTimedOutEnvironment100(unittest.TestCase):
         params.NO_OVERFLOW_DISCONNECTION = True
         self.env1.change_parameters(params)
 
+    def tearDown(self) -> None:
+        self.env1.close()
+        return super().tearDown()
+    
     def test_no_dn(self):
         agentok = AgentOK(self.env1)
         obs = self.env1.reset()
@@ -139,6 +143,10 @@ class TestTimedOutEnvironmentCpy(TestTimedOutEnvironment100):
         self.env0 = self.env1
         self.env1 = self.env0.copy()
         
+    def tearDown(self) -> None:
+        self.env1.close()
+        self.env0.close()
+        
 
 class TestTOEnvRunner(unittest.TestCase):
     def get_timeout_ms(self):
@@ -155,7 +163,11 @@ class TestTOEnvRunner(unittest.TestCase):
         self.env1.change_parameters(params)
         self.cum_reward = 645.70208
         self.max_iter = 10
-    
+
+    def tearDown(self) -> None:
+        self.env1.close()
+        return super().tearDown()
+        
     def test_runner_can_make(self):
         runner = Runner(**self.env1.get_params_for_runner())
         env2 = runner.init_env()
@@ -204,7 +216,19 @@ class TestTOEnvRunner(unittest.TestCase):
         _, _, cum_reward, timestep, max_ts = res[1]
         assert abs(cum_reward - 648.90795) <= 1e-5
     
-        
+
+class TestTOEnvGym(unittest.TestCase):
+    def get_timeout_ms(self):
+        return 200
+    
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # TODO : Comment on fait avec un time out ?
+            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True),
+                                            time_out_ms=self.get_timeout_ms())
+            
+                    
 # TODO test runner
 # TODO test when used in gym (GymEnv)
 # TODO test that the "obs.simulate" and obs.get_forecast_env does not "do nothing"

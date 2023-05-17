@@ -36,8 +36,6 @@ class Issue418Tester(unittest.TestCase):
             curt = np.array([1,1.,0.18852758,0.5537014,0.43770432,1])
             year = 571
             day = 9
-            year = 1887
-            day = 9
         
         # test that the seeding worked also in action space and observation space
         sampled_act = gymenv.action_space.sample()
