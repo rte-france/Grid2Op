@@ -14,46 +14,50 @@ import grid2op
 from grid2op.Environment import TimedOutEnvironment
 from grid2op.Agent import BaseAgent
 from grid2op.Runner import Runner
-# Nota : time.sleep vs time.perf_counter() seems precise up to approx. 30 ms.
+from grid2op.gym_compat import (GymEnv,
+                                BoxGymActSpace,
+                                BoxGymObsSpace,
+                                DiscreteActSpace,
+                                MultiDiscreteActSpace)
 
-class AgentOK(BaseAgent):
-    def __init__(self, env):
-        super().__init__(env.action_space)
-        self.time_out_ms = 0.9 * env.time_out_ms
-        
+class WaitAgent(BaseAgent):
+    def __init__(self, action_space):
+        super().__init__(action_space)
+    
+    def get_timeout(self, env):
+        return env.time_out_ms if isinstance(env, TimedOutEnvironment) else env.init_env.time_out_ms
+    
     def act(self, obs, reward, done):
         time.sleep(1e-3 * self.time_out_ms)
         return self.action_space()
     
-    
-class AgentKO(BaseAgent):
+    def act_gym(self, obs, reward, done):
+        time.sleep(1e-3 * (self.time_out_ms  - 190.))
+        return self.action_space.sample()
+        
+
+class AgentOK(WaitAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 1.1 * env.time_out_ms
-        
-    def act(self, obs, reward, done):
-        time.sleep(1e-3 * self.time_out_ms)
-        return self.action_space()
+        self.time_out_ms = 0.9 * self.get_timeout(env)
+
     
-    
-class AgentKO1(BaseAgent):
+class AgentKO(WaitAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 1.9 * env.time_out_ms
-        
-    def act(self, obs, reward, done):
-        time.sleep(1e-3 * self.time_out_ms)
-        return self.action_space()
+        self.time_out_ms = 1.1 * self.get_timeout(env)
+    
+    
+class AgentKO1(WaitAgent):
+    def __init__(self, env):
+        super().__init__(env.action_space)
+        self.time_out_ms = 1.9 * self.get_timeout(env)
             
             
-class AgentKO2(BaseAgent):
+class AgentKO2(WaitAgent):
     def __init__(self, env):
         super().__init__(env.action_space)
-        self.time_out_ms = 2.1 * env.time_out_ms
-        
-    def act(self, obs, reward, done):
-        time.sleep(1e-3 * self.time_out_ms)
-        return self.action_space()
+        self.time_out_ms = 2.1 * self.get_timeout(env)
             
             
 class TestTimedOutEnvironment100(unittest.TestCase):
@@ -63,7 +67,6 @@ class TestTimedOutEnvironment100(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            # TODO : Comment on fait avec un time out ?
             self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True),
                                             time_out_ms=self.get_timeout_ms())
         params = self.env1.parameters
@@ -155,7 +158,6 @@ class TestTOEnvRunner(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            # TODO : Comment on fait avec un time out ?
             self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True),
                                             time_out_ms=self.get_timeout_ms())
         params = self.env1.parameters
@@ -219,20 +221,74 @@ class TestTOEnvRunner(unittest.TestCase):
 
 class TestTOEnvGym(unittest.TestCase):
     def get_timeout_ms(self):
-        return 200
+        return 250.
     
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            # TODO : Comment on fait avec un time out ?
             self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True),
                                             time_out_ms=self.get_timeout_ms())
+
+    def tearDown(self) -> None:
+        self.env1.close()
+        return super().tearDown()
+    
+    def test_gym_with_step(self):
+        """test the step function also makes the 'do nothing'"""
+        env_gym = GymEnv(self.env1)
+        env_gym.reset()
+        
+        agentok = AgentOK(env_gym)
+        for i in range(10):
+            act = agentok.act_gym(None, None, None)
+            for k in act:
+                act[k][:] = 0
+            *_, info = env_gym.step(act)
+            assert info["nb_do_nothing"] == 0
+            assert info["nb_do_nothing_made"] == 0
+            assert env_gym.init_env._nb_dn_last == 0
             
-                    
-# TODO test runner
-# TODO test when used in gym (GymEnv)
-# TODO test that the "obs.simulate" and obs.get_forecast_env does not "do nothing"
-# TODO think about other tests
+        env_gym.reset()
+        agentko = AgentKO1(env_gym)
+        for i in range(10):
+            act = agentko.act_gym(None, None, None)
+            for k in act:
+                act[k][:] = 0
+            *_, info = env_gym.step(act)
+            assert info["nb_do_nothing"] == 1
+            assert info["nb_do_nothing_made"] == 1
+            assert env_gym.init_env._nb_dn_last == 1
+            
+    def test_gym_normal(self):
+        """test I can create the gym env"""
+        env_gym = GymEnv(self.env1)
+        env_gym.reset()
+    
+    def test_gym_box(self):
+        """test I can create the gym env with box ob space and act space"""
+        env_gym = GymEnv(self.env1)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_gym.action_space = BoxGymActSpace(self.env1.action_space)
+            env_gym.observation_space = BoxGymObsSpace(self.env1.observation_space)
+        env_gym.reset()
+    
+    def test_gym_discrete(self):
+        """test I can create the gym env with discrete act space"""
+        env_gym = GymEnv(self.env1)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_gym.action_space = DiscreteActSpace(self.env1.action_space)
+        env_gym.reset()
+    
+    def test_gym_multidiscrete(self):
+        """test I can create the gym env with multi discrete act space"""
+        env_gym = GymEnv(self.env1)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_gym.action_space = MultiDiscreteActSpace(self.env1.action_space)
+        env_gym.reset()
+
 
 if __name__ == "__main__":
     unittest.main()

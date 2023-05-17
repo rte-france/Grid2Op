@@ -138,6 +138,8 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                 info["nb_do_nothing"] = nb_dn
                 info["nb_do_nothing_made"] = self._nb_dn_last
                 info["action_performed"] = False
+                info["last_act_received"] = self.__last_act_received
+                info["last_act_send"] = self.__last_act_send
                 return obs, reward, done, info
             self._res_skipped.append((obs, reward, done, info))
         
@@ -147,6 +149,8 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
         info["nb_do_nothing"] = nb_dn
         info["nb_do_nothing_made"] = self._nb_dn_last
         info["action_performed"] = True
+        info["last_act_received"] = self.__last_act_received
+        info["last_act_send"] = self.__last_act_send
         self.__last_act_send = time.perf_counter()
         return obs, reward, done, info
 
