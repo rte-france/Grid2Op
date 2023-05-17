@@ -8,7 +8,11 @@
 import numpy as np
 
 from packaging import version
-from importlib.metadata import distribution
+try:
+    from importlib.metadata import distribution
+except ModuleNotFoundError:
+    # not available in python 3.7
+    from importlib_metadata import distribution
 NUMPY_VERSION = version.parse(distribution('numpy').version)
 _MAX_NUMPY_VERSION_NPINT = version.parse("1.20.0") 
 
