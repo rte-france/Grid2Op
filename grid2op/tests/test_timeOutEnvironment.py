@@ -32,7 +32,7 @@ class WaitAgent(BaseAgent):
         return self.action_space()
     
     def act_gym(self, obs, reward, done):
-        time.sleep(1e-3 * (self.time_out_ms  - 190.))
+        time.sleep(1e-3 * (self.time_out_ms  - 220.))
         return self.action_space.sample()
         
 
