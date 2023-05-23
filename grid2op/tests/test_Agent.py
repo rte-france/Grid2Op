@@ -175,9 +175,9 @@ class TestSeeding(HelperTests):
                 my_agent = RandomAgent(env.action_space)
                 my_agent.seed(0)
                 nb_test = 100
-                res = np.zeros(nb_test, dtype=np.int)
-                res2 = np.zeros(nb_test, dtype=np.int)
-                res3 = np.zeros(nb_test, dtype=np.int)
+                res = np.zeros(nb_test, dtype=int)
+                res2 = np.zeros(nb_test, dtype=int)
+                res3 = np.zeros(nb_test, dtype=int)
                 for i in range(nb_test):
                     res[i] = my_agent.my_act(obs, 0.0, False)
                 my_agent.seed(0)

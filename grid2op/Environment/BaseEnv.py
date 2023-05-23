@@ -226,6 +226,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     """
 
     ALARM_FILE_NAME = "alerts_info.json"
+    CAN_SKIP_TS = False  # each step is exactly one time step
 
     def __init__(
         self,
