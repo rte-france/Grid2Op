@@ -33,6 +33,7 @@ Change Log
 
 [1.8.2] - 2023-xx-yy
 --------------------
+- [BREAKING] (because prone to bug): force the environment name in the `grid2op.make` function.
 - [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
   "human" has been removed because it needs some fixes. This should not impact lots of code.
 - [BREAKING] the "maintenance_forecast" file is deprecated and is no longer used (this should not
@@ -135,6 +136,7 @@ Change Log
   passed to `chronix2grid.add_data`
 - [IMPROVED] it is no more reasonably possible to misuse the `MultifolderWithCache` (for example by
   forgetting to `reset()` the cache): an error will be raised in case the proper function has not been called.
+- [IMPROVED] possibility to pass game rules by instance of object and not by class.
 
 [1.8.1] - 2023-01-11
 ---------------------
