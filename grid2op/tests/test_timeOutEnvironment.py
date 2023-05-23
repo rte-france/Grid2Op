@@ -221,7 +221,7 @@ class TestTOEnvRunner(unittest.TestCase):
 
 class TestTOEnvGym(unittest.TestCase):
     def get_timeout_ms(self):
-        return 250.
+        return 400.
     
     def setUp(self) -> None:
         with warnings.catch_warnings():
