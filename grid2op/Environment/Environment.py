@@ -274,19 +274,8 @@ class Environment(BaseEnv):
         *_, tmp = self.backend.generators_info()
 
         # rules of the game
-        if not isinstance(legalActClass, type):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the Environment should be a type '
-                "(a class) and not an object (an instance of a class). "
-                'It is currently "{}"'.format(type(legalActClass))
-            )
-        if not issubclass(legalActClass, BaseRules):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the Environment should derived form the '
-                'grid2op.BaseRules class, type provided is "{}"'.format(
-                    type(legalActClass)
-                )
-            )
+        self._check_rules_correct(legalActClass)
+                
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._legalActClass = legalActClass
 

@@ -179,13 +179,7 @@ class _ObsEnv(BaseEnv):
         self.backend = backend
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         
-        if not issubclass(legalActClass, BaseRules):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the Environment should derived form the '
-                'grid2op.BaseRules class, type provided is "{}"'.format(
-                    type(legalActClass)
-                )
-            )
+        self._check_rules_correct(legalActClass)
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._legalActClass = legalActClass
         # self._action_space = self._do_nothing
