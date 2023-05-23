@@ -283,7 +283,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make('rte_case14_realistic', test=True, backend=backend)
         env.reset()
         # action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
@@ -296,7 +296,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make('rte_case14_realistic', test=True, backend=backend)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -308,7 +308,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make('rte_case14_realistic', test=True, backend=backend)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)

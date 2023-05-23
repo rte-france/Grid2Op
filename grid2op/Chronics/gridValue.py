@@ -83,8 +83,11 @@ class GridValue(RandomObject, ABC):
         given in :func:`GridValue.get_hazard_duration_1d`.
 
 
+    
     """
 
+    NAN_BUT_IN_INT = -9999999
+    
     def __init__(
         self,
         time_interval=timedelta(minutes=5),
@@ -97,7 +100,7 @@ class GridValue(RandomObject, ABC):
         self.time_interval = time_interval
         self.current_datetime = start_datetime
         self.start_datetime = start_datetime
-        self.max_iter = max_iter
+        self._max_iter = max_iter
         self.curr_iter = 0
 
         self.maintenance_time = None
@@ -111,6 +114,14 @@ class GridValue(RandomObject, ABC):
         """
         pass
 
+    @property
+    def max_iter(self):
+        return self._max_iter
+    
+    @max_iter.setter
+    def max_iter(self, value : int):
+        self._max_iter = int(value)
+    
     @abstractmethod
     def initialize(
         self,
@@ -272,7 +283,7 @@ class GridValue(RandomObject, ABC):
 
         """
 
-        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=dt_int)
+        res = np.full(maintenance.shape, fill_value=GridValue.NAN_BUT_IN_INT, dtype=dt_int)
         maintenance = np.concatenate((maintenance, (0, 0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
@@ -346,8 +357,7 @@ class GridValue(RandomObject, ABC):
             assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,2,2,2,2,2,1,0,0,0]))
 
         """
-
-        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=dt_int)
+        res = np.full(maintenance.shape, fill_value=GridValue.NAN_BUT_IN_INT, dtype=dt_int)
         maintenance = np.concatenate((maintenance, (0, 0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
@@ -425,7 +435,7 @@ class GridValue(RandomObject, ABC):
 
         """
 
-        res = np.full(hazard.shape, fill_value=np.NaN, dtype=dt_int)
+        res = np.full(hazard.shape, fill_value=GridValue.NAN_BUT_IN_INT, dtype=dt_int)
         hazard = np.concatenate((hazard, (0, 0)))
         a = np.diff(hazard)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array

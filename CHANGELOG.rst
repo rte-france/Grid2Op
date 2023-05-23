@@ -33,6 +33,7 @@ Change Log
 
 [1.8.2] - 2023-xx-yy
 --------------------
+- [BREAKING] (because prone to bug): force the environment name in the `grid2op.make` function.
 - [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
   "human" has been removed because it needs some fixes. This should not impact lots of code.
 - [BREAKING] the "maintenance_forecast" file is deprecated and is no longer used (this should not
@@ -44,6 +45,8 @@ Change Log
 - [BREAKING] In `PandaPowerBackend` the kwargs argument "ligthsim2grid" was misspelled and is now properly
   renamed `lightsim2grid`
 - [BREAKING] you can no longer use the `env.reactivate_forecast()` in the middle of an episode.
+- [BREAKING] the method `runner.run_one_episode()` (that should not use !) now 
+  returns also the total number of steps of the environment.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
@@ -72,6 +75,9 @@ Change Log
   `GridStateFromFileWithForecastsWithoutMaintenance` classes that caused the maintenance file to be 
   ignored when "chunk_size" was set.
 - [FIXED] a bug when shunts were alone in `backend.check_kirchoff()`
+- [FIXED] an issue with "max_iter" in the runner when `MultifolderWithCache`
+  (see issue https://github.com/rte-france/Grid2Op/issues/447)
+- [FIXED] a bug in `MultifolderWithCache` when seeding was applied
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
@@ -88,6 +94,8 @@ Change Log
   directly from the grid2op action, see `obs.change_forecast_parameters()`
 - [ADDED] possibility to retrieve a "forecast environment" with custom forecasts, see 
   `obs.get_env_from_external_forecasts(...)`
+- [ADDED] adding the `TimedOutEnvironment` that takes "do nothing" actions when the agent
+  takes too much time to compute. This involves quite some changes in the runner too.
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
@@ -128,6 +136,7 @@ Change Log
   passed to `chronix2grid.add_data`
 - [IMPROVED] it is no more reasonably possible to misuse the `MultifolderWithCache` (for example by
   forgetting to `reset()` the cache): an error will be raised in case the proper function has not been called.
+- [IMPROVED] possibility to pass game rules by instance of object and not by class.
 
 [1.8.1] - 2023-01-11
 ---------------------

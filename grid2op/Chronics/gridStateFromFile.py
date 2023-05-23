@@ -321,8 +321,8 @@ class GridStateFromFile(GridValue):
         file_ext = self._get_fileext(data_name)
         
         if nrows is None:
-            if self.max_iter > 0:
-                nrows = self.max_iter + 1
+            if self._max_iter > 0:
+                nrows = self._max_iter + 1
             
         if file_ext is not None:
             if chunksize == -1:
@@ -558,8 +558,8 @@ class GridStateFromFile(GridValue):
         prod_v_iter = self._get_data("prod_v")
         read_compressed = self._get_fileext("hazards")
         nrows = None
-        if self.max_iter > 0:
-            nrows = self.max_iter + 1
+        if self._max_iter > 0:
+            nrows = self._max_iter + 1
 
         if read_compressed is not None:
             hazards = pd.read_csv(
@@ -664,18 +664,18 @@ class GridStateFromFile(GridValue):
                 )
         self.n_ = n_  # the -1 is present because the initial grid state doesn't count as a "time step"
 
-        if self.max_iter > 0:
+        if self._max_iter > 0:
             if self.n_ is not None:
-                if self.max_iter >= self.n_:
-                    self.max_iter = self.n_ - 1
+                if self._max_iter >= self.n_:
+                    self._max_iter = self.n_ - 1
                     # TODO: issue warning in this case
-            self.n_ = self.max_iter + 1
+            self.n_ = self._max_iter + 1
         else:
             # if the number of maximum time step is not set yet, we set it to be the number of
             # data in the chronics (number of rows of the files) -1.
             # the -1 is present because the initial grid state doesn't count as a "time step" but is read
             # from these data.
-            self.max_iter = self.n_ - 1
+            self._max_iter = self.n_ - 1
 
         self._init_attrs(
             load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=maintenance,
@@ -785,11 +785,27 @@ class GridStateFromFile(GridValue):
         # if self.current_index+1 >= self.tmp_max_index:
         if self.current_index > self.n_:
             res = True
-        elif self.max_iter > 0:
-            if self.curr_iter > self.max_iter:
+        elif self._max_iter > 0:
+            if self.curr_iter > self._max_iter:
                 res = True
         return res
 
+    @property
+    def max_iter(self):
+        return self._max_iter
+    
+    @max_iter.setter
+    def max_iter(self, value : int):
+        if value == -1:
+            self._max_iter = self.n_ - 1
+        else:
+            self._max_iter = int(value)
+        
+    def max_timestep(self):
+        if self._max_iter == -1:
+            return self.n_ - 1
+        return self._max_iter 
+    
     def _data_in_memory(self):
         if self.chunk_size is None:
             # if i don't use chunk, all the data are in memory alreay
@@ -824,8 +840,8 @@ class GridStateFromFile(GridValue):
         if self.current_index >= self.tmp_max_index:
             raise StopIteration
 
-        if self.max_iter > 0:
-            if self.curr_iter > self.max_iter:
+        if self._max_iter > 0:
+            if self.curr_iter > self._max_iter:
                 raise StopIteration
 
         res = {}
@@ -987,10 +1003,10 @@ class GridStateFromFile(GridValue):
                         )
                         raise EnvError(msg_err.format(name_arr, arr.shape[0], self.n_))
 
-        if self.max_iter > 0:
-            if self.max_iter > self.n_:
+        if self._max_iter > 0:
+            if self._max_iter > self.n_:
                 msg_err = "Files count {} rows and you ask this episode to last at {} timestep."
-                raise InsufficientData(msg_err.format(self.n_, self.max_iter))
+                raise InsufficientData(msg_err.format(self.n_, self._max_iter))
 
     def next_chronics(self):
         self.current_datetime = self.start_datetime

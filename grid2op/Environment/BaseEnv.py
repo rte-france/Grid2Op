@@ -36,6 +36,8 @@ from grid2op.Opponent import BaseOpponent
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Action._BackendAction import _BackendAction
 from grid2op.Chronics import ChronicsHandler
+from grid2op.Rules import AlwaysLegal, BaseRules
+
 
 # TODO put in a separate class the redispatching function
 
@@ -226,6 +228,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     """
 
     ALARM_FILE_NAME = "alerts_info.json"
+    CAN_SKIP_TS = False  # each step is exactly one time step
 
     def __init__(
         self,
@@ -3785,3 +3788,26 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._forecasts is None:
             self._forecasts = self.chronics_handler.forecasts()
         return self._forecasts
+
+    def _check_rules_correct(self, legalActClass):
+        if isinstance(legalActClass, type):
+            # raise Grid2OpException(
+            #     'Parameter "legalActClass" used to build the Environment should be a type '
+            #     "(a class) and not an object (an instance of a class). "
+            #     'It is currently "{}"'.format(type(legalActClass))
+            # )
+            if not issubclass(legalActClass, BaseRules):
+                raise Grid2OpException(
+                    'Parameter "legalActClass" used to build the Environment should derived form the '
+                    'grid2op.BaseRules class, type provided is "{}"'.format(
+                        type(legalActClass)
+                    )
+                )
+        else:
+            if not isinstance(legalActClass, BaseRules):
+                raise Grid2OpException(
+                    'Parameter "legalActClass" used to build the Environment should be an instance of the '
+                    'grid2op.BaseRules class, type provided is "{}"'.format(
+                        type(legalActClass)
+                    )
+                )

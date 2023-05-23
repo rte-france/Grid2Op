@@ -144,11 +144,12 @@ class ObservationSpace(SerializableObservationSpace):
         self._observation_bk_kwargs = observation_bk_kwargs
     
     def set_real_env_kwargs(self, env):
+        from grid2op.Environment.Environment import Environment
         if not self.with_forecast:
             return 
         
         # I don't need the backend nor the chronics_handler
-        self._real_env_kwargs = env.get_kwargs(False, False)
+        self._real_env_kwargs = Environment.get_kwargs(env, False, False)
         
         # remove the parameters anyways (the 'forecast parameters will be used
         # when building the forecasted_env)

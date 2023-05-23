@@ -224,7 +224,7 @@ class FromChronix2grid(GridValue):
         )
     
     def max_timestep(self):
-        return self.max_iter
+        return self._max_iter
     
     def forecasts(self):
         """
@@ -263,8 +263,8 @@ class FromChronix2grid(GridValue):
         res = False
         if self.current_index >= self._load_p.shape[0]:
             res = True
-        elif self.max_iter > 0:
-            if self.curr_iter > self.max_iter:
+        elif self._max_iter > 0:
+            if self.curr_iter > self._max_iter:
                 res = True
         return res
     
@@ -281,7 +281,7 @@ class FromChronix2grid(GridValue):
         res_gen = self._generate_one_episode(self.env, self.dict_ref, self.dt, self._init_datetime,
                                              seed=self._seed_used_for_chronix2grid,
                                              with_loss=self._with_loss,
-                                             nb_steps=self.max_iter)
+                                             nb_steps=self._max_iter)
         
         self._load_p = res_gen[0].values
         self._load_p_forecasted = res_gen[1].values
