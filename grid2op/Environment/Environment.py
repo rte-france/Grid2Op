@@ -220,7 +220,9 @@ class Environment(BaseEnv):
             raise EnvError(
                 "Impossible to use the same backend twice. Please create your environment with a "
                 "new backend instance (new object)."
-            )            
+            )    
+            
+        need_process_backend = False        
         if not self.backend.is_loaded:
             # usual case: the backend is not loaded
             # NB it is loaded when the backend comes from an observation for
@@ -255,8 +257,9 @@ class Environment(BaseEnv):
             self.load_alarm_data()
             # to force the initialization of the backend to the proper type
             self.backend.assert_grid_correct()
+            need_process_backend = True
 
-        self._handle_compat_glop_version()
+        self._handle_compat_glop_version(need_process_backend)
 
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
@@ -271,19 +274,8 @@ class Environment(BaseEnv):
         *_, tmp = self.backend.generators_info()
 
         # rules of the game
-        if not isinstance(legalActClass, type):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the Environment should be a type '
-                "(a class) and not an object (an instance of a class). "
-                'It is currently "{}"'.format(type(legalActClass))
-            )
-        if not issubclass(legalActClass, BaseRules):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the Environment should derived form the '
-                'grid2op.BaseRules class, type provided is "{}"'.format(
-                    type(legalActClass)
-                )
-            )
+        self._check_rules_correct(legalActClass)
+                
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._legalActClass = legalActClass
 
@@ -420,7 +412,8 @@ class Environment(BaseEnv):
             )
 
         # test the backend returns object of the proper size
-        self.backend.assert_grid_correct_after_powerflow()
+        if need_process_backend:
+            self.backend.assert_grid_correct_after_powerflow()
 
         # for gym compatibility
         self.reward_range = self._reward_helper.range()
@@ -477,7 +470,7 @@ class Environment(BaseEnv):
     def _helper_action_player(self):
         return self._action_space
 
-    def _handle_compat_glop_version(self):
+    def _handle_compat_glop_version(self, need_process_backend):
         if (
             self._compat_glop_version is not None
             and self._compat_glop_version != grid2op.__version__
@@ -488,7 +481,8 @@ class Environment(BaseEnv):
                 "read back data (for example with EpisodeData) that were stored with previous "
                 "grid2op version."
             )
-            self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")
+            if need_process_backend:
+                self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")
             cls_bk = type(self.backend)
             cls_bk.glop_version = self._compat_glop_version
             if cls_bk.glop_version == cls_bk.BEFORE_COMPAT_VERSION:
@@ -552,15 +546,16 @@ class Environment(BaseEnv):
                 cls_bk.set_no_storage()
                 Environment.deactivate_storage(self.backend)
 
-                # the following line must be called BEFORE "self.backend.assert_grid_correct()" !
-                self.backend.storage_deact_for_backward_comaptibility()
+                if need_process_backend:
+                    # the following line must be called BEFORE "self.backend.assert_grid_correct()" !
+                    self.backend.storage_deact_for_backward_comaptibility()
 
-                # and recomputes everything while making sure everything is consistent
-                self.backend.assert_grid_correct()
-                type(self.backend)._topo_vect_to_sub = np.repeat(
-                    np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
-                )
-                type(self.backend).grid_objects_types = new_grid_objects_types
+                    # and recomputes everything while making sure everything is consistent
+                    self.backend.assert_grid_correct()
+                    type(self.backend)._topo_vect_to_sub = np.repeat(
+                        np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
+                    )
+                    type(self.backend).grid_objects_types = new_grid_objects_types
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """

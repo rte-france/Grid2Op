@@ -3832,7 +3832,7 @@ class BaseObservation(GridObjects):
         
         Basic usage are:
         
-        ..code-block:: python
+        .. code-block:: python
         
             import grid2op
             env_name = ...

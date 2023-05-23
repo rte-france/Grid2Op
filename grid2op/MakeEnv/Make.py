@@ -264,7 +264,7 @@ def _aux_make_multimix(
 
 
 def make(
-    dataset="rte_case14_realistic",
+    dataset=None,
     test=False,
     logger=None,
     experimental_read_from_local_dir=False,
@@ -326,7 +326,12 @@ def make(
             warnings.warn(f"The environment variable \"{_VAR_FORCE_TEST}\" is defined so grid2op will be forced in \"test\" mode. "
                           f"This is equivalent to pass \"grid2op.make(..., test=True)\" and prevents any download of data.")
             test = True
-            
+    
+    if dataset is None:
+        raise Grid2OpException("Impossible to create an environment without its name. Please call something like: \n"
+                               "> env = grid2op.make('l2rpn_case14_sandbox') \nor\n"
+                               "> env = grid2op.make('rte_case14_realistic')")
+
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
         if el not in accepted_kwargs:
