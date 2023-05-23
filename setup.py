@@ -77,6 +77,8 @@ if sys.version_info.minor <= 7:
     # typing "Literal" not available on python 3.7
     pkgs["required"].append("typing_extensions")
     pkgs["required"][3] = "pandapower>=2.2.2,<2.12"
+    # importlib provided importlib.metadata as of python 3.8
+    pkgs["required"].append("importlib_metadata")
 
 setup(description='An gym compatible environment to model sequential decision making  for powersystems',
       long_description=long_description,

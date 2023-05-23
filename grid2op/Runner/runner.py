@@ -10,7 +10,9 @@ import os
 import warnings
 import copy
 from multiprocessing import Pool
+from typing import Tuple, Optional, List
 
+from grid2op.Environment import BaseEnv
 from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import Grid2OpException, EnvError
 from grid2op.Observation import CompleteObservation, BaseObservation
@@ -32,12 +34,14 @@ from grid2op.Runner.aux_fun import (
     _aux_one_process_parrallel,
 )
 from grid2op.Runner.basic_logger import DoNothingLog, ConsoleLog
+from grid2op.Episode import EpisodeData
 
 # on windows if i start using sequential, i need to continue using sequential
 # if i start using parallel i need to continue using parallel
 # so i force the usage of the "starmap" stuff even if there is one process on windows
 from grid2op._glop_platform_info import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
 
+runner_returned_type = Tuple[str, str, float, int, int, Optional[EpisodeData]]
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it!
 # (especially for Neural Net based agents)
@@ -96,6 +100,9 @@ class Runner(object):
         The type of the environment used for the game. The class should be given, and **not** an instance (object) of
         this class. The default is the :class:`grid2op.Environment`. If modified, it should derived from this class.
 
+    other_env_kwargs: ``dict``
+        Other kwargs used to build the environment (None for "nothing")
+        
     actionClass: ``type``
         The type of action that can be performed by the agent / bot / controler. The class should be given, and
         **not** an instance of this class. This type
@@ -241,6 +248,7 @@ class Runner(object):
         rewardClass=FlatReward,
         legalActClass=AlwaysLegal,
         envClass=Environment,
+        other_env_kwargs=None,
         gridStateclass=GridStateFromFile,
         # type of chronics to use. For example GridStateFromFile if forecasts are not used,
         # or GridStateFromFileWithForecasts otherwise
@@ -348,6 +356,10 @@ class Runner(object):
                 ' class. Please modify "envClass" parameter.'
             )
         self.envClass = envClass
+        if other_env_kwargs is not None:
+            self.other_env_kwargs = other_env_kwargs
+        else:
+            self.other_env_kwargs = {}
 
         if not isinstance(actionClass, type):
             raise Grid2OpException(
@@ -602,7 +614,7 @@ class Runner(object):
 
         self.__used = False
 
-    def _new_env(self, chronics_handler, parameters):
+    def _new_env(self, chronics_handler, parameters) -> Tuple[BaseEnv, BaseAgent]:
         # the same chronics_handler is used for all the environments.
         # make sure to "reset" it properly
         # (this is handled elsewhere in case of "multi chronics")
@@ -610,7 +622,8 @@ class Runner(object):
             self.chronics_handler.next_chronics()  
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            res = self.envClass(
+            res = self.envClass.init_obj_from_kwargs(
+                other_env_kwargs=self.other_env_kwargs,
                 init_env_path=self.init_env_path,
                 init_grid_path=self.init_grid_path,
                 chronics_handler=chronics_handler,
@@ -660,7 +673,7 @@ class Runner(object):
                 agent = self.agent
         return res, agent
 
-    def init_env(self):
+    def init_env(self) -> BaseEnv:
         """
         INTERNAL
 
@@ -693,7 +706,7 @@ class Runner(object):
         agent_seed=None,
         episode_id=None,
         detailed_output=False,
-    ):
+    ) -> List[runner_returned_type]:
         """
         INTERNAL
 
@@ -749,7 +762,7 @@ class Runner(object):
         max_iter=None,
         episode_id=None,
         add_detailed_output=False,
-    ):
+    ) -> List[runner_returned_type]:
         """
         INTERNAL
 
@@ -863,7 +876,7 @@ class Runner(object):
         max_iter=None,
         episode_id=None,
         add_detailed_output=False,
-    ):
+    ) -> List[runner_returned_type]:
         """
         INTERNAL
 
@@ -1069,7 +1082,7 @@ class Runner(object):
         agent_seeds=None,
         episode_id=None,
         add_detailed_output=False,
-    ):
+    ) -> List[runner_returned_type]:
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner._run_sequential` if "nb_process" is
         1 or :func:`Runner._run_parrallel` if nb_process >= 2.

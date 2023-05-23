@@ -100,7 +100,6 @@ class CompleteObservation(BaseObservation):
             to the attention budget when there was a game over (can only be set to ``True`` if the observation
             corresponds to a game over), warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ 
             [``bool``]
-
     """
 
     attr_list_vect = [

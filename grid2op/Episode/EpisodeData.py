@@ -13,7 +13,6 @@ import warnings
 import numpy as np
 
 import grid2op
-from grid2op.Space import GridObjects
 from grid2op.Exceptions import (
     Grid2OpException,
     EnvError,
