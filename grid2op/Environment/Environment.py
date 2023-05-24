@@ -409,7 +409,10 @@ class Environment(BaseEnv):
         self._create_opponent()
 
         # create the attention budget
-        self._create_attention_budget()
+        if self.parameters.ASSISTANT_WARNING_TYPE == "BY_LINE" :
+            self._create_attention_budget(dim_alerts=self.dim_alerts)
+        else : 
+            self._create_attention_budget()
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
