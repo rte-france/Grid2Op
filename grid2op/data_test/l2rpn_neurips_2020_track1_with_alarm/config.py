@@ -4,7 +4,7 @@ from grid2op.Rules import DefaultRules
 from grid2op.Chronics import Multifolder
 from grid2op.Chronics import GridStateFromFileWithForecasts
 from grid2op.Backend import PandaPowerBackend
-from grid2op.Opponent import WeightedRandomOpponent, BaseActionBudget
+from grid2op.Opponent import WeightedRandomOpponent, BaseActionBudget, GeometricOpponent
 from grid2op.operator_attention import LinearAttentionBudget
 
 lines_attacked = [
@@ -102,7 +102,7 @@ config = {
     "opponent_budget_per_ts": opponent_budget_per_ts,
     "opponent_init_budget": opponent_init_budget,
     "opponent_action_class": PowerlineSetAction,
-    "opponent_class": WeightedRandomOpponent,
+    "opponent_class": GeometricOpponent,
     "opponent_budget_class": BaseActionBudget,
     "kwargs_opponent": {
         "lines_attacked": lines_attacked,

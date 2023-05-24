@@ -11,7 +11,16 @@ import numpy as np
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float, dt_bool, dt_int
+from grid2op.Opponent import GeometricOpponentMultiArea
 
+from numba import jit 
+@jit(nopython=True)
+def find_first(item, vec):
+    """return the index of the first occurence of item in vec"""
+    for i in range(len(vec)):
+        if (item == vec[i]):
+            return i
+    return -1
 
 class AlertReward(BaseReward):
     """
@@ -66,7 +75,7 @@ class AlertReward(BaseReward):
         self.time_window = None
 
         self._has_attack_in_time_window = False # MaJ à chaque appel du call 
-        self._fist_attack_in_time_window = None # MaJ à chaque appel du call 
+        self._fist_attack_step_in_time_window = None # MaJ à chaque appel du call 
 
         self._has_line_alerts_in_time_window = False
         self._line_alerts_in_time_window = None # pas de temps en ligne et lignes élec en colonnes 
@@ -78,7 +87,7 @@ class AlertReward(BaseReward):
 
         # SImulate : MAJ le current index qu'en fonction du "current_step"
         # Vecteurs de taille time_window =
-        self.unitary_reward_step = None
+        self.reward_unit_step = (self.reward_max_blackout - self.reward_min_blackout) / self.nb_max_simultaneous_attacks 
         self.nb_area = None
 
     def initialize(self, env):
@@ -96,14 +105,17 @@ class AlertReward(BaseReward):
             )
         self.reset(env)
 
+        self.nb_max_simultaneous_attacks = 1 
+        if isinstance(env._opponent_class, GeometricOpponentMultiArea): 
+            raise Grid2OpException("GeometricOpponentMultiArea is not handled by the alert feature")
+            # TODO : self.nb_max_simultaneous_attacks = len(self._opponent.list_opponents) # equal number of areas    def reset(self, env):
 
-    def reset(self, env):
         self.total_time_steps = env.max_episode_duration()
         self.time_window = env.parameters.ALERT_TIME_WINDOW
 
         # Storing attacks in the past time window 
         self._has_attack_in_time_window = np.full(self.time_window, False, dtype=dt_bool)
-        self._fist_attack_in_time_window = np.full(env.dim_alerts, False, dtype=dt_int) # time steps of the first attack
+        self._fist_attack_step_in_time_window = np.full(env.dim_alerts, -1, dtype=dt_int) # time steps of the first attack
         self._attacks_in_time_window = np.full((env.dim_alerts, self.time_window), False, dtype=dt_bool)
         self._has_attack_at_first_time_in_window = np.full(self.time_window, False, dtype=dt_bool)
 
@@ -112,60 +124,116 @@ class AlertReward(BaseReward):
         self._has_line_alerts_in_time_window = np.full(self.time_window+1, -1, dtype=dt_int)
         
         # Current index 
-        self.current_step_first_encountered = dt_int(-1)
-        # self.current_index = dt_int(-1)
-
-        self.unitary_reward_step = dt_float(4.0)
-        self.nb_area
-        
+        self.current_step_first_encountered = dt_int(0)
+                
     def _step_update(self, legal_alert_action, env): 
-        if env.nb_time_step == self.current_step_first_encountered+1:
-            self.current_step_first_encountered = env.current_obs.current_step
-            # self.current_index += 1 
+        """Update all 
 
-        self._line_alerts_in_time_window[self.current_index % (self.time_window+1)] = legal_alert_action
-        self._has_line_alerts_in_time_window = np.any(self._line_alerts_in_time_window, axis=1)
+        Args:
+            legal_alert_action (Grid2opAction): RL action, where illegal actions are filtered by budget
+            env (Grid2opEnv): RL environment
+
+        Raises:
+            Grid2OpException: if the opponent is of type GeometricOpponentMultiArea, has it is not handled by the alert feature
+            Grid2OpException: Attacks on substations are not handled by the agent
+        """
+        # Get number of area 
+        if isinstance(env._opponent_class, GeometricOpponentMultiArea): 
+            self.nb_area = len(self._opponent.list_opponents)
+            raise Grid2OpException("GeometricOpponentMultiArea is not handled by the alert feature")
+
+
+        self._line_alerts_in_time_window[:, :-1] = self._line_alerts_in_time_window[:, 1:]
+        self._line_alerts_in_time_window[:, -1] = legal_alert_action
+
+        self._has_line_alerts_in_time_window = np.any(self._line_alerts_in_time_window, axis=0)
         
-        # TODO voir avec Benjamin: 
-        self._attacks_in_time_window[:-1] = self._attacks_in_time_window[1:]
-        self._attacks_in_time_window[-1] = 
-        self._fist_attack_in_time_window = 
+        
+        if env._oppSpace.last_attack is not None:
+            # the opponent choose to attack
+            # i update the "cooldown" on these things
+            lines_attacked, subs_attacked = legal_alert_action.get_topological_impact()
 
-        self._has_attack_in_time_window = np.where(self._attacks_in_time_window).any()
-        self._has_attack_at_first_time_in_window = np.where(self._attacks_in_time_window[un_autre_index % self.time_window])
+            if sum(subs_attacked) > 0 : 
+                raise Grid2OpException("Attacks on substations are not handled by the agent")
+        else:
+            lines_attacked = np.full(env._attention_budget._dim_alerts, False, dtype=dt_bool)
+
+        # TODO valider avec Benjamin: 
+        self._attacks_in_time_window[:, :-1] = self._attacks_in_time_window[:, 1:]
+        self._attacks_in_time_window[:, -1] = lines_attacked
+
+        # For debug 
+        self._attacks_in_time_window[5, 0] = True
+        self._attacks_in_time_window[4, 0] = True
+
+        self._has_attack_in_time_window = np.bitwise_or.reduce(self._attacks_in_time_window, axis=1)
+
+        self._fist_attack_step_in_time_window = self._get_fist_attack_step_in_time_window()
+
+        self._has_attack_at_first_time_in_window = self._attacks_in_time_window[:,0]
+
+    def _get_fist_attack_step_in_time_window(self): 
+        """Function to get the first time step where an attack occur in the time window. 
+           if no attack occur return -1
+
+        Returns:
+            first_attack_step_in_window: for reach line return the position of the attack in the time horizon
+
+        Note : 
+            return -1 if there is no attack in the time horizon on each line
+        """
+        # Initialize as if no attack happens
+        first_attack_step_in_window = np.apply_along_axis(lambda x : find_first(True, x), 1, self._attacks_in_time_window)
+        return first_attack_step_in_window
+
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         legal_alert_action = env._attention_budget._last_alert_action_filtered_by_budget
-        self._step_update(legal_alert_action, env)
+
+        # TODO Gérer le "simulate"
+        if env.nb_time_step == self.current_step_first_encountered+1:
+            self.current_step_first_encountered = env.current_obs.current_step
+            self._step_update(legal_alert_action, env)
 
         score = self.reward_min
         # If blackout 
+
+        # TODO remove for debug 
+        has_error = True
+        is_done = True
+
         if self.is_in_blackout(has_error, is_done): 
             # Is the blackout caused by an attack ? 
             # Has there been an attack in the last ``ALERT_TIME_WINDOW`` time steps ? 
-            if self._has_attack_in_time_window.any() : 
-                attacked_lines = np.where(self._fist_attack_in_time_window)[0]
-                if self._has_line_alerts_in_time_window[attacked_lines].any():
-                    nb_correct_alert = ().sum()
+            if self._has_attack_in_time_window.any() :
+                attacked_lines_first_step =  self._fist_attack_step_in_time_window[self._fist_attack_step_in_time_window>=0]
+                alert_on_attacked_lines =  self._line_alerts_in_time_window[self._fist_attack_step_in_time_window>=0]
+                
+                attacked_lines_with_alert = np.take(alert_on_attacked_lines, attacked_lines_first_step)
+                nb_correct_alert = attacked_lines_with_alert.sum()
 
-                    score = self.reward_max_blackout + nb_correct_alert * self.unitary_reward_step /self.nb_area ?
-                    # SI on en prédit 2/3 on aurait - 2
-                    # SI on en prédit 1/3 on aurait - 6
-                    # SI on en prédit 1/3 on aurait - 10 
-                    # paramètre sur le step entre X/nb_zone_l'opponent
-                else : 
-                    score = self.reward_min_blackout # ok 
+                score = self.reward_min_blackout + self.reward_unit_step * nb_correct_alert  
+                # SI on en prédit 2/3 on aurait - 2
+                # SI on en prédit 1/3 on aurait - 6
+                # SI on en prédit 0/3 on aurait - 10 
         else: 
-            if self._has_attack_at_first_time_in_window.any() : 
-                attacked_lines = np.where(self._attacks_in_time_window[:,0])[0]
-                if self._has_line_alerts_in_time_window[:,0][attacked_lines].any():
-                    score = self.reward_min_no_blackout # ok
-                else : 
-                    score = self.reward_max_no_blackout # ok
+            
+            # If there is an attack
+            if self._has_attack_at_first_time_in_window.any() :
 
-        # env._oppSpace.last_attack # None lorsque pas d'attack et Action type 
-        # Attention il faut récupérer l'info de 
-        # action.get_topological_impact  return lines_attached, subs_attacked ? 
-        # env.infos['opponent_attack_line'] vérifier si c'est le premier temps 
-        # Update attack info at the end ? 
+                # As there is no blackout, we do not want to raise any alert 
+                
+                # TODO remove to test behaviour
+                #self._line_alerts_in_time_window[:,0] = np.array([False, False, False, False, True, False, False, False, False,False])
+
+                if self._line_alerts_in_time_window[:,0][self._has_attack_at_first_time_in_window].any():
+                    # If there is an alert raised for one of the attacked line, we give the minimal reward
+                    score = self.reward_min_no_blackout 
+
+                else : 
+                    # If we don't raise any alert, we are happy with it, so we give the maximal reward value                    
+                    score = self.reward_max_no_blackout
+ 
+        # TODO Gérer la simulation env.infos['opponent_attack_line'] vérifier si c'est le premier temps 
         return score

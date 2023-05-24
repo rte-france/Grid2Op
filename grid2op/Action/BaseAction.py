@@ -4873,13 +4873,11 @@ class BaseAction(GridObjects):
         """
         Property to raise alert.
 
-        If you set it to ``True`` an alert is raised for the given line, otherwise None are raised.
+        If you set it to ``True`` an alert is raised for the given line, otherwise no alert is raised.
 
         Notes
         -----
-        In order to be able to "cancel" an alert properly, if you set "two consecutive alert" on the same line
-        it will behave as if you had set none:
-
+        
         .. code-block:: python
 
             import grid2op
@@ -4889,11 +4887,6 @@ class BaseAction(GridObjects):
 
             act.raise_alert = [0]
             # this act will raise an alert on the area 0
-
-            act.raise_alert = [0]
-            # this second call will "cancel" the alert for convenience
-
-        This might be counter intuitive
 
         """
         res = copy.deepcopy(self._raise_alert)

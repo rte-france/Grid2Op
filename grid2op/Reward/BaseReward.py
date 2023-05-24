@@ -253,4 +253,8 @@ class BaseReward(ABC):
         pass
 
     def is_in_blackout(self, has_error, is_done):
-        return
+        has_blackout = False 
+        if is_done and has_error : 
+            has_blackout = True
+        return has_blackout
+

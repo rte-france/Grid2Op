@@ -990,7 +990,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_parameters.check_valid()  # check the provided parameters are valid
         self.__new_forecast_param = new_parameters
 
-    def _create_attention_budget(self):
+    def _create_attention_budget(self, **kwargs):
         if not self.__is_init:
             raise EnvError(
                 "Impossible to create an attention budget with a non initialized environment!"
@@ -998,6 +998,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._has_attention_budget:
             self._attention_budget = self._attention_budget_cls()
             try:
+                self._kwargs_attention_budget.update(kwargs)
                 self._attention_budget.init(
                     partial_env=self, **self._kwargs_attention_budget
                 )

@@ -195,6 +195,7 @@ class LinearAttentionBudgetByLine:
         self._time_last_successful_alert_raised = dt_int(-1)
         self._is_last_alert_successful = None
         self._time_window = None
+        self._alert_size = None
         self._last_alert_action_filtered_by_budget = None
 
     @property
@@ -242,6 +243,9 @@ class LinearAttentionBudgetByLine:
         self._alert_cost = dt_float(alert_cost)
         self._init_budget = dt_float(init_budget)
         self._time_window = partial_env.parameters.ALERT_TIME_WINDOW
+        self._dim_alerts = 0
+        if "dim_alerts" in kwargs.keys():
+            self._dim_alerts = kwargs["dim_alerts"]
         self.reset()
 
     def reset(self):
@@ -256,7 +260,7 @@ class LinearAttentionBudgetByLine:
         self._time_last_alert_raised = dt_int(-1)
         self._time_last_successful_alert_raised = dt_int(-1)
         self._is_last_alert_successful = False
-        self._last_alert_action_filtered_by_budget = np.full(self.time_window, False, dtype=dt_bool)
+        self._last_alert_action_filtered_by_budget = np.full(self._dim_alerts, False, dtype=dt_bool)
         
 
     def get_state(self):
