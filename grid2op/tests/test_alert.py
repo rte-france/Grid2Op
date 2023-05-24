@@ -20,7 +20,7 @@ from grid2op.Exceptions import Grid2OpException
 from grid2op.Runner import Runner
 from grid2op.Environment import Environment
 from grid2op.Episode import EpisodeData
-from grid2op.Opponent import GeometricOpponent
+from grid2op.Opponent import GeometricOpponent, GeometricOpponentMultiArea
 
 LINES_ATTACKED = [
             "62_58_180",
@@ -52,7 +52,7 @@ class TestAlert(unittest.TestCase):
         
         assert isinstance(self.env.parameters.ALERT_TIME_WINDOW, np.int32)
         assert isinstance(self.env._attention_budget, LinearAttentionBudgetByLine)
-        assert self.env["opponent_class"] == GeometricOpponent
+        assert self.env._opponent_class == GeometricOpponent
         assert self.env.parameters.ALERT_TIME_WINDOW > 0
 
         param = self.env.parameters
@@ -86,8 +86,7 @@ class TestAlert(unittest.TestCase):
 
         obs, reward, done, info = self.env.step(act)
 
-    def test_assistant_score_value(self) -> None : 
-        
+    def test_assistant_reward_value(self) -> None : 
         
         # 
         score = 2
