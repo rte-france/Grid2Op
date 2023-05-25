@@ -45,6 +45,7 @@ def _aux_one_process_parrallel(
     agent_seeds=None,
     max_iter=None,
     add_detailed_output=False,
+    add_nb_highres_sim=False,
 ):
     """this is out of the runner, otherwise it does not work on windows / macos"""
     chronics_handler = ChronicsHandler(
@@ -79,19 +80,14 @@ def _aux_one_process_parrallel(
                 agent_seed=agt_seed,
                 detailed_output=add_detailed_output,
             )
-            (name_chron, cum_reward, nb_time_step, max_ts, episode_data)  = tmp_
+            (name_chron, cum_reward, nb_time_step, max_ts, episode_data, nb_highres_sim)  = tmp_
             id_chron = chronics_handler.get_id()
+            res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
+            
             if add_detailed_output:
-                res[i] = (
-                    id_chron,
-                    name_chron,
-                    float(cum_reward),
-                    nb_time_step,
-                    max_ts,
-                    episode_data,
-                )
-            else:
-                res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
+                res[i] = (*res[i], episode_data)
+            if add_nb_highres_sim:
+                res[i] = (*res[i], nb_highres_sim)                
         finally:
             env.close()
     return res
@@ -126,6 +122,9 @@ def _aux_run_one_episode(
 
     # reset it
     obs = env.reset()
+    # reset the number of calls to high resolution simulator
+    env._highres_sim_counter._HighResSimCounter__nb_highres_called = 0
+    
     # seed and reset the agent
     if agent_seed is not None:
         agent.seed(agent_seed)
@@ -286,8 +285,10 @@ def _aux_run_one_episode(
     episode.to_disk()
     name_chron = env.chronics_handler.get_name()
     return (name_chron, cum_reward,
-            int(time_step), int(max_ts),
-            episode)
+            int(time_step),
+            int(max_ts),
+            episode,
+            env.nb_highres_called)
 
 
 def _aux_make_progress_bar(pbar, total, next_pbar):

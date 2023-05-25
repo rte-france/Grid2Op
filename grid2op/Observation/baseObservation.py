@@ -3867,8 +3867,11 @@ class BaseObservation(GridObjects):
             Simulator,
         )  # lazy import to prevent circular references
 
-        res = Simulator(backend=self._obs_env.backend)
+        nb_highres_called = self._obs_env.highres_sim_counter.nb_highres_called
+        res = Simulator(backend=self._obs_env.backend, _highres_sim_counter=self._obs_env._highres_sim_counter)
         res.set_state(self)
+        # it does one simulation when it inits it (calling env.step) so I remove 1 here
+        self._obs_env.highres_sim_counter._HighResSimCounter__nb_highres_called = nb_highres_called
         return res
 
     def _get_array_from_forecast(self, name):
@@ -4178,7 +4181,7 @@ class BaseObservation(GridObjects):
                              prod_v: Optional[np.ndarray] = None,
                              maintenance: Optional[np.ndarray] = None):
         from grid2op.Chronics import FromNPY, ChronicsHandler
-        from grid2op.Environment import Environment
+        from grid2op.Environment._forecast_env import _ForecastEnv
         ch = ChronicsHandler(FromNPY,
                              load_p=load_p,
                              load_q=load_q,
@@ -4188,12 +4191,16 @@ class BaseObservation(GridObjects):
         
         backend = self._obs_env.backend.copy()
         backend._is_loaded = True
-        res = Environment(**self._ptr_kwargs_env,
-                          backend=backend,
-                          chronics_handler=ch,
-                          parameters=self._obs_env.parameters,
-                          _init_obs=self
-                          )
+        nb_highres_called = self._obs_env.highres_sim_counter.nb_highres_called
+        res = _ForecastEnv(**self._ptr_kwargs_env,
+                           backend=backend,
+                           chronics_handler=ch,
+                           parameters=self._obs_env.parameters,
+                           _init_obs=self,
+                           highres_sim_counter=self._obs_env.highres_sim_counter
+                           )
+        # it does one simulation when it inits it (calling env.step) so I remove 1 here
+        res.highres_sim_counter._HighResSimCounter__nb_highres_called = nb_highres_called
         return res
 
     def change_forecast_parameters(self, params):

@@ -17,6 +17,7 @@ from grid2op.Environment import BaseEnv
 from grid2op.Action import BaseAction
 from grid2op.Backend import Backend
 from grid2op.Observation.baseObservation import BaseObservation
+from grid2op.Observation.highresSimCounter import HighResSimCounter
 from grid2op.Exceptions import SimulatorError, InvalidRedispatching
 
 
@@ -36,7 +37,8 @@ class Simulator(object):
     
     """
     def __init__(
-        self, backend: Optional[Backend], env: Optional[BaseEnv] = None, tol_redisp=1e-6
+        self, backend: Optional[Backend], env: Optional[BaseEnv] = None, tol_redisp=1e-6,
+        _highres_sim_counter: Optional[HighResSimCounter] =None
     ):
         # backend should be initiliazed !
         if backend is not None:
@@ -78,6 +80,10 @@ class Simulator(object):
         self._error: Optional[Exception] = None
 
         self._tol_redisp: float = tol_redisp
+        if _highres_sim_counter is not None:
+            self._highres_sim_counter = _highres_sim_counter
+        else:
+            self._highres_sim_counter = HighResSimCounter()
 
     @property
     def converged(self) -> bool:
@@ -116,6 +122,8 @@ class Simulator(object):
         res = copy.copy(self)
         res.backend = res.backend.copy()
         res.current_obs = res.current_obs.copy()
+        # do not copy this !
+        res._highres_sim_counter = self._highres_sim_counter
         return res
 
     def change_backend(self, backend: Backend):
@@ -271,6 +279,7 @@ class Simulator(object):
             self._do_powerflow()
 
     def _do_powerflow(self):
+        self._highres_sim_counter.add_one()
         self._converged, self._error = self.backend.runpf()
 
     def _update_obs(self):
@@ -551,6 +560,7 @@ class Simulator(object):
             new_gen_v=new_gen_v,
             new_load_p=new_load_p,
             new_load_q=new_load_q,
+            do_powerflow=False,
         )
 
         # "fix" the action for the redispatching / curtailment / storage part
