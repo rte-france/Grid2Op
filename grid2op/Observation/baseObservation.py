@@ -2341,7 +2341,7 @@ class BaseObservation(GridObjects):
         edge_bus_li = [(bus_id,
                         bus_id % cls.n_sub,
                         {"type": "bus_to_substation"})
-                       for id_, bus_id in enumerate(bus_ids) if conn_bus[id_]]
+                       for id_, bus_id in enumerate(bus_ids)]
         graph.add_edges_from(edge_bus_li)
         graph.graph["bus_nodes_id"] = bus_ids
         return bus_ids
