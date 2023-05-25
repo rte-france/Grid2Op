@@ -83,6 +83,7 @@ class GridValue(RandomObject, ABC):
         given in :func:`GridValue.get_hazard_duration_1d`.
 
 
+    
     """
 
     NAN_BUT_IN_INT = -9999999
@@ -356,7 +357,6 @@ class GridValue(RandomObject, ABC):
             assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,2,2,2,2,2,1,0,0,0]))
 
         """
-
         res = np.full(maintenance.shape, fill_value=GridValue.NAN_BUT_IN_INT, dtype=dt_int)
         maintenance = np.concatenate((maintenance, (0, 0)))
         a = np.diff(maintenance)

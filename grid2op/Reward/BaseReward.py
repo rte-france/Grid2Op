@@ -203,7 +203,7 @@ class BaseReward(ABC):
         end of the episode.
 
         """
-        pass
+        return self.reward_min
 
     def get_range(self):
         """
