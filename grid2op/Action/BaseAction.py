@@ -2910,8 +2910,8 @@ class BaseAction(GridObjects):
         else:
             res.append("\t - NOT force any particular bus configuration")
 
-        if type(self).dim_alarms > 0:
-            my_cls = type(self)
+        my_cls = type(self)
+        if my_cls.dim_alarms > 0:
             if self._modif_alarm:
                 li_area = np.array(my_cls.alarms_area_names)[
                     np.where(self._raise_alarm)[0]
@@ -2924,8 +2924,7 @@ class BaseAction(GridObjects):
             else:
                 res.append("\t - Not raise any alarm")
         
-        if type(self).dim_alerts > 0:
-            my_cls = type(self)
+        if my_cls.dim_alerts > 0:
             if self._modif_alert:
                 li_line = np.array(my_cls.alerts_line_names)[
                     np.where(self._raise_alert)[0]
