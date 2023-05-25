@@ -32,18 +32,23 @@ class RulesByArea(BaseRules):
         """
         See :func:`BaseRules.__call__` for a definition of the _parameters of this function.
         """
-        self.lines_id_by_area = {key : sorted(list(chain(*[[item for item in np.where(env.line_or_to_subid == subid)[0]
-                                   ] for subid in subid_list]))) for key,subid_list in self.substations_id_by_area.items()}
+        n_sub = env.n_sub
+        n_sub_rule = np.sum([len(set(list_ids)) for list_ids in self.substations_id_by_area.values()])
+        if n_sub_rule != n_sub: 
+            print("The number of listed ids of substations in rule initialization does not match the number of substations of the chosen environement. Look for missing ids or doublon")
+        else:
+            self.lines_id_by_area = {key : sorted(list(chain(*[[item for item in np.where(env.line_or_to_subid == subid)[0]
+                                    ] for subid in subid_list]))) for key,subid_list in self.substations_id_by_area.items()}
 
-        is_legal, reason = PreventDiscoStorageModif.__call__(self, action, env)
-        if not is_legal:
-            return False, reason
-        
-        is_legal, reason = self.LookParamByArea(action, env)
-        if not is_legal:
-            return False, reason
-        
-        return PreventReconnection.__call__(self, action, env)
+            is_legal, reason = PreventDiscoStorageModif.__call__(self, action, env)
+            if not is_legal:
+                return False, reason
+            
+            is_legal, reason = self.LookParamByArea(action, env)
+            if not is_legal:
+                return False, reason
+            
+            return PreventReconnection.__call__(self, action, env)
         
 
     def can_use_simulate(self, nb_simulate_call_step, nb_simulate_call_episode, param):
