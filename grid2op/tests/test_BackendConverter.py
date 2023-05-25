@@ -48,7 +48,7 @@ class TestLoading(HelperTests):
         )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend)
 
 
 class TestNames(HelperTests, BaseTestNames):

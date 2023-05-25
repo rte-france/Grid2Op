@@ -464,7 +464,12 @@ def make_from_dataset_path(
     # Get default rules class
     rules_class_cfg = DefaultRules
     if "rules_class" in config_data and config_data["rules_class"] is not None:
+        warnings.warn("You used the deprecated rules_class in your config. Please change its "
+                      "name to 'gamerules_class' to mimic the grid2op.make kwargs.")
         rules_class_cfg = config_data["rules_class"]
+    if "gamerules_class" in config_data and config_data["gamerules_class"] is not None:
+        rules_class_cfg = config_data["gamerules_class"]
+        
     ## Create the rules of the game (mimic the operationnal constraints)
     gamerules_class = _get_default_aux(
         "gamerules_class",
@@ -472,7 +477,7 @@ def make_from_dataset_path(
         defaultClass=rules_class_cfg,
         defaultClassApp=BaseRules,
         msg_error=ERR_MSG_KWARGS["gamerules_class"],
-        isclass=True,
+        isclass=None,
     )
 
     # Get default reward class

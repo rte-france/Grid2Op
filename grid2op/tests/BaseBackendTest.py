@@ -1439,6 +1439,7 @@ class BaseTestTopoAction(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make(
+                "rte_case14_realistic",
                 test=True,
                 backend=self.make_backend(),
                 _add_to_name="test_update_from_obs",
@@ -1868,7 +1869,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend)
         env.reset()
         action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
         obs, reward, done, info = env.step(action)
@@ -1883,7 +1884,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -1897,7 +1898,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -1918,7 +1919,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend)
         act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
         obs, reward, done, info = env.step(act)
         assert done, "an isolated load has not lead to a game over"
