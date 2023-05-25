@@ -1,17 +1,20 @@
+# Copyright (c) 2023, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import warnings
 from itertools import chain
 from grid2op.tests.helper_path_test import *
 from grid2op.Exceptions import *
-from grid2op.Environment import Environment
-from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
-from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Rules.RulesByArea import *
 from grid2op.MakeEnv import make
 
 import warnings
-
-warnings.simplefilter("error")
 
 class TestDefaultRulesByArea(unittest.TestCase):
     def setUp(self):
@@ -36,7 +39,7 @@ class TestDefaultRulesByArea(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             for rules in [self.rules_1area, self.rules_2areas, self.rules_3areas]:
-                env_ref = make(
+                self.env = make(
                         "l2rpn_case14_sandbox",
                         test=True,
                         param=params,
@@ -118,6 +121,7 @@ class TestDefaultRulesByArea(unittest.TestCase):
                         env=self.env,
                         check_legal=True,
                 )
+                self.env.close()
 
 
 if __name__ == "__main__":
