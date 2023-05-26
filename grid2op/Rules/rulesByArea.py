@@ -27,6 +27,20 @@ class RulesByArea(BaseRules):
       - It doesn't attempt to act on more substations and lines within each area that what is stated in the actual game _parameters
         :class:`grid2op.Parameters`
       - It doesn't attempt to modify the power produce by a turned off storage unit
+      
+    Example
+    ---------
+    If you want the environment to take into account the rules by area, you can achieve it with:
+
+    .. code-block:
+        import grid2op
+        from grid2op.Rules.rulesByArea import RulesByArea
+        
+        # First you set up the areas within the RulesByArea class
+        my_gamerules_byarea = RulesByArea([[0,1,2,3,4,5,6,7],[8,9,10,11,12,13,14]])
+        # Then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,gamerules_class=my_gamerules_byarea)
 
     """
 
