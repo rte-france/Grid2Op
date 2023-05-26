@@ -21,7 +21,6 @@ class BaseRules(ABC):
 
     """
     
-    @abstractmethod
     def initialize(self, env):
         """
         This function is used to inform the class instance about the environment specification. 

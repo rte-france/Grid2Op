@@ -21,12 +21,30 @@ class TestDefaultRulesByArea(unittest.TestCase):
         self.rules_1area = RulesByArea([[int(k) for k in range(n_sub)]])
         self.rules_2areas = RulesByArea([[k for k in np.arange(n_sub,dtype=int)[:8]],[k for k in np.arange(n_sub,dtype=int)[8:]]])
         self.rules_3areas = RulesByArea([[k for k in np.arange(n_sub,dtype=int)[:4]],[k for k in np.arange(n_sub,dtype=int)[4:9]],[k for k in np.arange(n_sub,dtype=int)[9:]]])
-
-    def test_rules_areas(self):
+        
+    def test_legal_when_islegal(self):
         params = Parameters()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            for rules in [self.rules_1area, self.rules_2areas, self.rules_3areas]:
+            #noaction
+            self.env = make(
+                    "l2rpn_case14_sandbox",
+                    test=True,
+                    param=params,
+                    gamerules_class = self.rules_1area
+                )
+            self.helper_action = self.env._helper_action_env
+            self.env._parameters.MAX_SUB_CHANGED = 1
+            self.env._parameters.MAX_LINE_STATUS_CHANGED = 1
+            act = {}
+            _ = self.helper_action(
+                    act,
+                    env=self.env,
+                    check_legal=True,
+            )
+            
+            #test allowance max action in all areas over the grid
+            for rules in [self.rules_2areas, self.rules_3areas]:
                 self.env = make(
                         "l2rpn_case14_sandbox",
                         test=True,
@@ -36,42 +54,7 @@ class TestDefaultRulesByArea(unittest.TestCase):
                 self.helper_action = self.env._helper_action_env
                 lines_by_area = self.env._game_rules.legal_action.lines_id_by_area
                 line_select = [[int(k) for k in np.random.choice(list_ids, size=3, replace=False)] for list_ids in lines_by_area.values()]
-                #two lines one sub by area with 1 action in one area per item
-                try:
-                    self.env._parameters.MAX_SUB_CHANGED = 1
-                    self.env._parameters.MAX_LINE_STATUS_CHANGED = 1
-                    for line_select_byarea in line_select:
-                        act = {
-                            "set_line_status": [(LINE_ID, -1) for LINE_ID in line_select_byarea[:2]],
-                            "change_bus" : {"lines_or_id":[LINE_ID for LINE_ID in line_select_byarea[2:]]}
-                        }
-                        _ = self.helper_action(
-                            act,
-                            env=self.env,
-                            check_legal=True,
-                        )
-                    raise RuntimeError("This should have thrown an IllegalException")
-                except IllegalAction:
-                    pass
-
-                #one line two sub by area with 1 action in one area per item
-                try:
-                    self.env._parameters.MAX_SUB_CHANGED = 1
-                    self.env._parameters.MAX_LINE_STATUS_CHANGED = 1
-                    for line_select_byarea in line_select:
-                        act = {
-                            "set_line_status": [(LINE_ID, -1) for LINE_ID in line_select_byarea[:1]],
-                            "change_bus" : {"lines_or_id":[LINE_ID for LINE_ID in line_select_byarea[1:]]}
-                        }
-                        _ = self.helper_action(
-                            act,
-                            env=self.env,
-                            check_legal=True,
-                        )
-                    raise RuntimeError("This should have thrown an IllegalException")
-                except IllegalAction:
-                    pass
-
+                
                 #one line one sub with one action per area per item per area
                 self.env._parameters.MAX_SUB_CHANGED = 1
                 self.env._parameters.MAX_LINE_STATUS_CHANGED = 1
@@ -111,6 +94,52 @@ class TestDefaultRulesByArea(unittest.TestCase):
                         check_legal=True,
                 )
                 self.env.close()
+                
+    def test_illegal_when_illegal(self):
+        params = Parameters()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make(
+                    "l2rpn_case14_sandbox",
+                    test=True,
+                    param=params,
+                    gamerules_class = self.rules_3areas
+                    )
+            self.env._parameters.MAX_SUB_CHANGED = 1
+            self.env._parameters.MAX_LINE_STATUS_CHANGED = 1
+            self.helper_action = self.env._helper_action_env
+            lines_by_area = [list_ids for list_ids in self.env._game_rules.legal_action.lines_id_by_area.values()]
+            
+            #illegal action in one area due to lines
+            with self.assertRaises(IllegalAction):
+                act= {
+                    "set_line_status": [(LINE_ID, -1) for LINE_ID in lines_by_area[0][:2]] + \
+                     [(LINE_ID, -1) for LINE_ID in [lines_by_area[1][2], lines_by_area[2][2]]],
+                }
+                i = self.helper_action(
+                        act,
+                        env=self.env,
+                        check_legal=True,
+                )
+            
+            #illegal action in one area due to substations
+            with self.assertRaises(IllegalAction):
+                
+                area0_sorted_ids = np.argsort(self.env.line_or_to_subid[lines_by_area[0]])
+                aff_2subs_lines_ids = np.array(lines_by_area[0])[area0_sorted_ids][[0,-1]]
+                act= {
+                    "change_bus" : {"lines_or_id":[LINE_ID for LINE_ID in aff_2subs_lines_ids] + \
+                        [LINE_ID for LINE_ID in [lines_by_area[1][2], lines_by_area[2][2]]]},
+                }
+                i = self.helper_action(
+                        act,
+                        env=self.env,
+                        check_legal=True,
+                )
+            
+            #illegal action in one area but still do action another area
+            
+            self.env.close()
 
 
 if __name__ == "__main__":
