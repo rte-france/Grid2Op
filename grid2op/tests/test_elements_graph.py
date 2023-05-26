@@ -8,7 +8,6 @@
 
 import grid2op
 from grid2op.Action import PlayableAction
-import numpy as np
 import networkx
 import unittest
 import warnings
@@ -159,7 +158,7 @@ class TestElementsGraph14SandBox(unittest.TestCase):
             # an error in the construction of the edges
             graph = obs.get_elements_graph()
         # no edges
-        assert len(graph.edges) == 0
+        assert len(graph.edges) == 2 * self.env.n_sub  # each node to its substation
         # every element disconnected
         for el in range(obs.n_sub, len(graph.nodes)):
             assert not graph.nodes[el]["connected"], f"node {el} should be disconnected"

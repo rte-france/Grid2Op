@@ -70,6 +70,7 @@ class _ObsEnv(BaseEnv):
         attention_budget_cls=LinearAttentionBudget,
         kwargs_attention_budget={},
         logger=None,
+        highres_sim_counter=None,
         _complete_action_cls=None,
         _ptr_orig_obs_space=None,
     ):
@@ -87,6 +88,7 @@ class _ObsEnv(BaseEnv):
             kwargs_attention_budget=kwargs_attention_budget,
             kwargs_observation=None,
             logger=logger,
+            highres_sim_counter=highres_sim_counter
         )
         self.__unusable = False  # unsuable if backend cannot be copied
         
@@ -254,11 +256,15 @@ class _ObsEnv(BaseEnv):
                            "environment that cannot be copied.")
         backend = self.backend
         self.backend = None
+        _highres_sim_counter = self._highres_sim_counter
+        self._highres_sim_counter = None
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", FutureWarning)
             res = copy.deepcopy(self)
             res.backend = backend.copy()
+        res._highres_sim_counter = _highres_sim_counter
         self.backend = backend
+        self._highres_sim_counter = _highres_sim_counter
         return res
 
     def _reset_to_orig_state(self, obs):
@@ -433,6 +439,7 @@ class _ObsEnv(BaseEnv):
                            "environment that cannot be copied.")
         self._ptr_orig_obs_space.simulate_called()
         maybe_exc = self._ptr_orig_obs_space.can_use_simulate()
+        self._highres_sim_counter.add_one()
         if maybe_exc is not None:
             raise maybe_exc
         obs, reward, done, info = self.step(action)
