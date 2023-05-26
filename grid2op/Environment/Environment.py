@@ -255,7 +255,8 @@ class Environment(BaseEnv):
 
             # alarm set up
             if self.parameters.ASSISTANT_WARNING_TYPE == "BY_LINE":
-                self.alertable_line_names, self.dim_alerts = self.load_alert_data()
+                self.alertable_line_names, self.alertable_lines_id, self.dim_alerts = self.load_alert_data()
+                
             else : 
                 self.load_alarm_data()
             
@@ -403,6 +404,9 @@ class Environment(BaseEnv):
         # create the attention budget
         if self.parameters.ASSISTANT_WARNING_TYPE == "BY_LINE" :
             self._create_attention_budget(dim_alerts=self.dim_alerts)
+            self.action_space.tell_dim_alert(self.dim_alerts)
+            self._action_space.tell_dim_alert(self.dim_alerts)
+            self._actionClass.tell_dim_alert(self.dim_alerts)
         else : 
             self._create_attention_budget()
 

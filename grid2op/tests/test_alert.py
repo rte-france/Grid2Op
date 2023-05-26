@@ -23,7 +23,7 @@ from grid2op.Episode import EpisodeData
 from grid2op.Opponent import BaseOpponent, GeometricOpponent, GeometricOpponentMultiArea
 from grid2op.Action import PlayableAction
 
-LINES_ATTACKED = [
+ALL_ATTACKABLE_LINES= [
             "62_58_180",
             "62_63_160",
             "48_50_136",
@@ -35,20 +35,23 @@ LINES_ATTACKED = [
             "34_35_110",
             "54_58_154",
         ] 
-class TestOpponent(BaseOpponent): 
-    """TODO DOC
 
-    Args:
-        BaseOpponent (_type_): _description_
+ATTACKED_LINE = "48_50_136"
+
+class TestOpponent(BaseOpponent): 
+    """An opponent that can select the line attack, the time and duration of the attack.
+
     """
+    
     def __init__(self, action_space):
         super().__init__(action_space)
         self.custom_attack = None
         self.duration = None
         self.steps_attack = None
 
-    def init(self, partial_env,  line_id=2, duration=1, steps_attack=[0,1]):
-        self.custom_attack = self.action_space({"set_line_status" : [(line_id, -1)]})
+    def init(self, partial_env,  lines_attacked=[ATTACKED_LINE], duration=10, steps_attack=[0,1]):
+        attacked_line = lines_attacked[0]
+        self.custom_attack = self.action_space({"set_line_status" : [(attacked_line, -1)]})
         self.duration = duration
         self.steps_attack = steps_attack
         
@@ -61,6 +64,7 @@ class TestOpponent(BaseOpponent):
             return None, None 
         
         return self.custom_attack, self.duration
+
 class TestAlert(unittest.TestCase):
     """test the basic bahavior of the assistant alert feature"""
 
@@ -70,6 +74,9 @@ class TestAlert(unittest.TestCase):
         )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
+            kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                                   duration=10, 
+                                   steps_attack=[0,10])
             self.env = make(self.env_nm, test=True, difficulty="1", 
                             opponent_attack_cooldown=0, 
                             opponent_attack_duration=99999, 
@@ -77,9 +84,13 @@ class TestAlert(unittest.TestCase):
                             opponent_init_budget=10000., 
                             opponent_action_class=PlayableAction, 
                             opponent_class=TestOpponent, 
-                            kwargs_opponent=dict(line_id=2, duration=1, steps_attack=[0,10]))
+                            kwargs_opponent=kwargs_opponent)
         self.env.seed(0)
         self.env.reset()
+        self.do_nothing = self.env.action_space({})
+
+    def tearDown(self) -> None:
+        self.env.close()
 
     def test_init_default_param(self) -> None : 
         env = make(self.env_nm, test=True, difficulty="1")
@@ -102,27 +113,136 @@ class TestAlert(unittest.TestCase):
 
         assert negative_value_invalid
 
+        # test observations for this env also
+        true_alertable_lines = ALL_ATTACKABLE_LINES
+        
+        assert isinstance(env.alertable_line_names, list)
+        assert sorted(env.alertable_line_names) == sorted(true_alertable_lines)
+        assert env.dim_alerts == len(true_alertable_lines)
+
 
     def test_init_observation(self) -> None :
-        true_alertable_lines = LINES_ATTACKED
+        true_alertable_lines = [ATTACKED_LINE]
         
         assert isinstance(self.env.alertable_line_names, list)
         assert sorted(self.env.alertable_line_names) == sorted(true_alertable_lines)
         assert self.env.dim_alerts == len(true_alertable_lines)
 
 
-    def test_raise_alert_action(self) -> None : 
-        # raise alert on line number 0
+    def test_raise_alert_action(self) -> None :
+        attackable_line_id = 0
+        # raise alert on line number line_id
         act = self.env.action_space()
-        act.raise_alert = [0]
+        act.raise_alert = [attackable_line_id]
 
-
-        obs, reward, done, info = self.env.step(act)
-
-    def test_assistant_reward_value(self) -> None : 
+        act_2 = self.env.action_space({"raise_alert": [attackable_line_id]})
         
-        # 
-        score = 2
+        assert act == act_2 
+
+
+
+    def test_assistant_reward_value_no_blackout_no_attack(self) -> None : 
+        with make(
+            self.env_nm,
+            test=True,
+            difficulty="1"
+        ) as env:
+            env.seed(0)
+            env.reset()
+
+            done = False
+            for i in range(env.max_episode_duration()):
+                obs, reward, done, info = env.step(self.do_nothing)
+                if env._oppSpace.last_attack is None : 
+                    assert reward == 0
+                else : 
+                    raise Grid2OpException('No attack expected')
+            
+            assert done
+    
+    
+    def test_assistant_reward_value_no_blackout_attack_no_alert(self) -> None :
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                                   duration=3, 
+                                   steps_attack=[1])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponent, 
+                            kwargs_opponent=kwargs_opponent
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                act = self.do_nothing
+                obs, reward, done, info = env.step(act)
+                if i == 1 : 
+                    assert env._oppSpace.last_attack is not None
+                if i == 2 : 
+                    assert reward == 1
+                else : 
+                    assert reward == 0
+
+    def test_assistant_reward_value_no_blackout_attack_alert(self) -> None :
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                                   duration=3, 
+                                   steps_attack=[2])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponent, 
+                            kwargs_opponent=kwargs_opponent
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                attackable_line_id = 0
+                act = self.do_nothing
+                if i == 1 :
+                    act = self.env.action_space({"raise_alert": [attackable_line_id]})
+                obs, reward, done, info = env.step(act)
+                if i == 2 : 
+                    assert env._oppSpace.last_attack is not None
+                elif i == 3 : 
+                    assert reward == -1
+                elif i in [4,5] : 
+                    assert reward == 1
+                else : 
+                    assert reward == 0
+
+
+    def test_assistant_reward_value_no_blackout_attack_no__alert(self) -> None :
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                                   duration=3, 
+                                   steps_attack=[2])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponent, 
+                            kwargs_opponent=kwargs_opponent
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                attackable_line_id = 0
+                act = self.do_nothing
+                obs, reward, done, info = env.step(act)
+                if i == 2 : 
+                    assert env._oppSpace.last_attack is not None
+                elif i in [3,4,5] : 
+                    assert reward == 1
+                else : 
+                    assert reward == 0
+"""
         # SI on en prédit 2/3 on aurait - 2
         assert score == -2.0
 
@@ -130,9 +250,11 @@ class TestAlert(unittest.TestCase):
         assert score == -6
 
         # SI on en prédit 1/3 on aurait - 10 
-        assert score == -10
+        assert score == -10"""
 
-# Action ambigue : par exemple alert sur la ligne N+1 
+# TODO : code des actions ambigues 
+# 
+# Action ambigue : par exemple alert sur la ligne (nb_lignes)+1 
 # Aller voir la doc : file:///home/crochepierrelau/Documents/Git/Grid2Op/documentation/html/action.html#illegal-vs-ambiguous
 
 # Test des actions 

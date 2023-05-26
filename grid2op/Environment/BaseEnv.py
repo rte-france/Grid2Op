@@ -852,16 +852,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
 
         if "lines_attacked" in self._kwargs_opponent.keys():
-            alertable_line_ids = [el for el in self.backend.name_line 
+            alertable_line_names = [el for el in self.backend.name_line 
                                   if el in self._kwargs_opponent['lines_attacked']] # need to be remembered
+            alertable_line_ids = [i for i, el in enumerate(self.backend.name_line)
+                                  if el in self._kwargs_opponent['lines_attacked']]
             nb_lines = len(alertable_line_ids)
 
             # every check pass, i update the backend class
-            alertable_lines = copy.deepcopy(alertable_line_ids)
+            alertable_line_names = copy.deepcopy(alertable_line_names)
         else : 
-            alertable_lines = []
+            alertable_line_names = []
+            alertable_line_ids = []
             nb_lines = 0
-        return alertable_lines, nb_lines
+        return alertable_line_names, alertable_line_ids, nb_lines
 
 
     @property

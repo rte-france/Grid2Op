@@ -87,6 +87,8 @@ class AlertReward(BaseReward):
 
         self.reward_unit_step = dt_int(-1)
         self.nb_area = None
+        
+        self.last_attack = None
 
     def initialize(self, env):
         if not env._has_attention_budget:
@@ -125,7 +127,7 @@ class AlertReward(BaseReward):
         # Current index 
         self.current_step_first_encountered = dt_int(0)
                 
-    def _step_update(self, legal_alert_action, env): 
+    def _step_update(self, legal_alert_action, action, env): 
         """Update all 
 
         Args:
@@ -150,10 +152,8 @@ class AlertReward(BaseReward):
         
         if env._oppSpace.last_attack is not None:
             # the opponent choose to attack
-            lines_attacked, subs_attacked = legal_alert_action.get_topological_impact()
+            lines_attacked = env._oppSpace.last_attack._lines_impacted.take(env.alertable_lines_id)
 
-            if sum(subs_attacked) > 0 : 
-                raise Grid2OpException("Attacks on substations are not handled by the agent")
         else:
             lines_attacked = np.full(env._attention_budget._dim_alerts, False, dtype=dt_bool)
 
@@ -187,7 +187,7 @@ class AlertReward(BaseReward):
         # TODO Gérer le "simulate"
         if env.nb_time_step == self.current_step_first_encountered+1:
             self.current_step_first_encountered = env.current_obs.current_step
-            self._step_update(legal_alert_action, env)
+            self._step_update(legal_alert_action, action, env)
 
         score = self.reward_min
 
