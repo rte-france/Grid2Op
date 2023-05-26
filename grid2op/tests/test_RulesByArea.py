@@ -10,7 +10,7 @@ from itertools import chain
 from grid2op.tests.helper_path_test import *
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
-from grid2op.Rules.RulesByArea import *
+from grid2op.Rules.rulesByArea import *
 from grid2op.MakeEnv import make
 
 import warnings

@@ -18,12 +18,13 @@ from grid2op.Exceptions import (
 
 class RulesByArea(BaseRules):
     """
-    This subclass combine both :class:`LookParam` and :class:`PreventReconnection` to be applied on defined areas of a grid.
+    This subclass combine :class:`PreventReconnection`, :class: `PreventDiscoStorageModif` to be applied on the whole grid at once,
+    while a specifique method look for the legality of simultaneous actions taken on defined areas of a grid.
     An action is declared legal if and only if:
 
-      - It doesn't disconnect / reconnect more power lines within each area than  what stated in the actual game _parameters
+      - It doesn't reconnect more power lines than what is stated in the actual game _parameters
         :class:`grid2op.Parameters`
-      - It doesn't attempt to act on more substations within each area that what is stated in the actual game _parameters
+      - It doesn't attempt to act on more substations and lines within each area that what is stated in the actual game _parameters
         :class:`grid2op.Parameters`
       - It doesn't attempt to modify the power produce by a turned off storage unit
 
@@ -31,14 +32,22 @@ class RulesByArea(BaseRules):
 
     def __init__(self, areas_list):
         """
+        The initialization of the rule with a list of list of ids of substations composing the aimed areas.
+        Parameters
+        ----------
         areas_list : list of areas, each placeholder containing the ids of substations of each defined area
         """
         self.substations_id_by_area = {i : sorted(k) for i,k in enumerate(areas_list)}
-
-
-    def __call__(self, action, env):
+        
+        
+    def initialize(self, env):
         """
-        See :func:`BaseRules.__call__` for a definition of the _parameters of this function.
+        This function is used to inform the class instance about the environment specification and check no substation of the grid are left ouside an area. 
+        Parameters
+        ----------
+        env: :class:`grid2op.Environment.Environment`
+            An environment instance properly initialized.
+
         """
         n_sub = env.n_sub
         n_sub_rule = np.sum([len(set(list_ids)) for list_ids in self.substations_id_by_area.values()])
@@ -48,15 +57,20 @@ class RulesByArea(BaseRules):
             self.lines_id_by_area = {key : sorted(list(chain(*[[item for item in np.where(env.line_or_to_subid == subid)[0]
                                     ] for subid in subid_list]))) for key,subid_list in self.substations_id_by_area.items()}
 
-            is_legal, reason = PreventDiscoStorageModif.__call__(self, action, env)
-            if not is_legal:
-                return False, reason
+
+    def __call__(self, action, env):
+        """
+        See :func:`BaseRules.__call__` for a definition of the _parameters of this function.
+        """
+        is_legal, reason = PreventDiscoStorageModif.__call__(self, action, env)
+        if not is_legal:
+            return False, reason
             
-            is_legal, reason = self.LookParamByArea(action, env)
-            if not is_legal:
-                return False, reason
+        is_legal, reason = self._lookparam_byarea(action, env)
+        if not is_legal:
+            return False, reason
             
-            return PreventReconnection.__call__(self, action, env)
+        return PreventReconnection.__call__(self, action, env)
         
 
     def can_use_simulate(self, nb_simulate_call_step, nb_simulate_call_episode, param):
@@ -64,7 +78,7 @@ class RulesByArea(BaseRules):
             self, nb_simulate_call_step, nb_simulate_call_episode, param
         )
     
-    def LookParamByArea(self, action, env):
+    def _lookparam_byarea(self, action, env):
         """
         See :func:`BaseRules.__call__` for a definition of the parameters of this function.
         """
