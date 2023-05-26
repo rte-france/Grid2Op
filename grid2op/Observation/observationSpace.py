@@ -17,7 +17,6 @@ from grid2op.Observation.serializableObservationSpace import (
 )
 from grid2op.Reward import RewardHelper
 from grid2op.Observation.completeObservation import CompleteObservation
-from grid2op.Observation.highresSimCounter import HighResSimCounter
 
 
 class ObservationSpace(SerializableObservationSpace):
@@ -206,7 +205,8 @@ class ObservationSpace(SerializableObservationSpace):
     def _aux_create_backend(self, env, observation_bk_class, observation_bk_kwargs, path_grid_for):
         if observation_bk_kwargs is None:
             observation_bk_kwargs = env.backend._my_kwargs
-        self._backend_obs = observation_bk_class(**observation_bk_kwargs)   
+        observation_bk_class_used = observation_bk_class.init_grid(env.backend)
+        self._backend_obs = observation_bk_class_used(**observation_bk_kwargs)   
         self._backend_obs.set_env_name(env.name)
         self._backend_obs.load_grid(path_grid_for)
         self._backend_obs.assert_grid_correct()
