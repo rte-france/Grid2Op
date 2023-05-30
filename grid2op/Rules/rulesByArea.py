@@ -113,7 +113,4 @@ class RulesByArea(BaseRules):
                 "".format(env.parameters.MAX_SUB_CHANGED, ids)
             )
         return True, None
-
-
-
  
