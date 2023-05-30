@@ -39,7 +39,7 @@ class RulesByArea(BaseRules):
         # First you set up the areas within the RulesByArea class
         my_gamerules_byarea = RulesByArea([[0,1,2,3,4,5,6,7],[8,9,10,11,12,13,14]])
         # Then you create your environment with it:
-        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        NAME_OF_THE_ENVIRONMENT = "l2rpn_case14_sandbox"
         env = grid2op.make(NAME_OF_THE_ENVIRONMENT,gamerules_class=my_gamerules_byarea)
 
     """
