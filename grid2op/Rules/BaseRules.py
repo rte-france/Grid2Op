@@ -28,7 +28,7 @@ class BaseRules(ABC):
         Parameters
         ----------
         env: :class:`grid2op.Environment.Environment`
-            The environment on which the action is performed. 
+            The environment on which the action is performed. The environement instance is not fully initialized itself.
         """
         pass
 

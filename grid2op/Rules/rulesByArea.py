@@ -13,7 +13,7 @@ from grid2op.Rules.LookParam import LookParam
 from grid2op.Rules.PreventReconnection import PreventReconnection
 from grid2op.Rules.PreventDiscoStorageModif import PreventDiscoStorageModif
 from grid2op.Exceptions import (
-    IllegalAction,
+    IllegalAction, Grid2OpException
 )
 
 class RulesByArea(BaseRules):
@@ -66,7 +66,7 @@ class RulesByArea(BaseRules):
         n_sub = env.n_sub
         n_sub_rule = np.sum([len(set(list_ids)) for list_ids in self.substations_id_by_area.values()])
         if n_sub_rule != n_sub: 
-            print("The number of listed ids of substations in rule initialization does not match the number of substations of the chosen environement. Look for missing ids or doublon")
+            raise Grid2OpException("The number of listed ids of substations in rule initialization does not match the number of substations of the chosen environement. Look for missing ids or doublon")
         else:
             self.lines_id_by_area = {key : sorted(list(chain(*[[item for item in np.where(env.line_or_to_subid == subid)[0]
                                     ] for subid in subid_list]))) for key,subid_list in self.substations_id_by_area.items()}
