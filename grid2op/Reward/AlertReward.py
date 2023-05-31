@@ -12,6 +12,7 @@ from grid2op.Exceptions import Grid2OpException
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Opponent import GeometricOpponentMultiArea
+from grid2op.Environment import _ObsEnv
 
 from numba import jit 
 @jit(nopython=True)
@@ -56,11 +57,12 @@ class AlertReward(BaseReward):
 
     """
 
-    def __init__(self, logger=None, reward_min_no_blackout=-1.0, reward_min_blackout=-4.0, 
-                 reward_max_no_blackout=1.0, reward_max_blackout=2.0):
+    def __init__(self, logger=None, reward_min_no_blackout=-1.0, reward_min_blackout=-10.0, 
+                 reward_max_no_blackout=1.0, reward_max_blackout=2.0, reward_end_episode_bonus=42.0, 
+                 nb_area=1):
         BaseReward.__init__(self, logger=logger)
         # required if you want to design a custom reward taking into account the
-        # alarm feature
+        # alert feature
         self.has_alert_component = True
         self.is_alert_used = False  # required to update it in __call__ !!
 
@@ -69,6 +71,7 @@ class AlertReward(BaseReward):
         self.reward_min_blackout = dt_float(reward_min_blackout)
         self.reward_max_no_blackout = dt_float(reward_max_no_blackout)
         self.reward_max_blackout = dt_float(reward_max_blackout)
+        self.reward_end_episode_bonus = dt_float(reward_end_episode_bonus)
         self.reward_no_game_over = dt_float(0.0)
 
         self.total_time_steps = dt_float(0.0)
@@ -86,11 +89,19 @@ class AlertReward(BaseReward):
         # Pour ne MaJ qu'un pas de temps 
 
         self.reward_unit_step = dt_int(-1)
-        self.nb_area = None
+        self.nb_area = dt_int(nb_area)
         
-        self.last_attack = None
+        self.last_attacked_lines = None
+        self.has_new_attack = False
 
     def initialize(self, env):
+        # This reward is not compatible with simulations
+        if isinstance(env, _ObsEnv):
+            raise Grid2OpException(
+                'Impossible to use the "AlertReward" with a simulation environment ``_ObsEnv``.' 
+                'Please make sure "env._has_attention_budget" is set to ``True`` or '
+                "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`"
+            )
         if not env._has_attention_budget:
             raise Grid2OpException(
                 'Impossible to use the "AlertReward" with an environment for which this feature '
@@ -105,11 +116,11 @@ class AlertReward(BaseReward):
             )
         self.reset(env)
 
-        self.nb_max_simultaneous_attacks = 1 
+        self.nb_max_concurrent_attacks_in_window = self.nb_area
         if isinstance(env._opponent_class, GeometricOpponentMultiArea): 
             raise Grid2OpException("GeometricOpponentMultiArea is not handled by the alert feature")
-            # TODO : self.nb_max_simultaneous_attacks = len(self._opponent.list_opponents) # equal number of areas    def reset(self, env):
-        self.reward_unit_step = (self.reward_max_blackout - self.reward_min_blackout) / self.nb_max_simultaneous_attacks 
+            # TODO : self.nb_max_concurrent_attacks_in_window = len(self._opponent.list_opponents) # equal number of areas    def reset(self, env):
+        self.reward_unit_step = (self.reward_max_blackout - self.reward_min_blackout) / self.nb_max_concurrent_attacks_in_window
 
         self.total_time_steps = env.max_episode_duration()
         self.time_window = env.parameters.ALERT_TIME_WINDOW
@@ -150,12 +161,22 @@ class AlertReward(BaseReward):
         self._has_line_alerts_in_time_window = np.any(self._line_alerts_in_time_window, axis=0)
         
         
-        if env._oppSpace.last_attack is not None:
+        if env.infos["opponent_attack_line"] is not None:
             # the opponent choose to attack
-            lines_attacked = env._oppSpace.last_attack._lines_impacted.take(env.alertable_lines_id)
+            lines_attacked = env.infos['opponent_attack_line'].take(env.alertable_lines_id)
+
+            if self.last_attacked_lines != lines_attacked : 
+                self.has_new_attack = True
+            else : 
+                self.has_new_attack = False
+
+            self.last_attacked_lines = lines_attacked
 
         else:
+            
             lines_attacked = np.full(env._attention_budget._dim_alerts, False, dtype=dt_bool)
+            self.last_attacked_lines = lines_attacked
+            self.has_new_attack = False
 
         self._attacks_in_time_window[:, :-1] = self._attacks_in_time_window[:, 1:]
         self._attacks_in_time_window[:, -1] = lines_attacked
@@ -184,7 +205,6 @@ class AlertReward(BaseReward):
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         legal_alert_action = env._attention_budget._last_alert_action_filtered_by_budget
 
-        # TODO Gérer le "simulate"
         if env.nb_time_step == self.current_step_first_encountered+1:
             self.current_step_first_encountered = env.current_obs.current_step
             self._step_update(legal_alert_action, action, env)
@@ -206,8 +226,12 @@ class AlertReward(BaseReward):
                 # If we correctly predict 2 out of 3 we get - 2
                 # If we correctly predict  1 out of 3 we get - 6
                 # If we correctly predict  0 out of 3 we get - 10 
+
+        elif is_done & (not has_error): 
+            # end of episode 
+            score = self.reward_end_episode_bonus
+
         else: 
-            
             # If there is an attack
             if self._has_attack_at_first_time_in_window.any() :
 
@@ -220,5 +244,4 @@ class AlertReward(BaseReward):
                     # If we don't raise any alert, we are happy with it, so we give the maximal reward value                    
                     score = self.reward_max_no_blackout
  
-        # TODO Gérer la simulation env.infos['opponent_attack_line'] vérifier si c'est le premier temps 
         return score
