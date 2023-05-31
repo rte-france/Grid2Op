@@ -12,7 +12,6 @@ from grid2op.Exceptions import Grid2OpException
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Opponent import GeometricOpponentMultiArea
-from grid2op.Environment import _ObsEnv
 
 from numba import jit 
 @jit(nopython=True)
@@ -58,7 +57,7 @@ class AlertReward(BaseReward):
     """
 
     def __init__(self, logger=None, reward_min_no_blackout=-1.0, reward_min_blackout=-10.0, 
-                 reward_max_no_blackout=1.0, reward_max_blackout=2.0, reward_end_episode_bonus=42.0, 
+                 reward_max_no_blackout=1.0, reward_max_blackout=2.0, reward_end_episode_bonus=1.0, 
                  nb_area=1):
         BaseReward.__init__(self, logger=logger)
         # required if you want to design a custom reward taking into account the
@@ -79,6 +78,9 @@ class AlertReward(BaseReward):
 
         self._has_attack_in_time_window = False # MaJ à chaque appel du call 
         self._fist_attack_step_in_time_window = None # MaJ à chaque appel du call 
+        self._attacks_in_time_window = None # MaJ à chaque appel du call 
+        self._has_attack_at_first_time_in_window = None # MaJ à chaque appel du call 
+        self._is_first_step_of_attack = None # MaJ à chaque appel du call 
 
         self._has_line_alerts_in_time_window = False
         self._line_alerts_in_time_window = None # pas de temps en ligne et lignes élec en colonnes 
@@ -95,6 +97,10 @@ class AlertReward(BaseReward):
         self.has_new_attack = False
 
     def initialize(self, env):
+        from grid2op.Environment._ObsEnv import (
+            _ObsEnv,
+        )  # to avoid circular dependencies
+
         # This reward is not compatible with simulations
         if isinstance(env, _ObsEnv):
             raise Grid2OpException(
@@ -130,6 +136,7 @@ class AlertReward(BaseReward):
         self._fist_attack_step_in_time_window = np.full(env.dim_alerts, -1, dtype=dt_int) # time steps of the first attack
         self._attacks_in_time_window = np.full((env.dim_alerts, self.time_window), False, dtype=dt_bool)
         self._has_attack_at_first_time_in_window = np.full(self.time_window, False, dtype=dt_bool)
+        self._is_first_step_of_attack = np.full((env.dim_alerts, self.time_window), False, dtype=dt_bool)
 
         # Storing alert in the past time window
         self._line_alerts_in_time_window = np.full((env.dim_alerts, self.time_window+1), False, dtype=dt_bool)
@@ -165,18 +172,24 @@ class AlertReward(BaseReward):
             # the opponent choose to attack
             lines_attacked = env.infos['opponent_attack_line'].take(env.alertable_lines_id)
 
-            if self.last_attacked_lines != lines_attacked : 
+            if self.last_attacked_lines.tolist() != lines_attacked.tolist() : 
+                self._is_first_step_of_attack[:, :-1] = self._is_first_step_of_attack[:, 1:]
+                self._is_first_step_of_attack[:, -1] = lines_attacked
                 self.has_new_attack = True
             else : 
+                self._is_first_step_of_attack[:, :-1] = self._is_first_step_of_attack[:, 1:]
+                self._is_first_step_of_attack[:, -1] = np.full(env._attention_budget._dim_alerts, False, dtype=dt_bool)
                 self.has_new_attack = False
 
             self.last_attacked_lines = lines_attacked
 
         else:
-            
             lines_attacked = np.full(env._attention_budget._dim_alerts, False, dtype=dt_bool)
+            self._is_first_step_of_attack[:, :-1] = self._is_first_step_of_attack[:, 1:]
+            self._is_first_step_of_attack[:, -1] = lines_attacked
             self.last_attacked_lines = lines_attacked
-            self.has_new_attack = False
+        
+        
 
         self._attacks_in_time_window[:, :-1] = self._attacks_in_time_window[:, 1:]
         self._attacks_in_time_window[:, -1] = lines_attacked
@@ -233,7 +246,7 @@ class AlertReward(BaseReward):
 
         else: 
             # If there is an attack
-            if self._has_attack_at_first_time_in_window.any() :
+            if self._has_attack_at_first_time_in_window.any() & self._is_first_step_of_attack.any():
 
                 # As there is no blackout, we do not want to raise any alert 
                 if self._line_alerts_in_time_window[:,0][self._has_attack_at_first_time_in_window].any():

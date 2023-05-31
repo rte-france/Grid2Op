@@ -15,7 +15,7 @@ from grid2op.tests.helper_path_test import *
 
 from grid2op.operator_attention import LinearAttentionBudgetByLine
 from grid2op import make
-from grid2op.Reward import RedispReward, _AlarmScore
+from grid2op.Reward import AlertReward
 from grid2op.Parameters import Parameters
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Runner import Runner
@@ -50,7 +50,7 @@ class TestOpponent(BaseOpponent):
 
     def init(self, partial_env,  lines_attacked=[ATTACKED_LINE], duration=10, steps_attack=[0,1]):
         attacked_line = lines_attacked[0]
-        self.custom_attack = self.action_space({"set_line_status" : [(attacked_line, -1)]})
+        self.custom_attack = self.action_space({"set_line_status" : [(l, -1) for l in lines_attacked]})
         self.duration = duration
         self.steps_attack = steps_attack
         
@@ -64,9 +64,36 @@ class TestOpponent(BaseOpponent):
         
         return self.custom_attack, self.duration
 
+class TestOpponentMultiLines(BaseOpponent): 
+    """An opponent that can select the line attack, the time and duration of the attack."""
+    
+    def __init__(self, action_space):
+        super().__init__(action_space)
+        self.custom_attack = None
+        self.duration = None
+        self.steps_attack = None
+
+    def init(self, partial_env,  lines_attacked=[ATTACKED_LINE], duration=[10,10], steps_attack=[0,1]):
+        attacked_line = lines_attacked[0]
+        self.custom_attack = [ self.action_space({"set_line_status" : [(l, -1)]}) for l in lines_attacked]
+        self.duration = duration
+        self.steps_attack = steps_attack
+        
+
+    def attack(self, observation, agent_action, env_action, budget, previous_fails): 
+        if observation is None:
+            return None, None
+
+        if not observation.current_step in self.steps_attack: 
+            return None, None 
+        
+        index = self.steps_attack.index(observation.current_step)
+
+        return self.custom_attack[index], self.duration[index]
+
 # Test alert blackout / tets alert no blackout
-class TestAlert(unittest.TestCase):
-    """test the basic bahavior of the assistant alert feature"""
+class TestAlertNoBlackout(unittest.TestCase):
+    """test the basic bahavior of the assistant alert feature when no attack occur """
 
     def setUp(self) -> None:
         self.env_nm = os.path.join(
@@ -84,7 +111,9 @@ class TestAlert(unittest.TestCase):
                             opponent_init_budget=10000., 
                             opponent_action_class=PlayableAction, 
                             opponent_class=TestOpponent, 
-                            kwargs_opponent=kwargs_opponent)
+                            kwargs_opponent=kwargs_opponent, 
+                            reward_class=AlertReward(reward_end_episode_bonus=42))
+
         self.env.seed(0)
         self.env.reset()
         self.do_nothing = self.env.action_space({})
@@ -139,14 +168,18 @@ class TestAlert(unittest.TestCase):
         
         assert act == act_2 
 
-
-# No blackout
-# No attack
     def test_assistant_reward_value_no_blackout_no_attack_no_alert(self) -> None : 
+        """ When no blackout and no attack occur, and no alert is raised we expect a reward of 0
+            until the end of the episode where we have a bonus (here artificially 42)
+
+        Raises:
+            Grid2OpException: raise an exception if an attack occur
+        """
         with make(
             self.env_nm,
             test=True,
-            difficulty="1"
+            difficulty="1",
+            reward_class=AlertReward(reward_end_episode_bonus=42)
         ) as env:
             env.seed(0)
             env.reset()
@@ -155,8 +188,8 @@ class TestAlert(unittest.TestCase):
             for i in range(env.max_episode_duration()):
                 obs, reward, done, info = env.step(self.do_nothing)
                 if env._oppSpace.last_attack is None : 
-                    if env.max_episode_duration(): 
-                        assert reward == 1
+                    if i == env.max_episode_duration()-1: 
+                        assert reward == 42
                     else : 
                         assert reward == 0
                 else : 
@@ -165,10 +198,17 @@ class TestAlert(unittest.TestCase):
             assert done
     
     def test_assistant_reward_value_no_blackout_no_attack_alert(self) -> None : 
+        """ When an alert is raised while no attack / nor blackout occur, we expect a reward of 0
+            until the end of the episode where we have a bonus (here artificially 42)
+
+        Raises:
+            Grid2OpException: raise an exception if an attack occur
+        """
         with make(
             self.env_nm,
             test=True,
-            difficulty="1"
+            difficulty="1",
+            reward_class=AlertReward(reward_end_episode_bonus=42)
         ) as env:
             env.seed(0)
             env.reset()
@@ -182,14 +222,24 @@ class TestAlert(unittest.TestCase):
                 obs, reward, done, info = env.step(act)
 
                 if env._oppSpace.last_attack is None : 
-                    assert reward == 0
+                    if i == env.max_episode_duration()-1: 
+                        assert reward == 42
+                    else : 
+                        assert reward == 0
                 else : 
                     raise Grid2OpException('No attack expected')
             
             assert done
 
+
 # If attack 
     def test_assistant_reward_value_no_blackout_attack_no_alert(self) -> None :
+        """ When we don't raise an alert for an attack but no blackout occur, we expect a reward of 1
+            at step 3 (here with a window size of 2)
+            otherwise 0 at other time steps
+            until the end of the episode where we have a bonus (here artificially 42)
+
+        """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
                                    steps_attack=[1])
@@ -200,7 +250,8 @@ class TestAlert(unittest.TestCase):
                             opponent_init_budget=10000., 
                             opponent_action_class=PlayableAction, 
                             opponent_class=TestOpponent, 
-                            kwargs_opponent=kwargs_opponent
+                            kwargs_opponent=kwargs_opponent,
+                            reward_class=AlertReward(reward_end_episode_bonus=42)
             ) as env : 
             env.seed(0)
             env.reset()
@@ -209,12 +260,17 @@ class TestAlert(unittest.TestCase):
                 obs, reward, done, info = env.step(act)
                 if i == 1 : 
                     assert env._oppSpace.last_attack is not None
-                if i in [2,3] : 
+                elif i == 2 : 
                     assert reward == 1
+                elif i == env.max_episode_duration()-1: 
+                        assert reward == 42
                 else : 
                     assert reward == 0
 
     def test_assistant_reward_value_no_blackout_attack_alert(self) -> None :
+        """When an alert occur at step 2, we raise an alert is at step 1 
+            We expect a reward -1 at step 3 (with a window size of 2)
+        """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
                                    steps_attack=[2])
@@ -239,68 +295,378 @@ class TestAlert(unittest.TestCase):
                     assert env._oppSpace.last_attack is not None
                 elif i == 3 : 
                     assert reward == -1
-                elif i in [4,5] : 
+                elif i == env.max_episode_duration()-1 : 
                     assert reward == 1
                 else : 
                     assert reward == 0
 
-    def alert_too_late(self) -> None :
-        reward = None
-        assert reward == 1 
+    def test_assistant_reward_value_no_blackout_attack_alert_too_late(self) -> None :
+        """ When we raise an alert too late for an attack but no blackout occur, we expect a reward of 1
+            at step 3 (here with a window size of 2)
+            otherwise 0 at other time steps
+            until the end of the episode where we have a bonus (here artificially 42)
 
-    def alert_too_early(self)-> None :
-        reward = None
-        assert reward == 1 
+        """
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                                   duration=3, 
+                                   steps_attack=[2])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponent, 
+                            kwargs_opponent=kwargs_opponent
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                attackable_line_id = 0
+                act = self.do_nothing
+                if i == 2 :
+                    act = self.env.action_space({"raise_alert": [attackable_line_id]})
+                obs, reward, done, info = env.step(act)
+                if i == 2 : 
+                    assert env._oppSpace.last_attack is not None
+                elif i == 3 : 
+                    assert reward == 1
+                elif i == env.max_episode_duration()-1 : 
+                    assert reward == 1
+                else : 
+                    assert reward == 0
 
-# 2 ligne attaquées 
+    def test_assistant_reward_value_no_blackout_attack_alert_too_early(self)-> None :
+        """ When we raise an alert too early for an attack but no blackout occur, we expect a reward of 1
+            at step 3 (here with a window size of 2)
+            otherwise 0 at other time steps
+            until the end of the episode where we have a bonus (here artificially 42)
+
+        """
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                                   duration=3, 
+                                   steps_attack=[2])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponent, 
+                            kwargs_opponent=kwargs_opponent
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                attackable_line_id = 0
+                act = self.do_nothing
+                if i == 0 :
+                    # An alert is raised at step 0
+                    act = self.env.action_space({"raise_alert": [attackable_line_id]})
+                obs, reward, done, info = env.step(act)
+                if i == 2 : 
+                    assert env._oppSpace.last_attack is not None
+                elif i == 3 : 
+                    assert reward == 1
+                elif i == env.max_episode_duration()-1 : 
+                    assert reward == 1
+                else : 
+                    assert reward == 0
+
+    # 2 ligne attaquées 
     def test_assistant_reward_value_no_blackout_2_attack_same_time_no_alert(self) -> None :
-        reward = None
-        assert reward == 1
+        """ When we don't raise an alert for 2 attacks at the same time 
+            but no blackout occur, we expect a reward of 1
+            at step 3 (here with a window size of 2)
+            otherwise 0 at other time steps
+            until the end of the episode where we have a bonus (here artificially 42)
+        """
+
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
+                                   duration=3, 
+                                   steps_attack=[1])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponent, 
+                            kwargs_opponent=kwargs_opponent,
+                            reward_class=AlertReward(reward_end_episode_bonus=42)
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                act = self.do_nothing
+                obs, reward, done, info = env.step(act)
+                if i == 1 : 
+                    assert env._oppSpace.last_attack is not None
+                elif i == 2 : 
+                    assert reward == 1
+                elif i == env.max_episode_duration()-1: 
+                        assert reward == 42
+                else : 
+                    assert reward == 0
 
     def test_assistant_reward_value_no_blackout_2_attack_same_time_1_alert(self) -> None :
-        reward = None
-        assert reward == 0
+        """ When we raise only 1 alert for 2 attacks at the same time 
+            but no blackout occur, we expect a reward of 0
+            at step 3 (here with a window size of 2)
+            otherwise 0 at other time steps
+            until the end of the episode where we have a bonus (here artificially 42)
+        """
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
+                                   duration=3, 
+                                   steps_attack=[2])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponent, 
+                            kwargs_opponent=kwargs_opponent
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                attackable_line_id = 0
+                act = self.do_nothing
+                if i == 1 :
+                    act = self.env.action_space({"raise_alert": [attackable_line_id]})
+                obs, reward, done, info = env.step(act)
+                if i == 2 : 
+                    assert env._oppSpace.last_attack is not None
+                elif i == 3 : 
+                    assert reward == 0
+                elif i == env.max_episode_duration()-1 : 
+                    assert reward == 1
+                else : 
+                    assert reward == 0
 
     def test_assistant_reward_value_no_blackout_2_attack_same_time_2_alert(self) -> None :
-        reward = None
-        assert reward == -1
+        """ When we raise 2 alerts for 2 attacks at the same time 
+            but no blackout occur, we expect a reward of -1
+            at step 3 (here with a window size of 2)
+            otherwise 0 at other time steps
+            until the end of the episode where we have a bonus (here artificially 42)
+        """
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
+                                   duration=3, 
+                                   steps_attack=[2])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponent, 
+                            kwargs_opponent=kwargs_opponent
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                attackable_line_ids = [0, 1]
+                act = self.do_nothing
+                if i == 1 :
+                    act = self.env.action_space({"raise_alert": attackable_line_ids})
+                obs, reward, done, info = env.step(act)
+                if i == 2 : 
+                    assert env._oppSpace.last_attack is not None
+                elif i == 3 : 
+                    assert reward == -1
+                elif i == env.max_episode_duration()-1 : 
+                    assert reward == 1
+                else : 
+                    assert reward == 0
 
 
     def test_assistant_reward_value_no_blackout_2_attack_diff_time_no_alert(self) -> None :
-        reward = None
-        """if step == Xa : 
-            assert reward == 1
-        if step == Xb : 
-            assert reward == 1"""
+        """ When we don't raise an alert for 2 attacks at two times  
+            but no blackout occur, we expect a reward of 1
+            at step 3 (here with a window size of 2)
+            otherwise 0 at other time steps
+            until the end of the episode where we have a bonus (here artificially 42)
+        """
+
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
+                                   duration=[1,1], 
+                                   steps_attack=[1, 2])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponentMultiLines, 
+                            kwargs_opponent=kwargs_opponent,
+                            reward_class=AlertReward(reward_end_episode_bonus=42)
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                act = self.do_nothing
+                obs, reward, done, info = env.step(act)
+                if i in [1,2] : 
+                    assert env._oppSpace.last_attack is not None
+                elif i == 2 : 
+                    assert reward == 1
+                elif i == 3 : 
+                    assert reward == 1
+                elif i == env.max_episode_duration()-1: 
+                        assert reward == 42
+                else : 
+                    assert reward == 0
         
     def test_assistant_reward_value_no_blackout_2_attack_diff_time_2_alert(self) -> None :
-        reward = None
-        """if step == Xa : 
-            assert reward == -1
-        if step == Xb : 
-            assert reward == -1"""
+        """ When we raise 2 alert for 2 attacks at two times  
+            but no blackout occur, we expect a reward of -1
+            at step 3 (here with a window size of 2) and step 4
+            otherwise 0 at other time steps
+            until the end of the episode where we have a bonus (here artificially 42)
+        """
+
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
+                                   duration=[1,1], 
+                                   steps_attack=[2, 3])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponentMultiLines, 
+                            kwargs_opponent=kwargs_opponent,
+                            reward_class=AlertReward(reward_end_episode_bonus=42)
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                act = self.do_nothing
+                if i == 1 :
+                    act = self.env.action_space({"raise_alert": [0]})
+                elif i == 2 : 
+                    act = self.env.action_space({"raise_alert": [1]})
+                obs, reward, done, info = env.step(act)
+
+                if i in [2,3] : 
+                    assert env._oppSpace.last_attack is not None
+                elif i == 3 : 
+                    assert reward == -1
+                elif i == 4 : 
+                    assert reward == -1
+                elif i == env.max_episode_duration()-1: 
+                        assert reward == 42
+                else : 
+                    assert reward == 0
 
     def test_assistant_reward_value_no_blackout_2_attack_diff_time_alert_first_attack(self) -> None :
-        reward = None
-        """if step == Xa : 
-            assert reward == -1
-        if step == Xb : 
-            assert reward == 1
-        else : 
-            assert reward == 0 """
+        """ When we raise 1 alert on the first attack while we have 2 attacks at two times  
+            but no blackout occur, we expect a reward of -1
+            at step 3 (here with a window size of 2) and 1 step 4
+            otherwise 0 at other time steps
+            until the end of the episode where we have a bonus (here artificially 42)
+        """
+
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
+                                   duration=[1,1], 
+                                   steps_attack=[2, 3])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponentMultiLines, 
+                            kwargs_opponent=kwargs_opponent,
+                            reward_class=AlertReward(reward_end_episode_bonus=42)
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                act = self.do_nothing
+                if i == 1 :
+                    act = self.env.action_space({"raise_alert": [0]})
+                obs, reward, done, info = env.step(act)
+
+                if i in [2,3] : 
+                    assert env._oppSpace.last_attack is not None
+                elif i == 3 : 
+                    assert reward == -1
+                elif i == 4 : 
+                    assert reward == 1
+                elif i == env.max_episode_duration()-1: 
+                        assert reward == 42
+                else : 
+                    assert reward == 0
 
 
-    def test_assistant_reward_value_no_blackout_2_attack_diff_time_alert_first_attack(self) -> None :
-        reward = None
-        """if step == Xa : 
-            assert reward == 1
-        if step == Xb : 
-            assert reward == -1"""
+    def test_assistant_reward_value_no_blackout_2_attack_diff_time_alert_second_attack(self) -> None :
+        """ When we raise 1 alert on the second attack while we have 2 attacks at two times  
+            but no blackout occur, we expect a reward of -1
+            at step 3 (here with a window size of 2) and 1 step 4
+            otherwise 0 at other time steps
+            until the end of the episode where we have a bonus (here artificially 42)
+        """
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
+                                   duration=[1,1], 
+                                   steps_attack=[2, 3])
+        with make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponentMultiLines, 
+                            kwargs_opponent=kwargs_opponent,
+                            reward_class=AlertReward(reward_end_episode_bonus=42)
+            ) as env : 
+            env.seed(0)
+            env.reset()
+            for i in range(env.max_episode_duration()):
+                act = self.do_nothing
+                if i == 2 : 
+                    act = self.env.action_space({"raise_alert": [1]})
+                obs, reward, done, info = env.step(act)
 
+                if i in [2,3] : 
+                    assert env._oppSpace.last_attack is not None
+                elif i == 3 : 
+                    assert reward == 1
+                elif i == 4 : 
+                    assert reward == -1
+                elif i == env.max_episode_duration()-1: 
+                        assert reward == 42
+                else : 
+                    assert reward == 0
 
-    
+class TestAlertBlackout(unittest.TestCase):
+    """test the basic bahavior of the assistant alert feature when no blackout occur"""
 
+    def setUp(self) -> None:
+        self.env_nm = os.path.join(
+            PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
+        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                                   duration=10, 
+                                   steps_attack=[0,10])
+            self.env = make(self.env_nm, test=True, difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=TestOpponent, 
+                            kwargs_opponent=kwargs_opponent)
+        self.env.seed(0)
+        self.env.reset()
+        self.do_nothing = self.env.action_space({})
 
+    def tearDown(self) -> None:
+        self.env.close()
 # Cas avec blackout 1 ligne attaquée
 # return -10
     def test_assistant_reward_value_blackout_attack_no_alert(self) -> None :
