@@ -57,8 +57,7 @@ class AlertReward(BaseReward):
     """
 
     def __init__(self, logger=None, reward_min_no_blackout=-1.0, reward_min_blackout=-10.0, 
-                 reward_max_no_blackout=1.0, reward_max_blackout=2.0, reward_end_episode_bonus=1.0, 
-                 nb_area=1):
+                 reward_max_no_blackout=1.0, reward_max_blackout=2.0, reward_end_episode_bonus=1.0):
         BaseReward.__init__(self, logger=logger)
         # required if you want to design a custom reward taking into account the
         # alert feature
@@ -91,7 +90,6 @@ class AlertReward(BaseReward):
         # Pour ne MaJ qu'un pas de temps 
 
         self.reward_unit_step = dt_int(-1)
-        self.nb_area = dt_int(nb_area)
         
         self.last_attacked_lines = None
         self.has_new_attack = False
@@ -122,11 +120,8 @@ class AlertReward(BaseReward):
             )
         self.reset(env)
 
-        self.nb_max_concurrent_attacks_in_window = self.nb_area
         if isinstance(env._opponent_class, GeometricOpponentMultiArea): 
-            raise Grid2OpException("GeometricOpponentMultiArea is not handled by the alert feature")
-            # TODO : self.nb_max_concurrent_attacks_in_window = len(self._opponent.list_opponents) # equal number of areas    def reset(self, env):
-        self.reward_unit_step = (self.reward_max_blackout - self.reward_min_blackout) / self.nb_max_concurrent_attacks_in_window
+            raise Grid2OpException("GeometricOpponentMultiArea is not handled by the alert feature")     
 
         self.total_time_steps = env.max_episode_duration()
         self.time_window = env.parameters.ALERT_TIME_WINDOW
@@ -176,12 +171,16 @@ class AlertReward(BaseReward):
                 self._is_first_step_of_attack[:, :-1] = self._is_first_step_of_attack[:, 1:]
                 self._is_first_step_of_attack[:, -1] = lines_attacked
                 self.has_new_attack = True
+
             else : 
                 self._is_first_step_of_attack[:, :-1] = self._is_first_step_of_attack[:, 1:]
                 self._is_first_step_of_attack[:, -1] = np.full(env._attention_budget._dim_alerts, False, dtype=dt_bool)
                 self.has_new_attack = False
 
             self.last_attacked_lines = lines_attacked
+
+            self.nb_max_concurrent_attacks_in_window = sum(lines_attacked)
+            self.reward_unit_step = (self.reward_max_blackout - self.reward_min_blackout) / self.nb_max_concurrent_attacks_in_window
 
         else:
             lines_attacked = np.full(env._attention_budget._dim_alerts, False, dtype=dt_bool)
@@ -214,6 +213,14 @@ class AlertReward(BaseReward):
         first_attack_step_in_window = np.apply_along_axis(lambda x : find_first(True, x), 1, self._attacks_in_time_window)
         return first_attack_step_in_window
 
+    def _get_nb_of_alerts_matching_an_attack(self): 
+        attacked_lines_first_step =  self._fist_attack_step_in_time_window[self._fist_attack_step_in_time_window>=0]
+        alert_on_attacked_lines =  self._line_alerts_in_time_window[self._fist_attack_step_in_time_window>=0]
+        
+        attacked_lines_with_alert = np.array([alert_on_attacked_lines[line, step] for line, step in enumerate(attacked_lines_first_step)])
+        nb_correct_alert = attacked_lines_with_alert.sum()
+        return nb_correct_alert
+
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         legal_alert_action = env._attention_budget._last_alert_action_filtered_by_budget
@@ -224,35 +231,33 @@ class AlertReward(BaseReward):
 
         score = self.reward_min
 
-        # If blackout 
-        if self.is_in_blackout(has_error, is_done): 
+        if  is_done & (not has_error): 
+            # end of episode 
+            score = self.reward_end_episode_bonus
+        elif self.is_in_blackout(has_error, is_done): 
+            # If blackout
             # Is the blackout caused by an attack ? 
             # Has there been an attack in the last ``ALERT_TIME_WINDOW`` time steps ? 
             if self._has_attack_in_time_window.any() :
-                attacked_lines_first_step =  self._fist_attack_step_in_time_window[self._fist_attack_step_in_time_window>=0]
-                alert_on_attacked_lines =  self._line_alerts_in_time_window[self._fist_attack_step_in_time_window>=0]
                 
-                attacked_lines_with_alert = np.take(alert_on_attacked_lines, attacked_lines_first_step)
-                nb_correct_alert = attacked_lines_with_alert.sum()
-
-                score = self.reward_min_blackout + self.reward_unit_step * nb_correct_alert  
+                nb_correct_alerts = self._get_nb_of_alerts_matching_an_attack()
+                score = self.reward_min_blackout + self.reward_unit_step * nb_correct_alerts
                 # If we correctly predict 2 out of 3 we get - 2
                 # If we correctly predict  1 out of 3 we get - 6
                 # If we correctly predict  0 out of 3 we get - 10 
 
-        elif is_done & (not has_error): 
-            # end of episode 
-            score = self.reward_end_episode_bonus
-
         else: 
-            # If there is an attack
+            # If there is no blackout 
             if self._has_attack_at_first_time_in_window.any() & self._is_first_step_of_attack.any():
+                # If there is an attack
 
+                alerts_with_attack_at_first_time_in_window =self._line_alerts_in_time_window[:,0][self._has_attack_at_first_time_in_window]
                 # As there is no blackout, we do not want to raise any alert 
-                if self._line_alerts_in_time_window[:,0][self._has_attack_at_first_time_in_window].any():
+                if alerts_with_attack_at_first_time_in_window.any():
+                    nb_alerts_for_attacks = alerts_with_attack_at_first_time_in_window.sum()
                     # If there is an alert raised for one of the attacked line, we give the minimal reward
-                    score = self.reward_min_no_blackout 
-
+                    nb_of_attacks = self._has_attack_at_first_time_in_window.sum()
+                    score = self.reward_max_no_blackout - (nb_alerts_for_attacks/nb_of_attacks) * (self.reward_max_no_blackout  - self.reward_min_no_blackout)
                 else : 
                     # If we don't raise any alert, we are happy with it, so we give the maximal reward value                    
                     score = self.reward_max_no_blackout
