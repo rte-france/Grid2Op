@@ -906,6 +906,17 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
+    def get_all_unitary_alert(action_space):
+        """
+        Return all unitary actions that raise an alert on powerlines.
+        """
+        res = []
+        possible_values = [False, True]
+        for status in itertools.product(possible_values, repeat=action_space.dim_alerts):
+            res.append(action_space({"raise_alarm": status}))
+        return res
+
+    @staticmethod
     def get_all_unitary_line_change(action_space):
         """
         Return all unitary actions that "change" powerline status.
