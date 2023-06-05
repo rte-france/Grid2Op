@@ -96,6 +96,7 @@ Change Log
   `obs.get_env_from_external_forecasts(...)`
 - [ADDED] adding the `TimedOutEnvironment` that takes "do nothing" actions when the agent
   takes too much time to compute. This involves quite some changes in the runner too.
+- [ADDED] Runner is now able to store if an action is legal or ambiguous
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
