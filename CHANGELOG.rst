@@ -98,6 +98,11 @@ Change Log
   takes too much time to compute. This involves quite some changes in the runner too.
 - [ADDED] Runner is now able to store if an action is legal or ambiguous
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
+- [ADDED] experimental support to count the number of "high resolution simulator" (`obs.simulate`, 
+  `obs.get_simulator` and `obs.get_forecast_env`) in the environment (see 
+  https://github.com/rte-france/Grid2Op/issues/417). It might not work properly in distributed settings
+  (if the agents uses parrallel processing or if MultiProcessEnv is used), in MultiMixEnv, etc.
+- [IMPROVED] possibility to "chain" the call to simulate when multiple forecasts
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
   ahead (provided that it knows the horizons in its constructor)
@@ -138,6 +143,7 @@ Change Log
 - [IMPROVED] it is no more reasonably possible to misuse the `MultifolderWithCache` (for example by
   forgetting to `reset()` the cache): an error will be raised in case the proper function has not been called.
 - [IMPROVED] possibility to pass game rules by instance of object and not by class.
+- [IMPROVED] it should be faster to use the "Simulator" (an useless powerflow was run)
 
 [1.8.1] - 2023-01-11
 ---------------------
