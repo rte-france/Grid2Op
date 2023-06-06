@@ -12,6 +12,7 @@ import warnings
 import copy
 
 from grid2op.Backend import PandaPowerBackend
+from grid2op.Exceptions import NoForecastAvailable
 from grid2op.Exceptions.EnvExceptions import EnvError
 from grid2op.Exceptions.ObservationExceptions import BaseObservationError
 from grid2op.Exceptions.simulatorExceptions import SimulatorError
@@ -59,9 +60,10 @@ class NoCopyTester(unittest.TestCase):
     def test_cannot_reactivate_forecasts(self):
         with self.assertRaises(EnvError):
             self.env.reactivate_forecast()
+            
     def test_cannot_use_simulate(self):
         obs = self.env.reset()
-        with self.assertRaises(BaseObservationError):
+        with self.assertRaises(NoForecastAvailable):
             res = obs.simulate(self.env.action_space())
             
     def test_simulator_from_obs(self):

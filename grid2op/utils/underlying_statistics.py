@@ -772,7 +772,7 @@ if __name__ == "__main__":
 
     # with multiple "scores"
     env = grid2op.make(
-        "/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alert",
+        "/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alarm",
         backend=LightSimBackend(),
     )
     stats_dn = EpisodeStatistics(env, name_stats="do_nothing")

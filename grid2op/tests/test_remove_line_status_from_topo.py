@@ -7,13 +7,14 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import grid2op
+from grid2op.Exceptions import AmbiguousAction
 
 import unittest
 import warnings
 import pdb
 
 
-class Issue379Tester(unittest.TestCase):
+class RemoveLineStatusFromTopoTester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -43,7 +44,7 @@ class Issue379Tester(unittest.TestCase):
         act_sub4_clean.remove_line_status_from_topo(obs)
         assert not act_sub4_clean._change_bus_vect[20]
     
-    def test_limit_co(self):
+    def test_limit_disco(self):
         """test that it limit the action when it disconnects"""
         dn = self.env.action_space()
         act = self.env.action_space({"set_bus": {"substations_id": [(1, [1, 2, 2, -1, 1, 1])]}})
@@ -59,7 +60,7 @@ class Issue379Tester(unittest.TestCase):
         obs, reward, done, info = self.env.step(act_reco)
         assert obs.time_before_cooldown_line[4] == 3
         
-        # limit reco when  set
+        # limit disco when  set
         act_deco = self.env.action_space({"set_bus": {"substations_id": [(1, [1, 2, 2, -1, 1, 1])]}})
         assert act_deco._set_topo_vect[6] == -1
         act_deco.remove_line_status_from_topo(obs)       
@@ -98,6 +99,48 @@ class Issue379Tester(unittest.TestCase):
         assert act_sub4_clean._set_topo_vect[20] == 2
         act_sub4_clean.remove_line_status_from_topo(obs, check_cooldown=False)       
         assert act_sub4_clean._set_topo_vect[20] == 0
+            
+    def test_limit_withoutobs(self):
+        """test that it limit the action correctly when no obs is provided"""
+        disco = self.env.action_space({"set_line_status": [(4, -1)]})
+        reco = self.env.action_space({"set_line_status": [(4, +1)]})
+
+        # limit reco when  set
+        act_sub4_clean = self.env.action_space({"set_bus": {"substations_id": [(4, [2, 2, 2, 1, 1])]}})
+        act_sub4_clean += disco
+        assert act_sub4_clean._set_topo_vect[20] == 2
+        assert act_sub4_clean._set_line_status[4] == -1
+        with self.assertRaises(AmbiguousAction):
+            act_sub4_clean._check_for_ambiguity()
+        act_sub4_clean.remove_line_status_from_topo(check_cooldown=False)       
+        assert act_sub4_clean._set_topo_vect[20] == 0
+        assert act_sub4_clean._set_line_status[4] == -1
+        act_sub4_clean._check_for_ambiguity()  # does not raise
+        
+        # limit reco when change
+        act_sub4_clean = self.env.action_space({"change_bus": {"substations_id": [(4, [True, True, True, False, False])]}})
+        act_sub4_clean += disco
+        assert act_sub4_clean._change_bus_vect[20]
+        assert act_sub4_clean._set_line_status[4] == -1
+        with self.assertRaises(AmbiguousAction):
+            act_sub4_clean._check_for_ambiguity()
+        act_sub4_clean.remove_line_status_from_topo(check_cooldown=False)
+        assert not act_sub4_clean._change_bus_vect[20]
+        assert act_sub4_clean._set_line_status[4] == -1
+        act_sub4_clean._check_for_ambiguity()  # does not raise        
+        
+        # limit disco when  set
+        act_sub4_clean = self.env.action_space({"set_bus": {"substations_id": [(4, [2, -1, 2, 1, 1])]}})
+        act_sub4_clean += reco
+        assert act_sub4_clean._set_topo_vect[20] == -1
+        assert act_sub4_clean._set_line_status[4] == 1
+        with self.assertRaises(AmbiguousAction):
+            act_sub4_clean._check_for_ambiguity()
+        act_sub4_clean.remove_line_status_from_topo(check_cooldown=False)       
+        assert act_sub4_clean._set_topo_vect[20] == 0
+        assert act_sub4_clean._set_line_status[4] == 1
+        act_sub4_clean._check_for_ambiguity()  # does not raise
+        
     
     
 if __name__ == "__main__":

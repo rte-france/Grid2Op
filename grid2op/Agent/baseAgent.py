@@ -10,6 +10,7 @@ import copy
 import os
 from abc import ABC, abstractmethod
 from grid2op.Space import RandomObject
+from grid2op.Observation import BaseObservation
 
 
 class BaseAgent(RandomObject, ABC):
@@ -32,7 +33,7 @@ class BaseAgent(RandomObject, ABC):
         RandomObject.__init__(self)
         self.action_space = copy.deepcopy(action_space)
 
-    def reset(self, obs):
+    def reset(self, obs: BaseObservation):
         """
         This method is called at the beginning of a new episode.
         It is implemented by agents to reset their internal state if needed.
@@ -44,7 +45,7 @@ class BaseAgent(RandomObject, ABC):
         """
         pass
 
-    def seed(self, seed):
+    def seed(self, seed: int):
         """
         This function is used to guarantee that the "pseudo random numbers" generated and used by the agent instance
         will be deterministic.
@@ -70,7 +71,7 @@ class BaseAgent(RandomObject, ABC):
         return super().seed(seed), self.action_space.seed(seed)
 
     @abstractmethod
-    def act(self, observation, reward, done=False):
+    def act(self, observation: BaseObservation, reward: float, done : bool=False):
         """
         This is the main method of an BaseAgent. Given the current observation and the current reward (ie the reward
         that the environment send to the agent after the previous action has been implemented).
@@ -110,7 +111,7 @@ class BaseAgent(RandomObject, ABC):
             The action chosen by the bot / controler / agent.
 
         """
-        pass
+        return self.action_space()
 
     def save_state(self, savestate_path :os.PathLike):  
         """

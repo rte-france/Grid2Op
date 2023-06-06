@@ -16,10 +16,11 @@ from grid2op.tests.helper_path_test import *
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
     os.path.join(PATH_CHRONICS, "test_multi_chronics")
 )
-PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
+PATH_PREVIOUS_RUNNER = os.path.join(data_test_dir, "runner_data")
 
 import grid2op
-from grid2op.Chronics import Multifolder
+from grid2op.Agent import BaseAgent
+from grid2op.Chronics import Multifolder, ChangeNothing
 from grid2op.Reward import L2RPNReward, N1Reward
 from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make
@@ -28,11 +29,18 @@ from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
 from grid2op.Episode import EpisodeData
-from grid2op.Observation import CompleteObservation
+from grid2op.Observation import BaseObservation, CompleteObservation
 
-warnings.simplefilter("error")
-
-
+    
+class AgentTestLegalAmbiguous(BaseAgent):
+    def act(self, observation: BaseObservation, reward: float, done: bool = False):
+        if observation.current_step == 1:
+            return self.action_space({"set_line_status": [(0, -1)], "change_line_status": [0]})  # ambiguous
+        if observation.current_step == 2:
+            return self.action_space({"set_line_status": [(0, -1), (1, -1)]})  # illegal
+        return super().act(observation, reward, done)
+            
+            
 class TestRunner(HelperTests):
     def setUp(self):
         self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
@@ -477,6 +485,18 @@ class TestRunner(HelperTests):
             "1.5.1",
             "1.5.1.post1",
             "1.5.2",
+            "1.6.0",
+            "1.6.0.post1",
+            "1.6.1",
+            "1.6.2",
+            "1.6.2.post1",
+            "1.6.3",
+            "1.6.4",
+            "1.6.5",
+            "1.7.0",
+            "1.7.1",
+            "1.7.2",
+            "1.8.1",
         ]
         curr_version = "test_version"
         assert (
@@ -505,7 +525,7 @@ class TestRunner(HelperTests):
 
         # check that it raises a warning if loaded on the compatibility version
         grid2op_version = backward_comp_version[0]
-        with self.assertWarns(UserWarning):
+        with self.assertWarns(UserWarning, msg=f"error for {grid2op_version}"):
             self._aux_backward(
                 PATH_PREVIOUS_RUNNER, f"res_agent_{grid2op_version}", grid2op_version
             )
@@ -546,6 +566,46 @@ class TestRunner(HelperTests):
         runner = Runner(**env.get_params_for_runner())
         runner.run(nb_episode=1, max_iter=10)
         env.close()
+
+    def test_legal_ambiguous_regular(self):            
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_case14_sandbox", test=True)   
+                     
+        runner = Runner(**env.get_params_for_runner(), agentClass=AgentTestLegalAmbiguous)
+        env.close()
+        res, *_ = runner.run(nb_episode=1, max_iter=10, add_detailed_output=True)
+        ep_data = res[-1]
+        # test the "legal" part
+        assert ep_data.legal[0]
+        assert ep_data.legal[1]
+        assert not ep_data.legal[2]
+        assert ep_data.legal[3]
+        # test the ambiguous part
+        assert not ep_data.ambiguous[0]
+        assert ep_data.ambiguous[1]
+        assert not ep_data.ambiguous[2]
+        assert not ep_data.ambiguous[3]
+
+    def test_legal_ambiguous_nofaststorage(self):            
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_case14_sandbox", test=True, chronics_class=ChangeNothing)   
+                     
+            runner = Runner(**env.get_params_for_runner(), agentClass=AgentTestLegalAmbiguous)
+            env.close()
+            res, *_ = runner.run(nb_episode=1, max_iter=10, add_detailed_output=True)
+        ep_data = res[-1]
+        # test the "legal" part
+        assert ep_data.legal[0]
+        assert ep_data.legal[1]
+        assert not ep_data.legal[2]
+        assert ep_data.legal[3]
+        # test the ambiguous part
+        assert not ep_data.ambiguous[0]
+        assert ep_data.ambiguous[1]
+        assert not ep_data.ambiguous[2]
+        assert not ep_data.ambiguous[3]
 
 
 if __name__ == "__main__":

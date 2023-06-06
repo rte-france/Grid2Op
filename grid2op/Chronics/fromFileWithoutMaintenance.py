@@ -48,6 +48,7 @@ class GridStateFromFileWithForecastsWithoutMaintenance(GridStateFromFileWithFore
         # even if there are maintenance in the environment, they will not be used.
     """
 
+    MULTI_CHRONICS = False
     def __init__(
         self,
         path,
@@ -55,6 +56,7 @@ class GridStateFromFileWithForecastsWithoutMaintenance(GridStateFromFileWithFore
         time_interval=timedelta(minutes=5),
         max_iter=-1,
         chunk_size=None,
+        h_forecast=(5, ),
     ):
         GridStateFromFileWithForecasts.__init__(
             self,
@@ -63,6 +65,7 @@ class GridStateFromFileWithForecastsWithoutMaintenance(GridStateFromFileWithFore
             time_interval=time_interval,
             max_iter=max_iter,
             chunk_size=chunk_size,
+            h_forecast=h_forecast,
         )
 
         self.n_gen = None

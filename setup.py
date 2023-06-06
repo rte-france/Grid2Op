@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import sys
 import setuptools
 from setuptools import setup
 import unittest
@@ -65,14 +66,19 @@ pkgs = {
                  "gym>=0.26"
                  ],
         "chronix2grid": [
-            "ChroniX2Grid>=1.1.0.post1"
+            "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/ramp_forecast"
             ]
     }
 }
 pkgs["extras"]["test"] += pkgs["extras"]["optional"]
 pkgs["extras"]["test"] += pkgs["extras"]["plot"]
 pkgs["extras"]["test"] += pkgs["extras"]["chronix2grid"]
-
+if sys.version_info.minor <= 7:
+    # typing "Literal" not available on python 3.7
+    pkgs["required"].append("typing_extensions")
+    pkgs["required"][3] = "pandapower>=2.2.2,<2.12"
+    # importlib provided importlib.metadata as of python 3.8
+    pkgs["required"].append("importlib_metadata")
 
 setup(description='An gym compatible environment to model sequential decision making  for powersystems',
       long_description=long_description,

@@ -32,8 +32,6 @@ from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 
-from grid2op.Backend import PandaPowerBackend
-
 
 class Environment(BaseEnv):
     """
@@ -60,8 +58,8 @@ class Environment(BaseEnv):
     spec: ``None``
         For Gym compatibility, do not use
 
-    viewer: ``object``
-        Used to display the powergrid. Currently not supported.
+    _viewer: ``object``
+        Used to display the powergrid. Currently properly supported.
 
     """
 
@@ -100,6 +98,10 @@ class Environment(BaseEnv):
         has_attention_budget=False,
         logger=None,
         kwargs_observation=None,
+        observation_bk_class=None,
+        observation_bk_kwargs=None,
+        highres_sim_counter=None,
+        _init_obs=None,
         _raw_backend_class=None,
         _compat_glop_version=None,
         _read_from_local_dir=True,  # TODO runner and all here !
@@ -132,6 +134,10 @@ class Environment(BaseEnv):
             if logger is not None
             else None,
             kwargs_observation=kwargs_observation,
+            observation_bk_class=observation_bk_class,
+            observation_bk_kwargs=observation_bk_kwargs,
+            highres_sim_counter=highres_sim_counter,
+            _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )
         if name == "unknown":
@@ -146,7 +152,7 @@ class Environment(BaseEnv):
         # self.action_space = None
         # self.observation_space = None
         self.reward_range = None
-        self.viewer = None
+        self._viewer = None
         self.metadata = None
         self.spec = None
 
@@ -169,7 +175,7 @@ class Environment(BaseEnv):
         )
         self._actionClass_orig = actionClass
         self._observationClass_orig = observationClass
-
+        
     def _init_backend(
         self,
         chronics_handler,
@@ -212,37 +218,50 @@ class Environment(BaseEnv):
                 'grid2op.Backend class, type provided is "{}"'.format(type(backend))
             )
         self.backend = backend
-        if self.backend.is_loaded:
+        if self.backend.is_loaded and self._init_obs is None:
             raise EnvError(
                 "Impossible to use the same backend twice. Please create your environment with a "
                 "new backend instance (new object)."
-            )
+            )    
+            
+        need_process_backend = False        
+        if not self.backend.is_loaded:
+            # usual case: the backend is not loaded
+            # NB it is loaded when the backend comes from an observation for
+            # example
+            if self._read_from_local_dir:
+                # test to support pickle conveniently
+                self.backend._PATH_ENV = self.get_path_env()
 
-        if self._read_from_local_dir:
-            # test to support pickle conveniently
-            self.backend._PATH_ENV = self.get_path_env()
+            # all the above should be done in this exact order, otherwise some weird behaviour might occur
+            # this is due to the class attribute
+            self.backend.set_env_name(self.name)
+            self.backend.load_grid(
+                self._init_grid_path
+            )  # the real powergrid of the environment
+            try:
+                self.backend.load_redispacthing_data(self.get_path_env())
+            except BackendError as exc_:
+                self.backend.redispatching_unit_commitment_availble = False
+                warnings.warn(f"Impossible to load redispatching data. This is not an error but you will not be able "
+                            f"to use all grid2op functionalities. "
+                            f"The error was: \"{exc_}\"")
+            self.backend.load_storage_data(self.get_path_env())
+            exc_ = self.backend.load_grid_layout(self.get_path_env())
+            if exc_ is not None:
+                warnings.warn(
+                    f"No layout have been found for you grid (or the layout provided was corrupted). You will "
+                    f'not be able to use the renderer, plot the grid etc. The error was "{exc_}"'
+                )
+            self.backend.is_loaded = True
 
-        # all the above should be done in this exact order, otherwise some weird behaviour might occur
-        # this is due to the class attribute
-        self.backend.set_env_name(self.name)
-        self.backend.load_grid(
-            self._init_grid_path
-        )  # the real powergrid of the environment
-        self.backend.load_redispacthing_data(self.get_path_env())
-        self.backend.load_storage_data(self.get_path_env())
-        exc_ = self.backend.load_grid_layout(self.get_path_env())
-        if exc_ is not None:
-            warnings.warn(
-                f"No layout have been found for you grid (or the layout provided was corrupted). You will "
-                f'not be able to use the renderer, plot the grid etc. The error was "{exc_}"'
-            )
-        self.backend.is_loaded = True
+            # alarm set up
+            self.load_alarm_data()
+            # to force the initialization of the backend to the proper type
+            self.backend.assert_grid_correct()
+            need_process_backend = True
 
-        # alarm set up
-        self.load_alarm_data()
-        # to force the initialization of the backend to the proper type
-        self.backend.assert_grid_correct()
-        self._handle_compat_glop_version()
+        self._handle_compat_glop_version(need_process_backend)
 
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
@@ -257,20 +276,10 @@ class Environment(BaseEnv):
         *_, tmp = self.backend.generators_info()
 
         # rules of the game
-        if not isinstance(legalActClass, type):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the Environment should be a type '
-                "(a class) and not an object (an instance of a class). "
-                'It is currently "{}"'.format(type(legalActClass))
-            )
-        if not issubclass(legalActClass, BaseRules):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the Environment should derived form the '
-                'grid2op.BaseRules class, type provided is "{}"'.format(
-                    type(legalActClass)
-                )
-            )
+        self._check_rules_correct(legalActClass)
+                
         self._game_rules = RulesChecker(legalActClass=legalActClass)
+        self._game_rules.initialize(self)
         self._legalActClass = legalActClass
 
         # action helper
@@ -333,6 +342,9 @@ class Environment(BaseEnv):
                     type(chronics_handler)
                 )
             )
+        if names_chronics_to_backend is None and type(self.backend).IS_BK_CONVERTER:
+            names_chronics_to_backend = self.backend.names_target_to_source
+            
         self.chronics_handler = chronics_handler
         self.chronics_handler.initialize(
             self.name_load,
@@ -357,6 +369,8 @@ class Environment(BaseEnv):
             rewardClass=rewardClass,
             env=self,
             kwargs_observation=self._kwargs_observation,
+            observation_bk_class=self._observation_bk_class,
+            observation_bk_kwargs=self._observation_bk_kwargs
         )
 
         # test to make sure the backend is consistent with the chronics generator
@@ -401,14 +415,15 @@ class Environment(BaseEnv):
             )
 
         # test the backend returns object of the proper size
-        self.backend.assert_grid_correct_after_powerflow()
+        if need_process_backend:
+            self.backend.assert_grid_correct_after_powerflow()
 
         # for gym compatibility
         self.reward_range = self._reward_helper.range()
-        self.viewer = None
+        self._viewer = None
         self.viewer_fig = None
 
-        self.metadata = {"render.modes": []}
+        self.metadata = {"render.modes": ["rgb_array"]}
         self.spec = None
 
         self.current_reward = self.reward_range[0]
@@ -458,7 +473,7 @@ class Environment(BaseEnv):
     def _helper_action_player(self):
         return self._action_space
 
-    def _handle_compat_glop_version(self):
+    def _handle_compat_glop_version(self, need_process_backend):
         if (
             self._compat_glop_version is not None
             and self._compat_glop_version != grid2op.__version__
@@ -469,7 +484,8 @@ class Environment(BaseEnv):
                 "read back data (for example with EpisodeData) that were stored with previous "
                 "grid2op version."
             )
-            self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")
+            if need_process_backend:
+                self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")
             cls_bk = type(self.backend)
             cls_bk.glop_version = self._compat_glop_version
             if cls_bk.glop_version == cls_bk.BEFORE_COMPAT_VERSION:
@@ -533,15 +549,16 @@ class Environment(BaseEnv):
                 cls_bk.set_no_storage()
                 Environment.deactivate_storage(self.backend)
 
-                # the following line must be called BEFORE "self.backend.assert_grid_correct()" !
-                self.backend.storage_deact_for_backward_comaptibility()
+                if need_process_backend:
+                    # the following line must be called BEFORE "self.backend.assert_grid_correct()" !
+                    self.backend.storage_deact_for_backward_comaptibility()
 
-                # and recomputes everything while making sure everything is consistent
-                self.backend.assert_grid_correct()
-                type(self.backend)._topo_vect_to_sub = np.repeat(
-                    np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
-                )
-                type(self.backend).grid_objects_types = new_grid_objects_types
+                    # and recomputes everything while making sure everything is consistent
+                    self.backend.assert_grid_correct()
+                    type(self.backend)._topo_vect_to_sub = np.repeat(
+                        np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
+                    )
+                    type(self.backend).grid_objects_types = new_grid_objects_types
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
@@ -767,7 +784,7 @@ class Environment(BaseEnv):
 
         """
         # Viewer already exists: skip
-        if self.viewer is not None:
+        if self._viewer is not None:
             return
 
         # Do we have the dependency
@@ -780,10 +797,10 @@ class Environment(BaseEnv):
             )
             raise Grid2OpException(err_msg) from None
 
-        self.viewer = PlotMatplot(self._observation_space)
+        self._viewer = PlotMatplot(self._observation_space)
         self.viewer_fig = None
         # Set renderer modes
-        self.metadata = {"render.modes": ["human", "silent"]}
+        self.metadata = {"render.modes": ["silent", "rgb_array"]}  # "human", 
 
     def __str__(self):
         return "<{} instance named {}>".format(type(self).__name__, self.name)
@@ -819,6 +836,9 @@ class Environment(BaseEnv):
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
                 "Available information are: {}".format(info)
             )
+            
+        # assign the right
+        self._observation_space.set_real_env_kwargs(self)
 
     def add_text_logger(self, logger=None):
         """
@@ -835,7 +855,7 @@ class Environment(BaseEnv):
         self.logger = logger
         return self
 
-    def reset(self):
+    def reset(self) -> BaseObservation:
         """
         Reset the environment to a clean state.
         It will reload the next chronics if any. And reset the grid to a clean state.
@@ -894,11 +914,15 @@ class Environment(BaseEnv):
 
         # and reset also the "simulated env" in the observation space
         self._observation_space.reset(self)
+        self._observation_space.set_real_env_kwargs(self)
 
         self._last_obs = None  # force the first observation to be generated properly
+        
+        if self._init_obs is not None:
+            self._reset_to_orig_state(self._init_obs)
         return self.get_obs()
 
-    def render(self, mode="human"):
+    def render(self, mode="rgb_array"):
         """
         Render the state of the environment on the screen, using matplotlib
         Also returns the Matplotlib figure
@@ -937,7 +961,7 @@ class Environment(BaseEnv):
             raise Grid2OpException(err_msg.format(mode, self.metadata["render.modes"]))
 
         # Render the current observation
-        fig = self.viewer.plot_obs(
+        fig = self._viewer.plot_obs(
             self.current_obs, figure=self.viewer_fig, redraw=True
         )
 
@@ -949,8 +973,10 @@ class Environment(BaseEnv):
 
         # Store to re-use the figure
         self.viewer_fig = fig
-        # Return the figure in case it needs to be saved/used
-        return self.viewer_fig
+        
+        # Return the rgb array
+        rgb_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(self._viewer.height, self._viewer.width, 3)
+        return rgb_array
 
     def _custom_deepcopy_for_copy(self, new_obj):
         super()._custom_deepcopy_for_copy(new_obj)
@@ -965,7 +991,7 @@ class Environment(BaseEnv):
         new_obj._actionClass_orig = self._actionClass_orig
         new_obj._observationClass_orig = self._observationClass_orig
 
-    def copy(self):
+    def copy(self) -> "Environment":
         """
         Performs a deep copy of the environment
 
@@ -990,7 +1016,7 @@ class Environment(BaseEnv):
         self._custom_deepcopy_for_copy(res)
         return res
 
-    def get_kwargs(self, with_backend=True):
+    def get_kwargs(self, with_backend=True, with_chronics_handler=True):
         """
         This function allows to make another Environment with the same parameters as the one that have been used
         to make this one.
@@ -1028,7 +1054,8 @@ class Environment(BaseEnv):
         res = {}
         res["init_env_path"] = self._init_env_path
         res["init_grid_path"] = self._init_grid_path
-        res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
+        if with_chronics_handler:
+            res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
             if not self.backend._can_be_copied:
                 raise RuntimeError("Impossible to get the kwargs for this "
@@ -1068,6 +1095,8 @@ class Environment(BaseEnv):
         res["_read_from_local_dir"] = self._read_from_local_dir
         res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
         res["logger"] = self.logger
+        res["observation_bk_class"] = self._observation_bk_class
+        res["observation_bk_kwargs"] = self._observation_bk_kwargs
         return res
 
     def _chronics_folder_name(self):
@@ -1678,10 +1707,81 @@ class Environment(BaseEnv):
         res["_read_from_local_dir"] = self._read_from_local_dir
         res["logger"] = self.logger
         res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
+        res["observation_bk_class"] = self._observation_bk_class
+        res["observation_bk_kwargs"] = self._observation_bk_kwargs
         res["_is_test"] = self._is_test  # TODO not implemented !!
         return res
 
-    def generate_data(self, nb_year=1, nb_core=1, seed=None):
+    @classmethod
+    def init_obj_from_kwargs(cls,
+                             other_env_kwargs,
+                             init_env_path,
+                             init_grid_path,
+                             chronics_handler,
+                             backend,
+                             parameters,
+                             name,
+                             names_chronics_to_backend,
+                             actionClass,
+                             observationClass,
+                             rewardClass,
+                             legalActClass,
+                             voltagecontrolerClass,
+                             other_rewards,
+                             opponent_space_type,
+                             opponent_action_class,
+                             opponent_class,
+                             opponent_init_budget,
+                             opponent_budget_per_ts,
+                             opponent_budget_class,
+                             opponent_attack_duration,
+                             opponent_attack_cooldown,
+                             kwargs_opponent,
+                             with_forecast,
+                             attention_budget_cls,
+                             kwargs_attention_budget,
+                             has_attention_budget,
+                             logger,
+                             kwargs_observation,
+                             observation_bk_class,
+                             observation_bk_kwargs,
+                             _raw_backend_class,
+                             _read_from_local_dir):
+        res = Environment(init_env_path=init_env_path,
+                          init_grid_path=init_grid_path,
+                          chronics_handler=chronics_handler,
+                          backend=backend,
+                          parameters=parameters,
+                          name=name,
+                          names_chronics_to_backend=names_chronics_to_backend,
+                          actionClass=actionClass,
+                          observationClass=observationClass,
+                          rewardClass=rewardClass,
+                          legalActClass=legalActClass,
+                          voltagecontrolerClass=voltagecontrolerClass,
+                          other_rewards=other_rewards,
+                          opponent_space_type=opponent_space_type,
+                          opponent_action_class=opponent_action_class,
+                          opponent_class=opponent_class,
+                          opponent_init_budget=opponent_init_budget,
+                          opponent_budget_per_ts=opponent_budget_per_ts,
+                          opponent_budget_class=opponent_budget_class,
+                          opponent_attack_duration=opponent_attack_duration,
+                          opponent_attack_cooldown=opponent_attack_cooldown,
+                          kwargs_opponent=kwargs_opponent,
+                          with_forecast=with_forecast,
+                          attention_budget_cls=attention_budget_cls,
+                          kwargs_attention_budget=kwargs_attention_budget,
+                          has_attention_budget=has_attention_budget,
+                          logger=logger,
+                          kwargs_observation=kwargs_observation,
+                          observation_bk_class=observation_bk_class,
+                          observation_bk_kwargs=observation_bk_kwargs,
+                          _raw_backend_class=_raw_backend_class,
+                          _read_from_local_dir=_read_from_local_dir)
+        return res
+    
+    def generate_data(self, nb_year=1, nb_core=1, seed=None, **kwargs):
         """This function uses the chronix2grid package to generate more data that will then
         be available locally. You need to install it independently (see https://github.com/BDonnot/ChroniX2Grid#installation
         for more information)
@@ -1729,6 +1829,8 @@ class Environment(BaseEnv):
             number of computer cores to use, by default 1.
         seed: int, optional
             If the same seed is given, then the same data will be generated.
+        **kwargs:
+            key word arguments passed to `add_data` function of `chronix2grid.grid2op_utils` module
         """
         try:
             from chronix2grid.grid2op_utils import add_data
@@ -1738,6 +1840,18 @@ class Environment(BaseEnv):
                 f"Please visit https://github.com/bdonnot/chronix2grid#installation "
                 f"for further install instructions."
             ) from exc_
+        pot_file = None
+        if self.get_path_env() is not None:
+            pot_file = os.path.join(self.get_path_env(), "chronix2grid_adddata_kwargs.json")
+        if os.path.exists(pot_file) and os.path.isfile(pot_file):
+            import json
+            with open(pot_file, "r", encoding="utf-8") as f:
+                kwargs_default = json.load(f)
+            for el in kwargs_default:
+                if not el in kwargs:
+                    kwargs[el] = kwargs_default[el]
+        # TODO logger here for the kwargs used (including seed=seed, nb_scenario=nb_year, nb_core=nb_core)
         add_data(
-            env=self, seed=seed, nb_scenario=nb_year, nb_core=nb_core, with_loss=True
+            env=self, seed=seed, nb_scenario=nb_year, nb_core=nb_core,
+            **kwargs
         )

@@ -11,7 +11,7 @@ import numpy as np
 from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
-from grid2op.dtypes import dt_float, dt_int
+from grid2op.dtypes import dt_float, dt_int, int_types
 
 
 class IdToAct(Converter):
@@ -453,7 +453,7 @@ class IdToAct(Converter):
 
         """
         res = gymlike_action["action"]
-        if not isinstance(res, (int, dt_int, np.int, np.int64)):
+        if not isinstance(res, int_types):
             raise RuntimeError("TODO")
         return int(res)
 

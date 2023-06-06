@@ -86,6 +86,7 @@ class MakeBackend(ABC):
 
 class BaseTestNames(MakeBackend):
     def test_properNames(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         path = self.get_path()
 
@@ -94,11 +95,11 @@ class BaseTestNames(MakeBackend):
             with make(
                 os.path.join(path, "5bus_example_diff_name"),
                 backend=backend,
-                _add_to_name="BaseTestNames",
+                _add_to_name="_BaseTestNames",
             ) as env:
                 obs = env.reset()
-                assert np.all(obs.name_load == ["tutu", "toto", "tata"])
-                assert np.all(env.name_load == ["tutu", "toto", "tata"])
+                assert np.all(type(obs).name_load == ["tutu", "toto", "tata"])
+                assert np.all(type(env).name_load == ["tutu", "toto", "tata"])
 
 
 class BaseTestLoadingCase(MakeBackend):
@@ -1438,6 +1439,7 @@ class BaseTestTopoAction(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make(
+                "rte_case14_realistic",
                 test=True,
                 backend=self.make_backend(),
                 _add_to_name="test_update_from_obs",
@@ -1867,7 +1869,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend)
         env.reset()
         action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
         obs, reward, done, info = env.step(action)
@@ -1882,7 +1884,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -1896,7 +1898,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -1917,7 +1919,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend)
         act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
         obs, reward, done, info = env.step(act)
         assert done, "an isolated load has not lead to a game over"
@@ -2084,6 +2086,15 @@ class BaseTestShuntAction(MakeBackend):
                 backend=backend2,
                 _add_to_name="BaseTestShuntAction",
             )
+            param = env_ref.parameters
+            param.NO_OVERFLOW_DISCONNECTION = True
+            env_ref.change_parameters(param)
+            env_change_q.change_parameters(param)
+            env_ref.set_id(0)
+            env_change_q.set_id(0)
+            env_ref.reset()
+            env_change_q.reset()
+            
         obs_ref, *_ = env_ref.step(env_ref.action_space())
         with warnings.catch_warnings():
             warnings.filterwarnings("error")
@@ -2100,6 +2111,33 @@ class BaseTestShuntAction(MakeBackend):
         )
         # given the shunt amount at first, this is the right test to do
         assert obs_ref.v_or[10] > obs_disco_sh.v_or[10] + self.tol_one
+        
+        # test specific rule on shunt: if alone on a bus, it's disconnected ???
+        obs_co_bus2_sh_alone, *_ = env_change_q.step(
+            env_change_q.action_space({"shunt": {"set_bus": [(0, 2)]}})
+        )
+        assert obs_co_bus2_sh_alone._shunt_bus == -1
+        assert obs_co_bus2_sh_alone._shunt_v == 0.
+        assert obs_co_bus2_sh_alone._shunt_p == 0
+        assert obs_co_bus2_sh_alone._shunt_q == 0
+        
+        # note that above the backend can diverge (shunt is alone on its bus !)
+        # on pp it does not ... but it probably should
+        env_ref.set_id(0)
+        env_change_q.set_id(0)
+        env_ref.reset()
+        env_change_q.reset()
+        act = env_change_q.action_space({"set_bus": {"lines_or_id": [(10, 2)]}, 
+                                         "shunt": {"set_bus": [(0, 2)]}
+                                         })
+        
+        obs_co_bus2_sh_notalone, *_ = env_change_q.step(act)
+        assert obs_co_bus2_sh_notalone.line_or_bus[10] == 2
+        assert np.allclose(obs_co_bus2_sh_notalone.v_or[10], 23.15359878540039)
+        assert obs_co_bus2_sh_notalone._shunt_bus == 2
+        assert np.allclose(obs_co_bus2_sh_notalone._shunt_v, 23.15359878540039)
+        assert obs_co_bus2_sh_notalone._shunt_p == 0
+        assert obs_co_bus2_sh_notalone._shunt_q == -25.464233
 
 
 class BaseTestResetEqualsLoadGrid(MakeBackend):

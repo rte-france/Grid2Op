@@ -131,7 +131,8 @@ everywhere). This includes, but is not limited to:
 Main methods to implement
 --------------------------
 Typically, a backend has a internal "modeling" / "representation" of the powergrid
-stored in the attribute `self._grid` that can be anything.
+stored in the attribute `self._grid` that can be anything. An more detailed example, with some
+"working minimal code" is given in the "example/backend_integration" of the grid2op repository.
 
 There are 4 **__main__** types of method you need to implement if you want to use a custom powerflow
 (*eg* from a physical solver, from a neural network, or any other methods):

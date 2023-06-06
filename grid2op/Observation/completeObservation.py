@@ -86,21 +86,20 @@ class CompleteObservation(BaseObservation):
         35. :attr:`BaseObservation.curtailment` : the current curtailment applied
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         36. :attr:`BaseObservation.is_alarm_illegal` whether the last alarm has been illegal (due to budget
-            constraint) [``bool``]
+            constraint), warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ [``bool``]
         37. :attr:`BaseObservation.curtailment_limit` : the current curtailment limit (if any)
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         38. :attr:`BaseObservation.time_since_last_alarm` number of step since the last alarm has been raised
-            successfully [``int``]
+            successfully (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ ) [``int``]
         39. :attr:`BaseObservation.last_alarm` : for each alarm zone, gives the last step at which an alarm has
-            been successfully raised at this zone
+            been successfully raised at this zone (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
             [:attr:`grid2op.Space.GridObjects.dim_alarms` elements]
         40. :attr:`BaseObservation.attention_budget` : the current attention budget
             [``int``]
         41. :attr:`BaseObservation.was_alarm_used_after_game_over` : was the last alarm used to compute anything related
             to the attention budget when there was a game over (can only be set to ``True`` if the observation
-            corresponds to a game over)
+            corresponds to a game over), warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ 
             [``bool``]
-
     """
 
     attr_list_vect = [
@@ -167,10 +166,18 @@ class CompleteObservation(BaseObservation):
     ]
     attr_list_set = set(attr_list_vect)
 
-    def __init__(self, obs_env=None, action_helper=None, random_prng=None):
+    def __init__(self,
+                 obs_env=None,
+                 action_helper=None,
+                 random_prng=None,
+                 kwargs_env=None):
 
         BaseObservation.__init__(
-            self, obs_env=obs_env, action_helper=action_helper, random_prng=random_prng
+            self,
+            obs_env=obs_env,
+            action_helper=action_helper,
+            random_prng=random_prng,
+            kwargs_env=kwargs_env
         )
         self._dictionnarized = None
 

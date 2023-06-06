@@ -1,4 +1,5 @@
 __all__ = [
+    "handlers",
     "ChronicsHandler",
     "GridValue",
     "ChangeNothing",
@@ -8,9 +9,9 @@ __all__ = [
     "GridStateFromFileWithForecasts",
     "GridStateFromFileWithForecastsWithMaintenance",
     "GridStateFromFileWithForecastsWithoutMaintenance",
-    "ReadPypowNetData",
     "FromNPY",
-    "FromChronix2grid"
+    "FromChronix2grid",
+    "FromHandlers"
 ]
 
 from grid2op.Chronics.chronicsHandler import ChronicsHandler
@@ -21,7 +22,6 @@ from grid2op.Chronics.gridStateFromFileWithForecasts import (
     GridStateFromFileWithForecasts,
 )
 from grid2op.Chronics.multiFolder import Multifolder
-from grid2op.Chronics.readPypowNetData import ReadPypowNetData
 from grid2op.Chronics.GSFFWFWM import GridStateFromFileWithForecastsWithMaintenance
 from grid2op.Chronics.fromFileWithoutMaintenance import (
     GridStateFromFileWithForecastsWithoutMaintenance,
@@ -29,3 +29,4 @@ from grid2op.Chronics.fromFileWithoutMaintenance import (
 from grid2op.Chronics.multifolderWithCache import MultifolderWithCache
 from grid2op.Chronics.fromNPY import FromNPY
 from grid2op.Chronics.fromChronix2grid import FromChronix2grid
+from grid2op.Chronics.time_series_from_handlers import FromHandlers

@@ -6,10 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import sys
 import unittest
-import numpy as np
 import pdb
 import warnings
 import numbers
@@ -19,10 +16,11 @@ import grid2op
 from grid2op.tests.helper_path_test import *
 from grid2op.Reward import *
 from grid2op.MakeEnv import make
+from grid2op.Parameters import Parameters
+from grid2op.Runner import Runner
+from grid2op.Agent import BaseAgent
 
 import warnings
-
-warnings.simplefilter("error")
 
 
 class TestLoadingReward(ABC):
@@ -261,10 +259,11 @@ class TestN1Reward(unittest.TestCase):
 
         obs = env.reset()
         obs, reward, *_ = env.step(env.action_space())
+        # obs._obs_env._reward_helper.template_reward._DEBUG = True
         obs_n1, *_ = obs.simulate(
             env.action_space({"set_line_status": [(L_ID, -1)]}), time_step=0
         )
-
+        assert obs_n1.rho[L_ID] == 0  # line should have been disconnected
         assert (
             abs(reward - obs_n1.rho.max()) <= 1e-5
         ), "the correct reward has not been computed"
@@ -288,6 +287,88 @@ class TestN1Reward(unittest.TestCase):
             ), f"the correct reward has not been computed for line {l_id}"
         env.close()
 
+
+class TMPRewardForTest(BaseReward):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+        if is_done:
+            assert not has_error
+        return super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
+
+
+class ErrorAgent(BaseAgent):
+    def act(self, observation, reward, done=False):
+        if observation.current_step == 9:
+            return self.action_space({"set_bus": {"loads_id": [(0, -1)]}})  # force a game over
+        return super().act(observation, reward, done)
+    
+    
+class TestEndOfEpisode(unittest.TestCase):
+    """test the appropriate flags at the end of an episode"""
+    def setUp(self) -> None:
+        param = Parameters()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, reward_class=TMPRewardForTest)
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_ok_end_of_episode(self):
+        # done = False
+        # i = 0
+        # while not done:
+        #     obs, reward, done, info = self.env.step(self.env.action_space())
+        #     i += 1
+        # assert i == 575, f"{i = } vs 575"
+        # above passed and took more than 30s
+        
+        self.env.set_max_iter(10)
+        # episode goes until the end, no error is raised
+        self.env.reset()
+        done = False
+        i = 0
+        while not done:
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        assert i == 10, f"{i = } vs 10"
+        
+        # agent does a game over, the reward should raise an error
+        self.env.reset()
+        done = False
+        i = 0
+        while i <= 1:
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        with self.assertRaises(AssertionError):
+            obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"loads_id": [(0, -1)]}}))
+        
+        # agent does a game over at last step, the reward should raise an error
+        self.env.reset()
+        done = False
+        i = 0
+        while i <= 8:
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        with self.assertRaises(AssertionError):
+            obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"loads_id": [(0, -1)]}}))
+    
+    def test_runner(self):
+        runner = Runner(**self.env.get_params_for_runner())
+        res = runner.run(nb_episode=1, max_iter=10)
+        assert res[0][3] == 10
+        
+        runner = Runner(**self.env.get_params_for_runner(),
+                        agentClass=ErrorAgent)
+        # error before last observation
+        with self.assertRaises(AssertionError):
+            res = runner.run(nb_episode=1, max_iter=11)
+        # error just at last observation
+        with self.assertRaises(AssertionError):
+            res = runner.run(nb_episode=1, max_iter=10)
+        # no error
+        res = runner.run(nb_episode=1, max_iter=9)
 
 if __name__ == "__main__":
     unittest.main()

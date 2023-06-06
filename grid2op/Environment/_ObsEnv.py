@@ -8,6 +8,7 @@
 
 import copy
 import numpy as np
+import warnings
 from grid2op.Exceptions.EnvExceptions import EnvError
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -63,11 +64,13 @@ class _ObsEnv(BaseEnv):
         epsilon_poly,
         tol_poly,
         max_episode_duration,
+        delta_time_seconds,
         other_rewards={},
         has_attention_budget=False,
         attention_budget_cls=LinearAttentionBudget,
         kwargs_attention_budget={},
         logger=None,
+        highres_sim_counter=None,
         _complete_action_cls=None,
         _ptr_orig_obs_space=None,
     ):
@@ -85,6 +88,7 @@ class _ObsEnv(BaseEnv):
             kwargs_attention_budget=kwargs_attention_budget,
             kwargs_observation=None,
             logger=logger,
+            highres_sim_counter=highres_sim_counter
         )
         self.__unusable = False  # unsuable if backend cannot be copied
         
@@ -94,26 +98,18 @@ class _ObsEnv(BaseEnv):
         # initialize the observation space
         self._obsClass = None
 
-        self.gen_activeprod_t_init = np.zeros(self.n_gen, dtype=dt_float)
-        self.gen_activeprod_t_redisp_init = np.zeros(self.n_gen, dtype=dt_float)
-        self.times_before_line_status_actionable_init = np.zeros(
-            self.n_line, dtype=dt_int
-        )
-        self.times_before_topology_actionable_init = np.zeros(self.n_sub, dtype=dt_int)
-        self.time_next_maintenance_init = np.zeros(self.n_line, dtype=dt_int)
-        self.duration_next_maintenance_init = np.zeros(self.n_line, dtype=dt_int)
-        self.target_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
-        self.actual_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
-        self._already_modified_gen_init = np.zeros(self.n_gen, dtype=dt_float)
-
         # line status (inherited from BaseEnv)
         self._line_status = np.full(self.n_line, dtype=dt_bool, fill_value=True)
         # line status (for this usage)
         self._line_status_me = np.ones(
             shape=self.n_line, dtype=dt_int
         )  # this is "line status" but encode in +1 / -1
-        self._line_status_orig = np.ones(shape=self.n_line, dtype=dt_int)
 
+        if self._thermal_limit_a is None:
+            self._thermal_limit_a = 1.0 * thermal_limit_a.astype(dt_float)
+        else:
+            self._thermal_limit_a[:] = thermal_limit_a
+        
         self._init_backend(
             chronics_handler=_ObsCH(),
             backend=backend_instanciated,
@@ -124,6 +120,7 @@ class _ObsEnv(BaseEnv):
             legalActClass=legalActClass,
         )
 
+        self.delta_time_seconds = delta_time_seconds
         ####
         # to be able to save and import (using env.generate_classes) correctly
         self._actionClass = action_helper.subtype
@@ -132,17 +129,12 @@ class _ObsEnv(BaseEnv):
         self._action_space = (
             action_helper  # obs env and env share the same action space
         )
-        self._observation_space = (
-            action_helper  # not used here, so it's definitely a hack !
-        )
+        
         self._ptr_orig_obs_space = _ptr_orig_obs_space
         ####
 
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
-
-        self._load_p, self._load_q, self._load_v = None, None, None
-        self._prod_p, self._prod_q, self._prod_v = None, None, None
-        self._topo_vect = None
+        self._topo_vect = np.zeros(type(backend_instanciated).dim_topo, dtype=dt_int)
 
         # other stuff
         self.is_init = False
@@ -154,50 +146,6 @@ class _ObsEnv(BaseEnv):
             self._backend_action_set = None
         else:
             self._backend_action_set = self._backend_action_class()
-
-        # opponent
-        self.opp_space_state = None
-        self.opp_state = None
-
-        # storage
-        self._storage_current_charge_init = None
-        self._storage_previous_charge_init = None
-        self._action_storage_init = None
-        self._amount_storage_init = None
-        self._amount_storage_prev_init = None
-        self._storage_power_init = None
-
-        # storage unit
-        if self.__unusable:
-            self._storage_current_charge_init = np.zeros(0, dtype=dt_float)
-            self._storage_previous_charge_init = np.zeros(0, dtype=dt_float)
-            self._action_storage_init = np.zeros(0, dtype=dt_float)
-            self._storage_power_init = np.zeros(0, dtype=dt_float)
-        else:
-            self._storage_current_charge_init = np.zeros(self.n_storage, dtype=dt_float)
-            self._storage_previous_charge_init = np.zeros(self.n_storage, dtype=dt_float)
-            self._action_storage_init = np.zeros(self.n_storage, dtype=dt_float)
-            self._storage_power_init = np.zeros(self.n_storage, dtype=dt_float)
-            
-        self._amount_storage_init = 0.0
-        self._amount_storage_prev_init = 0.0
-            
-
-        # curtailment
-        if self.__unusable:
-            self._limit_curtailment_init = np.zeros(0, dtype=dt_float)
-            self._gen_before_curtailment_init = np.zeros(0, dtype=dt_float)
-        else:
-            self._limit_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
-            self._gen_before_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
-        self._sum_curtailment_mw_init = 0.0
-        self._sum_curtailment_mw_prev_init = 0.0
-
-        # step count
-        self._nb_time_step_init = 0
-
-        # alarm / attention budget
-        self._attention_budget_state_init = None
 
         if self.__unusable:
             self._disc_lines = np.zeros(shape=0, dtype=dt_int) - 1
@@ -232,19 +180,23 @@ class _ObsEnv(BaseEnv):
         self.chronics_handler = chronics_handler
         self.backend = backend
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
-
-        if not issubclass(legalActClass, BaseRules):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the Environment should derived form the '
-                'grid2op.BaseRules class, type provided is "{}"'.format(
-                    type(legalActClass)
-                )
-            )
+        
+        self._check_rules_correct(legalActClass)
         self._game_rules = RulesChecker(legalActClass=legalActClass)
+        self._game_rules.initialize(self)
         self._legalActClass = legalActClass
         # self._action_space = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
 
+        from grid2op.Observation import ObservationSpace
+        from grid2op.Reward import FlatReward
+        ob_sp_cls = ObservationSpace.init_grid(backend)
+        self._observation_space = ob_sp_cls(backend,
+                                            env=self,
+                                            with_forecast=False,
+                                            rewardClass=FlatReward,
+                                            _with_obs_env=False)
+        
         # create the opponent
         self._create_opponent()
 
@@ -305,13 +257,27 @@ class _ObsEnv(BaseEnv):
                            "environment that cannot be copied.")
         backend = self.backend
         self.backend = None
-        res = copy.deepcopy(self)
-        res.backend = backend.copy()
+        _highres_sim_counter = self._highres_sim_counter
+        self._highres_sim_counter = None
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            res = copy.deepcopy(self)
+            res.backend = backend.copy()
+        res._highres_sim_counter = _highres_sim_counter
         self.backend = backend
+        self._highres_sim_counter = _highres_sim_counter
         return res
 
+    def _reset_to_orig_state(self, obs):
+        super()._reset_to_orig_state(obs)
+        self._line_status_me[:] = obs._env_internal_params["_line_status_env"]
+        
     def init(
-        self, new_state_action, time_stamp, timestep_overflow, topo_vect, time_step=1
+        self,
+        new_state_action,
+        time_stamp,
+        obs,
+        time_step=1
     ):
         """
         INTERNAL
@@ -342,59 +308,66 @@ class _ObsEnv(BaseEnv):
         if self.__unusable:
             raise EnvError("Impossible to use a Observation backend with an "
                            "environment that cannot be copied.")
-            
-        self._reset_to_orig_state()
-        self._reset_vect()
-        self._topo_vect[:] = topo_vect
-        # TODO update maintenance time, duration and cooldown accordingly (see all todos in `update_grid`)
-
-        # update the cooldowns (see issue https://github.com/rte-france/Grid2Op/issues/374)
-        tmp_ = self._times_before_line_status_actionable
-        tmp_[tmp_ > 0] += time_step
-        tmp_ = self._times_before_topology_actionable
-        tmp_[tmp_ > 0] += time_step
         
-        # TODO set the shunts here
-        # update the action that set the grid to the real value
-        (
-            still_in_maintenance,
-            reconnected,
-            first_ts_maintenance,
-        ) = self._update_vector_with_timestep(time_step)
-        if np.any(first_ts_maintenance):
-            set_status = np.array(self._line_status_me, dtype=dt_int)
-            set_status[first_ts_maintenance] = -1
-            topo_vect = np.array(self._topo_vect, dtype=dt_int)
-            topo_vect[self.line_or_pos_topo_vect[first_ts_maintenance]] = -1
-            topo_vect[self.line_ex_pos_topo_vect[first_ts_maintenance]] = -1
+        self.reset()  # reset the "BaseEnv"
+        self._reset_to_orig_state(obs)
+        self._topo_vect[:] = obs.topo_vect
+        
+        if time_step >= 1:
+            is_overflow = obs.rho > 1.
+            
+            # handle the components that depends on the time
+            (
+                still_in_maintenance,
+                reconnected,
+                first_ts_maintenance,
+            ) = self._update_vector_with_timestep(time_step, is_overflow)
+            if np.any(first_ts_maintenance):
+                set_status = np.array(self._line_status_me, dtype=dt_int)
+                set_status[first_ts_maintenance] = -1
+                topo_vect = np.array(self._topo_vect, dtype=dt_int)
+                topo_vect[self.line_or_pos_topo_vect[first_ts_maintenance]] = -1
+                topo_vect[self.line_ex_pos_topo_vect[first_ts_maintenance]] = -1
+            else:
+                set_status = self._line_status_me
+                topo_vect = self._topo_vect
+            
+            if np.any(still_in_maintenance):
+                set_status[still_in_maintenance] = -1
+                topo_vect = np.array(self._topo_vect, dtype=dt_int)
+                topo_vect[self.line_or_pos_topo_vect[still_in_maintenance]] = -1
+                topo_vect[self.line_ex_pos_topo_vect[still_in_maintenance]] = -1
         else:
             set_status = self._line_status_me
             topo_vect = self._topo_vect
-
+            
+        # TODO set the shunts here
+        # update the action that set the grid to the real value
         self._backend_action_set += self._helper_action_env(
             {
                 "set_line_status": set_status,
                 "set_bus": topo_vect,
                 "injection": {
-                    "prod_p": self._prod_p,
-                    "prod_v": self._prod_v,
-                    "load_p": self._load_p,
-                    "load_q": self._load_q,
+                    "prod_p": obs.gen_p,
+                    "prod_v": obs.gen_v,
+                    "load_p": obs.load_p,
+                    "load_q": obs.load_q,
                 },
             }
         )
         self._backend_action_set += new_state_action
         # for storage unit
         self._backend_action_set.storage_power.values[:] = 0.0
-
+        self._backend_action_set.all_changed()
+        self._backend_action = copy.deepcopy(self._backend_action_set)
+        
         # for curtailment
         if self._env_modification is not None:
             self._env_modification._dict_inj = {}
-
+        
         self.is_init = True
         self.current_obs.reset()
         self.time_stamp = time_stamp
-        self._timestep_overflow[:] = timestep_overflow
 
     def _get_new_prod_setpoint(self, action):
         new_p = 1.0 * self._backend_action_set.prod_p.values
@@ -412,102 +385,12 @@ class _ObsEnv(BaseEnv):
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
 
-    def _update_vector_with_timestep(self, time_step):
-        """
-        INTERNAL
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-        update the value of the "time dependant" attributes
-        """
-        self._times_before_line_status_actionable[:] = np.maximum(
-            self._times_before_line_status_actionable - time_step, 0
-        )
-        self._times_before_topology_actionable[:] = np.maximum(
-            self._times_before_topology_actionable - time_step, 0
-        )
-
-        still_in_maintenance = (self._duration_next_maintenance > time_step) & (
-            self._time_next_maintenance == 0
-        )
-        reconnected = (self._duration_next_maintenance <= time_step) & (
-            self._time_next_maintenance == 0
-        )
-        first_ts_maintenance = self._time_next_maintenance == time_step
-
-        # powerline that are still in maintenance at this time step
-        self._time_next_maintenance[still_in_maintenance] = 0
-        self._duration_next_maintenance[still_in_maintenance] -= time_step
-
-        # powerline that will be in maintenance at this time step
-        self._time_next_maintenance[first_ts_maintenance] = 0
-        self._duration_next_maintenance[first_ts_maintenance] -= time_step
-
-        # powerline that won't be in maintenance at this time step
-        self._time_next_maintenance[reconnected] = -1
-        self._duration_next_maintenance[reconnected] = 0
-        return still_in_maintenance, reconnected, first_ts_maintenance
-
     def reset(self):
         if self.__unusable:
             raise EnvError("Impossible to use a Observation backend with an "
                            "environment that cannot be copied.")
         super().reset()
         self.current_obs = self.current_obs_init
-
-    def _reset_vect(self):
-        self._gen_activeprod_t[:] = self.gen_activeprod_t_init
-        self._gen_activeprod_t_redisp[:] = self.gen_activeprod_t_redisp_init
-        self._times_before_line_status_actionable[
-            :
-        ] = self.times_before_line_status_actionable_init
-        self._times_before_topology_actionable[
-            :
-        ] = self.times_before_topology_actionable_init
-        self._time_next_maintenance[:] = self.time_next_maintenance_init
-        self._duration_next_maintenance[:] = self.duration_next_maintenance_init
-        self._target_dispatch[:] = self.target_dispatch_init
-        self._actual_dispatch[:] = self.actual_dispatch_init
-        self._already_modified_gen[:] = self._already_modified_gen_init
-
-    def _reset_to_orig_state(self):
-        """
-        INTERNAL
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-        reset this "environment" to the state it should be
-        """
-        self.reset()  # reset the "BaseEnv"
-        self.backend.set_thermal_limit(self._thermal_limit_a)
-        self._backend_action_set.all_changed()
-        self._backend_action = copy.deepcopy(self._backend_action_set)
-        self._oppSpace._set_state(self.opp_space_state, self.opp_state)
-
-        # storage unit
-        self._storage_current_charge[:] = self._storage_current_charge_init
-        self._storage_previous_charge[:] = self._storage_previous_charge_init
-        self._action_storage[:] = self._action_storage_init
-        self._storage_power[:] = self._storage_power_init
-        self._amount_storage = self._amount_storage_init
-        self._amount_storage_prev = self._amount_storage_prev_init
-
-        # curtailment
-        self._limit_curtailment[:] = self._limit_curtailment_init
-        self._gen_before_curtailment[:] = self._gen_before_curtailment_init
-        self._sum_curtailment_mw = self._sum_curtailment_mw_init
-        self._sum_curtailment_mw_prev = self._sum_curtailment_mw_prev_init
-
-        # current step
-        self.nb_time_step = self._nb_time_step_init
-
-        # line status
-        self._line_status[:] = self._line_status_orig == 1
-        self._line_status_me[:] = 1 * self._line_status_orig
-
-        # attention budget
-        if self._has_attention_budget:
-            self._attention_budget.set_state(self._attention_budget_state_init)
 
     def simulate(self, action):
         """
@@ -557,10 +440,9 @@ class _ObsEnv(BaseEnv):
                            "environment that cannot be copied.")
         self._ptr_orig_obs_space.simulate_called()
         maybe_exc = self._ptr_orig_obs_space.can_use_simulate()
+        self._highres_sim_counter.add_one()
         if maybe_exc is not None:
             raise maybe_exc
-        self._reset_to_orig_state()
-        
         obs, reward, done, info = self.step(action)
         return obs, reward, done, info
 
@@ -604,67 +486,8 @@ class _ObsEnv(BaseEnv):
         if self.__unusable:
             raise EnvError("Impossible to use a Observation backend with an "
                            "environment that cannot be copied.")
-        real_backend = env.backend
-
-        self._load_p, self._load_q, self._load_v = real_backend.loads_info()
-        self._prod_p, self._prod_q, self._prod_v = real_backend.generators_info()
-        self._topo_vect = real_backend.get_topo_vect()
-
-        # convert line status to -1 / 1 instead of false / true
-        self._line_status_orig[:] = env.get_current_line_status().astype(
-            dt_int
-        )  # false -> 0 true -> 1
-        self._line_status_orig *= 2  # false -> 0 true -> 2
-        self._line_status_orig -= 1  # false -> -1; true -> 1
         self.is_init = False
-
-        # Make a copy of env state for simulation
-        # TODO this depends on the datetime simulated, so find a way to have it independant of that !!!
-        if self._thermal_limit_a is None:
-            self._thermal_limit_a = 1.0 * env._thermal_limit_a.astype(dt_float)
-        else:
-            self._thermal_limit_a[:] = env._thermal_limit_a.astype(dt_float)
-        self.gen_activeprod_t_init[:] = env._gen_activeprod_t
-        self.gen_activeprod_t_redisp_init[:] = env._gen_activeprod_t_redisp
-        self.times_before_line_status_actionable_init[
-            :
-        ] = env._times_before_line_status_actionable
-        self.times_before_topology_actionable_init[
-            :
-        ] = env._times_before_topology_actionable
-        self.time_next_maintenance_init[:] = env._time_next_maintenance
-        self.duration_next_maintenance_init[:] = env._duration_next_maintenance
-        self.target_dispatch_init[:] = env._target_dispatch
-        self.actual_dispatch_init[:] = env._actual_dispatch
-        self._already_modified_gen_init[:] = env._already_modified_gen
-        self.opp_space_state, self.opp_state = env._oppSpace._get_state()
-
-        # storage units
-        # TODO this is not time independant... i set up the previous charge of the obs env to be
-        # set current charge of the simulated env on purpose
-        self._storage_current_charge_init[:] = env._storage_current_charge
-        self._storage_previous_charge_init[:] = env._storage_previous_charge
-        self._action_storage_init[:] = env._action_storage
-        self._amount_storage_init = env._amount_storage
-        self._amount_storage_prev_init = env._amount_storage_prev
-        self._storage_power_init[:] = env._storage_power
-
-        # curtailment
-        self._limit_curtailment_init[:] = env._limit_curtailment
-        self._gen_before_curtailment_init[:] = env._gen_before_curtailment
-        self._sum_curtailment_mw_init = env._sum_curtailment_mw
-        self._sum_curtailment_mw_prev_init = env._sum_curtailment_mw_prev
-
-        # time delta
-        self.delta_time_seconds = env.delta_time_seconds
-
-        # current time
-        self._nb_time_step_init = env.nb_time_step
-
-        # attention budget
-        if self._has_attention_budget:
-            self._attention_budget_state_init = env._attention_budget.get_state()
-
+        
     def get_current_line_status(self):
         if self.__unusable:
             raise EnvError("Impossible to use a Observation backend with an "
@@ -683,39 +506,8 @@ class _ObsEnv(BaseEnv):
         # clean all the attributes
         for attr_nm in [
             "_obsClass",
-            "gen_activeprod_t_init",
-            "gen_activeprod_t_redisp_init",
-            "times_before_line_status_actionable_init",
-            "times_before_topology_actionable_init",
-            "time_next_maintenance_init",
-            "duration_next_maintenance_init",
-            "target_dispatch_init",
             "_line_status",
             "_line_status_me",
-            "_line_status_orig",
-            "_load_p",
-            "_load_q",
-            "_load_v",
-            "_prod_p",
-            "_prod_q",
-            "_prod_v",
-            "_topo_vect",
-            "opp_space_state",
-            "opp_state",
-            "_storage_current_charge_init",
-            "_storage_previous_charge_init",
-            "_action_storage_init",
-            "_amount_storage_init",
-            "_amount_storage_prev_init",
-            "_storage_power_init",
-            "_storage_current_charge_init",
-            "_storage_previous_charge_init",
-            "_limit_curtailment_init",
-            "_gen_before_curtailment_init",
-            "_sum_curtailment_mw_init",
-            "_sum_curtailment_mw_prev_init",
-            "_nb_time_step_init",
-            "_attention_budget_state_init",
             "_max_episode_duration",
             "_ptr_orig_obs_space",
         ]:

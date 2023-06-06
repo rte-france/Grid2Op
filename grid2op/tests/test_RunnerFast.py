@@ -7,16 +7,13 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
-import tempfile
-import json
-import pdb
 
 from grid2op.tests.helper_path_test import *
 
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
     os.path.join(PATH_CHRONICS, "test_multi_chronics")
 )
-PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
+PATH_PREVIOUS_RUNNER = os.path.join(data_test_dir, "runner_data")
 
 import grid2op
 from grid2op.MakeEnv import make
@@ -58,7 +55,7 @@ class TestRunner(HelperTests):
     def test_one_episode(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            _, cum_reward, timestep, episode_data = self.runner.run_one_episode(
+            _, cum_reward, timestep, max_ts = self.runner.run_one_episode(
             max_iter=self.max_iter
         )
         assert int(timestep) == self.max_iter
@@ -67,7 +64,7 @@ class TestRunner(HelperTests):
     def test_one_episode_detailed(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            _, cum_reward, timestep, episode_data = self.runner.run_one_episode(
+            _, cum_reward, timestep, max_ts, episode_data = self.runner.run_one_episode(
             max_iter=self.max_iter, detailed_output=True
         )
         assert int(timestep) == self.max_iter

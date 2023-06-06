@@ -22,6 +22,7 @@ from abc import ABC, abstractmethod
 from grid2op.Action.ActionSpace import ActionSpace
 from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Observation.observationSpace import ObservationSpace
+from grid2op.Observation.highresSimCounter import HighResSimCounter
 from grid2op.Backend import Backend
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects, RandomObject
@@ -35,6 +36,9 @@ from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Action._BackendAction import _BackendAction
+from grid2op.Chronics import ChronicsHandler
+from grid2op.Rules import AlwaysLegal, BaseRules
+
 
 # TODO put in a separate class the redispatching function
 
@@ -124,7 +128,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     reward_range: ``tuple``
         For open ai gym compatibility. It represents the range of the rewards: reward min, reward max
 
-    viewer:
+    _viewer:
         For open ai gym compatibility.
 
     viewer_fig:
@@ -225,6 +229,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     """
 
     ALARM_FILE_NAME = "alerts_info.json"
+    CAN_SKIP_TS = False  # each step is exactly one time step
 
     def __init__(
         self,
@@ -251,7 +256,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         kwargs_attention_budget: dict = None,
         logger: Optional[logging.Logger] = None,
         kwargs_observation: Optional[dict] = None,
+        observation_bk_class=None,  # type of backend for the observation space
+        observation_bk_kwargs=None,  # type of backend for the observation space
+        highres_sim_counter=None,
         _is_test: bool = False,  # TODO not implemented !!
+        _init_obs: Optional[BaseObservation] =None
     ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
@@ -289,6 +298,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         parameters.check_valid()  # check the provided parameters are valid
         self._parameters: Parameters = copy.deepcopy(parameters)
         self.with_forecast: bool = with_forecast
+        self._forecasts = None
 
         # some timers
         self._time_apply_act: float = dt_float(0)
@@ -313,7 +323,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.delta_time_seconds = None  # number of seconds between two consecutive step
 
         # observation
-        self.current_obs: BaseObservation = None
+        self.current_obs: Optional[BaseObservation] = None
         self._line_status: np.ndarray = None
 
         self._ignore_min_up_down_times: bool = self._parameters.IGNORE_MIN_UP_DOWN_TIME
@@ -372,7 +382,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.done = False
         self.current_reward = None
         self._helper_action_env: ActionSpace = None
-        self.chronics_handler = None
+        self.chronics_handler : ChronicsHandler = None
         self._game_rules = None
         self._action_space: ActionSpace = None
 
@@ -386,7 +396,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # gym compatibility
         self.reward_range = None, None
-        self.viewer = None
+        self._viewer = None
         self.viewer_fig = None
 
         # other rewards
@@ -490,7 +500,30 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._init_env_path = os.path.abspath(init_env_path)
         else:
             self._init_env_path = None
-
+            
+        # time_dependant attributes for the "forecast env"
+        if _init_obs is not None:
+            self._init_obs = _init_obs.copy()
+            self._init_obs._obs_env = None
+        else:
+            self._init_obs = None
+            
+        self._observation_bk_class = observation_bk_class
+        self._observation_bk_kwargs = observation_bk_kwargs
+        
+        if highres_sim_counter is not None:
+            self._highres_sim_counter = highres_sim_counter
+        else:
+            self._highres_sim_counter = HighResSimCounter()
+    
+    @property
+    def highres_sim_counter(self):
+        return self._highres_sim_counter
+    
+    @property
+    def nb_highres_called(self):
+        return self._highres_sim_counter.nb_highres_called
+        
     def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
         if self.__closed:
             raise RuntimeError("Impossible to make a copy of a closed environment !")
@@ -508,6 +541,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._DEBUG = self._DEBUG
         new_obj._parameters = copy.deepcopy(self._parameters)
         new_obj.with_forecast = self.with_forecast
+        new_obj._forecasts = copy.deepcopy(self._forecasts)
 
         # some timers
         new_obj._time_apply_act = self._time_apply_act
@@ -638,7 +672,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # gym compatibility
         new_obj.reward_range = copy.deepcopy(self.reward_range)
-        new_obj.viewer = copy.deepcopy(self.viewer)
+        new_obj._viewer = copy.deepcopy(self._viewer)
         new_obj.viewer_fig = copy.deepcopy(self.viewer_fig)
 
         # other rewards
@@ -715,26 +749,41 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._last_obs = self._last_obs.copy()
 
         new_obj._has_just_been_seeded = self._has_just_been_seeded
+        
+        # time_dependant attributes for the "forecast env"
+        if self._init_obs is None:
+            new_obj._init_obs = None
+        else:
+            new_obj._init_obs = self._init_obs.copy()
+        
+        new_obj._observation_bk_class = self._observation_bk_class
+        new_obj._observation_bk_kwargs = self._observation_bk_kwargs
+        
         # do not forget !
         new_obj._is_test = self._is_test
+        
+        # do not copy it.
+        new_obj._highres_sim_counter = self._highres_sim_counter
 
     def get_path_env(self):
         """
         Get the path that allows to create this environment.
 
-        It can be used for example in `grid2op.utils.underlying_statistics` to save the information directly inside
+        It can be used for example in :func:`grid2op.utils.EpisodeStatistics` 
+        to save the information directly inside
         the environment data.
 
         """
         if self.__closed:
             raise EnvError("This environment is closed, you cannot get its path.")
-        # return os.path.split(self._init_grid_path)[0]
         res = self._init_env_path if self._init_env_path is not None else ""
         return res
 
     def load_alarm_data(self):
         """
         Internal
+
+        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
 
         Notes
         ------
@@ -743,16 +792,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         I cannot use "self.name_line" for example.
 
-        This function update the backend INSTANCE. The backend class is then updated in the env._init_backend(...)
+        This function update the backend INSTANCE. The backend class is then updated in the 
+        :func:`BaseEnv._init_backend`
         function with a call to `self.backend.assert_grid_correct()`
 
         Returns
         -------
 
         """
-        file_alerts = os.path.join(self.get_path_env(), BaseEnv.ALARM_FILE_NAME)
-        if os.path.exists(file_alerts) and os.path.isfile(file_alerts):
-            with open(file_alerts, mode="r", encoding="utf-8") as f:
+        file_alarms = os.path.join(self.get_path_env(), BaseEnv.ALARM_FILE_NAME)
+        if os.path.exists(file_alarms) and os.path.isfile(file_alarms):
+            with open(file_alarms, mode="r", encoding="utf-8") as f:
                 dict_alarm = json.load(f)
             key = "fixed"
             if key not in dict_alarm:
@@ -773,7 +823,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         raise EnvError(
                             f"You provided a description of the area of the grid for the alarms, but a "
                             f'line named "{line}" is present in your file but not in the grid. Please '
-                            f"check the file {file_alerts} and make sure it contains only the line named "
+                            f"check the file {file_alarms} and make sure it contains only the line named "
                             f"{sorted(self.backend.name_line)}."
                         )
                     # update the list and dictionary that remembers everything
@@ -865,14 +915,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not isinstance(new_parameters, Parameters):
             raise EnvError(
                 'The new parameters "new_parameters" should be an instance of '
-                "grid2op.Parameters.Parameters."
+                "grid2op.Parameters.Parameters. "
             )
         new_parameters.check_valid()  # check the provided parameters are valid
         self.__new_param = new_parameters
 
     def change_forecast_parameters(self, new_parameters):
         """
-        Allows to change the parameters of a "forecast environment".
+        Allows to change the parameters of a "forecast environment" that is for
+        the method :func:`grid2op.Observation.BaseObservation.simulate` and 
+        :func:`grid2op.Observation.BaseObservation.get_forecast_env`
 
         Notes
         ------
@@ -885,6 +937,28 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_parameters: :class:`grid2op.Parameters.Parameters`
             The new parameters you want the environment to get.
 
+        Examples
+        --------
+        
+        This can be used like:
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            
+            param = env.parameters
+            param.NO_OVERFLOW_DISCONNECTION = True  # or any other properties of the environment
+            env.change_forecast_parameters(param)
+            # at this point this has no impact.
+            
+            obs = env.reset()
+            # now, after the reset, the right parameters are used
+            sim_obs, sim_reward, sim_done, sim_info = obs.simulate(env.action_space())
+            # the new parameters `param` are used for this 
+            # and also for
+            forecasted_env = obs.get_forecast_env()
         """
 
         if self.__closed:
@@ -1300,6 +1374,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         .. warning::
             Forecast are deactivated by default (and cannot be reactivated) if the
             backend cannot be copied.
+        
+        .. warning::
+            You need to call 'env.reset()' for this function to work properly. It is NOT recommended
+            to reactivate forecasts in the middle of an episode.
             
         Notes
         ------
@@ -1324,6 +1402,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # obs.simulate(do_nothing_action)  # DO NOT RUN IT RAISES AN ERROR
 
             env.reactivate_forecast()
+            obs = env.reset()  # you need to reset the env for this function to have any effects
             obs, reward, done, info = env.step(do_nothing_action)
 
             # and now forecast are available again
@@ -1332,11 +1411,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        
         if not self.backend._can_be_copied:
             raise EnvError("Impossible to activate the forecasts with a "
                            "backend that cannot be copied.")
         if self._observation_space is not None:
-            self._observation_space.with_forecast = True
+            self._observation_space.reactivate_forecast(self)
         self.with_forecast = True
 
     @abstractmethod
@@ -1400,7 +1480,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise EnvError("This environment is closed, you cannot use it.")
         if not self.__is_init:
             raise Grid2OpException(
-                "Impossible to set the thermal limit to a non initialized Environment"
+                "Impossible to set the thermal limit to a non initialized Environment. "
+                "Have you called `env.reset()` after last game over ?"
             )
         if isinstance(thermal_limit, dict):
             tmp = np.full(self.n_line, fill_value=np.NaN, dtype=dt_float)
@@ -1451,9 +1532,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 f'the grid. You provided something with type "{type(thermal_limit)}" which '
                 f"is not supported."
             )
-
-        self._thermal_limit_a = tmp
+        self._thermal_limit_a[:] = tmp
         self.backend.set_thermal_limit(self._thermal_limit_a)
+        self.observation_space.set_thermal_limit(self._thermal_limit_a)
 
     def _reset_redispatching(self):
         # redispatching
@@ -1578,7 +1659,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             valid = except_ is None
         return valid, except_
 
-    def _compute_dispatch_vect(self, already_modified_gen, new_p):
+    def _compute_dispatch_vect(self, already_modified_gen, new_p):        
         except_ = None
         # first i define the participating generators
         # these are the generators that will be adjusted for redispatching
@@ -2052,15 +2133,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def get_obs(self, _update_state=True):
         """
-        Return the observations of the current environment made by the :class:`grid2op.BaseAgent.BaseAgent`.
+        Return the observations of the current environment made by the :class:`grid2op.Agent.BaseAgent`.
 
         .. note::
             This function is called twice when the env is reset, otherwise once per step
 
         Returns
         -------
-        res: :class:`grid2op.Observation.Observation`
-            The current BaseObservation given to the :class:`grid2op.BaseAgent.BaseAgent` / bot / controler.
+        res: :class:`grid2op.Observation.BaseObservation`
+            The current observation usually given to the :class:`grid2op.Agent.BaseAgent` / bot / controler.
 
         Examples
         ---------
@@ -2086,7 +2167,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise EnvError("This environment is closed. You cannot use it anymore.")
         if not self.__is_init:
             raise EnvError(
-                "This environment is not initialized. You cannot retrieve its observation."
+                "This environment is not initialized. You cannot retrieve its observation. "
+                "Have you called `env.reset()` after last game over ?"
             )
         if self._last_obs is None:
             self._last_obs = self._observation_space(
@@ -2116,6 +2198,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        if not self.__is_init:
+            raise EnvError(
+                "This environment is not initialized. It has no thermal limits. "
+                "Have you called `env.reset()` after last game over ?"
+            )
         return 1.0 * self._thermal_limit_a
 
     def _withdraw_storage_losses(self):
@@ -2636,6 +2723,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._times_before_line_status_actionable[
                 cond
             ] = self._max_timestep_line_status_deactivated
+            
         if self._max_timestep_topology_deactivated > 0:
             self._times_before_topology_actionable[
                 self._times_before_topology_actionable > 0
@@ -2808,7 +2896,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._disc_lines[:] = -1
 
         beg_step = time.perf_counter()
-        self._last_obs = None
+        self._last_obs : Optional[BaseObservation] = None
+        self._forecasts = None  # force reading the forecast from the time series
         try:
             beg_ = time.perf_counter()
 
@@ -2902,6 +2991,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         except StopIteration:
             # episode is over
             is_done = True
+            
         self._backend_action.reset()
         end_step = time.perf_counter()
         self._time_step += end_step - beg_step
@@ -2967,6 +3057,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        
         return self._reward_helper.template_reward
 
     def _is_done(self, has_error, is_done):
@@ -3062,8 +3153,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
 
         # todo there might be some side effect
-        if hasattr(self, "viewer") and self.viewer is not None:
-            self.viewer = None
+        if hasattr(self, "_viewer") and self._viewer is not None:
+            self._viewer = None
             self.viewer_fig = None
 
         if hasattr(self, "backend") and self.backend is not None:
@@ -3099,7 +3190,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             for el, reward in self.other_rewards.items():
                 # close the "other rewards"
                 reward.close()
-
         self.backend : Backend = None
         self.__is_init = False
         self.__closed = True
@@ -3167,7 +3257,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_names_chronics_to_backend",
             "_reward_helper",
             "reward_range",
-            "viewer",
+            "_viewer",
             "viewer_fig",
             "other_rewards",
             "_opponent_action_class",
@@ -3332,6 +3422,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        if not self.__is_init:
+            raise EnvError("This environment is not intialized. "
+                           "Have you called `env.reset()` after last game over ?")
         nb_timestep = int(nb_timestep)
 
         # Go to the timestep requested minus one
@@ -3360,7 +3453,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-            prefer using :attr:`grid2op.BaseObservation.line_status`
+            prefer using :attr:`grid2op.Observation.BaseObservation.line_status`
 
         This method allows to retrieve the line status.
         """
@@ -3377,12 +3470,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Return a deepcopy of the parameters used by the environment
 
-        It is a deepcopy, so modifying it will have absolutely no effect.
+        It is a deepcopy, so modifying it will have absolutely no effect on the environment.
 
         If you want to change the parameters of an environment, please use either
         :func:`grid2op.Environment.BaseEnv.change_parameters` to change the parameters of this environment or
         :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` to change the parameter of the environment
-        used by `simulate`.
+        used by :func:`grid2op.Observation.BaseObservation.simulate` or 
+        :func:`grid2op.Observation.BaseObservation.get_forecast_env`
         """
 
         if self.__closed:
@@ -3401,6 +3495,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Change the reward function used for the environment.
 
+        TODO examples !
+        
         Parameters
         ----------
         new_reward_func:
@@ -3414,6 +3510,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        
         is_ok = isinstance(new_reward_func, BaseReward) or issubclass(
             new_reward_func, BaseReward
         )
@@ -3452,8 +3549,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         Use with extra care !
         If you get into trouble like :
 
-        AttributeError: Can't get attribute 'ActionSpace_l2rpn_icaps_2021_small' on <module 'grid2op.Space.GridObjects' from '/home/benjamin/Documents/grid2op_dev/grid2op/Space/GridObjects.py'>
-
+        .. code-block:: none
+        
+            AttributeError: Can't get attribute 'ActionSpace_l2rpn_icaps_2021_small' 
+            on <module 'grid2op.Space.GridObjects' from
+            /home/benjamin/Documents/grid2op_dev/grid2op/Space/GridObjects.py'>
+        
         You might want to call this function and that MIGHT solve your problem.
 
         This function will create a subdirectory ino the env directory, that will be accessed when loadin the class
@@ -3466,16 +3567,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         First step, generated the classes once and for all.
 
-        **NB** you need to redo this step each time
-        you customize the environment. This customization includes, but is not limited to:
+        .. warning::
+            You need to redo this step each time
+            you customize the environment. This customization includes, but is not limited to:
 
-        - change the backend type: `grid2op.make(..., backend=...)`
-        - change the action class: `grid2op.make(..., action_class=...)`
-        - change observation class: `grid2op.make(..., observation_class=...)`
-        - change the `volagecontroler_class`
-        - change the `grid_path`
-        - change the `opponent_action_class`
-        - etc.
+            - change the backend type: `grid2op.make(..., backend=...)`
+            - change the action class: `grid2op.make(..., action_class=...)`
+            - change observation class: `grid2op.make(..., observation_class=...)`
+            - change the `volagecontroler_class`
+            - change the `grid_path`
+            - change the `opponent_action_class`
+            - etc.
 
         .. code-block:: python
 
@@ -3574,3 +3676,157 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
         if hasattr(self, "_BaseEnv__closed") and not self.__closed:
             self.close()
+
+    def _update_vector_with_timestep(self, horizon, is_overflow):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        update the value of the "time dependant" attributes, used mainly for the "_ObsEnv" (simulate) or
+        the "Forecasted env" (obs.get_forecast_env())
+        """
+        cls = type(self)
+        
+        # update the cooldowns
+        self._times_before_line_status_actionable[:] = np.maximum(
+            self._times_before_line_status_actionable - (horizon - 1), 0
+        )
+        self._times_before_topology_actionable[:] = np.maximum(
+            self._times_before_topology_actionable - (horizon - 1), 0
+        )
+
+        # update the maintenance
+        tnm_orig = 1 * self._time_next_maintenance
+        dnm_orig = 1 * self._duration_next_maintenance
+        
+        has_maint = self._time_next_maintenance != -1
+        reconnected = np.full(cls.n_line, fill_value=False)
+        maint_started = np.full(cls.n_line, fill_value=False)
+        maint_over = np.full(cls.n_line, fill_value=False)
+        
+        maint_started[has_maint] = (tnm_orig[has_maint] <= horizon)
+        maint_over[has_maint] = (tnm_orig[has_maint] + dnm_orig[has_maint] 
+                                 <= horizon)
+        
+        reconnected[has_maint] = tnm_orig[has_maint] + dnm_orig[has_maint] == horizon
+        first_ts_maintenance = tnm_orig == horizon
+        still_in_maintenance = maint_started & (~maint_over) & (~first_ts_maintenance)
+        
+        # count down time next maintenance
+        self._time_next_maintenance[:] = np.maximum(
+            self._time_next_maintenance - horizon, -1
+        )
+        
+        # powerline that are still in maintenance at this time step
+        self._time_next_maintenance[still_in_maintenance] = 0
+        self._duration_next_maintenance[still_in_maintenance] -= (horizon - tnm_orig[still_in_maintenance])
+
+        # powerline that will be in maintenance at this time step
+        self._time_next_maintenance[first_ts_maintenance] = 0
+        
+        # powerline that will be in maintenance at this time step
+        self._time_next_maintenance[reconnected | maint_over] = -1
+        self._duration_next_maintenance[reconnected | maint_over] = 0
+
+        # soft overflow
+        # this is tricky here because I have no model to predict the future... 
+        # As i cannot do better, I simply do "if I am in overflow now, i will be later"
+        self._timestep_overflow[is_overflow] += (horizon - 1)
+        return still_in_maintenance, reconnected, first_ts_maintenance
+    
+    def _reset_to_orig_state(self, obs):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        reset this "environment" to the state it should be
+        
+        update the value of the "time dependant" attributes, used mainly for the "_ObsEnv" (simulate) or
+        the "Forecasted env" (obs.get_forecast_env())
+        """
+        self.backend.set_thermal_limit(obs._thermal_limit)
+        if "opp_space_state" in obs._env_internal_params:
+            self._oppSpace._set_state(obs._env_internal_params["opp_space_state"], 
+                                      obs._env_internal_params["opp_state"])
+        # storage unit
+        self._storage_current_charge[:] = obs.storage_charge
+        self._storage_previous_charge[:] = obs._env_internal_params["_storage_previous_charge"]
+        self._action_storage[:] = obs.storage_power_target
+        self._storage_power[:] = obs.storage_power
+        self._amount_storage = obs._env_internal_params["_amount_storage"]
+        self._amount_storage_prev = obs._env_internal_params["_amount_storage_prev"]
+
+        # curtailment
+        self._limit_curtailment[:] = obs.curtailment_limit
+        self._gen_before_curtailment[:] = obs.gen_p_before_curtail
+        self._sum_curtailment_mw = obs._env_internal_params["_sum_curtailment_mw"]
+        self._sum_curtailment_mw_prev = obs._env_internal_params["_sum_curtailment_mw_prev"]
+
+        # line status
+        self._line_status[:] = obs._env_internal_params["_line_status_env"] == 1
+
+        # attention budget
+        if self._has_attention_budget:
+            self._attention_budget.set_state(obs._env_internal_params["_attention_budget_state"])
+            
+        # cooldown
+        self._times_before_line_status_actionable[
+            :
+        ] = obs.time_before_cooldown_line
+        self._times_before_topology_actionable[
+            :
+        ] = obs.time_before_cooldown_sub
+        
+        # maintenance
+        self._time_next_maintenance[:] = obs.time_next_maintenance
+        self._duration_next_maintenance[:] = obs.duration_next_maintenance
+        
+        # redisp
+        self._target_dispatch[:] = obs.target_dispatch
+        self._actual_dispatch[:] = obs.actual_dispatch
+        self._already_modified_gen[:] = obs._env_internal_params["_already_modified_gen"]
+        self._gen_activeprod_t[:] = obs._env_internal_params["_gen_activeprod_t"]
+        self._gen_activeprod_t_redisp[:] = obs._env_internal_params["_gen_activeprod_t_redisp"]
+        
+        # current step
+        self.nb_time_step = obs.current_step
+        self.delta_time_seconds = 60. * obs.delta_time
+        
+        # soft overflow
+        self._timestep_overflow[:] = obs.timestep_overflow
+
+    def forecasts(self):
+        # ensure that the "env.chronics_handler.forecasts" is called at most once per step
+        # this should NOT be called is self.deactive_forecast is true
+        if not self.with_forecast:
+            raise Grid2OpException("Attempt to retrieve the forecasts when they are not available.")
+        
+        if self._forecasts is None:
+            self._forecasts = self.chronics_handler.forecasts()
+        return self._forecasts
+
+    @staticmethod
+    def _check_rules_correct(legalActClass):
+        if isinstance(legalActClass, type):
+            # raise Grid2OpException(
+            #     'Parameter "legalActClass" used to build the Environment should be a type '
+            #     "(a class) and not an object (an instance of a class). "
+            #     'It is currently "{}"'.format(type(legalActClass))
+            # )
+            if not issubclass(legalActClass, BaseRules):
+                raise Grid2OpException(
+                    'Parameter "legalActClass" used to build the Environment should derived form the '
+                    'grid2op.BaseRules class, type provided is "{}"'.format(
+                        type(legalActClass)
+                    )
+                )
+        else:
+            if not isinstance(legalActClass, BaseRules):
+                raise Grid2OpException(
+                    'Parameter "legalActClass" used to build the Environment should be an instance of the '
+                    'grid2op.BaseRules class, type provided is "{}"'.format(
+                        type(legalActClass)
+                    )
+                )

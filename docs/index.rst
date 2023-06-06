@@ -62,10 +62,39 @@ Main module content
 
    quickstart
    grid2op
-   makeenv
+
+Environments
+---------------
+.. toctree::
+   :maxdepth: 2
+   :caption: Focus on an "environment"
+
    available_envs
-   modeled_elements
+   makeenv
+   env_content
+   create_an_environment
+   dive_into_time_series
+   data_pipeline
+
+Usage examples
+---------------------
+.. toctree::
+   :maxdepth: 2
+   :caption: Learn by Example
+
+   optimization
    gym
+   model_free
+   model_based
+
+Modeling
+----------
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Models
+
+   modeled_elements
    grid_graph
 
 Plotting capabilities
@@ -92,6 +121,7 @@ Technical Documentation
    createbackend
    environment
    episode
+   exception
    observation
    opponent
    parameters
@@ -100,15 +130,8 @@ Technical Documentation
    runner
    simulator
    space
+   timeserie_handlers
    utils
    voltagecontroler
-
-Main Exceptions
------------------------
-.. toctree::
-   :maxdepth: 2
-   :caption: Miscellaneous
-
-   exception
 
 .. include:: final.rst

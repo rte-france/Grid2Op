@@ -54,6 +54,7 @@ class Multifolder(GridValue):
         :attr:`MultiFolder.gridvalueClass`.
 
     """
+    MULTI_CHRONICS = True
 
     def __init__(
         self,
@@ -65,7 +66,9 @@ class Multifolder(GridValue):
         max_iter=-1,
         chunk_size=None,
         filter_func=None,
+        **kwargs
     ):
+        self._kwargs = kwargs
         GridValue.__init__(
             self,
             time_interval=time_interval,
@@ -412,6 +415,7 @@ class Multifolder(GridValue):
             path=this_path,
             max_iter=self.max_iter,
             chunk_size=self.chunk_size,
+            **self._kwargs
         )
         if self.seed is not None:
             max_int = np.iinfo(dt_int).max
@@ -726,7 +730,7 @@ class Multifolder(GridValue):
                 time_interval=self.time_interval,
                 sep=self.sep,
                 path=subpath,
-                max_iter=self.max_iter,
+                max_iter=self._max_iter,
                 chunk_size=self.chunk_size,
             )
             seed_chronics = None
@@ -764,3 +768,6 @@ class Multifolder(GridValue):
                     'Impossible to save the "metadata" for the chronics with error:\n"{}"'
                     "".format(exc_)
                 )
+                
+    def fast_forward(self, nb_timestep):
+        self.data.fast_forward(nb_timestep)

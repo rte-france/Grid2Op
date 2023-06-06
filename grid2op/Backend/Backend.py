@@ -114,6 +114,7 @@ class Backend(GridObjects, ABC):
         Time to compute the powerflow (might be unset, ie stay at 0.0)
 
     """
+    IS_BK_CONVERTER = False
 
     env_name = "unknown"
 
@@ -1065,120 +1066,46 @@ class Backend(GridObjects, ABC):
         # then numpy do not guarantee that `p_subs[self.line_or_to_subid] += p_or` will add the two "corresponding p_or"
         # TODO this can be vectorized with matrix product, see example in obs.flow_bus_matrix (BaseObervation.py)
         for i in range(self.n_line):
+            sub_or_id = self.line_or_to_subid[i]
+            sub_ex_id = self.line_ex_to_subid[i]
+            loc_bus_or = topo_vect[self.line_or_pos_topo_vect[i]] - 1
+            loc_bus_ex = topo_vect[self.line_ex_pos_topo_vect[i]] - 1
+            
             # for substations
-            p_subs[self.line_or_to_subid[i]] += p_or[i]
-            p_subs[self.line_ex_to_subid[i]] += p_ex[i]
+            p_subs[sub_or_id] += p_or[i]
+            p_subs[sub_ex_id] += p_ex[i]
 
-            q_subs[self.line_or_to_subid[i]] += q_or[i]
-            q_subs[self.line_ex_to_subid[i]] += q_ex[i]
+            q_subs[sub_or_id] += q_or[i]
+            q_subs[sub_ex_id] += q_ex[i]
 
             # for bus
-            p_bus[
-                self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1
-            ] += p_or[i]
-            q_bus[
-                self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1
-            ] += q_or[i]
+            p_bus[sub_or_id, loc_bus_or] += p_or[i]
+            q_bus[sub_or_id, loc_bus_or] += q_or[i]
 
-            p_bus[
-                self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1
-            ] += p_ex[i]
-            q_bus[
-                self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1
-            ] += q_ex[i]
+            p_bus[ sub_ex_id, loc_bus_ex] += p_ex[i]
+            q_bus[sub_ex_id, loc_bus_ex] += q_ex[i]
 
             # fill the min / max voltage per bus (initialization)
-            if (
-                v_bus[
-                    self.line_or_to_subid[i],
-                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
-                ][0]
-                == -1
-            ):
-                v_bus[
-                    self.line_or_to_subid[i],
-                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
-                ][0] = v_or[i]
-            if (
-                v_bus[
-                    self.line_ex_to_subid[i],
-                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
-                ][0]
-                == -1
-            ):
-                v_bus[
-                    self.line_ex_to_subid[i],
-                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
-                ][0] = v_ex[i]
-            if (
-                v_bus[
-                    self.line_or_to_subid[i],
-                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
-                ][1]
-                == -1
-            ):
-                v_bus[
-                    self.line_or_to_subid[i],
-                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
-                ][1] = v_or[i]
-            if (
-                v_bus[
-                    self.line_ex_to_subid[i],
-                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
-                ][1]
-                == -1
-            ):
-                v_bus[
-                    self.line_ex_to_subid[i],
-                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
-                ][1] = v_ex[i]
+            if (v_bus[sub_or_id,loc_bus_or,][0] == -1):
+                v_bus[sub_or_id,loc_bus_or,][0] = v_or[i]
+            if (v_bus[sub_ex_id,loc_bus_ex,][0] == -1):
+                v_bus[sub_ex_id,loc_bus_ex,][0] = v_ex[i]
+            if (v_bus[sub_or_id, loc_bus_or,][1]== -1):
+                v_bus[sub_or_id,loc_bus_or,][1] = v_or[i]
+            if (v_bus[sub_ex_id,loc_bus_ex,][1]== -1):
+                v_bus[sub_ex_id,loc_bus_ex,][1] = v_ex[i]
 
             # now compute the correct stuff
             if v_or[i] > 0.0:
                 # line is connected
-                v_bus[
-                    self.line_or_to_subid[i],
-                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
-                ][0] = min(
-                    v_bus[
-                        self.line_or_to_subid[i],
-                        topo_vect[self.line_or_pos_topo_vect[i]] - 1,
-                    ][0],
-                    v_or[i],
-                )
-                v_bus[
-                    self.line_or_to_subid[i],
-                    topo_vect[self.line_or_pos_topo_vect[i]] - 1,
-                ][1] = max(
-                    v_bus[
-                        self.line_or_to_subid[i],
-                        topo_vect[self.line_or_pos_topo_vect[i]] - 1,
-                    ][1],
-                    v_or[i],
-                )
+                v_bus[sub_or_id,loc_bus_or,][0] = min(v_bus[sub_or_id,loc_bus_or,][0],v_or[i],)
+                v_bus[sub_or_id,loc_bus_or,][1] = max(v_bus[sub_or_id,loc_bus_or,][1],v_or[i],)
+                
             if v_ex[i] > 0:
                 # line is connected
-                v_bus[
-                    self.line_ex_to_subid[i],
-                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
-                ][0] = min(
-                    v_bus[
-                        self.line_ex_to_subid[i],
-                        topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
-                    ][0],
-                    v_ex[i],
-                )
-                v_bus[
-                    self.line_ex_to_subid[i],
-                    topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
-                ][1] = max(
-                    v_bus[
-                        self.line_ex_to_subid[i],
-                        topo_vect[self.line_ex_pos_topo_vect[i]] - 1,
-                    ][1],
-                    v_ex[i],
-                )
-
+                v_bus[sub_ex_id,loc_bus_ex,][0] = min(v_bus[sub_ex_id,loc_bus_ex,][0],v_ex[i],)
+                v_bus[sub_ex_id,loc_bus_ex,][1] = max(v_bus[sub_ex_id,loc_bus_ex,][1],v_ex[i],)
+        
         for i in range(self.n_gen):
             # for substations
             p_subs[self.gen_to_subid[i]] -= p_gen[i]
@@ -1345,11 +1272,11 @@ class Backend(GridObjects, ABC):
 
         """
         self._fill_names()
+        self.redispatching_unit_commitment_availble = False
 
         # for redispatching
         fullpath = os.path.join(path, name)
         if not os.path.exists(fullpath):
-            self.redispatching_unit_commitment_availble = False
             return
         try:
             df = pd.read_csv(fullpath, sep=",")
@@ -1447,6 +1374,8 @@ class Backend(GridObjects, ABC):
             self.gen_startup_cost[i] = dt_float(tmp_gen["start_cost"])
             self.gen_shutdown_cost[i] = dt_float(tmp_gen["shut_down_cost"])
             self.gen_renewable[i] = dt_bool(tmp_gen["type"] in ["wind", "solar"])
+            
+        self.redispatching_unit_commitment_availble = True
 
     def load_storage_data(self, path, name="storage_units_charac.csv"):
         """

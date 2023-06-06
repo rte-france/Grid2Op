@@ -24,7 +24,7 @@ import pdb
 
 
 ENV_WITH_ALARM_NAME = os.path.join(
-    PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"
+    PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"
 )
 
 
@@ -51,7 +51,7 @@ class Issue185Tester(unittest.TestCase):
                     # gym_env.seed(0)
                     # gym_env.observation_space.seed(0)
                     # gym_env.action_space.seed(0)
-                    obs_gym, *_ = gym_env.reset(0)  # reset and seed
+                    obs_gym, *_ = gym_env.reset(seed=0)  # reset and seed
                     assert (
                         obs_gym["a_ex"].shape[0] == env.n_line
                     ), f"error for {env_name}"
@@ -73,7 +73,7 @@ class Issue185Tester(unittest.TestCase):
                     # gym_env.seed(0)
                     # gym_env.observation_space.seed(0)
                     # gym_env.action_space.seed(0)
-                    obs_gym, *_ = gym_env.reset(0)  # reset and seed
+                    obs_gym, *_ = gym_env.reset(seed=0)  # reset and seed
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
                     act = gym_env.action_space.sample()
                     assert act in gym_env.action_space, f"error for {env_name}"
@@ -95,7 +95,7 @@ class Issue185Tester(unittest.TestCase):
                     # gym_env.seed(0)
                     # gym_env.observation_space.seed(0)
                     # gym_env.action_space.seed(0)
-                    obs_gym, *_ = gym_env.reset(0)  # reset and seed
+                    obs_gym, *_ = gym_env.reset(seed=0)  # reset and seed
                     assert obs_gym in gym_env.observation_space, f"error for {env_name}"
                     act = gym_env.action_space.sample()
                     assert act in gym_env.action_space, f"error for {env_name}"

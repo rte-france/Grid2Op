@@ -784,5 +784,19 @@ class TestSubstationImpactLegality(unittest.TestCase):
         assert i["is_illegal"] == False
 
 
+class TestLoadingFromInstance(unittest.TestCase):
+    def test_correct(self):
+        rules = AlwaysLegal()
+        rules.TOTO = 1
+        try:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                env = make("rte_case5_example", test=True, gamerules_class=rules)
+            assert hasattr(env._game_rules.legal_action, "TOTO")
+            assert env._game_rules.legal_action.TOTO == 1
+        finally:
+            env.close()
+            
+
 if __name__ == "__main__":
     unittest.main()

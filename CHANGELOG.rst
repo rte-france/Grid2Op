@@ -31,13 +31,129 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.0] - 2023-06-06
+--------------------
+- [BREAKING] (because prone to bug): force the environment name in the `grid2op.make` function.
+- [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
+  "human" has been removed because it needs some fixes. This should not impact lots of code.
+- [BREAKING] the "maintenance_forecast" file is deprecated and is no longer used (this should not
+  not impact anything)
+- [BREAKING] the attribute "connected" as been removed in the edges of the observation converted as
+  as a networkx graph. It is replaced by a "nb_connected" attribute. More information on the doc.
+- [BREAKING] the function "obs.as_networkx" will be renamed "`obs.get_energy_graph`" and the 
+  description has been adapted.
+- [BREAKING] In `PandaPowerBackend` the kwargs argument "ligthsim2grid" was misspelled and is now properly
+  renamed `lightsim2grid`
+- [BREAKING] you can no longer use the `env.reactivate_forecast()` in the middle of an episode.
+- [BREAKING] the method `runner.run_one_episode()` (that should not use !) now 
+  returns also the total number of steps of the environment.
+- [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
+  from the generators)
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
+
+  1) the `PandapowerBackend` did not compute the `theta` correctly on powerline especially if
+     they are connected to a disconnected bus (in this case I chose to put `theta=0`) 
+  2) the `obs.get_energy_graph` (previously `obs.as_networkx()`) method did not check, 
+     when updating nodes attributes if powerlines 
+     were connected or not, which was wrong in some cases 
+
+- [FIXED] the `N1Reward` that was broken
+- [FIXED] the `act._check_for_ambiguity`: a case where missing (when you used topology to disconnect a powerline, 
+  but also set_bus to connect it)
+- [FIXED] a bug when the storage unit names where not set in the backend and needed to be set
+  automatically (wrong names were used)
+- [FIXED] a bug in `PandaPowerBackend` when using `BackendConverter` and one the backend do not support shunts.
+- [FIXED] 2 issues related to gym env: https://github.com/rte-france/Grid2Op/issues/407 and 
+  https://github.com/rte-france/Grid2Op/issues/418
+- [FIXED] some bus in the `obs.get_energy_graph` (previously `obs.as_networkx()`) for the cooldowns of substation
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/396
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/403
+- [FIXED] a bug in `PandaPowerBackend` when it was copied (the kwargs used to build it were not propagated)
+- [FIXED] a bug in the `Runner` when the time series class used is not `MultiFolder` (*eg* `GridStateFromFile`): we could 
+  not run twice the same environment. 
+- [FIXED] a bug n the `GridStateFromFile`, `GridStateFromFileWithForecasts` and 
+  `GridStateFromFileWithForecastsWithoutMaintenance` classes that caused the maintenance file to be 
+  ignored when "chunk_size" was set.
+- [FIXED] a bug when shunts were alone in `backend.check_kirchoff()`
+- [FIXED] an issue with "max_iter" in the runner when `MultifolderWithCache`
+  (see issue https://github.com/rte-france/Grid2Op/issues/447)
+- [FIXED] a bug in `MultifolderWithCache` when seeding was applied
+- [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
+  forecasts data in the observation. This is especially useful in model based RL.
+- [ADDED] an example on how to write a backend.
+- [ADDED] some convenient function of `gridobject` class to convert back and forth "local bus id" (1 or 2) to
+  "global bus id" (0, 1, 2, ... 2*n_sub) [see `gridobject.global_bus_to_local` or `gridobject.local_bus_to_global`]
+- [ADDED] a step by step (very detailed) example on how to build a Backend from an existing grid "solver".
+- [ADDED] some test when the shunt bus are modified.
+- [ADDED] a function to get the "elements graph" from the grid2op observation (represented as a networkx graph)
+  as well as its description on the documentation.
+- [ADDED] a method to retrieve the "elements graph" (see doc) fom an observation `obs.get_elements_graph()`
+- [ADDED] a whole new way to deal with input time series data (see the module `grid2op.Chronics.handlers` 
+  for more information)
+- [ADDED] possibility to change the parameters used for the `obs.simulate(...)`
+  directly from the grid2op action, see `obs.change_forecast_parameters()`
+- [ADDED] possibility to retrieve a "forecast environment" with custom forecasts, see 
+  `obs.get_env_from_external_forecasts(...)`
+- [ADDED] adding the `TimedOutEnvironment` that takes "do nothing" actions when the agent
+  takes too much time to compute. This involves quite some changes in the runner too.
+- [ADDED] Runner is now able to store if an action is legal or ambiguous
+- [ADDED] experimental support to count the number of "high resolution simulator" (`obs.simulate`, 
+  `obs.get_simulator` and `obs.get_forecast_env`) in the environment (see 
+  https://github.com/rte-france/Grid2Op/issues/417). It might not work properly in distributed settings
+  (if the agents uses parrallel processing or if MultiProcessEnv is used), in MultiMixEnv, etc.
+- [ADDED] it now possible to check the some rules based on the definition of
+  areas on the grid.
+- [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
+- [IMPROVED] possibility to "chain" the call to simulate when multiple forecasts
+  horizon are available.
+- [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
+  ahead (provided that it knows the horizons in its constructor)
+- [IMPROVED] documentation of the gym `DiscreteActSpace`: it is now explicit that the "do nothing" action
+  is by default encoded by `0`
+- [IMPROVED] documentation of `BaseObservation` and its attributes
+- [IMPROVED] `PandapowerBackend` can now be loaded even if the underlying grid does not converge in `AC` (but
+  it should still converge in `DC`) see https://github.com/rte-france/Grid2Op/issues/391
+- [IMPROVED] `obs.get_energy_graph` (previously `obs.as_networkx()`) method:
+  almost all powerlines attributes can now be read from the 
+  resulting graph object.
+- [IMPROVED] possibility to set `data_feeding_kwargs` from the config file directly.
+- [IMPROVED] so "FutureWarnings" are silenced (depending on pandas and pandapower version)
+- [IMPROVED] error messages when "env.reset()" has not been called and some functions are not available.
+- [IMPROVED] `act.remove_line_status_from_topo` can now be used without an observation and will "remove"
+  all the impact on line status from the topology if it causes "AmbiguousAction" (this includes removing
+  `set_bus` to 1 or 2 with `set_line_status` is -1 or to remove `set_bus` to -1 when `set_line_status` is 1
+  or to remove `change_bus` when `set_line_status` is -1)
+- [IMPROVED] possibility, for `BackendConverter` to converter between backends where one does support 
+  storage units (the one making powerflow) and the other one don't (the one the user will see).
+- [IMPROVED] in `BackendConverter` names of the "source backend" can be used to match the time series data
+  when the "use_target_backend_name=True" (new kwargs)
+- [IMPROVED] environment do not crash when it fails to load redispatching data. It issues a warning and continue as if
+  the description file was not present.
+- [IMPROVED] `BackendConverter` is now able to automatically map between different backend with different naming convention 
+  under some hypothesis. CAREFUL: the generated mapping might not be the one you "have in mind" ! As for everything automatic,
+  it's good because it's fast. It's terrible when you think it does something but in fact it does something else.
+- [IMPROVED] the `obs.get_energy_graph` (previously `obs.as_networkx()`) method with added attributes for edges (origin and extremity substation, as well as origin and
+  extremity buses)
+- [IMPROVED] the doc of the `obs.get_energy_graph` (previously `obs.as_networkx()`)
+- [IMPROVED] it is now possible to use a different backend, a different grid or different kwargs between the
+  env backend and the obs backend.
+- [IMPROVED] the environment now called the "chronics_handler.forecast" function at most once per step.
+- [IMPROVED] make it easier to create an environment without `MultiFolder` or `MultifolderWithCache`
+- [IMPROVED] add the possibility to forward kwargs to chronix2grid function when calling `env.generate_data`
+- [IMPROVED] when calling `env.generate_data` an extra file (json) will be read to set default values 
+  passed to `chronix2grid.add_data`
+- [IMPROVED] it is no more reasonably possible to misuse the `MultifolderWithCache` (for example by
+  forgetting to `reset()` the cache): an error will be raised in case the proper function has not been called.
+- [IMPROVED] possibility to pass game rules by instance of object and not by class.
+- [IMPROVED] it should be faster to use the "Simulator" (an useless powerflow was run)
+
 [1.8.1] - 2023-01-11
 ---------------------
 - [FIXED] a deprecation with numpy>= 1.24 (**eg** np.bool and np.str)
 - [ADDED] the baseAgent class now has two new template methods `save_state` and `load_state` to save and
   load the agent's state during Grid2op simulations. Examples can be found in L2RPN baselines (PandapowerOPFAgent and curriculumagent).
 - [IMPROVED] error message in pandapower backend when the grid do not converge due to disconnected
-   generators or loads.
+  generators or loads.
 
 [1.8.0] - 2022-12-12
 ---------------------
@@ -87,8 +203,8 @@ Change Log
   (see https://github.com/rte-france/Grid2Op/issues/340)
 - [FIXED] a slight "bug" in the formula to compute the redispatching cost for L2RPN 2022 competition.
 - [IMPROVED] possibility to pass the env variable `_GRID2OP_FORCE_TEST` to force the flag
-   of "test=True" when creating an environment. This is especially useful when testing to prevent
-   downloading of data.
+  of "test=True" when creating an environment. This is especially useful when testing to prevent
+  downloading of data.
 - [IMPROVED] support of "kwargs" backend arguments in `MultiMixEnv` see first
   item of version 1.7.1 below
 

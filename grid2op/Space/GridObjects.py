@@ -1182,7 +1182,10 @@ class GridObjects:
 
     def _init_class_attr(self, obj=None):
         """init the class attribute from an instance of the class
+        
         THIS IS NOT A CLASS ATTR
+        
+        obj should be an object and NOT a class !
         """
         if obj is None:
             obj = self
@@ -1419,7 +1422,7 @@ class GridObjects:
                 "storage_{}_{}".format(bus_id, sto_id)
                 for sto_id, bus_id in enumerate(cls.storage_to_subid)
             ]
-            cls.name_storage = np.array(cls.name_sub)
+            cls.name_storage = np.array(cls.name_storage)
             warnings.warn(
                 "name_storage is None so default storage unit names have been assigned to your grid. "
                 "(FYI: storage names are used to make the correspondence between the chronics and "
@@ -3777,6 +3780,112 @@ class GridObjects:
             my_state,
         )
 
+    @classmethod
+    def local_bus_to_global(cls, local_bus, to_sub_id):
+        """This function translate "local bus" whose id are in a substation, to "global bus id" whose
+        id are consistent for the whole grid.
+        
+        Be carefull, when using this function, you might end up with deactivated bus: *eg* if you have an element on bus 
+        with global id 1 and another on bus with global id 42 you might not have any element on bus with
+        global id 41 or 40 or 39 or etc.
+        
+        .. note::
+            Typically, "local bus" are numbered 1 or 2. They represent the id of the busbar to which the element
+            is connected IN its substation.
+            
+            On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., 2 * self.n_sub. They represent some kind of 
+            "universal" labelling of the busbars of all the grid. For example, substation 0 might have busbar `0` and `self.n_sub`, 
+            substation 1 have busbar `1` and `self.n_sub + 1` etc.
+            [on_bus_1]
+            Local and global bus id represents the same thing. The difference comes down to convention.
+        """
+        global_bus = (1 * local_bus).astype(dt_int)  # make a copy
+        on_bus_1 = global_bus == 1
+        on_bus_2 = global_bus == 2
+        global_bus[on_bus_1] = to_sub_id[on_bus_1]
+        global_bus[on_bus_2] = to_sub_id[on_bus_2] + cls.n_sub
+        return global_bus
+
+    @classmethod
+    def local_bus_to_global_int(cls, local_bus, to_sub_id):
+        """This function translate "local bus" whose id are in a substation, to "global bus id" whose
+        id are consistent for the whole grid.
+        
+        Be carefull, when using this function, you might end up with deactivated bus: *eg* if you have an element on bus 
+        with global id 1 and another on bus with global id 42 you might not have any element on bus with
+        global id 41 or 40 or 39 or etc.
+        
+        .. note::
+            Typically, "local bus" are numbered 1 or 2. They represent the id of the busbar to which the element
+            is connected IN its substation.
+            
+            On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., 2 * self.n_sub. They represent some kind of 
+            "universal" labelling of the busbars of all the grid. For example, substation 0 might have busbar `0` and `self.n_sub`, 
+            substation 1 have busbar `1` and `self.n_sub + 1` etc.
+            
+            Local and global bus id represents the same thing. The difference comes down to convention.
+            
+        .. note::
+            This is the "non vectorized" version that applies only on integers.
+        """
+        if local_bus == 1:
+            return to_sub_id
+        elif local_bus == 2:
+            return to_sub_id + cls.n_sub
+        return -1
+
+    @classmethod
+    def global_bus_to_local(cls, global_bus, to_sub_id):
+        """This function translate "local bus" whose id are in a substation, to "global bus id" whose
+        id are consistent for the whole grid.
+        
+        Be carefull, when using this function, you might end up with deactivated bus: *eg* if you have an element on bus 
+        with global id 1 and another on bus with global id 42 you might not have any element on bus with
+        global id 41 or 40 or 39 or etc.
+        
+        .. note::
+            Typically, "local bus" are numbered 1 or 2. They represent the id of the busbar to which the element
+            is connected IN its substation.
+            
+            On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., 2 * self.n_sub. They represent some kind of 
+            "universal" labelling of the busbars of all the grid. For example, substation 0 might have busbar `0` and `self.n_sub`, 
+            substation 1 have busbar `1` and `self.n_sub + 1` etc.
+            
+            Local and global bus id represents the same thing. The difference comes down to convention.
+        """
+        res = (1 * global_bus).astype(dt_int)  # make a copy
+        res[global_bus < cls.n_sub] = 1
+        res[global_bus >= cls.n_sub] = 2
+        res[global_bus == -1] = -1
+        return res
+    
+    @classmethod
+    def global_bus_to_local_int(cls, global_bus, to_sub_id):
+        """This function translate "local bus" whose id are in a substation, to "global bus id" whose
+        id are consistent for the whole grid.
+        
+        Be carefull, when using this function, you might end up with deactivated bus: *eg* if you have an element on bus 
+        with global id 1 and another on bus with global id 42 you might not have any element on bus with
+        global id 41 or 40 or 39 or etc.
+        
+        .. note::
+            Typically, "local bus" are numbered 1 or 2. They represent the id of the busbar to which the element
+            is connected IN its substation.
+            
+            On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., 2 * self.n_sub. They represent some kind of 
+            "universal" labelling of the busbars of all the grid. For example, substation 0 might have busbar `0` and `self.n_sub`, 
+            substation 1 have busbar `1` and `self.n_sub + 1` etc.
+            
+            Local and global bus id represents the same thing. The difference comes down to convention.
+        """
+        if global_bus == -1:
+            return -1
+        if global_bus < cls.n_sub:
+            return 1
+        if global_bus >= cls.n_sub:
+            return 2
+        return -1
+    
     @staticmethod
     def _format_int_vect_to_cls_str(int_vect):
         int_vect_str = "None"

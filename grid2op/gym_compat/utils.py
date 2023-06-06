@@ -7,7 +7,12 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from packaging import version
-from importlib.metadata import distribution
+
+try:
+    from importlib.metadata import distribution
+except ModuleNotFoundError:
+    # not available in python 3.7
+    from importlib_metadata import distribution
 
 _MIN_GYM_VERSION = version.parse("0.17.2")
 # this is the last gym version to use the "old" numpy prng

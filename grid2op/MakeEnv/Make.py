@@ -35,6 +35,7 @@ TEST_DEV_ENVS = {
     "l2rpn_neurips_2020_track2": DEV_DATASET.format("l2rpn_neurips_2020_track2"),
     "l2rpn_neurips_2020_track1": DEV_DATASET.format("l2rpn_neurips_2020_track1"),
     "l2rpn_case14_sandbox": DEV_DATASET.format("l2rpn_case14_sandbox"),
+    "l2rpn_case14_sandbox_diff_grid": DEV_DATASET.format("l2rpn_case14_sandbox_diff_grid"),
     "l2rpn_icaps_2021": DEV_DATASET.format("l2rpn_icaps_2021"),
     "l2rpn_wcci_2022_dev": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
     "l2rpn_wcci_2022": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
@@ -263,7 +264,7 @@ def _aux_make_multimix(
 
 
 def make(
-    dataset="rte_case14_realistic",
+    dataset=None,
     test=False,
     logger=None,
     experimental_read_from_local_dir=False,
@@ -325,7 +326,12 @@ def make(
             warnings.warn(f"The environment variable \"{_VAR_FORCE_TEST}\" is defined so grid2op will be forced in \"test\" mode. "
                           f"This is equivalent to pass \"grid2op.make(..., test=True)\" and prevents any download of data.")
             test = True
-            
+    
+    if dataset is None:
+        raise Grid2OpException("Impossible to create an environment without its name. Please call something like: \n"
+                               "> env = grid2op.make('l2rpn_case14_sandbox') \nor\n"
+                               "> env = grid2op.make('rte_case14_realistic')")
+
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
         if el not in accepted_kwargs:
@@ -337,7 +343,7 @@ def make(
     # Select how to create the environment:
     # Default with make from path
     make_from_path_fn = make_from_dataset_path
-
+    
     # dataset arg is a valid path: load it
     if os.path.exists(dataset):
         # check if its a test environment
@@ -365,12 +371,14 @@ def make(
                 return _aux_make_multimix(*args, test=True, **kwargs)
 
             make_from_path_fn = make_from_path_fn_
+        
         if not "logger" in kwargs:
             kwargs["logger"] = logger
         if not "experimental_read_from_local_dir" in kwargs:
             kwargs[
                 "experimental_read_from_local_dir"
             ] = experimental_read_from_local_dir
+        
         return make_from_path_fn(
             dataset_path=dataset,
             _add_to_name=_add_to_name_tmp,
@@ -387,7 +395,7 @@ def make(
     # Unknown dev env
     if test and dataset_name not in TEST_DEV_ENVS:
         raise Grid2OpException(_MAKE_UNKNOWN_ENV.format(dataset))
-
+    
     # Known test env and test flag enabled
     if test:
         warnings.warn(_MAKE_DEV_ENV_WARN)

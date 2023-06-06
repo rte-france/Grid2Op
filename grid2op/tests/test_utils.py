@@ -11,7 +11,7 @@ from grid2op.tests.helper_path_test import *
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
     os.path.join(PATH_CHRONICS, "test_multi_chronics")
 )
-PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
+PATH_PREVIOUS_RUNNER = os.path.join(data_test_dir, "runner_data")
 
 from grid2op.Reward import L2RPNSandBoxScore
 from grid2op.MakeEnv import make
@@ -460,7 +460,7 @@ class TestICAPSSCORE(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make(
-                os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"),
+                os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"),
                 test=True,
             ) as env:
                 scores = ScoreICAPS2021(

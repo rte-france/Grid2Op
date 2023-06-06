@@ -43,6 +43,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
 
     """
 
+    MULTI_CHRONICS = False
     def __init__(
         self,
         path,
@@ -50,6 +51,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         time_interval=timedelta(minutes=5),
         max_iter=-1,
         chunk_size=None,
+        h_forecast=(5, )
     ):
         super().__init__(
             path=path,
@@ -57,6 +59,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
             time_interval=time_interval,
             max_iter=max_iter,
             chunk_size=chunk_size,
+            h_forecast=h_forecast
         )
         self.maintenance_starting_hour = None
         self.maintenance_ending_hour = None
@@ -114,13 +117,17 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         )
 
     def _init_attrs(
-        self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None
+        self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None,
+        is_init=False
     ):
         super()._init_attrs(
-            load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=None
+            load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=None,
+            is_init=is_init
         )
-        # ignore the maitenance but keep hazards
-        self._sample_maintenance()
+        if is_init:
+            # ignore the maitenance but keep hazards
+            self._sample_maintenance()
+            # sampled only at the initialization of the episode, and not at each chunk !
 
     def _sample_maintenance(self):
         ########
