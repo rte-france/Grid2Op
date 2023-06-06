@@ -13,8 +13,6 @@ from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Opponent import GeometricOpponentMultiArea
 
-from numba import jit 
-@jit(nopython=True)
 def find_first(item, vec):
     """return the index of the first occurence of item in vec"""
     for i in range(len(vec)):
