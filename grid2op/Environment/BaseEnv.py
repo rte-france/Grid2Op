@@ -3807,7 +3807,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._forecasts = self.chronics_handler.forecasts()
         return self._forecasts
 
-    def _check_rules_correct(self, legalActClass):
+    @staticmethod
+    def _check_rules_correct(legalActClass):
         if isinstance(legalActClass, type):
             # raise Grid2OpException(
             #     'Parameter "legalActClass" used to build the Environment should be a type '
