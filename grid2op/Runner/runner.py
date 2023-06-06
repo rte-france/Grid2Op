@@ -417,19 +417,7 @@ class Runner(object):
             )
         self.gridStateclass = gridStateclass
 
-        if not isinstance(legalActClass, type):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the Runner should be a type (a class) and not an object '
-                '(an instance of a class). It is currently "{}"'.format(
-                    type(legalActClass)
-                )
-            )
-        if not issubclass(legalActClass, BaseRules):
-
-            raise RuntimeError(
-                "Impossible to create a runner without a class defining legal actions derived "
-                'from grid2op.BaseRules. Please modify "legalActClass" parameter.'
-            )
+        self.envClass._check_rules_correct(legalActClass)
         self.legalActClass = legalActClass
 
         if not isinstance(backendClass, type):

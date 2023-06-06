@@ -20,6 +20,17 @@ class BaseRules(ABC):
     In :class:`grid2op.Environment`, only action of the users are checked for legality.
 
     """
+    
+    def initialize(self, env):
+        """
+        This function is used to inform the class instance about the environment specification. 
+        It can be the place to assert the defined rules are suited for the environement.
+        Parameters
+        ----------
+        env: :class:`grid2op.Environment.Environment`
+            The environment on which the action is performed. The environement instance is not fully initialized itself.
+        """
+        pass
 
     @abstractmethod
     def __call__(self, action, env):

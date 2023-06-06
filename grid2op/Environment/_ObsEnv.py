@@ -182,6 +182,7 @@ class _ObsEnv(BaseEnv):
         
         self._check_rules_correct(legalActClass)
         self._game_rules = RulesChecker(legalActClass=legalActClass)
+        self._game_rules.initialize(self)
         self._legalActClass = legalActClass
         
         # self._action_space = self._do_nothing

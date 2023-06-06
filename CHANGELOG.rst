@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.8.2] - 2023-xx-yy
+[1.9.0] - 2023-06-06
 --------------------
 - [BREAKING] (because prone to bug): force the environment name in the `grid2op.make` function.
 - [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
@@ -96,10 +96,14 @@ Change Log
   `obs.get_env_from_external_forecasts(...)`
 - [ADDED] adding the `TimedOutEnvironment` that takes "do nothing" actions when the agent
   takes too much time to compute. This involves quite some changes in the runner too.
+- [ADDED] Runner is now able to store if an action is legal or ambiguous
 - [ADDED] experimental support to count the number of "high resolution simulator" (`obs.simulate`, 
   `obs.get_simulator` and `obs.get_forecast_env`) in the environment (see 
   https://github.com/rte-france/Grid2Op/issues/417). It might not work properly in distributed settings
   (if the agents uses parrallel processing or if MultiProcessEnv is used), in MultiMixEnv, etc.
+- [ADDED] it now possible to check the some rules based on the definition of
+  areas on the grid.
+- [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecasts
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps

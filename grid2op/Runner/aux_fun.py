@@ -135,7 +135,6 @@ def _aux_run_one_episode(
     efficient_storing = nb_timestep_max > 0
     nb_timestep_max = max(nb_timestep_max, 0)
     max_ts = nb_timestep_max
-    
     if path_save is None and not detailed_output:
         # i don't store anything on drive, so i don't need to store anything on memory
         nb_timestep_max = 0
@@ -145,6 +144,7 @@ def _aux_run_one_episode(
     attack_templ = np.full(
         (1, env._oppSpace.action_space.size()), fill_value=0.0, dtype=dt_float
     )
+    
     if efficient_storing:
         times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
         rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
@@ -169,6 +169,8 @@ def _aux_run_one_episode(
             fill_value=0.0,
             dtype=dt_float,
         )
+        legal = np.full(nb_timestep_max, fill_value=True, dtype=dt_bool)
+        ambiguous = np.full(nb_timestep_max, fill_value=False, dtype=dt_bool)
     else:
         times = np.full(0, fill_value=np.NaN, dtype=dt_float)
         rewards = np.full(0, fill_value=np.NaN, dtype=dt_float)
@@ -183,6 +185,8 @@ def _aux_run_one_episode(
         attack = np.full(
             (0, env._opponent_action_space.n), fill_value=0.0, dtype=dt_float
         )
+        legal = np.full(0, fill_value=True, dtype=dt_bool)
+        ambiguous = np.full(0, fill_value=False, dtype=dt_bool)
 
     need_store_first_act = path_save is not None or detailed_output
     if need_store_first_act:
@@ -191,6 +195,7 @@ def _aux_run_one_episode(
             observations[time_step, :] = obs.to_vect()
         else:
             observations = np.concatenate((observations, obs.to_vect().reshape(1, -1)))
+            
     episode = EpisodeData(
         actions=actions,
         env_actions=env_actions,
@@ -210,6 +215,9 @@ def _aux_run_one_episode(
         name=env.chronics_handler.get_name(),
         force_detail=detailed_output,
         other_rewards=[],
+        legal=legal,
+        ambiguous=ambiguous,
+        has_legal_ambiguous=True,
     )
     if need_store_first_act:
         # I need to manually force in the first observation (otherwise it's not computed)
