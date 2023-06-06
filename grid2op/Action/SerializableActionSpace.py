@@ -912,8 +912,9 @@ class SerializableActionSpace(SerializableSpace):
         """
         res = []
         possible_values = [False, True]
-        for status in itertools.product(possible_values, repeat=action_space.dim_alerts):
-            res.append(action_space({"raise_alert": status}))
+        if action_space.dim_alerts:
+            for status in itertools.product(possible_values, repeat=action_space.dim_alerts):
+                res.append(action_space({"raise_alert": status}))
         return res
 
     @staticmethod
