@@ -50,6 +50,17 @@ class RulesChecker(object):
                 warnings.warn("You passed the legal action as an instance that cannot be deepcopied. It will be "
                               "used 'as is', we do not garantee anything if you modify the original object.")
                 self.legal_action = legalActClass
+                
+    def initialize(self, env):
+        """
+        This function is used to inform the class instance about the environment specification. 
+        It can be the place to assert the defined rules are suited for the environement.
+        Parameters
+        ----------
+        env: :class:`grid2op.Environment.Environment`
+            The environment on which the action is performed. 
+        """
+        self.legal_action.initialize(env)
 
     def __call__(self, action, env):
         """

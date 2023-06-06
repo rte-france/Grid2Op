@@ -41,7 +41,7 @@ from grid2op.Episode import EpisodeData
 # so i force the usage of the "starmap" stuff even if there is one process on windows
 from grid2op._glop_platform_info import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
 
-runner_returned_type = Tuple[str, str, float, int, int, Optional[EpisodeData]]
+runner_returned_type = Tuple[str, str, float, int, int, Optional[EpisodeData], Optional[int]]
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it!
 # (especially for Neural Net based agents)
@@ -417,19 +417,7 @@ class Runner(object):
             )
         self.gridStateclass = gridStateclass
 
-        if not isinstance(legalActClass, type):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the Runner should be a type (a class) and not an object '
-                '(an instance of a class). It is currently "{}"'.format(
-                    type(legalActClass)
-                )
-            )
-        if not issubclass(legalActClass, BaseRules):
-
-            raise RuntimeError(
-                "Impossible to create a runner without a class defining legal actions derived "
-                'from grid2op.BaseRules. Please modify "legalActClass" parameter.'
-            )
+        self.envClass._check_rules_correct(legalActClass)
         self.legalActClass = legalActClass
 
         if not isinstance(backendClass, type):
@@ -706,7 +694,8 @@ class Runner(object):
         agent_seed=None,
         episode_id=None,
         detailed_output=False,
-    ) -> List[runner_returned_type]:
+        add_nb_highres_sim=False,
+    ) -> runner_returned_type:
         """
         INTERNAL
 
@@ -722,10 +711,17 @@ class Runner(object):
         path_save: ``str``, optional
             Path where to save the data. See the description of :mod:`grid2op.Runner` for the structure of the saved
             file.
-        detailed_output: see Runner.run method
+            
+        detailed_output: 
+            See descr. of :func:`Runner.run` method
+        
+        add_nb_highres_sim: 
+            See descr. of :func:`Runner.run` method
 
         Returns
         -------
+        TODO DEPRECATED DOC
+        
         cum_reward: ``np.float32``
             The cumulative reward obtained by the agent during this episode
 
@@ -750,6 +746,12 @@ class Runner(object):
             )
             if max_iter is not None:
                 env.chronics_handler.set_max_iter(-1)
+                
+        # `res` here necessarily contains detailed_output and nb_highres_call  
+        if not add_nb_highres_sim:
+            res = res[:-1]
+        if not detailed_output:
+            res = res[:-1]
         return res
 
     def _run_sequential(
@@ -762,6 +764,7 @@ class Runner(object):
         max_iter=None,
         episode_id=None,
         add_detailed_output=False,
+        add_nb_highres_sim=False,
     ) -> List[runner_returned_type]:
         """
         INTERNAL
@@ -836,6 +839,7 @@ class Runner(object):
                     nb_time_step,
                     max_ts,
                     episode_data,
+                    nb_call_highres_sim,
                 ) = self.run_one_episode(
                     path_save=path_save,
                     indx=ep_id,
@@ -843,26 +847,20 @@ class Runner(object):
                     env_seed=env_seed,
                     agent_seed=agt_seed,
                     max_iter=max_iter,
-                    detailed_output=add_detailed_output,
+                    detailed_output=True,
+                    add_nb_highres_sim=True
                 )
                 id_chron = self.chronics_handler.get_id()
+                res[i] = (id_chron,
+                          name_chron,
+                          float(cum_reward),
+                          nb_time_step,
+                          max_ts
+                          )
                 if add_detailed_output:
-                    res[i] = (
-                        id_chron,
-                        name_chron,
-                        float(cum_reward),
-                        nb_time_step,
-                        max_ts,
-                        episode_data,
-                    )
-                else:
-                    res[i] = (
-                        id_chron,
-                        name_chron,
-                        float(cum_reward),
-                        nb_time_step,
-                        max_ts,
-                    )
+                    res[i] = (*res[i], episode_data)
+                if add_nb_highres_sim:
+                    res[i] = (*res[i], nb_call_highres_sim)
                 pbar_.update(1)
         return res
 
@@ -876,6 +874,7 @@ class Runner(object):
         max_iter=None,
         episode_id=None,
         add_detailed_output=False,
+        add_nb_highres_sim=False,
     ) -> List[runner_returned_type]:
         """
         INTERNAL
@@ -952,6 +951,7 @@ class Runner(object):
                 agent_seeds=agent_seeds,
                 episode_id=episode_id,
                 add_detailed_output=add_detailed_output,
+                add_nb_highres_sim=add_nb_highres_sim,
             )
         else:
             self._clean_up()
@@ -982,33 +982,21 @@ class Runner(object):
 
             res = []
             if _IS_LINUX:
-                lists = [
-                    (
-                        self,
-                        pn,
-                        i,
-                        path_save,
-                        seeds_env_res[i],
-                        seeds_agt_res[i],
-                        max_iter,
-                        add_detailed_output,
-                    )
-                    for i, pn in enumerate(process_ids)
-                ]
+                lists = [(self,) for _ in enumerate(process_ids)]
             else:
-                lists = [
-                    (
-                        Runner(**self._get_params()),
-                        pn,
-                        i,
-                        path_save,
-                        seeds_env_res[i],
-                        seeds_agt_res[i],
-                        max_iter,
-                        add_detailed_output,
-                    )
-                    for i, pn in enumerate(process_ids)
-                ]
+                lists = [(Runner(**self._get_params()),) for _ in enumerate(process_ids)]
+            
+            for i, pn in enumerate(process_ids):
+                lists[i] = (*lists[i],
+                            pn,
+                            i,
+                            path_save,
+                            seeds_env_res[i],
+                            seeds_agt_res[i],
+                            max_iter,
+                            add_detailed_output,
+                            add_nb_highres_sim)
+                
             with Pool(nb_process) as p:
                 tmp = p.starmap(_aux_one_process_parrallel, lists)
             for el in tmp:
@@ -1082,6 +1070,7 @@ class Runner(object):
         agent_seeds=None,
         episode_id=None,
         add_detailed_output=False,
+        add_nb_highres_sim=False,
     ) -> List[runner_returned_type]:
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner._run_sequential` if "nb_process" is
@@ -1132,6 +1121,10 @@ class Runner(object):
         add_detailed_output: ``bool``
             A flag to add an :class:`EpisodeData` object to the results, containing a lot of information about the run
 
+        add_nb_highres_sim: ``bool``
+            Whether to add an estimated number of "high resolution simulator" called performed by the agent (either by
+            obs.simulate, or by obs.get_forecast_env or by obs.get_simulator)
+            
         Returns
         -------
         res: ``list``
@@ -1143,6 +1136,8 @@ class Runner(object):
               - "nb_time_step": the number of time steps played in this episode.
               - "episode_data" : [Optional] The :class:`EpisodeData` corresponding to this episode run only
                 if `add_detailed_output=True`
+              - "add_nb_highres_sim": [Optional] The estimated number of calls to high resolution simulator made
+                by the agent
 
         Examples
         --------
@@ -1235,6 +1230,7 @@ class Runner(object):
                         agent_seeds=agent_seeds,
                         episode_id=episode_id,
                         add_detailed_output=add_detailed_output,
+                        add_nb_highres_sim=add_nb_highres_sim,
                     )
                 else:
                     if add_detailed_output and (_IS_WINDOWS or _IS_MACOS):
@@ -1252,6 +1248,7 @@ class Runner(object):
                             agent_seeds=agent_seeds,
                             episode_id=episode_id,
                             add_detailed_output=add_detailed_output,
+                            add_nb_highres_sim=add_nb_highres_sim,
                         )
                     else:
                         self.logger.info("Parallel runner used.")
@@ -1264,6 +1261,7 @@ class Runner(object):
                             agent_seeds=agent_seeds,
                             episode_id=episode_id,
                             add_detailed_output=add_detailed_output,
+                            add_nb_highres_sim=add_nb_highres_sim,
                         )
             finally:
                 self._clean_up()

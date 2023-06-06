@@ -22,6 +22,7 @@ from abc import ABC, abstractmethod
 from grid2op.Action.ActionSpace import ActionSpace
 from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Observation.observationSpace import ObservationSpace
+from grid2op.Observation.highresSimCounter import HighResSimCounter
 from grid2op.Backend import Backend
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects, RandomObject
@@ -257,6 +258,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         kwargs_observation: Optional[dict] = None,
         observation_bk_class=None,  # type of backend for the observation space
         observation_bk_kwargs=None,  # type of backend for the observation space
+        highres_sim_counter=None,
         _is_test: bool = False,  # TODO not implemented !!
         _init_obs: Optional[BaseObservation] =None
     ):
@@ -514,6 +516,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._observation_bk_class = observation_bk_class
         self._observation_bk_kwargs = observation_bk_kwargs
         
+        if highres_sim_counter is not None:
+            self._highres_sim_counter = highres_sim_counter
+        else:
+            self._highres_sim_counter = HighResSimCounter()
+    
+    @property
+    def highres_sim_counter(self):
+        return self._highres_sim_counter
+    
+    @property
+    def nb_highres_called(self):
+        return self._highres_sim_counter.nb_highres_called
+        
     def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
         if self.__closed:
             raise RuntimeError("Impossible to make a copy of a closed environment !")
@@ -756,6 +771,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         # do not forget !
         new_obj._is_test = self._is_test
+        
+        # do not copy it.
+        new_obj._highres_sim_counter = self._highres_sim_counter
 
     def get_path_env(self):
         """
@@ -3850,7 +3868,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._forecasts = self.chronics_handler.forecasts()
         return self._forecasts
 
-    def _check_rules_correct(self, legalActClass):
+    @staticmethod
+    def _check_rules_correct(legalActClass):
         if isinstance(legalActClass, type):
             # raise Grid2OpException(
             #     'Parameter "legalActClass" used to build the Environment should be a type '

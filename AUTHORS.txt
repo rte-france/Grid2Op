@@ -16,3 +16,4 @@ Further Contributions by:
     - Jan-Hendrik Menke
     - Vincent Renault
     - Florian Schäfer
+    - Clément Goubet
