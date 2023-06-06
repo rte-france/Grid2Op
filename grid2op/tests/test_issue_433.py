@@ -21,6 +21,10 @@ class Issue433Tester(unittest.TestCase):
         self.env.seed(0)
         self.env.set_id(0)
     
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
     def test_disco_2_lines(self):
         act0 = self.env.action_space({"set_line_status": [(4, -1)]})
         act1 = self.env.action_space({"set_line_status": [(13, -1)]})

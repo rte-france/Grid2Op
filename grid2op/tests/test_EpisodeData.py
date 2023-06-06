@@ -150,8 +150,7 @@ class TestEpisodeData(unittest.TestCase):
             episode_name,
             cum_reward,
             timestep,
-            max_ts,
-            episode_data_cached,
+            max_ts
         ) = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
@@ -194,8 +193,7 @@ class TestEpisodeData(unittest.TestCase):
             episode_name,
             cum_reward,
             timestep,
-            max_ts,
-            episode_data_cached,
+            max_ts
         ) = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
         len(episode_data)

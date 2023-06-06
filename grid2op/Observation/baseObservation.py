@@ -2407,7 +2407,7 @@ class BaseObservation(GridObjects):
         edge_bus_li = [(bus_id,
                         bus_id % cls.n_sub,
                         {"type": "bus_to_substation"})
-                       for id_, bus_id in enumerate(bus_ids) if conn_bus[id_]]
+                       for id_, bus_id in enumerate(bus_ids)]
         graph.add_edges_from(edge_bus_li)
         graph.graph["bus_nodes_id"] = bus_ids
         return bus_ids
@@ -3956,8 +3956,11 @@ class BaseObservation(GridObjects):
             Simulator,
         )  # lazy import to prevent circular references
 
-        res = Simulator(backend=self._obs_env.backend)
+        nb_highres_called = self._obs_env.highres_sim_counter.nb_highres_called
+        res = Simulator(backend=self._obs_env.backend, _highres_sim_counter=self._obs_env._highres_sim_counter)
         res.set_state(self)
+        # it does one simulation when it inits it (calling env.step) so I remove 1 here
+        self._obs_env.highres_sim_counter._HighResSimCounter__nb_highres_called = nb_highres_called
         return res
 
     def _get_array_from_forecast(self, name):
@@ -4267,7 +4270,7 @@ class BaseObservation(GridObjects):
                              prod_v: Optional[np.ndarray] = None,
                              maintenance: Optional[np.ndarray] = None):
         from grid2op.Chronics import FromNPY, ChronicsHandler
-        from grid2op.Environment import Environment
+        from grid2op.Environment._forecast_env import _ForecastEnv
         ch = ChronicsHandler(FromNPY,
                              load_p=load_p,
                              load_q=load_q,
@@ -4277,12 +4280,16 @@ class BaseObservation(GridObjects):
         
         backend = self._obs_env.backend.copy()
         backend._is_loaded = True
-        res = Environment(**self._ptr_kwargs_env,
-                          backend=backend,
-                          chronics_handler=ch,
-                          parameters=self._obs_env.parameters,
-                          _init_obs=self
-                          )
+        nb_highres_called = self._obs_env.highres_sim_counter.nb_highres_called
+        res = _ForecastEnv(**self._ptr_kwargs_env,
+                           backend=backend,
+                           chronics_handler=ch,
+                           parameters=self._obs_env.parameters,
+                           _init_obs=self,
+                           highres_sim_counter=self._obs_env.highres_sim_counter
+                           )
+        # it does one simulation when it inits it (calling env.step) so I remove 1 here
+        res.highres_sim_counter._HighResSimCounter__nb_highres_called = nb_highres_called
         return res
 
     def change_forecast_parameters(self, params):

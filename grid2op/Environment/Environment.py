@@ -100,6 +100,7 @@ class Environment(BaseEnv):
         kwargs_observation=None,
         observation_bk_class=None,
         observation_bk_kwargs=None,
+        highres_sim_counter=None,
         _init_obs=None,
         _raw_backend_class=None,
         _compat_glop_version=None,
@@ -135,6 +136,7 @@ class Environment(BaseEnv):
             kwargs_observation=kwargs_observation,
             observation_bk_class=observation_bk_class,
             observation_bk_kwargs=observation_bk_kwargs,
+            highres_sim_counter=highres_sim_counter,
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )
@@ -282,6 +284,7 @@ class Environment(BaseEnv):
         self._check_rules_correct(legalActClass)
                 
         self._game_rules = RulesChecker(legalActClass=legalActClass)
+        self._game_rules.initialize(self)
         self._legalActClass = legalActClass
 
         # action helper
