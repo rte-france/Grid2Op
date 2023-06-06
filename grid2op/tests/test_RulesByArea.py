@@ -12,6 +12,8 @@ from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
 from grid2op.Rules.rulesByArea import *
 from grid2op.MakeEnv import make
+from grid2op.Agent import OneChangeThenNothing
+from grid2op.Runner import Runner
 
 import warnings
 
@@ -161,7 +163,7 @@ class TestDefaultRulesByArea(unittest.TestCase):
             
             agent_class = OneChangeThenNothing.gen_next(illegal_act)
             runner = Runner(**self.env.get_params_for_runner(), agentClass=agent_class)
-            res = runner.run(nb_episode=nn_episode)
+            res, *_ = runner.run(nb_episode=nn_episode, add_detailed_output=True)
             ep_data = res[-1]
             assert not ep_data.legal[0] #first act illegal
             assert ep_data.legal[1]
