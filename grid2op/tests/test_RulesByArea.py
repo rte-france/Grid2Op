@@ -140,6 +140,32 @@ class TestDefaultRulesByArea(unittest.TestCase):
             #illegal action in one area but still do action another area
             
             self.env.close()
+            
+    def test_catch_runner_area_action_illegality(self):
+        params = Parameters()
+        nn_episode = 1
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make(
+                    "l2rpn_case14_sandbox",
+                    test=True,
+                    param=params,
+                    gamerules_class = self.rules_3areas
+                    )
+            lines_by_area = [list_ids for list_ids in self.env._game_rules.legal_action.lines_id_by_area.values()]
+
+            illegal_act= {
+                "set_line_status": [(LINE_ID, -1) for LINE_ID in lines_by_area[0][:2]] + \
+                [(LINE_ID, -1) for LINE_ID in [lines_by_area[1][2], lines_by_area[2][2]]],
+            }
+            
+            agent_class = OneChangeThenNothing.gen_next(illegal_act)
+            runner = Runner(**self.env.get_params_for_runner(), agentClass=agent_class)
+            res = runner.run(nb_episode=nn_episode)
+            ep_data = res[-1]
+            assert not ep_data.legal[0] #first act illegal
+            assert ep_data.legal[1]
+
 
 
 if __name__ == "__main__":
