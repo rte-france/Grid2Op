@@ -133,6 +133,7 @@ class ObservationSpace(SerializableObservationSpace):
         self._update_env_time = 0.0
         self.__nb_simulate_called_this_step = 0
         self.__nb_simulate_called_this_episode = 0
+        self._highres_sim_counter = env.highres_sim_counter
 
         # extra argument to build the observation
         if kwargs_observation is None:
@@ -144,11 +145,10 @@ class ObservationSpace(SerializableObservationSpace):
         self._observation_bk_kwargs = observation_bk_kwargs
     
     def set_real_env_kwargs(self, env):
-        from grid2op.Environment.Environment import Environment
         if not self.with_forecast:
             return 
-        
         # I don't need the backend nor the chronics_handler
+        from grid2op.Environment.Environment import Environment
         self._real_env_kwargs = Environment.get_kwargs(env, False, False)
         
         # remove the parameters anyways (the 'forecast parameters will be used
@@ -195,6 +195,7 @@ class ObservationSpace(SerializableObservationSpace):
             max_episode_duration=env.max_episode_duration(),
             delta_time_seconds=env.delta_time_seconds,
             logger=self.logger,
+            highres_sim_counter=env.highres_sim_counter,
             _complete_action_cls=env._complete_action_cls,
             _ptr_orig_obs_space=self,
         )
@@ -204,7 +205,8 @@ class ObservationSpace(SerializableObservationSpace):
     def _aux_create_backend(self, env, observation_bk_class, observation_bk_kwargs, path_grid_for):
         if observation_bk_kwargs is None:
             observation_bk_kwargs = env.backend._my_kwargs
-        self._backend_obs = observation_bk_class(**observation_bk_kwargs)   
+        observation_bk_class_used = observation_bk_class.init_grid(env.backend)
+        self._backend_obs = observation_bk_class_used(**observation_bk_kwargs)   
         self._backend_obs.set_env_name(env.name)
         self._backend_obs.load_grid(path_grid_for)
         self._backend_obs.assert_grid_correct()
@@ -302,6 +304,10 @@ class ObservationSpace(SerializableObservationSpace):
     @property
     def nb_simulate_called_this_step(self):
         return self.__nb_simulate_called_this_step
+
+    @property
+    def total_simulate_simulator_calls(self):
+        return self._highres_sim_counter.total_simulate_simulator_calls
 
     def can_use_simulate(self) -> bool:
         """
@@ -467,6 +473,11 @@ class ObservationSpace(SerializableObservationSpace):
         new_obj.__nb_simulate_called_this_step = self.__nb_simulate_called_this_step
         new_obj.__nb_simulate_called_this_episode = (
             self.__nb_simulate_called_this_episode
+        )
+        
+        # never copied (keep track of it)
+        new_obj._highres_sim_counter = (
+            self._highres_sim_counter
         )
         new_obj._env_param = copy.deepcopy(self._env_param)
 
