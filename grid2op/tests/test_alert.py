@@ -641,6 +641,26 @@ class TestAlertNoBlackout(unittest.TestCase):
                 else : 
                     assert reward == 0
 
+
+    def test_raise_illicit_alert(self) -> None:
+        with make(
+            self.env_nm,
+            test=True,
+            difficulty="1",
+            reward_class=AlertReward(reward_end_episode_bonus=42)
+        ) as env:
+            env.seed(0)
+            env.reset()
+
+            attackable_line_id = 10
+            try : 
+                act = self.env.action_space({"raise_alert": [attackable_line_id]})
+            except Grid2OpException as e : 
+                assert e.args == ('Impossible to modify the alert with your input. Please consult the documentation. \\
+                The error was:\n"Grid2OpException IllegalAction "Impossible to change a raise alert id 10 because there \\
+                are only 10 on the grid (and in python id starts at 0)""',)
+
+
 class TestAlertBlackout(unittest.TestCase):
     """test the basic bahavior of the assistant alert feature when a blackout occur"""
 
