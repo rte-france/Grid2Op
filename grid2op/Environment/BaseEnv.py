@@ -783,7 +783,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Internal
 
-        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        .. warning:: 
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
 
         Notes
         ------

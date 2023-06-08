@@ -1,0 +1,8 @@
+Emax,Emin,name,type,max_p_prod,max_p_absorb,marginal_cost,power_loss,charging_efficiency,discharging_efficiency
+48,0,storage_22_0,battery,12,12,1,0.0,0.95,0.95
+24,0,storage_41_1,battery,12,12,1,0.0,0.95,0.95
+48,0,storage_44_2,battery,12,12,1,0.0,0.95,0.95
+24,0,storage_58_3,battery,12,12,1,0.0,0.95,0.95
+48,0,storage_76_4,battery,12,12,1,0.0,0.95,0.95
+48,0,storage_95_5,battery,12,12,1,0.0,0.95,0.95
+24,0,storage_112_6,battery,12,12,1,0.0,0.95,0.95
