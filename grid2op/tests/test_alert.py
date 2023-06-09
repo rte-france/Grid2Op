@@ -656,9 +656,7 @@ class TestAlertNoBlackout(unittest.TestCase):
             try : 
                 act = self.env.action_space({"raise_alert": [attackable_line_id]})
             except Grid2OpException as e : 
-                assert e.args == ('Impossible to modify the alert with your input. Please consult the documentation. \\
-                The error was:\n"Grid2OpException IllegalAction "Impossible to change a raise alert id 10 because there \\
-                are only 10 on the grid (and in python id starts at 0)""',)
+                assert e.args[0] == 'Impossible to modify the alert with your input. Please consult the documentation. The error was:\n"Grid2OpException IllegalAction "Impossible to change a raise alert id 10 because there are only 10 on the grid (and in python id starts at 0)""'
 
 
 class TestAlertBlackout(unittest.TestCase):
