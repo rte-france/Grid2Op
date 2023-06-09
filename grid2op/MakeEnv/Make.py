@@ -39,6 +39,7 @@ TEST_DEV_ENVS = {
     "l2rpn_icaps_2021": DEV_DATASET.format("l2rpn_icaps_2021"),
     "l2rpn_wcci_2022_dev": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
     "l2rpn_wcci_2022": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
+    "l2rpn_idf_2023": DEV_DATASET.format("l2rpn_idf_2023"),
     # educational files
     "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
     "educ_case14_storage": DEV_DATASET.format("educ_case14_storage"),

@@ -31,6 +31,12 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.1] - 2023-xx-yy
+--------------------
+- [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
+- [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
+  the same action
+
 [1.9.0] - 2023-06-06
 --------------------
 - [BREAKING] (because prone to bug): force the environment name in the `grid2op.make` function.

@@ -242,7 +242,9 @@ class SerializableActionSpace(SerializableSpace):
         return rnd_update
 
     def _sample_raise_alarm(self, rnd_update=None):
-        """.. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\"""
+        """.. warning:: 
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        """
         if rnd_update is None:
             rnd_update = {}
         rnd_area = self.space_prng.randint(self.dim_alarms)
@@ -883,7 +885,8 @@ class SerializableActionSpace(SerializableSpace):
     @staticmethod
     def get_all_unitary_alarm(action_space):
         """
-        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        .. warning::
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
         """
         res = []
         for i in range(action_space.dim_alarms):

@@ -681,7 +681,8 @@ class BaseAction(GridObjects):
         """
         INTERNAL
 
-        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        .. warning:: 
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
 
         This function is used to know if the given action aimed at raising an alarm or not.
 
@@ -1884,7 +1885,9 @@ class BaseAction(GridObjects):
             self.curtail = dict_["curtail"]
 
     def _digest_alarm(self, dict_):
-        """.. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\"""
+        """
+        .. warning:: 
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\"""
         if "raise_alarm" in dict_:
             self.raise_alarm = dict_["raise_alarm"]
 
@@ -4724,7 +4727,9 @@ class BaseAction(GridObjects):
     @property
     def raise_alarm(self) -> np.ndarray:
         """
-        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        .. warning::
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+                
         Property to raise alarm.
 
         If you set it to ``True`` an alarm is raised for the given area, otherwise None are raised.
@@ -4756,7 +4761,10 @@ class BaseAction(GridObjects):
 
     @raise_alarm.setter
     def raise_alarm(self, values):
-        """.. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\"""
+        """
+        .. warning::
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        """
         if "raise_alarm" not in self.authorized_keys:
             raise IllegalAction("Impossible to send alarms with this action type.")
         orig_ = copy.deepcopy(self._raise_alarm)
