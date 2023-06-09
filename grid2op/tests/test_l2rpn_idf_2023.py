@@ -106,6 +106,6 @@ class L2RPNIDF2023Tester(unittest.TestCase):
         for_env = obs.get_forecast_env()
         assert for_env.max_episode_duration() == 13  # 12 + 1
         
-        
+    
 if __name__ == '__main__':
     unittest.main()
