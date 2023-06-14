@@ -90,13 +90,15 @@ class TestMultiMixEnvironment(unittest.TestCase):
                          can_be_copied=True,
                          lightsim2grid=False,
                          dist_slack=False,
-                         max_iter=10):
+                         max_iter=10,
+                         with_numba=False):
                 super().__init__(
                     detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
                     can_be_copied=can_be_copied,
                     lightsim2grid=lightsim2grid,
                     dist_slack=dist_slack,
-                    max_iter=max_iter
+                    max_iter=max_iter,
+                    with_numba=with_numba
                 )
                 self.calls = 0
 
@@ -171,14 +173,16 @@ class TestMultiMixEnvironment(unittest.TestCase):
                          can_be_copied=True,
                          lightsim2grid=False,
                          dist_slack=False,
-                         max_iter=10
+                         max_iter=10,
+                         with_numba=False
                          ):
                 super().__init__(
                     detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
                     can_be_copied=can_be_copied,
                     lightsim2grid=lightsim2grid,
                     dist_slack=dist_slack,
-                    max_iter=max_iter
+                    max_iter=max_iter,
+                    with_numba=with_numba
                 )
                 self._dummy = -1
 

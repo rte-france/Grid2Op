@@ -36,6 +36,9 @@ Change Log
 - [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
 - [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
   the same action
+- [ADDED] the kwargs "with_numba" in `PandaPowerBackend` to offer more control on whether or not you want
+  to use numba (default behaviour did not change: "if numba is availble, use it" but now you can disable it 
+  if numba is available but you don't want it)
 
 [1.9.0] - 2023-06-06
 --------------------
