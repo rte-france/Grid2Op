@@ -22,6 +22,7 @@ class _NewRenewableSourcesUsageScore(BaseReward):
     Implemented as a reward to make it easier to use in the context of the L2RPN competitions, this "reward"
     computed the "low carbon score", meaning here how much of the new renewable energy sources capacities have been called.
     It should not be used to train an agent.
+    It has been designed to be defined in the continuous domain [50,100] with outputs values between[-1,1].
     
     """
     def __init__(self, logger=None):
@@ -43,7 +44,7 @@ class _NewRenewableSourcesUsageScore(BaseReward):
         
         if is_done:
             ratio_nres_usage = 100 * np.sum(self.gen_res_p_list) / np.sum(self.gen_res_p_before_curtail_list)
-            return ratio_nres_usage * np.log(ratio_nres_usage)
+            return _surlinear_func_curtailement(ratio_nres_usage)
         
         
     @staticmethod
@@ -55,4 +56,12 @@ class _NewRenewableSourcesUsageScore(BaseReward):
         gen_nres_p_before_curtail = np.sum(obs.gen_p_before_curtail[nres_mask])
         
         return gen_nres_p, gen_nres_p_before_curtail
+    
+    @staticmethod
+    def _surlinear_func_curtailment(x, center=80):
+        f = lambda x : x * np.log(x) - center * np.log(center)
+        if x >= center:
+            return f(x) / (100 * np.log(100) - center * np.log(center))
+        else:
+            return f(x) / (center * np.log(center) - 50 * np.log(50))
     

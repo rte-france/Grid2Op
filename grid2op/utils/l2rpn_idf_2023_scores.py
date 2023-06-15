@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.utils.l2rpn_2020_scores import ScoreL2RPN2020
-from grid2op.Reward import L2RPNSandBoxScore, _NewRenewableSourcesUsageScore, _AssistantRelevancyScore, _AssistantCostScore
+from grid2op.Reward import L2RPNSandBoxScore, _NewRenewableSourcesUsageScore, _AssistantConfidenceScore, _AssistantCostScore
 from grid2op.utils.underlying_statistics import EpisodeStatistics
 
 
@@ -90,7 +90,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         weight_op_score=0.5,
         weight_assistant_score=0.3,
         weight_nres_score=0.2,
-        weight_relevancy_assistant_score=0.7,
+        weight_confidence_assistant_score=0.7,
     ):
 
         ScoreL2RPN2020.__init__(
@@ -105,25 +105,25 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             nb_process_stats=nb_process_stats,
             scores_func={
                 "grid_operational_cost": L2RPNSandBoxScore,
-                "alarm_relevancy": _AssistantRelevancyScore,
+                "assistance_confidence": _AssistantConfidenceScore,
                 "assistant_cost": _AssistantCostScore,
                 "new_renewable_sources_usage": _NewRenewableSourcesUsageScore,
             },
             score_names=["grid_operational_cost_scores",
-                         "assistant_relevancy_scores",
+                         "assistant_confidence_scores",
                          "assistant_cost_scores",
                          "new_renewable_sources_usage_scores"],
         )
         
         assert(weight_op_score + weight_assistant_score + weight_nres_score==1.)
-        assert(all([weight_relevancy_assistant_score>=0., weight_relevancy_assistant_score<=1.]))
+        assert(all([weight_confidence_assistant_score>=0., weight_confidence_assistant_score<=1.]))
         
         self.scale_assistant_score = scale_assistant_score
         self.scale_nres_score = scale_nres_score
         self.weight_op_score = weight_op_score
         self.weight_assistant_score = weight_assistant_score
         self.weight_nres_score = weight_nres_score
-        self.weight_relevancy_assistant_score = weight_relevancy_assistant_score
+        self.weight_confidence_assistant_score = weight_confidence_assistant_score
 
     def _compute_episode_score(
         self,
@@ -162,14 +162,14 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         real_nm = EpisodeStatistics._nm_score_from_attr_name(new_renewable_sources_usage_score_nm)
         key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
         nres_score = float(other_rewards[-1][key_score_file])
-        nres_score = self.scale_nres_score * nres_score
+        nres_score = self.scale_nres_score * nres_score 
         
-        #assistant_relevancy_score
-        new_renewable_sources_usage_score_nm = "assistant_relevancy_scores"
+        #assistant_confidence_score
+        new_renewable_sources_usage_score_nm = "assistant_confidence_scores"
         real_nm = EpisodeStatistics._nm_score_from_attr_name(new_renewable_sources_usage_score_nm)
         key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
-        assistant_relevancy_score = float(other_rewards[-1][key_score_file])
-        assistant_relevancy_score = self.scale_assistant_score * assistant_relevancy_score
+        assistant_confidence_score = float(other_rewards[-1][key_score_file])
+        assistant_confidence_score = self.scale_assistant_score * assistant_confidence_score
         
         #assistant_cost_score
         new_renewable_sources_usage_score_nm = "assistant_cost_scores"
@@ -178,13 +178,13 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         assistant_cost_score = float(other_rewards[-1][key_score_file])
         assistant_cost_score  = self.scale_assistant_score * assistant_cost_score
         
-        assistant_score = self.weight_relevancy_assistant_score * assistant_relevancy_score +\
-            (1. - self.weight_relevancy_assistant_score) * assistant_cost_score
+        assistant_score = self.weight_confidence_assistant_score * assistant_confidence_score +\
+            (1. - self.weight_confidence_assistant_score) * assistant_cost_score
 
         ep_score = (
             self.weight_op_score * op_score + self.weight_nres_score * nres_score +self.weight_assistant_score * assistant_score
         )
-        return (ep_score, op_score, nres_score, assistant_relevancy_score, assistant_cost_score), n_played, total_ts
+        return (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score), n_played, total_ts
 
 
 if __name__ == "__main__":
