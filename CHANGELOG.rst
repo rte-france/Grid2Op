@@ -39,6 +39,8 @@ Change Log
 - [ADDED] the kwargs "with_numba" in `PandaPowerBackend` to offer more control on whether or not you want
   to use numba (default behaviour did not change: "if numba is availble, use it" but now you can disable it 
   if numba is available but you don't want it)
+- [ADDED] the method `act.decompose_as_unary_actions(...)` to automatically
+  decompose a "complex" action on its unary counterpart. 
 
 [1.9.0] - 2023-06-06
 --------------------
