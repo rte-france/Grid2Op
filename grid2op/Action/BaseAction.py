@@ -560,6 +560,16 @@ class BaseAction(GridObjects):
 
         return res
 
+    def _aux_serialize_add_key_change(self, attr_nm, dict_key, res):
+            tmp_ = [int(id_) for id_, val in enumerate(getattr(self, attr_nm)) if val]
+            if tmp_:
+                res[dict_key] = tmp_
+
+    def _aux_serialize_add_key_set(self, attr_nm, dict_key, res):            
+            tmp_ = [(int(id_), int(val)) for id_, val in enumerate(getattr(self, attr_nm)) if val != 0.]
+            if tmp_:
+                res[dict_key] = tmp_
+                
     def as_serializable_dict(self) -> dict:
         """
         This method returns an action as a dictionnary, that can be serialized using the "json" module.
@@ -594,26 +604,34 @@ class BaseAction(GridObjects):
                 int(id_) for id_, val in enumerate(self._raise_alarm) if val
             ]
         if self._modif_change_bus:
-            res["change_bus"] = [
-                int(id_) for id_, val in enumerate(self._change_bus_vect) if val
-            ]
+            res["change_bus"] = {}
+            self._aux_serialize_add_key_change("load_change_bus", "loads_id", res["change_bus"])
+            self._aux_serialize_add_key_change("gen_change_bus", "generators_id", res["change_bus"])
+            self._aux_serialize_add_key_change("line_or_change_bus", "lines_or_id", res["change_bus"])
+            self._aux_serialize_add_key_change("line_ex_change_bus", "lines_ex_id", res["change_bus"])
+            self._aux_serialize_add_key_change("storage_change_bus", "storages_id", res["change_bus"])
+            
         if self._modif_change_status:
             res["change_line_status"] = [
                 int(id_) for id_, val in enumerate(self._switch_line_status) if val
             ]
+            
         # int elements
         if self._modif_set_bus:
-            res["set_bus"] = [
-                (int(id_), int(val))
-                for id_, val in enumerate(self._set_topo_vect)
-                if val != 0
-            ]
+            res["set_bus"] = {}
+            self._aux_serialize_add_key_set("load_set_bus", "loads_id", res["set_bus"])
+            self._aux_serialize_add_key_set("gen_set_bus", "generators_id", res["set_bus"])
+            self._aux_serialize_add_key_set("line_or_set_bus", "lines_or_id", res["set_bus"])
+            self._aux_serialize_add_key_set("line_ex_set_bus", "lines_ex_id", res["set_bus"])
+            self._aux_serialize_add_key_set("storage_set_bus", "storages_id", res["set_bus"])
+            
         if self._modif_set_status:
             res["set_line_status"] = [
                 (int(id_), int(val))
                 for id_, val in enumerate(self._set_line_status)
                 if val != 0
             ]
+            
         # float elements
         if self._modif_redispatch:
             res["redispatch"] = [
@@ -647,11 +665,11 @@ class BaseAction(GridObjects):
             res["shunt"] = {}
             if np.any(np.isfinite(self.shunt_p)):
                 res["shunt"]["shunt_p"] = [
-                    (int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_p)
+                    (int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_p) if np.isfinite(val)
                 ]
             if np.any(np.isfinite(self.shunt_q)):
                 res["shunt"]["shunt_q"] = [
-                    (int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_q)
+                    (int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_q) if np.isfinite(val)
                 ]
             if np.any(self.shunt_bus != 0):
                 res["shunt"]["shunt_bus"] = [
@@ -5791,7 +5809,7 @@ class BaseAction(GridObjects):
                 mask_sub = cls.grid_objects_types[:, cls.SUB_COL] == sub_id    
                 tmp._set_topo_vect[mask_sub] = self._set_topo_vect[mask_sub]
                 res["set_bus"].append(tmp)
-                
+             
     def _aux_decompose_as_unary_actions_set_ls(self, cls, group_line_status, res):
         if group_line_status:
             tmp = cls()
