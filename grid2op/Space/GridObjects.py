@@ -742,6 +742,9 @@ class GridObjects:
         cls.name_shunt = None
         cls.shunt_to_subid = None
 
+        # alarm / alert
+        cls.assistant_warning_type = "ZONAL"
+        
         # alarms
         cls.dim_alarms = 0
         cls.alarms_area_names = []
