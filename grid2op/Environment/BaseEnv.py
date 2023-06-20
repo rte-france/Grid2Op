@@ -14,7 +14,7 @@ import copy
 import os
 import json
 from typing import Optional, Tuple
-
+import warnings
 import numpy as np
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
@@ -229,6 +229,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     """
 
     ALARM_FILE_NAME = "alerts_info.json"
+    ALARM_KEY = "fixed"
+    ALERT_FILE_NAME = "alerts_info.json"
+    ALERT_KEY = "by_line"
+    
     CAN_SKIP_TS = False  # each step is exactly one time step
 
     def __init__(
@@ -789,6 +793,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         res = self._init_env_path if self._init_env_path is not None else ""
         return res
 
+    def _check_alarm_file_consistent(self, dict_):
+        if (self.ALERT_KEY not in dict_) and (self.ALARM_KEY not in dict_):
+            raise EnvError(
+                f'One of {self.ALERT_KEY} or {self.ALARM_KEY} should be present in the alarm data json, for now.'
+            )
+        
     def load_alarm_data(self):
         """
         Internal
@@ -814,20 +824,21 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if os.path.exists(file_alarms) and os.path.isfile(file_alarms):
             with open(file_alarms, mode="r", encoding="utf-8") as f:
                 dict_alarm = json.load(f)
-            key = "fixed"
-            if key not in dict_alarm:
-                raise EnvError(
-                    'The key "fixed" should be present in the alarm data json, for now.'
-                )
-            nb_areas = len(dict_alarm[key])  # need to be remembered
+            self._check_alarm_file_consistent(dict_alarm)
+            
+            if self.ALARM_KEY not in dict_alarm:
+                # not an alarm but an alert
+                return # TODO update grid in this case !
+            
+            nb_areas = len(dict_alarm[self.ALARM_KEY])  # need to be remembered
             line_names = {
                 el: [] for el in self.backend.name_line
             }  # need to be remembered
-            area_names = sorted(dict_alarm[key].keys())  # need to be remembered
+            area_names = sorted(dict_alarm[self.ALARM_KEY].keys())  # need to be remembered
             area_lines = [[] for _ in range(nb_areas)]  # need to be remembered
             for area_id, area_name in enumerate(area_names):
                 # check that: all lines in files are in the grid
-                area = dict_alarm[key][area_name]
+                area = dict_alarm[self.ALARM_KEY][area_name]
                 for line in area:
                     if line not in line_names:
                         raise EnvError(
@@ -850,11 +861,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             # every check pass, i update the backend class
             bk_cls = type(self.backend)
-            bk_cls.dim_alarms = nb_areas
+            bk_cls.tell_dim_alarm(nb_areas)
             bk_cls.alarms_area_names = copy.deepcopy(area_names)
             bk_cls.alarms_lines_area = copy.deepcopy(line_names)
             bk_cls.alarms_area_lines = copy.deepcopy(area_lines)
-
 
     def load_alert_data(self):
         """
@@ -868,22 +878,40 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         -------
 
         """
-
-        if "lines_attacked" in self._kwargs_opponent.keys():
-            alertable_line_names = [el for el in self.backend.name_line 
-                                  if el in self._kwargs_opponent['lines_attacked']] # need to be remembered
-            alertable_line_ids = [i for i, el in enumerate(self.backend.name_line)
-                                  if el in self._kwargs_opponent['lines_attacked']]
+        file_alarms = os.path.join(self.get_path_env(), BaseEnv.ALERT_FILE_NAME)
+        if os.path.exists(file_alarms) and os.path.isfile(file_alarms):
+            with open(file_alarms, mode="r", encoding="utf-8") as f:
+                dict_alert = json.load(f)
+                
+            self._check_alarm_file_consistent(dict_alert)
+            if self.ALERT_KEY not in dict_alert:
+                # not an alert but an alarm
+                return # TODO update grid in this case !
+            
+            if dict_alert[self.ALERT_KEY] != "opponent":
+                raise EnvError('You can only define alert from the opponent for now.')
+            
+            if "lines_attacked" in self._kwargs_opponent:
+                lines_attacked = copy.deepcopy(self._kwargs_opponent["lines_attacked"])
+                if isinstance(lines_attacked[0], list):
+                    lines_attacked = sum(lines_attacked, start=[])
+            else:
+                lines_attacked = []
+                warnings.warn("The kwargs \"lines_attacked\" is not present in the description of your opponent "
+                              "yet you want to use alert. Know that in this case no alert will be defined...")
+                    
+            alertable_line_names = [el for el in self.backend.name_line if el in lines_attacked]
+            alertable_line_ids = [i for i, el in enumerate(self.backend.name_line) if el in lines_attacked]
             nb_lines = len(alertable_line_ids)
-
-            # every check pass, i update the backend class
-            alertable_line_names = copy.deepcopy(alertable_line_names)
         else : 
             alertable_line_names = []
             alertable_line_ids = []
             nb_lines = 0
-        return alertable_line_names, alertable_line_ids, nb_lines
-
+        
+        bk_cls = type(self.backend)
+        bk_cls.tell_dim_alert(nb_lines)
+        bk_cls.alertable_line_names = copy.deepcopy(alertable_line_names)
+        self.alertable_line_ids = copy.deepcopy(alertable_line_ids)
 
     @property
     def action_space(self) -> ActionSpace:
@@ -1020,18 +1048,21 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 "Impossible to create an attention budget with a non initialized environment!"
             )
         if self._has_attention_budget:
-            self._attention_budget = self._attention_budget_cls()
-            try:
-                self._kwargs_attention_budget.update(kwargs)
-                self._attention_budget.init(
-                    partial_env=self, **self._kwargs_attention_budget
-                )
-            except TypeError as exc_:
-                raise EnvError(
-                    "Impossible to create the attention budget with the provided argument. Please "
-                    'change the content of the argument "kwargs_attention_budget".'
-                ) from exc_
-
+            if type(self).assistant_warning_type == "zonal":
+                self._attention_budget = self._attention_budget_cls()
+                try:
+                    self._kwargs_attention_budget.update(kwargs)
+                    self._attention_budget.init(
+                        partial_env=self, **self._kwargs_attention_budget
+                    )
+                except TypeError as exc_:
+                    raise EnvError(
+                        "Impossible to create the attention budget with the provided argument. Please "
+                        'change the content of the argument "kwargs_attention_budget".'
+                    ) from exc_
+            elif type(self).assistant_warning_type == "by_line":
+                self._has_attention_budget = False
+                
     def _create_opponent(self):
         if not self.__is_init:
             raise EnvError(
@@ -2970,7 +3001,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 except_.append(except_tmp)
 
             if self._has_attention_budget:
-                if self.parameters.ASSISTANT_WARNING_TYPE == "ZONAL":
+                if type(self).assistant_warning_type == "ZONAL":
                     # this feature is implemented, so i do it
                     reason_alert_illegal = self._attention_budget.register_action(
                         self, action, is_illegal, is_ambiguous
