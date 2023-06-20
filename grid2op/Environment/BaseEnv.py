@@ -850,7 +850,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             bk_cls.dim_alarms = 0
             bk_cls.alarms_area_names = []
             bk_cls.alarms_lines_area = {}
-            bk_cls.alarms_area_lines = {}
+            bk_cls.alarms_area_lines = []
             
     @property
     def action_space(self) -> ActionSpace:
