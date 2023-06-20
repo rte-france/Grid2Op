@@ -845,7 +845,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             bk_cls.alarms_area_names = copy.deepcopy(area_names)
             bk_cls.alarms_lines_area = copy.deepcopy(line_names)
             bk_cls.alarms_area_lines = copy.deepcopy(area_lines)
-
+        else:
+            bk_cls = type(self.backend)
+            bk_cls.dim_alarms = 0
+            bk_cls.alarms_area_names = []
+            bk_cls.alarms_lines_area = {}
+            bk_cls.alarms_area_lines = []
+            
     @property
     def action_space(self) -> ActionSpace:
         """this represent a view on the action space"""
