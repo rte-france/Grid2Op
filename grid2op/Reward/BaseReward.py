@@ -117,6 +117,12 @@ class BaseReward(ABC):
             self.logger.disabled = True
         else:
             self.logger: logging.Logger = logger.getChild(f"{type(self).__name__}")
+    
+    def is_simulated_env(self, env):
+        # to prevent cyclical import
+        from grid2op.Environment._ObsEnv import _ObsEnv
+        from grid2op.Environment._forecast_env import _ForecastEnv
+        return isinstance(env, (_ObsEnv, _ForecastEnv))
             
     def initialize(self, env):
         """
