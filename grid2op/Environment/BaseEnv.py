@@ -798,12 +798,20 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise EnvError(
                 f'One of {self.ALERT_KEY} or {self.ALARM_KEY} should be present in the alarm data json, for now.'
             )
+    
+    def _set_no_alarm(self):        
+        bk_cls = type(self.backend)
+        bk_cls.dim_alarms = 0
+        bk_cls.alarms_area_names = []
+        bk_cls.alarms_lines_area = {}
+        bk_cls.alarms_area_lines = []
         
     def load_alarm_data(self):
         """
         Internal
 
-        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        .. warning:: 
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
 
         Notes
         ------
@@ -828,6 +836,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             
             if self.ALARM_KEY not in dict_alarm:
                 # not an alarm but an alert
+                self._set_no_alarm()
                 return # TODO update grid in this case !
             
             nb_areas = len(dict_alarm[self.ALARM_KEY])  # need to be remembered
@@ -865,7 +874,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             bk_cls.alarms_area_names = copy.deepcopy(area_names)
             bk_cls.alarms_lines_area = copy.deepcopy(line_names)
             bk_cls.alarms_area_lines = copy.deepcopy(area_lines)
+        else:
+            self._set_no_alarm()
 
+    def _set_no_alert(self):
+        bk_cls = type(self.backend)
+        bk_cls.tell_dim_alert(0)
+        bk_cls.alertable_line_names = []
+        self.alertable_lines_id = np.array([], dtype=dt_int)
+        
     def load_alert_data(self):
         """
         Internal
@@ -886,7 +903,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._check_alarm_file_consistent(dict_alert)
             if self.ALERT_KEY not in dict_alert:
                 # not an alert but an alarm
-                return # TODO update grid in this case !
+                self._set_no_alert()
+                return
             
             if dict_alert[self.ALERT_KEY] != "opponent":
                 raise EnvError('You can only define alert from the opponent for now.')
@@ -901,17 +919,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                               "yet you want to use alert. Know that in this case no alert will be defined...")
                     
             alertable_line_names = [el for el in self.backend.name_line if el in lines_attacked]
-            alertable_line_ids = [i for i, el in enumerate(self.backend.name_line) if el in lines_attacked]
-            nb_lines = len(alertable_line_ids)
-        else : 
-            alertable_line_names = []
-            alertable_line_ids = []
-            nb_lines = 0
+            alertable_lines_id = np.array([i for i, el in enumerate(self.backend.name_line) if el in lines_attacked], dtype=dt_int)
+            nb_lines = len(alertable_lines_id)
         
-        bk_cls = type(self.backend)
-        bk_cls.tell_dim_alert(nb_lines)
-        bk_cls.alertable_line_names = copy.deepcopy(alertable_line_names)
-        self.alertable_line_ids = copy.deepcopy(alertable_line_ids)
+            bk_cls = type(self.backend)
+            bk_cls.tell_dim_alert(nb_lines)
+            bk_cls.alertable_line_names = copy.deepcopy(alertable_line_names)
+            self.alertable_lines_id = copy.deepcopy(alertable_lines_id)
+        else:
+            self._set_no_alert()
 
     @property
     def action_space(self) -> ActionSpace:

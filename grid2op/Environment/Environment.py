@@ -256,11 +256,8 @@ class Environment(BaseEnv):
             self.backend.is_loaded = True
 
             # alarm set up
-            if self.parameters.ASSISTANT_WARNING_TYPE == "BY_LINE":
-                self.alertable_line_names, self.alertable_lines_id, self.dim_alerts = self.load_alert_data()
-                
-            else : 
-                self.load_alarm_data()
+            self.load_alarm_data()
+            self.load_alert_data()
             
             # to force the initialization of the backend to the proper type
             self.backend.assert_grid_correct()
@@ -405,13 +402,7 @@ class Environment(BaseEnv):
         self._create_opponent()
 
         # create the attention budget
-        if self.parameters.ASSISTANT_WARNING_TYPE == "BY_LINE" :
-            self._create_attention_budget(dim_alerts=self.dim_alerts)
-            self.action_space.tell_dim_alert(self.dim_alerts)
-            self._action_space.tell_dim_alert(self.dim_alerts)
-            self._actionClass.tell_dim_alert(self.dim_alerts)
-        else : 
-            self._create_attention_budget()
+        self._create_attention_budget()
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)

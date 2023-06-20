@@ -24,10 +24,9 @@ from grid2op.Exceptions import *
 
 try:
     import numba
-
-    numba_ = True
+    NUMBA_ = True
 except (ImportError, ModuleNotFoundError):
-    numba_ = False
+    NUMBA_ = False
     warnings.warn(
         "Numba cannot be loaded. You will gain possibly massive speed if installing it by "
         "\n\t{} -m pip install numba\n".format(sys.executable)
@@ -115,6 +114,7 @@ class PandaPowerBackend(Backend):
         dist_slack=False,
         max_iter=10,
         can_be_copied=True,
+        with_numba=NUMBA_,
     ):
         Backend.__init__(
             self,
@@ -122,8 +122,10 @@ class PandaPowerBackend(Backend):
             can_be_copied=can_be_copied,
             lightsim2grid=lightsim2grid,
             dist_slack=dist_slack,
-            max_iter=max_iter
+            max_iter=max_iter,
+            with_numba=with_numba
         )
+        self.with_numba = with_numba
         self.prod_pu_to_kv = None
         self.load_pu_to_kv = None
         self.lines_or_pu_to_kv = None
@@ -353,7 +355,7 @@ class PandaPowerBackend(Backend):
             try:
                 pp.runpp(
                     self._grid,
-                    numba=numba_,
+                    numba=self.with_numba,
                     lightsim2grid=self._lightsim2grid,
                     distributed_slack=self._dist_slack,
                     max_iteration=self._max_iter,
@@ -361,7 +363,7 @@ class PandaPowerBackend(Backend):
             except pp.powerflow.LoadflowNotConverged:
                 pp.rundcpp(
                     self._grid,
-                    numba=numba_,
+                    numba=self.with_numba,
                     lightsim2grid=self._lightsim2grid,
                     distributed_slack=self._dist_slack,
                     max_iteration=self._max_iter,
@@ -438,7 +440,7 @@ class PandaPowerBackend(Backend):
             try:
                 pp.runpp(
                     self._grid,
-                    numba=numba_,
+                    numba=self.with_numba,
                     lightsim2grid=self._lightsim2grid,
                     distributed_slack=self._dist_slack,
                     max_iteration=self._max_iter,
@@ -446,7 +448,7 @@ class PandaPowerBackend(Backend):
             except pp.powerflow.LoadflowNotConverged:
                 pp.rundcpp(
                     self._grid,
-                    numba=numba_,
+                    numba=self.with_numba,
                     lightsim2grid=self._lightsim2grid,
                     distributed_slack=self._dist_slack,
                     max_iteration=self._max_iter,
@@ -1033,7 +1035,7 @@ class PandaPowerBackend(Backend):
                         self._grid,
                         check_connectivity=False,
                         init=self._pf_init,
-                        numba=numba_,
+                        numba=self.with_numba,
                         lightsim2grid=self._lightsim2grid,
                         max_iteration=self._max_iter,
                         distributed_slack=self._dist_slack,

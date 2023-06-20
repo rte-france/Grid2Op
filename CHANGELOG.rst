@@ -31,6 +31,22 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.1] - 2023-xx-yy
+--------------------
+- [FIXED] an error when an environment with alarm was created before an environment 
+  without alarm. This lead to a crash when creating the second environment. This is now fixed.
+- [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
+- [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
+  the same action
+- [ADDED] the kwargs "with_numba" in `PandaPowerBackend` to offer more control on whether or not you want
+  to use numba (default behaviour did not change: "if numba is availble, use it" but now you can disable it 
+  if numba is available but you don't want it)
+- [ADDED] the method `act.decompose_as_unary_actions(...)` to automatically
+  decompose a "complex" action on its unary counterpart. 
+- [IMPROVED] the method `act.as_serializable_dict()` to work better when exporting / importing actions on different 
+  grids (the output dictionary for `set_bus` and `change_bus` now split the keys between all elements types 
+  instead of relying on the "topo_vect" order (which might vary))
+
 [1.9.0] - 2023-06-06
 --------------------
 - [BREAKING] (because prone to bug): force the environment name in the `grid2op.make` function.
@@ -1167,7 +1183,7 @@ Change Log
   `5bus_example` and the `CASE_14_L2RPN2019`.
 - [FIXED] Runner skipped half the episode in some cases (sequential, even number of scenarios). Now fixed.
 - [FIXED] Some typos on the notebook "getting_started\4-StudyYourAgent.ipynb".
-- [FIXED] Error in the conversion of observation to dictionnary. Twice the same keys were used
+- [FIXED] Error in the conversion of observation to dictionary. Twice the same keys were used
   ('time_next_maintenance') for both `time_next_maintenance` and `duration_next_maintenance`.
 - [UPDATED] The first chronics that is processed by a runner is not the "first" one on the hardrive
   (if sorted in alphabetical order)
@@ -1210,7 +1226,7 @@ Change Log
 
 [0.4.2] - 2020-01-08
 --------------------
-- [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionnary) are no more compatible
+- [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionary) are no more compatible
 - [BREAKING] renaming of attributes describing the powergrid across classes for better consistency:
 
 =============================    =======================  =======================

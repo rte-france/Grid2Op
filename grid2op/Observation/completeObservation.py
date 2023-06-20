@@ -86,13 +86,16 @@ class CompleteObservation(BaseObservation):
         35. :attr:`BaseObservation.curtailment` : the current curtailment applied
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         36. :attr:`BaseObservation.is_alarm_illegal` whether the last alarm has been illegal (due to budget
-            constraint), warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ [``bool``]
+            constraint) [``bool``], 
+            .. warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ 
         37. :attr:`BaseObservation.curtailment_limit` : the current curtailment limit (if any)
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         38. :attr:`BaseObservation.time_since_last_alarm` number of step since the last alarm has been raised
-            successfully (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ ) [``int``]
+            successfully [``int``]
+            .. warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ 
         39. :attr:`BaseObservation.last_alarm` : for each alarm zone, gives the last step at which an alarm has
-            been successfully raised at this zone (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
+            been successfully raised at this zone 
+            .. warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
             [:attr:`grid2op.Space.GridObjects.dim_alarms` elements]
         40. :attr:`BaseObservation.attention_budget` : the current attention budget
             [``int``]
@@ -114,7 +117,6 @@ class CompleteObservation(BaseObservation):
         47. :attr:`BaseObservation.confidence` : was the last alert used to compute anything related
             to the attention budget when there was a game over (can only be set to ``True`` if the observation
             corresponds to a game over) [``bool``]
-
     """
 
     attr_list_vect = [

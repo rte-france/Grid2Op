@@ -13,15 +13,12 @@ import os
 import tempfile
 from grid2op.tests.helper_path_test import *
 
-from grid2op.operator_attention import LinearAttentionBudgetByLine
 from grid2op import make
 from grid2op.Reward import AlertReward
 from grid2op.Parameters import Parameters
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Runner import Runner
-from grid2op.Environment import Environment
-from grid2op.Episode import EpisodeData
-from grid2op.Opponent import BaseOpponent, GeometricOpponent, GeometricOpponentMultiArea
+from grid2op.Runner import Runner  # TODO
+from grid2op.Opponent import BaseOpponent, GeometricOpponent
 from grid2op.Action import PlayableAction
 
 ALL_ATTACKABLE_LINES= [
@@ -99,74 +96,85 @@ class TestAlertNoBlackout(unittest.TestCase):
         self.env_nm = os.path.join(
             PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
         )
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
-                                   duration=10, 
-                                   steps_attack=[0,10])
-            self.env = make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponent, 
-                            kwargs_opponent=kwargs_opponent, 
-                            reward_class=AlertReward(reward_end_episode_bonus=42))
-
-        self.env.seed(0)
-        self.env.reset()
-        self.do_nothing = self.env.action_space({})
-
-    def tearDown(self) -> None:
-        self.env.close()
 
     def test_init_default_param(self) -> None : 
-        env = make(self.env_nm, test=True, difficulty="1")
-        assert isinstance(env.parameters.ALERT_TIME_WINDOW, np.int32)
-        assert isinstance(env._attention_budget, LinearAttentionBudgetByLine)
-        assert env._opponent_class == GeometricOpponent
-        assert env.parameters.ALERT_TIME_WINDOW > 0
+        with make(self.env_nm, test=True, difficulty="1") as env:
+            assert isinstance(env.parameters.ALERT_TIME_WINDOW, np.int32)
+            assert env._attention_budget is None  # no attention budget for the alert
+            assert env._opponent_class == GeometricOpponent
+            assert env.parameters.ALERT_TIME_WINDOW > 0
 
-        param = env.parameters
-        param.init_from_dict({
-            "ALERT_TIME_WINDOW": -1, 
-            "ASSISTANT_WARNING_TYPE": "BY_LINE"})
-        
-        negative_value_invalid = False
-        try: 
-            env.change_parameters(param)
-            env.reset()
-        except : 
-            negative_value_invalid = True 
+            param = env.parameters
+            param.init_from_dict({"ALERT_TIME_WINDOW": -1})
+            
+            negative_value_invalid = False
+            try: 
+                env.change_parameters(param)
+                env.reset()
+            except : 
+                negative_value_invalid = True 
 
-        assert negative_value_invalid
+            assert negative_value_invalid
 
-        # test observations for this env also
-        true_alertable_lines = ALL_ATTACKABLE_LINES
-        
-        assert isinstance(env.alertable_line_names, list)
-        assert sorted(env.alertable_line_names) == sorted(true_alertable_lines)
-        assert env.dim_alerts == len(true_alertable_lines)
+            # test observations for this env also
+            true_alertable_lines = ALL_ATTACKABLE_LINES
+            
+            assert isinstance(env.alertable_line_names, list)
+            assert sorted(env.alertable_line_names) == sorted(true_alertable_lines)
+            assert env.dim_alerts == len(true_alertable_lines)
 
 
-    def test_init_observation(self) -> None :
+    def test_init_observation(self) -> None :    
         true_alertable_lines = [ATTACKED_LINE]
-        
-        assert isinstance(self.env.alertable_line_names, list)
-        assert sorted(self.env.alertable_line_names) == sorted(true_alertable_lines)
-        assert self.env.dim_alerts == len(true_alertable_lines)
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                                duration=10, 
+                                steps_attack=[0,10])
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(self.env_nm,
+                      test=True,
+                      difficulty="1", 
+                      opponent_attack_cooldown=0, 
+                      opponent_attack_duration=99999, 
+                      opponent_budget_per_ts=1000, 
+                      opponent_init_budget=10000., 
+                      opponent_action_class=PlayableAction, 
+                      opponent_class=TestOpponent, 
+                      kwargs_opponent=kwargs_opponent, 
+                      reward_class=AlertReward(reward_end_episode_bonus=42),
+                      _add_to_name="_tio") as env:
+                assert isinstance(env.alertable_line_names, list)
+                assert sorted(env.alertable_line_names) == sorted(true_alertable_lines)
+                assert env.dim_alerts == len(true_alertable_lines)
 
 
     def test_raise_alert_action(self) -> None :
-        attackable_line_id = 0
-        # raise alert on line number line_id
-        act = self.env.action_space()
-        act.raise_alert = [attackable_line_id]
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                               duration=10, 
+                               steps_attack=[0,10])
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(self.env_nm,
+                      test=True,
+                      difficulty="1", 
+                      opponent_attack_cooldown=0, 
+                      opponent_attack_duration=99999, 
+                      opponent_budget_per_ts=1000, 
+                      opponent_init_budget=10000., 
+                      opponent_action_class=PlayableAction, 
+                      opponent_class=TestOpponent, 
+                      kwargs_opponent=kwargs_opponent, 
+                      reward_class=AlertReward(reward_end_episode_bonus=42),
+                      _add_to_name="_traa") as env:
+                
+                for attackable_line_id in range(env.dim_alerts):
+                    # raise alert on line number line_id
+                    act = env.action_space()
+                    act.raise_alert = [attackable_line_id]
 
-        act_2 = self.env.action_space({"raise_alert": [attackable_line_id]})
-        
-        assert act == act_2 
+                    act_2 = env.action_space({"raise_alert": [attackable_line_id]})
+                    
+                    assert act == act_2, f"error for line {attackable_line_id}"
 
     def test_assistant_reward_value_no_blackout_no_attack_no_alert(self) -> None : 
         """ When no blackout and no attack occur, and no alert is raised we expect a reward of 0
@@ -186,7 +194,7 @@ class TestAlertNoBlackout(unittest.TestCase):
 
             done = False
             for i in range(env.max_episode_duration()):
-                obs, reward, done, info = env.step(self.do_nothing)
+                obs, reward, done, info = env.step(env.action_space())
                 if env._oppSpace.last_attack is None : 
                     if i == env.max_episode_duration()-1: 
                         assert reward == 42
@@ -216,9 +224,9 @@ class TestAlertNoBlackout(unittest.TestCase):
             done = False
             attackable_line_id=0
             for i in range(env.max_episode_duration()):
-                act = self.do_nothing
+                act = env.action_space()
                 if i == 1 :
-                    act = self.env.action_space({"raise_alert": [attackable_line_id]})
+                    act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
 
                 if env._oppSpace.last_attack is None : 
@@ -243,20 +251,23 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
                                    steps_attack=[1])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponent, 
-                            kwargs_opponent=kwargs_opponent,
-                            reward_class=AlertReward(reward_end_episode_bonus=42)
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponent, 
+                  kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(reward_end_episode_bonus=42),
+                  _add_to_name="_tarvnbana"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
-                act = self.do_nothing
+                act = env.action_space()
                 obs, reward, done, info = env.step(act)
                 if i == 1 : 
                     assert env._oppSpace.last_attack is not None
@@ -274,22 +285,25 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
                                    steps_attack=[2])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponent, 
-                            kwargs_opponent=kwargs_opponent
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponent, 
+                  kwargs_opponent=kwargs_opponent,
+                  _add_to_name="_tarvnba"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
-                act = self.do_nothing
+                act = env.action_space()
                 if i == 1 :
-                    act = self.env.action_space({"raise_alert": [attackable_line_id]})
+                    act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
                 if i == 2 : 
                     assert env._oppSpace.last_attack is not None
@@ -310,22 +324,25 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
                                    steps_attack=[2])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponent, 
-                            kwargs_opponent=kwargs_opponent
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponent, 
+                  kwargs_opponent=kwargs_opponent,
+                  _add_to_name="_tarvnbaatl"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
-                act = self.do_nothing
+                act = env.action_space()
                 if i == 2 :
-                    act = self.env.action_space({"raise_alert": [attackable_line_id]})
+                    act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
                 if i == 2 : 
                     assert env._oppSpace.last_attack is not None
@@ -346,23 +363,26 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
                                    steps_attack=[2])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponent, 
-                            kwargs_opponent=kwargs_opponent
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponent, 
+                  kwargs_opponent=kwargs_opponent,
+                  _add_to_name="_tarvnbaate"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
-                act = self.do_nothing
+                act = env.action_space()
                 if i == 0 :
                     # An alert is raised at step 0
-                    act = self.env.action_space({"raise_alert": [attackable_line_id]})
+                    act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
                 if i == 2 : 
                     assert env._oppSpace.last_attack is not None
@@ -385,20 +405,23 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=3, 
                                    steps_attack=[1])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponent, 
-                            kwargs_opponent=kwargs_opponent,
-                            reward_class=AlertReward(reward_end_episode_bonus=42)
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponent, 
+                  kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(reward_end_episode_bonus=42),
+                  _add_to_name="_tarvnb2astna"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
-                act = self.do_nothing
+                act = env.action_space()
                 obs, reward, done, info = env.step(act)
                 if i == 1 : 
                     assert env._oppSpace.last_attack is not None
@@ -419,22 +442,25 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=3, 
                                    steps_attack=[2])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponent, 
-                            kwargs_opponent=kwargs_opponent
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponent, 
+                  kwargs_opponent=kwargs_opponent,
+                  _add_to_name="_tarvnb2ast1a"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
-                act = self.do_nothing
+                act = env.action_space()
                 if i == 1 :
-                    act = self.env.action_space({"raise_alert": [attackable_line_id]})
+                    act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
                 if i == 2 : 
                     assert env._oppSpace.last_attack is not None
@@ -455,22 +481,25 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=3, 
                                    steps_attack=[2])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponent, 
-                            kwargs_opponent=kwargs_opponent
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponent, 
+                  kwargs_opponent=kwargs_opponent,
+                  _add_to_name="_tarvnb2ast2a"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
                 attackable_line_ids = [0, 1]
-                act = self.do_nothing
+                act = env.action_space()
                 if i == 1 :
-                    act = self.env.action_space({"raise_alert": attackable_line_ids})
+                    act = env.action_space({"raise_alert": attackable_line_ids})
                 obs, reward, done, info = env.step(act)
                 if i == 2 : 
                     assert env._oppSpace.last_attack is not None
@@ -493,20 +522,23 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=[1,1], 
                                    steps_attack=[1, 2])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponentMultiLines, 
-                            kwargs_opponent=kwargs_opponent,
-                            reward_class=AlertReward(reward_end_episode_bonus=42)
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponentMultiLines, 
+                  kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(reward_end_episode_bonus=42),
+                  _add_to_name="_tarvnb2dtna"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
-                act = self.do_nothing
+                act = env.action_space()
                 obs, reward, done, info = env.step(act)
                 if i in [1,2] : 
                     assert env._oppSpace.last_attack is not None
@@ -530,24 +562,27 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=[1,1], 
                                    steps_attack=[2, 3])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponentMultiLines, 
-                            kwargs_opponent=kwargs_opponent,
-                            reward_class=AlertReward(reward_end_episode_bonus=42)
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponentMultiLines, 
+                  kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(reward_end_episode_bonus=42),
+                  _add_to_name="_tarvnb2dt2a"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
-                act = self.do_nothing
+                act = env.action_space()
                 if i == 1 :
-                    act = self.env.action_space({"raise_alert": [0]})
+                    act = env.action_space({"raise_alert": [0]})
                 elif i == 2 : 
-                    act = self.env.action_space({"raise_alert": [1]})
+                    act = env.action_space({"raise_alert": [1]})
                 obs, reward, done, info = env.step(act)
 
                 if i in [2,3] : 
@@ -572,22 +607,25 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=[1,1], 
                                    steps_attack=[2, 3])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponentMultiLines, 
-                            kwargs_opponent=kwargs_opponent,
-                            reward_class=AlertReward(reward_end_episode_bonus=42)
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponentMultiLines, 
+                  kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(reward_end_episode_bonus=42),
+                  _add_to_name="_tarvnb2dtafa"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
-                act = self.do_nothing
+                act = env.action_space()
                 if i == 1 :
-                    act = self.env.action_space({"raise_alert": [0]})
+                    act = env.action_space({"raise_alert": [0]})
                 obs, reward, done, info = env.step(act)
 
                 if i in [2,3] : 
@@ -612,22 +650,25 @@ class TestAlertNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=[1,1], 
                                    steps_attack=[2, 3])
-        with make(self.env_nm, test=True, difficulty="1", 
-                            opponent_attack_cooldown=0, 
-                            opponent_attack_duration=99999, 
-                            opponent_budget_per_ts=1000, 
-                            opponent_init_budget=10000., 
-                            opponent_action_class=PlayableAction, 
-                            opponent_class=TestOpponentMultiLines, 
-                            kwargs_opponent=kwargs_opponent,
-                            reward_class=AlertReward(reward_end_episode_bonus=42)
+        with make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponentMultiLines, 
+                  kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(reward_end_episode_bonus=42),
+                  _add_to_name="_tarvnb2dtasa"
             ) as env : 
             env.seed(0)
             env.reset()
             for i in range(env.max_episode_duration()):
-                act = self.do_nothing
+                act = env.action_space()
                 if i == 2 : 
-                    act = self.env.action_space({"raise_alert": [1]})
+                    act = env.action_space({"raise_alert": [1]})
                 obs, reward, done, info = env.step(act)
 
                 if i in [2,3] : 
@@ -651,12 +692,15 @@ class TestAlertNoBlackout(unittest.TestCase):
         ) as env:
             env.seed(0)
             env.reset()
-
+            assert type(env).dim_alerts == 10, f"dim_alerts: {type(env).dim_alerts} instead of 10"
             attackable_line_id = 10
             try : 
-                act = self.env.action_space({"raise_alert": [attackable_line_id]})
-            except Grid2OpException as e : 
-                assert e.args[0] == 'Impossible to modify the alert with your input. Please consult the documentation. The error was:\n"Grid2OpException IllegalAction "Impossible to change a raise alert id 10 because there are only 10 on the grid (and in python id starts at 0)""'
+                act = env.action_space({"raise_alert": [attackable_line_id]})
+            except Grid2OpException as exc_ : 
+                assert exc_.args[0] == ('Impossible to modify the alert with your input. Please consult the '
+                                        'documentation. The error was:\n"Grid2OpException IllegalAction '
+                                        '"Impossible to change a raise alert id 10 because there are only '
+                                        '10 on the grid (and in python id starts at 0)""')
 
 
 class TestAlertBlackout(unittest.TestCase):

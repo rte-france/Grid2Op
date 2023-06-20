@@ -1,0 +1,9 @@
+{
+  "Lx": 1000,
+  "Ly": 1000,
+  "dx_corr": 250,
+  "dy_corr": 250,
+  "temperature_corr": 400,
+  "std_temperature_noise": 0.06,
+  "load_q_from_p_coeff": 0.7
+}

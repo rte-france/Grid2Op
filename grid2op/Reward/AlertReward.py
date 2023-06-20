@@ -104,16 +104,18 @@ class AlertReward(BaseReward):
                 'Please make sure "env._has_attention_budget" is set to ``True`` or '
                 "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`"
             )
-        if not env._has_attention_budget:
+        # if not env._has_attention_budget:
+        #     raise Grid2OpException(
+        #         'Impossible to use the "AlertReward" with an environment for which this feature '
+        #         'is disabled. Please make sure "env._has_attention_budget" is set to ``True`` or '
+        #         "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`"
+        #     )
+        if type(env).assistant_warning_type != "by_line":
             raise Grid2OpException(
                 'Impossible to use the "AlertReward" with an environment for which this feature '
-                'is disabled. Please make sure "env._has_attention_budget" is set to ``True`` or '
-                "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`"
-            )
-        if env.parameters.ASSISTANT_WARNING_TYPE != "BY_LINE":
-            raise Grid2OpException(
-                'Impossible to use the "AlertReward" with an environment for which this feature '
-                'is ``ZONAL``. Please make sure "env.parameters.ASSISTANT_WARNING_TYPE" is set to ``BY_LINE`` or '
+                'is not `by_line`. Please make sure `env.assistant_warning_type` (for example by '
+                'providing the file `alerts_info.json` withing your environment folder)'
+                'is set to ``by_line`` or '
                 "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`"
             )
         self.reset(env)
@@ -172,7 +174,7 @@ class AlertReward(BaseReward):
 
             else : 
                 self._is_first_step_of_attack[:, :-1] = self._is_first_step_of_attack[:, 1:]
-                self._is_first_step_of_attack[:, -1] = np.full(env._attention_budget._dim_alerts, False, dtype=dt_bool)
+                self._is_first_step_of_attack[:, -1] = np.full(type(env).dim_alerts, False, dtype=dt_bool)
                 self.has_new_attack = False
 
             self.last_attacked_lines = lines_attacked
@@ -181,13 +183,11 @@ class AlertReward(BaseReward):
             self.reward_unit_step = (self.reward_max_blackout - self.reward_min_blackout) / self.nb_max_concurrent_attacks_in_window
 
         else:
-            lines_attacked = np.full(env._attention_budget._dim_alerts, False, dtype=dt_bool)
+            lines_attacked = np.full(type(env).dim_alerts, False, dtype=dt_bool)
             self._is_first_step_of_attack[:, :-1] = self._is_first_step_of_attack[:, 1:]
             self._is_first_step_of_attack[:, -1] = lines_attacked
             self.last_attacked_lines = lines_attacked
         
-        
-
         self._attacks_in_time_window[:, :-1] = self._attacks_in_time_window[:, 1:]
         self._attacks_in_time_window[:, -1] = lines_attacked
 
@@ -221,7 +221,8 @@ class AlertReward(BaseReward):
 
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        legal_alert_action = env._attention_budget._last_alert_action_filtered_by_budget
+        # legal_alert_action = env._attention_budget._last_alert_action_filtered_by_budget
+        legal_alert_action = 1 * action.raise_alert
 
         if env.nb_time_step == self.current_step_first_encountered+1:
             self.current_step_first_encountered = env.current_obs.current_step

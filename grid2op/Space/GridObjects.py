@@ -570,6 +570,9 @@ class GridObjects:
     name_shunt = None
     shunt_to_subid = None
 
+    # alarm / alert
+    assistant_warning_type = None
+    
     # alarm feature
     # dimension of the alarm "space" (number of alarm that can be raised at each step)
     dim_alarms = 0  # TODO
@@ -582,7 +585,7 @@ class GridObjects:
     )  # for each area in the grid, gives which powerlines it contains # TODO
 
     # alert feature 
-    # # dimension of the alert "space" (number of alerts that can be raised at each step)
+    # dimension of the alert "space" (number of alerts that can be raised at each step)
     dim_alerts = 0  # TODO
     alertable_line_names = []  # name of each line to produce an alert on # TODO
 
@@ -597,7 +600,10 @@ class GridObjects:
                 "You will change the number of dimensions of the alarm. This might cause trouble "
                 "if you environment is read back. We strongly recommend NOT to do this."
             )
+        if cls.assistant_warning_type == "by_line":
+            raise Grid2OpException("Impossible to set both alarm and alert for the same environment.")
         cls.dim_alarms = dim_alarms
+        cls.assistant_warning_type = "zonal"
 
     @classmethod
     def tell_dim_alert(cls, dim_alerts):
@@ -607,8 +613,10 @@ class GridObjects:
                 "You will change the number of dimensions of the alert. This might cause trouble "
                 "if you environment is read back. We strongly recommend NOT to do this."
             )
+        if cls.assistant_warning_type == "zonal":
+            raise Grid2OpException("Impossible to set both alarm and alert for the same environment.")
         cls.dim_alerts = dim_alerts
-
+        cls.assistant_warning_type = "by_line"
 
     @classmethod
     def _clear_class_attribute(cls):
@@ -2078,6 +2086,8 @@ class GridObjects:
                 f"The number of areas for the alarm feature should be >= 0. It currently is {cls.dim_alarms}"
             )
         else:
+            assert cls.assistant_warning_type == "zonal"
+            
             # the "alarm" feature is supported
             assert isinstance(
                 cls.alarms_area_names, list
@@ -2134,6 +2144,7 @@ class GridObjects:
 
     @classmethod
     def _check_validity_alert_data(cls):
+        # TODO remove assert and raise Grid2opExcpetion instead
         if cls.dim_alerts == 0:
             # no alert data
             assert (
@@ -2144,6 +2155,7 @@ class GridObjects:
                 f"The number of lines for the alert feature should be >= 0. It currently is {cls.dim_alerts}"
             )
         else:
+            assert cls.assistant_warning_type == "by_line"
             # the "alert" feature is supported
             assert isinstance(
                 cls.alertable_line_names, list
@@ -2679,7 +2691,9 @@ class GridObjects:
         if cls.glop_version < "1.6.0":
             # this feature did not exist before.
             cls.dim_alarms = 0
-        if cls.glop_version < "1.8.2":
+            cls.assistant_warning_type = None
+        if cls.glop_version < "1.9.1":
+            # this feature did not exists before
             cls.dim_alerts = 0 
 
     @classmethod
@@ -3363,6 +3377,9 @@ class GridObjects:
             copy_,
         )
 
+        # alert or alarm
+        res["assistant_warning_type"] = str(cls.assistant_warning_type)
+        
         # area for the alarm feature
         res["dim_alarms"] = cls.dim_alarms
     
@@ -3650,6 +3667,11 @@ class GridObjects:
             # and now post process the class attributes for that
             cls.process_grid2op_compat()
 
+        if "assistant_warning_type" in dict_:
+            cls.assistant_warning_type = dict_["assistant_warning_type"]
+        else:
+            cls.assistant_warning_type = None
+        
         # alarm information
         if "dim_alarms" in dict_:
             # NB by default the constructor do as if there were no alarm so that's great !
@@ -4116,6 +4138,7 @@ class GridObjects:
         name_shunt_str = ",".join([f'"{el}"' for el in cls.name_shunt])
         shunt_to_subid_str = GridObjects._format_int_vect_to_cls_str(cls.shunt_to_subid)
 
+        assistant_warning_type_str = None if cls.assistant_warning_type is None else f'"{cls.assistant_warning_type_str}"'
         alarms_area_names_str = (
             "[]"
             if cls.dim_alarms == 0
@@ -4258,6 +4281,9 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     name_shunt = np.array([{name_shunt_str}])
     shunt_to_subid = {shunt_to_subid_str}
 
+    # alarm / alert
+    assistant_warning_type = {assistant_warning_type_str}
+    
     # alarm feature
     # dimension of the alarm "space" (number of alarm that can be raised at each step)
     dim_alarms = {cls.dim_alarms}
