@@ -8,6 +8,7 @@
 
 import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
+from grid2op.dtypes import dt_float
 
 class _NewRenewableSourcesUsageScore(BaseReward):
     """
@@ -22,46 +23,64 @@ class _NewRenewableSourcesUsageScore(BaseReward):
     Implemented as a reward to make it easier to use in the context of the L2RPN competitions, this "reward"
     computed the "low carbon score", meaning here how much of the new renewable energy sources capacities have been called.
     It should not be used to train an agent.
-    It has been designed to be defined in the continuous domain [50,100] with outputs values between[-1,1].
+    It has been designed to be defined in the continuous domain [50,100] with outputs values between[-1,1]
     
     """
     def __init__(self, logger=None):
         BaseReward.__init__(self, logger=logger)
-        self.gen_res_p_list = []
-        self.gen_res_p_before_curtail_list = []
+        self.reward_min = dt_float(-1.0)
+        self.reward_max = dt_float(1.0)
+        self.gen_res_p_curtailed_list = None
+        self.gen_res_p_before_curtail_list = None
         
-    def __initialize__(self, env):
+    def initialize(self, env):
         self.reset(env)
         
-    def reset(self):
-        self.gen_res_p_list = []
-        self.gen_res_p_before_curtail_list = []
+    def reset(self, env):
+        self.gen_res_p_curtailed_list = np.zeros(env.chronics_handler.max_timestep())
+        self.gen_res_p_before_curtail_list = np.zeros(env.chronics_handler.max_timestep())
         
-    def __call__(self, env, obs, is_done):
-        gen_nres_p, gen_nres_p_before_curtail = _get_total_nres_usage(env, obs)
-        self.gen_res_p_list.append(gen_nres_p)
-        self.gen_res_p_before_curtail_list.append(gen_nres_p_before_curtail)
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         
-        if is_done:
-            ratio_nres_usage = 100 * np.sum(self.gen_res_p_list) / np.sum(self.gen_res_p_before_curtail_list)
-            return _surlinear_func_curtailement(ratio_nres_usage)
-        
+        if not is_simulated_env(env):
+            if not is_done:
+                gen_nres_p_effective, gen_nres_p_before_curtail = self._get_total_nres_usage(env)
+                self.gen_res_p_curtailed_list[env.nb_time_step] = gen_nres_p_effective
+                self.gen_res_p_before_curtail_list[env.nb_time_step] = gen_nres_p_before_curtail
+                return 0
+            else:
+                ratio_nres_usage = 100 * np.nan_to_num(
+                    np.sum(self.gen_res_p_curtailed_list[1:]) / (np.sum(self.gen_res_p_before_curtail_list[1:])+1e-4),
+                    nan=0.8)
+                                          
+                return self._surlinear_func_curtailment(ratio_nres_usage)
+            
         
     @staticmethod
-    def _get_total_nres_usage(env, obs):
-        gen_type = env.gen_type
-        nres_mask = [any(is_nres) for is_nres in zip(gen_type=="wind", gen_type=="solar")]
+    def _get_total_nres_usage(env):
+        nres_mask = env.gen_renewable
+        gen_p, *_ = env.backend.generators_info()
+        gen_nres_p_before_curtail = np.sum(env._gen_before_curtailment[nres_mask])
+        gen_nres_p_effective = np.sum(gen_p[nres_mask])
         
-        gen_nres_p = np.sum(obs.gen_p[nres_mask])
-        gen_nres_p_before_curtail = np.sum(obs.gen_p_before_curtail[nres_mask])
-        
-        return gen_nres_p, gen_nres_p_before_curtail
+        return gen_nres_p_effective, gen_nres_p_before_curtail
     
     @staticmethod
     def _surlinear_func_curtailment(x, center=80):
-        f = lambda x : x * np.log(x) - center * np.log(center)
-        if x >= center:
-            return f(x) / (100 * np.log(100) - center * np.log(center))
-        else:
-            return f(x) / (center * np.log(center) - 50 * np.log(50))
+        f_surlinear = lambda x: x * np.log(x)
+        f_centralized = lambda x : f_surlinear(x) - f_surlinear(center)
+        f_standardizer= lambda x : np.ones_like(x) * f_centralized(100) * (x >= center) - np.ones_like(x) * f_centralized(50) * (x < center)
+                
+        return f_centralized(x) / f_standardizer(x)
     
+
+#to wait before PR Laure 
+def is_simulated_env(env):
+
+    # to prevent cyclical import
+    from grid2op.Environment._ObsEnv import _ObsEnv
+    from grid2op.Environment._forecast_env import _ForecastEnv
+
+    # This reward is not compatible with simulations
+    return isinstance(env, (_ObsEnv, _ForecastEnv))
+
