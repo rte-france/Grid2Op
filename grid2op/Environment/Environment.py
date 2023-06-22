@@ -831,6 +831,7 @@ class Environment(BaseEnv):
             self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
         self._backend_action = self._backend_action_class()
+        self.nb_time_step = -1  # to have init obs at step 1
         do_nothing = self._helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:

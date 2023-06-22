@@ -36,6 +36,19 @@ ALL_ATTACKABLE_LINES= [
 
 ATTACKED_LINE = "48_50_136"
 
+
+def _get_steps_attack(kwargs_opponent, multi=False):
+    """computes the steps for which there will be attacks"""
+    ts_attack = np.array(kwargs_opponent["steps_attack"])
+    res = []
+    for i, ts in enumerate(ts_attack):
+        if not multi:
+            res.append(ts + np.arange(kwargs_opponent["duration"]))
+        else:
+            res.append(ts + np.arange(kwargs_opponent["duration"][i]))
+    return np.unique(np.concatenate(res).flatten())
+
+    
 class TestOpponent(BaseOpponent): 
     """An opponent that can select the line attack, the time and duration of the attack."""
     
@@ -50,14 +63,14 @@ class TestOpponent(BaseOpponent):
         self.custom_attack = self.action_space({"set_line_status" : [(l, -1) for l in lines_attacked]})
         self.duration = duration
         self.steps_attack = steps_attack
-        
+        self.env = partial_env
 
     def attack(self, observation, agent_action, env_action, budget, previous_fails): 
         if observation is None:
             return None, None
-
-        if not observation.current_step in self.steps_attack: 
-            return None, None 
+        current_step = self.env.nb_time_step
+        if current_step not in self.steps_attack: 
+            return None, None
         
         return self.custom_attack, self.duration
 
@@ -75,16 +88,17 @@ class TestOpponentMultiLines(BaseOpponent):
         self.custom_attack = [ self.action_space({"set_line_status" : [(l, -1)]}) for l in lines_attacked]
         self.duration = duration
         self.steps_attack = steps_attack
+        self.env = partial_env
         
-
     def attack(self, observation, agent_action, env_action, budget, previous_fails): 
         if observation is None:
             return None, None
 
-        if not observation.current_step in self.steps_attack: 
-            return None, None 
+        current_step = self.env.nb_time_step
+        if current_step not in self.steps_attack: 
+            return None, None
         
-        index = self.steps_attack.index(observation.current_step)
+        index = self.steps_attack.index(current_step)
 
         return self.custom_attack[index], self.duration[index]
 
@@ -195,7 +209,7 @@ class TestAlertNoBlackout(unittest.TestCase):
             done = False
             for i in range(env.max_episode_duration()):
                 obs, reward, done, info = env.step(env.action_space())
-                if env._oppSpace.last_attack is None : 
+                if info["opponent_attack_line"] is None : 
                     if i == env.max_episode_duration()-1: 
                         assert reward == 42
                     else : 
@@ -229,7 +243,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
 
-                if env._oppSpace.last_attack is None : 
+                if info["opponent_attack_line"] is None : 
                     if i == env.max_episode_duration()-1: 
                         assert reward == 42
                     else : 
@@ -266,14 +280,19 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 act = env.action_space()
                 obs, reward, done, info = env.step(act)
-                if i == 1 : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 2 : 
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 3 : 
                     assert reward == 1
-                elif i == env.max_episode_duration()-1: 
+                elif step == env.max_episode_duration(): 
                         assert reward == 42
                 else : 
                     assert reward == 0
@@ -283,8 +302,8 @@ class TestAlertNoBlackout(unittest.TestCase):
             We expect a reward -1 at step 3 (with a window size of 2)
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
-                                   duration=3, 
-                                   steps_attack=[2])
+                               duration=3, 
+                               steps_attack=[2])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -299,17 +318,22 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = env.action_space()
                 if i == 1 :
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 3 : 
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 4 : 
                     assert reward == -1
-                elif i == env.max_episode_duration()-1 : 
+                elif step == env.max_episode_duration(): 
                     assert reward == 1
                 else : 
                     assert reward == 0
@@ -338,17 +362,22 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = env.action_space()
                 if i == 2 :
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 3 : 
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 4 : 
                     assert reward == 1
-                elif i == env.max_episode_duration()-1 : 
+                elif step == env.max_episode_duration(): 
                     assert reward == 1
                 else : 
                     assert reward == 0
@@ -377,6 +406,7 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = env.action_space()
@@ -384,11 +414,15 @@ class TestAlertNoBlackout(unittest.TestCase):
                     # An alert is raised at step 0
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 3 : 
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 4: 
                     assert reward == 1
-                elif i == env.max_episode_duration()-1 : 
+                elif step == env.max_episode_duration(): 
                     assert reward == 1
                 else : 
                     assert reward == 0
@@ -420,18 +454,23 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 act = env.action_space()
                 obs, reward, done, info = env.step(act)
-                if i == 1 : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 2 : 
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 3 : 
                     assert reward == 1
-                elif i == env.max_episode_duration()-1: 
+                elif step == env.max_episode_duration(): 
                         assert reward == 42
                 else : 
                     assert reward == 0
-
+    
     def test_assistant_reward_value_no_blackout_2_attack_same_time_1_alert(self) -> None :
         """ When we raise only 1 alert for 2 attacks at the same time 
             but no blackout occur, we expect a reward of 0
@@ -440,8 +479,8 @@ class TestAlertNoBlackout(unittest.TestCase):
             until the end of the episode where we have a bonus (here artificially 42)
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
-                                   duration=3, 
-                                   steps_attack=[2])
+                               duration=3, 
+                               steps_attack=[2])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -456,17 +495,22 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = env.action_space()
                 if i == 1 :
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
-                if i == 3 : 
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 4 : 
                     assert reward == 0
-                elif i == env.max_episode_duration()-1 : 
+                elif step == env.max_episode_duration(): 
                     assert reward == 1
                 else : 
                     assert reward == 0
@@ -495,17 +539,22 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_ids = [0, 1]
                 act = env.action_space()
                 if i == 1 :
                     act = env.action_space({"raise_alert": attackable_line_ids})
                 obs, reward, done, info = env.step(act)
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 3 : 
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 4 : 
                     assert reward == -1
-                elif i == env.max_episode_duration()-1 : 
+                elif step == env.max_episode_duration(): 
                     assert reward == 1
                 else : 
                     assert reward == 0
@@ -520,8 +569,8 @@ class TestAlertNoBlackout(unittest.TestCase):
         """
 
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
-                                   duration=[1,1], 
-                                   steps_attack=[1, 2])
+                               duration=[1, 1], 
+                               steps_attack=[1, 2])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -537,16 +586,22 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 act = env.action_space()
                 obs, reward, done, info = env.step(act)
-                if i in [1,2] : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 2 : 
+                step += 1
+                
+                if step in _get_steps_attack(kwargs_opponent, multi=True) : 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 3 : 
                     assert reward == 1
-                elif i == 3 : 
+                elif step == 4 : 
                     assert reward == 1
-                elif i == env.max_episode_duration()-1: 
+                elif step == env.max_episode_duration(): 
                         assert reward == 42
                 else : 
                     assert reward == 0
@@ -560,8 +615,8 @@ class TestAlertNoBlackout(unittest.TestCase):
         """
 
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
-                                   duration=[1,1], 
-                                   steps_attack=[2, 3])
+                               duration=[1,1], 
+                               steps_attack=[2, 3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -577,6 +632,7 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 act = env.action_space()
                 if i == 1 :
@@ -584,17 +640,20 @@ class TestAlertNoBlackout(unittest.TestCase):
                 elif i == 2 : 
                     act = env.action_space({"raise_alert": [1]})
                 obs, reward, done, info = env.step(act)
-
-                if i in [2,3] : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 3 : 
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent, multi=True): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 4: 
+                    assert reward == -1, f"error for step {step}: {reward} instead of -1."
+                elif step == 5: 
                     assert reward == -1
-                elif i == 4 : 
-                    assert reward == -1
-                elif i == env.max_episode_duration()-1: 
-                        assert reward == 42
+                elif step == env.max_episode_duration(): 
+                        assert reward == 42, f"error for step {step}: {reward} instead of -1."
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} instead of 0."
 
     def test_assistant_reward_value_no_blackout_2_attack_diff_time_alert_first_attack(self) -> None :
         """ When we raise 1 alert on the first attack while we have 2 attacks at two times  
@@ -622,22 +681,26 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 act = env.action_space()
                 if i == 1 :
                     act = env.action_space({"raise_alert": [0]})
                 obs, reward, done, info = env.step(act)
-
-                if i in [2,3] : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 3 : 
-                    assert reward == -1
-                elif i == 4 : 
-                    assert reward == 1
-                elif i == env.max_episode_duration()-1: 
-                        assert reward == 42
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent, multi=True): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 4 : 
+                    assert reward == -1, f"error for step {step}: {reward} vs -1"
+                elif step == 5 : 
+                    assert reward == 1, f"error for step {step}: {reward} vs 1"
+                elif step == env.max_episode_duration(): 
+                        assert reward == 42, f"error for step {step}: {reward} vs 42"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
 
 
     def test_assistant_reward_value_no_blackout_2_attack_diff_time_alert_second_attack(self) -> None :
@@ -665,22 +728,26 @@ class TestAlertNoBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 act = env.action_space()
                 if i == 2 : 
                     act = env.action_space({"raise_alert": [1]})
                 obs, reward, done, info = env.step(act)
-
-                if i in [2,3] : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 3 : 
-                    assert reward == 1
-                elif i == 4 : 
-                    assert reward == -1
-                elif i == env.max_episode_duration()-1: 
-                        assert reward == 42
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent, multi=True): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 4 : 
+                    assert reward == 1, f"error for step {step}: {reward} vs 1"
+                elif step == 5 : 
+                    assert reward == -1, f"error for step {step}: {reward} vs -1"
+                elif step == env.max_episode_duration(): 
+                        assert reward == 42, f"error for step {step}: {reward} vs 42"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
 
 
     def test_raise_illicit_alert(self) -> None:
@@ -748,23 +815,25 @@ class TestAlertBlackout(unittest.TestCase):
             env.change_parameters(new_param)
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = self.get_dn(env)
                 if i == 3 :
                     act = self.get_blackout(env)
                 obs, reward, done, info = env.step(act)
+                step += 1
                 
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
-                    assert info["opponent_attack_line"] is not None # Equivalent to above
-                    #assert info["opponent_attack_line"][136] # Equivalent to above 
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
-                if i == 3: 
+                if step == 4: 
                     # When the blackout occurs, reward is -10 because we didn't raise an attack
-                    assert reward == -10
+                    assert reward == -10, f"error for step {step}: {reward} vs -10"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
 
                 if done: 
                     break
@@ -793,6 +862,7 @@ class TestAlertBlackout(unittest.TestCase):
             env.change_parameters(new_param)
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = self.get_dn(env)
@@ -801,13 +871,16 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 1:
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
-                if i == 3: 
-                    assert reward == 2
+                if step == 4: 
+                    assert reward == 2, f"error for step {step}: {reward} vs 2"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
 
                 if done: 
                     break
@@ -840,6 +913,7 @@ class TestAlertBlackout(unittest.TestCase):
             env.change_parameters(new_param)
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = self.get_dn(env)
@@ -848,16 +922,20 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 2:
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
-                if i == 3: 
-                    assert reward == -10
+                if step == 4: 
+                    assert reward == -10, f"error for step {step}: {reward} vs -10"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
 
                 if done: 
                     break
+                
     def test_assistant_reward_value_blackout_attack_raise_alert_too_early(self) -> None :
         """
         When 1 line is attacked at step 2 and we raise 1 alert  too early
@@ -885,6 +963,7 @@ class TestAlertBlackout(unittest.TestCase):
             env.change_parameters(new_param)
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = self.get_dn(env)
@@ -893,13 +972,16 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 0:
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
-                if i == 3: 
-                    assert reward == -10
+                if step == 4: 
+                    assert reward == -10, f"error for step {step}: {reward} vs -10"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
 
                 if done: 
                     break
@@ -932,6 +1014,7 @@ class TestAlertBlackout(unittest.TestCase):
             env.change_parameters(new_param)
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = self.get_dn(env)
@@ -940,13 +1023,17 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 1:
                     act = env.action_space({"raise_alert": [0,1]})
                 obs, reward, done, info = env.step(act)
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
+                step += 1
                 
-                if i == 3: 
-                    assert reward == 2
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                
+                if step == 4: 
+                    assert reward == 2, f"error for step {step}: {reward} vs 2"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
 
                 if done: 
                     break
@@ -979,6 +1066,7 @@ class TestAlertBlackout(unittest.TestCase):
             env.change_parameters(new_param)
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = self.get_dn(env)
@@ -987,13 +1075,17 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 1:
                     act = env.action_space({"raise_alert": [0]})
                 obs, reward, done, info = env.step(act)
-                if i == 2 : 
-                    assert env._oppSpace.last_attack is not None
+                step += 1
                 
-                if i == 3: 
-                    assert reward == -4
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                
+                if step == 4: 
+                    assert reward == -4, f"error for step {step}: {reward} vs -4"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
 
                 if done: 
                     break
@@ -1022,6 +1114,7 @@ class TestAlertBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 act = self.get_dn(env)
                 if i == 1 :
@@ -1031,15 +1124,19 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 3 : 
                     act = self.get_blackout(env)
                 obs, reward, done, info = env.step(act)
-
-                if i in [2,3] : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 3 : 
-                    assert reward == 2
-                elif i == env.max_episode_duration()-1: 
-                        assert reward == 42
+                step += 1
+                
+                if step in _get_steps_attack(kwargs_opponent, multi=True): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                
+                if step == 4 : 
+                    assert reward == 2, f"error for step {step}: {reward} vs 2"
+                elif step == env.max_episode_duration(): 
+                        assert reward == 42, f"error for step {step}: {reward} vs 42"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
 
                 if done : 
                     break
@@ -1067,6 +1164,7 @@ class TestAlertBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 act = self.get_dn(env)
                 if i == 1 :
@@ -1074,15 +1172,18 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 3 : 
                     act = self.get_blackout(env)
                 obs, reward, done, info = env.step(act)
-
-                if i in [2,3] : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 3 : 
-                    assert reward == -4
-                elif i == env.max_episode_duration()-1: 
-                        assert reward == 42
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent, multi=True): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 4 : 
+                    assert reward == -4, f"error for step {step}: {reward} vs -4"
+                elif step == env.max_episode_duration(): 
+                        assert reward == 42, f"error for step {step}: {reward} vs 42"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
             
                 if done : 
                     break
@@ -1111,6 +1212,7 @@ class TestAlertBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 act = self.get_dn(env)
                 if i == 2 :
@@ -1118,13 +1220,16 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 3 : 
                     act = self.get_blackout(env)
                 obs, reward, done, info = env.step(act)
-
-                if i in [2,3] : 
-                    assert env._oppSpace.last_attack is not None
-                elif i == 3 : 
-                    assert reward == -4
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent, multi=True): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                    
+                if step == 4 : 
+                    assert reward == -4., f"error for step {step}: {reward} vs -4"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
             
                 if done : 
                     break
@@ -1136,7 +1241,7 @@ class TestAlertBlackout(unittest.TestCase):
         we expect a reward of 2 at step 5 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
-                               duration=[1,1], 
+                               duration=[1, 1], 
                                steps_attack=[2, 5])
         with make(self.env_nm,
                   test=True,
@@ -1153,6 +1258,7 @@ class TestAlertBlackout(unittest.TestCase):
             ) as env : 
             env.seed(0)
             env.reset()
+            step = 0
             for i in range(env.max_episode_duration()):
                 act = self.get_dn(env)
                 if i == 4 :
@@ -1160,16 +1266,19 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 6 : 
                     act = self.get_blackout(env)
                 obs, reward, done, info = env.step(act)
+                step += 1
 
-                if i in [2,5] : 
-                    assert env._oppSpace.last_attack is not None
+                if step in _get_steps_attack(kwargs_opponent, multi=True): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
-                if i == 3 : 
-                    assert reward == 1
-                elif i == 6 : 
-                    assert reward == 2
+                if step == 4 : 
+                    assert reward == 1, f"error for step {step}: {reward} vs 1"
+                elif step == 7 : 
+                    assert reward == 2, f"error for step {step}: {reward} vs 2"
                 else : 
-                    assert reward == 0
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
             
                 if done : 
                     break
@@ -1196,8 +1305,8 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 1:
                     act = env.action_space({"raise_alert": [0]})
                 obs, reward, done, info = env.step(act)
-                if env._oppSpace.last_attack is None : 
-                    assert reward == 0
+                if info["opponent_attack_line"] is None : 
+                    assert reward == 0.
                 else : 
                     raise Grid2OpException('No attack expected')
 
@@ -1225,8 +1334,8 @@ class TestAlertBlackout(unittest.TestCase):
                 if i == 3 : 
                     act = self.get_blackout(env)
                 obs, reward, done, info = env.step(act)
-                if env._oppSpace.last_attack is None : 
-                    assert reward == 0
+                if info["opponent_attack_line"] is None : 
+                    assert reward == 0.
                 else : 
                     raise Grid2OpException('No attack expected')
 
@@ -1256,8 +1365,8 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 0:
                     act = env.action_space({"raise_alert": [0]})
                 obs, reward, done, info = env.step(act)
-                if env._oppSpace.last_attack is None : 
-                    assert reward == 0
+                if info["opponent_attack_line"] is None : 
+                    assert reward == 0.
                 else : 
                     raise Grid2OpException('No attack expected')
 
@@ -1287,8 +1396,9 @@ class TestAlertBlackout(unittest.TestCase):
                 elif i == 4:
                     act = env.action_space({"raise_alert": [0]})
                 obs, reward, done, info = env.step(act)
-                if env._oppSpace.last_attack is None : 
-                    assert reward == 0
+                
+                if info["opponent_attack_line"] is None : 
+                    assert reward == 0.
                 else : 
                     raise Grid2OpException('No attack expected')
 
