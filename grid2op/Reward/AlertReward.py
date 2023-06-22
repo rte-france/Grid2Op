@@ -8,13 +8,11 @@
 
 import numpy as np
 
-from grid2op.Exceptions import Grid2OpException
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float, dt_bool, dt_int
-from grid2op.Opponent import GeometricOpponentMultiArea
 
 
-class AlertRewardNew(BaseReward):
+class AlertReward(BaseReward):
     """
     This reward is based on the "alert feature" where the agent is asked to send information about potential line overload issue
     on the grid.
@@ -142,9 +140,7 @@ class AlertRewardNew(BaseReward):
         if self.is_in_blackout(has_error, is_done): 
             # I am in blackout, I need to check for attack in the time window
             # if there is no attack, I do nothing
-            # indexes_to_look = (np.arange(-self.time_window, 0) + self._current_id) % self._nrows_array
-            # indexes_to_look = (np.arange(-(self.time_window + 1), -1) + self._current_id) % self._nrows_array
-            indexes_to_look = (np.arange(-self.time_window, 1) + self._current_id) % self._nrows_array  # include current step
+            indexes_to_look = (np.arange(-self.time_window, 1) + self._current_id) % self._nrows_array  # include current step (hence the np.arange(..., **1**))
             ts_attack_in_order = self._ts_attack[indexes_to_look, :]
             has_attack = np.any(ts_attack_in_order)
             if has_attack:

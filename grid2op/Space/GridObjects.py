@@ -600,10 +600,12 @@ class GridObjects:
                 "You will change the number of dimensions of the alarm. This might cause trouble "
                 "if you environment is read back. We strongly recommend NOT to do this."
             )
-        if cls.assistant_warning_type == "by_line":
+        if dim_alarms and cls.assistant_warning_type == "by_line":
             raise Grid2OpException("Impossible to set both alarm and alert for the same environment.")
+        
         cls.dim_alarms = dim_alarms
-        cls.assistant_warning_type = "zonal"
+        if dim_alarms:
+            cls.assistant_warning_type = "zonal"
 
     @classmethod
     def tell_dim_alert(cls, dim_alerts):
@@ -613,10 +615,12 @@ class GridObjects:
                 "You will change the number of dimensions of the alert. This might cause trouble "
                 "if you environment is read back. We strongly recommend NOT to do this."
             )
-        if cls.assistant_warning_type == "zonal":
+        if dim_alerts and cls.assistant_warning_type == "zonal":
             raise Grid2OpException("Impossible to set both alarm and alert for the same environment.")
+        
         cls.dim_alerts = dim_alerts
-        cls.assistant_warning_type = "by_line"
+        if dim_alerts:
+            cls.assistant_warning_type = "by_line"
 
     @classmethod
     def _clear_class_attribute(cls):
