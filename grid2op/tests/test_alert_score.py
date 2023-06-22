@@ -795,7 +795,7 @@ class TestAlertBlackout(unittest.TestCase):
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
-                                   steps_attack=[2])
+                                   steps_attack=[3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -832,18 +832,15 @@ class TestAlertBlackout(unittest.TestCase):
                 if step == 4: 
                     # When the blackout occurs, reward is -10 because we didn't raise an attack
                     assert reward == -10, f"error for step {step}: {reward} vs -10"
+                    assert done
+                    break
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
-
-                if done: 
-                    break
-
-
 # return 2
     def test_assistant_reward_value_blackout_attack_raise_good_alert(self) -> None :
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
-                                   steps_attack=[2])
+                                   steps_attack=[3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -879,12 +876,10 @@ class TestAlertBlackout(unittest.TestCase):
                 
                 if step == 4: 
                     assert reward == 2, f"error for step {step}: {reward} vs 2"
+                    assert done
+                    break
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
-
-                if done: 
-                    break
-
 
 # return -10
     def test_assistant_reward_value_blackout_attack_raise_alert_just_before_blackout(self) -> None :
@@ -894,7 +889,7 @@ class TestAlertBlackout(unittest.TestCase):
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
-                               steps_attack=[2])
+                               steps_attack=[3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -930,11 +925,10 @@ class TestAlertBlackout(unittest.TestCase):
                 
                 if step == 4: 
                     assert reward == -10, f"error for step {step}: {reward} vs -10"
+                    assert done
+                    break
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
-
-                if done: 
-                    break
                 
     def test_assistant_reward_value_blackout_attack_raise_alert_too_early(self) -> None :
         """
@@ -944,7 +938,7 @@ class TestAlertBlackout(unittest.TestCase):
         # return -10
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
-                                   steps_attack=[2])
+                                   steps_attack=[3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -980,12 +974,10 @@ class TestAlertBlackout(unittest.TestCase):
                 
                 if step == 4: 
                     assert reward == -10, f"error for step {step}: {reward} vs -10"
+                    assert done
+                    break
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
-
-                if done: 
-                    break
-
 
 # return 2
     def  test_assistant_reward_value_blackout_2_lines_same_step_in_window_good_alerts(self) -> None :
@@ -995,7 +987,7 @@ class TestAlertBlackout(unittest.TestCase):
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=3, 
-                               steps_attack=[2,2])
+                               steps_attack=[3, 3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -1031,13 +1023,11 @@ class TestAlertBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if step == 4: 
+                    assert done
                     assert reward == 2, f"error for step {step}: {reward} vs 2"
+                    break
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
-
-                if done: 
-                    break
-
 
 # return -4
     def test_assistant_reward_value_blackout_2_lines_attacked_simulaneous_only_1_alert(self) -> None:
@@ -1047,7 +1037,7 @@ class TestAlertBlackout(unittest.TestCase):
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=3, 
-                                   steps_attack=[2,2])
+                                   steps_attack=[3, 3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -1084,11 +1074,10 @@ class TestAlertBlackout(unittest.TestCase):
                 
                 if step == 4: 
                     assert reward == -4, f"error for step {step}: {reward} vs -4"
+                    assert done
+                    break
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
-
-                if done: 
-                    break
 
 # return 2
     def  test_assistant_reward_value_blackout_2_lines_different_step_in_window_good_alerts(self) -> None : 
@@ -1098,7 +1087,7 @@ class TestAlertBlackout(unittest.TestCase):
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
-                               steps_attack=[2, 3])
+                               steps_attack=[3, 4])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -1132,14 +1121,13 @@ class TestAlertBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if step == 4 : 
+                    assert done  # blackout
                     assert reward == 2, f"error for step {step}: {reward} vs 2"
+                    break
                 elif step == env.max_episode_duration(): 
                         assert reward == 42, f"error for step {step}: {reward} vs 42"
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
-
-                if done : 
-                    break
 
     def test_assistant_reward_value_blackout_2_lines_attacked_different_step_in_window_only_1_alert_on_first_attacked_line(self) -> None:
         """
@@ -1148,7 +1136,7 @@ class TestAlertBlackout(unittest.TestCase):
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
-                               steps_attack=[2, 3])
+                               steps_attack=[3, 4])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -1165,28 +1153,27 @@ class TestAlertBlackout(unittest.TestCase):
             env.seed(0)
             env.reset()
             step = 0
-            for i in range(env.max_episode_duration()):
+            for i in range(env.max_episode_duration()):  
                 act = self.get_dn(env)
                 if i == 1 :
                     act = env.action_space({"raise_alert": [0]})
                 elif i == 3 : 
                     act = self.get_blackout(env)
                 obs, reward, done, info = env.step(act)
-                step += 1
+                step += 1  # i = step - 1 at this stage
                 if step in _get_steps_attack(kwargs_opponent, multi=True): 
                     assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
                 else:
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if step == 4 : 
-                    assert reward == -4, f"error for step {step}: {reward} vs -4"
+                    assert done  # blackout
+                    assert reward == -4, f"error for step {step}: {reward} vs -4"  # bug in Laure too
+                    break
                 elif step == env.max_episode_duration(): 
                         assert reward == 42, f"error for step {step}: {reward} vs 42"
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
-            
-                if done : 
-                    break
 
 # return -4
     def test_assistant_reward_value_blackout_2_lines_attacked_different_step_in_window_only_1_alert_on_second_attacked_line(self) -> None:
@@ -1196,7 +1183,7 @@ class TestAlertBlackout(unittest.TestCase):
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
-                               steps_attack=[2, 3])
+                               steps_attack=[3, 4])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -1228,11 +1215,10 @@ class TestAlertBlackout(unittest.TestCase):
                     
                 if step == 4 : 
                     assert reward == -4., f"error for step {step}: {reward} vs -4"
+                    assert done
+                    break
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
-            
-                if done : 
-                    break
 
 # return 2 
     def test_assistant_reward_value_blackout_2_lines_attacked_different_1_in_window_1_good_alert(self) -> None:
@@ -1242,7 +1228,7 @@ class TestAlertBlackout(unittest.TestCase):
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1, 1], 
-                               steps_attack=[2, 5])
+                               steps_attack=[3, 6])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -1273,15 +1259,14 @@ class TestAlertBlackout(unittest.TestCase):
                 else:
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
-                if step == 4 : 
-                    assert reward == 1, f"error for step {step}: {reward} vs 1"
+                if step == 5: 
+                    assert reward == 1, f"error for step {step}: {reward} vs 1"  # no blackout here
                 elif step == 7 : 
                     assert reward == 2, f"error for step {step}: {reward} vs 2"
+                    assert done
+                    break
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
-            
-                if done : 
-                    break
 
 # return 0 
     def test_assistant_reward_value_blackout_no_attack_alert(self) -> None :
