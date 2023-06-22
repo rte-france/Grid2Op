@@ -41,7 +41,7 @@ class _NewRenewableSourcesUsageScore(BaseReward):
         self.gen_res_p_before_curtail_list = np.zeros(env.chronics_handler.max_timestep())
         
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        
+
         if not is_simulated_env(env):
             if not is_done:
                 gen_nres_p_effective, gen_nres_p_before_curtail = self._get_total_nres_usage(env)
@@ -49,9 +49,7 @@ class _NewRenewableSourcesUsageScore(BaseReward):
                 self.gen_res_p_before_curtail_list[env.nb_time_step] = gen_nres_p_before_curtail
                 return 0
             else:
-                ratio_nres_usage = 100 * np.nan_to_num(
-                    np.sum(self.gen_res_p_curtailed_list[1:]) / (np.sum(self.gen_res_p_before_curtail_list[1:])+1e-4),
-                    nan=0.8)
+                ratio_nres_usage = 100 * np.sum(self.gen_res_p_curtailed_list[1:]) / np.sum(self.gen_res_p_before_curtail_list[1:])
                                           
                 return self._surlinear_func_curtailment(ratio_nres_usage)
             
