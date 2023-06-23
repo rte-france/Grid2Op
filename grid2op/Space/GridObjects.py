@@ -2157,7 +2157,7 @@ class GridObjects:
                 cls.alertable_line_names == []
             ), "No alert data is provided, yet cls.alertable_line_names != []"
             assert (
-                cls.alertable_line_ids == []
+                (cls.alertable_line_ids) == [] or (cls.alertable_line_ids == np.array([]))
             ), "No alert data is provided, yet cls.alertable_line_ids != []"
         elif cls.dim_alerts < 0:
             raise EnvError(

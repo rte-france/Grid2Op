@@ -26,6 +26,8 @@ class AlertReward(BaseReward):
     - if no alarm has been raised, and a attack occurs then -10.0 is return
 
 
+    TODO explain a bit more in the "multi lines attacked"
+    
     Examples
     ---------
     You can use this reward in any environment with:
@@ -36,8 +38,10 @@ class AlertReward(BaseReward):
         from grid2op.Reward import AlertReward
 
         # then you create your environment with it:
-        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
-        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=AlertReward)
+        # at time of writing, the only env supporting it is "l2rpn_idf_2023"
+        NAME_OF_THE_ENVIRONMENT = "l2rpn_idf_2023"  
+        
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT, reward_class=AlertReward)
         # and do a step with a "do nothing" action
         obs = env.reset()
         obs, reward, done, info = env.step(env.action_space())
