@@ -3654,19 +3654,24 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def generate_classes(self, _guard=None, _is_base_env__=True, sys_path=None):
         """
-        Use with extra care !
+        Use with care, but can be incredibly useful !
+        
         If you get into trouble like :
 
         .. code-block:: none
         
             AttributeError: Can't get attribute 'ActionSpace_l2rpn_icaps_2021_small' 
             on <module 'grid2op.Space.GridObjects' from
-            /home/benjamin/Documents/grid2op_dev/grid2op/Space/GridObjects.py'>
+            /home/user/Documents/grid2op_dev/grid2op/Space/GridObjects.py'>
         
         You might want to call this function and that MIGHT solve your problem.
 
-        This function will create a subdirectory ino the env directory, that will be accessed when loadin the class
-        used for the environment. The default behaviour is to build the class on the fly.
+        This function will create a subdirectory ino the env directory, 
+        that will be accessed when loading the classes
+        used for the environment. 
+        
+        The default behaviour is to build the class on the fly which can cause some 
+        issues when using `pickle` or `multiprocessing` for example.
 
         Examples
         --------
