@@ -76,6 +76,8 @@ class AlertReward(BaseReward):
         self._lines_currently_attacked : np.ndarray = None
         self._alert_launched : np.ndarray = None
         self._nrows_array : int = None
+        
+        self._i_am_simulate : bool = False
 
     def initialize(self, env: "grid2op.Environment.BaseEnv"):
         self.total_time_steps = env.max_episode_duration()
@@ -89,6 +91,8 @@ class AlertReward(BaseReward):
         self._alert_launched = np.full((self._nrows_array, type(env).dim_alerts), False, dtype=dt_bool)
         self._current_id = 0
         self._lines_currently_attacked = np.full(type(env).dim_alerts, False, dtype=dt_bool)
+        
+        self._i_am_simulate = self.is_simulated_env(env)
         return super().initialize(env)      
     
     def _update_attack(self, env):
@@ -134,6 +138,9 @@ class AlertReward(BaseReward):
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         # retrieve the alert made by the agent
         res = 0.
+        if self._i_am_simulate:
+            # does not make sense for simulate
+            return res
         
         if  is_done & (not has_error): 
             # end of episode, no blackout => reward specific for this case

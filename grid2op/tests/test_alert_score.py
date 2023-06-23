@@ -11,6 +11,7 @@ import numpy as np
 import unittest
 import os
 import tempfile
+from grid2op.Observation import BaseObservation
 from grid2op.tests.helper_path_test import *
 
 from grid2op import make
@@ -19,7 +20,10 @@ from grid2op.Parameters import Parameters
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Runner import Runner  # TODO
 from grid2op.Opponent import BaseOpponent, GeometricOpponent
-from grid2op.Action import PlayableAction
+from grid2op.Action import BaseAction, PlayableAction
+from grid2op.Agent import BaseAgent
+from grid2op.Episode import EpisodeData
+
 
 ALL_ATTACKABLE_LINES= [
             "62_58_180",
@@ -74,6 +78,7 @@ class TestOpponent(BaseOpponent):
         
         return self.custom_attack, self.duration
 
+
 class TestOpponentMultiLines(BaseOpponent): 
     """An opponent that can select the line attack, the time and duration of the attack."""
     
@@ -101,6 +106,7 @@ class TestOpponentMultiLines(BaseOpponent):
         index = self.steps_attack.index(current_step)
 
         return self.custom_attack[index], self.duration[index]
+
 
 # Test alert blackout / tets alert no blackout
 class TestAlertNoBlackout(unittest.TestCase):
@@ -136,7 +142,6 @@ class TestAlertNoBlackout(unittest.TestCase):
             assert isinstance(env.alertable_line_names, list)
             assert sorted(env.alertable_line_names) == sorted(true_alertable_lines)
             assert env.dim_alerts == len(true_alertable_lines)
-
 
     def test_init_observation(self) -> None :    
         true_alertable_lines = [ATTACKED_LINE]
@@ -252,8 +257,6 @@ class TestAlertNoBlackout(unittest.TestCase):
                     raise Grid2OpException('No attack expected')
             
             assert done
-
-
 # If attack 
     def test_assistant_reward_value_no_blackout_attack_no_alert(self) -> None :
         """ When we don't raise an alert for an attack but no blackout occur, we expect a reward of 1
@@ -263,8 +266,8 @@ class TestAlertNoBlackout(unittest.TestCase):
 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
-                                   duration=3, 
-                                   steps_attack=[1])
+                               duration=3, 
+                               steps_attack=[1])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -346,8 +349,8 @@ class TestAlertNoBlackout(unittest.TestCase):
 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
-                                   duration=3, 
-                                   steps_attack=[2])
+                               duration=3, 
+                               steps_attack=[2])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -1102,8 +1105,8 @@ class TestAlertBlackout(unittest.TestCase):
                   _add_to_name="_tarvb2ldsiwga"
             ) as env : 
             env.seed(0)
-            env.reset()
-            step = 0
+            obs = env.reset()
+            step = 0            
             for i in range(env.max_episode_duration()):
                 act = self.get_dn(env)
                 if i == 1 :
@@ -1125,7 +1128,7 @@ class TestAlertBlackout(unittest.TestCase):
                     assert reward == 2, f"error for step {step}: {reward} vs 2"
                     break
                 elif step == env.max_episode_duration(): 
-                        assert reward == 42, f"error for step {step}: {reward} vs 42"
+                    assert reward == 42, f"error for step {step}: {reward} vs 42"
                 else : 
                     assert reward == 0, f"error for step {step}: {reward} vs 0"
 
@@ -1392,13 +1395,139 @@ class TestAlertBlackout(unittest.TestCase):
             
             assert done
 
+
+class TestSimulate(unittest.TestCase):
+    def setUp(self) -> None:
+        self.env_nm = os.path.join(
+            PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
+        )
+        self.env = make(self.env_nm, test=True, difficulty="1",
+                        reward_class=AlertReward(reward_end_episode_bonus=42))
+        self.env.seed(0)
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_simulate(self):
+        obs = self.env.reset()
+        simO, simr, simd, simi = obs.simulate(self.env.action_space())
+        assert simr == 0.
+        assert not simd
+        
+        go_act = self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}})
+        simO, simr, simd, simi = obs.simulate(go_act)
+        assert simr == 0., f"{simr} vs 0."
+        assert simd
+        
+    def test_simulated_env(self):
+        obs = self.env.reset()
+        f_env = obs.get_forecast_env()
+        forD = False
+        while not forD:
+            forO, forR, forD, forI = f_env.step(self.env.action_space())
+            assert forR == 0.
+            
+        f_env = obs.get_forecast_env()
+        forD = False
+        go_act = self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}})
+        while not forD:
+            forO, forR, forD, forI = f_env.step(go_act)
+            assert forR == 0.
+    
+    
+class TestRunner(unittest.TestCase):
+    def setUp(self) -> None:
+        self.env_nm = os.path.join(
+            PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
+        )
+        self.env = make(self.env_nm, test=True, difficulty="1",
+                        reward_class=AlertReward(reward_end_episode_bonus=42))
+        self.env.seed(0)
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_dn_agent(self):
+        obs = self.env.reset()
+        runner = Runner(**self.env.get_params_for_runner())
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
+        assert res[0][2] == 42
+    
+    def test_simagent(self):
+        obs = self.env.reset()
+        
+        class SimAgent(BaseAgent):
+            def act(self, observation: BaseObservation, reward: float, done: bool = False) -> BaseAction:
+                go_act = self.action_space({"set_bus": {"generators_id": [(0, -1)]}})
+                simO, simr, simd, simi = obs.simulate(go_act)
+                simO, simr, simd, simi = obs.simulate(self.action_space())
+                return super().act(observation, reward, done)
+            
+        runner = Runner(**self.env.get_params_for_runner(),
+                        agentClass=SimAgent)
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
+        assert res[0][2] == 42
+        
+    def test_episodeData(self):
+        obs = self.env.reset()
+        runner = Runner(**self.env.get_params_for_runner())
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0], add_detailed_output=True)
+        assert res[0][2] == 42
+        assert res[0][5].rewards[8] == 42
+        
+    def test_with_save(self):
+        obs = self.env.reset()
+        runner = Runner(**self.env.get_params_for_runner())
+        with tempfile.TemporaryDirectory() as f:
+            res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0],
+                             path_save=f)
+            assert res[0][2] == 42
+            ep0, *_ = EpisodeData.list_episode(f)
+            ep = EpisodeData.from_disk(*ep0)
+            assert ep.rewards[8] == 42
+            
+    def test_with_opp(self):
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                               duration=3, 
+                               steps_attack=[3])
+        env = make(self.env_nm,
+                   test=True,
+                   difficulty="1", 
+                   opponent_attack_cooldown=0, 
+                   opponent_attack_duration=99999, 
+                   opponent_budget_per_ts=1000, 
+                   opponent_init_budget=10000., 
+                   opponent_action_class=PlayableAction, 
+                   opponent_class=TestOpponent, 
+                   kwargs_opponent=kwargs_opponent,
+                   reward_class=AlertReward(reward_end_episode_bonus=42),
+                   _add_to_name = "_test_with_opp")
+        # without alert
+        runner = Runner(**env.get_params_for_runner())
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
+        assert res[0][2] == 43, f"{res[0][2]} vs 43"
+        
+        class AlertAgent(BaseAgent):
+            def act(self, observation: BaseObservation, reward: float, done: bool = False) -> BaseAction:
+                if observation.current_step == 2:
+                    return self.action_space({"raise_alert": [0]})
+                return super().act(observation, reward, done)
+            
+        # with a wrong alert
+        runner = Runner(**env.get_params_for_runner(), agentClass=AlertAgent)
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
+        assert res[0][2] == 41, f"{res[0][2]} vs 41"
+        
+        
 # TODO : test des actions ambigues  
 # Action ambigue : par exemple alert sur la ligne (nb_lignes)+1 
 # Aller voir la doc : file:///home/crochepierrelau/Documents/Git/Grid2Op/documentation/html/action.html#illegal-vs-ambiguous
 
-# TODO : test runner
 
-# TODO test simulate
-
-# TODO test get_forecast_env
+if __name__ == "__main__":
+    unittest.main()
 
