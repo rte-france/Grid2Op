@@ -94,7 +94,7 @@ class AlertReward(BaseReward):
             self._ts_attack[self._current_id, :] = False
         else:
             # an attack at this step
-            lines_attacked = env.infos["opponent_attack_line"][env.alertable_lines_id]
+            lines_attacked = env.infos["opponent_attack_line"][type(env).alertable_line_ids]
             # compute the list of lines that are "newly" attacked
             new_lines_attacked = lines_attacked & (~self._lines_currently_attacked)
             # remember the steps where these lines are attacked

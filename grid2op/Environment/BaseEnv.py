@@ -881,7 +881,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         bk_cls = type(self.backend)
         bk_cls.tell_dim_alert(0)
         bk_cls.alertable_line_names = []
-        self.alertable_lines_id = np.array([], dtype=dt_int)
+        bk_cls.alertable_line_ids = np.array([], dtype=dt_int)
         
     def load_alert_data(self):
         """
@@ -919,13 +919,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                               "yet you want to use alert. Know that in this case no alert will be defined...")
                     
             alertable_line_names = [el for el in self.backend.name_line if el in lines_attacked]
-            alertable_lines_id = np.array([i for i, el in enumerate(self.backend.name_line) if el in lines_attacked], dtype=dt_int)
-            nb_lines = len(alertable_lines_id)
+            alertable_line_ids = np.array([i for i, el in enumerate(self.backend.name_line) if el in lines_attacked], dtype=dt_int)
+            nb_lines = len(alertable_line_ids)
         
             bk_cls = type(self.backend)
             bk_cls.tell_dim_alert(nb_lines)
             bk_cls.alertable_line_names = copy.deepcopy(alertable_line_names)
-            self.alertable_lines_id = copy.deepcopy(alertable_lines_id)
+            bk_cls.alertable_line_ids = np.array(alertable_line_ids).astype(dt_int)
         else:
             self._set_no_alert()
 

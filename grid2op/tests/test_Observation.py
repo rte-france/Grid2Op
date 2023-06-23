@@ -295,6 +295,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "alarms_lines_area": {},
             "alarms_area_lines": [],
             "alertable_line_names": [],
+            "alertable_line_ids": [],
+            "assistant_warning_type": None,
             "_PATH_ENV": None,
         }
 
@@ -2176,8 +2178,28 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_space_to_dict(self):
         dict_ = self.env.observation_space.cls_to_dict()
-        self.maxDiff = None
-        self.assertDictEqual(dict_, self.dict_)
+        for el in dict_:
+            assert el in self.dict_, f"missing key {el} in self.dict_"
+        for el in self.dict_:
+            assert el in dict_, f"missing key {el} in dict_"
+            
+        for el in self.dict_:
+            val = dict_[el]
+            val_res = self.dict_[el]
+            if val is None and val_res is not None:
+                raise AssertionError(f"val is None and val_res is not None: val_res: {val_res}")
+            if val is not None and val_res is None:
+                raise AssertionError(f"val is not None and val_res is None: val {val}")
+            if val is None and val_res is None:
+                continue
+            
+            ok_ = np.array_equal(val, val_res)
+            assert ok_, (f"values different for {el}: "
+                         f"{dict_[el]}"
+                         f"{self.dict_[el]}")
+            
+        # self.maxDiff = None
+        # self.assertDictEqual(dict_, self.dict_)
 
     def test_from_dict(self):
         res = ObservationSpace.from_dict(self.dict_)
