@@ -768,7 +768,7 @@ class BaseAction(GridObjects):
             # this feature did not exist before.
             cls.dim_alarms = 0
         
-        if cls.glop_version < "1.8.2":
+        if cls.glop_version < "1.9.1":
             # this feature did not exist before.
             cls.dim_alerts = 0
 
@@ -1239,7 +1239,7 @@ class BaseAction(GridObjects):
             This function does not check the cooldowns if you specify `check_cooldown=False`
         
         .. note::
-            As from version 1.8.2 you are no longer forced to provide an observation if `check_cooldown=False`
+            As from version 1.9.0 you are no longer forced to provide an observation if `check_cooldown=False`
             
         Examples
         ---------

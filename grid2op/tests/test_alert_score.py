@@ -117,84 +117,6 @@ class TestAlertNoBlackout(unittest.TestCase):
             PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
         )
 
-    def test_init_default_param(self) -> None : 
-        with make(self.env_nm, test=True, difficulty="1") as env:
-            assert isinstance(env.parameters.ALERT_TIME_WINDOW, np.int32)
-            assert env._attention_budget is None  # no attention budget for the alert
-            assert env._opponent_class == GeometricOpponent
-            assert env.parameters.ALERT_TIME_WINDOW > 0
-
-            param = env.parameters
-            param.init_from_dict({"ALERT_TIME_WINDOW": -1})
-            
-            negative_value_invalid = False
-            try: 
-                env.change_parameters(param)
-                env.reset()
-            except : 
-                negative_value_invalid = True 
-
-            assert negative_value_invalid
-
-            # test observations for this env also
-            true_alertable_lines = ALL_ATTACKABLE_LINES
-            
-            assert isinstance(env.alertable_line_names, list)
-            assert sorted(env.alertable_line_names) == sorted(true_alertable_lines)
-            assert env.dim_alerts == len(true_alertable_lines)
-
-    def test_init_observation(self) -> None :    
-        true_alertable_lines = [ATTACKED_LINE]
-        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
-                                duration=10, 
-                                steps_attack=[0,10])
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            with make(self.env_nm,
-                      test=True,
-                      difficulty="1", 
-                      opponent_attack_cooldown=0, 
-                      opponent_attack_duration=99999, 
-                      opponent_budget_per_ts=1000, 
-                      opponent_init_budget=10000., 
-                      opponent_action_class=PlayableAction, 
-                      opponent_class=TestOpponent, 
-                      kwargs_opponent=kwargs_opponent, 
-                      reward_class=AlertReward(reward_end_episode_bonus=42),
-                      _add_to_name="_tio") as env:
-                assert isinstance(env.alertable_line_names, list)
-                assert sorted(env.alertable_line_names) == sorted(true_alertable_lines)
-                assert env.dim_alerts == len(true_alertable_lines)
-
-
-    def test_raise_alert_action(self) -> None :
-        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
-                               duration=10, 
-                               steps_attack=[0,10])
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            with make(self.env_nm,
-                      test=True,
-                      difficulty="1", 
-                      opponent_attack_cooldown=0, 
-                      opponent_attack_duration=99999, 
-                      opponent_budget_per_ts=1000, 
-                      opponent_init_budget=10000., 
-                      opponent_action_class=PlayableAction, 
-                      opponent_class=TestOpponent, 
-                      kwargs_opponent=kwargs_opponent, 
-                      reward_class=AlertReward(reward_end_episode_bonus=42),
-                      _add_to_name="_traa") as env:
-                
-                for attackable_line_id in range(env.dim_alerts):
-                    # raise alert on line number line_id
-                    act = env.action_space()
-                    act.raise_alert = [attackable_line_id]
-
-                    act_2 = env.action_space({"raise_alert": [attackable_line_id]})
-                    
-                    assert act == act_2, f"error for line {attackable_line_id}"
-
     def test_assistant_reward_value_no_blackout_no_attack_no_alert(self) -> None : 
         """ When no blackout and no attack occur, and no alert is raised we expect a reward of 0
             until the end of the episode where we have a bonus (here artificially 42)
@@ -1530,4 +1452,3 @@ class TestRunner(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

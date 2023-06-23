@@ -171,10 +171,10 @@ class CompleteObservation(BaseObservation):
         "delta_time",  # starting grid2op version 1.6.5
         "gen_margin_up",
         "gen_margin_down",  # starting grid2op version 1.6.6
-        "is_alert_illegal",
+        "is_alert_illegal", # starting grid2op version 1.9.1
         "time_since_last_alert",
         "last_alert",
-        "was_alert_used_after_attack", # starting grid2op version 1.8.2
+        "was_alert_used_after_attack", 
     ]
     attr_list_json = [
         "_thermal_limit",

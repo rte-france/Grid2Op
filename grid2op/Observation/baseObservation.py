@@ -1012,7 +1012,7 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
-        if cls.glop_version < "1.8.2" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+        if cls.glop_version < "1.9.1" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             # is_alert_illegal", "time_since_last_alert", "last_alert", "was_alert_used_after_attack" were added in grid2Op 1.8.2
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
@@ -2786,7 +2786,7 @@ class BaseObservation(GridObjects):
         .. seealso::
             :ref:`model_based_rl`
             
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
             If the data of the :class:`grid2op.Environment.Environment` you are using supports it
             (**ie** you can access multiple steps ahead forecasts), then you can
             now "chain" the simulate calls.
@@ -3993,7 +3993,7 @@ class BaseObservation(GridObjects):
     
     def get_forecast_env(self) -> "grid2op.Environment.Environment":
         """
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
         
         This function will return a grid2op "environment" where the data (load, generation and maintenance)
         comes from the forecast data in the observation.
@@ -4096,7 +4096,7 @@ class BaseObservation(GridObjects):
         for the forseable future (they are the forecast availble in :func:`BaseObservation.simulate` and
         :func:`BaseObservation.get_forecast_env`)
         
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
         
         Examples
         -----------
@@ -4152,7 +4152,7 @@ class BaseObservation(GridObjects):
                                         with_maintenance: bool= False,
                                         ) -> "grid2op.Environment.Environment":
         """
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
         
         This function will return a grid2op "environment" where the data (load, generation and maintenance)
         comes from the provided forecast data.
@@ -4308,7 +4308,7 @@ class BaseObservation(GridObjects):
             The main advantages of this function is that you do not require to have access to an environment
             to change them.
         
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
         
         Examples
         -----------
