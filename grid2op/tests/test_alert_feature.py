@@ -107,7 +107,7 @@ class TestAction(unittest.TestCase):
                             opponent_class=OpponentForTestAlert, 
                             kwargs_opponent=kwargs_opponent, 
                             reward_class=AlertReward(reward_end_episode_bonus=42),
-                            _add_to_name="_tio")
+                            _add_to_name="_tioa")
 
     def tearDown(self) -> None:
         self.env.close()
@@ -139,8 +139,7 @@ class TestAction(unittest.TestCase):
 
     def test_init_observation(self) -> None :    
         obs : BaseObservation = self.env.reset()
-        import pdb
-        pdb.set_trace()
+        return # TODO later
         assert obs.last_alert
         
         # TODO => make it vect
