@@ -137,22 +137,6 @@ class TestAction(unittest.TestCase):
         assert sorted(env.alertable_line_names) == sorted(true_alertable_lines)
         assert env.dim_alerts == len(true_alertable_lines)
 
-    def test_init_observation(self) -> None :    
-        obs : BaseObservation = self.env.reset()
-        return # TODO later
-        assert obs.last_alert
-        
-        # TODO => make it vect
-        assert obs.was_alert_used_after_attack is False
-        
-        # TODO => make it vect
-        assert obs.time_since_last_alert
-        
-        # TODO create the "duration" (0 for no alert, and then += 1 per time alerted)
-        
-        # TODO => make it vect
-        assert obs.is_alert_illegal
-
     def test_raise_alert_action(self) -> None :
         """test i can raise an alert on all attackable lines"""
         env = self.env
@@ -162,10 +146,82 @@ class TestAction(unittest.TestCase):
             act.raise_alert = [attackable_line_id]
             act_2 = env.action_space({"raise_alert": [attackable_line_id]})
             assert act == act_2, f"error for line {attackable_line_id}"
-                    
+        
+        for attackable_line_id in range(env.dim_alerts): 
+            for attackable_line_id2 in range(env.dim_alerts):     
+                if attackable_line_id2 == attackable_line_id:
+                    continue
+                act = env.action_space()
+                act.raise_alert = [attackable_line_id, attackable_line_id2]
+                act_2 = env.action_space({"raise_alert": [attackable_line_id2, attackable_line_id]})
+                assert act == act_2, f"error for line {attackable_line_id}"
+                assert act._raise_alert[attackable_line_id]
+                assert act._raise_alert[attackable_line_id2]
+                assert np.sum(act._raise_alert) == 2
+                assert act._modif_alert
+
+
+# Test alert blackout / tets alert no blackout
+class TestObservation(unittest.TestCase):
+    """test the basic bahavior of the assistant alert feature when no attack occur """
+
+    def setUp(self) -> None:
+        self.env_nm = os.path.join(
+            PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
+        )
+        kwargs_opponent = dict(lines_attacked=ALL_ATTACKABLE_LINES)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make(self.env_nm,
+                            test=True,
+                            difficulty="1", 
+                            opponent_attack_cooldown=0, 
+                            opponent_attack_duration=99999, 
+                            opponent_budget_per_ts=1000, 
+                            opponent_init_budget=10000., 
+                            opponent_action_class=PlayableAction, 
+                            opponent_class=OpponentForTestAlert, 
+                            kwargs_opponent=kwargs_opponent, 
+                            reward_class=AlertReward(reward_end_episode_bonus=42),
+                            _add_to_name="_tioa")
+
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_init_observation(self) -> None :    
+        obs : BaseObservation = self.env.reset()
+        
+        assert np.all(obs.last_alert == False)
+        assert np.all(obs.time_since_last_alert == -1)
+        assert np.all(obs.time_since_last_attack == -1)
+        assert np.all(obs.alert_duration == 0)
+        assert obs.total_number_of_alert == 0
+        assert np.all(obs.was_alert_used_after_attack == False)
+        
+        
+        return # TODO later
+    
+        # TODO => make it vect
+        assert obs.was_alert_used_after_attack is False
+        
+        # TODO => make it vect
+        assert obs.time_since_last_alert
+        
+        # TODO create the "duration" (0 for no alert, and then += 1 per time alerted)
+        
+        # TODO total number of alert
+        assert obs.total_number_of_alert
+        
+        # TODO => make it vect
+        # assert obs.is_alert_illegal
+
 # TODO test that even if an action is illegal, the "alert" part is not
 # replace by "do nothing"
 
-                    
+# TODO test the update_obs_after_reward in the runner !
+
+# TODO test "as_dict" and "as_json"
+        
 if __name__ == "__main__":
     unittest.main()

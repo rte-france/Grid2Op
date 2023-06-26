@@ -263,6 +263,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         observation_bk_class=None,  # type of backend for the observation space
         observation_bk_kwargs=None,  # type of backend for the observation space
         highres_sim_counter=None,
+        update_obs_after_reward=False,
         _is_test: bool = False,  # TODO not implemented !!
         _init_obs: Optional[BaseObservation] =None
     ):
@@ -524,6 +525,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._highres_sim_counter = highres_sim_counter
         else:
             self._highres_sim_counter = HighResSimCounter()
+            
+        self._update_obs_after_reward = update_obs_after_reward
+        
+        # alert
+        self._last_alert = None
+        self._time_since_last_alert = None
+        self._alert_duration= None
+        self._total_number_of_alert = 0
+        self._time_since_last_attack = None
+        self._was_alert_used_after_attack = None
     
     @property
     def highres_sim_counter(self):
@@ -777,7 +788,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._is_test = self._is_test
         
         # do not copy it.
-        new_obj._highres_sim_counter = self._highres_sim_counter
+        new_obj._highres_sim_counter = self._highres_sim_counter        
+        
+        # alert
+        new_obj._last_alert = copy.deepcopy(self._last_alert)
+        new_obj._time_since_last_alert = copy.deepcopy(self._time_since_last_alert)
+        new_obj._alert_duration = copy.deepcopy(self._alert_duration)
+        new_obj._total_number_of_alert = self._total_number_of_alert
+        new_obj._time_since_last_attack = copy.deepcopy(self._time_since_last_attack)
+        new_obj._was_alert_used_after_attack = copy.deepcopy(self._was_alert_used_after_attack)
 
     def get_path_env(self):
         """
@@ -1279,8 +1298,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.seed(None, _seed_me=False)
         self._reset_storage()
         self._reset_curtailment()
+        self._reset_alert()
         self._has_just_been_seeded = False
 
+    def _reset_alert(self):
+        self._last_alert[:] = False
+        self._time_since_last_alert[:] = -1
+        self._alert_duration[:] = 0
+        self._total_number_of_alert = 0
+        self._time_since_last_attack[:] = -1
+        self._was_alert_used_after_attack[:] = 0
+        
     def _reset_storage(self):
         """reset storage capacity at the beginning of new environment if needed"""
         if self.n_storage > 0:
@@ -1507,6 +1535,20 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._observation_space.reactivate_forecast(self)
         self.with_forecast = True
 
+    def _init_alert_data(self):
+        cls = type(self)
+        self._last_alert = np.full(cls.dim_alerts,
+                                   dtype=dt_bool, fill_value=False)
+        self._time_since_last_alert = np.full(cls.dim_alerts,
+                                              dtype=dt_int, fill_value=-1)
+        self._alert_duration = np.full(cls.dim_alerts,
+                                       dtype=dt_int, fill_value=0)
+        self._total_number_of_alert = 0
+        self._time_since_last_attack = np.full(cls.dim_alerts,
+                                               dtype=dt_int, fill_value=-1)
+        self._was_alert_used_after_attack = np.full(cls.dim_alerts,
+                                                    dtype=dt_int, fill_value=0)
+        
     @abstractmethod
     def _init_backend(
         self,
@@ -2703,7 +2745,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         )
 
         if except_tmp is not None:
+            orig_action = action
             action = self._action_space({})
+            if type(self).dim_alerts:
+                action.raise_alert = orig_action.raise_alert
             is_illegal_redisp = True
             except_.append(except_tmp)
 
@@ -2734,7 +2779,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if not valid_disp or except_tmp is not None:
             # game over case (divergence of the scipy routine to compute redispatching)
-            action = self._action_space({})
+            res_action = self._action_space({})
+            if type(self).dim_alerts:
+                res_action.raise_alert = action.raise_alert
             is_illegal_redisp = True
             except_.append(except_tmp)
             is_done = True
@@ -2748,15 +2795,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     "a generator would be damaged in real life. This is a game over."
                 )
             )
-            return action, is_illegal_redisp, is_illegal_reco, is_done
+            return res_action, is_illegal_redisp, is_illegal_reco, is_done
 
         # check the validity of min downtime and max uptime
         except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
         if except_tmp is not None:
             is_illegal_reco = True
-            action = self._action_space({})
+            res_action = self._action_space({})
+            if type(self).dim_alerts:
+                res_action.raise_alert = action.raise_alert
             except_.append(except_tmp)
-        return action, is_illegal_redisp, is_illegal_reco, is_done
+        else:
+            res_action = action
+        return res_action, is_illegal_redisp, is_illegal_reco, is_done
 
     def _aux_update_backend_action(self, action, action_storage_power, init_disp):
         # make sure the dispatching action is not implemented "as is" by the backend.
@@ -2771,6 +2822,35 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._backend_action += self._env_modification
         self._backend_action.set_redispatch(self._actual_dispatch)
 
+    def _update_alert_properties(self, action, lines_attacked, subs_attacked):
+        # update the environment with the alert information from the
+        # action (if env supports it)
+        if type(self).dim_alerts == 0:
+            return
+        
+        self._last_alert[:] = action.raise_alert
+        
+        self._time_since_last_alert[~self._last_alert & (self._time_since_last_alert != -1)] += 1
+        self._time_since_last_alert[self._last_alert] = 0
+        
+        self._alert_duration[self._last_alert] += 1
+        self._alert_duration[~self._last_alert] = 0
+        
+        self._total_number_of_alert += self._last_alert.sum()
+        
+        if lines_attacked is not None:
+            lines_attacked_al = lines_attacked[type(self).alertable_line_ids]
+            self._time_since_last_attack[lines_attacked_al] = 0
+            self._time_since_last_attack[~lines_attacked_al & (self._time_since_last_attack != -1)] += 1
+        else:
+            self._time_since_last_attack[self._time_since_last_attack != -1] += 1
+            
+        # TODO more complicated (will do it in update_after_reward)
+        # self._was_alert_used_after_attack[:] = XXX
+        
+        # TODO after alert budget will be implemented !
+        # self._is_alert_illegal
+    
     def _aux_register_env_converged(self, disc_lines, action, init_line_status, new_p):
         beg_res = time.perf_counter()
         self.backend.update_thermal_limit(
@@ -2980,6 +3060,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         except_ = []
         detailed_info = []
         init_disp = 1.0 * action._redispatch  # dispatching action
+        init_alert = None
+        if type(self).dim_alerts > 0:
+            init_alert = copy.deepcopy(action._raise_alert)
+            
         action_storage_power = 1.0 * action._storage_power  # battery information
         attack_duration = 0
         lines_attacked, subs_attacked = None, None
@@ -3003,6 +3087,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     1.0 * action._storage_power
                 )  # battery information
                 except_.append(reason)
+                if type(self).dim_alerts > 0:
+                    # keep the alert even if the rest is illegal
+                    action.raise_alert = init_alert
                 is_illegal = True
 
             ambiguous, except_tmp = action.is_ambiguous()
@@ -3014,22 +3101,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     1.0 * action._storage_power
                 )  # battery information
                 is_ambiguous = True
+                if type(self).dim_alerts > 0:
+                    # keep the alert even if the rest is ambiguous
+                    action.raise_alert = init_alert
                 except_.append(except_tmp)
 
             if self._has_attention_budget:
-                if type(self).assistant_warning_type == "ZONAL":
+                if type(self).assistant_warning_type == "zonal":
                     # this feature is implemented, so i do it
                     reason_alert_illegal = self._attention_budget.register_action(
                         self, action, is_illegal, is_ambiguous
                     )
                     self._is_alert_illegal = reason_alert_illegal is not None
-                else:
-                    # this feature is implemented, so i do it
-                    reason_alarm_illegal = self._attention_budget.register_action(
-                        self, action, is_illegal, is_ambiguous
-                    )
-                    self._is_alarm_illegal = reason_alarm_illegal is not None
-
 
             # get the modification of generator active setpoint from the environment
             self._env_modification, prod_v_chronics = self._update_actions()
@@ -3083,6 +3166,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
                 # now it's time to run the powerflow properly
                 # and to update the time dependant properties
+                self._update_alert_properties(action, lines_attacked, subs_attacked)
                 detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
                     action, init_line_status, new_p, except_
                 )
@@ -3137,6 +3221,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.current_obs = self.get_obs(_update_state=False)
             # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
+        elif self._update_obs_after_reward and self.current_obs is not None:
+            self.current_obs.update_after_reward(self)
             
         # TODO documentation on all the possible way to be illegal now
         if self.done:

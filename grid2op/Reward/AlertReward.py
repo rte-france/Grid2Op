@@ -123,6 +123,10 @@ class AlertReward(BaseReward):
         
         # update alerts
         self._update_alert(action)
+        
+        # update internal state of the environment
+        # (this is updated in case the reward returns non 0)
+        env._was_alert_used_after_attack[:] = 0
             
     def _compute_score_attack_blackout(self, ts_attack_in_order, indexes_to_look):
         # retrieve the lines that have been attacked in the time window
@@ -133,6 +137,8 @@ class AlertReward(BaseReward):
         ts_first_line_attacked_orig = indexes_to_look[ts_first_line_attacked]
         # and now look at the previous step if alerts were send
         prev_ts = (ts_first_line_attacked_orig - 1) % self._nrows_array
+        
+        env._was_alert_used_after_attack[line_first_attack] = self._alert_launched[prev_ts, line_first_attack] * 2 - 1
         return np.mean(self._alert_launched[prev_ts, line_first_attack]) * self._reward_range_blackout +  self.reward_min_blackout
     
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
@@ -166,6 +172,8 @@ class AlertReward(BaseReward):
                 # I don't need the "-1" because the action is already BEFORE the observation in the reward.
                 prev_ind = index_window
                 alert_send = self._alert_launched[prev_ind, lines_attack]
+                # TODO env._was_alert_used_after_attack
+                env._was_alert_used_after_attack[lines_attack] = 1 - alert_send * 2
                 res = (self.reward_min_no_blackout - self.reward_max_no_blackout) * np.mean(alert_send) + self.reward_max_no_blackout
         return res
     

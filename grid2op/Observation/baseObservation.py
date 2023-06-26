@@ -280,21 +280,6 @@ class BaseObservation(GridObjects):
         to the attention budget when there was a game over. It can only be set to ``True`` if the observation
         corresponds to a game over, but not necessarily. (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
-    is_alert_illegal: ``bool``
-        whether the last alert has been illegal (due to budget constraint). It can only be ``True`` if an alert
-        was raised by the agent on the previous step. Otherwise it is always ``False`` 
-
-    time_since_last_alert: ``int``
-        Number of steps since the last successful alert has been raised. It is `-1` if no alert has been raised yet. 
-
-    last_alert: :class:`numpy.ndarray`, dtype:int
-        For each zones, gives how many steps since the last alert was raised successfully for this zone 
-
-    was_alert_used_after_attack: ``bool``
-        Was the last alert used to compute anything related
-        to the attention budget when there was a game over. It can only be set to ``True`` if the observation
-        corresponds to a game over, but not necessarily. 
-
     gen_margin_up: :class:`numpy.ndarray`, dtype:float
         From how much can you increase each generators production between this
         step and the next.
@@ -308,6 +293,19 @@ class BaseObservation(GridObjects):
 
         It is always 0. for non renewable generators. For the others it is defined as
         `np.minimum(self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down)`
+
+    last_alert: :class:`numpy.ndarray`, dtype:bool
+        TODO
+    time_since_last_alert: :class:`numpy.ndarray`, dtype:int
+        TODO
+    alert_duration: :class:`numpy.ndarray`, dtype:int
+        TODO
+    total_number_of_alert: :class:`numpy.ndarray`, dtype:int
+        TODO
+    time_since_last_attack: :class:`numpy.ndarray`, dtype:int
+        TODO
+    was_alert_used_after_attack: :class:`numpy.ndarray`, dtype:bool
+        TODO
 
     _shunt_p: :class:`numpy.ndarray`, dtype:float
         Shunt active value (only available if shunts are available) (in MW)
@@ -368,9 +366,11 @@ class BaseObservation(GridObjects):
         "attention_budget",
         "was_alarm_used_after_game_over",
         # line alert 
-        "is_alert_illegal",
-        "time_since_last_alert",
         "last_alert",
+        "time_since_last_alert",
+        "alert_duration",
+        "total_number_of_alert",
+        "time_since_last_attack",
         "was_alert_used_after_attack",
         # gen up / down
         "gen_margin_up",
@@ -464,12 +464,19 @@ class BaseObservation(GridObjects):
         self.was_alarm_used_after_game_over = np.zeros(shape=1, dtype=dt_bool)
 
         # alert 
-        self.is_alert_illegal = np.ones(shape=1, dtype=dt_bool)
-        self.time_since_last_alert = np.empty(shape=1, dtype=dt_int)
-        self.last_alert = np.empty(shape=self.dim_alerts, dtype=dt_int)
-        self.attention_budget = np.empty(shape=1, dtype=dt_float)
-        self.was_alert_used_after_attack = np.zeros(shape=1, dtype=dt_bool)
-
+        # self.is_alert_illegal = np.ones(shape=1, dtype=dt_bool)
+        # self.time_since_last_alert = np.empty(shape=1, dtype=dt_int)
+        # self.last_alert = np.empty(shape=self.dim_alerts, dtype=dt_int)
+        # self.attention_budget = np.empty(shape=1, dtype=dt_float)
+        # self.was_alert_used_after_attack = np.zeros(shape=1, dtype=dt_bool)
+        dim_alert = type(self).dim_alerts
+        self.last_alert = np.empty(shape=dim_alert, dtype=dt_bool)
+        self.time_since_last_alert = np.empty(shape=dim_alert, dtype=dt_int)
+        self.alert_duration = np.empty(shape=dim_alert, dtype=dt_int)
+        self.total_number_of_alert = np.empty(shape=1, dtype=dt_int)
+        self.time_since_last_attack = np.empty(shape=dim_alert, dtype=dt_int)
+        self.was_alert_used_after_attack = np.empty(shape=dim_alert, dtype=dt_bool)
+        
         # to save some computation time
         self._connectivity_matrix_ = None
         self._bus_connectivity_matrix_ = None
@@ -533,10 +540,14 @@ class BaseObservation(GridObjects):
             "last_alarm",
             "attention_budget",
             "was_alarm_used_after_game_over",
-            "is_alert_illegal",
-            "time_since_last_alert",
+            # alert (new in 1.9.1)
             "last_alert",
+            "time_since_last_alert",
+            "alert_duration",
+            "total_number_of_alert",
+            "time_since_last_attack",
             "was_alert_used_after_attack",
+            # other
             "storage_power",
             "storage_power_target",
             "storage_charge",
@@ -1013,15 +1024,17 @@ class BaseObservation(GridObjects):
             cls.attr_list_set = set(cls.attr_list_vect)
 
         if cls.glop_version < "1.9.1" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
-            # is_alert_illegal", "time_since_last_alert", "last_alert", "was_alert_used_after_attack" were added in grid2Op 1.8.2
+            # alert attributes have been added in 1.9.1
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
 
             for el in [
-                "is_alert_illegal",
-                "time_since_last_alert",
                 "last_alert",
-                "was_alert_used_after_attack",
+                "time_since_last_alert",
+                "alert_duration",
+                "total_number_of_alert",
+                "time_since_last_attack",
+                "was_alert_used_after_attack"
             ]:
                 try:
                     cls.attr_list_vect.remove(el)
@@ -1127,9 +1140,13 @@ class BaseObservation(GridObjects):
         self.was_alarm_used_after_game_over[:] = False
 
         # alert line feature 
-        self.is_alert_illegal[:] = False
-        self.time_since_last_alert[:] = -1
         self.last_alert[:] = False
+        self.time_since_last_alert[:] = 0
+        self.alert_duration[:] = 0
+        self.total_number_of_alert[:] = 0
+        self.time_since_last_attack[:] = -1
+        self.was_alert_used_after_attack[:] = False
+        
         # Reuse the same attention budget 
         self.was_alert_used_after_attack[:] = False
         
@@ -1259,12 +1276,14 @@ class BaseObservation(GridObjects):
             self.was_alarm_used_after_game_over[:] = False
 
         # related to alert 
-        self.is_alert_illegal[:] = False
-        self.time_since_last_alert[:] = -1
         self.last_alert[:] = False
-        self.attention_budget[:] = 0
+        self.time_since_last_alert[:] = 0
+        self.alert_duration[:] = 0
+        self.total_number_of_alert[:] = 0
+        self.time_since_last_attack[:] = -1        
         if env is not None:
-            self.was_alert_used_after_attack[:] = env._is_alert_used_in_reward
+            # TODO alert
+            self.was_alert_used_after_attack[:] = 0
         else:
             self.was_alert_used_after_attack[:] = False
 
@@ -3377,16 +3396,14 @@ class BaseObservation(GridObjects):
             ] = self.was_alarm_used_after_game_over[0]
 
             # alert 
-            self._dictionnarized["is_alert_illegal"] = self.is_alert_illegal[0]
-            self._dictionnarized["time_since_last_alert"] = self.time_since_last_alert[
-                0
-            ]
             self._dictionnarized["last_alert"] = copy.deepcopy(self.last_alert)
-            self._dictionnarized["attention_budget"] = self.attention_budget[0]
+            self._dictionnarized["time_since_last_alert"] = copy.deepcopy(self.time_since_last_alert)
+            self._dictionnarized["alert_duration"] = copy.deepcopy(self.alert_duration)
+            self._dictionnarized["time_since_last_attack"] = copy.deepcopy(self.time_since_last_attack)
+            self._dictionnarized["was_alert_used_after_attack"] = copy.deepcopy(self.was_alert_used_after_attack)
             self._dictionnarized[
-                "was_alert_used_after_attack"
-            ] = self.was_alert_used_after_attack[0]
-
+                "total_number_of_alert"
+            ] = self.total_number_of_alert[0]
 
             # current_step / max step
             self._dictionnarized["current_step"] = self.current_step
@@ -3827,22 +3844,8 @@ class BaseObservation(GridObjects):
         self.storage_power[:] = env._storage_power
 
         # handles forecasts here
-        if with_forecast:
-            inj_action = {}
-            dict_ = {}
-            dict_["load_p"] = dt_float(1.0 * self.load_p)
-            dict_["load_q"] = dt_float(1.0 * self.load_q)
-            dict_["prod_p"] = dt_float(1.0 * self.gen_p)
-            dict_["prod_v"] = dt_float(1.0 * self.gen_v)
-            inj_action["injection"] = dict_
-            # inj_action = self.action_helper(inj_action)
-            timestamp = self.get_time_stamp()
-            self._forecasted_inj = [(timestamp, inj_action)]
-            self._forecasted_inj += env.forecasts()
-            self._forecasted_grid = [None for _ in self._forecasted_inj]
-            self._env_internal_params = {}
-            self._update_internal_env_params(env)
-
+        self._update_forecast(env, with_forecast)
+        
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line[:] = env._times_before_line_status_actionable
         self.time_before_cooldown_sub[:] = env._times_before_topology_actionable
@@ -3880,31 +3883,54 @@ class BaseObservation(GridObjects):
             self.curtailment_limit[:] = 1.0
             self.curtailment_limit_effective[:] = 1.0
 
-        if self.dim_alarms and env._has_attention_budget:
-            self.is_alarm_illegal[:] = env._is_alarm_illegal
-            if env._attention_budget.time_last_successful_alarm_raised > 0:
-                self.time_since_last_alarm[:] = (
-                    self.current_step
-                    - env._attention_budget.time_last_successful_alarm_raised
-                )
-            else:
-                self.time_since_last_alarm[:] = -1
-            self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
-            self.attention_budget[:] = env._attention_budget.current_budget
-        elif self.dim_alerts and env._has_attention_budget: 
-            self.is_alert_illegal[:] = env._is_alert_illegal
-            if env._attention_budget.time_last_successful_alert_raised > 0:
-                self.time_since_last_alert[:] = (
-                    self.current_step
-                    - env._attention_budget.time_last_successful_alert_raised
-                )
-            else:
-                self.time_since_last_alert[:] = -1
-            self.last_alert[:] = env._attention_budget.last_successful_alert_raised
-            self.attention_budget[:] = env._attention_budget.current_budget
+        self._update_alarm(env)
 
         self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.0)
+        
+        self._update_alert(env)
 
+    def _update_forecast(self, env, with_forecast):
+        if not with_forecast:
+            return
+        
+        inj_action = {}
+        dict_ = {}
+        dict_["load_p"] = dt_float(1.0 * self.load_p)
+        dict_["load_q"] = dt_float(1.0 * self.load_q)
+        dict_["prod_p"] = dt_float(1.0 * self.gen_p)
+        dict_["prod_v"] = dt_float(1.0 * self.gen_v)
+        inj_action["injection"] = dict_
+        # inj_action = self.action_helper(inj_action)
+        timestamp = self.get_time_stamp()
+        self._forecasted_inj = [(timestamp, inj_action)]
+        self._forecasted_inj += env.forecasts()
+        self._forecasted_grid = [None for _ in self._forecasted_inj]
+        self._env_internal_params = {}
+        self._update_internal_env_params(env)
+        
+    def _update_alarm(self, env):
+        if not (self.dim_alarms and env._has_attention_budget):
+            return
+        
+        self.is_alarm_illegal[:] = env._is_alarm_illegal
+        if env._attention_budget.time_last_successful_alarm_raised > 0:
+            self.time_since_last_alarm[:] = (
+                self.current_step
+                - env._attention_budget.time_last_successful_alarm_raised
+            )
+        else:
+            self.time_since_last_alarm[:] = -1
+        self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
+        self.attention_budget[:] = env._attention_budget.current_budget        
+        
+    def _update_alert(self, env):
+        self.last_alert[:] = env._last_alert
+        self.time_since_last_alert[:] = env._time_since_last_alert
+        self.alert_duration[:] = env._alert_duration
+        self.total_number_of_alert[:] = env._total_number_of_alert
+        self.time_since_last_attack[:] = env._time_since_last_attack
+        # self.was_alert_used_after_attack  # handled in self.update_after_reward
+        
     def get_simulator(self) -> "grid2op.simulator.Simulator":
         """This function allows to retrieve a valid and properly initialized "Simulator"
 
@@ -4331,3 +4357,25 @@ class BaseObservation(GridObjects):
         """
         self._obs_env.change_parameters(params)
         self._obs_env._parameters = params
+
+    def update_after_reward(self, env):
+        """Only called for the regular environment (so not available for
+        :func:`BaseObservation.get_forecast_env` or 
+        :func:`BaseObservation.simulate`)
+
+        .. warning::
+            You probably don't have to use except if you develop a specific
+            observation class !
+            
+        .. versionadded:: 1.9.1
+        
+        Parameters
+        ----------
+        env : grid2op.Environment.BaseEnv
+            The environment with which to update the observation
+        """
+        if type(self).dim_alerts == 0:
+            return
+        
+        # update the was_alert_used_after_attack !
+        self.was_alert_used_after_attack[:] = env._was_alert_used_after_attack

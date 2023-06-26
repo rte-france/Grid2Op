@@ -137,6 +137,7 @@ class Environment(BaseEnv):
             observation_bk_class=observation_bk_class,
             observation_bk_kwargs=observation_bk_kwargs,
             highres_sim_counter=highres_sim_counter,
+            update_obs_after_reward=True,
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )
@@ -404,6 +405,9 @@ class Environment(BaseEnv):
         # create the attention budget
         self._create_attention_budget()
 
+        # init the alert relate attributes
+        self._init_alert_data()
+        
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
         self._reset_maintenance()
