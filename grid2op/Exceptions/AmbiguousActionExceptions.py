@@ -160,3 +160,7 @@ class NonFiniteElement(InvalidRedispatching):
     """
 
     pass
+
+class AmbiguousActionRaiseAlert(AmbiguousAction):
+    """Raise if the type of action is ambiguous due to the 'raiseAlert' part"""
+    pass

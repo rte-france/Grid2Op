@@ -3400,8 +3400,6 @@ class GridObjects:
         # area for the alarm feature
         res["dim_alarms"] = cls.dim_alarms
     
-        # number of line alert for the alert feature
-        res['dim_alerts'] = cls.dim_alerts 
 
         save_to_dict(
             res, cls, "alarms_area_names", (lambda li: [str(el) for el in li]), copy_
@@ -3425,12 +3423,15 @@ class GridObjects:
             (lambda lili: [[str(l_nm) for l_nm in lines] for lines in lili]),
             copy_,
         )
+        
+        # number of line alert for the alert feature
+        res['dim_alerts'] = cls.dim_alerts 
         # save alert line names to dict
         save_to_dict(
-            res, cls, "alertable_line_names", (lambda li: [str(el) for el in li]), copy_
+            res, cls, "alertable_line_names", (lambda li: [str(el) for el in li]) if as_list else None, copy_
         )
         save_to_dict(
-            res, cls, "alertable_line_ids", (lambda li: [int(el) for el in li]), copy_
+            res, cls, "alertable_line_ids", (lambda li: [int(el) for el in li])  if as_list else None, copy_
         )
         return res
 
@@ -3704,9 +3705,12 @@ class GridObjects:
         if "dim_alerts" in dict_: 
             # NB by default the constructor do as if there were no alert so that's great !
             cls.dim_alerts = dict_["dim_alerts"]
-            cls.alertable_line_names = copy.deepcopy(dict_["alertable_line_names"])
-            cls.alertable_line_ids = np.array(dict_["alertable_line_ids"]).astype(dt_int)
-
+            cls.alertable_line_names = extract_from_dict(
+                dict_, "alertable_line_names", lambda x: np.array(x).astype(str)
+                )
+            cls.alertable_line_ids = extract_from_dict(
+                dict_, "alertable_line_ids", lambda x: np.array(x).astype(dt_int)
+                )
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo_cls()

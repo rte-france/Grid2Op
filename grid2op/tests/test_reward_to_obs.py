@@ -72,6 +72,26 @@ class BaseTestPlot(unittest.TestCase):
         CustomTestReward.nb_call = 0
         runner.run(nb_episode=1, max_iter=10)
         assert CustomTestReward.nb_call == 12, f"{CustomTestReward.nb_call} vs 12"
+    
+    def test_simulate(self):
+        obs = self.env.reset()
+        assert not hasattr(obs, "stuff")
+        assert CustomTestReward.nb_call == 1  # ideally it should be 0 but..
+        
+        sim_obs, sim_r, sim_d, sim_i = obs.simulate(self.env.action_space())
+        assert not hasattr(sim_obs, "stuff")
+        assert CustomTestReward.nb_call == 2  # reward is still called in simulate
+        
+    def test_forecast_env(self):
+        obs = self.env.reset()
+        assert not hasattr(obs, "stuff")
+        assert CustomTestReward.nb_call == 1  # ideally it should be 0 but..
+        
+        for_env = obs.get_forecast_env()
+        f_done = False
+        while not f_done:
+            f_obs, f_reward, f_done, f_info = for_env.step(self.env.action_space())
+            assert not hasattr(f_obs, "stuff")
         
         
 if __name__ == "__main__":

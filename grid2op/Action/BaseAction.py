@@ -2308,7 +2308,7 @@ class BaseAction(GridObjects):
 
         if np.any(self._raise_alert):
             if not self._modif_alert:
-                raise AmbiguousAction(
+                raise AmbiguousActionRaiseAlert(
                     "Incorrect way to raise some alert, the appropriate flag is not "
                     "modified properly."
                 )
@@ -2649,13 +2649,13 @@ class BaseAction(GridObjects):
 
         if self._modif_alert:
             if self._raise_alert.shape[0] != self.dim_alerts:
-                raise AmbiguousAction(
+                raise AmbiguousActionRaiseAlert(
                     f"Wrong number of alert raised: {self._raise_alert.shape[0]} raised, expecting "
                     f"{self.dim_alerts}"
                 )
         else:
             if np.any(self._raise_alert):
-                raise AmbiguousAction(
+                raise AmbiguousActionRaiseAlert(
                     f"Unrecognize alert action: an action acts on the alert, yet it's not tagged "
                     f"as doing so. Expect wrong behaviour."
                 )

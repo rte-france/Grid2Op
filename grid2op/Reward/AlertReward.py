@@ -128,7 +128,7 @@ class AlertReward(BaseReward):
         # (this is updated in case the reward returns non 0)
         env._was_alert_used_after_attack[:] = 0
             
-    def _compute_score_attack_blackout(self, ts_attack_in_order, indexes_to_look):
+    def _compute_score_attack_blackout(self, env, ts_attack_in_order, indexes_to_look):
         # retrieve the lines that have been attacked in the time window
         ts_ind, line_ind = np.where(ts_attack_in_order)
         line_first_attack, first_ind_line_attacked = np.unique(line_ind, return_index=True)
@@ -136,8 +136,9 @@ class AlertReward(BaseReward):
         # now retrieve the array starting at the correct place
         ts_first_line_attacked_orig = indexes_to_look[ts_first_line_attacked]
         # and now look at the previous step if alerts were send
-        prev_ts = (ts_first_line_attacked_orig - 1) % self._nrows_array
-        
+        # prev_ts = (ts_first_line_attacked_orig - 1) % self._nrows_array
+        prev_ts = ts_first_line_attacked_orig
+        # update the state of the environment
         env._was_alert_used_after_attack[line_first_attack] = self._alert_launched[prev_ts, line_first_attack] * 2 - 1
         return np.mean(self._alert_launched[prev_ts, line_first_attack]) * self._reward_range_blackout +  self.reward_min_blackout
     
@@ -162,7 +163,7 @@ class AlertReward(BaseReward):
             has_attack = np.any(ts_attack_in_order)
             if has_attack:
                 # I need to check the alarm for the attacked lines
-                res = self._compute_score_attack_blackout(ts_attack_in_order, indexes_to_look)
+                res = self._compute_score_attack_blackout(env, ts_attack_in_order, indexes_to_look)
         else:
             # no blackout: i check the first step in the window before me to see if there is an attack,
             index_window = (self._current_id - self.time_window) % self._nrows_array
@@ -172,7 +173,7 @@ class AlertReward(BaseReward):
                 # I don't need the "-1" because the action is already BEFORE the observation in the reward.
                 prev_ind = index_window
                 alert_send = self._alert_launched[prev_ind, lines_attack]
-                # TODO env._was_alert_used_after_attack
+                # update the state of the environment
                 env._was_alert_used_after_attack[lines_attack] = 1 - alert_send * 2
                 res = (self.reward_min_no_blackout - self.reward_max_no_blackout) * np.mean(alert_send) + self.reward_max_no_blackout
         return res

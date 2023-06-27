@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 import unittest
 import os
+import copy
 import tempfile
 from grid2op.Observation import BaseObservation
 from grid2op.tests.helper_path_test import *
@@ -56,11 +57,24 @@ class OpponentForTestAlert(BaseOpponent):
     
     def __init__(self, action_space):
         super().__init__(action_space)
-        self.custom_attack = None
-        self.duration = None
-        self.steps_attack = None
+        self.env = None  
+        self.lines_attacked = None  
+        self.custom_attack = None  
+        self.attack_duration = None  
+        self.attack_steps = None  
+        self.attack_id = None  
 
-    def init(self, partial_env,
+    def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
+        new_obj.env = dict_["partial_env"]    
+        new_obj.lines_attacked = copy.deepcopy(self.lines_attacked)
+        new_obj.custom_attack = [act.copy() for act in self.custom_attack]
+        new_obj.attack_duration = copy.deepcopy(self.attack_duration)
+        new_obj.attack_steps = copy.deepcopy(self.attack_steps)
+        new_obj.attack_id = copy.deepcopy(self.attack_id)
+        return super()._custom_deepcopy_for_copy(new_obj, dict_)
+    
+    def init(self,
+             partial_env,
              lines_attacked=ALL_ATTACKABLE_LINES,
              attack_duration=[],
              attack_steps=[],
@@ -75,13 +89,10 @@ class OpponentForTestAlert(BaseOpponent):
     def attack(self, observation, agent_action, env_action, budget, previous_fails): 
         if observation is None:
             return None, None
-
         current_step = self.env.nb_time_step
         if current_step not in self.attack_steps: 
             return None, None
-        
-        index = self.steps_attack.index(current_step)
-
+        index = self.attack_steps.index(current_step)
         return self.custom_attack[index], self.attack_duration[index]
 
 
@@ -184,14 +195,16 @@ class TestObservation(unittest.TestCase):
                             kwargs_opponent=kwargs_opponent, 
                             reward_class=AlertReward(reward_end_episode_bonus=42),
                             _add_to_name="_tioa")
+        param = self.env.parameters
+        param.ALERT_TIME_WINDOW = 2
+        self.env.change_parameters(param)
+        assert type(self.env).dim_alerts == len(ALL_ATTACKABLE_LINES)
 
     def tearDown(self) -> None:
         self.env.close()
         return super().tearDown()
     
-    def test_init_observation(self) -> None :    
-        obs : BaseObservation = self.env.reset()
-        
+    def _aux_obs_init(self, obs):
         assert np.all(obs.last_alert == False)
         assert np.all(obs.time_since_last_alert == -1)
         assert np.all(obs.time_since_last_attack == -1)
@@ -199,24 +212,143 @@ class TestObservation(unittest.TestCase):
         assert obs.total_number_of_alert == 0
         assert np.all(obs.was_alert_used_after_attack == False)
         
+    def test_init_observation(self) -> None :    
+        obs : BaseObservation = self.env.reset()
+        self._aux_obs_init(obs)
     
+    def _aux_alert_0(self, obs):
+        assert obs.last_alert[0]
+        assert obs.last_alert.sum() == 1
+        assert obs.time_since_last_alert[0] == 0
+        assert np.all(obs.time_since_last_alert[1:] == -1)
+        assert np.all(obs.time_since_last_attack == -1)
+        assert np.all(obs.alert_duration[1:] == 0)
+        assert obs.alert_duration[0] == 1
+        assert obs.total_number_of_alert == 1 
+        assert np.all(obs.was_alert_used_after_attack == False)
     
-        # TODO => make it vect
-        assert obs.was_alert_used_after_attack is False
+    def test_after_action(self):
+        obs : BaseObservation = self.env.reset()
         
-        # TODO => make it vect
-        assert obs.time_since_last_alert
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        self._aux_alert_0(obs)
         
-        # TODO create the "duration" (0 for no alert, and then += 1 per time alerted)
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0, 1]}))
+        assert np.all(obs.last_alert[:2])
+        assert obs.last_alert.sum() == 2
+        assert obs.time_since_last_alert[0] == 0
+        assert obs.time_since_last_alert[1] == 0
+        assert np.all(obs.time_since_last_alert[2:] == -1)
+        assert np.all(obs.time_since_last_attack == -1)
+        assert obs.alert_duration[0] == 2
+        assert obs.alert_duration[1] == 1
+        assert np.all(obs.alert_duration[2:] == 0)
+        assert obs.total_number_of_alert == 3
+        assert np.all(obs.was_alert_used_after_attack == False)
         
-        # TODO total number of alert
-        assert obs.total_number_of_alert
+        obs : BaseObservation = self.env.reset()
+        self._aux_obs_init(obs)
         
-        # TODO => make it vect
-        # assert obs.is_alert_illegal
+    def test_illegal_action(self):
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0],
+                                                                       "set_bus": {"lines_or_id": [(0, 2), (19, 2)]}}))
+        assert info["is_illegal"]
+        self._aux_alert_0(obs)
+    
+    def test_ambiguous_action_nonalert(self):
+        obs : BaseObservation = self.env.reset()
+        act = self.env.action_space({"raise_alert": [0]})
+        
+        # now create an ambiguous action that is accepted by grid2op (which is not that easy)
+        act._set_topo_vect[0] = 2  # ambiguous because the flag has not been modified !
+        obs, reward, done, info = self.env.step(act)
+        assert info["is_ambiguous"]
+        self._aux_alert_0(obs)
+    
+    def test_ambiguous_action_alert(self):
+        obs : BaseObservation = self.env.reset()
+        act = self.env.action_space({"raise_alert": [0]})
+        
+        # now create an ambiguous action that is accepted by grid2op (which is not that easy)
+        act._modif_alert = False  # ambiguous because the flag has not been modified !
+        obs, reward, done, info = self.env.step(act)
+        assert info["is_ambiguous"]
+        self._aux_obs_init(obs)
+        
+    def test_env_cpy(self):
+        obs : BaseObservation = self.env.reset()
+        env_cpy = self.env.copy()
+        
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        self._aux_alert_0(obs)
+        
+        obs_cpy, *_ = env_cpy.step(self.env.action_space())
+        self._aux_obs_init(obs_cpy)
 
-# TODO test that even if an action is illegal, the "alert" part is not
-# replace by "do nothing"
+    def test_when_attacks(self):
+        obs : BaseObservation = self.env.reset()
+        
+        # tell the opponent to make an attack
+        attack_id = np.where(self.env.name_line == ALL_ATTACKABLE_LINES[0])[0][0]
+        opp = self.env._oppSpace.opponent
+        opp.custom_attack = [opp.action_space({"set_line_status" : [(l, -1)]}) for l in [attack_id]]
+        opp.attack_duration = [1]
+        opp.attack_steps = [2]
+        opp.attack_id = [attack_id]
+        
+        # 1 no game over
+        # 1a alert on the wrong line, the was_alert_used_after_attack[0] should be 1
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
+        assert info["opponent_attack_line"] is not None
+        assert info["opponent_attack_line"][attack_id]
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert reward == 1., f"{reward} vs 1."
+        assert obs.was_alert_used_after_attack[1] == 0
+        assert obs.was_alert_used_after_attack[0] == 1  # used (even if I did not sent an alarm, which by default means 'no alarm')
+        assert np.all(obs.was_alert_used_after_attack[2:] == 0)
+        # 1b alert on the right line (which is wrong), the was_alert_used_after_attack[0] should be -1
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert info["opponent_attack_line"] is not None
+        assert info["opponent_attack_line"][attack_id]
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert reward == -1., f"{reward} vs -1."
+        assert obs.was_alert_used_after_attack[0] == -1
+        assert np.all(obs.was_alert_used_after_attack[1:] == 0)
+        
+        # 2 game over
+        # 2a no alert on the line
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
+        assert info["opponent_attack_line"] is not None
+        assert info["opponent_attack_line"][attack_id]
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}}))
+        assert done
+        assert reward == -10., f"{reward} vs -10."
+        assert obs.was_alert_used_after_attack[1] == 0
+        assert obs.was_alert_used_after_attack[0] == -1, f"{obs.was_alert_used_after_attack[0]} vs -1"  # used (even if I did not sent an alarm, which by default means 'no alarm')
+        assert np.all(obs.was_alert_used_after_attack[2:] == 0)
+        
+        # 2b alert on the line
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert info["opponent_attack_line"] is not None
+        assert info["opponent_attack_line"][attack_id]
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}}))
+        assert done
+        assert reward == 2., f"{reward} vs 2."
+        assert obs.was_alert_used_after_attack[1] == 0
+        assert obs.was_alert_used_after_attack[0] == 1, f"{obs.was_alert_used_after_attack[0]} vs 1"
+        assert np.all(obs.was_alert_used_after_attack[2:] == 0)
+
 
 # TODO test the update_obs_after_reward in the runner !
 

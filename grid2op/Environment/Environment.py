@@ -101,6 +101,7 @@ class Environment(BaseEnv):
         observation_bk_class=None,
         observation_bk_kwargs=None,
         highres_sim_counter=None,
+        _update_obs_after_reward=True,
         _init_obs=None,
         _raw_backend_class=None,
         _compat_glop_version=None,
@@ -137,7 +138,7 @@ class Environment(BaseEnv):
             observation_bk_class=observation_bk_class,
             observation_bk_kwargs=observation_bk_kwargs,
             highres_sim_counter=highres_sim_counter,
-            update_obs_after_reward=True,
+            update_obs_after_reward=_update_obs_after_reward,
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )

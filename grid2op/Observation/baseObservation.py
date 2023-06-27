@@ -475,7 +475,7 @@ class BaseObservation(GridObjects):
         self.alert_duration = np.empty(shape=dim_alert, dtype=dt_int)
         self.total_number_of_alert = np.empty(shape=1, dtype=dt_int)
         self.time_since_last_attack = np.empty(shape=dim_alert, dtype=dt_int)
-        self.was_alert_used_after_attack = np.empty(shape=dim_alert, dtype=dt_bool)
+        self.was_alert_used_after_attack = np.empty(shape=dim_alert, dtype=dt_int)
         
         # to save some computation time
         self._connectivity_matrix_ = None
@@ -1145,10 +1145,10 @@ class BaseObservation(GridObjects):
         self.alert_duration[:] = 0
         self.total_number_of_alert[:] = 0
         self.time_since_last_attack[:] = -1
-        self.was_alert_used_after_attack[:] = False
+        self.was_alert_used_after_attack[:] = 0
         
         # Reuse the same attention budget 
-        self.was_alert_used_after_attack[:] = False
+        self.was_alert_used_after_attack[:] = 0
         
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)

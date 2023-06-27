@@ -945,8 +945,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 warnings.warn("The kwargs \"lines_attacked\" is not present in the description of your opponent "
                               "yet you want to use alert. Know that in this case no alert will be defined...")
                     
-            alertable_line_names = [el for el in self.backend.name_line if el in lines_attacked]
-            alertable_line_ids = np.array([i for i, el in enumerate(self.backend.name_line) if el in lines_attacked], dtype=dt_int)
+            alertable_line_names = copy.deepcopy(lines_attacked)
+            alertable_line_ids = np.empty(len(alertable_line_names), dtype=dt_int)
+            for i, el in enumerate(alertable_line_names): 
+                indx = np.where(self.backend.name_line == el)[0]
+                if not len(indx):
+                    raise Grid2OpException(f"Attacked line {el} is not found in the grid.")
+                alertable_line_ids[i] = indx[0]
             nb_lines = len(alertable_line_ids)
         
             bk_cls = type(self.backend)
@@ -3087,6 +3092,26 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         try:
             beg_ = time.perf_counter()
 
+            ambiguous, except_tmp = action.is_ambiguous()
+            if ambiguous:
+                # action is replace by do nothing
+                action = self._action_space({})
+                init_disp = 1.0 * action._redispatch  # dispatching action
+                action_storage_power = (
+                    1.0 * action._storage_power
+                )  # battery information
+                is_ambiguous = True
+                    
+                if type(self).dim_alerts > 0:
+                    # keep the alert even if the rest is ambiguous (if alert is non ambiguous)
+                    is_ambiguous_alert = isinstance(except_tmp, AmbiguousActionRaiseAlert)
+                    if is_ambiguous_alert:
+                        # reset the alert
+                        init_alert = np.zeros(type(self).dim_alerts, dtype=dt_bool)
+                    else:
+                        action.raise_alert = init_alert
+                except_.append(except_tmp)
+
             is_legal, reason = self._game_rules(action=action, env=self)
             if not is_legal:
                 # action is replace by do nothing
@@ -3100,20 +3125,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # keep the alert even if the rest is illegal
                     action.raise_alert = init_alert
                 is_illegal = True
-
-            ambiguous, except_tmp = action.is_ambiguous()
-            if ambiguous:
-                # action is replace by do nothing
-                action = self._action_space({})
-                init_disp = 1.0 * action._redispatch  # dispatching action
-                action_storage_power = (
-                    1.0 * action._storage_power
-                )  # battery information
-                is_ambiguous = True
-                if type(self).dim_alerts > 0:
-                    # keep the alert even if the rest is ambiguous
-                    action.raise_alert = init_alert
-                except_.append(except_tmp)
 
             if self._has_attention_budget:
                 if type(self).assistant_warning_type == "zonal":
@@ -3230,7 +3241,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.current_obs = self.get_obs(_update_state=False)
             # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
-        elif self._update_obs_after_reward and self.current_obs is not None:
+            
+        if self._update_obs_after_reward and self.current_obs is not None:
+            # transfer some information computed in the reward into the obs (if any)
             self.current_obs.update_after_reward(self)
             
         # TODO documentation on all the possible way to be illegal now
