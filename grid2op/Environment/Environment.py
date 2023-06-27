@@ -412,6 +412,7 @@ class Environment(BaseEnv):
         # first injections given)
         self._reset_maintenance()
         self._reset_redispatching()
+        self._reward_to_obs = {}
         do_nothing = self._helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:

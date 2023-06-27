@@ -199,8 +199,7 @@ class TestObservation(unittest.TestCase):
         assert obs.total_number_of_alert == 0
         assert np.all(obs.was_alert_used_after_attack == False)
         
-        
-        return # TODO later
+    
     
         # TODO => make it vect
         assert obs.was_alert_used_after_attack is False

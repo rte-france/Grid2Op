@@ -4367,6 +4367,14 @@ class BaseObservation(GridObjects):
             You probably don't have to use except if you develop a specific
             observation class !
             
+        .. info::
+            If you want to develop a new type of observation with a new type of reward, you can use the 
+            `env._reward_to_obs` attribute (dictionary) in the reward to pass information to the 
+            observation (in this function).
+            
+            Basically, update `env._reward_to_obs` in the reward, and use the values in `env._reward_to_obs` 
+            in this function.
+            
         .. versionadded:: 1.9.1
         
         Parameters

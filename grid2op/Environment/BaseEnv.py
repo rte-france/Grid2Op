@@ -535,6 +535,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._total_number_of_alert = 0
         self._time_since_last_attack = None
         self._was_alert_used_after_attack = None
+        
+        # general things that can be used by the reward
+        self._reward_to_obs = {}
     
     @property
     def highres_sim_counter(self):
@@ -775,6 +778,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         new_obj._has_just_been_seeded = self._has_just_been_seeded
         
+        # extra things used by the reward to pass to the obs
+        new_obj._reward_to_obs = copy.deepcopy(self._reward_to_obs)
+        
         # time_dependant attributes for the "forecast env"
         if self._init_obs is None:
             new_obj._init_obs = None
@@ -797,6 +803,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._total_number_of_alert = self._total_number_of_alert
         new_obj._time_since_last_attack = copy.deepcopy(self._time_since_last_attack)
         new_obj._was_alert_used_after_attack = copy.deepcopy(self._was_alert_used_after_attack)
+        
+        new_obj._update_obs_after_reward = self._update_obs_after_reward
 
     def get_path_env(self):
         """
@@ -1299,6 +1307,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._reset_storage()
         self._reset_curtailment()
         self._reset_alert()
+        self._reward_to_obs = {}
         self._has_just_been_seeded = False
 
     def _reset_alert(self):
