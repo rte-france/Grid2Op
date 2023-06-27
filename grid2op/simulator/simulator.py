@@ -517,7 +517,7 @@ class Simulator(object):
         .. code-block:: python
         
             import grid2op
-            env_name = ...  # any environment name available (eg. "l2rpn_case14_sandbox")
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()

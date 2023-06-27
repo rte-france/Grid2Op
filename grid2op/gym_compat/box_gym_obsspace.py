@@ -65,12 +65,13 @@ ALL_ATTR_OBS = (
     "last_alarm",
     "attention_budget",
     "was_alarm_used_after_game_over",
-    "is_alert_illegal",
-    "time_since_last_alert",
-    "last_alert",
-    "was_alert_used_after_attack",
-    "current_step",
     "max_step",
+    "last_alert",
+    "time_since_last_alert",
+    "alert_duration",
+    "total_number_of_alert",
+    "time_since_last_attack",
+    "was_alert_used_after_attack",
     "theta_or",
     "theta_ex",
     "load_theta",
@@ -97,7 +98,7 @@ class BoxGymObsSpace(Box):
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         from grid2op.gym_compat import GymEnv, BoxGymObsSpace
@@ -528,33 +529,42 @@ class BoxGymObsSpace(Box):
                 (1,),
                 dt_float,
             ),
-            "is_alert_illegal": (
-                np.full(shape=(1,), fill_value=False, dtype=dt_bool),
-                np.full(shape=(1,), fill_value=True, dtype=dt_bool),
-                (1,),
+            # alert stuff
+            "last_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=False, dtype=dt_bool),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=True, dtype=dt_bool),
+                (ob_sp.dim_alerts,),
                 dt_bool,
             ),
             "time_since_last_alert": (
-                np.full(shape=(1,), fill_value=-1, dtype=dt_int),
-                np.full(shape=(1,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
-                (1,),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
                 dt_int,
             ),
-            "last_alert": (
+            "alert_duration": (
                 np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
-                np.full(
-                    shape=(ob_sp.dim_alerts,),
-                    fill_value=np.iinfo(dt_int).max,
-                    dtype=dt_int,
-                ),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "total_number_of_alert": (
+                np.full(shape=(1 if ob_sp.dim_alerts else 0,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(1 if ob_sp.dim_alerts else 0,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (1 if ob_sp.dim_alerts else 0,),
+                dt_int,
+            ),
+            "time_since_last_attack": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                 (ob_sp.dim_alerts,),
                 dt_int,
             ),
             "was_alert_used_after_attack": (
-                np.full(shape=(1,), fill_value=False, dtype=dt_bool),
-                np.full(shape=(1,), fill_value=True, dtype=dt_bool),
-                (1,),
-                dt_bool,
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
             ),
         }
         self._dict_properties["max_step"] = copy.deepcopy(self._dict_properties["current_step"])

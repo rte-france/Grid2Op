@@ -49,7 +49,7 @@ class NoisyObservation(BaseObservation):
 
         import grid2op
 
-        env_name = ... # for example "l2rpn_case14_sandbox"
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         kwargs_observation = {"sigma_load_p": 0.1, "sigma_gen_p": 1.0}  # noise of the observation
         env = grid2op.make(env_name,
                            observation_class=NoisyObservation,

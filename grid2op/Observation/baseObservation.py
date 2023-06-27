@@ -304,7 +304,7 @@ class BaseObservation(GridObjects):
         TODO
     time_since_last_attack: :class:`numpy.ndarray`, dtype:int
         TODO
-    was_alert_used_after_attack: :class:`numpy.ndarray`, dtype:bool
+    was_alert_used_after_attack: :class:`numpy.ndarray`, dtype:int
         TODO
 
     _shunt_p: :class:`numpy.ndarray`, dtype:float
@@ -473,7 +473,7 @@ class BaseObservation(GridObjects):
         self.last_alert = np.empty(shape=dim_alert, dtype=dt_bool)
         self.time_since_last_alert = np.empty(shape=dim_alert, dtype=dt_int)
         self.alert_duration = np.empty(shape=dim_alert, dtype=dt_int)
-        self.total_number_of_alert = np.empty(shape=1, dtype=dt_int)
+        self.total_number_of_alert = np.empty(shape=1 if dim_alert else 0, dtype=dt_int)
         self.time_since_last_attack = np.empty(shape=dim_alert, dtype=dt_int)
         self.was_alert_used_after_attack = np.empty(shape=dim_alert, dtype=dt_int)
         
@@ -2158,7 +2158,7 @@ class BaseObservation(GridObjects):
 
             # create an environment and get the observation
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
 
@@ -2906,7 +2906,7 @@ class BaseObservation(GridObjects):
 
             import grid2op
             # retrieve an environment
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             # retrieve an observation, this is the same for all observations
@@ -2928,7 +2928,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -2954,7 +2954,7 @@ class BaseObservation(GridObjects):
             .. code-block:: python
 
                 import grid2op
-                env_name = ...
+                env_name = "l2rpn_case14_sandbox"  # or any other name
                 env = grid2op.make(env_name)
                 obs = env.reset()
                 
@@ -2980,7 +2980,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -3403,7 +3403,7 @@ class BaseObservation(GridObjects):
             self._dictionnarized["was_alert_used_after_attack"] = copy.deepcopy(self.was_alert_used_after_attack)
             self._dictionnarized[
                 "total_number_of_alert"
-            ] = self.total_number_of_alert[0]
+            ] = self.total_number_of_alert[0] if type(self).dim_alerts else []
 
             # current_step / max step
             self._dictionnarized["current_step"] = self.current_step
@@ -3467,7 +3467,7 @@ class BaseObservation(GridObjects):
             import grid2op
 
             # create the environment
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             # generate the first observation
@@ -3674,7 +3674,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()
@@ -3695,7 +3695,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()
@@ -3714,7 +3714,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()
@@ -3950,7 +3950,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
         
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             
             env = grid2op.make(env_name)
             obs = env.reset()
@@ -4047,7 +4047,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -4070,7 +4070,7 @@ class BaseObservation(GridObjects):
             .. code-block:: python
 
                 import grid2op
-                env_name = ...
+                env_name = "l2rpn_case14_sandbox"  # or any other name
                 env = grid2op.make(env_name)
                 obs = env.reset()
                 
@@ -4130,7 +4130,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
         
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             
             obs = env.reset()
@@ -4232,7 +4232,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -4342,7 +4342,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
         
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             
             obs = env.reset()

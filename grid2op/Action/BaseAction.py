@@ -213,7 +213,7 @@ class BaseAction(GridObjects):
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         # first method:
@@ -1096,7 +1096,7 @@ class BaseAction(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...  # chose an environment
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             # get an action
@@ -1437,7 +1437,7 @@ class BaseAction(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             act1 = env.action_space()
@@ -4849,7 +4849,7 @@ class BaseAction(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...  # chose an environment that supports the alarm feature
+            env_name = "l2rpn_icaps_2021"  # chose an environment that supports the alarm feature
             env = grid2op.make(env_name)
             act = env.action_space()
 
@@ -4906,12 +4906,12 @@ class BaseAction(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...  # chose an environment that supports the alert feature
+            env_name = "l2rpn_idf_2023"  # chose an environment that supports the alert feature
             env = grid2op.make(env_name)
             act = env.action_space()
 
             act.raise_alert = [0]
-            # this act will raise an alert on the area 0
+            # this act will raise an alert on the powerline attackable 0 (powerline concerned will be action.alertable_line_ids[0])
 
         """
         res = copy.deepcopy(self._raise_alert)

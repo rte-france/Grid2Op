@@ -89,7 +89,6 @@ class TestGymCompatModule(unittest.TestCase):
             ]
         )
         size_th = 536  # as of grid2Op 1.7.1 (where all obs attributes are there)
-        size_th = 537  # as of grid2Op 1.8.2 (where alarms are added)
         assert (
             dim_obs_space == size_th
         ), f"Size should be {size_th} but is {dim_obs_space}"

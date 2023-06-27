@@ -839,10 +839,12 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "current_step": [0],
             "max_step": [8064],
             "delta_time": [5.0],
-            "is_alert_illegal": [False],
-            "time_since_last_alert": [-1],
+            "time_since_last_alert": [],
             "last_alert": [],
-            "was_alert_used_after_attack": [False],
+            "alert_duration": [],
+            "total_number_of_alert": [],
+            "time_since_last_attack": [],
+            "was_alert_used_after_attack": [],
         }
         self.dtypes = np.array(
             [
@@ -907,7 +909,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 dt_bool,
                 dt_int,
                 dt_int,
-                dt_bool,
+                dt_int,
+                dt_int,
+                dt_int,
             ],
             dtype=object,
         )
@@ -968,13 +972,16 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 1,
                 5,
                 5,
-                1,
-                1,
+                # alert
                 0,
-                1,
+                0,
+                0,
+                0,
+                0,
+                0
             ]
         )
-        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5 + 3
+        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5 + 0
 
     def tearDown(self):
         self.env.close()
@@ -1006,10 +1013,10 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_proper_size(self):
         obs = self.env.observation_space(self.env)
-        assert obs.size() == self.size_obs
+        assert obs.size() == self.size_obs, f"{obs.size()} vs {self.size_obs}"
 
     def test_size_observation_space(self):
-        assert self.env.observation_space.size() == self.size_obs
+        assert self.env.observation_space.size() == self.size_obs, f"{self.env.observation_space.size()} vs {self.size_obs}"
 
     def aux_test_bus_conn_mat(self, as_csr=False):
         obs = self.env.observation_space(self.env)

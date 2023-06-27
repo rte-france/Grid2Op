@@ -103,20 +103,22 @@ class CompleteObservation(BaseObservation):
             to the attention budget when there was a game over (can only be set to ``True`` if the observation
             corresponds to a game over), warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ 
             [``bool``]
-        42. :attr:`BaseObservation.is_alert_illegal` whether the last alert has been illegal (due to budget
+        42. :attr:`BaseObservation.is_alarm_illegal` whether the last alert has been illegal (due to budget
             constraint) [``bool``]
         43. :attr:`BaseObservation.curtailment_limit` : the current curtailment limit (if any)
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
-        44. :attr:`BaseObservation.time_since_last_alert` number of step since the last alert has been raised
-            successfully [``int``]
-        45. :attr:`BaseObservation.last_alert` : for each alert zone, gives the last step at which an alarm has
-            been successfully raised at this zone [:attr:`grid2op.Space.GridObjects.dim_alerts` elements]
-        46. :attr:`BaseObservation.was_alert_used_after_attack` : was the last ert used to compute anything related
-            to the attention budget when there was a game over (can only be set to ``True`` if the observation
-            corresponds to a game over) [``bool``]
-        47. :attr:`BaseObservation.confidence` : was the last alert used to compute anything related
-            to the attention budget when there was a game over (can only be set to ``True`` if the observation
-            corresponds to a game over) [``bool``]
+        44. :attr:`BaseObservation.curtailment_limit_effective` TODO
+        45. :attr:`BaseObservation.current_step` TODO
+        46. :attr:`BaseObservation.max_step` TODO
+        47. :attr:`BaseObservation.delta_time` TODO
+        48. :attr:`BaseObservation.gen_margin_up` TODO
+        49. :attr:`BaseObservation.gen_margin_down` TODO   
+        50. :attr:`BaseObservation.last_alert` TODO
+        51. :attr:`BaseObservation.time_since_last_alert` TODO
+        52. :attr:`BaseObservation.alert_duration` TODO
+        53. :attr:`BaseObservation.total_number_of_alert` TODO
+        54. :attr:`BaseObservation.time_since_last_attack` TODO
+        55. :attr:`BaseObservation.was_alert_used_after_attack` TODO
     """
 
     attr_list_vect = [

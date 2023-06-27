@@ -59,7 +59,7 @@ class _AuxGymEnv(gym.Env):
         import grid2op
         from grid2op.gym_compat import GymEnv
 
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
         gym_env = GymEnv(env)  # is a gym environment properly inheriting from gym.Env !
 
