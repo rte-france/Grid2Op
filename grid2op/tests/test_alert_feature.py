@@ -118,7 +118,7 @@ class TestAction(unittest.TestCase):
                             opponent_class=OpponentForTestAlert, 
                             kwargs_opponent=kwargs_opponent, 
                             reward_class=AlertReward(reward_end_episode_bonus=42),
-                            _add_to_name="_tioa")
+                            _add_to_name="_tafta")
 
     def tearDown(self) -> None:
         self.env.close()
@@ -194,7 +194,7 @@ class TestObservation(unittest.TestCase):
                             opponent_class=OpponentForTestAlert, 
                             kwargs_opponent=kwargs_opponent, 
                             reward_class=AlertReward(reward_end_episode_bonus=42),
-                            _add_to_name="_tioa")
+                            _add_to_name="_tafto")
         param = self.env.parameters
         param.ALERT_TIME_WINDOW = 2
         self.env.change_parameters(param)
@@ -336,7 +336,7 @@ class TestObservation(unittest.TestCase):
         assert obs.was_alert_used_after_attack[0] == -1, f"{obs.was_alert_used_after_attack[0]} vs -1"  # used (even if I did not sent an alarm, which by default means 'no alarm')
         assert np.all(obs.was_alert_used_after_attack[2:] == 0)
         
-        # 2b alert on the line
+        # 2b alert on the line (game over in window)
         obs : BaseObservation = self.env.reset()
         obs, reward, done, info = self.env.step(self.env.action_space())
         obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
@@ -348,7 +348,35 @@ class TestObservation(unittest.TestCase):
         assert obs.was_alert_used_after_attack[1] == 0
         assert obs.was_alert_used_after_attack[0] == 1, f"{obs.was_alert_used_after_attack[0]} vs 1"
         assert np.all(obs.was_alert_used_after_attack[2:] == 0)
+        
+        # 2c alert on the line (game over still in window)
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert info["opponent_attack_line"] is not None
+        assert info["opponent_attack_line"][attack_id]
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}}))
+        assert done
+        assert reward == 2., f"{reward} vs 2."
+        assert obs.was_alert_used_after_attack[1] == 0
+        assert obs.was_alert_used_after_attack[0] == 1, f"{obs.was_alert_used_after_attack[0]} vs 1"
+        assert np.all(obs.was_alert_used_after_attack[2:] == 0)
 
+        # 2c alert on the line (game over out of the window)
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert info["opponent_attack_line"] is not None
+        assert info["opponent_attack_line"][attack_id]
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}}))
+        assert done
+        assert reward == 0., f"{reward} vs 2."
+        assert obs.was_alert_used_after_attack[1] == 0
+        assert obs.was_alert_used_after_attack[0] == 0, f"{obs.was_alert_used_after_attack[0]} vs 0"
+        assert np.all(obs.was_alert_used_after_attack[2:] == 0)
 
 # TODO test the update_obs_after_reward in the runner !
 

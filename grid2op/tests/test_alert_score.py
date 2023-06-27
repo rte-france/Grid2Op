@@ -719,8 +719,8 @@ class TestAlertBlackout(unittest.TestCase):
         we expect a reward of -10 at step 3 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
-                                   duration=3, 
-                                   steps_attack=[3])
+                               duration=3, 
+                               steps_attack=[3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -764,8 +764,8 @@ class TestAlertBlackout(unittest.TestCase):
 # return 2
     def test_assistant_reward_value_blackout_attack_raise_good_alert(self) -> None :
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
-                                   duration=3, 
-                                   steps_attack=[3])
+                               duration=3, 
+                               steps_attack=[3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -790,7 +790,9 @@ class TestAlertBlackout(unittest.TestCase):
                 act = self.get_dn(env)
                 if i == 3 : 
                     act = self.get_blackout(env)
-                elif i == 1:
+                elif i == 2:
+                    # I raise the alert (on the right line) just before the opponent attack
+                    # opp attack at step = 3, so i = 2
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
                 step += 1
@@ -839,7 +841,9 @@ class TestAlertBlackout(unittest.TestCase):
                 act = self.get_dn(env)
                 if i == 3 : 
                     act = self.get_blackout(env)
-                elif i == 2:
+                elif i == 1:
+                    # opponent attack at step 3, so when i = 2
+                    # i raise the alert BEFORE that (so when i = 1)
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
                 step += 1
@@ -857,8 +861,8 @@ class TestAlertBlackout(unittest.TestCase):
                 
     def test_assistant_reward_value_blackout_attack_raise_alert_too_early(self) -> None :
         """
-        When 1 line is attacked at step 2 and we raise 1 alert  too early
-        we expect a reward of -10 at step 3 
+        When 1 line is attacked at step 3 and we raise 1 alert  too early
+        we expect a reward of -10 at step 4 
         """
         # return -10
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
@@ -888,7 +892,8 @@ class TestAlertBlackout(unittest.TestCase):
                 act = self.get_dn(env)
                 if i == 3 : 
                     act = self.get_blackout(env)
-                elif i == 0:
+                elif i == 1:
+                    # opp attacks at step = 3, so i = 2, I raise an alert just before
                     act = env.action_space({"raise_alert": [attackable_line_id]})
                 obs, reward, done, info = env.step(act)
                 step += 1
@@ -937,7 +942,8 @@ class TestAlertBlackout(unittest.TestCase):
                 act = self.get_dn(env)
                 if i == 3 : 
                     act = self.get_blackout(env)
-                elif i == 1:
+                elif i == 2:
+                    # attack at step 3, so when i = 2 (which is the right time to send an alert)
                     act = env.action_space({"raise_alert": [0,1]})
                 obs, reward, done, info = env.step(act)
                 step += 1
@@ -987,7 +993,9 @@ class TestAlertBlackout(unittest.TestCase):
                 act = self.get_dn(env)
                 if i == 3 : 
                     act = self.get_blackout(env)
-                elif i == 1:
+                elif i == 2:
+                    # attack at step 3, so i = 2, which is the 
+                    # right time to send an alert
                     act = env.action_space({"raise_alert": [0]})
                 obs, reward, done, info = env.step(act)
                 step += 1
@@ -1031,11 +1039,14 @@ class TestAlertBlackout(unittest.TestCase):
             step = 0            
             for i in range(env.max_episode_duration()):
                 act = self.get_dn(env)
-                if i == 1 :
+                if i == 2 :
+                    # opp attack "line 0" at step 3 so i = 2 => good alert
                     act = env.action_space({"raise_alert": [0]})
-                elif i == 2 : 
-                    act = env.action_space({"raise_alert": [1]})
                 elif i == 3 : 
+                    # opp attack "line 1" at step 4 so i = 3 => good alert
+                    act = env.action_space({"raise_alert": [1]})
+                elif i == 4 : 
+                    # trigger blackout
                     act = self.get_blackout(env)
                 obs, reward, done, info = env.step(act)
                 step += 1
@@ -1045,7 +1056,7 @@ class TestAlertBlackout(unittest.TestCase):
                 else:
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
-                if step == 4 : 
+                if step == 5 : 
                     assert done  # blackout
                     assert reward == 2, f"error for step {step}: {reward} vs 2"
                     break
@@ -1080,7 +1091,8 @@ class TestAlertBlackout(unittest.TestCase):
             step = 0
             for i in range(env.max_episode_duration()):  
                 act = self.get_dn(env)
-                if i == 1 :
+                if i == 2 :
+                    # opp attack "line 0" at step 3 so i = 2 => good alert
                     act = env.action_space({"raise_alert": [0]})
                 elif i == 3 : 
                     act = self.get_blackout(env)
@@ -1127,9 +1139,10 @@ class TestAlertBlackout(unittest.TestCase):
             step = 0
             for i in range(env.max_episode_duration()):
                 act = self.get_dn(env)
-                if i == 2 :
+                if i == 3 :
+                    # opp attack "line 1" at step 4 so i = 3 => good alert
                     act = env.action_space({"raise_alert": [1]})
-                elif i == 3 : 
+                elif i == 4 : 
                     act = self.get_blackout(env)
                 obs, reward, done, info = env.step(act)
                 step += 1
@@ -1138,7 +1151,7 @@ class TestAlertBlackout(unittest.TestCase):
                 else:
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
-                if step == 4 : 
+                if step == 5 : 
                     assert reward == -4., f"error for step {step}: {reward} vs -4"
                     assert done
                     break
@@ -1172,7 +1185,8 @@ class TestAlertBlackout(unittest.TestCase):
             step = 0
             for i in range(env.max_episode_duration()):
                 act = self.get_dn(env)
-                if i == 4 :
+                if i == 5 :
+                    # opp attack "line 1" at step 6 so i = 5 => good alert
                     act = env.action_space({"raise_alert": [1]})
                 elif i == 6 : 
                     act = self.get_blackout(env)
@@ -1272,7 +1286,7 @@ class TestAlertBlackout(unittest.TestCase):
                 act = self.get_dn(env)
                 if i == 3 : 
                     act = self.get_blackout(env)
-                elif i == 0:
+                elif i in [0, 1, 2]:
                     act = env.action_space({"raise_alert": [0]})
                 obs, reward, done, info = env.step(act)
                 if info["opponent_attack_line"] is None : 
@@ -1304,6 +1318,7 @@ class TestAlertBlackout(unittest.TestCase):
                 if i == 3 : 
                     act = self.get_blackout(env)
                 elif i == 4:
+                    # we never go here ...
                     act = env.action_space({"raise_alert": [0]})
                 obs, reward, done, info = env.step(act)
                 
