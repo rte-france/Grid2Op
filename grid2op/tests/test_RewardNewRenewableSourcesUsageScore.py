@@ -50,6 +50,7 @@ class TestNewRenewableSourcesUsageScore(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(env_name,
                                     reward_class = _NewRenewableSourcesUsageScore,
+                                    test=True
                                 )
             self.env.set_max_iter(20)
             self.env.parameters.NO_OVERFLOW_DISCONNECTION = True
@@ -109,11 +110,19 @@ class TestNewRenewableSourcesUsageScore(unittest.TestCase):
             assert reward == 1.
         
     def test_reward_value(self):
-        for curtail_target in [0.5, 0.65, 0.8, 0.9, 1.]:
+        for curtail_target, ratio_curtail_expected in [
+            (0.5, 50.84402431116107),
+            (0.65, 66.09722918973647),
+            (0.8, 81.35044050770632),
+            (0.9, 91.51924150630187),
+            (1., 99.96623954270511)
+            ]:
             my_agent = CurtailTrackerAgent(self.env.action_space,
                                            gen_renewable = self.env.gen_renewable,
                                            gen_pmax=self.env.gen_pmax,
                                            curtail_level = curtail_target)
+            self.env.seed(0)
+            self.env.set_id(0)
             obs = self.env.reset()
             done = False
             reward = self.env.reward_range[0]      
@@ -122,7 +131,7 @@ class TestNewRenewableSourcesUsageScore(unittest.TestCase):
                 obs, reward, done, _ = self.env.step(action)
                 if done:
                     break
-            assert np.abs(reward - _NewRenewableSourcesUsageScore._surlinear_func_curtailment(100*curtail_target)) < 0.05 #5% of score whose range is [-1,1]
+            assert reward == _NewRenewableSourcesUsageScore._surlinear_func_curtailment(ratio_curtail_expected)
         
     def test_simulate_ignored(self):
         my_agent = DoNothingSimulatorAgent(self.env.action_space,

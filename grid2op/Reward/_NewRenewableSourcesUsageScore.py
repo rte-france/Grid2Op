@@ -50,7 +50,6 @@ class _NewRenewableSourcesUsageScore(BaseReward):
                 return 0
             else:
                 ratio_nres_usage = 100 * np.sum(self.gen_res_p_curtailed_list[1:]) / np.sum(self.gen_res_p_before_curtail_list[1:])
-                                          
                 return self._surlinear_func_curtailment(ratio_nres_usage)
             
         
