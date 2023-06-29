@@ -45,6 +45,7 @@ Change Log
   decompose a "complex" action on its unary counterpart. 
 - [ADDED] the env attribute `env._reward_to_obs` that allows to pass information to the observation directly
   from the reward (this can only be used by regular environment and not by `obs.simulate` nor by `ForecastEnv`)
+- [ADDED] the whole "alert" concept in grid2op with a grid2op environment supporting it (`l2rpn_idf_2023`)
 - [IMPROVED] the method `act.as_serializable_dict()` to work better when exporting / importing actions on different 
   grids (the output dictionary for `set_bus` and `change_bus` now split the keys between all elements types 
   instead of relying on the "topo_vect" order (which might vary))
