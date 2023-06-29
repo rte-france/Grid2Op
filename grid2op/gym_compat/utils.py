@@ -34,6 +34,18 @@ ALL_ATTR = (
     "raise_alert",
 )
 
+
+# raise alert or alarm is not supported
+ALL_ATTR_FOR_DISCRETE = (
+    "set_line_status",
+    "change_line_status",
+    "set_bus",
+    "change_bus",
+    "redispatch",
+    "set_storage",
+    "curtail"
+)
+
 ATTR_DISCRETE = (
     "set_line_status",
     "set_line_status_simple",
@@ -44,8 +56,8 @@ ATTR_DISCRETE = (
     "sub_change_bus",
     "one_sub_set",
     "one_sub_change",
-    "raise_alarm"
-    "raise_alert"
+    # "raise_alarm"
+    # "raise_alert"
 )
 
 

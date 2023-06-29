@@ -50,6 +50,8 @@ class MultiDiscreteActSpace(MultiDiscrete):
     - "set_storage": `n_storage` dimensions, each containing a certain number of choices depending on the value
       of the keyword argument `nb_bins["set_storage"]` (by default 7). This is the "conversion to discrete action"
       of the action on storage units.
+    - "raise_alarm": TODO
+    - "raise_alert": TODO
 
 
     We offer some extra customization, with the keywords:
@@ -104,6 +106,10 @@ class MultiDiscreteActSpace(MultiDiscrete):
 
         The same as above holds for "change_bus", "sub_change_bus" and "one_sub_change": Use only one of these !
 
+    .. danger::
+        The keys `set_bus` and `change_bus` does not have the same meaning between this representation of the
+        action and the DiscreteActSpace.
+        
     Examples
     --------
     If you simply want to use it you can do:

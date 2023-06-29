@@ -840,11 +840,12 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "max_step": [8064],
             "delta_time": [5.0],
             "time_since_last_alert": [],
-            "last_alert": [],
+            "active_alert": [],
             "alert_duration": [],
             "total_number_of_alert": [],
             "time_since_last_attack": [],
             "was_alert_used_after_attack": [],
+            "attack_under_alert": [],
         }
         self.dtypes = np.array(
             [

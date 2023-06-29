@@ -9,14 +9,14 @@ from grid2op.Opponent import GeometricOpponentMultiArea, BaseActionBudget
 
 try:
     # This will change TODO
-    from grid2op.l2rpn_utils import ActionWCCI2022, ObservationWCCI2022
+    from grid2op.l2rpn_utils import ActionIDF2023, ObservationIDF2023
 except ImportError:
     from grid2op.Action import PlayableAction
     from grid2op.Observation import CompleteObservation
     import warnings
     warnings.warn("The grid2op version you are trying to use is too old for this environment. Please upgrade it.")
-    ActionWCCI2022 = PlayableAction
-    ObservationWCCI2022 = CompleteObservation
+    ActionIDF2023 = PlayableAction
+    ObservationIDF2023 = CompleteObservation
 
 lines_attacked = [["26_31_106",
                    "21_22_93",
@@ -85,8 +85,8 @@ this_rules = RulesByArea([[0, 1, 2, 3, 10, 11, 116, 13, 12, 14, 4, 5, 6, 15, 7, 
 
 config = {
     "backend": PandaPowerBackend,
-    "action_class": ActionWCCI2022,
-    "observation_class": ObservationWCCI2022,
+    "action_class": ActionIDF2023,
+    "observation_class": ObservationIDF2023,
     "reward_class": RedispReward,
     "gamerules_class": this_rules,
     "chronics_class": Multifolder,

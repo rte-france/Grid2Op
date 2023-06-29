@@ -14,7 +14,7 @@ from grid2op.Exceptions import Grid2OpException
 from grid2op.Action import ActionSpace
 from grid2op.Converter import IdToAct
 
-from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
+from grid2op.gym_compat.utils import ALL_ATTR_FOR_DISCRETE, ATTR_DISCRETE
 
 # TODO test that it works normally
 # TODO test the casting in dt_int or dt_float depending on the data
@@ -197,7 +197,7 @@ class DiscreteActSpace(Discrete):
     def __init__(
         self,
         grid2op_action_space,
-        attr_to_keep=ALL_ATTR,
+        attr_to_keep=ALL_ATTR_FOR_DISCRETE,
         nb_bins=None,
         action_list=None,
     ):
@@ -212,10 +212,14 @@ class DiscreteActSpace(Discrete):
         if nb_bins is None:
             nb_bins = {"redispatch": 7, "set_storage": 7, "curtail": 7}
 
+        if "raise_alert" in attr_to_keep or "raise_alarm" in attr_to_keep:
+            raise Grid2OpException("This converter cannot be use to raise alarm or raise alert. "
+                                   "Please use the MultiDiscreteActSpace space for this purpose.")
+        
         act_sp = grid2op_action_space
         self.action_space = copy.deepcopy(act_sp)
 
-        if attr_to_keep == ALL_ATTR:
+        if attr_to_keep == ALL_ATTR_FOR_DISCRETE:
             # by default, i remove all the attributes that are not supported by the action type
             # i do not do that if the user specified specific attributes to keep. This is his responsibility in
             # in this case
@@ -251,8 +255,8 @@ class DiscreteActSpace(Discrete):
             "set_storage": act_sp.get_all_unitary_storage,
             "curtail": act_sp.get_all_unitary_curtail,
             "curtail_mw": act_sp.get_all_unitary_curtail,
-            "raise_alarm": act_sp.get_all_unitary_alarm,
-            "raise_alert": act_sp.get_all_unitary_alert,
+            # "raise_alarm": act_sp.get_all_unitary_alarm,
+            # "raise_alert": act_sp.get_all_unitary_alert,
             "set_line_status_simple": act_sp.get_all_unitary_line_set_simple,
         }
 

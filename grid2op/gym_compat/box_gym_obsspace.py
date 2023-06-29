@@ -66,7 +66,8 @@ ALL_ATTR_OBS = (
     "attention_budget",
     "was_alarm_used_after_game_over",
     "max_step",
-    "last_alert",
+    "active_alert",
+    "attack_under_alert",
     "time_since_last_alert",
     "alert_duration",
     "total_number_of_alert",
@@ -530,7 +531,7 @@ class BoxGymObsSpace(Box):
                 dt_float,
             ),
             # alert stuff
-            "last_alert": (
+            "active_alert": (
                 np.full(shape=(ob_sp.dim_alerts,), fill_value=False, dtype=dt_bool),
                 np.full(shape=(ob_sp.dim_alerts,), fill_value=True, dtype=dt_bool),
                 (ob_sp.dim_alerts,),
@@ -562,7 +563,13 @@ class BoxGymObsSpace(Box):
             ),
             "was_alert_used_after_attack": (
                 np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
-                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=1, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "attack_under_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=1, dtype=dt_int),
                 (ob_sp.dim_alerts,),
                 dt_int,
             ),

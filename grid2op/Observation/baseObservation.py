@@ -550,11 +550,6 @@ class BaseObservation(GridObjects):
         self.was_alarm_used_after_game_over = np.zeros(shape=1, dtype=dt_bool)
 
         # alert 
-        # self.is_alert_illegal = np.ones(shape=1, dtype=dt_bool)
-        # self.time_since_last_alert = np.empty(shape=1, dtype=dt_int)
-        # self.last_alert = np.empty(shape=self.dim_alerts, dtype=dt_int)
-        # self.attention_budget = np.empty(shape=1, dtype=dt_float)
-        # self.was_alert_used_after_attack = np.zeros(shape=1, dtype=dt_bool)
         dim_alert = type(self).dim_alerts
         self.active_alert = np.empty(shape=dim_alert, dtype=dt_bool)
         self.attack_under_alert = np.empty(shape=dim_alert, dtype=dt_int)
