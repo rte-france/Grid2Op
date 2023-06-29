@@ -294,19 +294,90 @@ class BaseObservation(GridObjects):
         It is always 0. for non renewable generators. For the others it is defined as
         `np.minimum(self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down)`
 
-    last_alert: :class:`numpy.ndarray`, dtype:bool
-        TODO
+    active_alert: :class:`numpy.ndarray`, dtype:bool
+        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        
+        This function gives the
+        lines "under alert" at the given observation.
+        It is only relevant for the "real" environment and not for `obs.simulate` nor `obs.get_forecast_env`
+        
     time_since_last_alert: :class:`numpy.ndarray`, dtype:int
-        TODO
+        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        
+        Give the time since an alert has been raised for each powerline. If you just raise an
+        alert for attackable line `i` then obs.time_since_last_alert[i] = 0 (and counter
+        increase by 1 each step).
+        
+        If attackable line `i` has never been "under alert" then obs.time_since_last_alert[i] = -1
+        
     alert_duration: :class:`numpy.ndarray`, dtype:int
-        TODO
+        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        
+        Give the time since an alert is raised for all attackable line. If you just raise an
+        alert for attackable line `i` then obs.time_since_last_alert[i] = 1 and this counter
+        increase by 1 each step as long as the agent continues to "raise an alert on attackable line i"
+        
+        When the attackable line `i` is not under an alert then obs.time_since_last_alert[i] = 0
+        
     total_number_of_alert: :class:`numpy.ndarray`, dtype:int
-        TODO
+        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        
+        This function counts, since the beginning of the current episode, the total number
+        of alerts (here 1 alert = one alert for 1 powerline for 1 step) sent by the agent.
+        
     time_since_last_attack: :class:`numpy.ndarray`, dtype:int
-        TODO
+        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        
+        Similar to `time_since_last_alert` but for the attack.
+        
+        For each attackable line `i` it counts the number of steps since the powerline has
+        been attacked:
+        
+        - obs.time_since_last_attack[i] = -1 then attackable line `i` has never been attacked
+        - obs.time_since_last_attack[i] = 0 then attackable line `i` has been attacked "for the
+          first time" this step
+        - obs.time_since_last_attack[i] = 1 then attackable line `i` has been attacked "for the
+          first time" the previous step
+        - obs.time_since_last_attack[i] = 2 then attackable line `i` has been attacked "for the
+          first time" 2 steps ago
+          
+        .. note::
+            An attack "for the first time" is NOT an attack "for the first time of the scenario".
+            Indeed, for this attribute, if a powerline is under attack for say 5 consecutive steps,
+            then the opponent stops its attack on this line and say 6 or 7 steps later it
+            start again to attack it then obs.time_since_last_attack[i] = 0 at the "first time" the 
+            opponent attacks again this powerline.
+        
     was_alert_used_after_attack: :class:`numpy.ndarray`, dtype:int
-        TODO
+        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        
+        .. warning:: Only available if you use a compatible reward (*eg* :class:`grid2op.Reward.AlertReward`)
+           as the main reward (or a "combined" reward with this reward being part of it)
+           
+        For all attackable line `i` it says:
+        
+        - obs.was_alert_used_after_attack[i] = 0 => attackable line i has not been attacked
+        - obs.was_alert_used_after_attack[i] = -1 => attackable line i has been attacked and
+          the INCORRECT alert was sent (meaning that: if the agent survives, it sends an alert
+          and if the agent died it fails to send an alert)
+        - obs.was_alert_used_after_attack[i] = +1 => attackable line i has been attacked and
+          the CORRECT alert was sent (meaning that: if the agent survives, it did not send an alert
+          and if the agent died it properly sent an alert)
 
+    attack_under_alert: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        
+        For all attackable line `i` it says:
+        
+        - obs.attack_under_alert[i] = 0 => attackable line i has not been attacked OR it
+          has been attacked before the relevant window (env.parameters.ALERT_TIME_WINDOW)
+        - obs.attack_under_alert[i] = -1 => attackable line i has been attacked and (before
+          the attack) no alert was sent (so your agent expects to survive at least 
+          env.parameters.ALERT_TIME_WINDOW steps)
+        - obs.attack_under_alert[i] = +1 => attackable line i has been attacked and (before
+          the attack) an alert was sent (so your agent expects to "game over" within the next 
+          env.parameters.ALERT_TIME_WINDOW steps)     
+        
     _shunt_p: :class:`numpy.ndarray`, dtype:float
         Shunt active value (only available if shunts are available) (in MW)
 
@@ -366,7 +437,8 @@ class BaseObservation(GridObjects):
         "attention_budget",
         "was_alarm_used_after_game_over",
         # line alert 
-        "last_alert",
+        "active_alert",
+        "attack_under_alert",
         "time_since_last_alert",
         "alert_duration",
         "total_number_of_alert",
@@ -470,7 +542,8 @@ class BaseObservation(GridObjects):
         # self.attention_budget = np.empty(shape=1, dtype=dt_float)
         # self.was_alert_used_after_attack = np.zeros(shape=1, dtype=dt_bool)
         dim_alert = type(self).dim_alerts
-        self.last_alert = np.empty(shape=dim_alert, dtype=dt_bool)
+        self.active_alert = np.empty(shape=dim_alert, dtype=dt_bool)
+        self.attack_under_alert = np.empty(shape=dim_alert, dtype=dt_int)
         self.time_since_last_alert = np.empty(shape=dim_alert, dtype=dt_int)
         self.alert_duration = np.empty(shape=dim_alert, dtype=dt_int)
         self.total_number_of_alert = np.empty(shape=1 if dim_alert else 0, dtype=dt_int)
@@ -541,7 +614,8 @@ class BaseObservation(GridObjects):
             "attention_budget",
             "was_alarm_used_after_game_over",
             # alert (new in 1.9.1)
-            "last_alert",
+            "active_alert",
+            "attack_under_alert",
             "time_since_last_alert",
             "alert_duration",
             "total_number_of_alert",
@@ -1029,7 +1103,8 @@ class BaseObservation(GridObjects):
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
 
             for el in [
-                "last_alert",
+                "active_alert",
+                "attack_under_alert",
                 "time_since_last_alert",
                 "alert_duration",
                 "total_number_of_alert",
@@ -1140,7 +1215,8 @@ class BaseObservation(GridObjects):
         self.was_alarm_used_after_game_over[:] = False
 
         # alert line feature 
-        self.last_alert[:] = False
+        self.active_alert[:] = False
+        self.attack_under_alert[:] = 0
         self.time_since_last_alert[:] = 0
         self.alert_duration[:] = 0
         self.total_number_of_alert[:] = 0
@@ -1276,16 +1352,13 @@ class BaseObservation(GridObjects):
             self.was_alarm_used_after_game_over[:] = False
 
         # related to alert 
-        self.last_alert[:] = False
+        self.active_alert[:] = False
         self.time_since_last_alert[:] = 0
         self.alert_duration[:] = 0
         self.total_number_of_alert[:] = 0
         self.time_since_last_attack[:] = -1        
-        if env is not None:
-            # TODO alert
-            self.was_alert_used_after_attack[:] = 0
-        else:
-            self.was_alert_used_after_attack[:] = False
+        # was_alert_used_after_attack not updated here in this case
+        # attack_under_alert not updated here in this case
 
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
@@ -3396,7 +3469,8 @@ class BaseObservation(GridObjects):
             ] = self.was_alarm_used_after_game_over[0]
 
             # alert 
-            self._dictionnarized["last_alert"] = copy.deepcopy(self.last_alert)
+            self._dictionnarized["active_alert"] = copy.deepcopy(self.active_alert)
+            self._dictionnarized["attack_under_alert"] = copy.deepcopy(self.attack_under_alert)
             self._dictionnarized["time_since_last_alert"] = copy.deepcopy(self.time_since_last_alert)
             self._dictionnarized["alert_duration"] = copy.deepcopy(self.alert_duration)
             self._dictionnarized["time_since_last_attack"] = copy.deepcopy(self.time_since_last_attack)
@@ -3924,11 +3998,12 @@ class BaseObservation(GridObjects):
         self.attention_budget[:] = env._attention_budget.current_budget        
         
     def _update_alert(self, env):
-        self.last_alert[:] = env._last_alert
+        self.active_alert[:] = env._last_alert
         self.time_since_last_alert[:] = env._time_since_last_alert
         self.alert_duration[:] = env._alert_duration
         self.total_number_of_alert[:] = env._total_number_of_alert
         self.time_since_last_attack[:] = env._time_since_last_attack
+        self.attack_under_alert[:] = env._attack_under_alert
         # self.was_alert_used_after_attack  # handled in self.update_after_reward
         
     def get_simulator(self) -> "grid2op.simulator.Simulator":

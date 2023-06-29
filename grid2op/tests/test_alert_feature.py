@@ -205,7 +205,7 @@ class TestObservation(unittest.TestCase):
         return super().tearDown()
     
     def _aux_obs_init(self, obs):
-        assert np.all(obs.last_alert == False)
+        assert np.all(obs.active_alert == False)
         assert np.all(obs.time_since_last_alert == -1)
         assert np.all(obs.time_since_last_attack == -1)
         assert np.all(obs.alert_duration == 0)
@@ -217,8 +217,8 @@ class TestObservation(unittest.TestCase):
         self._aux_obs_init(obs)
     
     def _aux_alert_0(self, obs):
-        assert obs.last_alert[0]
-        assert obs.last_alert.sum() == 1
+        assert obs.active_alert[0]
+        assert obs.active_alert.sum() == 1
         assert obs.time_since_last_alert[0] == 0
         assert np.all(obs.time_since_last_alert[1:] == -1)
         assert np.all(obs.time_since_last_attack == -1)
@@ -234,8 +234,8 @@ class TestObservation(unittest.TestCase):
         self._aux_alert_0(obs)
         
         obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0, 1]}))
-        assert np.all(obs.last_alert[:2])
-        assert obs.last_alert.sum() == 2
+        assert np.all(obs.active_alert[:2])
+        assert obs.active_alert.sum() == 2
         assert obs.time_since_last_alert[0] == 0
         assert obs.time_since_last_alert[1] == 0
         assert np.all(obs.time_since_last_alert[2:] == -1)
@@ -286,6 +286,102 @@ class TestObservation(unittest.TestCase):
         obs_cpy, *_ = env_cpy.step(self.env.action_space())
         self._aux_obs_init(obs_cpy)
 
+    def test_attack_under_alert(self):
+        obs : BaseObservation = self.env.reset()
+        attack_id = np.where(self.env.name_line == ALL_ATTACKABLE_LINES[0])[0][0]
+        opp = self.env._oppSpace.opponent
+        opp.custom_attack = [opp.action_space({"set_line_status" : [(l, -1)]}) for l in [attack_id]]
+        opp.attack_duration = [3]
+        opp.attack_steps = [2]
+        opp.attack_id = [attack_id]
+        
+        # wrong alert is sent
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
+        assert info["opponent_attack_line"] is not None
+        assert info["opponent_attack_line"][attack_id]
+        assert obs.time_since_last_attack[0] == 0
+        assert obs.attack_under_alert[0] == -1
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.time_since_last_attack[0] == 1
+        assert obs.attack_under_alert[0] == -1
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))  # I cannot change the past
+        assert reward == 1., f"{reward} vs 1."
+        assert obs.time_since_last_attack[0] == 2
+        assert obs.attack_under_alert[0] == -1
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert reward == 0., f"{reward} vs 0."
+        assert obs.time_since_last_attack[0] == 3
+        assert obs.attack_under_alert[0] == 0
+        
+        # right alert is sent
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert info["opponent_attack_line"] is not None
+        assert info["opponent_attack_line"][attack_id]
+        assert obs.time_since_last_attack[0] == 0
+        assert obs.attack_under_alert[0] == 1
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.time_since_last_attack[0] == 1
+        assert obs.attack_under_alert[0] == 1
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert reward == -1., f"{reward} vs -1."
+        assert obs.time_since_last_attack[0] == 2
+        assert obs.attack_under_alert[0] == 1
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert reward == 0., f"{reward} vs 0."
+        assert obs.time_since_last_attack[0] == 3
+        assert obs.attack_under_alert[0] == 0
+    
+    def test_alert_duration(self):
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert obs.alert_duration[0] == 1
+        assert np.all(obs.alert_duration[1:] == 0)
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.alert_duration[0] == 0
+        assert np.all(obs.alert_duration[1:] == 0)
+        
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert obs.alert_duration[0] == 1
+        assert np.all(obs.alert_duration[1:] == 0)
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert obs.alert_duration[0] == 2
+        assert np.all(obs.alert_duration[1:] == 0)
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert obs.alert_duration[0] == 3
+        assert np.all(obs.alert_duration[1:] == 0)
+    
+    def test_time_since_last_attack(self):
+        obs : BaseObservation = self.env.reset()
+        
+        # tell the opponent to make 2 attacks
+        attack_id = np.where(self.env.name_line == ALL_ATTACKABLE_LINES[0])[0][0]
+        opp = self.env._oppSpace.opponent
+        opp.custom_attack = [opp.action_space({"set_line_status" : [(l, -1)]}) for l in [attack_id, attack_id]]
+        opp.attack_duration = [1, 2]
+        opp.attack_steps = [2, 4]
+        opp.attack_id = [attack_id, attack_id]
+        
+        obs : BaseObservation = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert info["opponent_attack_line"] is not None
+        assert info["opponent_attack_line"][attack_id]
+        assert obs.time_since_last_attack[0] == 0
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert info["opponent_attack_line"] is None
+        assert obs.time_since_last_attack[0] == 1
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert info["opponent_attack_line"] is not None
+        assert info["opponent_attack_line"][attack_id]
+        assert obs.time_since_last_attack[0] == 0
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert info["opponent_attack_line"] is not None
+        assert obs.time_since_last_attack[0] == 1
+        
     def test_when_attacks(self):
         obs : BaseObservation = self.env.reset()
         
@@ -304,9 +400,15 @@ class TestObservation(unittest.TestCase):
         obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
         assert info["opponent_attack_line"] is not None
         assert info["opponent_attack_line"][attack_id]
+        assert obs.time_since_last_attack[0] == 0
+        assert obs.attack_under_alert[0] == -1
         obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.time_since_last_attack[0] == 1
+        assert obs.attack_under_alert[0] == -1
         obs, reward, done, info = self.env.step(self.env.action_space())
         assert reward == 1., f"{reward} vs 1."
+        assert obs.time_since_last_attack[0] == 2
+        assert obs.attack_under_alert[0] == -1
         assert obs.was_alert_used_after_attack[1] == 0
         assert obs.was_alert_used_after_attack[0] == 1  # used (even if I did not sent an alarm, which by default means 'no alarm')
         assert np.all(obs.was_alert_used_after_attack[2:] == 0)
@@ -314,10 +416,16 @@ class TestObservation(unittest.TestCase):
         obs : BaseObservation = self.env.reset()
         obs, reward, done, info = self.env.step(self.env.action_space())
         obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+        assert obs.time_since_last_attack[0] == 0
+        assert obs.attack_under_alert[0] == 1
         assert info["opponent_attack_line"] is not None
         assert info["opponent_attack_line"][attack_id]
         obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.time_since_last_attack[0] == 1
+        assert obs.attack_under_alert[0] == 1
         obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.time_since_last_attack[0] == 2
+        assert obs.attack_under_alert[0] == 1
         assert reward == -1., f"{reward} vs -1."
         assert obs.was_alert_used_after_attack[0] == -1
         assert np.all(obs.was_alert_used_after_attack[1:] == 0)
@@ -329,6 +437,8 @@ class TestObservation(unittest.TestCase):
         obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
         assert info["opponent_attack_line"] is not None
         assert info["opponent_attack_line"][attack_id]
+        assert obs.time_since_last_attack[0] == 0
+        assert obs.attack_under_alert[0] == -1
         obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}}))
         assert done
         assert reward == -10., f"{reward} vs -10."
@@ -342,6 +452,8 @@ class TestObservation(unittest.TestCase):
         obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
         assert info["opponent_attack_line"] is not None
         assert info["opponent_attack_line"][attack_id]
+        assert obs.time_since_last_attack[0] == 0
+        assert obs.attack_under_alert[0] == 1
         obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}}))
         assert done
         assert reward == 2., f"{reward} vs 2."

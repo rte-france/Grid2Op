@@ -173,8 +173,9 @@ class CompleteObservation(BaseObservation):
         "delta_time",  # starting grid2op version 1.6.5
         "gen_margin_up",
         "gen_margin_down",  # starting grid2op version 1.6.6
-        # line alert (starting grid2Op 1.9.1)
-        "last_alert",
+        # line alert (starting grid2Op 1.9.1, for compatible envs)
+        "active_alert",
+        "attack_under_alert",
         "time_since_last_alert",
         "alert_duration",
         "total_number_of_alert",

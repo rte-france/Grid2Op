@@ -535,6 +535,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._total_number_of_alert = 0
         self._time_since_last_attack = None
         self._was_alert_used_after_attack = None
+        self._attack_under_alert = None
+        self._is_already_attacked = None
         
         # general things that can be used by the reward
         self._reward_to_obs = {}
@@ -802,6 +804,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._alert_duration = copy.deepcopy(self._alert_duration)
         new_obj._total_number_of_alert = self._total_number_of_alert
         new_obj._time_since_last_attack = copy.deepcopy(self._time_since_last_attack)
+        new_obj._is_already_attacked = copy.deepcopy(self._is_already_attacked)
+        new_obj._attack_under_alert = copy.deepcopy(self._attack_under_alert)
         new_obj._was_alert_used_after_attack = copy.deepcopy(self._was_alert_used_after_attack)
         
         new_obj._update_obs_after_reward = self._update_obs_after_reward
@@ -1317,11 +1321,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _reset_alert(self):
         self._last_alert[:] = False
+        self._is_already_attacked[:] = False
         self._time_since_last_alert[:] = -1
         self._alert_duration[:] = 0
         self._total_number_of_alert = 0
         self._time_since_last_attack[:] = -1
         self._was_alert_used_after_attack[:] = 0
+        self._attack_under_alert[:] = 0
         
     def _reset_storage(self):
         """reset storage capacity at the beginning of new environment if needed"""
@@ -1553,6 +1559,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         cls = type(self)
         self._last_alert = np.full(cls.dim_alerts,
                                    dtype=dt_bool, fill_value=False)
+        self._is_already_attacked = np.full(cls.dim_alerts, dtype=dt_bool,
+                                            fill_value=False)
         self._time_since_last_alert = np.full(cls.dim_alerts,
                                               dtype=dt_int, fill_value=-1)
         self._alert_duration = np.full(cls.dim_alerts,
@@ -1562,6 +1570,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                dtype=dt_int, fill_value=-1)
         self._was_alert_used_after_attack = np.full(cls.dim_alerts,
                                                     dtype=dt_int, fill_value=0)
+        self._attack_under_alert = np.full(cls.dim_alerts,
+                                           dtype=dt_int, fill_value=0)
         
     @abstractmethod
     def _init_backend(
@@ -2854,11 +2864,22 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         if lines_attacked is not None:
             lines_attacked_al = lines_attacked[type(self).alertable_line_ids]
-            self._time_since_last_attack[lines_attacked_al] = 0
-            self._time_since_last_attack[~lines_attacked_al & (self._time_since_last_attack != -1)] += 1
+            mask_first_ts_attack = lines_attacked_al & (~self._is_already_attacked)
+            self._time_since_last_attack[mask_first_ts_attack] = 0
+            self._time_since_last_attack[~mask_first_ts_attack & (self._time_since_last_attack != -1)] += 1
+            
+            # update the time already attacked
+            self._is_already_attacked[lines_attacked_al] = False
+            self._is_already_attacked[lines_attacked_al] = True
         else:
             self._time_since_last_attack[self._time_since_last_attack != -1] += 1
+            self._is_already_attacked[:] = False
             
+        mask_new_attack = self._time_since_last_attack == 0
+        self._attack_under_alert[mask_new_attack] =  2 * self._last_alert[mask_new_attack] - 1
+        mask_attack_too_old = self._time_since_last_attack > self._parameters.ALERT_TIME_WINDOW
+        self._attack_under_alert[mask_attack_too_old] = 0
+        
         # TODO more complicated (will do it in update_after_reward)
         # self._was_alert_used_after_attack[:] = XXX
         
