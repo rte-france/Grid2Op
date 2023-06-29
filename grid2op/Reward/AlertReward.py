@@ -14,6 +14,9 @@ from grid2op.dtypes import dt_float, dt_bool, dt_int
 
 class AlertReward(BaseReward):
     """
+    DOC IN PROGRESS !
+    
+    
     This reward is based on the "alert feature" where the agent is asked to send information about potential line overload issue
     on the grid.
 
@@ -27,6 +30,8 @@ class AlertReward(BaseReward):
 
 
     TODO explain a bit more in the "multi lines attacked"
+    
+    .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
     
     Examples
     ---------

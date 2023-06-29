@@ -912,6 +912,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 dt_int,
                 dt_int,
                 dt_int,
+                dt_int,
             ],
             dtype=object,
         )
@@ -973,6 +974,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 5,
                 5,
                 # alert
+                0,
                 0,
                 0,
                 0,
