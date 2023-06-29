@@ -5,25 +5,32 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import copy
 import warnings
 import numpy as np
-from gym import spaces
 
 from grid2op.Environment import (
     Environment,
     MultiMixEnvironment,
     BaseMultiProcessEnvironment,
 )
-from grid2op.gym_compat.gym_space_converter import _BaseGymSpaceConverter
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
+if GYMNASIUM_AVAILABLE:
+    from gymnasium import spaces  #only for type hints
+elif GYM_AVAILABLE:
+    from gym import spaces
+    
 from grid2op.Observation import BaseObservation
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 from grid2op.gym_compat.utils import _compute_extra_power_for_losses
 
 
-class GymObservationSpace(_BaseGymSpaceConverter):
+class __AuxGymObservationSpace:
     """
+    TODO explain gym / gymnasium
+    
     This class allows to transform the observation space into a gym space.
 
     Gym space will be a :class:`gym.spaces.Dict` with the keys being the different attributes
@@ -78,36 +85,37 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         
         if dict_variables is None:
             # get the extra variables in the gym space I want to get
-            dict_variables = {"thermal_limit":
-                spaces.Box(
+            dict_variables = {
+                "thermal_limit":
+                    type(self)._BoxType(
                         low=0.,
                         high=np.inf,
                         shape=(self._init_env.n_line, ),
                         dtype=dt_float,
                     ),
                 "theta_or":
-                     spaces.Box(
+                     type(self)._BoxType(
                         low=-180.,
                         high=180.,
                         shape=(self._init_env.n_line, ),
                         dtype=dt_float,
                     ),
                 "theta_ex":
-                     spaces.Box(
+                     type(self)._BoxType(
                         low=-180.,
                         high=180.,
                         shape=(self._init_env.n_line, ),
                         dtype=dt_float,
                     ),
                 "load_theta":
-                     spaces.Box(
+                     type(self)._BoxType(
                         low=-180.,
                         high=180.,
                         shape=(self._init_env.n_load, ),
                         dtype=dt_float,
                     ),
                 "gen_theta":
-                     spaces.Box(
+                     type(self)._BoxType(
                         low=-180.,
                         high=180.,
                         shape=(self._init_env.n_gen, ),
@@ -115,7 +123,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     )
                 }
             if self._init_env.n_storage:
-                dict_variables["storage_theta"] = spaces.Box(
+                dict_variables["storage_theta"] = type(self)._BoxType(
                         low=-180.,
                         high=180.,
                         shape=(self._init_env.n_storage, ),
@@ -125,7 +133,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         self._fill_dict_obs_space(
             dict_, env.observation_space, env.parameters, env._oppSpace, dict_variables
         )
-        _BaseGymSpaceConverter.__init__(self, dict_, dict_variables=dict_variables)
+        super().__init__(dict_, dict_variables=dict_variables) # super should point to _BaseGymSpaceConverter
 
     def reencode_space(self, key, fun):
         """
@@ -190,7 +198,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
             if dict_variables[attr_nm] is None:
                 # none is by default to disable this feature
                 continue
-            if isinstance(dict_variables[attr_nm], spaces.Space):
+            if isinstance(dict_variables[attr_nm], type(self)._SpaceType):
                 if hasattr(observation_space._template_obj, attr_nm):
                     # add it only if attribute exists in the observation
                     dict_[attr_nm] = dict_variables[attr_nm]
@@ -217,21 +225,21 @@ class GymObservationSpace(_BaseGymSpaceConverter):
             if dt == dt_int:
                 # discrete observation space
                 if attr_nm == "year":
-                    my_type = spaces.Discrete(n=2100)
+                    my_type = type(self)._DiscreteType(n=2100)
                 elif attr_nm == "month":
-                    my_type = spaces.Discrete(n=13)
+                    my_type = type(self)._DiscreteType(n=13)
                 elif attr_nm == "day":
-                    my_type = spaces.Discrete(n=32)
+                    my_type = type(self)._DiscreteType(n=32)
                 elif attr_nm == "hour_of_day":
-                    my_type = spaces.Discrete(n=24)
+                    my_type = type(self)._DiscreteType(n=24)
                 elif attr_nm == "minute_of_hour":
-                    my_type = spaces.Discrete(n=60)
+                    my_type = type(self)._DiscreteType(n=60)
                 elif attr_nm == "day_of_week":
-                    my_type = spaces.Discrete(n=8)
+                    my_type = type(self)._DiscreteType(n=8)
                 elif attr_nm == "topo_vect":
-                    my_type = spaces.Box(low=-1, high=2, shape=shape, dtype=dt)
+                    my_type = type(self)._BoxType(low=-1, high=2, shape=shape, dtype=dt)
                 elif attr_nm == "time_before_cooldown_line":
-                    my_type = spaces.Box(
+                    my_type = type(self)._BoxType(
                         low=0,
                         high=max(
                             env_params.NB_TIMESTEP_COOLDOWN_LINE,
@@ -242,7 +250,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                         dtype=dt,
                     )
                 elif attr_nm == "time_before_cooldown_sub":
-                    my_type = spaces.Box(
+                    my_type = type(self)._BoxType(
                         low=0,
                         high=env_params.NB_TIMESTEP_COOLDOWN_SUB,
                         shape=shape,
@@ -265,13 +273,13 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 if sh > 1:
                     my_type = self._boolean_type(sh)
                 else:
-                    my_type = spaces.Discrete(n=2)
+                    my_type = type(self)._DiscreteType(n=2)
             else:
                 # continuous observation space
                 low = float("-inf")
                 high = float("inf")
                 shape = (sh,)
-                SpaceType = spaces.Box
+                SpaceType = type(self)._BoxType
                 if attr_nm == "gen_p" or attr_nm == "gen_p_before_curtail":
                     low = copy.deepcopy(observation_space.gen_pmin)
                     high = copy.deepcopy(observation_space.gen_pmax)
@@ -388,3 +396,34 @@ class GymObservationSpace(_BaseGymSpaceConverter):
     def close(self):
         if hasattr(self, "_init_env"):
             self._init_env = None  # this doesn't own the environment
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
+    from grid2op.gym_compat.gym_space_converter import _BaseGymLegacySpaceConverter
+    GymLegacyObservationSpace = type("GymLegacyObservationSpace",
+                                     (__AuxGymObservationSpace, _BaseGymLegacySpaceConverter, ),
+                                     {"_DiscreteType": Discrete,
+                                      "_BoxType": Box,
+                                      "_DictType": Dict,
+                                      "_SpaceType": Space, 
+                                      "_MultiBinaryType": MultiBinary, 
+                                      "_TupleType": Tuple, 
+                                      "_gymnasium": False})
+    GymObservationSpace = GymLegacyObservationSpace
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
+    from grid2op.gym_compat.gym_space_converter import _BaseGymnasiumSpaceConverter
+    GymnasiumObservationSpace = type("GymnasiumObservationSpace",
+                                     (__AuxGymObservationSpace, _BaseGymnasiumSpaceConverter, ),
+                                     {"_DiscreteType": Discrete,
+                                      "_BoxType": Box,
+                                      "_DictType": Dict,
+                                      "_SpaceType": Space, 
+                                      "_MultiBinaryType": MultiBinary, 
+                                      "_TupleType": Tuple, 
+                                      "_gymnasium": True})
+    GymObservationSpace = GymnasiumObservationSpace
+    

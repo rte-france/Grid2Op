@@ -7,16 +7,22 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-import gym
 
 from grid2op.dtypes import dt_int
 from grid2op.Chronics import Multifolder
-from grid2op.Exceptions import Grid2OpException
-from grid2op.gym_compat.gym_obs_space import GymObservationSpace
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 from grid2op.gym_compat.gym_act_space import GymActionSpace
 from grid2op.gym_compat.utils import (check_gym_version, sample_seed)
 
 
+if GYMNASIUM_AVAILABLE:
+    import gymnasium
+    
+    
+if GYM_AVAILABLE:
+    import gym
+    
+    
 def conditional_decorator(condition):
     def decorator(func):
         if condition:
@@ -26,7 +32,7 @@ def conditional_decorator(condition):
     return decorator
 
 
-class _AuxGymEnv(gym.Env):
+class __AuxGymEnv:
     """
     fully implements the openAI gym API by using the :class:`GymActionSpace` and :class:`GymObservationSpace`
     for compliance with openAI gym.
@@ -41,8 +47,9 @@ class _AuxGymEnv(gym.Env):
         
         The main changes involve the functions `env.step` and `env.reset`
         
-    If you want to use the same version of the GymEnv regardless of the gym version installed you can use:
+    If you want to use the same version of the GymEnv regardless of the gym / gymnasium version installed you can use:
     
+    - :class:`GymnasiumEnv` if `gymnasium` is available
     - :class:`GymEnv_Legacy` for gym < 0.26
     - :class:`GymEnv_Modern` for gym >= 0.26
 
@@ -66,16 +73,16 @@ class _AuxGymEnv(gym.Env):
     """
 
     def __init__(self, env_init, shuffle_chronics=True, render_mode="rgb_array"):
-        check_gym_version()
+        check_gym_version(type(self)._gymnasium)
         self.init_env = env_init.copy()
-        self.action_space = GymActionSpace(self.init_env)
-        self.observation_space = GymObservationSpace(self.init_env)
+        self.action_space = type(self)._ActionSpaceType(self.init_env)
+        self.observation_space = type(self)._ObservationSpaceType(self.init_env)
         self.reward_range = self.init_env.reward_range
         self.metadata = self.init_env.metadata
         self.init_env.render_mode = render_mode
         self._shuffle_chronics = shuffle_chronics
             
-        gym.Env.__init__(self)
+        super().__init__()  # super should reference either gym.Env or gymnasium.Env
         if not hasattr(self, "_np_random"):
             # for older version of gym it does not exist
             self._np_random = np.random.RandomState()
@@ -187,27 +194,54 @@ class _AuxGymEnv(gym.Env):
         # delete possible dangling reference
         self.close()
 
+if GYM_AVAILABLE:
+    from grid2op.gym_compat.gym_obs_space import GymLegacyObservationSpace
+    _AuxGymEnv = type("_AuxGymEnv",
+                      (__AuxGymEnv, gym.Env),
+                      {"_gymnasium": False,
+                       "_ActionSpaceType": GymActionSpace,
+                       "_ObservationSpaceType": GymLegacyObservationSpace})
+    
+    class GymEnv_Legacy(_AuxGymEnv):
+        # for old version of gym        
+        def reset(self, *args, **kwargs):
+            return self._aux_reset(*args, **kwargs)
 
-class GymEnv_Legacy(_AuxGymEnv):
-    # for old version of gym        
-    def reset(self, *args, **kwargs):
-        return self._aux_reset(*args, **kwargs)
+        def step(self, action):
+            return self._aux_step(action)
 
-    def step(self, action):
-        return self._aux_step(action)
-
-    def seed(self, seed):
-        # defined only on some cases
-        return self._aux_seed(seed)
+        def seed(self, seed):
+            # defined only on some cases
+            return self._aux_seed(seed)
 
 
-class GymEnv_Modern(_AuxGymEnv):
-    # for new version of gym
-    def reset(self,
-              *,
-              seed=None,
-              options=None,):
-        return self._aux_reset_new(seed, options)
+    class GymEnv_Modern(_AuxGymEnv):
+        # for new version of gym
+        def reset(self,
+                *,
+                seed=None,
+                options=None,):
+            return self._aux_reset_new(seed, options)
 
-    def step(self, action):
-        return self._aux_step_new(action)
+        def step(self, action):
+            return self._aux_step_new(action)
+
+
+if GYMNASIUM_AVAILABLE:
+    from grid2op.gym_compat.gym_obs_space import GymnasiumObservationSpace
+    _AuxGymnasiumEnv = type("GymnasiumEnv",
+                            (__AuxGymEnv, gymnasium.Env),
+                            {"_gymnasium": True,
+                             "_ActionSpaceType": GymActionSpace,
+                             "_ObservationSpaceType": GymnasiumObservationSpace})
+    
+    class GymnasiumEnv(_AuxGymnasiumEnv):
+        # for new version of gym
+        def reset(self,
+                *,
+                seed=None,
+                options=None,):
+            return self._aux_reset_new(seed, options)
+
+        def step(self, action):
+            return self._aux_step_new(action)

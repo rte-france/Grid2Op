@@ -178,7 +178,7 @@ class BoxGymObsSpace(Box):
         divide=None,
         functs=None,
     ):
-        check_gym_version()
+        check_gym_version(True)  # TODO GYMNASIUM
         if not isinstance(grid2op_observation_space, ObservationSpace):
             raise RuntimeError(
                 f"Impossible to create a BoxGymObsSpace without providing a "

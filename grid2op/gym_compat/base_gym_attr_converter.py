@@ -5,11 +5,12 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-from gym.spaces import Space
+
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 from grid2op.gym_compat.utils import check_gym_version
 
 
-class BaseGymAttrConverter(object):
+class __AuxBaseGymAttrConverter(object):
     """
     TODO work in progress !
 
@@ -17,7 +18,7 @@ class BaseGymAttrConverter(object):
     """
 
     def __init__(self, space=None, gym_to_g2op=None, g2op_to_gym=None):
-        check_gym_version()
+        check_gym_version(type(self)._gymnasium)  # TODO GYMNASIUM
         self.__is_init_super = (
             False  # is the "super" class initialized, do not modify in child class
         )
@@ -45,7 +46,7 @@ class BaseGymAttrConverter(object):
     def initialize_space(self, space):
         if self._is_init_space:
             return
-        if not isinstance(space, Space):
+        if not isinstance(space, type(self)._SpaceType):
             raise RuntimeError(
                 "Impossible to scale a converter if this one is not from type space.Space"
             )
@@ -92,3 +93,21 @@ class BaseGymAttrConverter(object):
                 "Unable to convert grid2op object to gym object with this converter"
             )
         return self._my_g2op_to_gym(g2op_object)
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import Space
+    BaseGymLegacyAttrConverter = type("BaseGymLegacyAttrConverter",
+                                     (__AuxBaseGymAttrConverter, ),
+                                     {"_SpaceType": Space, 
+                                      "_gymnasium": False})
+    BaseGymAttrConverter = BaseGymLegacyAttrConverter
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Space
+    BaseGymnasiumAttrConverter = type("BaseGymnasiumAttrConverter",
+                                     (__AuxBaseGymAttrConverter, ),
+                                     {"_SpaceType": Space, 
+                                      "_gymnasium": True})
+    BaseGymAttrConverter = BaseGymnasiumAttrConverter

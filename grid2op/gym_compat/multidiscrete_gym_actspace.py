@@ -146,7 +146,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
     ATTR_NEEDBINARIZED = 3
 
     def __init__(self, grid2op_action_space, attr_to_keep=ALL_ATTR, nb_bins=None):
-        check_gym_version()
+        check_gym_version(True)  # TODO GYMNASIUM
         if not isinstance(grid2op_action_space, ActionSpace):
             raise RuntimeError(
                 f"Impossible to create a BoxGymActSpace without providing a "
