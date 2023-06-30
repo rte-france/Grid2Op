@@ -295,16 +295,14 @@ class BaseObservation(GridObjects):
         `np.minimum(self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down)`
 
     active_alert: :class:`numpy.ndarray`, dtype:bool
-        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
-        This function gives the
-        lines "under alert" at the given observation.
+        This function gives the lines "under alert" at the given observation.
         It is only relevant for the "real" environment and not for `obs.simulate` nor `obs.get_forecast_env`
-        
-        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        active_alert time_since_last_alert alert_duration total_number_of_alert time_since_last_attack was_alert_used_after_attack
         
     time_since_last_alert: :class:`numpy.ndarray`, dtype:int
-        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
         Give the time since an alert has been raised for each powerline. If you just raise an
         alert for attackable line `i` then obs.time_since_last_alert[i] = 0 (and counter
@@ -312,29 +310,23 @@ class BaseObservation(GridObjects):
         
         If attackable line `i` has never been "under alert" then obs.time_since_last_alert[i] = -1
         
-        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
-        
     alert_duration: :class:`numpy.ndarray`, dtype:int
-        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
-        Give the time since an alert is raised for all attackable line. If you just raise an
+        Give the time since an alert has started for all attackable line. If you just raise an
         alert for attackable line `i` then obs.time_since_last_alert[i] = 1 and this counter
         increase by 1 each step as long as the agent continues to "raise an alert on attackable line i"
         
         When the attackable line `i` is not under an alert then obs.time_since_last_alert[i] = 0
         
-        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
-        
-    total_number_of_alert: ``int``
-        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+    total_number_of_alerts: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
         This function counts, since the beginning of the current episode, the total number
         of alerts (here 1 alert = one alert for 1 powerline for 1 step) sent by the agent.
         
-        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
-        
     time_since_last_attack: :class:`numpy.ndarray`, dtype:int
-        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
         Similar to `time_since_last_alert` but for the attack.
         
@@ -352,34 +344,32 @@ class BaseObservation(GridObjects):
         .. note::
             An attack "for the first time" is NOT an attack "for the first time of the scenario".
             Indeed, for this attribute, if a powerline is under attack for say 5 consecutive steps,
-            then the opponent stops its attack on this line and say 6 or 7 steps later it
+            then the opponent stops its attack on this line and says 6 or 7 steps later it
             start again to attack it then obs.time_since_last_attack[i] = 0 at the "first time" the 
             opponent attacks again this powerline.
         
-        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
-        
     was_alert_used_after_attack: :class:`numpy.ndarray`, dtype:int
-        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
         .. warning:: Only available if you use a compatible reward (*eg* :class:`grid2op.Reward.AlertReward`)
            as the main reward (or a "combined" reward with this reward being part of it)
            
-        For all attackable line `i` it says:
+        For each attackable line `i` it says:
         
         - obs.was_alert_used_after_attack[i] = 0 => attackable line i has not been attacked
-        - obs.was_alert_used_after_attack[i] = -1 => attackable line i has been attacked and
+        - obs.was_alert_used_after_attack[i] = -1 => attackable line i has been attacked and for the last attack
           the INCORRECT alert was sent (meaning that: if the agent survives, it sends an alert
           and if the agent died it fails to send an alert)
-        - obs.was_alert_used_after_attack[i] = +1 => attackable line i has been attacked and
+        - obs.was_alert_used_after_attack[i] = +1 => attackable line i has been attacked and for the last attack
           the CORRECT alert was sent (meaning that: if the agent survives, it did not send an alert
           and if the agent died it properly sent an alert)
-        
-        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+
+        By "last attack", we mean the last attack that occured until now.
 
     attack_under_alert: :class:`numpy.ndarray`, dtype:int
-        .. warning:: Only available if the environment supports the "alert" (*eg* "l2rpn_idf_2023"). 
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
-        For all attackable line `i` it says:
+        For each attackable line `i` it says:
         
         - obs.attack_under_alert[i] = 0 => attackable line i has not been attacked OR it
           has been attacked before the relevant window (env.parameters.ALERT_TIME_WINDOW)
@@ -388,9 +378,7 @@ class BaseObservation(GridObjects):
           env.parameters.ALERT_TIME_WINDOW steps)
         - obs.attack_under_alert[i] = +1 => attackable line i has been attacked and (before
           the attack) an alert was sent (so your agent expects to "game over" within the next 
-          env.parameters.ALERT_TIME_WINDOW steps)     
-        
-        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+          env.parameters.ALERT_TIME_WINDOW steps)  
         
     _shunt_p: :class:`numpy.ndarray`, dtype:float
         Shunt active value (only available if shunts are available) (in MW)
