@@ -285,7 +285,8 @@ if GYM_AVAILABLE:
                                          "_SpaceType": Space, 
                                          "_MultiBinaryType": MultiBinary, 
                                          "_TupleType": Tuple, 
-                                         "_gymnasium": False})
+                                         "_gymnasium": False,
+                                         "__module__": __name__})
     _BaseLegacyGymSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
     _BaseGymSpaceConverter = _BaseLegacyGymSpaceConverter
         
@@ -300,6 +301,7 @@ if GYMNASIUM_AVAILABLE:
                                          "_SpaceType": Space, 
                                          "_MultiBinaryType": MultiBinary, 
                                          "_TupleType": Tuple, 
-                                         "_gymnasium": True})
+                                         "_gymnasium": True,
+                                         "__module__": __name__})
     _BaseGymnasiumSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
     _BaseGymSpaceConverter = _BaseGymnasiumSpaceConverter

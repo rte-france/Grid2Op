@@ -117,7 +117,8 @@ if GYM_AVAILABLE:
     BaseLegacyGymAttrConverter = type("BaseLegacyGymAttrConverter",
                                      (__AuxBaseGymAttrConverter, ),
                                      {"_SpaceType": Space, 
-                                      "_gymnasium": False})
+                                      "_gymnasium": False,
+                                      "__module__": __name__})
     BaseLegacyGymAttrConverter.__doc__ = __AuxBaseGymAttrConverter.__doc__
     BaseGymAttrConverter = BaseLegacyGymAttrConverter
         
@@ -127,6 +128,7 @@ if GYMNASIUM_AVAILABLE:
     BaseGymnasiumAttrConverter = type("BaseGymnasiumAttrConverter",
                                      (__AuxBaseGymAttrConverter, ),
                                      {"_SpaceType": Space, 
-                                      "_gymnasium": True})
+                                      "_gymnasium": True,
+                                      "__module__": __name__})
     BaseGymnasiumAttrConverter.__doc__ = __AuxBaseGymAttrConverter.__doc__
     BaseGymAttrConverter = BaseGymnasiumAttrConverter

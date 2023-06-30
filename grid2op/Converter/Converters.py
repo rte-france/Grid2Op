@@ -63,7 +63,7 @@ class Converter(ActionSpace):
         regular_act = encoded_act
         return regular_act
 
-    def get_gym_dict(self):
+    def get_gym_dict(self, cls_gym):
         """
         To convert this space into a open ai gym space. This function returns a dictionnary used
         to initialize such a converter.

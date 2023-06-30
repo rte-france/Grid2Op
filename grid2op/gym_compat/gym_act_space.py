@@ -153,7 +153,7 @@ class __AuxGymActionSpace:
         if converter is not None and isinstance(converter, Converter):
             # a converter allows to ... convert the data so they have specific gym space
             self.initial_act_space = converter
-            dict_ = converter.get_gym_dict()
+            dict_ = converter.get_gym_dict(type(self))
             self.__is_converter = True
         elif converter is not None:
             raise RuntimeError(
@@ -388,7 +388,8 @@ if GYM_AVAILABLE:
                                  "_MultiBinaryType": MultiBinary, 
                                  "_TupleType": Tuple, 
                                  "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter, 
-                                 "_gymnasium": False})
+                                 "_gymnasium": False,
+                                 "__module__": __name__})
     LegacyGymActionSpace.__doc__ = __AuxGymActionSpace.__doc__
     GymActionSpace = LegacyGymActionSpace
         
@@ -406,7 +407,8 @@ if GYMNASIUM_AVAILABLE:
                                  "_MultiBinaryType": MultiBinary, 
                                  "_TupleType": Tuple, 
                                  "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter, 
-                                 "_gymnasium": True})
+                                 "_gymnasium": True,
+                                 "__module__": __name__})
     GymnasiumActionSpace.__doc__ = __AuxGymActionSpace.__doc__
     GymActionSpace = GymnasiumActionSpace
     

@@ -219,7 +219,8 @@ if GYM_AVAILABLE:
                       (__AuxGymEnv, gym.Env),
                       {"_gymnasium": False,
                        "_ActionSpaceType": LegacyGymActionSpace,
-                       "_ObservationSpaceType": LegacyGymObservationSpace})
+                       "_ObservationSpaceType": LegacyGymObservationSpace,
+                       "__module__": __name__})
     _AuxGymEnv.__doc__ = __AuxGymEnv.__doc__
     class GymEnv_Legacy(_AuxGymEnv):
         # for old version of gym        
@@ -253,7 +254,8 @@ if GYMNASIUM_AVAILABLE:
                             (__AuxGymEnv, gymnasium.Env),
                             {"_gymnasium": True,
                              "_ActionSpaceType": GymnasiumActionSpace,
-                             "_ObservationSpaceType": GymnasiumObservationSpace})
+                             "_ObservationSpaceType": GymnasiumObservationSpace,
+                             "__module__": __name__})
     _AuxGymnasiumEnv.__doc__ = __AuxGymEnv.__doc__
     
     class GymnasiumEnv(_AuxGymnasiumEnv):

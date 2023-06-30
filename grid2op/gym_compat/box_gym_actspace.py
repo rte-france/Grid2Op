@@ -548,7 +548,8 @@ if GYM_AVAILABLE:
                                 (__AuxBoxGymActSpace, Box, ),
                                 {"_gymnasium": False,
                                  "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
-                                 "_BoxType": Box})
+                                 "_BoxType": Box,
+                                 "__module__": __name__})
     BoxLegacyGymActSpace.__doc__ = __AuxBoxGymActSpace.__doc__
     BoxGymActSpace = BoxLegacyGymActSpace
     BoxGymActSpace.__doc__ = __AuxBoxGymActSpace.__doc__
@@ -561,7 +562,8 @@ if GYMNASIUM_AVAILABLE:
                                 (__AuxBoxGymActSpace, Box, ),
                                 {"_gymnasium": True,
                                  "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
-                                 "_BoxType": Box})
+                                 "_BoxType": Box,
+                                 "__module__": __name__})
     BoxGymnasiumActSpace.__doc__ = __AuxBoxGymActSpace.__doc__
     BoxGymActSpace = BoxGymnasiumActSpace
     BoxGymActSpace.__doc__ = __AuxBoxGymActSpace.__doc__

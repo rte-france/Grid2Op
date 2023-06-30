@@ -100,7 +100,8 @@ if GYM_AVAILABLE:
     ScalerAttrConverterLegacyGym = type("ScalerAttrConverterLegacyGym",
                                         (__AuxScalerAttrConverter, BaseLegacyGymAttrConverter, ),
                                         {"_gymnasium": False,
-                                         "_BoxType": Box})
+                                         "_BoxType": Box,
+                                         "__module__": __name__})
     ScalerAttrConverterLegacyGym.__doc__ = __AuxScalerAttrConverter.__doc__
     ScalerAttrConverter = ScalerAttrConverterLegacyGym
         
@@ -111,6 +112,7 @@ if GYMNASIUM_AVAILABLE:
     ScalerAttrConverterGymnasium = type("ScalerAttrConverterGymnasium",
                                      (__AuxScalerAttrConverter, BaseGymnasiumAttrConverter, ),
                                      {"_gymnasium": True,
-                                      "_BoxType": Box})
+                                      "_BoxType": Box,
+                                      "__module__": __name__})
     ScalerAttrConverterGymnasium.__doc__ = __AuxScalerAttrConverter.__doc__
     ScalerAttrConverter = ScalerAttrConverterGymnasium

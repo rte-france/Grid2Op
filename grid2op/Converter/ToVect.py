@@ -6,6 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from collections import OrderedDict
+
 import numpy as np
 from grid2op.Converter.Converters import Converter
 from grid2op.dtypes import dt_float, dt_int
@@ -83,14 +85,10 @@ class ToVect(Converter):
         res.from_vect(encoded_act, check_legit=False)
         return res
 
-    def _init_gym_converter(self):
+    def _init_gym_converter(self, cls_gym):
         if self.__gym_action_space is None:
-            # lazy import
-            from gym import spaces
-            from grid2op.gym_compat import GymActionSpace
-
             # i do that not to duplicate the code of the low / high bounds
-            gym_action_space = GymActionSpace(self.init_action_space)
+            gym_action_space = cls_gym(self.init_action_space)
             low = tuple()
             high = tuple()
             order_gym = []
@@ -101,11 +99,11 @@ class ToVect(Converter):
             for k, v in gym_action_space.spaces.items():
                 order_gym.append(k)
                 dtypes.append(v.dtype)
-                if isinstance(v, spaces.MultiBinary):
+                if isinstance(v, cls_gym._MultiBinaryType):
                     low += tuple([0 for _ in range(v.n)])
                     high += tuple([1 for _ in range(v.n)])
                     my_size = v.n
-                elif isinstance(v, spaces.Box):
+                elif isinstance(v, cls_gym._BoxType):
                     low += tuple(v.low)
                     high += tuple(v.high)
                     my_size = v.low.shape[0]
@@ -118,13 +116,13 @@ class ToVect(Converter):
                 sizes.append(np.arange(my_size) + prev)
                 prev += my_size
             self.__gym_action_space = gym_action_space
-            my_type = spaces.Box(low=np.array(low), high=np.array(high), dtype=dt_float)
+            my_type = cls_gym._BoxType(low=np.array(low), high=np.array(high), dtype=dt_float)
 
             order_me = []
             _order_gym_2_me = np.zeros(my_type.shape[0], dtype=dt_int) - 1
             _order_me_2_gym = np.zeros(my_type.shape[0], dtype=dt_int) - 1
             for el in self.init_action_space.attr_list_vect:
-                order_me.append(GymActionSpace.keys_grid2op_2_human[el])
+                order_me.append(cls_gym.keys_grid2op_2_human[el])
 
             prev = 0
             order_gym = list(gym_action_space.spaces.keys())
@@ -142,12 +140,12 @@ class ToVect(Converter):
             self.__dtypes_gym = dtypes
             self.__shapes_gym = shapes
 
-    def get_gym_dict(self):
+    def get_gym_dict(self, cls_gym):
         """
         Convert this action space int a "gym" action space represented by a dictionary (spaces.Dict)
         This dictionary counts only one keys which is "action" and inside this action is the
         """
-        self._init_gym_converter()
+        self._init_gym_converter(cls_gym)
         return self.__dict_space
 
     def convert_action_from_gym(self, gymlike_action):
@@ -163,7 +161,5 @@ class ToVect(Converter):
         Convert a an action of this converter (ie a numpy array) into an action that is usable with
         an open ai gym (ie a Ordered dictionary with one key being only "action")
         """
-        from gym import spaces
-
-        res = spaces.dict.OrderedDict({"action": action[self.__order_me_2_gym]})
+        res = OrderedDict({"action": action[self.__order_me_2_gym]})
         return res

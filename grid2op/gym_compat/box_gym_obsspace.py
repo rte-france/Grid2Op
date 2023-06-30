@@ -804,7 +804,8 @@ if GYM_AVAILABLE:
                                 (__AuxBoxGymObsSpace, Box, ),
                                 {"_gymnasium": False,
                                  "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
-                                 "_BoxType": Box})
+                                 "_BoxType": Box,
+                                 "__module__": __name__})
     BoxLegacyGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
     BoxGymObsSpace = BoxLegacyGymObsSpace
     BoxGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
@@ -817,7 +818,8 @@ if GYMNASIUM_AVAILABLE:
                                 (__AuxBoxGymObsSpace, Box, ),
                                 {"_gymnasium": True,
                                  "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
-                                 "_BoxType": Box})
+                                 "_BoxType": Box,
+                                 "__module__": __name__})
     BoxGymnasiumObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
     BoxGymObsSpace = BoxGymnasiumObsSpace
     BoxGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__

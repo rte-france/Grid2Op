@@ -152,7 +152,8 @@ if GYM_AVAILABLE:
                                            "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
                                            "_MultiDiscreteType": MultiDiscrete,
                                            "_MultiBinaryType": MultiBinary,
-                                           "_DiscreteType": Discrete
+                                           "_DiscreteType": Discrete,
+                                           "__module__": __name__
                                            })
     MultiToTupleConverterLegacyGym.__doc__ = __AuxMultiToTupleConverter.__doc__
     MultiToTupleConverter = MultiToTupleConverterLegacyGym
@@ -168,7 +169,8 @@ if GYMNASIUM_AVAILABLE:
                                            "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
                                            "_MultiDiscreteType": MultiDiscrete,
                                            "_MultiBinaryType": MultiBinary,
-                                           "_DiscreteType": Discrete
+                                           "_DiscreteType": Discrete,
+                                           "__module__": __name__
                                            })
     MultiToTupleConverterGymnasium.__doc__ = __AuxMultiToTupleConverter.__doc__
     MultiToTupleConverter = MultiToTupleConverterGymnasium

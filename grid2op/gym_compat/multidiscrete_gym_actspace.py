@@ -529,7 +529,8 @@ if GYM_AVAILABLE:
                                            "_BoxType": Box,
                                            "_MultiDiscreteType": MultiDiscrete,
                                            "_BoxGymActSpaceType": BoxLegacyGymActSpace,
-                                           "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterLegacyGym})
+                                           "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterLegacyGym,
+                                           "__module__": __name__})
     MultiDiscreteActSpaceLegacyGym.__doc__ = __AuxMultiDiscreteActSpace.__doc__
     MultiDiscreteActSpace = MultiDiscreteActSpaceLegacyGym
     MultiDiscreteActSpace.__doc__ = __AuxMultiDiscreteActSpace.__doc__
@@ -545,7 +546,8 @@ if GYMNASIUM_AVAILABLE:
                                            "_BoxType": Box,
                                            "_MultiDiscreteType": MultiDiscrete,
                                            "_BoxGymActSpaceType": BoxGymnasiumActSpace,
-                                           "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterGymnasium})
+                                           "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterGymnasium,
+                                           "__module__": __name__})
     MultiDiscreteActSpaceGymnasium.__doc__ = __AuxMultiDiscreteActSpace.__doc__
     MultiDiscreteActSpace = MultiDiscreteActSpaceGymnasium
     MultiDiscreteActSpace.__doc__ = __AuxMultiDiscreteActSpace.__doc__

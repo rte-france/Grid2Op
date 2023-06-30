@@ -426,7 +426,8 @@ if GYM_AVAILABLE:
                                       "_MultiBinaryType": MultiBinary, 
                                       "_TupleType": Tuple, 
                                       "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
-                                      "_gymnasium": False})
+                                      "_gymnasium": False,
+                                      "__module__": __name__})
     LegacyGymObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
     GymObservationSpace = LegacyGymObservationSpace
         
@@ -444,7 +445,8 @@ if GYMNASIUM_AVAILABLE:
                                       "_MultiBinaryType": MultiBinary, 
                                       "_TupleType": Tuple, 
                                       "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
-                                      "_gymnasium": True})
+                                      "_gymnasium": True,
+                                      "__module__": __name__})
     GymnasiumObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
     GymObservationSpace = GymnasiumObservationSpace
     

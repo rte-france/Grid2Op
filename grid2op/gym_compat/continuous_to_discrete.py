@@ -150,7 +150,8 @@ if GYM_AVAILABLE:
                                                   {"_gymnasium": False,
                                                    "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
                                                    "_MultiDiscreteType": MultiDiscrete,
-                                                   "_BoxType": Box})
+                                                   "_BoxType": Box,
+                                                   "__module__": __name__})
     ContinuousToDiscreteConverterLegacyGym.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
     ContinuousToDiscreteConverter = ContinuousToDiscreteConverterLegacyGym
         
@@ -163,6 +164,7 @@ if GYMNASIUM_AVAILABLE:
                                                   {"_gymnasium": True,
                                                    "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
                                                    "_MultiDiscreteType": MultiDiscrete,
-                                                   "_BoxType": Box})
+                                                   "_BoxType": Box,
+                                                   "__module__": __name__})
     ContinuousToDiscreteConverterGymnasium.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
     ContinuousToDiscreteConverter = ContinuousToDiscreteConverterGymnasium
