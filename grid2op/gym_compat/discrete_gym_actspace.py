@@ -132,10 +132,10 @@ class __AuxDiscreteActSpace:
         
         - :class:`DiscreteActSpace` will inherit from gymnasium if it's installed 
           (in this case it will be :class:`DiscreteActSpaceGymnasium`), otherwise it will
-          inherit from gym (and will be exactly :class:`DiscreteActSpaceGymLegacy`)
+          inherit from gym (and will be exactly :class:`DiscreteActSpaceLegacyGym`)
         - :class:`DiscreteActSpaceGymnasium` will inherit from gymnasium if it's available and never from
           from gym
-        - :class:`DiscreteActSpaceGymLegacy` will inherit from gym if it's available and never from
+        - :class:`DiscreteActSpaceLegacyGym` will inherit from gym if it's available and never from
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
@@ -340,16 +340,16 @@ class __AuxDiscreteActSpace:
 
 if GYM_AVAILABLE:
     from gym.spaces import Discrete
-    from grid2op.gym_compat.box_gym_actspace import BoxGymLegacyActSpace
-    from grid2op.gym_compat.continuous_to_discrete import ContinuousToDiscreteConverterGymLegacy
-    DiscreteActSpaceGymLegacy = type("DiscreteActSpaceGymLegacy",
+    from grid2op.gym_compat.box_gym_actspace import BoxLegacyGymActSpace
+    from grid2op.gym_compat.continuous_to_discrete import ContinuousToDiscreteConverterLegacyGym
+    DiscreteActSpaceLegacyGym = type("DiscreteActSpaceLegacyGym",
                                      (__AuxDiscreteActSpace, Discrete, ),
                                      {"_gymnasium": False,
                                       "_DiscreteType": Discrete,
-                                      "_BoxGymActSpaceType": BoxGymLegacyActSpace,
-                                      "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterGymLegacy})
-    DiscreteActSpaceGymLegacy.__doc__ = __AuxDiscreteActSpace.__doc__
-    Discrete = DiscreteActSpaceGymLegacy
+                                      "_BoxGymActSpaceType": BoxLegacyGymActSpace,
+                                      "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterLegacyGym})
+    DiscreteActSpaceLegacyGym.__doc__ = __AuxDiscreteActSpace.__doc__
+    Discrete = DiscreteActSpaceLegacyGym
     Discrete.__doc__ = __AuxDiscreteActSpace.__doc__
         
 

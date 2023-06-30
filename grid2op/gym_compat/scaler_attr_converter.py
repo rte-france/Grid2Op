@@ -8,7 +8,6 @@
 
 import copy
 import numpy as np
-from gym.spaces import Box
 
 from grid2op.dtypes import dt_float
 from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
@@ -33,10 +32,10 @@ class __AuxScalerAttrConverter:
         
         - :class:`ScalerAttrConverter` will inherit from gymnasium if it's installed 
           (in this case it will be :class:`ScalerAttrConverterGymnasium`), otherwise it will
-          inherit from gym (and will be exactly :class:`ScalerAttrConverterGymLegacy`)
+          inherit from gym (and will be exactly :class:`ScalerAttrConverterLegacyGym`)
         - :class:`ScalerAttrConverterGymnasium` will inherit from gymnasium if it's available and never from
           from gym
-        - :class:`ScalerAttrConverterGymLegacy` will inherit from gym if it's available and never from
+        - :class:`ScalerAttrConverterLegacyGym` will inherit from gym if it's available and never from
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
@@ -56,7 +55,7 @@ class __AuxScalerAttrConverter:
     def initialize_space(self, init_space):
         if self._is_init_space:
             return
-        if not isinstance(init_space, Box):
+        if not isinstance(init_space, type(self)._BoxType):
             raise RuntimeError(
                 "Impossible to scale a converter if this one is not from type space.Box"
             )
@@ -96,18 +95,22 @@ class __AuxScalerAttrConverter:
 
 
 if GYM_AVAILABLE:
-    from grid2op.gym_compat.base_gym_attr_converter import BaseGymLegacyAttrConverter
-    ScalerAttrConverterGymLegacy = type("ScalerAttrConverterGymLegacy",
-                                        (__AuxScalerAttrConverter, BaseGymLegacyAttrConverter, ),
-                                        {"_gymnasium": False})
-    ScalerAttrConverterGymLegacy.__doc__ = __AuxScalerAttrConverter.__doc__
-    ScalerAttrConverter = ScalerAttrConverterGymLegacy
+    from gym.spaces import Box
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    ScalerAttrConverterLegacyGym = type("ScalerAttrConverterLegacyGym",
+                                        (__AuxScalerAttrConverter, BaseLegacyGymAttrConverter, ),
+                                        {"_gymnasium": False,
+                                         "_BoxType": Box})
+    ScalerAttrConverterLegacyGym.__doc__ = __AuxScalerAttrConverter.__doc__
+    ScalerAttrConverter = ScalerAttrConverterLegacyGym
         
 
 if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Box
     from grid2op.gym_compat.base_gym_attr_converter import BaseGymnasiumAttrConverter
     ScalerAttrConverterGymnasium = type("ScalerAttrConverterGymnasium",
                                      (__AuxScalerAttrConverter, BaseGymnasiumAttrConverter, ),
-                                     {"_gymnasium": True})
+                                     {"_gymnasium": True,
+                                      "_BoxType": Box})
     ScalerAttrConverterGymnasium.__doc__ = __AuxScalerAttrConverter.__doc__
     ScalerAttrConverter = ScalerAttrConverterGymnasium

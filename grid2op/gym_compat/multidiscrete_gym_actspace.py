@@ -116,10 +116,10 @@ class __AuxMultiDiscreteActSpace:
         
         - :class:`MultiDiscreteActSpace` will inherit from gymnasium if it's installed 
           (in this case it will be :class:`MultiDiscreteActSpaceGymnasium`), otherwise it will
-          inherit from gym (and will be exactly :class:`MultiDiscreteActSpaceGymLegacy`)
+          inherit from gym (and will be exactly :class:`MultiDiscreteActSpaceLegacyGym`)
         - :class:`MultiDiscreteActSpaceGymnasium` will inherit from gymnasium if it's available and never from
           from gym
-        - :class:`MultiDiscreteActSpaceGymLegacy` will inherit from gym if it's available and never from
+        - :class:`MultiDiscreteActSpaceLegacyGym` will inherit from gym if it's available and never from
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
@@ -521,18 +521,18 @@ class __AuxMultiDiscreteActSpace:
 
 if GYM_AVAILABLE:
     from gym.spaces import Box, MultiDiscrete
-    from grid2op.gym_compat.box_gym_actspace import BoxGymLegacyActSpace
-    from grid2op.gym_compat.continuous_to_discrete import ContinuousToDiscreteConverterGymLegacy
-    MultiDiscreteActSpaceGymLegacy = type("MultiDiscreteActSpaceGymLegacy",
+    from grid2op.gym_compat.box_gym_actspace import BoxLegacyGymActSpace
+    from grid2op.gym_compat.continuous_to_discrete import ContinuousToDiscreteConverterLegacyGym
+    MultiDiscreteActSpaceLegacyGym = type("MultiDiscreteActSpaceLegacyGym",
                                           (__AuxMultiDiscreteActSpace, MultiDiscrete, ),
                                           {"_gymnasium": False,
                                            "_BoxType": Box,
                                            "_MultiDiscreteType": MultiDiscrete,
-                                           "_BoxGymActSpaceType": BoxGymLegacyActSpace,
-                                           "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterGymLegacy})
-    MultiDiscreteActSpaceGymLegacy.__doc__ = __AuxMultiDiscreteActSpace.__doc__
-    MultiDiscrete = MultiDiscreteActSpaceGymLegacy
-    MultiDiscrete.__doc__ = __AuxMultiDiscreteActSpace.__doc__
+                                           "_BoxGymActSpaceType": BoxLegacyGymActSpace,
+                                           "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterLegacyGym})
+    MultiDiscreteActSpaceLegacyGym.__doc__ = __AuxMultiDiscreteActSpace.__doc__
+    MultiDiscreteActSpace = MultiDiscreteActSpaceLegacyGym
+    MultiDiscreteActSpace.__doc__ = __AuxMultiDiscreteActSpace.__doc__
         
 
 if GYMNASIUM_AVAILABLE:

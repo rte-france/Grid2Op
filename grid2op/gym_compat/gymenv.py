@@ -213,13 +213,13 @@ class __AuxGymEnv:
         self.close()
 
 if GYM_AVAILABLE:
-    from grid2op.gym_compat.gym_obs_space import GymLegacyObservationSpace
-    from grid2op.gym_compat.gym_act_space import GymLegacyActionSpace
+    from grid2op.gym_compat.gym_obs_space import LegacyGymObservationSpace
+    from grid2op.gym_compat.gym_act_space import LegacyGymActionSpace
     _AuxGymEnv = type("_AuxGymEnv",
                       (__AuxGymEnv, gym.Env),
                       {"_gymnasium": False,
-                       "_ActionSpaceType": GymLegacyActionSpace,
-                       "_ObservationSpaceType": GymLegacyObservationSpace})
+                       "_ActionSpaceType": LegacyGymActionSpace,
+                       "_ObservationSpaceType": LegacyGymObservationSpace})
     _AuxGymEnv.__doc__ = __AuxGymEnv.__doc__
     class GymEnv_Legacy(_AuxGymEnv):
         # for old version of gym        

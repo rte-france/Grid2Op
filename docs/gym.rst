@@ -418,6 +418,58 @@ They can all be used like:
 We encourage you to visit the documentation for more information on how to use these classes. Each offer
 different possible customization.
 
+.. _gymnasium_gym:
+
+Gymnasium vs Gym
+------------------
+
+Starting from grid2op 1.9.1 we introduced the compatibility with `gymnasium` package (the replacement of the
+`gym` package that will no longer be maintained).
+
+By default, if gymnasium is installed on your machine, all classes from the `grid2op.gym_compat` module will inherit
+from gymnasium. That is :class:`GymEnv` will be inherit from `gymnasium.Env`(and not `gym.Env`), :class:`GymActionSpace`
+will inherit from `gymnasium.spaces.Dict` (and not from `gym.spaces.Dict`) etc.
+
+But we wanted to maintain Backward compatibility. It is ensured in two different ways:
+
+1) if you have both `gymnasium` and `gym` installed on your machine, you can choose which "framework"
+   you want to use by explicitly using the right grid2op class. For example, if you want a `gym` 
+   environment (inheriting from `gym.Env`) you can use :class:`GymEnv_Modern`and if you 
+   want to explicitly stay in `gymnasium` you can use :class:`GymnasiumEnv`
+2) if you don't want to have `gymnasium` and only `gym` is installed then the default
+   grid2op class will stay in the `gym` eco system. In this case, `gym.Env` will
+   be :class:`GymEnv_Modern` and all the code previously written will work exactly as
+   before.
+
+
+.. note::
+    As you understood if you want to keep the behaviour of grid2op prior to 1.9.1 the simplest solution would be 
+    not to install gymnasium at all.
+
+    If however you want to benefit from the latest gymnasium package, you can keep the previous code you have and
+    simply install gymnasium. All classes defined there will still be defined and you will be able
+    to use gymnasium transparently.
+
+The table bellow summarize the correspondance between the default classes and the classes specific to gymnasium / gym:
+
+======================================  ===============================================  =====================================================
+Default class                           Class with gymnasium                             Class with gym
+======================================  ===============================================  =====================================================
+:class:`BaseGymAttrConverter`           :class:`BaseGymnasiumAttrConverter`              :class:`BaseLegacyGymAttrConverter`
+:class:`BoxGymActSpace`                 :class:`BoxGymnasiumActSpace`                    :class:`BoxLegacyGymActSpace`
+:class:`BoxGymObsSpace`                 :class:`BoxGymnasiumObsSpace`                    :class:`BoxLegacyGymObsSpace`
+:class:`ContinuousToDiscreteConverter`  :class:`ContinuousToDiscreteConverterGymnasium`  :class:`ContinuousToDiscreteConverterLegacyGym`
+:class:`DiscreteActSpace`               :class:`DiscreteActSpaceGymnasium`               :class:`DiscreteActSpaceLegacyGym`
+:class:`GymActionSpace`                 :class:`GymnasiumActionSpace`                    :class:`LegacyGymActionSpace`
+:class:`GymObservationSpace`            :class:`GymnasiumObservationSpace`               :class:`LegacyGymObservationSpace`
+:class:`_BaseGymSpaceConverter`         :class:`_BaseGymnasiumSpaceConverter`            :class:`_BaseLegacyGymSpaceConverter`
+:class:`GymEnv`                         :class:`GymnasiumEnv`                            :class:`GymEnv_Modern` / :class:`GymEnv_Legacy`
+:class:`MultiToTupleConverter`          :class:`MultiToTupleConverterGymnasium`          :class:`MultiToTupleConverterLegacyGym`
+:class:`MultiDiscreteActSpace`          :class:`MultiDiscreteActSpaceGymnasium`          :class:`MultiDiscreteActSpaceLegacyGym`
+:class:`ScalerAttrConverter`            :class:`ScalerAttrConverterGymnasium`            :class:`ScalerAttrConverterLegacyGym`
+======================================  ===============================================  =====================================================
+
+
 Recommended usage of grid2op with other framework
 --------------------------------------------------
 
@@ -430,7 +482,7 @@ Any contribution is welcome here
 
 Other frameworks
 **********************
-Any contribution is welcome here
+Any contribution is welcome here too (-:
 
 Troubleshoot with some frameworks
 -------------------------------------------------
@@ -488,14 +540,6 @@ pmin and pmax:
         # we suppose you already have an observation space
         self.observation_space["gen_p"].low[:] = -np.inf
         self.observation_space["gen_p"].high[:] = np.inf
-
-
-.. _gymnasium_gym:
-
-Gymnasium vs Gym
-------------------
-
-TODO explain behaviour and classes that are being used
 
 Detailed Documentation by class
 --------------------------------

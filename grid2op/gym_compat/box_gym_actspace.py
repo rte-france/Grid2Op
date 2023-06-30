@@ -93,10 +93,10 @@ class __AuxBoxGymActSpace:
         
         - :class:`BoxGymActSpace` will inherit from gymnasium if it's installed 
           (in this case it will be :class:`BoxGymnasiumActSpace`), otherwise it will
-          inherit from gym (and will be exactly :class:`BoxGymLegacyActSpace`)
+          inherit from gym (and will be exactly :class:`BoxLegacyGymActSpace`)
         - :class:`BoxGymnasiumActSpace` will inherit from gymnasium if it's available and never from
           from gym
-        - :class:`BoxGymLegacyActSpace` will inherit from gym if it's available and never from
+        - :class:`BoxLegacyGymActSpace` will inherit from gym if it's available and never from
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
@@ -543,14 +543,14 @@ class __AuxBoxGymActSpace:
 
 if GYM_AVAILABLE:
     from gym.spaces import Box
-    from grid2op.gym_compat.base_gym_attr_converter import BaseGymLegacyAttrConverter
-    BoxGymLegacyActSpace = type("BoxGymLegacyActSpace",
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    BoxLegacyGymActSpace = type("BoxLegacyGymActSpace",
                                 (__AuxBoxGymActSpace, Box, ),
                                 {"_gymnasium": False,
-                                 "_BaseGymAttrConverterType": BaseGymLegacyAttrConverter,
+                                 "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
                                  "_BoxType": Box})
-    BoxGymLegacyActSpace.__doc__ = __AuxBoxGymActSpace.__doc__
-    BoxGymActSpace = BoxGymLegacyActSpace
+    BoxLegacyGymActSpace.__doc__ = __AuxBoxGymActSpace.__doc__
+    BoxGymActSpace = BoxLegacyGymActSpace
     BoxGymActSpace.__doc__ = __AuxBoxGymActSpace.__doc__
         
 

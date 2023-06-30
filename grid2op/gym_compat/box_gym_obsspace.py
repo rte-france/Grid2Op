@@ -94,10 +94,10 @@ class __AuxBoxGymObsSpace:
         
         - :class:`BoxGymObsSpace` will inherit from gymnasium if it's installed 
           (in this case it will be :class:`BoxGymnasiumObsSpace`), otherwise it will
-          inherit from gym (and will be exactly :class:`BoxGymLegacyObsSpace`)
+          inherit from gym (and will be exactly :class:`BoxLegacyGymObsSpace`)
         - :class:`BoxGymnasiumObsSpace` will inherit from gymnasium if it's available and never from
           from gym
-        - :class:`BoxGymLegacyObsSpace` will inherit from gym if it's available and never from
+        - :class:`BoxLegacyGymObsSpace` will inherit from gym if it's available and never from
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
@@ -578,7 +578,7 @@ class __AuxBoxGymObsSpace:
         low, high, shape, dtype = self._get_info(functs)
 
         # initialize the base container
-        Box.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
+        type(self)._BoxType.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
 
     def _get_info(self, functs):
         low = None
@@ -799,14 +799,14 @@ class __AuxBoxGymObsSpace:
 
 if GYM_AVAILABLE:
     from gym.spaces import Box
-    from grid2op.gym_compat.base_gym_attr_converter import BaseGymLegacyAttrConverter
-    BoxGymLegacyObsSpace = type("BoxGymLegacyObsSpace",
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    BoxLegacyGymObsSpace = type("BoxLegacyGymObsSpace",
                                 (__AuxBoxGymObsSpace, Box, ),
                                 {"_gymnasium": False,
-                                 "_BaseGymAttrConverterType": BaseGymLegacyAttrConverter,
+                                 "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
                                  "_BoxType": Box})
-    BoxGymLegacyObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
-    BoxGymObsSpace = BoxGymLegacyObsSpace
+    BoxLegacyGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
+    BoxGymObsSpace = BoxLegacyGymObsSpace
     BoxGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
         
 

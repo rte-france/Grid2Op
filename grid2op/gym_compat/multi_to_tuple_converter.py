@@ -36,11 +36,11 @@ class __AuxFixedTuple:
 
 if GYM_AVAILABLE:
     from gym.spaces import Tuple
-    FixedTupleGymLegacy = type("FixedTupleGymLegacy",
+    FixedTupleLegacyGym = type("FixedTupleLegacyGym",
                                (__AuxFixedTuple, Tuple, ),
                                {"_gymnasium": False,
                                 "_TupleType": Tuple})
-    FixedTuple = FixedTupleGymLegacy
+    FixedTuple = FixedTupleLegacyGym
         
 
 if GYMNASIUM_AVAILABLE:
@@ -73,10 +73,10 @@ class __AuxMultiToTupleConverter:
         
         - :class:`MultiToTupleConverter` will inherit from gymnasium if it's installed 
           (in this case it will be :class:`MultiToTupleConverterGymnasium`), otherwise it will
-          inherit from gym (and will be exactly :class:`MultiToTupleConverterGymLegacy`)
+          inherit from gym (and will be exactly :class:`MultiToTupleConverterLegacyGym`)
         - :class:`MultiToTupleConverterGymnasium` will inherit from gymnasium if it's available and never from
           from gym
-        - :class:`MultiToTupleConverterGymLegacy` will inherit from gym if it's available and never from
+        - :class:`MultiToTupleConverterLegacyGym` will inherit from gym if it's available and never from
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
@@ -144,17 +144,18 @@ class __AuxMultiToTupleConverter:
 
 if GYM_AVAILABLE:
     from gym.spaces import MultiBinary, MultiDiscrete, Discrete
-    from grid2op.gym_compat.base_gym_attr_converter import BaseGymLegacyAttrConverter
-    MultiToTupleConverterGymLegacy = type("MultiToTupleConverterGymLegacy",
-                                          (__AuxMultiToTupleConverter, BaseGymLegacyAttrConverter, ),
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    MultiToTupleConverterLegacyGym = type("MultiToTupleConverterLegacyGym",
+                                          (__AuxMultiToTupleConverter, BaseLegacyGymAttrConverter, ),
                                           {"_gymnasium": False,
-                                           "_FixedTupleType": FixedTupleGymLegacy,
+                                           "_FixedTupleType": FixedTupleLegacyGym,
+                                           "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
                                            "_MultiDiscreteType": MultiDiscrete,
                                            "_MultiBinaryType": MultiBinary,
                                            "_DiscreteType": Discrete
                                            })
-    MultiToTupleConverterGymLegacy.__doc__ = __AuxMultiToTupleConverter.__doc__
-    MultiToTupleConverter = MultiToTupleConverterGymLegacy
+    MultiToTupleConverterLegacyGym.__doc__ = __AuxMultiToTupleConverter.__doc__
+    MultiToTupleConverter = MultiToTupleConverterLegacyGym
         
 
 if GYMNASIUM_AVAILABLE:
@@ -164,6 +165,7 @@ if GYMNASIUM_AVAILABLE:
                                           (__AuxMultiToTupleConverter, BaseGymnasiumAttrConverter, ),
                                           {"_gymnasium": True,
                                            "_FixedTupleType": Tuple,
+                                           "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
                                            "_MultiDiscreteType": MultiDiscrete,
                                            "_MultiBinaryType": MultiBinary,
                                            "_DiscreteType": Discrete

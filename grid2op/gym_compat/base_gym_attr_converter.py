@@ -24,10 +24,10 @@ class __AuxBaseGymAttrConverter(object):
         
         - :class:`BaseGymAttrConverter` will inherit from gymnasium if it's installed 
           (in this case it will be :class:`BaseGymnasiumAttrConverter`), otherwise it will
-          inherit from gym (and will be exactly :class:`BaseGymLegacyAttrConverter`)
+          inherit from gym (and will be exactly :class:`BaseLegacyGymAttrConverter`)
         - :class:`BaseGymnasiumAttrConverter` will inherit from gymnasium if it's available and never from
           from gym
-        - :class:`BaseGymLegacyAttrConverter` will inherit from gym if it's available and never from
+        - :class:`BaseLegacyGymAttrConverter` will inherit from gym if it's available and never from
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
@@ -114,12 +114,12 @@ class __AuxBaseGymAttrConverter(object):
 
 if GYM_AVAILABLE:
     from gym.spaces import Space
-    BaseGymLegacyAttrConverter = type("BaseGymLegacyAttrConverter",
+    BaseLegacyGymAttrConverter = type("BaseLegacyGymAttrConverter",
                                      (__AuxBaseGymAttrConverter, ),
                                      {"_SpaceType": Space, 
                                       "_gymnasium": False})
-    BaseGymLegacyAttrConverter.__doc__ = __AuxBaseGymAttrConverter.__doc__
-    BaseGymAttrConverter = BaseGymLegacyAttrConverter
+    BaseLegacyGymAttrConverter.__doc__ = __AuxBaseGymAttrConverter.__doc__
+    BaseGymAttrConverter = BaseLegacyGymAttrConverter
         
 
 if GYMNASIUM_AVAILABLE:

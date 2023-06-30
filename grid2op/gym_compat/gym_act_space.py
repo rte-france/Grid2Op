@@ -42,10 +42,10 @@ class __AuxGymActionSpace:
         
         - :class:`GymActionSpace` will inherit from gymnasium if it's installed 
           (in this case it will be :class:`GymnasiumActionSpace`), otherwise it will
-          inherit from gym (and will be exactly :class:`GymLegacyActionSpace`)
+          inherit from gym (and will be exactly :class:`LegacyGymActionSpace`)
         - :class:`GymnasiumActionSpace` will inherit from gymnasium if it's available and never from
           from gym
-        - :class:`GymLegacyActionSpace` will inherit from gym if it's available and never from
+        - :class:`LegacyGymActionSpace` will inherit from gym if it's available and never from
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
@@ -233,7 +233,7 @@ class __AuxGymActionSpace:
             else:
                 raise RuntimeError(f"Impossible to find key {key} in your action space")
         my_dict[key2] = fun
-        res = GymActionSpace(env=self._init_env, dict_variables=my_dict)
+        res = type(self)(env=self._init_env, dict_variables=my_dict)
         return res
 
     def _fill_dict_act_space(self, dict_, action_space, dict_variables):
@@ -377,20 +377,20 @@ class __AuxGymActionSpace:
 
 if GYM_AVAILABLE:
     from gym.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
-    from grid2op.gym_compat.gym_space_converter import _BaseGymLegacySpaceConverter
-    from grid2op.gym_compat.base_gym_attr_converter import BaseGymLegacyAttrConverter
-    GymLegacyActionSpace = type("GymLegacyActionSpace",
-                                (__AuxGymActionSpace, _BaseGymLegacySpaceConverter, ),
+    from grid2op.gym_compat.gym_space_converter import _BaseLegacyGymSpaceConverter
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    LegacyGymActionSpace = type("LegacyGymActionSpace",
+                                (__AuxGymActionSpace, _BaseLegacyGymSpaceConverter, ),
                                 {"_DiscreteType": Discrete,
                                  "_BoxType": Box,
                                  "_DictType": Dict,
                                  "_SpaceType": Space, 
                                  "_MultiBinaryType": MultiBinary, 
                                  "_TupleType": Tuple, 
-                                 "_BaseGymAttrConverterType": BaseGymLegacyAttrConverter, 
+                                 "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter, 
                                  "_gymnasium": False})
-    GymLegacyActionSpace.__doc__ = __AuxGymActionSpace.__doc__
-    GymActionSpace = GymLegacyActionSpace
+    LegacyGymActionSpace.__doc__ = __AuxGymActionSpace.__doc__
+    GymActionSpace = LegacyGymActionSpace
         
 
 if GYMNASIUM_AVAILABLE:

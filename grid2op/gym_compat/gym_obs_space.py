@@ -46,10 +46,10 @@ class __AuxGymObservationSpace:
         
         - :class:`GymObservationSpace` will inherit from gymnasium if it's installed 
           (in this case it will be :class:`GymnasiumObservationSpace`), otherwise it will
-          inherit from gym (and will be exactly :class:`GymLegacyObservationSpace`)
+          inherit from gym (and will be exactly :class:`LegacyGymObservationSpace`)
         - :class:`GymnasiumObservationSpace` will inherit from gymnasium if it's available and never from
           from gym
-        - :class:`GymLegacyObservationSpace` will inherit from gym if it's available and never from
+        - :class:`LegacyGymObservationSpace` will inherit from gym if it's available and never from
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
@@ -185,7 +185,7 @@ class __AuxGymObservationSpace:
         """
 
         my_dict = self.get_dict_encoding()
-        if fun is not None and not isinstance(fun, super()._BaseGymAttrConverterType):
+        if fun is not None and not isinstance(fun, type(self)._BaseGymAttrConverterType):
             raise RuntimeError(
                 "Impossible to initialize a converter with a function of type {}".format(
                     type(fun)
@@ -202,7 +202,7 @@ class __AuxGymObservationSpace:
                     f"Impossible to find key {key} in your observation space"
                 )
         my_dict[key] = fun
-        res = GymObservationSpace(self._init_env, my_dict)
+        res = type(self)(self._init_env, my_dict)
         return res
 
     def _fill_dict_obs_space(
@@ -415,20 +415,20 @@ class __AuxGymObservationSpace:
 
 if GYM_AVAILABLE:
     from gym.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
-    from grid2op.gym_compat.gym_space_converter import _BaseGymLegacySpaceConverter
-    from grid2op.gym_compat.base_gym_attr_converter import BaseGymLegacyAttrConverter
-    GymLegacyObservationSpace = type("GymLegacyObservationSpace",
-                                     (__AuxGymObservationSpace, _BaseGymLegacySpaceConverter, ),
+    from grid2op.gym_compat.gym_space_converter import _BaseLegacyGymSpaceConverter
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    LegacyGymObservationSpace = type("LegacyGymObservationSpace",
+                                     (__AuxGymObservationSpace, _BaseLegacyGymSpaceConverter, ),
                                      {"_DiscreteType": Discrete,
                                       "_BoxType": Box,
                                       "_DictType": Dict,
                                       "_SpaceType": Space, 
                                       "_MultiBinaryType": MultiBinary, 
                                       "_TupleType": Tuple, 
-                                      "_BaseGymAttrConverterType": BaseGymLegacyAttrConverter,
+                                      "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
                                       "_gymnasium": False})
-    GymLegacyObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
-    GymObservationSpace = GymLegacyObservationSpace
+    LegacyGymObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
+    GymObservationSpace = LegacyGymObservationSpace
         
 
 if GYMNASIUM_AVAILABLE:

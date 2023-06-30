@@ -31,10 +31,10 @@ class __AuxBaseGymSpaceConverter:
         
         - :class:`_BaseGymSpaceConverter` will inherit from gymnasium if it's installed 
           (in this case it will be :class:`_BaseGymnasiumSpaceConverter`), otherwise it will
-          inherit from gym (and will be exactly :class:`_BaseGymLegacySpaceConverter`)
+          inherit from gym (and will be exactly :class:`_BaseLegacyGymSpaceConverter`)
         - :class:`_BaseGymnasiumSpaceConverter` will inherit from gymnasium if it's available and never from
           from gym
-        - :class:`_BaseGymLegacySpaceConverter` will inherit from gym if it's available and never from
+        - :class:`_BaseLegacyGymSpaceConverter` will inherit from gym if it's available and never from
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
@@ -277,7 +277,7 @@ class __AuxBaseGymSpaceConverter:
 
 if GYM_AVAILABLE:
     from gym.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
-    _BaseGymLegacySpaceConverter = type("_BaseGymLegacySpaceConverter",
+    _BaseLegacyGymSpaceConverter = type("_BaseLegacyGymSpaceConverter",
                                         (__AuxBaseGymSpaceConverter, Dict, ),
                                         {"_DiscreteType": Discrete,
                                          "_BoxType": Box,
@@ -286,8 +286,8 @@ if GYM_AVAILABLE:
                                          "_MultiBinaryType": MultiBinary, 
                                          "_TupleType": Tuple, 
                                          "_gymnasium": False})
-    _BaseGymLegacySpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
-    _BaseGymSpaceConverter = _BaseGymLegacySpaceConverter
+    _BaseLegacyGymSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
+    _BaseGymSpaceConverter = _BaseLegacyGymSpaceConverter
         
 
 if GYMNASIUM_AVAILABLE:
