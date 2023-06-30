@@ -11,10 +11,10 @@ import numpy as np
 from gym.spaces import Box
 
 from grid2op.dtypes import dt_float
-from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 
 
-class ScalerAttrConverter(BaseGymAttrConverter):
+class __AuxScalerAttrConverter:
     """
     This is a scaler that transforms a initial gym space `init_space` into its scale version.
 
@@ -25,12 +25,28 @@ class ScalerAttrConverter(BaseGymAttrConverter):
 
     Need help if you can :-)
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`ScalerAttrConverter` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`ScalerAttrConverterGymnasium`), otherwise it will
+          inherit from gym (and will be exactly :class:`ScalerAttrConverterGymLegacy`)
+        - :class:`ScalerAttrConverterGymnasium` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`ScalerAttrConverterGymLegacy` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     """
 
     def __init__(self, substract, divide, dtype=None, init_space=None):
-        BaseGymAttrConverter.__init__(
-            self, g2op_to_gym=None, gym_to_g2op=None, space=None
-        )
+        super().__init__(
+            g2op_to_gym=None, gym_to_g2op=None, space=None
+        )  # super should be from type BaseGymAttrConverter
         self._substract = np.array(substract)
         self._divide = np.array(divide)
         self.dtype = dtype if dtype is not None else dt_float
@@ -77,3 +93,21 @@ class ScalerAttrConverter(BaseGymAttrConverter):
 
     def close(self):
         pass
+
+
+if GYM_AVAILABLE:
+    from grid2op.gym_compat.base_gym_attr_converter import BaseGymLegacyAttrConverter
+    ScalerAttrConverterGymLegacy = type("ScalerAttrConverterGymLegacy",
+                                        (__AuxScalerAttrConverter, BaseGymLegacyAttrConverter, ),
+                                        {"_gymnasium": False})
+    ScalerAttrConverterGymLegacy.__doc__ = __AuxScalerAttrConverter.__doc__
+    ScalerAttrConverter = ScalerAttrConverterGymLegacy
+        
+
+if GYMNASIUM_AVAILABLE:
+    from grid2op.gym_compat.base_gym_attr_converter import BaseGymnasiumAttrConverter
+    ScalerAttrConverterGymnasium = type("ScalerAttrConverterGymnasium",
+                                     (__AuxScalerAttrConverter, BaseGymnasiumAttrConverter, ),
+                                     {"_gymnasium": True})
+    ScalerAttrConverterGymnasium.__doc__ = __AuxScalerAttrConverter.__doc__
+    ScalerAttrConverter = ScalerAttrConverterGymnasium

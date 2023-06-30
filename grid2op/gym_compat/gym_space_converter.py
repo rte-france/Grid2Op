@@ -15,7 +15,7 @@ from grid2op.gym_compat.utils import check_gym_version, sample_seed
 from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 
 
-class _AuxBaseGymSpaceConverter:
+class __AuxBaseGymSpaceConverter:
     """
     INTERNAL
 
@@ -23,6 +23,22 @@ class _AuxBaseGymSpaceConverter:
         Used as a base class to convert grid2op state to gym state (wrapper for some useful function
         for both the action space and the observation space).
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`_BaseGymSpaceConverter` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`_BaseGymnasiumSpaceConverter`), otherwise it will
+          inherit from gym (and will be exactly :class:`_BaseGymLegacySpaceConverter`)
+        - :class:`_BaseGymnasiumSpaceConverter` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`_BaseGymLegacySpaceConverter` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     """
 
     def __init__(self, dict_gym_space, dict_variables=None):
@@ -262,7 +278,7 @@ class _AuxBaseGymSpaceConverter:
 if GYM_AVAILABLE:
     from gym.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
     _BaseGymLegacySpaceConverter = type("_BaseGymLegacySpaceConverter",
-                                        (_AuxBaseGymSpaceConverter, Dict, ),
+                                        (__AuxBaseGymSpaceConverter, Dict, ),
                                         {"_DiscreteType": Discrete,
                                          "_BoxType": Box,
                                          "_DictType": Dict,
@@ -270,13 +286,14 @@ if GYM_AVAILABLE:
                                          "_MultiBinaryType": MultiBinary, 
                                          "_TupleType": Tuple, 
                                          "_gymnasium": False})
+    _BaseGymLegacySpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
     _BaseGymSpaceConverter = _BaseGymLegacySpaceConverter
         
 
 if GYMNASIUM_AVAILABLE:
     from gymnasium.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
     _BaseGymnasiumSpaceConverter = type("_BaseGymnasiumSpaceConverter",
-                                        (_AuxBaseGymSpaceConverter, Dict, ),
+                                        (__AuxBaseGymSpaceConverter, Dict, ),
                                         {"_DiscreteType": Discrete,
                                          "_BoxType": Box,
                                          "_DictType": Dict,
@@ -284,4 +301,5 @@ if GYMNASIUM_AVAILABLE:
                                          "_MultiBinaryType": MultiBinary, 
                                          "_TupleType": Tuple, 
                                          "_gymnasium": True})
+    _BaseGymnasiumSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
     _BaseGymSpaceConverter = _BaseGymnasiumSpaceConverter

@@ -15,6 +15,23 @@ class __AuxBaseGymAttrConverter(object):
     TODO work in progress !
 
     Need help if you can :-)
+    
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`BaseGymAttrConverter` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`BaseGymnasiumAttrConverter`), otherwise it will
+          inherit from gym (and will be exactly :class:`BaseGymLegacyAttrConverter`)
+        - :class:`BaseGymnasiumAttrConverter` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`BaseGymLegacyAttrConverter` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     """
 
     def __init__(self, space=None, gym_to_g2op=None, g2op_to_gym=None):
@@ -101,6 +118,7 @@ if GYM_AVAILABLE:
                                      (__AuxBaseGymAttrConverter, ),
                                      {"_SpaceType": Space, 
                                       "_gymnasium": False})
+    BaseGymLegacyAttrConverter.__doc__ = __AuxBaseGymAttrConverter.__doc__
     BaseGymAttrConverter = BaseGymLegacyAttrConverter
         
 
@@ -110,4 +128,5 @@ if GYMNASIUM_AVAILABLE:
                                      (__AuxBaseGymAttrConverter, ),
                                      {"_SpaceType": Space, 
                                       "_gymnasium": True})
+    BaseGymnasiumAttrConverter.__doc__ = __AuxBaseGymAttrConverter.__doc__
     BaseGymAttrConverter = BaseGymnasiumAttrConverter

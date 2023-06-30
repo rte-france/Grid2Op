@@ -53,6 +53,23 @@ class __AuxGymEnv:
     - :class:`GymEnv_Legacy` for gym < 0.26
     - :class:`GymEnv_Modern` for gym >= 0.26
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`GymEnv` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`GymnasiumEnv`), otherwise it will
+          inherit from gym (and will be exactly :class:`GymEnv_Legacy` - gym < 0.26- 
+          or :class:`GymEnv_Modern` - for gym >= 0.26)
+        - :class:`GymnasiumEnv` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`GymEnv_Legacy` and :class:`GymEnv_Modern` will inherit from gym if it's 
+          available and never from from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     Notes
     ------
     The environment passed as input is copied. It is not modified by this "gym environment"
@@ -69,6 +86,7 @@ class __AuxGymEnv:
         env_name = ...
         env = grid2op.make(env_name)
         gym_env = GymEnv(env)  # is a gym environment properly inheriting from gym.Env !
+
 
     """
 
@@ -196,12 +214,13 @@ class __AuxGymEnv:
 
 if GYM_AVAILABLE:
     from grid2op.gym_compat.gym_obs_space import GymLegacyObservationSpace
+    from grid2op.gym_compat.gym_act_space import GymLegacyActionSpace
     _AuxGymEnv = type("_AuxGymEnv",
                       (__AuxGymEnv, gym.Env),
                       {"_gymnasium": False,
-                       "_ActionSpaceType": GymActionSpace,
+                       "_ActionSpaceType": GymLegacyActionSpace,
                        "_ObservationSpaceType": GymLegacyObservationSpace})
-    
+    _AuxGymEnv.__doc__ = __AuxGymEnv.__doc__
     class GymEnv_Legacy(_AuxGymEnv):
         # for old version of gym        
         def reset(self, *args, **kwargs):
@@ -228,12 +247,14 @@ if GYM_AVAILABLE:
 
 
 if GYMNASIUM_AVAILABLE:
+    from grid2op.gym_compat.gym_act_space import GymnasiumActionSpace
     from grid2op.gym_compat.gym_obs_space import GymnasiumObservationSpace
-    _AuxGymnasiumEnv = type("GymnasiumEnv",
+    _AuxGymnasiumEnv = type("_AuxGymnasiumEnv",
                             (__AuxGymEnv, gymnasium.Env),
                             {"_gymnasium": True,
-                             "_ActionSpaceType": GymActionSpace,
+                             "_ActionSpaceType": GymnasiumActionSpace,
                              "_ObservationSpaceType": GymnasiumObservationSpace})
+    _AuxGymnasiumEnv.__doc__ = __AuxGymEnv.__doc__
     
     class GymnasiumEnv(_AuxGymnasiumEnv):
         # for new version of gym

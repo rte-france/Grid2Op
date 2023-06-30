@@ -17,13 +17,12 @@ from grid2op.Environment import (
 )
 from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 if GYMNASIUM_AVAILABLE:
-    from gymnasium import spaces  #only for type hints
+    from gymnasium import spaces  # only used for type hints
 elif GYM_AVAILABLE:
     from gym import spaces
     
 from grid2op.Observation import BaseObservation
 from grid2op.dtypes import dt_int, dt_bool, dt_float
-from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 from grid2op.gym_compat.utils import _compute_extra_power_for_losses
 
 
@@ -38,6 +37,22 @@ class __AuxGymObservationSpace:
 
     Note that gym space converted with this class should be seeded independently. It is NOT seeded
     when calling :func:`grid2op.Environment.Environment.seed`.
+
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`GymObservationSpace` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`GymnasiumObservationSpace`), otherwise it will
+          inherit from gym (and will be exactly :class:`GymLegacyObservationSpace`)
+        - :class:`GymnasiumObservationSpace` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`GymLegacyObservationSpace` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
 
     Examples
     --------
@@ -170,7 +185,7 @@ class __AuxGymObservationSpace:
         """
 
         my_dict = self.get_dict_encoding()
-        if fun is not None and not isinstance(fun, BaseGymAttrConverter):
+        if fun is not None and not isinstance(fun, super()._BaseGymAttrConverterType):
             raise RuntimeError(
                 "Impossible to initialize a converter with a function of type {}".format(
                     type(fun)
@@ -401,6 +416,7 @@ class __AuxGymObservationSpace:
 if GYM_AVAILABLE:
     from gym.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
     from grid2op.gym_compat.gym_space_converter import _BaseGymLegacySpaceConverter
+    from grid2op.gym_compat.base_gym_attr_converter import BaseGymLegacyAttrConverter
     GymLegacyObservationSpace = type("GymLegacyObservationSpace",
                                      (__AuxGymObservationSpace, _BaseGymLegacySpaceConverter, ),
                                      {"_DiscreteType": Discrete,
@@ -409,13 +425,16 @@ if GYM_AVAILABLE:
                                       "_SpaceType": Space, 
                                       "_MultiBinaryType": MultiBinary, 
                                       "_TupleType": Tuple, 
+                                      "_BaseGymAttrConverterType": BaseGymLegacyAttrConverter,
                                       "_gymnasium": False})
+    GymLegacyObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
     GymObservationSpace = GymLegacyObservationSpace
         
 
 if GYMNASIUM_AVAILABLE:
     from gymnasium.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
     from grid2op.gym_compat.gym_space_converter import _BaseGymnasiumSpaceConverter
+    from grid2op.gym_compat.base_gym_attr_converter import BaseGymnasiumAttrConverter
     GymnasiumObservationSpace = type("GymnasiumObservationSpace",
                                      (__AuxGymObservationSpace, _BaseGymnasiumSpaceConverter, ),
                                      {"_DiscreteType": Discrete,
@@ -424,6 +443,8 @@ if GYMNASIUM_AVAILABLE:
                                       "_SpaceType": Space, 
                                       "_MultiBinaryType": MultiBinary, 
                                       "_TupleType": Tuple, 
+                                      "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
                                       "_gymnasium": True})
+    GymnasiumObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
     GymObservationSpace = GymnasiumObservationSpace
     

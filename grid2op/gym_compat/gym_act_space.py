@@ -34,6 +34,22 @@ class __AuxGymActionSpace:
     **Note** that gym space converted with this class should be seeded independently. It is NOT seeded
     when calling :func:`grid2op.Environment.Environment.seed`.
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`GymActionSpace` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`GymnasiumActionSpace`), otherwise it will
+          inherit from gym (and will be exactly :class:`GymLegacyActionSpace`)
+        - :class:`GymnasiumActionSpace` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`GymLegacyActionSpace` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     Examples
     --------
     Converting an action space is fairly straightforward, though the resulting gym action space
@@ -373,6 +389,7 @@ if GYM_AVAILABLE:
                                  "_TupleType": Tuple, 
                                  "_BaseGymAttrConverterType": BaseGymLegacyAttrConverter, 
                                  "_gymnasium": False})
+    GymLegacyActionSpace.__doc__ = __AuxGymActionSpace.__doc__
     GymActionSpace = GymLegacyActionSpace
         
 
@@ -390,5 +407,6 @@ if GYMNASIUM_AVAILABLE:
                                  "_TupleType": Tuple, 
                                  "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter, 
                                  "_gymnasium": True})
+    GymnasiumActionSpace.__doc__ = __AuxGymActionSpace.__doc__
     GymActionSpace = GymnasiumActionSpace
     

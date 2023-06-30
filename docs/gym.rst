@@ -7,11 +7,27 @@
 
 .. _openai-gym:
 
-Compatibility with openAI gym
+Compatibility with gymnasium / gym
 ===================================
 
-The gym framework in reinforcement learning is widely used. Starting from version 1.2.0 we improved the
+The gymnasium framework in reinforcement learning is widely used. Starting from version 1.2.0 we improved the
 compatibility with this framework.
+
+Starting with 1.9.1 we switch (as advise) from the legacy "gym" framework to the 
+new "gymnasium" framework. This change should not have any impact on older grid2op code
+except that you now need to use `import gymnasium as gym` instead of `import gym` in 
+your base code.
+
+.. note::
+    If you want to still use the "legacy" gym classes you can still do it with grid2op.
+
+    Backward compatibility with openai gym is maintained.
+
+.. note::
+    By default, if gymnasium is installed, all default classes from grid2op.gym_compat module will 
+    inherit from gymnasium. You can still retrieve the classes inheriting from gym (and not gymnasium).
+
+    More information on the section :ref:`gymnasium_gym`
 
 Before grid2op 1.2.0 only some classes fully implemented the open AI gym interface:
 
@@ -49,7 +65,7 @@ A simple usage is:
 .. note::
 
     To be as close as grid2op as possible, by default (using the methode discribed above) the action
-    space will be encoded as a gym Dict with keys the attribute of a grid2op action. This might not
+    space will be encoded as a gymnasium.spaces.Dict with keys the attribute of a grid2op action. This might not
     be the best representation to perform RL with (some framework do not really like it...)
 
     For more customization on that side, please refer to the section :ref:`gym_compat_box_discrete` below
@@ -474,6 +490,13 @@ pmin and pmax:
         self.observation_space["gen_p"].high[:] = np.inf
 
 
+.. _gymnasium_gym:
+
+Gymnasium vs Gym
+------------------
+
+TODO explain behaviour and classes that are being used
+
 Detailed Documentation by class
 --------------------------------
 .. automodule:: grid2op.gym_compat
@@ -483,52 +506,5 @@ Detailed Documentation by class
 .. autoclass:: grid2op.gym_compat.gym_space_converter._BaseGymSpaceConverter
     :members:
     :autosummary:
-
-
-Legacy version
----------------
-
-If you are interested by this feature, we recommend you to proceed like this:
-
-.. code-block:: python
-
-   import grid2op
-   from grid2op.gym_compat import GymActionSpace, GymObservationSpace
-   from grid2op.Agent import BaseAgent
-
-   class MyAgent(BaseAgent):
-      def __init__(self, action_space, observation_space):
-         BaseAgent.__init__(self, action_space)
-         self.gym_obs_space = GymObservationSpace(observation_space)
-         self.gym_action_space = GymActionSpace(observation_space)
-
-      def act(self, obs, reward, done=False):
-         # convert the observation to gym like one:
-         gym_obs = self.gym_obs_space.to_gym(obs)
-
-         # do whatever you want, as long as you retrieve a gym-like action
-         gym_action = ...
-         grid2op_action = self.gym_action_space.from_gym(gym_action)
-         # NB advanced usage: if action_space is a grid2op.converter (for example coming from IdToAct)
-         # then what's called  "grid2op_action" is in fact an action that can be understood by the converter.
-         # to convert it back to grid2op action you need to convert it. See the documentation of GymActionSpace
-         # for such purpose.
-         return grid2op_action
-
-   env = grid2op.make(...)
-   my_agent = MyAgent(env.action_space, env.observation_space, ...)
-
-   # and now do anything you like
-   # for example
-   done = False
-   reward = env.reward_range[0]
-   obs = env.reset()
-   while not done:
-      action = my_agent.act(obs, reward, done)
-      obs, reward, done, info = env.step(action)
-
-We also implemented some "converter" that allow the conversion of some action space into more convenient
-`gym.spaces` (this is only available if gym is installed of course). Please check
-:class:`grid2op.gym_compat.GymActionSpace` for more information and examples.
 
 .. include:: final.rst
