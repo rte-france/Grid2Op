@@ -71,10 +71,6 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
 
     """
 
-    NAME_DN = "l2rpn2023_dn"
-    # NAME_DN_NO_OVERFLOW = "l2rpn2023_no_overflow"
-    NAME_RP_NO_OVERWLOW = "l2rpn2023_no_overflow_reco"
-
     def __init__(
         self,
         env,
