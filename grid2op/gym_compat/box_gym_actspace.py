@@ -152,7 +152,7 @@ class __AuxBoxGymActSpace:
                 f"grid2op action_space. You provided {type(grid2op_action_space)}"
                 f'as the "grid2op_action_space" attribute.'
             )
-        check_gym_version(True)  # TODO GYMNASIUM
+        check_gym_version(type(self)._gymnasium)
         if attr_to_keep == ALL_ATTR:
             # by default, i remove all the attributes that are not supported by the action type
             # i do not do that if the user specified specific attributes to keep. This is his responsibility in

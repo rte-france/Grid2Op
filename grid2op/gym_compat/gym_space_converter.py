@@ -42,7 +42,7 @@ class __AuxBaseGymSpaceConverter:
     """
 
     def __init__(self, dict_gym_space, dict_variables=None):
-        check_gym_version(True)  # TODO GYMNASIUM
+        check_gym_version(type(self)._gymnasium)
         type(self)._DictType.__init__(self, dict_gym_space)
         self._keys_encoding = {}
         if dict_variables is not None:
