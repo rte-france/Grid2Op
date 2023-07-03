@@ -38,6 +38,7 @@ Change Log
   do not install `gymnasium`. If you want compatibility with sota softwares using `gymnasium`,
   install it and continue using grid2op transparently. See doc of `gym_compat` module for more
   information.
+- [BREAKING] remove the support of the "raise_alarm" kwargs in the DiscreteActSpace
 - [FIXED] an error when an environment with alarm was created before an environment 
   without alert. This lead to a crash when creating the second environment. This is now fixed.
 - [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
@@ -54,6 +55,9 @@ Change Log
 - [IMPROVED] the method `act.as_serializable_dict()` to work better when exporting / importing actions on different 
   grids (the output dictionary for `set_bus` and `change_bus` now split the keys between all elements types 
   instead of relying on the "topo_vect" order (which might vary))
+- [IMPROVED] consistency between how to perform action on storage units between "raw" grid2op, 
+  `GymActionSpace`, `BoxGymActSpace`, `DiscreteActSpace` and `MultiDiscreteActSpace` (
+    used to be a mix of `set_storage` and `storage_power` now it's consistent and is `set_storage` everywhere)
 
 [1.9.0] - 2023-06-06
 --------------------

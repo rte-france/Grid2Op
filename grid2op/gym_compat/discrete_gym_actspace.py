@@ -176,7 +176,7 @@ class __AuxDiscreteActSpace:
     - "change_bus": corresponds to changing the topology using the "change_bus" (equivalent to the
       "one_sub_change" keyword in the "attr_to_keep" of the :class:`MultiDiscreteActSpace`)
     - "redispatch"
-    - "storage_power"
+    - "set_storage"
     - "curtail"
     - "curtail_mw" (same effect as "curtail")
 
@@ -229,7 +229,7 @@ class __AuxDiscreteActSpace:
             )
 
         if nb_bins is None:
-            nb_bins = {"redispatch": 7, "storage_power": 7, "curtail": 7}
+            nb_bins = {"redispatch": 7, "set_storage": 7, "curtail": 7}
 
         if "raise_alert" in attr_to_keep or "raise_alarm" in attr_to_keep:
             raise Grid2OpException("This converter cannot be use to raise alarm or raise alert. "
@@ -271,7 +271,7 @@ class __AuxDiscreteActSpace:
             "set_bus": act_sp.get_all_unitary_topologies_set,
             "change_bus": act_sp.get_all_unitary_topologies_change,
             "redispatch": act_sp.get_all_unitary_redispatch,
-            "storage_power": act_sp.get_all_unitary_storage,
+            "set_storage": act_sp.get_all_unitary_storage,
             "curtail": act_sp.get_all_unitary_curtail,
             "curtail_mw": act_sp.get_all_unitary_curtail,
             # "raise_alarm": act_sp.get_all_unitary_alarm,

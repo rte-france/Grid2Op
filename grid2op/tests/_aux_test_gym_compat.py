@@ -1828,7 +1828,7 @@ class _AuxTestAllGymActSpaceWithAlarm:
             "curtail": 85,
             "curtail_mw": 121,
             "set_storage": 1,
-            "raise_alarm": 4,
+            # "raise_alarm": 4,  # not supported in "discrete"!
         }
 
         func_check = {
@@ -1844,8 +1844,8 @@ class _AuxTestAllGymActSpaceWithAlarm:
             "set_storage": lambda act: np.any(act.set_storage != 0.0),
             "curtail": lambda act: np.any(act.curtail != 1.0),
             "curtail_mw": lambda act: np.any(act.curtail != 1.0),
-            "raise_alarm": lambda act: np.any(act.raise_alarm)
-            and ~np.all(act.raise_alarm),
+            # "raise_alarm": lambda act: np.any(act.raise_alarm)
+            # and ~np.all(act.raise_alarm),
         }
         for attr_nm in sorted(dims.keys()):
             kept_attr = [attr_nm]
