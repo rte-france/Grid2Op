@@ -161,13 +161,6 @@ jobs:
                    python -m pip install -U .[test]
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
-            - run:
-               command: |
-                   source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.25,<1.26"
-                   python -m pip install -U .[test]
-                   export _GRID2OP_FORCE_TEST=1
-                   grid2op.testinstall
 
     install39:
         executor: python39
