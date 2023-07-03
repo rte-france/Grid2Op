@@ -39,6 +39,7 @@ TEST_DEV_ENVS = {
     "l2rpn_icaps_2021": DEV_DATASET.format("l2rpn_icaps_2021"),
     "l2rpn_wcci_2022_dev": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
     "l2rpn_wcci_2022": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
+    "l2rpn_idf_2023": DEV_DATASET.format("l2rpn_idf_2023"),
     # educational files
     "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
     "educ_case14_storage": DEV_DATASET.format("educ_case14_storage"),
@@ -289,12 +290,25 @@ def make(
     test: ``bool``
         Whether you want to use a test environment (**NOT** recommended). Use at your own risk.
 
+    logger: 
+        If you want to use a specific logger for environment and all other 
+        grid2op objects, you can put it here. This feature is still under development.
+        
+    experimental_read_from_local_dir: ``bool``
+        Grid2op "embed" the grid description into the description of the classes
+        themselves. By default this is done "on the fly" (when the environment is created)
+        but for some usecase (especially ones involving multiprocessing or "pickle")
+        it might not be easily usable. If you encounter issues with pickle or multi
+        processing, you can set this flag to ``True``. See the doc of 
+        :func:`grid2op.Environment.BaseEnv.generate_classes` for more information.
+        
     kwargs:
         Other keyword argument to give more control on the environment you are creating. See
         the Parameters information of the :func:`make_from_dataset_path`.
 
     _add_to_name:
-        Internal, do not use (and can only be used when setting "test=True")
+        Internal, do not use (and can only be used when setting "test=True"). If
+        `experimental_read_from_local_dir` is set to True, this has no effect.
 
     _compat_glop_version:
         Internal, do not use (and can only be used when setting "test=True")

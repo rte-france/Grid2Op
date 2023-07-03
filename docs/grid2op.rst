@@ -245,10 +245,75 @@ The grid2op environments have multiple shared properties:
   short circuit a powerplant? Or causing a blackout preventing an hospital to cure the patients?) and as such it is
   critical that the controls keep the powergrid safe in all circumstances.
 
+
+Modeling the interaction with operators
+----------------------------------------
+
+In real grid it is likely that human operators will still be in command for at
+least a certain number of tasks (if not all !) including controlling flows in 
+the grid.
+
+To that end, it is important that the "AI" / "Artificial Agent" / "Algorithm"
+(what is modeled by the `Agent` in grid2Op) collaborates well with human.
+
+In grid2op there are two main concepts related to "human machine interaction":
+- alarm: used for example in "l2rpn_icaps_2021" environment.
+- alerts: used for example in "l2rpn_idf_2023" environment.
+
+Alarm feature
++++++++++++++++
+
+This section might or might not be updated depending on the time at our disposal...
+
+.. _grid2op-alert-module:
+
+Alert feature
++++++++++++++++
+
+In a "human / machine" collaboration it is important that the machine tells the human when 
+it is not fully confident on its ability to handle the grid for `xxx` amount of time.
+
+In our formulation, we ask the agent to send alert (through the action see :attr:`grid2op.Action.BaseAction.raise_alert`)
+at each step. 
+
+An alert will concern a single powerline (say powerline `i`) And each of this alert will mean:
+
+- if no alert (for line `i`) is raised at this step: "Me, the agent, can handle the grid for `env.parameters.ALERT_TIME_WINDOW` 
+  steps even if powerline `i` is disconnected" (
+  the agent tell the human there will not be any game over for at least `env.parameters.ALERT_TIME_WINDOW` steps even if
+  the opponent attacks line `i`)
+- if an alert (for line `i`) is raised it means the opposite. The agent "think" that, if powerline `i` is attacked, then
+  it will probably game over before `env.parameters.ALERT_TIME_WINDOW` steps pass.
+
+.. note:: 
+  This entails that the alerts can only be evaluated when an opponent attacks a powerline. If a powerline is attacked, then 
+  the environment "waits" for `env.parameters.ALERT_TIME_WINDOW` and there is 4 cases:
+
+  - agent survived and sent an alert on line `i` (just before this line was attacked): 
+    this is not a behaviour that we want to incite, reward is -1.
+  - agent survived and did not sent an alert on line `i` (just before this line was attacked): this is a correct
+    behaviour, the reward is +1.
+  - agent "games over" during the `env.parameters.ALERT_TIME_WINDOW` and sent an alert 
+    on line `i` (just before this line was attacked): though the game over should be avoided at all cost, this 
+    is the "expected" behaviour for the alert and in this case the reward is +2. 
+  - agent "games over" during the `env.parameters.ALERT_TIME_WINDOW` and did not sent an alert 
+    on line `i` (just before this line was attacked): the game over should be avoided at all cost and this
+    is NOT the correct behaviour (agent should have told it was not able to conduct the grid) for the alert
+    agent is heavily penalized with a score of -10.
+
+  (Above this entails that the :class:`grid2op.Reward.AlertReward` is used)
+
+.. danger::
+  The "reward" in the warning above is only relevant for the "alert" part. Note that for L2RPN competition, the 
+  real goal is still to oeprate the grid for as long as possible. There is an heavy penalty in these competitions
+  if an agent "games over" before the end.
+   
+
+TODO explain more with code examples and detail why this or that reward and the properties of the observation.
+
 Disclaimer
 -----------
-Grid2op is a research testbed platform, it shall not be use in "production" for any kind of application.
-
+Grid2op is a research testbed platform, it has not been tested in "production" context
 
 Going further
 --------------

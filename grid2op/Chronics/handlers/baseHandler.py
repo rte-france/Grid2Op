@@ -18,7 +18,7 @@ from datetime import timedelta, datetime
 class BaseHandler(RandomObject):
     """This is the base class that represents a time series "handler".
     
-    .. versionadded:: 1.8.2
+    .. versionadded:: 1.9.0
     
     Each "handler" will be reponsible to produce the data for "one single type of elements" 
     of the grid. For example you will have 1 handler for "load_p", one for "load_q", another

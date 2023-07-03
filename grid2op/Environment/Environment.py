@@ -101,6 +101,7 @@ class Environment(BaseEnv):
         observation_bk_class=None,
         observation_bk_kwargs=None,
         highres_sim_counter=None,
+        _update_obs_after_reward=True,
         _init_obs=None,
         _raw_backend_class=None,
         _compat_glop_version=None,
@@ -137,6 +138,7 @@ class Environment(BaseEnv):
             observation_bk_class=observation_bk_class,
             observation_bk_kwargs=observation_bk_kwargs,
             highres_sim_counter=highres_sim_counter,
+            update_obs_after_reward=_update_obs_after_reward,
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )
@@ -256,11 +258,8 @@ class Environment(BaseEnv):
             self.backend.is_loaded = True
 
             # alarm set up
-            if self.parameters.ASSISTANT_WARNING_TYPE == "BY_LINE":
-                self.alertable_line_names, self.alertable_lines_id, self.dim_alerts = self.load_alert_data()
-                
-            else : 
-                self.load_alarm_data()
+            self.load_alarm_data()
+            self.load_alert_data()
             
             # to force the initialization of the backend to the proper type
             self.backend.assert_grid_correct()
@@ -405,18 +404,16 @@ class Environment(BaseEnv):
         self._create_opponent()
 
         # create the attention budget
-        if self.parameters.ASSISTANT_WARNING_TYPE == "BY_LINE" :
-            self._create_attention_budget(dim_alerts=self.dim_alerts)
-            self.action_space.tell_dim_alert(self.dim_alerts)
-            self._action_space.tell_dim_alert(self.dim_alerts)
-            self._actionClass.tell_dim_alert(self.dim_alerts)
-        else : 
-            self._create_attention_budget()
+        self._create_attention_budget()
 
+        # init the alert relate attributes
+        self._init_alert_data()
+        
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
         self._reset_maintenance()
         self._reset_redispatching()
+        self._reward_to_obs = {}
         do_nothing = self._helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
@@ -840,6 +837,7 @@ class Environment(BaseEnv):
             self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
         self._backend_action = self._backend_action_class()
+        self.nb_time_step = -1  # to have init obs at step 1
         do_nothing = self._helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:

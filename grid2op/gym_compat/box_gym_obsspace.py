@@ -9,15 +9,15 @@
 import copy
 import warnings
 import numpy as np
-from gym.spaces import Box
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Observation import ObservationSpace
 from grid2op.Exceptions import Grid2OpException
 
-from grid2op.gym_compat.utils import _compute_extra_power_for_losses
-from grid2op.gym_compat.utils import check_gym_version
-
+from grid2op.gym_compat.utils import (_compute_extra_power_for_losses,
+                                      GYM_AVAILABLE,
+                                      GYMNASIUM_AVAILABLE,
+                                      check_gym_version)
 
 ALL_ATTR_OBS = (
     "year",
@@ -65,12 +65,14 @@ ALL_ATTR_OBS = (
     "last_alarm",
     "attention_budget",
     "was_alarm_used_after_game_over",
-    "is_alert_illegal",
-    "time_since_last_alert",
-    "last_alert",
-    "was_alert_used_after_attack",
-    "current_step",
     "max_step",
+    "active_alert",
+    "attack_under_alert",
+    "time_since_last_alert",
+    "alert_duration",
+    "total_number_of_alert",
+    "time_since_last_attack",
+    "was_alert_used_after_attack",
     "theta_or",
     "theta_ex",
     "load_theta",
@@ -82,14 +84,30 @@ ALL_ATTR_OBS = (
 # TODO add the is_illegal and co there
 
 
-class BoxGymObsSpace(Box):
+class __AuxBoxGymObsSpace:
     """
     This class allows to convert a grid2op observation space into a gym "Box" which is
     a regular Box in R^d.
 
     It also allows to customize which part of the observation you want to use and offer capacity to
     center / reduce the data or to use more complex function from the observation.
-
+    
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`BoxGymObsSpace` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`BoxGymnasiumObsSpace`), otherwise it will
+          inherit from gym (and will be exactly :class:`BoxLegacyGymObsSpace`)
+        - :class:`BoxGymnasiumObsSpace` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`BoxLegacyGymObsSpace` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     Examples
     --------
     If you simply want to use it you can do:
@@ -97,7 +115,7 @@ class BoxGymObsSpace(Box):
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         from grid2op.gym_compat import GymEnv, BoxGymObsSpace
@@ -182,7 +200,7 @@ class BoxGymObsSpace(Box):
         divide=None,
         functs=None,
     ):
-        check_gym_version()
+        check_gym_version(type(self)._gymnasium)  # TODO GYMNASIUM
         if not isinstance(grid2op_observation_space, ObservationSpace):
             raise RuntimeError(
                 f"Impossible to create a BoxGymObsSpace without providing a "
@@ -528,33 +546,48 @@ class BoxGymObsSpace(Box):
                 (1,),
                 dt_float,
             ),
-            "is_alert_illegal": (
-                np.full(shape=(1,), fill_value=False, dtype=dt_bool),
-                np.full(shape=(1,), fill_value=True, dtype=dt_bool),
-                (1,),
+            # alert stuff
+            "active_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=False, dtype=dt_bool),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=True, dtype=dt_bool),
+                (ob_sp.dim_alerts,),
                 dt_bool,
             ),
             "time_since_last_alert": (
-                np.full(shape=(1,), fill_value=-1, dtype=dt_int),
-                np.full(shape=(1,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
-                (1,),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
                 dt_int,
             ),
-            "last_alert": (
+            "alert_duration": (
                 np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
-                np.full(
-                    shape=(ob_sp.dim_alerts,),
-                    fill_value=np.iinfo(dt_int).max,
-                    dtype=dt_int,
-                ),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "total_number_of_alert": (
+                np.full(shape=(1 if ob_sp.dim_alerts else 0,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(1 if ob_sp.dim_alerts else 0,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (1 if ob_sp.dim_alerts else 0,),
+                dt_int,
+            ),
+            "time_since_last_attack": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
                 (ob_sp.dim_alerts,),
                 dt_int,
             ),
             "was_alert_used_after_attack": (
-                np.full(shape=(1,), fill_value=False, dtype=dt_bool),
-                np.full(shape=(1,), fill_value=True, dtype=dt_bool),
-                (1,),
-                dt_bool,
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=1, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "attack_under_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=1, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
             ),
         }
         self._dict_properties["max_step"] = copy.deepcopy(self._dict_properties["current_step"])
@@ -594,7 +627,7 @@ class BoxGymObsSpace(Box):
         low, high, shape, dtype = self._get_info(functs)
 
         # initialize the base container
-        Box.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
+        type(self)._BoxType.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
 
     def _get_info(self, functs):
         low = None
@@ -811,3 +844,31 @@ class BoxGymObsSpace(Box):
                 self.low[prev:where_to_put][both_finite] = 0.0
                 break
             prev = where_to_put
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import Box as LegGymBox
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    BoxLegacyGymObsSpace = type("BoxLegacyGymObsSpace",
+                                (__AuxBoxGymObsSpace, LegGymBox, ),
+                                {"_gymnasium": False,
+                                 "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
+                                 "_BoxType": LegGymBox,
+                                 "__module__": __name__})
+    BoxLegacyGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
+    BoxGymObsSpace = BoxLegacyGymObsSpace
+    BoxGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Box
+    from grid2op.gym_compat.base_gym_attr_converter import BaseGymnasiumAttrConverter
+    BoxGymnasiumObsSpace = type("BoxGymnasiumObsSpace",
+                                (__AuxBoxGymObsSpace, Box, ),
+                                {"_gymnasium": True,
+                                 "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
+                                 "_BoxType": Box,
+                                 "__module__": __name__})
+    BoxGymnasiumObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
+    BoxGymObsSpace = BoxGymnasiumObsSpace
+    BoxGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__

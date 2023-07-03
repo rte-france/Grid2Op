@@ -183,8 +183,8 @@ class LinearAttentionBudget:
             )
         return None
 
-class LinearAttentionBudgetByLine:
-
+class _LinearAttentionBudgetByLine:
+    """Currently not implemented, DO NOT USE !"""
     def __init__(self):
         self._max_budget = None
         self._budget_per_ts = None

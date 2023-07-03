@@ -6,15 +6,16 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from gym import spaces
+from collections import OrderedDict
 import numpy as np
 import copy
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.gym_compat.utils import check_gym_version, sample_seed
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 
 
-class _BaseGymSpaceConverter(spaces.Dict):
+class __AuxBaseGymSpaceConverter:
     """
     INTERNAL
 
@@ -22,19 +23,35 @@ class _BaseGymSpaceConverter(spaces.Dict):
         Used as a base class to convert grid2op state to gym state (wrapper for some useful function
         for both the action space and the observation space).
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`_BaseGymSpaceConverter` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`_BaseGymnasiumSpaceConverter`), otherwise it will
+          inherit from gym (and will be exactly :class:`_BaseLegacyGymSpaceConverter`)
+        - :class:`_BaseGymnasiumSpaceConverter` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`_BaseLegacyGymSpaceConverter` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     """
 
     def __init__(self, dict_gym_space, dict_variables=None):
-        check_gym_version()
-        spaces.Dict.__init__(self, dict_gym_space)
+        check_gym_version(True)  # TODO GYMNASIUM
+        type(self)._DictType.__init__(self, dict_gym_space)
         self._keys_encoding = {}
         if dict_variables is not None:
             for k, v in dict_variables.items():
                 self._keys_encoding[k] = v
         self.__func = {}
 
-    @staticmethod
-    def _generic_gym_space(dt, sh, low=None, high=None):
+    @classmethod
+    def _generic_gym_space(cls, dt, sh, low=None, high=None):
         if dt == dt_int:
             if low is None:
                 low = np.iinfo(dt).min
@@ -44,14 +61,14 @@ class _BaseGymSpaceConverter(spaces.Dict):
             low = -np.inf
             high = +np.inf
         shape = (sh,)
-        my_type = spaces.Box(
+        my_type = cls._BoxType(
             low=dt.type(low), high=dt.type(high), shape=shape, dtype=dt
         )
         return my_type
 
-    @staticmethod
-    def _boolean_type(sh):
-        return spaces.MultiBinary(n=sh)
+    @classmethod
+    def _boolean_type(cls, sh):
+        return cls._MultiBinaryType(n=sh)
 
     @staticmethod
     def _simplifykeys_for_timestamps(key):
@@ -91,7 +108,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
 
     def _base_to_gym(self, keys, obj, dtypes, converter=None):
         """convert the obj (grid2op object) into a gym observation / action space"""
-        res = spaces.dict.OrderedDict()
+        res = OrderedDict()
         for k in keys:
             if k in self.__func:
                 obj_json_cleaned = self.__func[k](obj)
@@ -107,7 +124,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
                     if self._keys_encoding[conv_k] is None:
                         # keys is deactivated
                         continue
-                    elif isinstance(self._keys_encoding[conv_k], spaces.Space):
+                    elif isinstance(self._keys_encoding[conv_k], type(self)._SpaceType):
                         obj_json_cleaned = getattr(obj, conv_k)
                     else:
                         # i need to process the "function" part in the keys
@@ -248,7 +265,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
         see issue https://github.com/openai/gym/issues/2166
         of openAI gym
         """
-        seeds = super(spaces.Dict, self).seed(seed)
+        seeds = super(type(self)._DictType, self).seed(seed)
         sub_seeds = seeds
         max_ = np.iinfo(dt_int).max
         for i, space_key in enumerate(sorted(self.spaces.keys())):
@@ -258,3 +275,40 @@ class _BaseGymSpaceConverter(spaces.Dict):
 
     def close(self):
         pass
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import (Discrete as LegGymDiscrete,
+                            Box as LegGymBox,
+                            Dict as LegGymDict,
+                            Space as LegGymSpace,
+                            MultiBinary as LegGymMultiBinary,
+                            Tuple as LegGymTuple)
+    _BaseLegacyGymSpaceConverter = type("_BaseLegacyGymSpaceConverter",
+                                        (__AuxBaseGymSpaceConverter, LegGymDict, ),
+                                        {"_DiscreteType": LegGymDiscrete,
+                                         "_BoxType": LegGymBox,
+                                         "_DictType": LegGymDict,
+                                         "_SpaceType": LegGymSpace, 
+                                         "_MultiBinaryType": LegGymMultiBinary, 
+                                         "_TupleType": LegGymTuple,
+                                         "_gymnasium": False,
+                                         "__module__": __name__})
+    _BaseLegacyGymSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
+    _BaseGymSpaceConverter = _BaseLegacyGymSpaceConverter
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
+    _BaseGymnasiumSpaceConverter = type("_BaseGymnasiumSpaceConverter",
+                                        (__AuxBaseGymSpaceConverter, Dict, ),
+                                        {"_DiscreteType": Discrete,
+                                         "_BoxType": Box,
+                                         "_DictType": Dict,
+                                         "_SpaceType": Space, 
+                                         "_MultiBinaryType": MultiBinary, 
+                                         "_TupleType": Tuple, 
+                                         "_gymnasium": True,
+                                         "__module__": __name__})
+    _BaseGymnasiumSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
+    _BaseGymSpaceConverter = _BaseGymnasiumSpaceConverter

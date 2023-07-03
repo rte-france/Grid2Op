@@ -44,8 +44,11 @@ pkgs = {
             "imageio>=2.8.0",
             "pygifsicle>=1.0.1",
             "psutil>=5.7.0",
-            "gym>=0.17.2",
+            "gymnasium",
             "lightsim2grid",
+        ],
+        "gym": [
+            "gym>=0.17.2",
         ],
         "docs": [
             "numpydoc>=0.9.2",
@@ -63,7 +66,8 @@ pkgs = {
         "plot": ["imageio"],
         "test": ["lightsim2grid",
                  "numba",
-                 "gym>=0.26"
+                 "gym>=0.26",
+                 "gymnasium"
                  ],
         "chronix2grid": [
             "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/ramp_forecast"

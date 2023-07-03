@@ -14,6 +14,19 @@ except ModuleNotFoundError:
     # not available in python 3.7
     from importlib_metadata import distribution
 
+try:
+    import gym
+    GYM_AVAILABLE = True
+except ImportError:
+    GYM_AVAILABLE = False
+
+try:
+    import gymnasium
+    GYMNASIUM_AVAILABLE = True
+except ImportError:
+    GYMNASIUM_AVAILABLE = False
+    
+    
 _MIN_GYM_VERSION = version.parse("0.17.2")
 # this is the last gym version to use the "old" numpy prng
 _MAX_GYM_VERSION_RANDINT = version.parse("0.25.99") 
@@ -34,6 +47,18 @@ ALL_ATTR = (
     "raise_alert",
 )
 
+
+# raise alert or alarm is not supported
+ALL_ATTR_FOR_DISCRETE = (
+    "set_line_status",
+    "change_line_status",
+    "set_bus",
+    "change_bus",
+    "redispatch",
+    "set_storage",
+    "curtail"
+)
+
 ATTR_DISCRETE = (
     "set_line_status",
     "set_line_status_simple",
@@ -44,19 +69,23 @@ ATTR_DISCRETE = (
     "sub_change_bus",
     "one_sub_set",
     "one_sub_change",
-    "raise_alarm"
-    "raise_alert"
+    # "raise_alarm"
+    # "raise_alert"
 )
 
 
-def check_gym_version():
-
-    if GYM_VERSION < _MIN_GYM_VERSION:
-        import gym
-        raise RuntimeError(
-            f"Grid2op does not work with gym < {_MIN_GYM_VERSION} and you have gym with "
-            f"version {gym.__version__} installed."
-        )
+def check_gym_version(use_gymnasium):
+    if not use_gymnasium:
+        if GYM_VERSION < _MIN_GYM_VERSION:
+            import gym
+            raise RuntimeError(
+                f"Grid2op does not work with gym < {_MIN_GYM_VERSION} and you have gym with "
+                f"version {gym.__version__} installed."
+            )
+    else:
+        if not GYMNASIUM_AVAILABLE:
+            raise RuntimeError("You are trying to use a class that requries gymnasium, yet you did "
+                               "not appear to have installed it.") 
 
 
 def _compute_extra_power_for_losses(gridobj):

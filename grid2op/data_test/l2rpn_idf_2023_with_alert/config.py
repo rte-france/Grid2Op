@@ -5,7 +5,6 @@ from grid2op.Chronics import Multifolder
 from grid2op.Chronics import GridStateFromFileWithForecastsWithMaintenance
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Opponent import GeometricOpponent, BaseActionBudget
-from grid2op.operator_attention import LinearAttentionBudgetByLine
 
 try:
     from grid2op.l2rpn_utils import ActionIDF2023, ObservationIDF2023
@@ -118,7 +117,6 @@ config = {
         "minimum_attack_duration_hour": 1,
     },
     "has_attention_budget": True,
-    "attention_budget_class": LinearAttentionBudgetByLine,
     "kwargs_attention_budget": {
         "max_budget": 3.0,
         "budget_per_ts": 1.0 / (12.0 * 16),

@@ -246,7 +246,9 @@ class SerializableActionSpace(SerializableSpace):
         return rnd_update
 
     def _sample_raise_alarm(self, rnd_update=None):
-        """.. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\"""
+        """.. warning:: 
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        """
         if rnd_update is None:
             rnd_update = {}
         rnd_area = self.space_prng.randint(self.dim_alarms)
@@ -896,7 +898,8 @@ class SerializableActionSpace(SerializableSpace):
     @staticmethod
     def get_all_unitary_alarm(action_space):
         """
-        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        .. warning::
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
         """
         res = []
         for i in range(action_space.dim_alarms):
@@ -909,12 +912,17 @@ class SerializableActionSpace(SerializableSpace):
     def get_all_unitary_alert(action_space):
         """
         Return all unitary actions that raise an alert on powerlines.
+        
+        .. warning:: There will be one action per combination of attackable lines, so basically, if 
+           you can raise alerts on 10 powerline, you will end up with 2**10 actions.
+           
+           If you got 22 attackable lines, then you got 2**22 actions... probably a TERRIBLE IDEA !
         """
         res = []
         possible_values = [False, True]
         if action_space.dim_alerts:
-            for status in itertools.product(possible_values, repeat=action_space.dim_alerts):
-                res.append(action_space({"raise_alert": status}))
+            for status in itertools.product(possible_values, repeat=type(action_space).dim_alerts):
+                res.append(action_space({"raise_alert": np.array(status, dtype=dt_bool)}))
         return res
 
     @staticmethod
