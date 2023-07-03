@@ -13,7 +13,7 @@ import numpy as np
 from grid2op.Action import ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 
-from grid2op.gym_compat.utils import (ALL_ATTR_FOR_DISCRETE,
+from grid2op.gym_compat.utils import (ALL_ATTR,
                                       ATTR_DISCRETE,
                                       check_gym_version,
                                       GYM_AVAILABLE,
@@ -50,8 +50,8 @@ class __AuxMultiDiscreteActSpace:
       of the curtailment action.
     - "curtail_mw": `sum(env.gen_renewable)` dimensions, completely equivalent to "curtail" for this representation. 
       This is the "conversion to discrete action" of the curtailment action.
-    - "storage_power": `n_storage` dimensions, each containing a certain number of choices depending on the value
-      of the keyword argument `nb_bins["storage_power"]` (by default 7). This is the "conversion to discrete action"
+    - "set_storage": `n_storage` dimensions, each containing a certain number of choices depending on the value
+      of the keyword argument `nb_bins["set_storage"]` (by default 7). This is the "conversion to discrete action"
       of the action on storage units.
     - "raise_alarm": TODO
     - "raise_alert": TODO
@@ -169,7 +169,7 @@ class __AuxMultiDiscreteActSpace:
     ATTR_NEEDBUILD = 2
     ATTR_NEEDBINARIZED = 3
 
-    def __init__(self, grid2op_action_space, attr_to_keep=ALL_ATTR_FOR_DISCRETE, nb_bins=None):
+    def __init__(self, grid2op_action_space, attr_to_keep=ALL_ATTR, nb_bins=None):
         check_gym_version(type(self)._gymnasium)
         if not isinstance(grid2op_action_space, ActionSpace):
             raise RuntimeError(
@@ -179,9 +179,9 @@ class __AuxMultiDiscreteActSpace:
             )
 
         if nb_bins is None:
-            nb_bins = {"redispatch": 7, "storage_power": 7, "curtail": 7, "curtail_mw": 7}
+            nb_bins = {"redispatch": 7, "set_storage": 7, "curtail": 7, "curtail_mw": 7}
 
-        if attr_to_keep == ALL_ATTR_FOR_DISCRETE:
+        if attr_to_keep == ALL_ATTR:
             # by default, i remove all the attributes that are not supported by the action type
             # i do not do that if the user specified specific attributes to keep. This is his responsibility in
             # in this case
@@ -263,7 +263,7 @@ class __AuxMultiDiscreteActSpace:
             ),  # dimension will be computed on the fly, if the stuff is used
         }
         self._nb_bins = nb_bins
-        for el in ["redispatch", "storage_power", "curtail", "curtail_mw"]:
+        for el in ["redispatch", "set_storage", "curtail", "curtail_mw"]:
             if el in attr_to_keep:
                 if el not in nb_bins:
                     raise RuntimeError(
@@ -286,7 +286,7 @@ class __AuxMultiDiscreteActSpace:
                         nb_renew,
                         self.ATTR_NEEDBINARIZED,
                     )
-                elif el == "storage_power":
+                elif el == "set_storage":
                     self.dict_properties[el] = (
                         [nb_bins[el] for _ in range(act_sp.n_storage)],
                         act_sp.n_storage,
@@ -367,7 +367,7 @@ class __AuxMultiDiscreteActSpace:
                                 self._act_space,
                                 attr_to_keep=[
                                     "redispatch",
-                                    "storage_power",
+                                    "set_storage",
                                     "curtail",
                                     "curtail_mw",
                                 ],

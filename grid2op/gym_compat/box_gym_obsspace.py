@@ -200,7 +200,7 @@ class __AuxBoxGymObsSpace:
         divide=None,
         functs=None,
     ):
-        check_gym_version(type(self)._gymnasium)  # TODO GYMNASIUM
+        check_gym_version(type(self)._gymnasium)
         if not isinstance(grid2op_observation_space, ObservationSpace):
             raise RuntimeError(
                 f"Impossible to create a BoxGymObsSpace without providing a "
