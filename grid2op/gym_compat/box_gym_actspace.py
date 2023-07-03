@@ -542,13 +542,13 @@ class __AuxBoxGymActSpace:
 
 
 if GYM_AVAILABLE:
-    from gym.spaces import Box
+    from gym.spaces import Box as LegGymBox
     from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
     BoxLegacyGymActSpace = type("BoxLegacyGymActSpace",
-                                (__AuxBoxGymActSpace, Box, ),
+                                (__AuxBoxGymActSpace, LegGymBox, ),
                                 {"_gymnasium": False,
                                  "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
-                                 "_BoxType": Box,
+                                 "_BoxType": LegGymBox,
                                  "__module__": __name__})
     BoxLegacyGymActSpace.__doc__ = __AuxBoxGymActSpace.__doc__
     BoxGymActSpace = BoxLegacyGymActSpace

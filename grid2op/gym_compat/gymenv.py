@@ -11,16 +11,7 @@ import numpy as np
 from grid2op.dtypes import dt_int
 from grid2op.Chronics import Multifolder
 from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
-from grid2op.gym_compat.gym_act_space import GymActionSpace
 from grid2op.gym_compat.utils import (check_gym_version, sample_seed)
-
-
-if GYMNASIUM_AVAILABLE:
-    import gymnasium
-    
-    
-if GYM_AVAILABLE:
-    import gym
     
     
 def conditional_decorator(condition):
@@ -213,10 +204,11 @@ class __AuxGymEnv:
         self.close()
 
 if GYM_AVAILABLE:
+    from gym import Env as LegacyGymEnv
     from grid2op.gym_compat.gym_obs_space import LegacyGymObservationSpace
     from grid2op.gym_compat.gym_act_space import LegacyGymActionSpace
     _AuxGymEnv = type("_AuxGymEnv",
-                      (__AuxGymEnv, gym.Env),
+                      (__AuxGymEnv, LegacyGymEnv),
                       {"_gymnasium": False,
                        "_ActionSpaceType": LegacyGymActionSpace,
                        "_ObservationSpaceType": LegacyGymObservationSpace,
@@ -248,10 +240,11 @@ if GYM_AVAILABLE:
 
 
 if GYMNASIUM_AVAILABLE:
+    from gymnasium import Env
     from grid2op.gym_compat.gym_act_space import GymnasiumActionSpace
     from grid2op.gym_compat.gym_obs_space import GymnasiumObservationSpace
     _AuxGymnasiumEnv = type("_AuxGymnasiumEnv",
-                            (__AuxGymEnv, gymnasium.Env),
+                            (__AuxGymEnv, Env),
                             {"_gymnasium": True,
                              "_ActionSpaceType": GymnasiumActionSpace,
                              "_ObservationSpaceType": GymnasiumObservationSpace,

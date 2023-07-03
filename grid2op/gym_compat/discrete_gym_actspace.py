@@ -339,13 +339,13 @@ class __AuxDiscreteActSpace:
 
 
 if GYM_AVAILABLE:
-    from gym.spaces import Discrete
+    from gym.spaces import Discrete as LegGymDiscrete
     from grid2op.gym_compat.box_gym_actspace import BoxLegacyGymActSpace
     from grid2op.gym_compat.continuous_to_discrete import ContinuousToDiscreteConverterLegacyGym
     DiscreteActSpaceLegacyGym = type("DiscreteActSpaceLegacyGym",
-                                     (__AuxDiscreteActSpace, Discrete, ),
+                                     (__AuxDiscreteActSpace, LegGymDiscrete, ),
                                      {"_gymnasium": False,
-                                      "_DiscreteType": Discrete,
+                                      "_DiscreteType": LegGymDiscrete,
                                       "_BoxGymActSpaceType": BoxLegacyGymActSpace,
                                       "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterLegacyGym,
                                       "__module__": __name__})

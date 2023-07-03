@@ -143,16 +143,18 @@ class __AuxMultiToTupleConverter:
 
 
 if GYM_AVAILABLE:
-    from gym.spaces import MultiBinary, MultiDiscrete, Discrete
+    from gym.spaces import (MultiBinary as LegacyGymMultiBinary,
+                            MultiDiscrete as LegacyGymMultiDiscrete, 
+                            Discrete as LegacyGymDiscrete)
     from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
     MultiToTupleConverterLegacyGym = type("MultiToTupleConverterLegacyGym",
                                           (__AuxMultiToTupleConverter, BaseLegacyGymAttrConverter, ),
                                           {"_gymnasium": False,
                                            "_FixedTupleType": FixedTupleLegacyGym,
                                            "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
-                                           "_MultiDiscreteType": MultiDiscrete,
-                                           "_MultiBinaryType": MultiBinary,
-                                           "_DiscreteType": Discrete,
+                                           "_MultiDiscreteType": LegacyGymMultiDiscrete,
+                                           "_MultiBinaryType": LegacyGymMultiBinary,
+                                           "_DiscreteType": LegacyGymDiscrete,
                                            "__module__": __name__
                                            })
     MultiToTupleConverterLegacyGym.__doc__ = __AuxMultiToTupleConverter.__doc__

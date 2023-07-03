@@ -70,10 +70,8 @@ class Converter(ActionSpace):
 
         It should not be used directly. Prefer to use the :class:`grid2op.Converter.GymConverter`
 
-        Returns
-        -------
-        res: ``dict``
-            The dictionary of gym spaces representing this converter.
+        cls_gym represents either :class:`grid2op.gym_compat.LegacyGymActionSpace` or
+        :class:`grid2op.gym_compat.GymnasiumActionSpace`
         """
         raise NotImplementedError(
             'Impossible to convert the converter "{}" automatically '

@@ -113,10 +113,10 @@ class __AuxBaseGymAttrConverter(object):
 
 
 if GYM_AVAILABLE:
-    from gym.spaces import Space
+    from gym.spaces import Space as LegGymSpace
     BaseLegacyGymAttrConverter = type("BaseLegacyGymAttrConverter",
                                      (__AuxBaseGymAttrConverter, ),
-                                     {"_SpaceType": Space, 
+                                     {"_SpaceType": LegGymSpace, 
                                       "_gymnasium": False,
                                       "__module__": __name__})
     BaseLegacyGymAttrConverter.__doc__ = __AuxBaseGymAttrConverter.__doc__

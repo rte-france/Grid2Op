@@ -13,18 +13,18 @@ Compatibility with gymnasium / gym
 The gymnasium framework in reinforcement learning is widely used. Starting from version 1.2.0 we improved the
 compatibility with this framework.
 
-Starting with 1.9.1 we switch (as advise) from the legacy "gym" framework to the 
-new "gymnasium" framework. This change should not have any impact on older grid2op code
+Starting with 1.9.1 we switch (as advised) from the legacy "gym" framework to the 
+new "gymnasium" framework (gym is no longer maintained since v0.26.2, see 
+https://www.gymlibrary.dev/). This change should not have any impact on older grid2op code
 except that you now need to use `import gymnasium as gym` instead of `import gym` in 
 your base code.
 
 .. note::
-    If you want to still use the "legacy" gym classes you can still do it with grid2op.
-
+    If you want to still use the "legacy" gym classes you can still do it with grid2op:
     Backward compatibility with openai gym is maintained.
 
 .. note::
-    By default, if gymnasium is installed, all default classes from grid2op.gym_compat module will 
+    By default, if gymnasium is installed, all default classes from `grid2op.gym_compat` module will 
     inherit from gymnasium. You can still retrieve the classes inheriting from gym (and not gymnasium).
 
     More information on the section :ref:`gymnasium_gym`

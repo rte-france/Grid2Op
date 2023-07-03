@@ -414,17 +414,22 @@ class __AuxGymObservationSpace:
 
 
 if GYM_AVAILABLE:
-    from gym.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
+    from gym.spaces import (Discrete as LegGymDiscrete,
+                            Box as LegGymBox,
+                            Dict as LegGymDict,
+                            Space as LegGymSpace,
+                            MultiBinary as LegGymMultiBinary,
+                            Tuple as LegGymTuple)
     from grid2op.gym_compat.gym_space_converter import _BaseLegacyGymSpaceConverter
     from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
     LegacyGymObservationSpace = type("LegacyGymObservationSpace",
                                      (__AuxGymObservationSpace, _BaseLegacyGymSpaceConverter, ),
-                                     {"_DiscreteType": Discrete,
-                                      "_BoxType": Box,
-                                      "_DictType": Dict,
-                                      "_SpaceType": Space, 
-                                      "_MultiBinaryType": MultiBinary, 
-                                      "_TupleType": Tuple, 
+                                     {"_DiscreteType": LegGymDiscrete,
+                                      "_BoxType": LegGymBox,
+                                      "_DictType": LegGymDict,
+                                      "_SpaceType": LegGymSpace, 
+                                      "_MultiBinaryType": LegGymMultiBinary, 
+                                      "_TupleType": LegGymTuple, 
                                       "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
                                       "_gymnasium": False,
                                       "__module__": __name__})

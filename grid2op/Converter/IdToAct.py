@@ -404,10 +404,8 @@ class IdToAct(Converter):
 
         This function should not be used "as is", but rather through :class:`grid2op.Converter.GymConverter`
 
-        Returns
-        -------
-        res: :class:`gym.spaces.Dict`
-            The dict
+        cls_gym represents either :class:`grid2op.gym_compat.LegacyGymActionSpace` or
+        :class:`grid2op.gym_compat.GymnasiumActionSpace`
         """
         res = {"action": cls_gym._DiscreteType(n=self.n)}
         return res

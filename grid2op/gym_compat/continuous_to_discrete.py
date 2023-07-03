@@ -143,14 +143,14 @@ class __AuxContinuousToDiscreteConverter:
 
 
 if GYM_AVAILABLE:
-    from gym.spaces import Box, MultiDiscrete
+    from gym.spaces import Box as LegGymBox, MultiDiscrete as LegGymMultiDiscrete
     from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
     ContinuousToDiscreteConverterLegacyGym = type("ContinuousToDiscreteConverterLegacyGym",
                                                   (__AuxContinuousToDiscreteConverter, BaseLegacyGymAttrConverter, ),
                                                   {"_gymnasium": False,
                                                    "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
-                                                   "_MultiDiscreteType": MultiDiscrete,
-                                                   "_BoxType": Box,
+                                                   "_MultiDiscreteType": LegGymMultiDiscrete,
+                                                   "_BoxType": LegGymBox,
                                                    "__module__": __name__})
     ContinuousToDiscreteConverterLegacyGym.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
     ContinuousToDiscreteConverter = ContinuousToDiscreteConverterLegacyGym

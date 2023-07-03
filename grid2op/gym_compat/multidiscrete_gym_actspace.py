@@ -520,14 +520,14 @@ class __AuxMultiDiscreteActSpace:
 
 
 if GYM_AVAILABLE:
-    from gym.spaces import Box, MultiDiscrete
+    from gym.spaces import Box as LegacyGymBox, MultiDiscrete as LegacyGymMultiDiscrete
     from grid2op.gym_compat.box_gym_actspace import BoxLegacyGymActSpace
     from grid2op.gym_compat.continuous_to_discrete import ContinuousToDiscreteConverterLegacyGym
     MultiDiscreteActSpaceLegacyGym = type("MultiDiscreteActSpaceLegacyGym",
-                                          (__AuxMultiDiscreteActSpace, MultiDiscrete, ),
+                                          (__AuxMultiDiscreteActSpace, LegacyGymMultiDiscrete, ),
                                           {"_gymnasium": False,
-                                           "_BoxType": Box,
-                                           "_MultiDiscreteType": MultiDiscrete,
+                                           "_BoxType": LegacyGymBox,
+                                           "_MultiDiscreteType": LegacyGymMultiDiscrete,
                                            "_BoxGymActSpaceType": BoxLegacyGymActSpace,
                                            "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterLegacyGym,
                                            "__module__": __name__})

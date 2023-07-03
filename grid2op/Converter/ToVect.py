@@ -144,6 +144,9 @@ class ToVect(Converter):
         """
         Convert this action space int a "gym" action space represented by a dictionary (spaces.Dict)
         This dictionary counts only one keys which is "action" and inside this action is the
+        
+        cls_gym represents either :class:`grid2op.gym_compat.LegacyGymActionSpace` or
+        :class:`grid2op.gym_compat.GymnasiumActionSpace`
         """
         self._init_gym_converter(cls_gym)
         return self.__dict_space

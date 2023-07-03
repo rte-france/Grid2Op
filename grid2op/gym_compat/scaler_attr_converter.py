@@ -95,12 +95,12 @@ class __AuxScalerAttrConverter:
 
 
 if GYM_AVAILABLE:
-    from gym.spaces import Box
+    from gym.spaces import Box as LegacyGymBox
     from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
     ScalerAttrConverterLegacyGym = type("ScalerAttrConverterLegacyGym",
                                         (__AuxScalerAttrConverter, BaseLegacyGymAttrConverter, ),
                                         {"_gymnasium": False,
-                                         "_BoxType": Box,
+                                         "_BoxType": LegacyGymBox,
                                          "__module__": __name__})
     ScalerAttrConverterLegacyGym.__doc__ = __AuxScalerAttrConverter.__doc__
     ScalerAttrConverter = ScalerAttrConverterLegacyGym

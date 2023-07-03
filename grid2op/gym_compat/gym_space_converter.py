@@ -276,15 +276,20 @@ class __AuxBaseGymSpaceConverter:
 
 
 if GYM_AVAILABLE:
-    from gym.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
+    from gym.spaces import (Discrete as LegGymDiscrete,
+                            Box as LegGymBox,
+                            Dict as LegGymDict,
+                            Space as LegGymSpace,
+                            MultiBinary as LegGymMultiBinary,
+                            Tuple as LegGymTuple)
     _BaseLegacyGymSpaceConverter = type("_BaseLegacyGymSpaceConverter",
-                                        (__AuxBaseGymSpaceConverter, Dict, ),
-                                        {"_DiscreteType": Discrete,
-                                         "_BoxType": Box,
-                                         "_DictType": Dict,
-                                         "_SpaceType": Space, 
-                                         "_MultiBinaryType": MultiBinary, 
-                                         "_TupleType": Tuple, 
+                                        (__AuxBaseGymSpaceConverter, LegGymDict, ),
+                                        {"_DiscreteType": LegGymDiscrete,
+                                         "_BoxType": LegGymBox,
+                                         "_DictType": LegGymDict,
+                                         "_SpaceType": LegGymSpace, 
+                                         "_MultiBinaryType": LegGymMultiBinary, 
+                                         "_TupleType": LegGymTuple,
                                          "_gymnasium": False,
                                          "__module__": __name__})
     _BaseLegacyGymSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
