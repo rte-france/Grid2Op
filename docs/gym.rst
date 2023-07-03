@@ -81,7 +81,10 @@ For example, an observation space will look like:
 - "_shunt_bus": Box(`env.n_shunt`,) [type: int, low: -inf, high: inf]
 - "a_ex": Box(`env.n_line`,) [type: float, low: 0, high: inf]
 - "a_or": Box(`env.n_line`,) [type: float, low: 0, high: inf]
+- "active_alert": MultiBinary(`env.dim_alerts`)
 - "actual_dispatch": Box(`env.n_gen`,)
+- "alert_duration":  Box(`env.dim_alerts`,)  [type: int, low: 0, high: inf]
+- "attack_under_alert": Box(`env.dim_alerts`,)  [type: int, low: -1, high: inf]
 - "attention_budget": Box(1,) [type: float, low: 0, high: inf]
 - "current_step": Box(1,) [type: int, low: -inf, high: inf]
 - "curtailment": Box(`env.n_gen`,)  [type: float, low: 0., high: 1.0]
@@ -91,17 +94,19 @@ For example, an observation space will look like:
 - "day_of_week": Discrete(8)
 - "delta_time": Box(0.0, inf, (1,), float32)
 - "duration_next_maintenance": Box(`env.n_line`,)  [type: int, low: -1, high: inf]
+- "gen_margin_down":  Box(`env.n_gen`,)  [type: float, low: 0, high: `env.gen_max_ramp_down`]
+- "gen_margin_up":  Box(`env.n_gen`,)  [type: float, low: 0, high: `env.gen_max_ramp_up`]
 - "gen_p": Box(`env.n_gen`,)  [type: float, low: `env.gen_pmin`, high: `env.gen_pmax * 1.2`]
 - "gen_p_before_curtail": Box(`env.n_gen`,)  [type: float, low: `env.gen_pmin`, high: `env.gen_pmax * 1.2`]
 - "gen_q": Box(`env.n_gen`,)  [type: float, low: -inf, high: inf]
+- "gen_theta":  Box(`env.n_gen`,) [type: float, low: -180, high: 180]
 - "gen_v": Box(`env.n_gen`,)  [type: float, low: 0, high: inf]
-- "gen_margin_up": Box(`env.n_gen`,)  [type: float, low: 0, high: `env.gen_max_ramp_up`]
-- "gen_margin_down": Box(`env.n_gen`,)  [type: float, low: 0, high: `env.gen_max_ramp_down`]
 - "hour_of_day": Discrete(24)
 - "is_alarm_illegal": Discrete(2)
 - "line_status": MultiBinary(`env.n_line`)
 - "load_p": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
 - "load_q": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
+- "load_theta": Box(`env.n_load`,) [type: float, low: -180, high: 180]
 - "load_v": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
 - "max_step": Box(1,) [type: int, low: -inf, high: inf]
 - "minute_of_hour": Discrete(60)
@@ -114,22 +119,24 @@ For example, an observation space will look like:
 - "storage_charge": Box(`env.n_storage`,)  [type: float, low: 0., high: `env.storage_Emax`]
 - "storage_power": Box(`env.n_storage`,)  [type: float, low: `-env.storage_max_p_prod`, high: `env.storage_max_p_absorb`]
 - "storage_power_target": Box(`env.n_storage`,)  [type: float, low: `-env.storage_max_p_prod`, high: `env.storage_max_p_absorb`]
-- "target_dispatch": Box(`env.n_gen`,)
-- "theta_or": Box(`env.n_line`,)  [type: float, low: -180., high: 180.]
+- "storage_theta": Box(`env.n_storage`,)  [type: float, low: -180., high: 180.]
+- "target_dispatch": Box(`env.n_gen`,)   [type: float, low: -inf, high: inf]
+- "thermal_limit": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
 - "theta_ex": Box(`env.n_line`,)  [type: float, low: -180., high: 180.]
-- "load_theta": Box(`env.n_load`,)  [type: float, low: -180., high: 180.]
-- "gen_theta": Box(`env.n_gen`,)  [type: float, low: -180., high: 180.]
-- "storage_theta": : Box(`env.n_storage`,)  [type: float, low: -180., high: 180.]
+- "theta_or": Box(`env.n_line`,)  [type: float, low: -180., high: 180.]
 - "time_before_cooldown_line": Box(`env.n_line`,) [type: int, low: 0, high: depending on parameters]
 - "time_before_cooldown_sub": Box(`env.n_sub`,)  [type: int, low: 0, high: depending on parameters]
 - "time_next_maintenance": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
 - "time_since_last_alarm": Box(1,)  [type: int, low: -1, high: inf]
+- "time_since_last_alert": Box(`env.dim_alerts`,)  [type: int, low: -1, high: inf]
+- "time_since_last_attack": Box(`env.dim_alerts`,)  [type: int, low: -1, high: inf]
 - "timestep_overflow": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
-- "thermal_limit": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
 - "topo_vect": Box(`env.dim_topo`,)  [type: int, low: -1, high: 2]
+- "total_number_of_alert": Box(1 if `env.dim_alerts` > 0 else 0,) [type: int, low: 0, high: inf]
 - "v_ex": Box(`env.n_line`,)  [type: float, low: 0, high: inf]
 - "v_or": Box(`env.n_line`,)  [type: flaot, low: 0, high: inf]
 - "was_alarm_used_after_game_over": Discrete(2)
+- "was_alert_used_after_attack": Box(`env.dim_alerts`,)  [type: int, low: -1, high: 1]
 - "year": Discrete(2100)
 
 Each keys correspond to an attribute of the observation. In this example `"line_status": MultiBinary(20)`
@@ -151,6 +158,8 @@ straight translation from the attribute of the action to the key of the dictiona
 - "set_bus": Box(`env.dim_topo`) [type: int, low=-1, high=2]
 - "set_line_status": Box(`env.n_line`) [type: int, low=-1, high=1]
 - "storage_power": Box(`env.n_storage`) [type: float, low=-`env.storage_max_p_prod`, high=`env.storage_max_p_absorb`]
+- "raise_alarm": MultiBinary(`env.dim_alarms`)
+- "raise_alert": MultiBinary(`env.dim_alerts`)
 
 For example you can create a "gym action" (for the default encoding) like:
 
@@ -373,7 +382,7 @@ Customizing the action and observation space, into Box or Discrete
 The use of the converter above is nice if you can work with gym Dict, but in some cases, or for some frameworks
 it is not convenient to do it at all.
 
-TO alleviate this problem, we developed 3 types of gym action space, following the architecture
+TO alleviate this problem, we developed 4 types of gym action space, following the architecture
 detailed in subsection :ref:`base_gym_space_function`
 
 ===============================   ============================================================
@@ -500,7 +509,7 @@ If you are interested by this feature, we recommend you to proceed like this:
       def __init__(self, action_space, observation_space):
          BaseAgent.__init__(self, action_space)
          self.gym_obs_space = GymObservationSpace(observation_space)
-         self.gym_action_space = GymActionSpace(observation_space)
+         self.gym_action_space = GymActionSpace(action_space)
 
       def act(self, obs, reward, done=False):
          # convert the observation to gym like one:

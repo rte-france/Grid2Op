@@ -260,12 +260,22 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "last_alarm":
                     # can be -1 if no maintenance, otherwise always positive
                     my_type = self._generic_gym_space(dt, sh, low=-1)
-                elif attr_nm == "time_since_last_alert":
-                    # can be -1 if no maintenance, otherwise always positive
-                    my_type = self._generic_gym_space(dt, 1, low=-1)
                 elif attr_nm == "last_alert":
                     # can be -1 if no maintenance, otherwise always positive
                     my_type = self._generic_gym_space(dt, sh, low=-1)
+                elif attr_nm == "was_alert_used_after_attack":
+                    # can be -1 or >= 0
+                    my_type = self._generic_gym_space(dt, sh, low=-1, high=1)
+                elif attr_nm == "total_number_of_alert":
+                    my_type = self._generic_gym_space(dt, sh, low=0)
+                elif (attr_nm == "time_since_last_attack" or 
+                      attr_nm == "time_since_last_alert"):
+                    my_type = self._generic_gym_space(dt, sh, low=-1)
+                elif attr_nm == "attack_under_alert":
+                    my_type = self._generic_gym_space(dt, sh, low=-1, high=1)
+                elif attr_nm == "alert_duration":
+                    my_type = self._generic_gym_space(dt, sh, low=0)
+                    
             elif dt == dt_bool:
                 # boolean observation space
                 if sh > 1:
