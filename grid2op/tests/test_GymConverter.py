@@ -45,7 +45,7 @@ class BaseTestGymConverter:
         for k, v in obj2.items():
             assert k in obj
             tmp = obj[k]
-            if isinstance(tmp, (int, float, dt_float, dt_int, dt_bool)):
+            if isinstance(tmp, (int, float, dt_float, dt_int, dt_bool, np.int64, np.int32)):
                 assert np.all(np.abs(float(obj[k]) - float(obj2[k])) <= self.tol)
             elif len(tmp) == 1:
                 assert np.all(np.abs(float(obj[k]) - float(obj2[k])) <= self.tol)

@@ -63,17 +63,15 @@ class Converter(ActionSpace):
         regular_act = encoded_act
         return regular_act
 
-    def get_gym_dict(self):
+    def get_gym_dict(self, cls_gym):
         """
         To convert this space into a open ai gym space. This function returns a dictionnary used
         to initialize such a converter.
 
         It should not be used directly. Prefer to use the :class:`grid2op.Converter.GymConverter`
 
-        Returns
-        -------
-        res: ``dict``
-            The dictionary of gym spaces representing this converter.
+        cls_gym represents either :class:`grid2op.gym_compat.LegacyGymActionSpace` or
+        :class:`grid2op.gym_compat.GymnasiumActionSpace`
         """
         raise NotImplementedError(
             'Impossible to convert the converter "{}" automatically '

@@ -9,15 +9,18 @@
 import copy
 import warnings
 import numpy as np
-from gym.spaces import MultiDiscrete, Box
 
 from grid2op.Action import ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 
-from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE, check_gym_version
+from grid2op.gym_compat.utils import (ALL_ATTR_FOR_DISCRETE,
+                                      ATTR_DISCRETE,
+                                      check_gym_version,
+                                      GYM_AVAILABLE,
+                                      GYMNASIUM_AVAILABLE)
 
 
-class MultiDiscreteActSpace(MultiDiscrete):
+class __AuxMultiDiscreteActSpace:
     """
     This class allows to convert a grid2op action space into a gym "MultiDiscrete". This means that the action are
     labeled, and instead of describing the action itself, you provide only its ID.
@@ -47,8 +50,8 @@ class MultiDiscreteActSpace(MultiDiscrete):
       of the curtailment action.
     - "curtail_mw": `sum(env.gen_renewable)` dimensions, completely equivalent to "curtail" for this representation. 
       This is the "conversion to discrete action" of the curtailment action.
-    - "set_storage": `n_storage` dimensions, each containing a certain number of choices depending on the value
-      of the keyword argument `nb_bins["set_storage"]` (by default 7). This is the "conversion to discrete action"
+    - "storage_power": `n_storage` dimensions, each containing a certain number of choices depending on the value
+      of the keyword argument `nb_bins["storage_power"]` (by default 7). This is the "conversion to discrete action"
       of the action on storage units.
     - "raise_alarm": TODO
     - "raise_alert": TODO
@@ -109,6 +112,21 @@ class MultiDiscreteActSpace(MultiDiscrete):
     .. danger::
         The keys `set_bus` and `change_bus` does not have the same meaning between this representation of the
         action and the DiscreteActSpace.
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`MultiDiscreteActSpace` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`MultiDiscreteActSpaceGymnasium`), otherwise it will
+          inherit from gym (and will be exactly :class:`MultiDiscreteActSpaceLegacyGym`)
+        - :class:`MultiDiscreteActSpaceGymnasium` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`MultiDiscreteActSpaceLegacyGym` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
         
     Examples
     --------
@@ -151,8 +169,8 @@ class MultiDiscreteActSpace(MultiDiscrete):
     ATTR_NEEDBUILD = 2
     ATTR_NEEDBINARIZED = 3
 
-    def __init__(self, grid2op_action_space, attr_to_keep=ALL_ATTR, nb_bins=None):
-        check_gym_version()
+    def __init__(self, grid2op_action_space, attr_to_keep=ALL_ATTR_FOR_DISCRETE, nb_bins=None):
+        check_gym_version(type(self)._gymnasium)
         if not isinstance(grid2op_action_space, ActionSpace):
             raise RuntimeError(
                 f"Impossible to create a BoxGymActSpace without providing a "
@@ -161,9 +179,9 @@ class MultiDiscreteActSpace(MultiDiscrete):
             )
 
         if nb_bins is None:
-            nb_bins = {"redispatch": 7, "set_storage": 7, "curtail": 7, "curtail_mw": 7}
+            nb_bins = {"redispatch": 7, "storage_power": 7, "curtail": 7, "curtail_mw": 7}
 
-        if attr_to_keep == ALL_ATTR:
+        if attr_to_keep == ALL_ATTR_FOR_DISCRETE:
             # by default, i remove all the attributes that are not supported by the action type
             # i do not do that if the user specified specific attributes to keep. This is his responsibility in
             # in this case
@@ -245,7 +263,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
             ),  # dimension will be computed on the fly, if the stuff is used
         }
         self._nb_bins = nb_bins
-        for el in ["redispatch", "set_storage", "curtail", "curtail_mw"]:
+        for el in ["redispatch", "storage_power", "curtail", "curtail_mw"]:
             if el in attr_to_keep:
                 if el not in nb_bins:
                     raise RuntimeError(
@@ -268,7 +286,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
                         nb_renew,
                         self.ATTR_NEEDBINARIZED,
                     )
-                elif el == "set_storage":
+                elif el == "storage_power":
                     self.dict_properties[el] = (
                         [nb_bins[el] for _ in range(act_sp.n_storage)],
                         act_sp.n_storage,
@@ -284,7 +302,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
         nvec = self._get_info()
 
         # initialize the base container
-        MultiDiscrete.__init__(self, nvec=nvec)
+        type(self)._MultiDiscreteType.__init__(self, nvec=nvec)
 
     @staticmethod
     def _funct_set(vect):
@@ -337,19 +355,19 @@ class MultiDiscreteActSpace(MultiDiscrete):
                 elif type_ == self.ATTR_NEEDBINARIZED:
                     # base action was continuous, i need to convert it to discrete action thanks
                     # to "binarization", that is done automatically here
-                    from grid2op.gym_compat.box_gym_actspace import BoxGymActSpace
-                    from grid2op.gym_compat.continuous_to_discrete import (
-                        ContinuousToDiscreteConverter,
-                    )
+                    # from grid2op.gym_compat.box_gym_actspace import BoxGymActSpace
+                    # from grid2op.gym_compat.continuous_to_discrete import (
+                        # ContinuousToDiscreteConverter,
+                    # )
 
                     if box_space is None:
                         with warnings.catch_warnings():
                             warnings.filterwarnings("ignore")
-                            box_space = BoxGymActSpace(
+                            box_space = type(self)._BoxGymActSpaceType(
                                 self._act_space,
                                 attr_to_keep=[
                                     "redispatch",
-                                    "set_storage",
+                                    "storage_power",
                                     "curtail",
                                     "curtail_mw",
                                 ],
@@ -361,8 +379,8 @@ class MultiDiscreteActSpace(MultiDiscrete):
                             f'key "{el}".'
                         )
                     low_, high_, shape_, dtype_ = box_space._dict_properties[el]
-                    tmp_box = Box(low=low_, high=high_, dtype=dtype_)
-                    tmp_binarizer = ContinuousToDiscreteConverter(
+                    tmp_box = type(self)._BoxType(low=low_, high=high_, dtype=dtype_)
+                    tmp_binarizer = type(self)._ContinuousToDiscreteConverterType(
                         init_space=tmp_box, nb_bins=self._nb_bins[el]
                     )
                     self._binarizers[el] = tmp_binarizer
@@ -508,3 +526,37 @@ class MultiDiscreteActSpace(MultiDiscrete):
 
     def close(self):
         pass
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import Box as LegacyGymBox, MultiDiscrete as LegacyGymMultiDiscrete
+    from grid2op.gym_compat.box_gym_actspace import BoxLegacyGymActSpace
+    from grid2op.gym_compat.continuous_to_discrete import ContinuousToDiscreteConverterLegacyGym
+    MultiDiscreteActSpaceLegacyGym = type("MultiDiscreteActSpaceLegacyGym",
+                                          (__AuxMultiDiscreteActSpace, LegacyGymMultiDiscrete, ),
+                                          {"_gymnasium": False,
+                                           "_BoxType": LegacyGymBox,
+                                           "_MultiDiscreteType": LegacyGymMultiDiscrete,
+                                           "_BoxGymActSpaceType": BoxLegacyGymActSpace,
+                                           "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterLegacyGym,
+                                           "__module__": __name__})
+    MultiDiscreteActSpaceLegacyGym.__doc__ = __AuxMultiDiscreteActSpace.__doc__
+    MultiDiscreteActSpace = MultiDiscreteActSpaceLegacyGym
+    MultiDiscreteActSpace.__doc__ = __AuxMultiDiscreteActSpace.__doc__
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Box, MultiDiscrete
+    from grid2op.gym_compat.box_gym_actspace import BoxGymnasiumActSpace
+    from grid2op.gym_compat.continuous_to_discrete import  ContinuousToDiscreteConverterGymnasium
+    MultiDiscreteActSpaceGymnasium = type("MultiDiscreteActSpaceGymnasium",
+                                          (__AuxMultiDiscreteActSpace, MultiDiscrete, ),
+                                          {"_gymnasium": True,
+                                           "_BoxType": Box,
+                                           "_MultiDiscreteType": MultiDiscrete,
+                                           "_BoxGymActSpaceType": BoxGymnasiumActSpace,
+                                           "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterGymnasium,
+                                           "__module__": __name__})
+    MultiDiscreteActSpaceGymnasium.__doc__ = __AuxMultiDiscreteActSpace.__doc__
+    MultiDiscreteActSpace = MultiDiscreteActSpaceGymnasium
+    MultiDiscreteActSpace.__doc__ = __AuxMultiDiscreteActSpace.__doc__

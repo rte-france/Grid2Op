@@ -33,8 +33,13 @@ Change Log
 
 [1.9.1] - 2023-xx-yy
 --------------------
+- [BREAKING] (slightly): default `gym_compat` module now inherit from `gymnasium` (if 
+  gymnasium is installed) instead of `gym`. If you want legacy behaviour, 
+  do not install `gymnasium`. If you want compatibility with sota softwares using `gymnasium`,
+  install it and continue using grid2op transparently. See doc of `gym_compat` module for more
+  information.
 - [FIXED] an error when an environment with alarm was created before an environment 
-  without alarm. This lead to a crash when creating the second environment. This is now fixed.
+  without alert. This lead to a crash when creating the second environment. This is now fixed.
 - [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
 - [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
   the same action
