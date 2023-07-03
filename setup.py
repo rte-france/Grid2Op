@@ -50,13 +50,16 @@ pkgs = {
         "gym": [
             "gym>=0.17.2",
         ],
+        "gymnasium": [
+            "gymnasium",
+        ],
         "docs": [
             "numpydoc>=0.9.2",
             "sphinx>=2.4.4",
             "sphinx-rtd-theme>=0.4.3",
             "sphinxcontrib-trio>=1.1.0",
             "autodocsumm>=0.1.13",
-            "gym>=0.17.2"
+            "gym>=0.17.2",
             "gymnasium",
         ],
         "api": [
@@ -78,6 +81,8 @@ pkgs = {
 pkgs["extras"]["test"] += pkgs["extras"]["optional"]
 pkgs["extras"]["test"] += pkgs["extras"]["plot"]
 pkgs["extras"]["test"] += pkgs["extras"]["chronix2grid"]
+pkgs["extras"]["test"] += pkgs["extras"]["gymnasium"]
+
 if sys.version_info.minor <= 7:
     # typing "Literal" not available on python 3.7
     pkgs["required"].append("typing_extensions")
