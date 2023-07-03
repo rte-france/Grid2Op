@@ -115,7 +115,7 @@ class __AuxGymActionSpace:
         "_change_bus_vect": "change_bus",
         "_hazards": "hazards",
         "_maintenance": "maintenance",
-        "_storage_power": "storage_power",
+        "_storage_power": "set_storage",
         "_curtail": "curtail",
         "_raise_alarm": "raise_alarm",
         "_raise_alert": "raise_alert",
