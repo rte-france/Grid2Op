@@ -1,0 +1,21 @@
+{
+  "Lx": 1000,
+  "Ly": 1000,
+  "dx_corr": 800,
+  "dy_corr": 800,
+  "long_wind_corr": 10080,
+  "medium_wind_corr": 360,
+  "short_wind_corr": 60,
+  "solar_corr": 300000,
+  "scale_solar_coord_for_correlation": 2.0,
+  "smoothdist": 0.001,
+  "std_solar_noise": 0.8,
+  "std_short_wind_noise": 0.2,
+  "std_medium_wind_noise": 0.15,
+  "std_long_wind_noise": 0.2,
+  "year_solar_pattern": 2007,
+  "mean_solar_pattern": 1.0,
+  "wind_corr": 400,
+  "solar_night_hour": [23, 0, 1, 2, 3, 4, 5],
+  "force_solar_zero": 2
+}

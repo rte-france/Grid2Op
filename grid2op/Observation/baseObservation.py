@@ -280,21 +280,6 @@ class BaseObservation(GridObjects):
         to the attention budget when there was a game over. It can only be set to ``True`` if the observation
         corresponds to a game over, but not necessarily. (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
-    is_alert_illegal: ``bool``
-        whether the last alert has been illegal (due to budget constraint). It can only be ``True`` if an alert
-        was raised by the agent on the previous step. Otherwise it is always ``False`` 
-
-    time_since_last_alert: ``int``
-        Number of steps since the last successful alert has been raised. It is `-1` if no alert has been raised yet. 
-
-    last_alert: :class:`numpy.ndarray`, dtype:int
-        For each zones, gives how many steps since the last alert was raised successfully for this zone 
-
-    was_alert_used_after_attack: ``bool``
-        Was the last alert used to compute anything related
-        to the attention budget when there was a game over. It can only be set to ``True`` if the observation
-        corresponds to a game over, but not necessarily. 
-
     gen_margin_up: :class:`numpy.ndarray`, dtype:float
         From how much can you increase each generators production between this
         step and the next.
@@ -309,6 +294,92 @@ class BaseObservation(GridObjects):
         It is always 0. for non renewable generators. For the others it is defined as
         `np.minimum(self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down)`
 
+    active_alert: :class:`numpy.ndarray`, dtype:bool
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        This function gives the lines "under alert" at the given observation.
+        It is only relevant for the "real" environment and not for `obs.simulate` nor `obs.get_forecast_env`
+        active_alert time_since_last_alert alert_duration total_number_of_alert time_since_last_attack was_alert_used_after_attack
+        
+    time_since_last_alert: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        Give the time since an alert has been raised for each powerline. If you just raise an
+        alert for attackable line `i` then obs.time_since_last_alert[i] = 0 (and counter
+        increase by 1 each step).
+        
+        If attackable line `i` has never been "under alert" then obs.time_since_last_alert[i] = -1
+        
+    alert_duration: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        Give the time since an alert has started for all attackable line. If you just raise an
+        alert for attackable line `i` then obs.time_since_last_alert[i] = 1 and this counter
+        increase by 1 each step as long as the agent continues to "raise an alert on attackable line i"
+        
+        When the attackable line `i` is not under an alert then obs.time_since_last_alert[i] = 0
+        
+    total_number_of_alerts: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        This function counts, since the beginning of the current episode, the total number
+        of alerts (here 1 alert = one alert for 1 powerline for 1 step) sent by the agent.
+        
+    time_since_last_attack: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        Similar to `time_since_last_alert` but for the attack.
+        
+        For each attackable line `i` it counts the number of steps since the powerline has
+        been attacked:
+        
+        - obs.time_since_last_attack[i] = -1 then attackable line `i` has never been attacked
+        - obs.time_since_last_attack[i] = 0 then attackable line `i` has been attacked "for the
+          first time" this step
+        - obs.time_since_last_attack[i] = 1 then attackable line `i` has been attacked "for the
+          first time" the previous step
+        - obs.time_since_last_attack[i] = 2 then attackable line `i` has been attacked "for the
+          first time" 2 steps ago
+          
+        .. note::
+            An attack "for the first time" is NOT an attack "for the first time of the scenario".
+            Indeed, for this attribute, if a powerline is under attack for say 5 consecutive steps,
+            then the opponent stops its attack on this line and says 6 or 7 steps later it
+            start again to attack it then obs.time_since_last_attack[i] = 0 at the "first time" the 
+            opponent attacks again this powerline.
+        
+    was_alert_used_after_attack: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. warning:: Only available if you use a compatible reward (*eg* :class:`grid2op.Reward.AlertReward`)
+           as the main reward (or a "combined" reward with this reward being part of it)
+           
+        For each attackable line `i` it says:
+        
+        - obs.was_alert_used_after_attack[i] = 0 => attackable line i has not been attacked
+        - obs.was_alert_used_after_attack[i] = -1 => attackable line i has been attacked and for the last attack
+          the INCORRECT alert was sent (meaning that: if the agent survives, it sends an alert
+          and if the agent died it fails to send an alert)
+        - obs.was_alert_used_after_attack[i] = +1 => attackable line i has been attacked and for the last attack
+          the CORRECT alert was sent (meaning that: if the agent survives, it did not send an alert
+          and if the agent died it properly sent an alert)
+
+        By "last attack", we mean the last attack that occured until now.
+
+    attack_under_alert: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        For each attackable line `i` it says:
+        
+        - obs.attack_under_alert[i] = 0 => attackable line i has not been attacked OR it
+          has been attacked before the relevant window (env.parameters.ALERT_TIME_WINDOW)
+        - obs.attack_under_alert[i] = -1 => attackable line i has been attacked and (before
+          the attack) no alert was sent (so your agent expects to survive at least 
+          env.parameters.ALERT_TIME_WINDOW steps)
+        - obs.attack_under_alert[i] = +1 => attackable line i has been attacked and (before
+          the attack) an alert was sent (so your agent expects to "game over" within the next 
+          env.parameters.ALERT_TIME_WINDOW steps)  
+        
     _shunt_p: :class:`numpy.ndarray`, dtype:float
         Shunt active value (only available if shunts are available) (in MW)
 
@@ -368,9 +439,12 @@ class BaseObservation(GridObjects):
         "attention_budget",
         "was_alarm_used_after_game_over",
         # line alert 
-        "is_alert_illegal",
+        "active_alert",
+        "attack_under_alert",
         "time_since_last_alert",
-        "last_alert",
+        "alert_duration",
+        "total_number_of_alert",
+        "time_since_last_attack",
         "was_alert_used_after_attack",
         # gen up / down
         "gen_margin_up",
@@ -464,12 +538,15 @@ class BaseObservation(GridObjects):
         self.was_alarm_used_after_game_over = np.zeros(shape=1, dtype=dt_bool)
 
         # alert 
-        self.is_alert_illegal = np.ones(shape=1, dtype=dt_bool)
-        self.time_since_last_alert = np.empty(shape=1, dtype=dt_int)
-        self.last_alert = np.empty(shape=self.dim_alerts, dtype=dt_int)
-        self.attention_budget = np.empty(shape=1, dtype=dt_float)
-        self.was_alert_used_after_attack = np.zeros(shape=1, dtype=dt_bool)
-
+        dim_alert = type(self).dim_alerts
+        self.active_alert = np.empty(shape=dim_alert, dtype=dt_bool)
+        self.attack_under_alert = np.empty(shape=dim_alert, dtype=dt_int)
+        self.time_since_last_alert = np.empty(shape=dim_alert, dtype=dt_int)
+        self.alert_duration = np.empty(shape=dim_alert, dtype=dt_int)
+        self.total_number_of_alert = np.empty(shape=1 if dim_alert else 0, dtype=dt_int)
+        self.time_since_last_attack = np.empty(shape=dim_alert, dtype=dt_int)
+        self.was_alert_used_after_attack = np.empty(shape=dim_alert, dtype=dt_int)
+        
         # to save some computation time
         self._connectivity_matrix_ = None
         self._bus_connectivity_matrix_ = None
@@ -533,10 +610,15 @@ class BaseObservation(GridObjects):
             "last_alarm",
             "attention_budget",
             "was_alarm_used_after_game_over",
-            "is_alert_illegal",
+            # alert (new in 1.9.1)
+            "active_alert",
+            "attack_under_alert",
             "time_since_last_alert",
-            "last_alert",
+            "alert_duration",
+            "total_number_of_alert",
+            "time_since_last_attack",
             "was_alert_used_after_attack",
+            # other
             "storage_power",
             "storage_power_target",
             "storage_charge",
@@ -1012,16 +1094,19 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
-        if cls.glop_version < "1.8.2" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
-            # is_alert_illegal", "time_since_last_alert", "last_alert", "was_alert_used_after_attack" were added in grid2Op 1.8.2
+        if cls.glop_version < "1.9.1" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # alert attributes have been added in 1.9.1
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
 
             for el in [
-                "is_alert_illegal",
+                "active_alert",
+                "attack_under_alert",
                 "time_since_last_alert",
-                "last_alert",
-                "was_alert_used_after_attack",
+                "alert_duration",
+                "total_number_of_alert",
+                "time_since_last_attack",
+                "was_alert_used_after_attack"
             ]:
                 try:
                     cls.attr_list_vect.remove(el)
@@ -1127,11 +1212,16 @@ class BaseObservation(GridObjects):
         self.was_alarm_used_after_game_over[:] = False
 
         # alert line feature 
-        self.is_alert_illegal[:] = False
-        self.time_since_last_alert[:] = -1
-        self.last_alert[:] = False
+        self.active_alert[:] = False
+        self.attack_under_alert[:] = 0
+        self.time_since_last_alert[:] = 0
+        self.alert_duration[:] = 0
+        self.total_number_of_alert[:] = 0
+        self.time_since_last_attack[:] = -1
+        self.was_alert_used_after_attack[:] = 0
+        
         # Reuse the same attention budget 
-        self.was_alert_used_after_attack[:] = False
+        self.was_alert_used_after_attack[:] = 0
         
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)
@@ -1259,14 +1349,13 @@ class BaseObservation(GridObjects):
             self.was_alarm_used_after_game_over[:] = False
 
         # related to alert 
-        self.is_alert_illegal[:] = False
-        self.time_since_last_alert[:] = -1
-        self.last_alert[:] = False
-        self.attention_budget[:] = 0
-        if env is not None:
-            self.was_alert_used_after_attack[:] = env._is_alert_used_in_reward
-        else:
-            self.was_alert_used_after_attack[:] = False
+        self.active_alert[:] = False
+        self.time_since_last_alert[:] = 0
+        self.alert_duration[:] = 0
+        self.total_number_of_alert[:] = 0
+        self.time_since_last_attack[:] = -1        
+        # was_alert_used_after_attack not updated here in this case
+        # attack_under_alert not updated here in this case
 
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
@@ -2139,7 +2228,7 @@ class BaseObservation(GridObjects):
 
             # create an environment and get the observation
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
 
@@ -2786,7 +2875,7 @@ class BaseObservation(GridObjects):
         .. seealso::
             :ref:`model_based_rl`
             
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
             If the data of the :class:`grid2op.Environment.Environment` you are using supports it
             (**ie** you can access multiple steps ahead forecasts), then you can
             now "chain" the simulate calls.
@@ -2887,7 +2976,7 @@ class BaseObservation(GridObjects):
 
             import grid2op
             # retrieve an environment
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             # retrieve an observation, this is the same for all observations
@@ -2909,7 +2998,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -2935,7 +3024,7 @@ class BaseObservation(GridObjects):
             .. code-block:: python
 
                 import grid2op
-                env_name = ...
+                env_name = "l2rpn_case14_sandbox"  # or any other name
                 env = grid2op.make(env_name)
                 obs = env.reset()
                 
@@ -2961,7 +3050,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -3377,16 +3466,15 @@ class BaseObservation(GridObjects):
             ] = self.was_alarm_used_after_game_over[0]
 
             # alert 
-            self._dictionnarized["is_alert_illegal"] = self.is_alert_illegal[0]
-            self._dictionnarized["time_since_last_alert"] = self.time_since_last_alert[
-                0
-            ]
-            self._dictionnarized["last_alert"] = copy.deepcopy(self.last_alert)
-            self._dictionnarized["attention_budget"] = self.attention_budget[0]
+            self._dictionnarized["active_alert"] = copy.deepcopy(self.active_alert)
+            self._dictionnarized["attack_under_alert"] = copy.deepcopy(self.attack_under_alert)
+            self._dictionnarized["time_since_last_alert"] = copy.deepcopy(self.time_since_last_alert)
+            self._dictionnarized["alert_duration"] = copy.deepcopy(self.alert_duration)
+            self._dictionnarized["time_since_last_attack"] = copy.deepcopy(self.time_since_last_attack)
+            self._dictionnarized["was_alert_used_after_attack"] = copy.deepcopy(self.was_alert_used_after_attack)
             self._dictionnarized[
-                "was_alert_used_after_attack"
-            ] = self.was_alert_used_after_attack[0]
-
+                "total_number_of_alert"
+            ] = self.total_number_of_alert[0] if type(self).dim_alerts else []
 
             # current_step / max step
             self._dictionnarized["current_step"] = self.current_step
@@ -3450,7 +3538,7 @@ class BaseObservation(GridObjects):
             import grid2op
 
             # create the environment
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             # generate the first observation
@@ -3657,7 +3745,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()
@@ -3678,7 +3766,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()
@@ -3697,7 +3785,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()
@@ -3827,22 +3915,8 @@ class BaseObservation(GridObjects):
         self.storage_power[:] = env._storage_power
 
         # handles forecasts here
-        if with_forecast:
-            inj_action = {}
-            dict_ = {}
-            dict_["load_p"] = dt_float(1.0 * self.load_p)
-            dict_["load_q"] = dt_float(1.0 * self.load_q)
-            dict_["prod_p"] = dt_float(1.0 * self.gen_p)
-            dict_["prod_v"] = dt_float(1.0 * self.gen_v)
-            inj_action["injection"] = dict_
-            # inj_action = self.action_helper(inj_action)
-            timestamp = self.get_time_stamp()
-            self._forecasted_inj = [(timestamp, inj_action)]
-            self._forecasted_inj += env.forecasts()
-            self._forecasted_grid = [None for _ in self._forecasted_inj]
-            self._env_internal_params = {}
-            self._update_internal_env_params(env)
-
+        self._update_forecast(env, with_forecast)
+        
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line[:] = env._times_before_line_status_actionable
         self.time_before_cooldown_sub[:] = env._times_before_topology_actionable
@@ -3880,31 +3954,55 @@ class BaseObservation(GridObjects):
             self.curtailment_limit[:] = 1.0
             self.curtailment_limit_effective[:] = 1.0
 
-        if self.dim_alarms and env._has_attention_budget:
-            self.is_alarm_illegal[:] = env._is_alarm_illegal
-            if env._attention_budget.time_last_successful_alarm_raised > 0:
-                self.time_since_last_alarm[:] = (
-                    self.current_step
-                    - env._attention_budget.time_last_successful_alarm_raised
-                )
-            else:
-                self.time_since_last_alarm[:] = -1
-            self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
-            self.attention_budget[:] = env._attention_budget.current_budget
-        elif self.dim_alerts and env._has_attention_budget: 
-            self.is_alert_illegal[:] = env._is_alert_illegal
-            if env._attention_budget.time_last_successful_alert_raised > 0:
-                self.time_since_last_alert[:] = (
-                    self.current_step
-                    - env._attention_budget.time_last_successful_alert_raised
-                )
-            else:
-                self.time_since_last_alert[:] = -1
-            self.last_alert[:] = env._attention_budget.last_successful_alert_raised
-            self.attention_budget[:] = env._attention_budget.current_budget
+        self._update_alarm(env)
 
         self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.0)
+        
+        self._update_alert(env)
 
+    def _update_forecast(self, env, with_forecast):
+        if not with_forecast:
+            return
+        
+        inj_action = {}
+        dict_ = {}
+        dict_["load_p"] = dt_float(1.0 * self.load_p)
+        dict_["load_q"] = dt_float(1.0 * self.load_q)
+        dict_["prod_p"] = dt_float(1.0 * self.gen_p)
+        dict_["prod_v"] = dt_float(1.0 * self.gen_v)
+        inj_action["injection"] = dict_
+        # inj_action = self.action_helper(inj_action)
+        timestamp = self.get_time_stamp()
+        self._forecasted_inj = [(timestamp, inj_action)]
+        self._forecasted_inj += env.forecasts()
+        self._forecasted_grid = [None for _ in self._forecasted_inj]
+        self._env_internal_params = {}
+        self._update_internal_env_params(env)
+        
+    def _update_alarm(self, env):
+        if not (self.dim_alarms and env._has_attention_budget):
+            return
+        
+        self.is_alarm_illegal[:] = env._is_alarm_illegal
+        if env._attention_budget.time_last_successful_alarm_raised > 0:
+            self.time_since_last_alarm[:] = (
+                self.current_step
+                - env._attention_budget.time_last_successful_alarm_raised
+            )
+        else:
+            self.time_since_last_alarm[:] = -1
+        self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
+        self.attention_budget[:] = env._attention_budget.current_budget        
+        
+    def _update_alert(self, env):
+        self.active_alert[:] = env._last_alert
+        self.time_since_last_alert[:] = env._time_since_last_alert
+        self.alert_duration[:] = env._alert_duration
+        self.total_number_of_alert[:] = env._total_number_of_alert
+        self.time_since_last_attack[:] = env._time_since_last_attack
+        self.attack_under_alert[:] = env._attack_under_alert
+        # self.was_alert_used_after_attack  # handled in self.update_after_reward
+        
     def get_simulator(self) -> "grid2op.simulator.Simulator":
         """This function allows to retrieve a valid and properly initialized "Simulator"
 
@@ -3924,7 +4022,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
         
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             
             env = grid2op.make(env_name)
             obs = env.reset()
@@ -3993,7 +4091,7 @@ class BaseObservation(GridObjects):
     
     def get_forecast_env(self) -> "grid2op.Environment.Environment":
         """
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
         
         This function will return a grid2op "environment" where the data (load, generation and maintenance)
         comes from the forecast data in the observation.
@@ -4021,7 +4119,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -4044,7 +4142,7 @@ class BaseObservation(GridObjects):
             .. code-block:: python
 
                 import grid2op
-                env_name = ...
+                env_name = "l2rpn_case14_sandbox"  # or any other name
                 env = grid2op.make(env_name)
                 obs = env.reset()
                 
@@ -4096,7 +4194,7 @@ class BaseObservation(GridObjects):
         for the forseable future (they are the forecast availble in :func:`BaseObservation.simulate` and
         :func:`BaseObservation.get_forecast_env`)
         
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
         
         Examples
         -----------
@@ -4104,7 +4202,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
         
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             
             obs = env.reset()
@@ -4152,7 +4250,7 @@ class BaseObservation(GridObjects):
                                         with_maintenance: bool= False,
                                         ) -> "grid2op.Environment.Environment":
         """
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
         
         This function will return a grid2op "environment" where the data (load, generation and maintenance)
         comes from the provided forecast data.
@@ -4206,7 +4304,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -4308,7 +4406,7 @@ class BaseObservation(GridObjects):
             The main advantages of this function is that you do not require to have access to an environment
             to change them.
         
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
         
         Examples
         -----------
@@ -4316,7 +4414,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
         
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             
             obs = env.reset()
@@ -4331,3 +4429,33 @@ class BaseObservation(GridObjects):
         """
         self._obs_env.change_parameters(params)
         self._obs_env._parameters = params
+
+    def update_after_reward(self, env):
+        """Only called for the regular environment (so not available for
+        :func:`BaseObservation.get_forecast_env` or 
+        :func:`BaseObservation.simulate`)
+
+        .. warning::
+            You probably don't have to use except if you develop a specific
+            observation class !
+            
+        .. info::
+            If you want to develop a new type of observation with a new type of reward, you can use the 
+            `env._reward_to_obs` attribute (dictionary) in the reward to pass information to the 
+            observation (in this function).
+            
+            Basically, update `env._reward_to_obs` in the reward, and use the values in `env._reward_to_obs` 
+            in this function.
+            
+        .. versionadded:: 1.9.1
+        
+        Parameters
+        ----------
+        env : grid2op.Environment.BaseEnv
+            The environment with which to update the observation
+        """
+        if type(self).dim_alerts == 0:
+            return
+        
+        # update the was_alert_used_after_attack !
+        self.was_alert_used_after_attack[:] = env._was_alert_used_after_attack

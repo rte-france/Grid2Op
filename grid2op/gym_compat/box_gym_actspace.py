@@ -9,7 +9,7 @@
 import copy
 import warnings
 import numpy as np
-from gym.spaces import Box
+# from gym.spaces import Box
 
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
@@ -22,10 +22,14 @@ from grid2op.Exceptions import Grid2OpException
 # TODO doc
 # TODO test the function part
 
-from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE, check_gym_version
+from grid2op.gym_compat.utils import (ALL_ATTR,
+                                      ATTR_DISCRETE,
+                                      check_gym_version,
+                                      GYM_AVAILABLE,
+                                      GYMNASIUM_AVAILABLE)
 
 
-class BoxGymActSpace(Box):
+class __AuxBoxGymActSpace:
     """
     This class allows to convert a grid2op action space into a gym "Box" which is
     a regular Box in R^d.
@@ -49,7 +53,7 @@ class BoxGymActSpace(Box):
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         from grid2op.gym_compat import GymEnv, BoxGymActSpace
@@ -81,6 +85,22 @@ class BoxGymActSpace(Box):
 
     Hint: you can use: `multiply` being the standard deviation and `add` being the average of the attribute.
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`BoxGymActSpace` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`BoxGymnasiumActSpace`), otherwise it will
+          inherit from gym (and will be exactly :class:`BoxLegacyGymActSpace`)
+        - :class:`BoxGymnasiumActSpace` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`BoxLegacyGymActSpace` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     Notes
     -------
     For more customization, this code is roughly equivalent to something like:
@@ -88,7 +108,7 @@ class BoxGymActSpace(Box):
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         from grid2op.gym_compat import GymEnv
@@ -132,7 +152,7 @@ class BoxGymActSpace(Box):
                 f"grid2op action_space. You provided {type(grid2op_action_space)}"
                 f'as the "grid2op_action_space" attribute.'
             )
-        check_gym_version()
+        check_gym_version(True)  # TODO GYMNASIUM
         if attr_to_keep == ALL_ATTR:
             # by default, i remove all the attributes that are not supported by the action type
             # i do not do that if the user specified specific attributes to keep. This is his responsibility in
@@ -249,7 +269,7 @@ class BoxGymActSpace(Box):
         low, high, shape, dtype = self._get_info(functs)
 
         # initialize the base container
-        Box.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
+        type(self)._BoxType.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
         
         # convert data in `_add` and `_multiply` to the right type
         self._add = {k: v.astype(dtype) for k, v in self._add.items()}
@@ -526,3 +546,31 @@ class BoxGymActSpace(Box):
                 self.low[prev:where_to_put][both_finite] = 0.0
                 break
             prev = where_to_put
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import Box as LegGymBox
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    BoxLegacyGymActSpace = type("BoxLegacyGymActSpace",
+                                (__AuxBoxGymActSpace, LegGymBox, ),
+                                {"_gymnasium": False,
+                                 "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
+                                 "_BoxType": LegGymBox,
+                                 "__module__": __name__})
+    BoxLegacyGymActSpace.__doc__ = __AuxBoxGymActSpace.__doc__
+    BoxGymActSpace = BoxLegacyGymActSpace
+    BoxGymActSpace.__doc__ = __AuxBoxGymActSpace.__doc__
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Box
+    from grid2op.gym_compat.base_gym_attr_converter import BaseGymnasiumAttrConverter
+    BoxGymnasiumActSpace = type("BoxGymnasiumActSpace",
+                                (__AuxBoxGymActSpace, Box, ),
+                                {"_gymnasium": True,
+                                 "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
+                                 "_BoxType": Box,
+                                 "__module__": __name__})
+    BoxGymnasiumActSpace.__doc__ = __AuxBoxGymActSpace.__doc__
+    BoxGymActSpace = BoxGymnasiumActSpace
+    BoxGymActSpace.__doc__ = __AuxBoxGymActSpace.__doc__

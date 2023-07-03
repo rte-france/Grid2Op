@@ -333,7 +333,9 @@ def _get_action_grid_class():
         "alarms_area_lines": [],
         "dim_alerts": 0,
         "alertable_line_names": [],
+        "alertable_line_ids": [],
         "_PATH_ENV": None,
+        "assistant_warning_type": None
     }
     GridObjects.shunts_data_available = False
     my_cls = GridObjects.init_grid(GridObjects, force=True)
@@ -1357,7 +1359,25 @@ class TestActionBase(ABC):
 
     def test_to_dict(self):
         dict_ = self.helper_action.cls_to_dict()
-        self.assertDictEqual(dict_, self.res)
+        for el in dict_:
+            assert el in self.res, f"missing key {el} in self.res"
+        for el in self.res:
+            assert el in dict_, f"missing key {el} in dict_"
+            
+        for el in self.res:
+            val = dict_[el]
+            val_res = self.res[el]
+            if val is None and val_res is not None:
+                raise AssertionError(f"val is None and val_res is not None: val_res: {val_res}")
+            if val is not None and val_res is None:
+                raise AssertionError(f"val is not None and val_res is None: val {val}")
+            if val is None and val_res is None:
+                continue
+            
+            ok_ = np.array_equal(val, val_res)
+            assert ok_, (f"values different for {el}: "
+                         f"{dict_[el]}"
+                         f"{self.res[el]}")
 
     def test_from_dict(self):
         res = ActionSpace.from_dict(self.res)

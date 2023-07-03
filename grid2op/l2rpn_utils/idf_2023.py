@@ -81,9 +81,13 @@ class ObservationIDF2023(CompleteObservation):
         "delta_time",  # starting grid2op version 1.6.5
         "gen_margin_up",
         "gen_margin_down",  # starting grid2op version 1.6.6
-        "is_alert_illegal",
+        # line alert (starting grid2Op 1.9.1)
+        "active_alert",
+        "attack_under_alert",
         "time_since_last_alert",
-        "last_alert",
+        "alert_duration",
+        "total_number_of_alert",
+        "time_since_last_attack",
         "was_alert_used_after_attack",
     ]
     attr_list_json = [
@@ -93,10 +97,6 @@ class ObservationIDF2023(CompleteObservation):
         "theta_ex",
         "load_theta",
         "gen_theta",
-        "storage_theta",
-        "is_alert_illegal",
-        "time_since_last_alert",
-        "last_alert",
-        "was_alert_used_after_attack",
+        "storage_theta"
     ]
     attr_list_set = set(attr_list_vect)

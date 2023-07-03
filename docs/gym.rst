@@ -7,11 +7,27 @@
 
 .. _openai-gym:
 
-Compatibility with openAI gym
+Compatibility with gymnasium / gym
 ===================================
 
-The gym framework in reinforcement learning is widely used. Starting from version 1.2.0 we improved the
+The gymnasium framework in reinforcement learning is widely used. Starting from version 1.2.0 we improved the
 compatibility with this framework.
+
+Starting with 1.9.1 we switch (as advised) from the legacy "gym" framework to the 
+new "gymnasium" framework (gym is no longer maintained since v0.26.2, see 
+https://www.gymlibrary.dev/). This change should not have any impact on older grid2op code
+except that you now need to use `import gymnasium as gym` instead of `import gym` in 
+your base code.
+
+.. note::
+    If you want to still use the "legacy" gym classes you can still do it with grid2op:
+    Backward compatibility with openai gym is maintained.
+
+.. note::
+    By default, if gymnasium is installed, all default classes from `grid2op.gym_compat` module will 
+    inherit from gymnasium. You can still retrieve the classes inheriting from gym (and not gymnasium).
+
+    More information on the section :ref:`gymnasium_gym`
 
 Before grid2op 1.2.0 only some classes fully implemented the open AI gym interface:
 
@@ -49,7 +65,7 @@ A simple usage is:
 .. note::
 
     To be as close as grid2op as possible, by default (using the methode discribed above) the action
-    space will be encoded as a gym Dict with keys the attribute of a grid2op action. This might not
+    space will be encoded as a gymnasium.spaces.Dict with keys the attribute of a grid2op action. This might not
     be the best representation to perform RL with (some framework do not really like it...)
 
     For more customization on that side, please refer to the section :ref:`gym_compat_box_discrete` below
@@ -81,7 +97,10 @@ For example, an observation space will look like:
 - "_shunt_bus": Box(`env.n_shunt`,) [type: int, low: -inf, high: inf]
 - "a_ex": Box(`env.n_line`,) [type: float, low: 0, high: inf]
 - "a_or": Box(`env.n_line`,) [type: float, low: 0, high: inf]
+- "active_alert": MultiBinary(`env.dim_alerts`)
 - "actual_dispatch": Box(`env.n_gen`,)
+- "alert_duration":  Box(`env.dim_alerts`,)  [type: int, low: 0, high: inf]
+- "attack_under_alert": Box(`env.dim_alerts`,)  [type: int, low: -1, high: inf]
 - "attention_budget": Box(1,) [type: float, low: 0, high: inf]
 - "current_step": Box(1,) [type: int, low: -inf, high: inf]
 - "curtailment": Box(`env.n_gen`,)  [type: float, low: 0., high: 1.0]
@@ -91,17 +110,19 @@ For example, an observation space will look like:
 - "day_of_week": Discrete(8)
 - "delta_time": Box(0.0, inf, (1,), float32)
 - "duration_next_maintenance": Box(`env.n_line`,)  [type: int, low: -1, high: inf]
+- "gen_margin_down":  Box(`env.n_gen`,)  [type: float, low: 0, high: `env.gen_max_ramp_down`]
+- "gen_margin_up":  Box(`env.n_gen`,)  [type: float, low: 0, high: `env.gen_max_ramp_up`]
 - "gen_p": Box(`env.n_gen`,)  [type: float, low: `env.gen_pmin`, high: `env.gen_pmax * 1.2`]
 - "gen_p_before_curtail": Box(`env.n_gen`,)  [type: float, low: `env.gen_pmin`, high: `env.gen_pmax * 1.2`]
 - "gen_q": Box(`env.n_gen`,)  [type: float, low: -inf, high: inf]
+- "gen_theta":  Box(`env.n_gen`,) [type: float, low: -180, high: 180]
 - "gen_v": Box(`env.n_gen`,)  [type: float, low: 0, high: inf]
-- "gen_margin_up": Box(`env.n_gen`,)  [type: float, low: 0, high: `env.gen_max_ramp_up`]
-- "gen_margin_down": Box(`env.n_gen`,)  [type: float, low: 0, high: `env.gen_max_ramp_down`]
 - "hour_of_day": Discrete(24)
 - "is_alarm_illegal": Discrete(2)
 - "line_status": MultiBinary(`env.n_line`)
 - "load_p": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
 - "load_q": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
+- "load_theta": Box(`env.n_load`,) [type: float, low: -180, high: 180]
 - "load_v": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
 - "max_step": Box(1,) [type: int, low: -inf, high: inf]
 - "minute_of_hour": Discrete(60)
@@ -114,22 +135,24 @@ For example, an observation space will look like:
 - "storage_charge": Box(`env.n_storage`,)  [type: float, low: 0., high: `env.storage_Emax`]
 - "storage_power": Box(`env.n_storage`,)  [type: float, low: `-env.storage_max_p_prod`, high: `env.storage_max_p_absorb`]
 - "storage_power_target": Box(`env.n_storage`,)  [type: float, low: `-env.storage_max_p_prod`, high: `env.storage_max_p_absorb`]
-- "target_dispatch": Box(`env.n_gen`,)
-- "theta_or": Box(`env.n_line`,)  [type: float, low: -180., high: 180.]
+- "storage_theta": Box(`env.n_storage`,)  [type: float, low: -180., high: 180.]
+- "target_dispatch": Box(`env.n_gen`,)   [type: float, low: -inf, high: inf]
+- "thermal_limit": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
 - "theta_ex": Box(`env.n_line`,)  [type: float, low: -180., high: 180.]
-- "load_theta": Box(`env.n_load`,)  [type: float, low: -180., high: 180.]
-- "gen_theta": Box(`env.n_gen`,)  [type: float, low: -180., high: 180.]
-- "storage_theta": : Box(`env.n_storage`,)  [type: float, low: -180., high: 180.]
+- "theta_or": Box(`env.n_line`,)  [type: float, low: -180., high: 180.]
 - "time_before_cooldown_line": Box(`env.n_line`,) [type: int, low: 0, high: depending on parameters]
 - "time_before_cooldown_sub": Box(`env.n_sub`,)  [type: int, low: 0, high: depending on parameters]
 - "time_next_maintenance": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
 - "time_since_last_alarm": Box(1,)  [type: int, low: -1, high: inf]
+- "time_since_last_alert": Box(`env.dim_alerts`,)  [type: int, low: -1, high: inf]
+- "time_since_last_attack": Box(`env.dim_alerts`,)  [type: int, low: -1, high: inf]
 - "timestep_overflow": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
-- "thermal_limit": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
 - "topo_vect": Box(`env.dim_topo`,)  [type: int, low: -1, high: 2]
+- "total_number_of_alert": Box(1 if `env.dim_alerts` > 0 else 0,) [type: int, low: 0, high: inf]
 - "v_ex": Box(`env.n_line`,)  [type: float, low: 0, high: inf]
 - "v_or": Box(`env.n_line`,)  [type: flaot, low: 0, high: inf]
 - "was_alarm_used_after_game_over": Discrete(2)
+- "was_alert_used_after_attack": Box(`env.dim_alerts`,)  [type: int, low: -1, high: 1]
 - "year": Discrete(2100)
 
 Each keys correspond to an attribute of the observation. In this example `"line_status": MultiBinary(20)`
@@ -151,6 +174,8 @@ straight translation from the attribute of the action to the key of the dictiona
 - "set_bus": Box(`env.dim_topo`) [type: int, low=-1, high=2]
 - "set_line_status": Box(`env.n_line`) [type: int, low=-1, high=1]
 - "storage_power": Box(`env.n_storage`) [type: float, low=-`env.storage_max_p_prod`, high=`env.storage_max_p_absorb`]
+- "raise_alarm": MultiBinary(`env.dim_alarms`)
+- "raise_alert": MultiBinary(`env.dim_alerts`)
 
 For example you can create a "gym action" (for the default encoding) like:
 
@@ -373,7 +398,7 @@ Customizing the action and observation space, into Box or Discrete
 The use of the converter above is nice if you can work with gym Dict, but in some cases, or for some frameworks
 it is not convenient to do it at all.
 
-TO alleviate this problem, we developed 3 types of gym action space, following the architecture
+TO alleviate this problem, we developed 4 types of gym action space, following the architecture
 detailed in subsection :ref:`base_gym_space_function`
 
 ===============================   ============================================================
@@ -402,6 +427,58 @@ They can all be used like:
 We encourage you to visit the documentation for more information on how to use these classes. Each offer
 different possible customization.
 
+.. _gymnasium_gym:
+
+Gymnasium vs Gym
+------------------
+
+Starting from grid2op 1.9.1 we introduced the compatibility with `gymnasium` package (the replacement of the
+`gym` package that will no longer be maintained).
+
+By default, if gymnasium is installed on your machine, all classes from the `grid2op.gym_compat` module will inherit
+from gymnasium. That is :class:`GymEnv` will be inherit from `gymnasium.Env`(and not `gym.Env`), :class:`GymActionSpace`
+will inherit from `gymnasium.spaces.Dict` (and not from `gym.spaces.Dict`) etc.
+
+But we wanted to maintain Backward compatibility. It is ensured in two different ways:
+
+1) if you have both `gymnasium` and `gym` installed on your machine, you can choose which "framework"
+   you want to use by explicitly using the right grid2op class. For example, if you want a `gym` 
+   environment (inheriting from `gym.Env`) you can use :class:`GymEnv_Modern`and if you 
+   want to explicitly stay in `gymnasium` you can use :class:`GymnasiumEnv`
+2) if you don't want to have `gymnasium` and only `gym` is installed then the default
+   grid2op class will stay in the `gym` eco system. In this case, `gym.Env` will
+   be :class:`GymEnv_Modern` and all the code previously written will work exactly as
+   before.
+
+
+.. note::
+    As you understood if you want to keep the behaviour of grid2op prior to 1.9.1 the simplest solution would be 
+    not to install gymnasium at all.
+
+    If however you want to benefit from the latest gymnasium package, you can keep the previous code you have and
+    simply install gymnasium. All classes defined there will still be defined and you will be able
+    to use gymnasium transparently.
+
+The table bellow summarize the correspondance between the default classes and the classes specific to gymnasium / gym:
+
+======================================  ===============================================  =====================================================
+Default class                           Class with gymnasium                             Class with gym
+======================================  ===============================================  =====================================================
+:class:`BaseGymAttrConverter`           :class:`BaseGymnasiumAttrConverter`              :class:`BaseLegacyGymAttrConverter`
+:class:`BoxGymActSpace`                 :class:`BoxGymnasiumActSpace`                    :class:`BoxLegacyGymActSpace`
+:class:`BoxGymObsSpace`                 :class:`BoxGymnasiumObsSpace`                    :class:`BoxLegacyGymObsSpace`
+:class:`ContinuousToDiscreteConverter`  :class:`ContinuousToDiscreteConverterGymnasium`  :class:`ContinuousToDiscreteConverterLegacyGym`
+:class:`DiscreteActSpace`               :class:`DiscreteActSpaceGymnasium`               :class:`DiscreteActSpaceLegacyGym`
+:class:`GymActionSpace`                 :class:`GymnasiumActionSpace`                    :class:`LegacyGymActionSpace`
+:class:`GymObservationSpace`            :class:`GymnasiumObservationSpace`               :class:`LegacyGymObservationSpace`
+:class:`_BaseGymSpaceConverter`         :class:`_BaseGymnasiumSpaceConverter`            :class:`_BaseLegacyGymSpaceConverter`
+:class:`GymEnv`                         :class:`GymnasiumEnv`                            :class:`GymEnv_Modern` / :class:`GymEnv_Legacy`
+:class:`MultiToTupleConverter`          :class:`MultiToTupleConverterGymnasium`          :class:`MultiToTupleConverterLegacyGym`
+:class:`MultiDiscreteActSpace`          :class:`MultiDiscreteActSpaceGymnasium`          :class:`MultiDiscreteActSpaceLegacyGym`
+:class:`ScalerAttrConverter`            :class:`ScalerAttrConverterGymnasium`            :class:`ScalerAttrConverterLegacyGym`
+======================================  ===============================================  =====================================================
+
+
 Recommended usage of grid2op with other framework
 --------------------------------------------------
 
@@ -414,7 +491,7 @@ Any contribution is welcome here
 
 Other frameworks
 **********************
-Any contribution is welcome here
+Any contribution is welcome here too (-:
 
 Troubleshoot with some frameworks
 -------------------------------------------------
@@ -473,7 +550,6 @@ pmin and pmax:
         self.observation_space["gen_p"].low[:] = -np.inf
         self.observation_space["gen_p"].high[:] = np.inf
 
-
 Detailed Documentation by class
 --------------------------------
 .. automodule:: grid2op.gym_compat
@@ -483,52 +559,5 @@ Detailed Documentation by class
 .. autoclass:: grid2op.gym_compat.gym_space_converter._BaseGymSpaceConverter
     :members:
     :autosummary:
-
-
-Legacy version
----------------
-
-If you are interested by this feature, we recommend you to proceed like this:
-
-.. code-block:: python
-
-   import grid2op
-   from grid2op.gym_compat import GymActionSpace, GymObservationSpace
-   from grid2op.Agent import BaseAgent
-
-   class MyAgent(BaseAgent):
-      def __init__(self, action_space, observation_space):
-         BaseAgent.__init__(self, action_space)
-         self.gym_obs_space = GymObservationSpace(observation_space)
-         self.gym_action_space = GymActionSpace(observation_space)
-
-      def act(self, obs, reward, done=False):
-         # convert the observation to gym like one:
-         gym_obs = self.gym_obs_space.to_gym(obs)
-
-         # do whatever you want, as long as you retrieve a gym-like action
-         gym_action = ...
-         grid2op_action = self.gym_action_space.from_gym(gym_action)
-         # NB advanced usage: if action_space is a grid2op.converter (for example coming from IdToAct)
-         # then what's called  "grid2op_action" is in fact an action that can be understood by the converter.
-         # to convert it back to grid2op action you need to convert it. See the documentation of GymActionSpace
-         # for such purpose.
-         return grid2op_action
-
-   env = grid2op.make(...)
-   my_agent = MyAgent(env.action_space, env.observation_space, ...)
-
-   # and now do anything you like
-   # for example
-   done = False
-   reward = env.reward_range[0]
-   obs = env.reset()
-   while not done:
-      action = my_agent.act(obs, reward, done)
-      obs, reward, done, info = env.step(action)
-
-We also implemented some "converter" that allow the conversion of some action space into more convenient
-`gym.spaces` (this is only available if gym is installed of course). Please check
-:class:`grid2op.gym_compat.GymActionSpace` for more information and examples.
 
 .. include:: final.rst

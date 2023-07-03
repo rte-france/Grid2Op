@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import os
 import numpy as np
+from collections import OrderedDict
 
 from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
@@ -393,7 +394,7 @@ class IdToAct(Converter):
 
         return self.all_actions[encoded_act]
 
-    def get_gym_dict(self):
+    def get_gym_dict(self, cls_gym):
         """
         Transform this converter into a dictionary that can be used to initialized a :class:`gym.spaces.Dict`.
         The converter is modeled as a "Discrete" gym space with as many elements as the number
@@ -403,15 +404,10 @@ class IdToAct(Converter):
 
         This function should not be used "as is", but rather through :class:`grid2op.Converter.GymConverter`
 
-        Returns
-        -------
-        res: :class:`gym.spaces.Dict`
-            The dict
+        cls_gym represents either :class:`grid2op.gym_compat.LegacyGymActionSpace` or
+        :class:`grid2op.gym_compat.GymnasiumActionSpace`
         """
-        # lazy import gym
-        from gym import spaces
-
-        res = {"action": spaces.Discrete(n=self.n)}
+        res = {"action": cls_gym._DiscreteType(n=self.n)}
         return res
 
     def convert_action_from_gym(self, gymlike_action):
@@ -493,7 +489,5 @@ class IdToAct(Converter):
             gym_action = converter.to_gym(converter_action)  # this represents the same action
 
         """
-        from gym import spaces
-
-        res = spaces.dict.OrderedDict({"action": int(action)})
+        res = OrderedDict({"action": int(action)})
         return res

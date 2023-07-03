@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from gym import spaces
+from collections import OrderedDict
 import warnings
 import numpy as np
 
@@ -18,11 +18,10 @@ from grid2op.Environment import (
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Converter.Converters import Converter
-from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
-from grid2op.gym_compat.gym_space_converter import _BaseGymSpaceConverter
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 
 
-class GymActionSpace(_BaseGymSpaceConverter):
+class __AuxGymActionSpace:
     """
     This class enables the conversion of the action space into a gym "space".
 
@@ -35,6 +34,22 @@ class GymActionSpace(_BaseGymSpaceConverter):
     **Note** that gym space converted with this class should be seeded independently. It is NOT seeded
     when calling :func:`grid2op.Environment.Environment.seed`.
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`GymActionSpace` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`GymnasiumActionSpace`), otherwise it will
+          inherit from gym (and will be exactly :class:`LegacyGymActionSpace`)
+        - :class:`GymnasiumActionSpace` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`LegacyGymActionSpace` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     Examples
     --------
     Converting an action space is fairly straightforward, though the resulting gym action space
@@ -139,7 +154,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
         if converter is not None and isinstance(converter, Converter):
             # a converter allows to ... convert the data so they have specific gym space
             self.initial_act_space = converter
-            dict_ = converter.get_gym_dict()
+            dict_ = converter.get_gym_dict(type(self))
             self.__is_converter = True
         elif converter is not None:
             raise RuntimeError(
@@ -154,7 +169,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
             )
             dict_ = self._fix_dict_keys(dict_)
             self.__is_converter = False
-        _BaseGymSpaceConverter.__init__(self, dict_, dict_variables)
+        super().__init__(dict_, dict_variables)
 
     def reencode_space(self, key, fun):
         """
@@ -200,7 +215,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
             )
 
         my_dict = self.get_dict_encoding()
-        if fun is not None and not isinstance(fun, BaseGymAttrConverter):
+        if fun is not None and not isinstance(fun, type(self)._BaseGymAttrConverterType):
             raise RuntimeError(
                 "Impossible to initialize a converter with a function of type {}".format(
                     type(fun)
@@ -219,7 +234,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
             else:
                 raise RuntimeError(f"Impossible to find key {key} in your action space")
         my_dict[key2] = fun
-        res = GymActionSpace(env=self._init_env, dict_variables=my_dict)
+        res = type(self)(env=self._init_env, dict_variables=my_dict)
         return res
 
     def _fill_dict_act_space(self, dict_, action_space, dict_variables):
@@ -241,9 +256,9 @@ class GymActionSpace(_BaseGymSpaceConverter):
             elif dt == dt_int:
                 # discrete action space
                 if attr_nm == "_set_line_status":
-                    my_type = spaces.Box(low=-1, high=1, shape=shape, dtype=dt)
+                    my_type = type(self)._BoxType(low=-1, high=1, shape=shape, dtype=dt)
                 elif attr_nm == "_set_topo_vect":
-                    my_type = spaces.Box(low=-1, high=2, shape=shape, dtype=dt)
+                    my_type = type(self)._BoxType(low=-1, high=2, shape=shape, dtype=dt)
             elif dt == dt_bool:
                 # boolean observation space
                 my_type = self._boolean_type(sh)
@@ -253,7 +268,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
                 low = float("-inf")
                 high = float("inf")
                 shape = (sh,)
-                SpaceType = spaces.Box
+                SpaceType = type(self)._BoxType
 
                 if attr_nm == "prod_p":
                     low = action_space.gen_pmin
@@ -292,7 +307,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
             res[self.keys_grid2op_2_human[k]] = v
         return res
 
-    def from_gym(self, gymlike_action: spaces.dict.OrderedDict) -> object:
+    def from_gym(self, gymlike_action: OrderedDict) -> object:
         """
         Transform a gym-like action (such as the output of "sample()") into a grid2op action
 
@@ -323,7 +338,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
                 res._assign_attr_from_name(internal_k, tmp)
         return res
 
-    def to_gym(self, action: object) -> spaces.dict.OrderedDict:
+    def to_gym(self, action: object) -> OrderedDict:
         """
         Transform an action (non gym) into an action compatible with the gym Space.
 
@@ -359,3 +374,47 @@ class GymActionSpace(_BaseGymSpaceConverter):
     def close(self):
         if hasattr(self, "_init_env"):
             self._init_env = None  # this doesn't own the environment
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import (Discrete as LegGymDiscrete,
+                            Box as LegGymBox,
+                            Dict as LegGymDict,
+                            Space as LegGymSpace,
+                            MultiBinary as LegGymMultiBinary,
+                            Tuple as LegGymTuple)
+    from grid2op.gym_compat.gym_space_converter import _BaseLegacyGymSpaceConverter
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    LegacyGymActionSpace = type("LegacyGymActionSpace",
+                                (__AuxGymActionSpace, _BaseLegacyGymSpaceConverter, ),
+                                {"_DiscreteType": LegGymDiscrete,
+                                 "_BoxType": LegGymBox,
+                                 "_DictType": LegGymDict,
+                                 "_SpaceType": LegGymSpace, 
+                                 "_MultiBinaryType": LegGymMultiBinary, 
+                                 "_TupleType": LegGymTuple, 
+                                 "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter, 
+                                 "_gymnasium": False,
+                                 "__module__": __name__})
+    LegacyGymActionSpace.__doc__ = __AuxGymActionSpace.__doc__
+    GymActionSpace = LegacyGymActionSpace
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
+    from grid2op.gym_compat.gym_space_converter import _BaseGymnasiumSpaceConverter
+    from grid2op.gym_compat.base_gym_attr_converter import BaseGymnasiumAttrConverter
+    GymnasiumActionSpace = type("GymnasiumActionSpace",
+                                (__AuxGymActionSpace, _BaseGymnasiumSpaceConverter, ),
+                                {"_DiscreteType": Discrete,
+                                 "_BoxType": Box,
+                                 "_DictType": Dict,
+                                 "_SpaceType": Space, 
+                                 "_MultiBinaryType": MultiBinary, 
+                                 "_TupleType": Tuple, 
+                                 "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter, 
+                                 "_gymnasium": True,
+                                 "__module__": __name__})
+    GymnasiumActionSpace.__doc__ = __AuxGymActionSpace.__doc__
+    GymActionSpace = GymnasiumActionSpace
+    

@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -6,46 +6,105 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import warnings
 # TODO test the json part but... https://github.com/openai/gym-http-api/issues/62 or https://github.com/openai/gym/issues/1841
+# TODO when functions are called in the converter (especially with graph)
 from grid2op.tests.helper_path_test import *
+
 
 import grid2op
 from grid2op.dtypes import dt_float, dt_int
 from grid2op.tests.helper_path_test import *
 from grid2op.Action import PlayableAction
 
-try:
-    import gym
-    from gym.spaces import Box
-    from grid2op.gym_compat import GymActionSpace, GymObservationSpace
-    from grid2op.gym_compat import GymEnv
-    from grid2op.gym_compat import ContinuousToDiscreteConverter
-    from grid2op.gym_compat import ScalerAttrConverter
-    from grid2op.gym_compat import MultiToTupleConverter
-    from grid2op.gym_compat import (
-        BoxGymObsSpace,
-        BoxGymActSpace,
-        MultiDiscreteActSpace,
-        DiscreteActSpace,
-    )
-    from grid2op.gym_compat.utils import _compute_extra_power_for_losses, _MAX_GYM_VERSION_RANDINT, GYM_VERSION
-
-    GYM_AVAIL = True
-except ImportError:
-    GYM_AVAIL = False
+from grid2op.gym_compat import GymActionSpace, GymObservationSpace
+from grid2op.gym_compat import GymEnv
+from grid2op.gym_compat import ContinuousToDiscreteConverter
+from grid2op.gym_compat import ScalerAttrConverter
+from grid2op.gym_compat import MultiToTupleConverter
+from grid2op.gym_compat import (
+    GYM_AVAILABLE, 
+    GYMNASIUM_AVAILABLE,
+    BoxGymObsSpace,
+    BoxGymActSpace,
+    MultiDiscreteActSpace,
+    DiscreteActSpace,
+)
+from grid2op.gym_compat.utils import _compute_extra_power_for_losses, _MAX_GYM_VERSION_RANDINT, GYM_VERSION
 
 import pdb
 
-import warnings
-
-warnings.simplefilter("error")
-
-
-class TestGymCompatModule(unittest.TestCase):
+class AuxilliaryForTest:
+    def _aux_GymEnv_cls(self):
+        return GymEnv
+    
+    def _aux_ContinuousToDiscreteConverter_cls(self):
+        return ContinuousToDiscreteConverter
+    
+    def _aux_ScalerAttrConverter_cls(self):
+        return ScalerAttrConverter
+    
+    def _aux_MultiToTupleConverter_cls(self):
+        return MultiToTupleConverter
+    
+    def _aux_BoxGymObsSpace_cls(self):
+        return BoxGymObsSpace
+    
+    def _aux_BoxGymActSpace_cls(self):
+        return BoxGymActSpace
+    
+    def _aux_MultiDiscreteActSpace_cls(self):
+        return MultiDiscreteActSpace
+    
+    def _aux_DiscreteActSpace_cls(self):
+        return DiscreteActSpace
+    
+    def _aux_Box_cls(self):
+        if GYMNASIUM_AVAILABLE:
+            from gymnasium.spaces import Box
+            return Box
+        if GYM_AVAILABLE:
+            from gym.spaces import Box
+            return Box
+    
+    def _aux_MultiDiscrete_cls(self):
+        if GYMNASIUM_AVAILABLE:
+            from gymnasium.spaces import MultiDiscrete
+            return MultiDiscrete
+        if GYM_AVAILABLE:
+            from gym.spaces import MultiDiscrete
+            return MultiDiscrete
+    
+    def _aux_Discrete_cls(self):
+        if GYMNASIUM_AVAILABLE:
+            from gymnasium.spaces import Discrete
+            return Discrete
+        if GYM_AVAILABLE:
+            from gym.spaces import Discrete
+            return Discrete
+        
+    def _aux_Tuple_cls(self):
+        if GYMNASIUM_AVAILABLE:
+            from gymnasium.spaces import Tuple
+            return Tuple
+        if GYM_AVAILABLE:
+            from gym.spaces import Tuple
+            return Tuple
+        
+    def _aux_Dict_cls(self):
+        if GYMNASIUM_AVAILABLE:
+            from gymnasium.spaces import Dict
+            return Dict
+        if GYM_AVAILABLE:
+            from gym.spaces import Dict
+            return Dict
+            
     def _skip_if_no_gym(self):
-        if not GYM_AVAIL:
+        if not GYM_AVAILABLE and not GYMNASIUM_AVAILABLE:
             self.skipTest("Gym is not available")
-
+    
+    
+class _AuxTestGymCompatModule:
     def setUp(self) -> None:
         self._skip_if_no_gym()
 
@@ -68,13 +127,19 @@ class TestGymCompatModule(unittest.TestCase):
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
-        env_gym = GymEnv(self.env)
+        env_gym = self._aux_GymEnv_cls()(self.env)
         str_ = env_gym.action_space.__str__()  # this crashed
         str_ = env_gym.observation_space.__str__()
 
+    def test_can_create(self):
+        env_gym = self._aux_GymEnv_cls()(self.env)
+        assert isinstance(env_gym, self._aux_GymEnv_cls())
+        assert isinstance(env_gym.action_space, self._aux_Dict_cls())
+        assert isinstance(env_gym.observation_space, self._aux_Dict_cls())
+        
     def test_convert_togym(self):
         """test i can create the env"""
-        env_gym = GymEnv(self.env)
+        env_gym = self._aux_GymEnv_cls()(self.env)
         dim_act_space = np.sum(
             [
                 np.sum(env_gym.action_space[el].shape)
@@ -89,7 +154,6 @@ class TestGymCompatModule(unittest.TestCase):
             ]
         )
         size_th = 536  # as of grid2Op 1.7.1 (where all obs attributes are there)
-        size_th = 537  # as of grid2Op 1.8.2 (where alarms are added)
         assert (
             dim_obs_space == size_th
         ), f"Size should be {size_th} but is {dim_obs_space}"
@@ -108,7 +172,7 @@ class TestGymCompatModule(unittest.TestCase):
 
     def test_ignore(self):
         """test the ignore_attr method"""
-        env_gym = GymEnv(self.env)
+        env_gym = self._aux_GymEnv_cls()(self.env)
         env_gym.action_space = env_gym.action_space.ignore_attr("set_bus").ignore_attr(
             "set_line_status"
         )
@@ -122,7 +186,7 @@ class TestGymCompatModule(unittest.TestCase):
 
     def test_keep_only(self):
         """test the keep_only_attr method"""
-        env_gym = GymEnv(self.env)
+        env_gym = self._aux_GymEnv_cls()(self.env)
         env_gym.observation_space = env_gym.observation_space.keep_only_attr(
             ["rho", "gen_p", "load_p", "topo_vect", "actual_dispatch"]
         )
@@ -136,7 +200,7 @@ class TestGymCompatModule(unittest.TestCase):
 
     def test_scale_attr_converter(self):
         """test a scale_attr converter"""
-        env_gym = GymEnv(self.env)
+        env_gym = self._aux_GymEnv_cls()(self.env)
         ob_space = env_gym.observation_space
 
         key = "actual_dispatch"
@@ -150,7 +214,7 @@ class TestGymCompatModule(unittest.TestCase):
         ), f"issue for {key}"
         ob_space = ob_space.reencode_space(
             "actual_dispatch",
-            ScalerAttrConverter(substract=0.0, divide=self.env.gen_pmax),
+            self._aux_ScalerAttrConverter_cls()(substract=0.0, divide=self.env.gen_pmax),
         )
         env_gym.observation_space = ob_space
         obs, info = env_gym.reset()
@@ -167,13 +231,13 @@ class TestGymCompatModule(unittest.TestCase):
 
     def test_add_key(self):
         """test the add_key feature"""
-        env_gym = GymEnv(self.env)
+        env_gym = self._aux_GymEnv_cls()(self.env)
         shape_ = (self.env.dim_topo, self.env.dim_topo)
         key = "connectivity_matrix"
         env_gym.observation_space.add_key(
             key,
             lambda obs: obs.connectivity_matrix(),
-            Box(
+            self._aux_Box_cls()(
                 shape=shape_,
                 low=np.zeros(shape_, dtype=dt_float),
                 high=np.ones(shape_, dtype=dt_float),
@@ -196,9 +260,9 @@ class TestGymCompatModule(unittest.TestCase):
 
         if _IS_MACOS:
             self.skipTest("Test not suited on macos")
-        env_gym = GymEnv(self.env)
+        env_gym = self._aux_GymEnv_cls()(self.env)
         env_gym.action_space = env_gym.action_space.reencode_space(
-            "redispatch", ContinuousToDiscreteConverter(nb_bins=11)
+            "redispatch", self._aux_ContinuousToDiscreteConverter_cls()(nb_bins=11)
         )
         env_gym.action_space.seed(0)
         act_gym = env_gym.action_space.sample()
@@ -232,11 +296,11 @@ class TestGymCompatModule(unittest.TestCase):
         assert np.all(
             act_gym["redispatch"] == res
         ), f'wrong action: {act_gym["redispatch"]}'
-        assert isinstance(env_gym.action_space["redispatch"], gym.spaces.MultiDiscrete)
+        assert isinstance(env_gym.action_space["redispatch"], self._aux_MultiDiscrete_cls())
         env_gym.action_space = env_gym.action_space.reencode_space(
-            "redispatch", MultiToTupleConverter()
+            "redispatch", self._aux_MultiToTupleConverter_cls()()
         )
-        assert isinstance(env_gym.action_space["redispatch"], gym.spaces.Tuple)
+        assert isinstance(env_gym.action_space["redispatch"], self._aux_Tuple_cls())
 
         # and now test that the redispatching is properly computed
         env_gym.action_space.seed(0)
@@ -312,26 +376,26 @@ class TestGymCompatModule(unittest.TestCase):
 
     def test_all_together(self):
         """combine all test above (for the action space)"""
-        env_gym = GymEnv(self.env)
+        env_gym = self._aux_GymEnv_cls()(self.env)
         env_gym.action_space = env_gym.action_space.ignore_attr("set_bus").ignore_attr(
             "set_line_status"
         )
         env_gym.action_space = env_gym.action_space.reencode_space(
-            "redispatch", ContinuousToDiscreteConverter(nb_bins=11)
+            "redispatch", self._aux_ContinuousToDiscreteConverter_cls()(nb_bins=11)
         )
         env_gym.action_space = env_gym.action_space.reencode_space(
-            "change_bus", MultiToTupleConverter()
+            "change_bus", self._aux_MultiToTupleConverter_cls()()
         )
         env_gym.action_space = env_gym.action_space.reencode_space(
-            "change_line_status", MultiToTupleConverter()
+            "change_line_status", self._aux_MultiToTupleConverter_cls()()
         )
         env_gym.action_space = env_gym.action_space.reencode_space(
-            "redispatch", MultiToTupleConverter()
+            "redispatch", self._aux_MultiToTupleConverter_cls()()
         )
 
-        assert isinstance(env_gym.action_space["redispatch"], gym.spaces.Tuple)
-        assert isinstance(env_gym.action_space["change_bus"], gym.spaces.Tuple)
-        assert isinstance(env_gym.action_space["change_line_status"], gym.spaces.Tuple)
+        assert isinstance(env_gym.action_space["redispatch"], self._aux_Tuple_cls())
+        assert isinstance(env_gym.action_space["change_bus"], self._aux_Tuple_cls())
+        assert isinstance(env_gym.action_space["change_line_status"], self._aux_Tuple_cls())
 
         act_gym = env_gym.action_space.sample()
         act_glop = env_gym.action_space.from_gym(act_gym)
@@ -362,7 +426,7 @@ class TestGymCompatModule(unittest.TestCase):
             )
         env.seed(0)
         env.reset()  # seed part !
-        env_gym = GymEnv(env)
+        env_gym = self._aux_GymEnv_cls()(env)
         assert "a_ex" in env_gym.observation_space.spaces
         assert np.array_equal(
             env_gym.observation_space["a_ex"].low,
@@ -707,11 +771,7 @@ class TestGymCompatModule(unittest.TestCase):
         # TODO add tests for the alarm feature and curtailment and storage (if not present already)
 
 
-class TestBoxGymObsSpace(unittest.TestCase):
-    def _skip_if_no_gym(self):
-        if not GYM_AVAIL:
-            self.skipTest("Gym is not available")
-
+class _AuxTestBoxGymObsSpace:
     def setUp(self) -> None:
         self._skip_if_no_gym()
 
@@ -726,11 +786,11 @@ class TestBoxGymObsSpace(unittest.TestCase):
         self.env.seed(0)
         self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
-        self.env_gym = GymEnv(self.env)
+        self.env_gym = self._aux_GymEnv_cls()(self.env)
 
     def test_assert_raises_creation(self):
         with self.assertRaises(RuntimeError):
-            self.env_gym.observation_space = BoxGymObsSpace(
+            self.env_gym.observation_space = self._aux_BoxGymObsSpace_cls()(
                 self.env_gym.observation_space
             )
 
@@ -743,7 +803,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
             "actual_dispatch",
             "connectivity_matrix",
         ]
-        self.env_gym.observation_space = BoxGymObsSpace(
+        self.env_gym.observation_space = self._aux_BoxGymObsSpace_cls()(
             self.env.observation_space,
             attr_to_keep=kept_attr,
             divide={
@@ -761,6 +821,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                 )
             },
         )
+        assert isinstance(self.env_gym.observation_space, self._aux_Box_cls())
         obs_gym, info = self.env_gym.reset()
         assert obs_gym in self.env_gym.observation_space
         assert self.env_gym.observation_space._attr_to_keep == sorted(kept_attr)
@@ -768,7 +829,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
 
     def test_can_create_int(self):
         kept_attr = ["topo_vect", "line_status"]
-        self.env_gym.observation_space = BoxGymObsSpace(
+        self.env_gym.observation_space = self._aux_BoxGymObsSpace_cls()(
             self.env.observation_space, attr_to_keep=kept_attr
         )
         obs_gym, info = self.env_gym.reset()
@@ -780,7 +841,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
     def test_scaling(self):
         kept_attr = ["gen_p", "load_p"]
         # first test, with nothing
-        observation_space = BoxGymObsSpace(
+        observation_space = self._aux_BoxGymObsSpace_cls()(
             self.env.observation_space, attr_to_keep=kept_attr
         )
         self.env_gym.observation_space = observation_space
@@ -791,7 +852,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
         assert np.abs(obs_gym).max() >= 80
 
         # second test: just scaling (divide)
-        observation_space = BoxGymObsSpace(
+        observation_space = self._aux_BoxGymObsSpace_cls()(
             self.env.observation_space,
             attr_to_keep=kept_attr,
             divide={"gen_p": self.env.gen_pmax, "load_p": self.obs_env.load_p},
@@ -805,7 +866,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
         assert np.abs(obs_gym).max() >= 1.0
 
         # third step: center and reduce too
-        observation_space = BoxGymObsSpace(
+        observation_space = self._aux_BoxGymObsSpace_cls()(
             self.env.observation_space,
             attr_to_keep=kept_attr,
             divide={"gen_p": self.env.gen_pmax, "load_p": self.obs_env.load_p},
@@ -831,7 +892,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
             "actual_dispatch",
             "connectivity_matrix",
         ]
-        self.env_gym.observation_space = BoxGymObsSpace(
+        self.env_gym.observation_space = self._aux_BoxGymObsSpace_cls()(
             self.env.observation_space,
             attr_to_keep=kept_attr,
             divide={
@@ -857,7 +918,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
         # test the stuff crashes if not used properly
         # bad shape provided
         with self.assertRaises(RuntimeError):
-            tmp = BoxGymObsSpace(
+            tmp = self._aux_BoxGymObsSpace_cls()(
                 self.env.observation_space,
                 attr_to_keep=kept_attr,
                 divide={
@@ -877,7 +938,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
             )
         # wrong input (tuple too short)
         with self.assertRaises(RuntimeError):
-            tmp = BoxGymObsSpace(
+            tmp = self._aux_BoxGymObsSpace_cls()(
                 self.env.observation_space,
                 attr_to_keep=kept_attr,
                 divide={
@@ -897,7 +958,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
 
         # function cannot be called
         with self.assertRaises(RuntimeError):
-            tmp = BoxGymObsSpace(
+            tmp = self._aux_BoxGymObsSpace_cls()(
                 self.env.observation_space,
                 attr_to_keep=kept_attr,
                 divide={
@@ -918,7 +979,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
 
         # low not correct
         with self.assertRaises(RuntimeError):
-            tmp = BoxGymObsSpace(
+            tmp = self._aux_BoxGymObsSpace_cls()(
                 self.env.observation_space,
                 attr_to_keep=kept_attr,
                 divide={
@@ -939,7 +1000,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
 
         # high not correct
         with self.assertRaises(RuntimeError):
-            tmp = BoxGymObsSpace(
+            tmp = self._aux_BoxGymObsSpace_cls()(
                 self.env.observation_space,
                 attr_to_keep=kept_attr,
                 divide={
@@ -960,7 +1021,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
 
         # not added in attr_to_keep
         with self.assertRaises(RuntimeError):
-            tmp = BoxGymObsSpace(
+            tmp = self._aux_BoxGymObsSpace_cls()(
                 self.env.observation_space,
                 attr_to_keep=["gen_p", "load_p", "topo_vect", "rho", "actual_dispatch"],
                 divide={
@@ -980,7 +1041,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
             )
 
         # another normal function
-        self.env_gym.observation_space = BoxGymObsSpace(
+        self.env_gym.observation_space = self._aux_BoxGymObsSpace_cls()(
             self.env.observation_space,
             attr_to_keep=["connectivity_matrix", "log_load"],
             functs={
@@ -1002,11 +1063,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
         )
 
 
-class TestBoxGymActSpace(unittest.TestCase):
-    def _skip_if_no_gym(self):
-        if not GYM_AVAIL:
-            self.skipTest("Gym is not available")
-
+class _AuxTestBoxGymActSpace:
     def setUp(self) -> None:
         self._skip_if_no_gym()
 
@@ -1021,20 +1078,21 @@ class TestBoxGymActSpace(unittest.TestCase):
         self.env.seed(0)
         self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
-        self.env_gym = GymEnv(self.env)
+        self.env_gym = self._aux_GymEnv_cls()(self.env)
 
     def test_assert_raises_creation(self):
         with self.assertRaises(RuntimeError):
-            self.env_gym.action_space = BoxGymActSpace(self.env_gym.action_space)
+            self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(self.env_gym.action_space)
 
     def test_can_create(self):
         """test a simple creation"""
         kept_attr = ["set_bus", "change_bus", "redispatch"]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = BoxGymActSpace(
+            self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(
                 self.env.action_space, attr_to_keep=kept_attr
             )
+        assert isinstance(self.env_gym.action_space, self._aux_Box_cls())
         self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(
             self.env_gym.action_space.sample()
@@ -1083,7 +1141,7 @@ class TestBoxGymActSpace(unittest.TestCase):
             kept_attr = [attr_nm]
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env_gym.action_space = BoxGymActSpace(
+                self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(
                     self.env.action_space, attr_to_keep=kept_attr
                 )
             self.env_gym.action_space.seed(0)
@@ -1135,7 +1193,7 @@ class TestBoxGymActSpace(unittest.TestCase):
             kept_attr = [attr_nm, "redispatch"]
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env_gym.action_space = BoxGymActSpace(
+                self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(
                     self.env.action_space, attr_to_keep=kept_attr
                 )
             self.env_gym.action_space.seed(0)
@@ -1163,7 +1221,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         self.env_gym.action_space.close()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = BoxGymActSpace(
+            self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(
                 self.env.action_space, attr_to_keep=kept_attr
             )
         self.env_gym.action_space.seed(0)
@@ -1188,7 +1246,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         kept_attr = ["change_line_status", "set_bus"]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = BoxGymActSpace(
+            self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(
                 self.env.action_space, attr_to_keep=kept_attr
             )
         self.env_gym.action_space.seed(0)
@@ -1200,7 +1258,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         kept_attr = ["change_line_status", "set_bus", "redispatch"]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = BoxGymActSpace(
+            self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(
                 self.env.action_space, attr_to_keep=kept_attr
             )
         self.env_gym.action_space.seed(0)
@@ -1215,7 +1273,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         # first test, with nothing
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = BoxGymActSpace(
+            self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(
                 self.env.action_space, attr_to_keep=kept_attr
             )
         self.env_gym.action_space.seed(0)
@@ -1237,7 +1295,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         self.env_gym.action_space.close()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = BoxGymActSpace(
+            self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(
                 self.env.action_space,
                 attr_to_keep=kept_attr,
                 multiply={"redispatch": self.env.gen_max_ramp_up[gen_redisp]},
@@ -1258,7 +1316,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         self.env_gym.action_space.close()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = BoxGymActSpace(
+            self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(
                 self.env.action_space,
                 attr_to_keep=kept_attr,
                 multiply={"redispatch": self.env.gen_max_ramp_up[gen_redisp]},
@@ -1278,11 +1336,7 @@ class TestBoxGymActSpace(unittest.TestCase):
         assert np.all(np.isclose(grid2op_act.redispatch, grid2op_act3.redispatch))
 
 
-class TestMultiDiscreteGymActSpace(unittest.TestCase):
-    def _skip_if_no_gym(self):
-        if not GYM_AVAIL:
-            self.skipTest("Gym is not available")
-
+class _AuxTestMultiDiscreteGymActSpace:
     def setUp(self) -> None:
         self._skip_if_no_gym()
 
@@ -1297,11 +1351,11 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         self.env.seed(0)
         self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
-        self.env_gym = GymEnv(self.env)
+        self.env_gym = self._aux_GymEnv_cls()(self.env)
 
     def test_assert_raises_creation(self):
         with self.assertRaises(RuntimeError):
-            self.env_gym.action_space = MultiDiscreteActSpace(self.env_gym.action_space)
+            self.env_gym.action_space = self._aux_MultiDiscreteActSpace_cls()(self.env_gym.action_space)
 
     def test_can_create(self):
         """test a simple creation"""
@@ -1309,9 +1363,11 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         del self.env_gym.action_space
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = MultiDiscreteActSpace(
+            self.env_gym.action_space = self._aux_MultiDiscreteActSpace_cls()(
                 self.env.action_space, attr_to_keep=kept_attr
             )
+        assert isinstance(self.env_gym.action_space, self._aux_MultiDiscrete_cls())
+        
         self.env_gym.action_space.seed(0)
         gym_act = self.env_gym.action_space.sample()
         grid2op_act = self.env_gym.action_space.from_gym(gym_act)
@@ -1338,7 +1394,7 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         for nb_bin in [3, 6, 9, 12]:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env_gym.action_space = MultiDiscreteActSpace(
+                self.env_gym.action_space = self._aux_MultiDiscreteActSpace_cls()(
                     self.env.action_space,
                     attr_to_keep=kept_attr,
                     nb_bins={"redispatch": nb_bin},
@@ -1371,7 +1427,7 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         kept_attr = ["sub_set_bus"]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = MultiDiscreteActSpace(
+            self.env_gym.action_space = self._aux_MultiDiscreteActSpace_cls()(
                 self.env.action_space, attr_to_keep=kept_attr
             )
         self.env_gym.action_space.seed(0)
@@ -1402,7 +1458,7 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
         kept_attr = ["sub_change_bus"]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = MultiDiscreteActSpace(
+            self.env_gym.action_space = self._aux_MultiDiscreteActSpace_cls()(
                 self.env.action_space, attr_to_keep=kept_attr
             )
         self.env_gym.action_space.seed(0)
@@ -1474,7 +1530,7 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
             kept_attr = [attr_nm]
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env_gym.action_space = MultiDiscreteActSpace(
+                self.env_gym.action_space = self._aux_MultiDiscreteActSpace_cls()(
                     self.env.action_space, attr_to_keep=kept_attr
                 )
             assert self.env_gym.action_space._attr_to_keep == kept_attr
@@ -1498,11 +1554,7 @@ class TestMultiDiscreteGymActSpace(unittest.TestCase):
                 )
 
 
-class TestDiscreteGymActSpace(unittest.TestCase):
-    def _skip_if_no_gym(self):
-        if not GYM_AVAIL:
-            self.skipTest("Gym is not available")
-
+class _AuxTestDiscreteGymActSpace:
     def setUp(self) -> None:
         self._skip_if_no_gym()
 
@@ -1517,27 +1569,30 @@ class TestDiscreteGymActSpace(unittest.TestCase):
         self.env.seed(0)
         self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
-        self.env_gym = GymEnv(self.env)
+        self.env_gym = self._aux_GymEnv_cls()(self.env)
 
     def test_assert_raises_creation(self):
         with self.assertRaises(RuntimeError):
-            self.env_gym.action_space = DiscreteActSpace(self.env_gym.action_space)
+            self.env_gym.action_space = self._aux_DiscreteActSpace_cls()(self.env_gym.action_space)
 
     def test_can_create(self):
         """test a simple creation"""
         kept_attr = ["set_bus", "change_bus", "redispatch"]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_gym.action_space = DiscreteActSpace(
+            self.env_gym.action_space = self._aux_DiscreteActSpace_cls()(
                 self.env.action_space, attr_to_keep=kept_attr
             )
+        assert isinstance(self.env_gym.action_space, self._aux_Discrete_cls())
+        
         self.env_gym.action_space.seed(0)
         grid2op_act = self.env_gym.action_space.from_gym(
             self.env_gym.action_space.sample()
         )
         assert isinstance(grid2op_act, PlayableAction)
         assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
-        assert isinstance(self.env_gym.action_space.sample(), int)
+        act = self.env_gym.action_space.sample()
+        assert isinstance(act, (int, np.int32, np.int64, dt_int)), f"{act} not an int but {type(act)}"
         assert self.env_gym.action_space.n == 525
 
         # check that all types
@@ -1560,7 +1615,7 @@ class TestDiscreteGymActSpace(unittest.TestCase):
         for nb_bin in [3, 6, 9, 12]:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env_gym.action_space = DiscreteActSpace(
+                self.env_gym.action_space = self._aux_DiscreteActSpace_cls()(
                     self.env.action_space,
                     attr_to_keep=kept_attr,
                     nb_bins={"redispatch": nb_bin},
@@ -1604,7 +1659,7 @@ class TestDiscreteGymActSpace(unittest.TestCase):
             kept_attr = [attr_nm]
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env_gym.action_space = DiscreteActSpace(
+                self.env_gym.action_space = self._aux_DiscreteActSpace_cls()(
                     self.env.action_space, attr_to_keep=kept_attr
                 )
             assert self.env_gym.action_space._attr_to_keep == sorted(kept_attr)
@@ -1625,11 +1680,7 @@ class TestDiscreteGymActSpace(unittest.TestCase):
                 )
 
 
-class TestAllGymActSpaceWithAlarm(unittest.TestCase):
-    def _skip_if_no_gym(self):
-        if not GYM_AVAIL:
-            self.skipTest("Gym is not available")
-
+class _AuxTestAllGymActSpaceWithAlarm:
     def setUp(self) -> None:
         self._skip_if_no_gym()
 
@@ -1644,7 +1695,7 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
         self.env.seed(0)
         self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
-        self.env_gym = GymEnv(self.env)
+        self.env_gym = self._aux_GymEnv_cls()(self.env)
 
     def test_supported_keys_box(self):
         """test all the attribute of the action can be modified when the action is converted to a float"""
@@ -1680,7 +1731,7 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
             kept_attr = [attr_nm]
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env_gym.action_space = BoxGymActSpace(
+                self.env_gym.action_space = self._aux_BoxGymActSpace_cls()(
                     self.env.action_space, attr_to_keep=kept_attr
                 )
             self.env_gym.action_space.seed(0)
@@ -1735,7 +1786,7 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
             kept_attr = [attr_nm]
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env_gym.action_space = MultiDiscreteActSpace(
+                self.env_gym.action_space = self._aux_MultiDiscreteActSpace_cls()(
                     self.env.action_space, attr_to_keep=kept_attr
                 )
             assert self.env_gym.action_space._attr_to_keep == kept_attr
@@ -1790,7 +1841,7 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
             kept_attr = [attr_nm]
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env_gym.action_space = DiscreteActSpace(
+                self.env_gym.action_space = self._aux_DiscreteActSpace_cls()(
                     self.env.action_space, attr_to_keep=kept_attr
                 )
             assert self.env_gym.action_space._attr_to_keep == kept_attr
@@ -1812,11 +1863,7 @@ class TestAllGymActSpaceWithAlarm(unittest.TestCase):
                 )
 
 
-class TestGOObsInRange(unittest.TestCase):
-    def _skip_if_no_gym(self):
-        if not GYM_AVAIL:
-            self.skipTest("Gym is not available")
-
+class _AuxTestGOObsInRange:
     def setUp(self) -> None:
         self._skip_if_no_gym()
         with warnings.catch_warnings():
@@ -1830,7 +1877,7 @@ class TestGOObsInRange(unittest.TestCase):
         self.env.seed(0)
         self.env.reset()  # seed part !
         self.obs_env = self.env.reset()
-        self.env_gym = GymEnv(self.env)
+        self.env_gym = self._aux_GymEnv_cls()(self.env)
 
     def test_obs_in_go_state_dont_exceed_max(self):
         obs, reward, done, info = self.env.step(
@@ -1844,13 +1891,13 @@ class TestGOObsInRange(unittest.TestCase):
             assert gym_obs[key] in self.env_gym.observation_space.spaces[key], f"error for {key}"
             
 
-class ObsAllAttr(unittest.TestCase):
+class _AuxObsAllAttr:
     def test_all_attr_in_obs(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("educ_case14_storage", test=True,
                                action_class=PlayableAction)
-        gym_env = GymEnv(env)
+        gym_env = self._aux_GymEnv_cls()(env)
         obs, info = gym_env.reset()
         all_attrs = ["year",
                      "month",
@@ -1912,6 +1959,3 @@ class ObsAllAttr(unittest.TestCase):
         for el in all_attrs:
             assert el in obs.keys(), f"\"{el}\" not in obs.keys()"
 
-
-if __name__ == "__main__":
-    unittest.main()

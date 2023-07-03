@@ -570,6 +570,9 @@ class GridObjects:
     name_shunt = None
     shunt_to_subid = None
 
+    # alarm / alert
+    assistant_warning_type = None
+    
     # alarm feature
     # dimension of the alarm "space" (number of alarm that can be raised at each step)
     dim_alarms = 0  # TODO
@@ -582,10 +585,11 @@ class GridObjects:
     )  # for each area in the grid, gives which powerlines it contains # TODO
 
     # alert feature 
-    # # dimension of the alert "space" (number of alerts that can be raised at each step)
+    # dimension of the alert "space" (number of alerts that can be raised at each step)
     dim_alerts = 0  # TODO
     alertable_line_names = []  # name of each line to produce an alert on # TODO
-
+    alertable_line_ids = []
+    
     def __init__(self):
         pass
 
@@ -597,7 +601,12 @@ class GridObjects:
                 "You will change the number of dimensions of the alarm. This might cause trouble "
                 "if you environment is read back. We strongly recommend NOT to do this."
             )
+        if dim_alarms and cls.assistant_warning_type == "by_line":
+            raise Grid2OpException("Impossible to set both alarm and alert for the same environment.")
+        
         cls.dim_alarms = dim_alarms
+        if dim_alarms:
+            cls.assistant_warning_type = "zonal"
 
     @classmethod
     def tell_dim_alert(cls, dim_alerts):
@@ -607,8 +616,12 @@ class GridObjects:
                 "You will change the number of dimensions of the alert. This might cause trouble "
                 "if you environment is read back. We strongly recommend NOT to do this."
             )
+        if dim_alerts and cls.assistant_warning_type == "zonal":
+            raise Grid2OpException("Impossible to set both alarm and alert for the same environment.")
+        
         cls.dim_alerts = dim_alerts
-
+        if dim_alerts:
+            cls.assistant_warning_type = "by_line"
 
     @classmethod
     def _clear_class_attribute(cls):
@@ -742,6 +755,9 @@ class GridObjects:
         cls.name_shunt = None
         cls.shunt_to_subid = None
 
+        # alarm / alert
+        cls.assistant_warning_type = None
+        
         # alarms
         cls.dim_alarms = 0
         cls.alarms_area_names = []
@@ -751,6 +767,7 @@ class GridObjects:
         # alerts
         cls.dim_alerts = 0
         cls.alertable_line_names = []
+        cls.alertable_line_ids = []
 
     @classmethod
     def _update_value_set(cls):
@@ -2075,6 +2092,8 @@ class GridObjects:
                 f"The number of areas for the alarm feature should be >= 0. It currently is {cls.dim_alarms}"
             )
         else:
+            assert cls.assistant_warning_type == "zonal"
+            
             # the "alarm" feature is supported
             assert isinstance(
                 cls.alarms_area_names, list
@@ -2131,16 +2150,21 @@ class GridObjects:
 
     @classmethod
     def _check_validity_alert_data(cls):
+        # TODO remove assert and raise Grid2opExcpetion instead
         if cls.dim_alerts == 0:
             # no alert data
             assert (
                 cls.alertable_line_names == []
             ), "No alert data is provided, yet cls.alertable_line_names != []"
+            assert (
+               len(cls.alertable_line_ids) == 0
+            ), "No alert data is provided, yet len(cls.alertable_line_ids) != 0"
         elif cls.dim_alerts < 0:
             raise EnvError(
                 f"The number of lines for the alert feature should be >= 0. It currently is {cls.dim_alerts}"
             )
         else:
+            assert cls.assistant_warning_type == "by_line"
             # the "alert" feature is supported
             assert isinstance(
                 cls.alertable_line_names, list
@@ -2148,8 +2172,13 @@ class GridObjects:
             assert (
                 len(cls.alertable_line_names) == cls.dim_alerts
             ), "len(cls.alertable_line_names) != cls.dim_alerts"
-            names_to_id = {nm: id_ for id_, nm in enumerate(cls.alertable_line_names)}
-
+            
+            try:
+                cls.alertable_line_ids = np.array(cls.alertable_line_ids).astype(dt_int)
+            except Exception as exc_:
+                raise EnvError(f"Impossible to convert alertable_line_ids "
+                               f"to an array of int with error {exc_}")
+            
     @classmethod
     def _check_validity_storage_data(cls):
         if cls.storage_type is None:
@@ -2676,7 +2705,9 @@ class GridObjects:
         if cls.glop_version < "1.6.0":
             # this feature did not exist before.
             cls.dim_alarms = 0
-        if cls.glop_version < "1.8.2":
+            cls.assistant_warning_type = None
+        if cls.glop_version < "1.9.1":
+            # this feature did not exists before
             cls.dim_alerts = 0 
 
     @classmethod
@@ -3360,11 +3391,15 @@ class GridObjects:
             copy_,
         )
 
+        # alert or alarm
+        if cls.assistant_warning_type is not None:
+            res["assistant_warning_type"] = str(cls.assistant_warning_type)
+        else:
+            res["assistant_warning_type"] = None
+        
         # area for the alarm feature
         res["dim_alarms"] = cls.dim_alarms
     
-        # number of line alert for the alert feature
-        res['dim_alerts'] = cls.dim_alerts 
 
         save_to_dict(
             res, cls, "alarms_area_names", (lambda li: [str(el) for el in li]), copy_
@@ -3388,9 +3423,15 @@ class GridObjects:
             (lambda lili: [[str(l_nm) for l_nm in lines] for lines in lili]),
             copy_,
         )
+        
+        # number of line alert for the alert feature
+        res['dim_alerts'] = cls.dim_alerts 
         # save alert line names to dict
         save_to_dict(
-            res, cls, "alertable_line_names", (lambda li: [str(el) for el in li]), copy_
+            res, cls, "alertable_line_names", (lambda li: [str(el) for el in li]) if as_list else None, copy_
+        )
+        save_to_dict(
+            res, cls, "alertable_line_ids", (lambda li: [int(el) for el in li])  if as_list else None, copy_
         )
         return res
 
@@ -3647,6 +3688,11 @@ class GridObjects:
             # and now post process the class attributes for that
             cls.process_grid2op_compat()
 
+        if "assistant_warning_type" in dict_:
+            cls.assistant_warning_type = dict_["assistant_warning_type"]
+        else:
+            cls.assistant_warning_type = None
+        
         # alarm information
         if "dim_alarms" in dict_:
             # NB by default the constructor do as if there were no alarm so that's great !
@@ -3659,8 +3705,12 @@ class GridObjects:
         if "dim_alerts" in dict_: 
             # NB by default the constructor do as if there were no alert so that's great !
             cls.dim_alerts = dict_["dim_alerts"]
-            cls.alertable_line_names = copy.deepcopy(dict_["alertable_line_names"])
-
+            cls.alertable_line_names = extract_from_dict(
+                dict_, "alertable_line_names", lambda x: np.array(x).astype(str)
+                )
+            cls.alertable_line_ids = extract_from_dict(
+                dict_, "alertable_line_ids", lambda x: np.array(x).astype(dt_int)
+                )
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo_cls()
@@ -4113,6 +4163,8 @@ class GridObjects:
         name_shunt_str = ",".join([f'"{el}"' for el in cls.name_shunt])
         shunt_to_subid_str = GridObjects._format_int_vect_to_cls_str(cls.shunt_to_subid)
 
+        assistant_warning_type_str = (None if cls.assistant_warning_type is None 
+                                      else f'"{cls.assistant_warning_type}"')
         alarms_area_names_str = (
             "[]"
             if cls.dim_alarms == 0
@@ -4129,9 +4181,13 @@ class GridObjects:
         tmp_ = f"[{tmp_tmp_}]"
         alarms_area_lines_str = "[]" if cls.dim_alarms == 0 else tmp_
 
-        tmp_tmp_ = ",".join([f"[{format_el(el)}]" for el in cls.alertable_line_names])
+        tmp_tmp_ = ",".join([f"\"{el}\"" for el in cls.alertable_line_names])
         tmp_ = f"[{tmp_tmp_}]"
         alertable_line_names_str = '[]' if cls.dim_alerts == 0 else tmp_
+        
+        tmp_tmp_ = ",".join([f"{el}" for el in cls.alertable_line_ids])
+        tmp_ = f"[{tmp_tmp_}]"
+        alertable_line_ids_str = '[]' if cls.dim_alerts == 0 else tmp_
         res = f"""# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
@@ -4255,6 +4311,9 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     name_shunt = np.array([{name_shunt_str}])
     shunt_to_subid = {shunt_to_subid_str}
 
+    # alarm / alert
+    assistant_warning_type = {assistant_warning_type_str}
+    
     # alarm feature
     # dimension of the alarm "space" (number of alarm that can be raised at each step)
     dim_alarms = {cls.dim_alarms}
@@ -4265,6 +4324,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     # alert feature
     dim_alert = {cls.dim_alerts}
     alertable_line_names = {alertable_line_names_str}
+    alertable_line_ids = {alertable_line_ids_str}
 
 """
         return res

@@ -8,13 +8,16 @@
 
 import copy
 import warnings
-from gym.spaces import Discrete
+# from gym.spaces import Discrete
 
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Action import ActionSpace
 from grid2op.Converter import IdToAct
 
-from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
+from grid2op.gym_compat.utils import (ALL_ATTR_FOR_DISCRETE,
+                                      ATTR_DISCRETE,
+                                      GYM_AVAILABLE,
+                                      GYMNASIUM_AVAILABLE)
 
 # TODO test that it works normally
 # TODO test the casting in dt_int or dt_float depending on the data
@@ -23,7 +26,7 @@ from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
 # TODO test the function part
 
 
-class DiscreteActSpace(Discrete):
+class __AuxDiscreteActSpace:
     """
     TODO the documentation of this class is in progress.
 
@@ -38,7 +41,7 @@ class DiscreteActSpace(Discrete):
         import numpy as np
         from grid2op.gym_compat import GymEnv
         
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
         gym_env = GymEnv(env)
 
@@ -67,7 +70,7 @@ class DiscreteActSpace(Discrete):
         import numpy as np
         from grid2op.gym_compat import GymEnv, DiscreteActSpace
 
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
         gym_env = GymEnv(env)
         gym_env.action_space = DiscreteActSpace(env.action_space,
@@ -90,7 +93,7 @@ class DiscreteActSpace(Discrete):
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         from grid2op.gym_compat import GymEnv, MultiDiscreteActSpace, DiscreteActSpace
@@ -121,6 +124,22 @@ class DiscreteActSpace(Discrete):
     .. note::
         By default, the "do nothing" action is encoded by the integer '0'.
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`DiscreteActSpace` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`DiscreteActSpaceGymnasium`), otherwise it will
+          inherit from gym (and will be exactly :class:`DiscreteActSpaceLegacyGym`)
+        - :class:`DiscreteActSpaceGymnasium` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`DiscreteActSpaceLegacyGym` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     Examples
     --------
 
@@ -129,7 +148,7 @@ class DiscreteActSpace(Discrete):
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         from grid2op.gym_compat import GymEnv, DiscreteActSpace
@@ -157,7 +176,7 @@ class DiscreteActSpace(Discrete):
     - "change_bus": corresponds to changing the topology using the "change_bus" (equivalent to the
       "one_sub_change" keyword in the "attr_to_keep" of the :class:`MultiDiscreteActSpace`)
     - "redispatch"
-    - "set_storage"
+    - "storage_power"
     - "curtail"
     - "curtail_mw" (same effect as "curtail")
 
@@ -168,7 +187,7 @@ class DiscreteActSpace(Discrete):
 
         import grid2op
         from grid2op.gym_compat import GymEnv, DiscreteActSpace
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         gym_env = GymEnv(env)
@@ -197,7 +216,7 @@ class DiscreteActSpace(Discrete):
     def __init__(
         self,
         grid2op_action_space,
-        attr_to_keep=ALL_ATTR,
+        attr_to_keep=ALL_ATTR_FOR_DISCRETE,
         nb_bins=None,
         action_list=None,
     ):
@@ -210,12 +229,16 @@ class DiscreteActSpace(Discrete):
             )
 
         if nb_bins is None:
-            nb_bins = {"redispatch": 7, "set_storage": 7, "curtail": 7}
+            nb_bins = {"redispatch": 7, "storage_power": 7, "curtail": 7}
 
+        if "raise_alert" in attr_to_keep or "raise_alarm" in attr_to_keep:
+            raise Grid2OpException("This converter cannot be use to raise alarm or raise alert. "
+                                   "Please use the MultiDiscreteActSpace space for this purpose.")
+        
         act_sp = grid2op_action_space
         self.action_space = copy.deepcopy(act_sp)
 
-        if attr_to_keep == ALL_ATTR:
+        if attr_to_keep == ALL_ATTR_FOR_DISCRETE:
             # by default, i remove all the attributes that are not supported by the action type
             # i do not do that if the user specified specific attributes to keep. This is his responsibility in
             # in this case
@@ -248,11 +271,11 @@ class DiscreteActSpace(Discrete):
             "set_bus": act_sp.get_all_unitary_topologies_set,
             "change_bus": act_sp.get_all_unitary_topologies_change,
             "redispatch": act_sp.get_all_unitary_redispatch,
-            "set_storage": act_sp.get_all_unitary_storage,
+            "storage_power": act_sp.get_all_unitary_storage,
             "curtail": act_sp.get_all_unitary_curtail,
             "curtail_mw": act_sp.get_all_unitary_curtail,
-            "raise_alarm": act_sp.get_all_unitary_alarm,
-            "raise_alert": act_sp.get_all_unitary_alert,
+            # "raise_alarm": act_sp.get_all_unitary_alarm,
+            # "raise_alert": act_sp.get_all_unitary_alert,
             "set_line_status_simple": act_sp.get_all_unitary_line_set_simple,
         }
 
@@ -265,7 +288,7 @@ class DiscreteActSpace(Discrete):
             n_act = self.converter.n
 
         # initialize the base container
-        Discrete.__init__(self, n=n_act)
+        type(self)._DiscreteType.__init__(self, n=n_act)
 
     def _get_info(self):
         converter = IdToAct(self.action_space)
@@ -318,3 +341,35 @@ class DiscreteActSpace(Discrete):
 
     def close(self):
         pass
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import Discrete as LegGymDiscrete
+    from grid2op.gym_compat.box_gym_actspace import BoxLegacyGymActSpace
+    from grid2op.gym_compat.continuous_to_discrete import ContinuousToDiscreteConverterLegacyGym
+    DiscreteActSpaceLegacyGym = type("DiscreteActSpaceLegacyGym",
+                                     (__AuxDiscreteActSpace, LegGymDiscrete, ),
+                                     {"_gymnasium": False,
+                                      "_DiscreteType": LegGymDiscrete,
+                                      "_BoxGymActSpaceType": BoxLegacyGymActSpace,
+                                      "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterLegacyGym,
+                                      "__module__": __name__})
+    DiscreteActSpaceLegacyGym.__doc__ = __AuxDiscreteActSpace.__doc__
+    Discrete = DiscreteActSpaceLegacyGym
+    Discrete.__doc__ = __AuxDiscreteActSpace.__doc__
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Discrete
+    from grid2op.gym_compat.box_gym_actspace import BoxGymnasiumActSpace
+    from grid2op.gym_compat.continuous_to_discrete import  ContinuousToDiscreteConverterGymnasium
+    DiscreteActSpaceGymnasium = type("MultiDiscreteActSpaceGymnasium",
+                                     (__AuxDiscreteActSpace, Discrete, ),
+                                     {"_gymnasium": True,
+                                      "_DiscreteType": Discrete,
+                                      "_BoxGymActSpaceType": BoxGymnasiumActSpace,
+                                      "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterGymnasium,
+                                      "__module__": __name__})
+    DiscreteActSpaceGymnasium.__doc__ = __AuxDiscreteActSpace.__doc__
+    DiscreteActSpace = DiscreteActSpaceGymnasium
+    DiscreteActSpace.__doc__ = __AuxDiscreteActSpace.__doc__

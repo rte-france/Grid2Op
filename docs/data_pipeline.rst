@@ -117,7 +117,7 @@ into memory.
     The documentation of :class:`grid2op.Chronics.Chronics.MultifolderWithCache` for a more
     detailed documentation.
 
-.. versionchanged:: 1.8.2
+.. versionchanged:: 1.9.0
     Any call to "env.reset()" or "env.step()" without a previous call to `env.chronics_handler.real_data.reset()`
     will raise an error preventing any use of the environment.
     (It is no longer assumed people read, at least partially the documentation.)

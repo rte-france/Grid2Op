@@ -621,7 +621,7 @@ class BaseMultiProcessEnvironment(GridObjects):
             import grid2op
             from grid2op.Environment import BaseMultiProcessEnvironment
 
-            env_name = ...  # for example "l2rpn_case14_sandbox"
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env1 = grid2op.make(env_name)
             env2 = grid2op.make(env_name)
 

@@ -110,7 +110,6 @@ class ObservationSpace(SerializableObservationSpace):
         # helpers
         self.action_helper_env = env._helper_action_env
         self.reward_helper = RewardHelper(reward_func=self._reward_func, logger=self.logger)
-        self.reward_helper.initialize(env)
 
         self.__can_never_use_simulate = False
         # TODO here: have another backend class maybe
@@ -123,6 +122,7 @@ class ObservationSpace(SerializableObservationSpace):
         setattr(sys.modules[_ObsEnv.__module__], self._ObsEnv_class.__name__, self._ObsEnv_class)
         if _with_obs_env:
             self._create_obs_env(env)
+            self.reward_helper.initialize(self.obs_env)
         else:
             self.with_forecast = False
             self.obs_env = None
