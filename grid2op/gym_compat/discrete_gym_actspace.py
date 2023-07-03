@@ -350,8 +350,8 @@ if GYM_AVAILABLE:
                                       "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterLegacyGym,
                                       "__module__": __name__})
     DiscreteActSpaceLegacyGym.__doc__ = __AuxDiscreteActSpace.__doc__
-    Discrete = DiscreteActSpaceLegacyGym
-    Discrete.__doc__ = __AuxDiscreteActSpace.__doc__
+    DiscreteActSpace = DiscreteActSpaceLegacyGym
+    DiscreteActSpace.__doc__ = __AuxDiscreteActSpace.__doc__
         
 
 if GYMNASIUM_AVAILABLE:

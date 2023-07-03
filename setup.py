@@ -57,6 +57,7 @@ pkgs = {
             "sphinxcontrib-trio>=1.1.0",
             "autodocsumm>=0.1.13",
             "gym>=0.17.2"
+            "gymnasium",
         ],
         "api": [
             "flask",

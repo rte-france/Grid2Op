@@ -274,6 +274,7 @@ class _AuxTestGymCompatModule:
                 res = (1, 2, 0, 0, 0, 0)
                 res = (5, 3, 0, 0, 0, 1)
                 res = (2, 2, 0, 0, 0, 9)
+                res = (10, 3, 0, 0, 0, 7)
             else:
                 res = (0, 6, 0, 0, 0, 5)
                 res = (10, 3, 0, 0, 0, 7)
@@ -290,6 +291,7 @@ class _AuxTestGymCompatModule:
                 res = (0, 1, 0, 0, 0, 4)
                 res = (5, 5, 0, 0, 0, 9)
                 res = (0, 9, 0, 0, 0, 7)
+                res = (7, 5, 0, 0, 0, 8)
             else:
                 res = (2, 9, 0, 0, 0, 1)
                 res = (7, 5, 0, 0, 0, 8)
@@ -323,8 +325,12 @@ class _AuxTestGymCompatModule:
                     [1.666667, -1.666667, 0.0, 0.0, 0.0, -12.5], dtype=dt_float
                 )
                 res_tup = (8, 5, 0, 0, 0, 8)
+                res_tup = (8, 2, 0, 0, 0, 9)
                 res_disp = np.array(
                     [2.5, 0.0, 0.0, 0.0, 0.0, 7.5], dtype=dt_float
+                )
+                res_disp = np.array(
+                    [2.5, -5., 0., 0., 0., 10.], dtype=dt_float
                 )
             else:
                 res_tup = (8, 9, 0, 0, 0, 2)
@@ -359,6 +365,10 @@ class _AuxTestGymCompatModule:
                 res_tup = (7, 6, 0, 0, 0, 4)
                 res_disp = np.array(
                     [1.666667, 1.666666, 0.0, 0.0, 0.0, -2.5], dtype=dt_float
+                )
+                res_tup = (3, 8, 0, 0, 0, 8)
+                res_disp = np.array(
+                    [-1.6666665, 5., 0.0, 0.0, 0.0, 7.5], dtype=dt_float
                 )
             else:
                 res_tup = (4, 2, 0, 0, 0, 5)
