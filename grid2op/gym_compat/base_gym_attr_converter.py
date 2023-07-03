@@ -35,7 +35,7 @@ class __AuxBaseGymAttrConverter(object):
     """
 
     def __init__(self, space=None, gym_to_g2op=None, g2op_to_gym=None):
-        check_gym_version(type(self)._gymnasium)  # TODO GYMNASIUM
+        check_gym_version(type(self)._gymnasium)
         self.__is_init_super = (
             False  # is the "super" class initialized, do not modify in child class
         )
