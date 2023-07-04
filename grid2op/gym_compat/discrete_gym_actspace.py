@@ -8,13 +8,16 @@
 
 import copy
 import warnings
-from gym.spaces import Discrete
+# from gym.spaces import Discrete
 
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Action import ActionSpace
 from grid2op.Converter import IdToAct
 
-from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
+from grid2op.gym_compat.utils import (ALL_ATTR,
+                                      ATTR_DISCRETE,
+                                      GYM_AVAILABLE,
+                                      GYMNASIUM_AVAILABLE)
 
 # TODO test that it works normally
 # TODO test the casting in dt_int or dt_float depending on the data
@@ -23,7 +26,7 @@ from grid2op.gym_compat.utils import ALL_ATTR, ATTR_DISCRETE
 # TODO test the function part
 
 
-class DiscreteActSpace(Discrete):
+class __AuxDiscreteActSpace:
     """
     TODO the documentation of this class is in progress.
 
@@ -121,6 +124,22 @@ class DiscreteActSpace(Discrete):
     .. note::
         By default, the "do nothing" action is encoded by the integer '0'.
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`DiscreteActSpace` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`DiscreteActSpaceGymnasium`), otherwise it will
+          inherit from gym (and will be exactly :class:`DiscreteActSpaceLegacyGym`)
+        - :class:`DiscreteActSpaceGymnasium` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`DiscreteActSpaceLegacyGym` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     Examples
     --------
 
@@ -264,7 +283,7 @@ class DiscreteActSpace(Discrete):
             n_act = self.converter.n
 
         # initialize the base container
-        Discrete.__init__(self, n=n_act)
+        type(self)._DiscreteType.__init__(self, n=n_act)
 
     def _get_info(self):
         converter = IdToAct(self.action_space)
@@ -317,3 +336,35 @@ class DiscreteActSpace(Discrete):
 
     def close(self):
         pass
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import Discrete as LegGymDiscrete
+    from grid2op.gym_compat.box_gym_actspace import BoxLegacyGymActSpace
+    from grid2op.gym_compat.continuous_to_discrete import ContinuousToDiscreteConverterLegacyGym
+    DiscreteActSpaceLegacyGym = type("DiscreteActSpaceLegacyGym",
+                                     (__AuxDiscreteActSpace, LegGymDiscrete, ),
+                                     {"_gymnasium": False,
+                                      "_DiscreteType": LegGymDiscrete,
+                                      "_BoxGymActSpaceType": BoxLegacyGymActSpace,
+                                      "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterLegacyGym,
+                                      "__module__": __name__})
+    DiscreteActSpaceLegacyGym.__doc__ = __AuxDiscreteActSpace.__doc__
+    DiscreteActSpace = DiscreteActSpaceLegacyGym
+    DiscreteActSpace.__doc__ = __AuxDiscreteActSpace.__doc__
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Discrete
+    from grid2op.gym_compat.box_gym_actspace import BoxGymnasiumActSpace
+    from grid2op.gym_compat.continuous_to_discrete import  ContinuousToDiscreteConverterGymnasium
+    DiscreteActSpaceGymnasium = type("MultiDiscreteActSpaceGymnasium",
+                                     (__AuxDiscreteActSpace, Discrete, ),
+                                     {"_gymnasium": True,
+                                      "_DiscreteType": Discrete,
+                                      "_BoxGymActSpaceType": BoxGymnasiumActSpace,
+                                      "_ContinuousToDiscreteConverterType": ContinuousToDiscreteConverterGymnasium,
+                                      "__module__": __name__})
+    DiscreteActSpaceGymnasium.__doc__ = __AuxDiscreteActSpace.__doc__
+    DiscreteActSpace = DiscreteActSpaceGymnasium
+    DiscreteActSpace.__doc__ = __AuxDiscreteActSpace.__doc__

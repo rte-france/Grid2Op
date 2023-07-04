@@ -14,8 +14,7 @@ from grid2op.Exceptions.EnvExceptions import EnvError
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
-from grid2op.Rules import RulesChecker, BaseRules
-from grid2op.Exceptions import Grid2OpException
+from grid2op.Rules import RulesChecker
 from grid2op.operator_attention import LinearAttentionBudget
 
 
@@ -185,6 +184,7 @@ class _ObsEnv(BaseEnv):
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._game_rules.initialize(self)
         self._legalActClass = legalActClass
+        
         # self._action_space = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
 

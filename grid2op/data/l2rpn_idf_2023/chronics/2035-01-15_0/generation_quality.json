@@ -1,0 +1,39 @@
+{
+    "amount_curtailed_for": 517996.98562487605,
+    "avg": 4.9376785764685375e-06,
+    "forecast_generation_time": 227.65764686465263,
+    "forecasts_nb_fail": 5,
+    "forecasts_t0_errors": {
+        "1243": "cvxpy failed to find a solution for t0 1243, error Solver 'OSQP' failed. Try another solver, or solve with verbose=True for more information.",
+        "1244": "cvxpy failed to find a solution for t0 1244, error Solver 'OSQP' failed. Try another solver, or solve with verbose=True for more information.",
+        "1569": "cvxpy failed to find a solution for t0 1569, error Solver 'OSQP' failed. Try another solver, or solve with verbose=True for more information.",
+        "272": "cvxpy failed to find a solution for t0 272, error Solver 'OSQP' failed. Try another solver, or solve with verbose=True for more information.",
+        "273": "cvxpy failed to find a solution for t0 273, error Solver 'OSQP' failed. Try another solver, or solve with verbose=True for more information."
+    },
+    "generation_time": 525.8916041404009,
+    "info": [
+        "avg, percent_95, percent_99, max: this 'quality' is the difference between the DC solver and the AC solver. This is the number of MW that will differ from the grid2op observation compared to the generated data by chronix2grid.",
+        "total_load, total_gen: total amount of energy consumed / produced for the generated scenario.",
+        "losses_mwh: total amount of losses for the scenario (in energy)",
+        "losses_avg: average (per step) of the loss (avg[loss_this_step / total_generation_this_step])",
+        "wind_curtailed_opf: total (in energy) wind power curtailed by the OPF",
+        "wind_curtailed_losses: total (in energy) wind power curtailed by the loss",
+        "solar_curtailed_opf: total (in energy) solar power curtailed by the OPF",
+        "iter_num: number of iteration of the loss algorithm",
+        "generation_time: total time spent to generate these data (in seconds)",
+        "saving_time: total time spent to save the generated data (in seconds), this excludes the metadata saving time",
+        "amount_curtailed_for: sum of all the power that has been curtailed for the forecasts"
+    ],
+    "iter_num": 4,
+    "losses_avg": 0.026382093930303285,
+    "losses_mwh": 16264.649927946815,
+    "max": 0.00984954833984375,
+    "percent_95": 0.0,
+    "percent_99": 0.0001220703125,
+    "saving_time": 19.36197980493307,
+    "solar_curtailed_opf": -5.404341209214181e-05,
+    "total_gen": 617649.1666666666,
+    "total_load": 601384.5167387198,
+    "wind_curtailed_losses": 0.00551749998703599,
+    "wind_curtailed_opf": 0.4060658809418479
+}

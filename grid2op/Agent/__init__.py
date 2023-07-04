@@ -19,6 +19,7 @@ __all__ = [
     "MLAgent",
     "RecoPowerlineAgent",
     "FromActionsListAgent",
+    "RecoPowerlinePerArea"
 ]
 
 from grid2op.Agent.baseAgent import BaseAgent
@@ -33,3 +34,4 @@ from grid2op.Agent.deltaRedispatchRandomAgent import DeltaRedispatchRandomAgent
 from grid2op.Agent.mlAgent import MLAgent
 from grid2op.Agent.recoPowerlineAgent import RecoPowerlineAgent
 from grid2op.Agent.fromActionsListAgent import FromActionsListAgent
+from grid2op.Agent.recoPowerLinePerArea import RecoPowerlinePerArea

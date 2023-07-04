@@ -8,14 +8,17 @@
 
 import copy
 import numpy as np
-from gym.spaces import Box, MultiDiscrete
-
 from grid2op.dtypes import dt_int
-from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
+
+# from gym.spaces import Box, MultiDiscrete
+# from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 
 
-class ContinuousToDiscreteConverter(BaseGymAttrConverter):
+class __AuxContinuousToDiscreteConverter:
     """
+    TODO doc in progress
+    
     Some RL algorithms are particularly suited for dealing with discrete action space or observation space.
 
     This "AttributeConverter" is responsible to convert continuous space to discrete space. The way it does
@@ -23,6 +26,22 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
 
     We recommend using an odd number of bins (eg 3, 7 or 9 for example).
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`ContinuousToDiscreteConverter` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`ContinuousToDiscreteConverterGymnasium`), otherwise it will
+          inherit from gym (and will be exactly :class:`ContinuousToDiscreteConverterLegacyGym`)
+        - :class:`ContinuousToDiscreteConverterGymnasium` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`ContinuousToDiscreteConverterLegacyGym` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     Examples
     --------
     If `nb_bins` is 3 and  the original input space is [-10, 10], then the split is the following:
@@ -57,7 +76,7 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
     """
 
     def __init__(self, nb_bins, init_space=None):
-        BaseGymAttrConverter.__init__(
+        type(self)._BaseGymAttrConverterType.__init__(
             self, g2op_to_gym=None, gym_to_g2op=None, space=None
         )
         if nb_bins < 2:
@@ -79,7 +98,7 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
             self.initialize_space(init_space)
 
     def initialize_space(self, init_space):
-        if not isinstance(init_space, Box):
+        if not isinstance(init_space, type(self)._BoxType):
             raise RuntimeError(
                 "Impossible to convert a gym space of type {} to a discrete space"
                 " (it should be of "
@@ -105,7 +124,7 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
         n_bins[
             self._ignored
         ] = 1  # if min and max are equal, i don't want to have multiple variable
-        space = MultiDiscrete(n_bins)
+        space = type(self)._MultiDiscreteType(n_bins)
 
         self.base_initialize(space=space, g2op_to_gym=None, gym_to_g2op=None)
 
@@ -121,3 +140,33 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
 
     def close(self):
         pass
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import Box as LegGymBox, MultiDiscrete as LegGymMultiDiscrete
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    ContinuousToDiscreteConverterLegacyGym = type("ContinuousToDiscreteConverterLegacyGym",
+                                                  (__AuxContinuousToDiscreteConverter, BaseLegacyGymAttrConverter, ),
+                                                  {"_gymnasium": False,
+                                                   "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
+                                                   "_MultiDiscreteType": LegGymMultiDiscrete,
+                                                   "_BoxType": LegGymBox,
+                                                   "__module__": __name__})
+    ContinuousToDiscreteConverterLegacyGym.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
+    ContinuousToDiscreteConverter = ContinuousToDiscreteConverterLegacyGym
+    ContinuousToDiscreteConverter.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Box, MultiDiscrete
+    from grid2op.gym_compat.base_gym_attr_converter import BaseGymnasiumAttrConverter
+    ContinuousToDiscreteConverterGymnasium = type("ContinuousToDiscreteConverterGymnasium",
+                                                  (__AuxContinuousToDiscreteConverter, BaseGymnasiumAttrConverter, ),
+                                                  {"_gymnasium": True,
+                                                   "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
+                                                   "_MultiDiscreteType": MultiDiscrete,
+                                                   "_BoxType": Box,
+                                                   "__module__": __name__})
+    ContinuousToDiscreteConverterGymnasium.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
+    ContinuousToDiscreteConverter = ContinuousToDiscreteConverterGymnasium
+    ContinuousToDiscreteConverter.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
