@@ -44,8 +44,14 @@ pkgs = {
             "imageio>=2.8.0",
             "pygifsicle>=1.0.1",
             "psutil>=5.7.0",
-            "gym>=0.17.2",
+            "gymnasium",
             "lightsim2grid",
+        ],
+        "gym": [
+            "gym>=0.17.2",
+        ],
+        "gymnasium": [
+            "gymnasium",
         ],
         "docs": [
             "numpydoc>=0.9.2",
@@ -53,7 +59,8 @@ pkgs = {
             "sphinx-rtd-theme>=0.4.3",
             "sphinxcontrib-trio>=1.1.0",
             "autodocsumm>=0.1.13",
-            "gym>=0.17.2"
+            "gym>=0.17.2",
+            "gymnasium",
         ],
         "api": [
             "flask",
@@ -63,7 +70,8 @@ pkgs = {
         "plot": ["imageio"],
         "test": ["lightsim2grid",
                  "numba",
-                 "gym>=0.26"
+                 "gym>=0.26",
+                 "gymnasium"
                  ],
         "chronix2grid": [
             "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/ramp_forecast"
@@ -73,6 +81,8 @@ pkgs = {
 pkgs["extras"]["test"] += pkgs["extras"]["optional"]
 pkgs["extras"]["test"] += pkgs["extras"]["plot"]
 pkgs["extras"]["test"] += pkgs["extras"]["chronix2grid"]
+pkgs["extras"]["test"] += pkgs["extras"]["gymnasium"]
+
 if sys.version_info.minor <= 7:
     # typing "Literal" not available on python 3.7
     pkgs["required"].append("typing_extensions")
@@ -85,7 +95,7 @@ setup(description='An gym compatible environment to model sequential decision ma
       long_description_content_type="text/markdown",
       author='Benjamin DONNOT',
       author_email='benjamin.donnot@rte-france.com',
-      python_requires='>=3.7',
+      python_requires='>=3.8',
       url="https://github.com/rte-france/Grid2Op",
       packages=setuptools.find_packages(),
       include_package_data=True,

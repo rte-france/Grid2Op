@@ -31,6 +31,36 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.1] - 2023-xx-yy
+--------------------
+- [BREAKING] (slightly): default `gym_compat` module now inherit from `gymnasium` (if 
+  gymnasium is installed) instead of `gym`. If you want legacy behaviour, 
+  do not install `gymnasium`. If you want compatibility with sota softwares using `gymnasium`,
+  install it and continue using grid2op transparently. See doc of `gym_compat` module for more
+  information.
+- [BREAKING] remove support for python 3.7 that has reached end of life on 2023-06-27 on
+  pypi and on CI
+- [BREAKING] to avoid misleading behaviour, by default the `BoxGymActSpace` no longer uses
+  the "discrete" attributes ("set_line_status", "change_line_status", "set_bus", "change_bus"). You can
+  still use them in the "attr_to_keep" kwargs if you want.
+- [FIXED] an error when an environment with alarm was created before an environment 
+  without alert. This lead to a crash when creating the second environment. This is now fixed.
+- [FIXED] an issue with non renewable generators in `GymActionSpace` (some curtailment was made
+  at 100% of their capacity instead of "no curtailment")
+- [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
+- [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
+  the same action
+- [ADDED] the kwargs "with_numba" in `PandaPowerBackend` to offer more control on whether or not you want
+  to use numba (default behaviour did not change: "if numba is availble, use it" but now you can disable it 
+  if numba is available but you don't want it)
+- [ADDED] the method `act.decompose_as_unary_actions(...)` to automatically
+  decompose a "complex" action on its unary counterpart. 
+- [ADDED] the `gym_env.action_space.get_index(attr_nm)` for `BoxGymActSpace` that allows to retrieve which index
+  of the action represents which attribute.
+- [IMPROVED] the method `act.as_serializable_dict()` to work better when exporting / importing actions on different 
+  grids (the output dictionary for `set_bus` and `change_bus` now split the keys between all elements types 
+  instead of relying on the "topo_vect" order (which might vary))
+
 [1.9.0] - 2023-06-06
 --------------------
 - [BREAKING] (because prone to bug): force the environment name in the `grid2op.make` function.
@@ -1166,7 +1196,7 @@ Change Log
   `5bus_example` and the `CASE_14_L2RPN2019`.
 - [FIXED] Runner skipped half the episode in some cases (sequential, even number of scenarios). Now fixed.
 - [FIXED] Some typos on the notebook "getting_started\4-StudyYourAgent.ipynb".
-- [FIXED] Error in the conversion of observation to dictionnary. Twice the same keys were used
+- [FIXED] Error in the conversion of observation to dictionary. Twice the same keys were used
   ('time_next_maintenance') for both `time_next_maintenance` and `duration_next_maintenance`.
 - [UPDATED] The first chronics that is processed by a runner is not the "first" one on the hardrive
   (if sorted in alphabetical order)
@@ -1209,7 +1239,7 @@ Change Log
 
 [0.4.2] - 2020-01-08
 --------------------
-- [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionnary) are no more compatible
+- [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionary) are no more compatible
 - [BREAKING] renaming of attributes describing the powergrid across classes for better consistency:
 
 =============================    =======================  =======================

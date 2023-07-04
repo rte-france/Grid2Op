@@ -379,6 +379,12 @@ test_pp_networks.py
 test_timeout_env.py
 test_pp_dc.py
 et_trace()
+bug_malte.py
+grid2op/tests/tmp_test_1
+test_malte.7z
+test_malte.py
+example_gym_act.py
+test_to_fix.txt
 
 # profiling files
 **.prof

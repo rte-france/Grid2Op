@@ -1,0 +1,18 @@
+{
+  "step_opf_min": 5,
+  "mode_opf": null,
+  "reactive_comp": 1,
+  "losses_pct": 2.5,
+  "dispatch_by_carrier": false,
+  "ramp_mode": "hard",
+  "pyomo": false,
+  "solver_name": "cbc",
+  "slack_name": "gen_68_37",
+  "slack_pmin": 40.0,
+  "slack_pmax": 300.0,
+  "slack_ramp_limit_ratio": 0.5,
+  "PmaxErrorCorrRatio": 0.9,
+  "RampErrorCorrRatio": 0.9,
+  "renewable_in_opf": true,
+  "hydro_ramp_reduction_factor": 1.3
+}

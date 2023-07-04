@@ -65,11 +65,17 @@ class Issue185Tester(unittest.TestCase):
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue
+            if env_name == "rte_case5_example":
+                # no action to perform for this env ! (no redispatch, curtail, storage)
+                continue
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 with grid2op.make(env_name, test=True) as env:
                     gym_env = GymEnv(env)
-                    gym_env.action_space = BoxGymActSpace(gym_env.init_env.action_space)
+                    try:
+                        gym_env.action_space = BoxGymActSpace(gym_env.init_env.action_space)
+                    except Exception as exc_:
+                        raise AssertionError(f"Error for {env_name}: {exc_}") from exc_
                     # gym_env.seed(0)
                     # gym_env.observation_space.seed(0)
                     # gym_env.action_space.seed(0)
