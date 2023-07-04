@@ -70,7 +70,7 @@ class _NewRenewableSourcesUsageScore(BaseReward):
     
     @staticmethod
     def _surlinear_func_curtailment(x, center=80, eps=1e-6):
-        x = np.max((x, eps))  #  to avoid log(0)...
+        x = np.fmax(x, eps)  #  to avoid log(0)...
         f_surlinear = lambda x: x * np.log(x)
         f_centralized = lambda x : f_surlinear(x) - f_surlinear(center)
         f_standardizer= lambda x : np.ones_like(x) * f_centralized(100) * (x >= center) - np.ones_like(x) * f_centralized(50) * (x < center)

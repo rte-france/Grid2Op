@@ -83,9 +83,9 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         nb_process_stats=1,
         scale_assistant_score=100.0,
         scale_nres_score=100.,
-        weight_op_score=0.5,
-        weight_assistant_score=0.3,
-        weight_nres_score=0.2,
+        weight_op_score=0.6,
+        weight_assistant_score=0.25,
+        weight_nres_score=0.15,
         weight_confidence_assistant_score=0.7,
     ):
 
@@ -158,6 +158,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         real_nm = EpisodeStatistics._nm_score_from_attr_name(new_renewable_sources_usage_score_nm)
         key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
         nres_score = float(other_rewards[-1][key_score_file])
+        nres_score = max(nres_score, -1.)
         nres_score = self.scale_nres_score * nres_score 
         
         #assistant_confidence_score
@@ -174,10 +175,10 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         # assistant_cost_score = float(other_rewards[-1][key_score_file])
         assistant_cost_score  = 0 #self.scale_assistant_score * assistant_cost_score
         
-        # assistant_score = self.weight_confidence_assistant_score * assistant_confidence_score +\
-        #     (1. - self.weight_confidence_assistant_score) * assistant_cost_score
+        assistant_score = self.weight_confidence_assistant_score * assistant_confidence_score +\
+             (1. - self.weight_confidence_assistant_score) * assistant_cost_score
 
         ep_score = (
-            self.weight_op_score * op_score + self.weight_nres_score * nres_score #+self.weight_assistant_score * assistant_score
+            self.weight_op_score * op_score + self.weight_nres_score * nres_score + self.weight_assistant_score * assistant_score
         )
         return (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score), n_played, total_ts

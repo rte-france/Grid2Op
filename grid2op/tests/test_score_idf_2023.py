@@ -89,12 +89,15 @@ class TestScoreL2RPN2023(unittest.TestCase):
             max_step=self.max_iter,
             weight_op_score=0.8,
             weight_assistant_score=0,
-            weight_nres_score=0.2)
+            weight_nres_score=0.2,
+            scale_nres_score=100,
+            scale_assistant_score=100)
         
         # test do nothing indeed gets 100.
         res_dn = my_score.get(DoNothingAgent(self.env.action_space))
         for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_dn[0]):
             assert nres_score == 100.
+            assert ep_score == 0.8 * op_score + 0.2 * nres_score
             
         # now test that the score decrease fast "at beginning" and slower "at the end"
         # ie from 1. to 0.95 bigger difference than from 0.8 to 0.7
@@ -104,6 +107,7 @@ class TestScoreL2RPN2023(unittest.TestCase):
                                                      curtail_level = 0.95))
         # assert np.allclose(res_agent0[0][0][2], 81.83611011377577)
         # assert np.allclose(res_agent0[0][1][2], 68.10026022372575)
+        assert np.allclose(res_agent0[0][0][0], 0.8 * res_agent0[0][0][1] + 0.2 * res_agent0[0][0][2])
         assert np.allclose(res_agent0[0][0][2], 16.73128726588182)
         assert np.allclose(res_agent0[0][1][2], -26.02070223995034)
         
@@ -124,8 +128,9 @@ class TestScoreL2RPN2023(unittest.TestCase):
                                                      gen_renewable = self.env.gen_renewable,
                                                      gen_pmax=self.env.gen_pmax,
                                                      curtail_level = 0.8))
-        assert np.allclose(res_agent2[0][0][2], -127.62213025108333)
-        assert np.allclose(res_agent2[0][1][2], -143.83405253996978)
+        
+        assert np.allclose(res_agent2[0][0][2], -100)
+        assert np.allclose(res_agent2[0][1][2], -100)
         # decrease
         assert 100. - res_agent1[0][0][2] >= res_agent1[0][0][2] - res_agent2[0][0][2]
         assert 100. - res_agent1[0][1][2] >= res_agent1[0][1][2] - res_agent2[0][1][2]
@@ -134,8 +139,8 @@ class TestScoreL2RPN2023(unittest.TestCase):
                                                      gen_renewable = self.env.gen_renewable,
                                                      gen_pmax=self.env.gen_pmax,
                                                      curtail_level = 0.7))
-        assert np.allclose(res_agent3[0][0][2], -169.9519401162611)
-        assert np.allclose(res_agent3[0][1][2], -179.45065441917586)
+        assert np.allclose(res_agent3[0][0][2], -100)
+        assert np.allclose(res_agent3[0][1][2], -100)
         assert res_agent1[0][0][2] - res_agent2[0][0][2] >= res_agent2[0][0][2] - res_agent2[0][0][2]
         assert res_agent1[0][1][2] - res_agent2[0][1][2] >= res_agent2[0][1][2] - res_agent2[0][1][2]
         my_score.clear_all() 
@@ -147,7 +152,7 @@ class TestScoreL2RPN2023(unittest.TestCase):
         assert _NewRenewableSourcesUsageScore._surlinear_func_curtailment(100.) == 1.
         assert _NewRenewableSourcesUsageScore._surlinear_func_curtailment(80.) == 0.
         assert _NewRenewableSourcesUsageScore._surlinear_func_curtailment(50.) == -1.
-        assert np.allclose(_NewRenewableSourcesUsageScore._surlinear_func_curtailment(0.), -2.2622607539822464)
+        assert _NewRenewableSourcesUsageScore._surlinear_func_curtailment(0.) < _NewRenewableSourcesUsageScore._surlinear_func_curtailment(50.)
         
         # now test with "real" data
         my_score = ScoreL2RPN2023(
@@ -175,6 +180,12 @@ class TestScoreL2RPN2023(unittest.TestCase):
         for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_50[0]):
             assert abs(nres_score + 100.) <= 7
         my_score.clear_all() 
+        
+        # test bellow 50% still gets close to -100
+        res_30 = my_score.get(CurtailAgent(self.env.action_space, 0.3))
+        for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_30[0]):
+            assert abs(nres_score + 100.) <= 7
+        my_score.clear_all()
 
         
 if __name__ == "__main__":
