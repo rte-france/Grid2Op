@@ -78,7 +78,21 @@ class __AuxGymEnv:
         env = grid2op.make(env_name)
         gym_env = GymEnv(env)  # is a gym environment properly inheriting from gym.Env !
 
-
+    There are a few difference between "raw" grid2op environment and gymnasium environments.
+    
+    One of the major difference is that, to our knowledge, gymnasium does not support the 
+    `simulate` feature (which allows an agent to test the impact of a given action 
+    on the grid without having to perform a `step` see :ref:`model_based_rl` for more information)
+    [NB if you know or better are developping some "model based RL library" let us know !]
+    
+    Another difference is in the way to do some actions. In grid2op, actions are a dedicated class
+    and can be made with an `action_space` and a dictionary, or  using the properties of the action
+    class.
+    
+    In gym, there are no specific representations of the action class. More precisely, for each action
+    type (:class:`MultiDiscreteActSpace`, :class:`DiscreteActSpace`, :class:`BoxGymActSpace` or 
+    :class:`GymActionSpace`) there is a way to encode it. For example, by default (:class:`GymActionSpace`)
+    an action is represented through an OrderedDict (`from collection import OrderedDict`)
     """
 
     def __init__(self, env_init, shuffle_chronics=True, render_mode="rgb_array"):
@@ -237,6 +251,8 @@ if GYM_AVAILABLE:
 
         def step(self, action):
             return self._aux_step_new(action)
+    GymEnv_Legacy.__doc__ = __AuxGymEnv.__doc__
+    GymEnv_Modern.__doc__ = __AuxGymEnv.__doc__
 
 
 if GYMNASIUM_AVAILABLE:
@@ -261,3 +277,4 @@ if GYMNASIUM_AVAILABLE:
 
         def step(self, action):
             return self._aux_step_new(action)
+    GymnasiumEnv.__doc__ = __AuxGymEnv.__doc__

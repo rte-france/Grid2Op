@@ -95,7 +95,7 @@ setup(description='An gym compatible environment to model sequential decision ma
       long_description_content_type="text/markdown",
       author='Benjamin DONNOT',
       author_email='benjamin.donnot@rte-france.com',
-      python_requires='>=3.7',
+      python_requires='>=3.8',
       url="https://github.com/rte-france/Grid2Op",
       packages=setuptools.find_packages(),
       include_package_data=True,
