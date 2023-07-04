@@ -3484,12 +3484,32 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` to change the parameter of the environment
         used by :func:`grid2op.Observation.BaseObservation.simulate` or 
         :func:`grid2op.Observation.BaseObservation.get_forecast_env`
+        
+        .. danger::
+            To modify the environment parameters you need to do:
+            
+            .. code-block:: python
+            
+                params = env.parameters
+                params.WHATEVER = NEW_VALUE
+                env.change_parameters(params)
+                env.reset()
+                
+            If you simply do:
+            
+            .. code-block:: python
+            
+                env.params.WHATEVER = NEW_VALUE
+                
+            This will have absolutely no impact.
+            
         """
 
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
-
-        return copy.deepcopy(self._parameters)
+        res = copy.deepcopy(self._parameters)
+        # res.read_only = True  # TODO at some point !
+        return res
 
     @parameters.setter
     def parameters(self, value):

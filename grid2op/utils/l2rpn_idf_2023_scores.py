@@ -128,7 +128,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         other_rewards,
         dn_metadata,
         no_ov_metadata,
-        score_file_to_use=None,
+        score_file_to_use="grid_operational_cost_scores",
     ):
         """
         Performs the rescaling of the score given the information stored in the "statistics" of this
@@ -148,7 +148,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             # score_file_to_use should match the
             # L2RPNSandBoxScore key in
             # self.scores_func
-            score_file_to_use="grid_operational_cost_scores",
+            score_file_to_use=score_file_to_use,
         )
         # should match underlying_statistics.run_env `dict_kwg["other_rewards"][XXX] = ...`
         # XXX is right now f"{EpisodeStatistics.KEY_SCORE}_{nm}" [this should match the XXX]
@@ -181,26 +181,3 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             self.weight_op_score * op_score + self.weight_nres_score * nres_score #+self.weight_assistant_score * assistant_score
         )
         return (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score), n_played, total_ts
-
-
-if __name__ == "__main__":
-    import grid2op
-    from lightsim2grid import LightSimBackend
-    from grid2op.Agent import RandomAgent, DoNothingAgent
-
-    env = grid2op.make(
-        "/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alarm",
-        backend=LightSimBackend(),
-    )
-    # env = grid2op.make("l2rpn_case14_sandbox", backend=LightSimBackend())
-    nb_scenario = 2
-    my_score = ScoreL2RPN2023(
-        env,
-        nb_scenario=nb_scenario,
-        env_seeds=[0 for _ in range(nb_scenario)],
-        agent_seeds=[0 for _ in range(nb_scenario)],
-    )
-
-    my_agent = RandomAgent(env.action_space)
-    my_agent = DoNothingAgent(env.action_space)
-    print(my_score.get(my_agent))
