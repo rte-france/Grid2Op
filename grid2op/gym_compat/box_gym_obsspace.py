@@ -101,6 +101,9 @@ class __AuxBoxGymObsSpace:
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
+    
+    .. note::
+        A gymnasium Box is encoded as a numpy array.
         
     Examples
     --------

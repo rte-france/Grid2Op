@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import Tuple
 import copy
 import warnings
 import numpy as np
@@ -22,7 +23,7 @@ from grid2op.Exceptions import Grid2OpException
 # TODO doc
 # TODO test the function part
 
-from grid2op.gym_compat.utils import (ALL_ATTR,
+from grid2op.gym_compat.utils import (ALL_ATTR_CONT,
                                       ATTR_DISCRETE,
                                       check_gym_version,
                                       GYM_AVAILABLE,
@@ -46,6 +47,15 @@ class __AuxBoxGymActSpace:
         is definitely not the best representation. Prefer the :class:`MultiDiscreteActSpace` or
         the :class:`DiscreteActSpace` classes.
 
+    .. note::
+        A gymnasium Box is encoded as a numpy array, see the example section for more information.
+    
+    .. danger::
+        If you use this encoding for the "curtailment" you might end up with "weird" behaviour. Your agent
+        will perfom some kind of curtailment at each step (there is no real way to express "I don't want to curtail")
+        So the index corresponding to the "curtail" type of actions should rather be "1." (meaning
+        "limit the value at 100%" which is somewhat equivalent to "I don't want to curtail")
+        
     Examples
     --------
     If you simply want to use it you can do:
@@ -101,6 +111,47 @@ class __AuxBoxGymActSpace:
         
         See :ref:`gymnasium_gym` for more information
         
+    For the "l2rpn_case14_sandbox" environment, a code using :class:`BoxGymActSpace` can look something like
+    (if you want to build action "by hands"):
+    
+    .. code-block:: python
+    
+        import grid2op
+        from grid2op.gym_compat import GymEnv, BoxGymActSpace
+        import numpy as np
+        env_name = "l2rpn_case14_sandbox"
+        
+        env = grid2op.make(env_name)
+        gym_env =  GymEnv(env)
+        gym_env.action_space = BoxGymActSpace(env.action_space)
+        
+        obs = gym_env.reset()  # obs will be an OrderedDict (default, but you can customize it)
+        
+        # you can do a "do nothing" action
+        act = np.zeros(gym_env.action_space.shape)
+        # see danger about curtailment !
+        start_, end_ = gym_env.action_space.get_indexes("curtail")
+        ## real version, not in the space... (write an issue if it's a problem for you)
+        act[start_:end_] = -1
+        ## version "in the space"
+        # act[start_:end_] = 1
+        print(gym_env.action_space.from_gym(act))
+        obs, reward, done, truncated, info = gym_env.step(act)
+        
+        # you can also do a random action:
+        act = gym_env.action_space.sample()
+        print(gym_env.action_space.from_gym(act))
+        obs, reward, done, truncated, info = gym_env.step(act)
+        
+        # you can do an action on say redispatch (for example)
+        act = np.zeros(gym_env.action_space.shape)
+        key = "redispatch"  # "redispatch", "curtail", "set_storage" (but there is no storage on this env)
+        start_, end_ = gym_env.action_space.get_indexes(key)
+        act[start_:end_] = np.random.uniform(high=1, low=-1, size=env.gen_redispatchable.sum())  # the dispatch vector
+        print(gym_env.action_space.from_gym(act))
+        obs, reward, done, truncated, info = gym_env.step(act)
+        
+        
     Notes
     -------
     For more customization, this code is roughly equivalent to something like:
@@ -141,7 +192,7 @@ class __AuxBoxGymActSpace:
     def __init__(
         self,
         grid2op_action_space,
-        attr_to_keep=ALL_ATTR,
+        attr_to_keep=ALL_ATTR_CONT,
         add=None,
         multiply=None,
         functs=None,
@@ -153,7 +204,7 @@ class __AuxBoxGymActSpace:
                 f'as the "grid2op_action_space" attribute.'
             )
         check_gym_version(type(self)._gymnasium)
-        if attr_to_keep == ALL_ATTR:
+        if attr_to_keep == ALL_ATTR_CONT:
             # by default, i remove all the attributes that are not supported by the action type
             # i do not do that if the user specified specific attributes to keep. This is his responsibility in
             # in this case
@@ -169,6 +220,10 @@ class __AuxBoxGymActSpace:
                     f'"{el}" when building it, be aware that this discrete action will be treated '
                     f'as continuous. Consider using the "MultiDiscreteActSpace" for these attributes.'
                 )
+        
+        if not attr_to_keep:
+            raise Grid2OpException("This would be an empty action set. ")
+        
         self._attr_to_keep = sorted(attr_to_keep)
 
         act_sp = grid2op_action_space
@@ -433,6 +488,49 @@ class __AuxBoxGymActSpace:
         setattr(res, attr_nm, gym_act_this)
         return res
 
+    def get_indexes(self, key: str) -> Tuple[int, int]:
+        """Allows to retrieve the indexes of the gym action that
+        are concerned by the attribute name `key` given in input.
+
+        Parameters
+        ----------
+        key : str
+            the attribute name (*eg* "set_storage" or "redispatch")
+
+        Returns
+        -------
+        Tuple[int, int]
+            _description_
+
+        Examples
+        --------
+        
+        You can use it like:
+        
+        .. code-block:: python
+        
+            gym_env = ... # an environment with a BoxActSpace
+            
+            act = np.zeros(gym_env.action_space.shape)
+            key = "redispatch"  # "redispatch", "curtail", "set_storage"
+            start_, end_ = gym_env.action_space.get_indexes(key)
+            act[start_:end_] = np.random.uniform(high=1, low=-1, size=env.gen_redispatchable.sum())
+            # act only modifies the redispatch with the input given (here a uniform redispatching between -1 and 1)
+            
+        """
+        error_msg =(f"Impossible to use the grid2op action property \"{key}\""
+                    f"with this action space.")
+        if key not in self._attr_to_keep:
+            raise Grid2OpException(error_msg)
+        prev = 0
+        for attr_nm, where_to_put in zip(
+            self._attr_to_keep, self._dims
+        ):
+            if attr_nm == key:
+                return prev, where_to_put
+            prev = where_to_put
+        raise Grid2OpException(error_msg)
+        
     def from_gym(self, gym_act):
         """
         This is the function that is called to transform a gym action (in this case a numpy array!)

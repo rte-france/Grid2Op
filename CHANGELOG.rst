@@ -38,8 +38,15 @@ Change Log
   do not install `gymnasium`. If you want compatibility with sota softwares using `gymnasium`,
   install it and continue using grid2op transparently. See doc of `gym_compat` module for more
   information.
+- [BREAKING] remove support for python 3.7 that has reached end of life on 2023-06-27 on
+  pypi and on CI
+- [BREAKING] to avoid misleading behaviour, by default the `BoxGymActSpace` no longer uses
+  the "discrete" attributes ("set_line_status", "change_line_status", "set_bus", "change_bus"). You can
+  still use them in the "attr_to_keep" kwargs if you want.
 - [FIXED] an error when an environment with alarm was created before an environment 
   without alert. This lead to a crash when creating the second environment. This is now fixed.
+- [FIXED] an issue with non renewable generators in `GymActionSpace` (some curtailment was made
+  at 100% of their capacity instead of "no curtailment")
 - [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
 - [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
   the same action
@@ -48,6 +55,8 @@ Change Log
   if numba is available but you don't want it)
 - [ADDED] the method `act.decompose_as_unary_actions(...)` to automatically
   decompose a "complex" action on its unary counterpart. 
+- [ADDED] the `gym_env.action_space.get_index(attr_nm)` for `BoxGymActSpace` that allows to retrieve which index
+  of the action represents which attribute.
 - [IMPROVED] the method `act.as_serializable_dict()` to work better when exporting / importing actions on different 
   grids (the output dictionary for `set_bus` and `change_bus` now split the keys between all elements types 
   instead of relying on the "topo_vect" order (which might vary))

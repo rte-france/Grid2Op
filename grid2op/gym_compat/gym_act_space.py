@@ -49,57 +49,47 @@ class __AuxGymActionSpace:
           from gymnasium
         
         See :ref:`gymnasium_gym` for more information
+    
+    .. note::
+        A gymnasium Dict is encoded as a OrderedDict (`from collection import OrderedDict`)
+        see the example section for more information.
         
     Examples
     --------
-    Converting an action space is fairly straightforward, though the resulting gym action space
-    will depend on the original encoding of the action space.
-
+    For the "l2rpn_case14_sandbox" environment, a code using :class:`BoxGymActSpace` can look something like
+    (if you want to build action "by hands"):
+    
     .. code-block:: python
-
+    
         import grid2op
-        from grid2op.Converter import GymActionSpace
-        env = grid2op.make()
-
-        gym_action_space = GymActionSpace(env)
-        # and now gym_action_space is a `gym.spaces.Dict` representing the action space.
-        # you can convert action to / from this space to grid2op the following way
-
-        grid2op_act = env.action_space(...)
-        gym_act = gym_action_space.to_gym(grid2op_act)
-
-        # and the opposite conversion is also possible:
-        gym_act = ... # whatever you decide to do
-        grid2op_act = gym_action_space.from_gym(gym_act)
-
-    **NB** you can use this `GymActionSpace` to  represent action into the gym format even if these actions
-    comes from another converter, such as :class`IdToAct` or `ToVect` in this case, to get back a grid2op
-    action you NEED to convert back the action from this converter. Here is a complete example
-    on this (more advanced) usecase:
-
-    .. code-block:: python
-
-        import grid2op
-        from grid2op.Converter import GymActionSpace, IdToAct
-        env = grid2op.make()
-
-        converted_action_space = IdToAct(env)
-        gym_action_space = GymActionSpace(env=env, converter=converted_action_space)
-
-        # and now gym_action_space is a `gym.spaces.Dict` representing the action space.
-        # you can convert action to / from this space to grid2op the following way
-
-        converter_act = ... # whatever action you want
-        gym_act = gym_action_space.to_gym(converter_act)
-
-        # and the opposite conversion is also possible:
-        gym_act = ... # whatever you decide to do
-        converter_act = gym_action_space.from_gym(gym_act)
-
-        # note that this converter act only makes sense for the converter. It cannot
-        # be digest by grid2op directly. So you need to also convert it to grid2op
-        grid2op_act = IdToAct.convert_act(converter_act)
-
+        from grid2op.gym_compat import GymEnv
+        import numpy as np
+        env_name = "l2rpn_case14_sandbox"
+        
+        env = grid2op.make(env_name)
+        gym_env =  GymEnv(env)
+        
+        obs = gym_env.reset()  # obs will be an OrderedDict (default, but you can customize it)
+        
+        # is equivalent to "do nothing"
+        act = {}  
+        obs, reward, done, truncated, info = gym_env.step(act)
+        
+        # you can also do a random action:
+        act = gym_env.action_space.sample()
+        print(gym_env.action_space.from_gym(act))
+        obs, reward, done, truncated, info = gym_env.step(act)
+        
+        # you can chose the action you want to do (say "redispatch" for example)
+        # here a random redispatch action
+        act = {}
+        attr_nm = "redispatch"
+        act[attr_nm] = np.random.uniform(high=gym_env.action_space.spaces[attr_nm].low,
+                                        low=gym_env.action_space.spaces[attr_nm].high,
+                                        size=env.n_gen)
+        print(gym_env.action_space.from_gym(act))
+        obs, reward, done, truncated, info = gym_env.step(act)
+        
     """
 
     # deals with the action space (it depends how it's encoded...)
@@ -286,8 +276,8 @@ class __AuxGymActionSpace:
                     # curtailment
                     low = np.zeros(action_space.n_gen, dtype=dt_float)
                     high = np.ones(action_space.n_gen, dtype=dt_float)
-                    low[~action_space.gen_renewable] = 1.0
-                    high[~action_space.gen_renewable] = 1.0
+                    low[~action_space.gen_renewable] = -1.0
+                    high[~action_space.gen_renewable] = -1.0
                 elif attr_nm == "_storage_power":
                     # storage power
                     low = -1.0 * action_space.storage_max_p_prod
@@ -397,6 +387,7 @@ if GYM_AVAILABLE:
                                  "__module__": __name__})
     LegacyGymActionSpace.__doc__ = __AuxGymActionSpace.__doc__
     GymActionSpace = LegacyGymActionSpace
+    GymActionSpace.__doc__ = __AuxGymActionSpace.__doc__
         
 
 if GYMNASIUM_AVAILABLE:
@@ -416,4 +407,5 @@ if GYMNASIUM_AVAILABLE:
                                  "__module__": __name__})
     GymnasiumActionSpace.__doc__ = __AuxGymActionSpace.__doc__
     GymActionSpace = GymnasiumActionSpace
+    GymActionSpace.__doc__ = __AuxGymActionSpace.__doc__
     

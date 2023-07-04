@@ -435,6 +435,7 @@ if GYM_AVAILABLE:
                                       "__module__": __name__})
     LegacyGymObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
     GymObservationSpace = LegacyGymObservationSpace
+    GymObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
         
 
 if GYMNASIUM_AVAILABLE:
@@ -454,4 +455,5 @@ if GYMNASIUM_AVAILABLE:
                                       "__module__": __name__})
     GymnasiumObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
     GymObservationSpace = GymnasiumObservationSpace
+    GymObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
     

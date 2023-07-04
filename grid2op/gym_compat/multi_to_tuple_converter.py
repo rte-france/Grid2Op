@@ -159,6 +159,7 @@ if GYM_AVAILABLE:
                                            })
     MultiToTupleConverterLegacyGym.__doc__ = __AuxMultiToTupleConverter.__doc__
     MultiToTupleConverter = MultiToTupleConverterLegacyGym
+    MultiToTupleConverter.__doc__ = __AuxMultiToTupleConverter.__doc__
         
 
 if GYMNASIUM_AVAILABLE:
@@ -176,3 +177,4 @@ if GYMNASIUM_AVAILABLE:
                                            })
     MultiToTupleConverterGymnasium.__doc__ = __AuxMultiToTupleConverter.__doc__
     MultiToTupleConverter = MultiToTupleConverterGymnasium
+    MultiToTupleConverter.__doc__ = __AuxMultiToTupleConverter.__doc__
