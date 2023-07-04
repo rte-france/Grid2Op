@@ -38,6 +38,8 @@ Change Log
   do not install `gymnasium`. If you want compatibility with sota softwares using `gymnasium`,
   install it and continue using grid2op transparently. See doc of `gym_compat` module for more
   information.
+- [BREAKING] remove support for python 3.7 that has reached end of life on 2023-06-27 on
+  pypi and on CI
 - [FIXED] an error when an environment with alarm was created before an environment 
   without alert. This lead to a crash when creating the second environment. This is now fixed.
 - [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
