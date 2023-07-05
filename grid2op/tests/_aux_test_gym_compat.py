@@ -499,7 +499,7 @@ class _AuxTestGymCompatModule:
         key = "duration_next_maintenance"
         assert key in env_gym.observation_space.spaces
         low = np.zeros(shape=(env.n_line,), dtype=dt_int) - 1
-        high = np.full(shape=(env.n_line,), fill_value=np.inf, dtype=dt_int) - 1
+        high = np.full(shape=(env.n_line,), fill_value=2147483647, dtype=dt_int)
         assert np.array_equal(
             env_gym.observation_space[key].low, low
         ), f"issue for {key}"
@@ -726,24 +726,24 @@ class _AuxTestGymCompatModule:
         key = "time_next_maintenance"
         assert key in env_gym.observation_space.spaces
         low = np.zeros(env.n_line, dtype=dt_int) - 1
-        high = np.full(env.n_line, fill_value=np.inf, dtype=dt_int) - 1
+        high = np.full(env.n_line, fill_value=2147483647, dtype=dt_int)
         assert np.array_equal(
             env_gym.observation_space[key].low, low
-        ), f"issue for {key}"
+        ), f"issue for {key}: {env_gym.observation_space[key].low}"
         assert np.array_equal(
             env_gym.observation_space[key].high, high
-        ), f"issue for {key}"
+        ), f"issue for {key} {env_gym.observation_space[key].high}"
 
         key = "timestep_overflow"
         assert key in env_gym.observation_space.spaces
-        low = np.full(env.n_line, fill_value=np.inf, dtype=dt_int)
-        high = np.full(env.n_line, fill_value=np.inf, dtype=dt_int) - 1
+        low = np.full(env.n_line, fill_value=-2147483648, dtype=dt_int)
+        high = np.full(env.n_line, fill_value=2147483647, dtype=dt_int) 
         assert np.array_equal(
             env_gym.observation_space[key].low, low
-        ), f"issue for {key}"
+        ), f"issue for {key} {env_gym.observation_space[key].low}"
         assert np.array_equal(
             env_gym.observation_space[key].high, high
-        ), f"issue for {key}"
+        ), f"issue for {key} {env_gym.observation_space[key].high}"
 
         key = "topo_vect"
         assert key in env_gym.observation_space.spaces
