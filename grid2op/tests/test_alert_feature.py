@@ -182,6 +182,13 @@ class TestAction(unittest.TestCase):
 
         assert act.__str__() == 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any redispatching action\n\t - NOT modify any storage capacity\n\t - NOT perform any curtailment\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - NOT switch anything in the topology\n\t - NOT force any particular bus configuration\n\t - Raise alert(s) : 0 (on line 62_58_180)'
 
+    def test_sample_a_random_alert_action(self) -> None :
+        """test i can sample an alert on a set of attackable lines"""
+        random_action = self.env.action_space.sample()
+        assert random_action.raise_alert.shape == (self.env.dim_alerts,)
+        assert isinstance(random_action.raise_alert, np.ndarray)
+        assert random_action.raise_alert.dtype == bool
+
 
 # Test alert blackout / tets alert no blackout
 class TestObservation(unittest.TestCase):
