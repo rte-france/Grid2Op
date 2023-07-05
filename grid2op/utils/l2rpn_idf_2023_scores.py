@@ -22,7 +22,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
 
 
     This scores is the combination of the `ScoreL2RPN2020` score and some extra scores based on the assistant feature
-    and the use of new renewable energy sources.
+    (alert) and the use of new renewable energy sources.
 
     Examples
     ---------
@@ -87,6 +87,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         weight_assistant_score=0.25,
         weight_nres_score=0.15,
         weight_confidence_assistant_score=0.7,
+        min_nres_score=-100,
     ):
 
         ScoreL2RPN2020.__init__(
@@ -120,6 +121,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         self.weight_assistant_score = weight_assistant_score
         self.weight_nres_score = weight_nres_score
         self.weight_confidence_assistant_score = weight_confidence_assistant_score
+        self.min_nres_score = min_nres_score
 
     def _compute_episode_score(
         self,
@@ -158,7 +160,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         real_nm = EpisodeStatistics._nm_score_from_attr_name(new_renewable_sources_usage_score_nm)
         key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
         nres_score = float(other_rewards[-1][key_score_file])
-        nres_score = max(nres_score, -1.)
+        nres_score = max(nres_score, self.min_nres_score / self.scale_nres_score)
         nres_score = self.scale_nres_score * nres_score 
         
         #assistant_confidence_score
