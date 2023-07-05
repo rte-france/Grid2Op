@@ -327,8 +327,8 @@ class __AuxBoxGymActSpace:
         type(self)._BoxType.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
         
         # convert data in `_add` and `_multiply` to the right type
-        self._add = {k: v.astype(dtype) for k, v in self._add.items()}
-        self._multiply = {k: v.astype(dtype) for k, v in self._multiply.items()}
+        self._add = {k: v.astype(self.dtype) for k, v in self._add.items()}
+        self._multiply = {k: v.astype(self.dtype) for k, v in self._multiply.items()}
             
     def _get_info(self, functs):
         low = None
@@ -405,8 +405,10 @@ class __AuxBoxGymActSpace:
                 dtype = dtype_
             else:
                 if dtype_ == dt_float:
+                    # promote whatever to float anyway
                     dtype = dt_float
-                elif dtype_ == dt_int:
+                elif dtype_ == dt_int and dtype == dt_bool:
+                    # promote bool to int
                     dtype = dt_int
 
             # handle the shape

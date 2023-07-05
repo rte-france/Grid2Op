@@ -631,6 +631,10 @@ class __AuxBoxGymObsSpace:
 
         # initialize the base container
         type(self)._BoxType.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
+        
+        # convert data in `_add` and `_multiply` to the right type
+        self._subtract = {k: v.astype(self.dtype) for k, v in self._subtract.items()}
+        self._divide = {k: v.astype(self.dtype) for k, v in self._divide.items()}
 
     def _get_info(self, functs):
         low = None
@@ -709,8 +713,10 @@ class __AuxBoxGymObsSpace:
                 dtype = dtype_
             else:
                 if dtype_ == dt_float:
+                    # promote whatever to float anyway
                     dtype = dt_float
-                elif dtype_ == dt_int:
+                elif dtype_ == dt_int and dtype == dt_bool:
+                    # promote bool to int
                     dtype = dt_int
 
             # handle the shape
