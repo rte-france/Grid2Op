@@ -11,6 +11,7 @@ import grid2op
 from grid2op.gym_compat import GymEnv, BoxGymActSpace, BoxGymObsSpace, DiscreteActSpace, MultiDiscreteActSpace
 from grid2op.l2rpn_utils import ActionIDF2023, ObservationIDF2023
 from grid2op.Opponent import GeometricOpponentMultiArea
+from grid2op.Reward import AlertReward
 import unittest
 import warnings
 import numpy as np
@@ -80,6 +81,10 @@ class L2RPNIDF2023Tester(unittest.TestCase):
         assert not info["is_illegal"]
         self.env.reset()
     
+    def test_other_rewards(self):
+        assert "alert" in self.env.other_rewards
+        assert isinstance(self.env.other_rewards["alert"].template_reward, AlertReward)
+        
     def test_illegal_action_2lines(self):
         # illegal actions
         act11 = self.env.action_space({"set_line_status": [(0, -1), (1, -1)]})
@@ -111,19 +116,32 @@ class L2RPNIDF2023Tester(unittest.TestCase):
         
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            box_act = BoxGymActSpace(self.env.action_space)
-            assert box_act.shape[0] == 1543
+            box_act = BoxGymActSpace(self.env.action_space,
+                                     attr_to_keep=(
+                                         "set_line_status",
+                                         "change_line_status",
+                                         "set_bus",
+                                         "change_bus",
+                                         "redispatch",
+                                         "set_storage",
+                                         "curtail",
+                                         "raise_alert",
+                                         ))
+            assert box_act.shape[0] == 1543, f'{box_act.shape[0]} vs 1543'
+            box_act2 = BoxGymActSpace(self.env.action_space)
+            assert box_act2.shape[0] == 69, f'{box_act2.shape[0]} vs 69'
+            
             box_obs = BoxGymObsSpace(self.env.observation_space)
-            assert box_obs.shape[0] == 5125
+            assert box_obs.shape[0] == 5125, f'{box_obs.shape[0]} vs 5125'
             disc_act = DiscreteActSpace(self.env.action_space)
-            assert disc_act.n == 147878
+            assert disc_act.n == 147878, f'{disc_act.n} vs 147878'
             
             multidisc_0 = MultiDiscreteActSpace(self.env.action_space)
-            assert multidisc_0.shape[0] == 1543
+            assert multidisc_0.shape[0] == 1543, f'{multidisc_0.shape[0]} vs 1543'
             multidisc_1 = MultiDiscreteActSpace(self.env.action_space, attr_to_keep=["raise_alert"])
-            assert multidisc_1.shape[0] == 22
+            assert multidisc_1.shape[0] == 22, f'{multidisc_1.shape[0]} vs 22'
             multidisc_2 = MultiDiscreteActSpace(self.env.action_space, attr_to_keep=["sub_set_bus"])
-            assert multidisc_2.shape[0] == 118
+            assert multidisc_2.shape[0] == 118, f'{multidisc_2.shape[0]} vs 118'
             assert np.array_equal(multidisc_2.nvec, [    4,     4,     8,    10,    17,     4,     4,    14,     3,
                                                          1,    58,   254,     4,     4,   242,     4,    64,     6,
                                                         30,     4,     4,     4,    30,     8,     8,     4,    58,
@@ -177,6 +195,20 @@ class L2RPNIDF2023Tester(unittest.TestCase):
                                                    '74_117_81', '12_14_68', '39_41_121', '54_58_154', '17_18_88',
                                                    '91_92_37', '4_10_162', '43_44_125', '48_50_136', '29_37_117'}
     
+    def test_was_alert_used_after_attack(self):
+        self.env.seed(0)
+        obs = self.env.reset()
+        for i in range(13):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        act = self.env.action_space()
+        obs, reward, done, info = self.env.step(act)  # an attack at this step
+        assert info["opponent_attack_line"] is not None
+        
+        # count 12 steps
+        for i in range(12):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.was_alert_used_after_attack[0] == 1
+        
     def do_not_run_oom_error_test_act_space_alert(self):
         # this crashed
         all_act = self.env.action_space.get_all_unitary_alert(self.env.action_space)

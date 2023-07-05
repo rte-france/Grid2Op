@@ -48,6 +48,14 @@ Change Log
   without alert. This lead to a crash when creating the second environment. This is now fixed.
 - [FIXED] an issue with non renewable generators in `GymActionSpace` (some curtailment was made
   at 100% of their capacity instead of "no curtailment")
+- [FIXED] a bug in computing the datatype of `BoxGymActSpace` and `BoxGymObsSpace` leading to
+  using "bool" as dtype when it should be int.
+- [FIXED] the behaviour of `BoxGymActSpace` when `subtract` / `divide` were provided (the dtype was 
+  not propagated correctly)
+- [ADDED] support for the "alert" feature (see main doc page) with new observation attributes
+  (`obs.active_alert`, `obs.time_since_last_alert`, `obs.alert_duration`, `obs.total_number_of_alert,` 
+  `obs.time_since_last_attack`, `obs.was_alert_used_after_attack` and `obs.attack_under_alert`) 
+  a new type of action: `act.raise_alert` and a new reward class `AlertReward` (among others)
 - [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
 - [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
   the same action
@@ -71,6 +79,7 @@ Change Log
     used to be a mix of `set_storage` and `storage_power` now it's consistent and is `set_storage` everywhere)
 - [IMPROVED] error message when the "stat.clear_all()" function has been called on a statistic and this same
   statistic is reused.
+- [IMPROVED] possibility to set "other_rewards" in the config file of the env
 
 [1.9.0] - 2023-06-06
 --------------------
