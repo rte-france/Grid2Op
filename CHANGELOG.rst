@@ -48,6 +48,8 @@ Change Log
   without alert. This lead to a crash when creating the second environment. This is now fixed.
 - [FIXED] an issue with non renewable generators in `GymActionSpace` (some curtailment was made
   at 100% of their capacity instead of "no curtailment")
+- [FIXED] a bug in computing the datatype of `BoxGymActSpace` and `BoxGymObsSpace` leading to
+  using "bool" as dtype when it should be int.
 - [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
 - [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
   the same action

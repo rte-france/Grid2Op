@@ -406,6 +406,8 @@ class __AuxBoxGymActSpace:
             else:
                 if dtype_ == dt_float:
                     dtype = dt_float
+                elif dtype_ == dt_int:
+                    dtype = dt_int
 
             # handle the shape
             if shape is None:
