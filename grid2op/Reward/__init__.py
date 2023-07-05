@@ -23,6 +23,10 @@ __all__ = [
     "L2RPNSandBoxScore",
     "L2RPNWCCI2022ScoreFun",
     "AlertReward"
+    "_NewRenewableSourcesUsageScore",
+    "_AssistantConfidenceScore",
+    "_AssistantCostScore"
+    
 ]
 
 from grid2op.Reward.ConstantReward import ConstantReward
@@ -48,6 +52,8 @@ from grid2op.Reward._AlarmScore import _AlarmScore
 from grid2op.Reward.n1Reward import N1Reward
 from grid2op.Reward.l2rpn_wcci2022_scorefun import L2RPNWCCI2022ScoreFun
 from grid2op.Reward.AlertReward import AlertReward
+from grid2op.Reward._NewRenewableSourcesUsageScore import _NewRenewableSourcesUsageScore
+from grid2op.Reward._AssistantScore import _AssistantConfidenceScore, _AssistantCostScore
 
 
 import warnings
