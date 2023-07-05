@@ -1275,7 +1275,8 @@ class BaseAction(GridObjects):
             #         - Assign bus 2 to line (origin) id 44 [on substation 28]
             #         - Assign bus 1 to line (extremity) id 57 [on substation 28]
             #         - Assign bus 1 to generator id 16 [on substation 28]
-            #     - Not raise any alarm nor alert
+            #     - NOT raise any alarm 
+            #     - NOT raise any alert
 
             obs, reward, done, info = env.step(act_sub28_clean)
             # >>> info["exception"] : []
@@ -2947,14 +2948,14 @@ class BaseAction(GridObjects):
         
         if my_cls.dim_alerts > 0:
             if self._modif_alert:
-                li_line = np.array(my_cls.alerts_line_names)[
-                    np.where(self._raise_alert)[0]
-                ]
+                i_alert = np.where(self._raise_alert)[0]
+                li_line = np.array(my_cls.alertable_line_names)[i_alert]
                 if len(li_line) == 1:
-                    line_str = ": " + li_line[0]
+                    line_str = f": {i_alert[0]} (on line {li_line[0]})"
                 else:
-                    line_str = "s: \n\t \t - " + "\n\t \t - ".join(li_line)
-                res.append(f"\t - Raise an alert on line(s) " f"{line_str}")
+                    line_str = "s: \n\t \t - " + "\n\t \t - ".join(
+                        [f": {i} (on line {l})" for i,l in zip(i_alert,li_line)])
+                res.append(f"\t - Raise alert(s) " f"{line_str}")
             else:
                 res.append("\t - Not raise any alert")
         return "\n".join(res)

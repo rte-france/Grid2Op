@@ -73,6 +73,11 @@ ATTR_DISCRETE = (
     # "raise_alert"
 )
 
+ALL_ATTR_CONT = (
+    "redispatch",
+    "set_storage",
+    "curtail",
+)
 
 def check_gym_version(use_gymnasium):
     if not use_gymnasium:
@@ -100,8 +105,11 @@ def _compute_extra_power_for_losses(gridobj):
 def sample_seed(max_, np_random):
     """sample a seed based on gym version (np_random has not always the same behaviour)"""
     if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
-        # old gym behaviour
-        seed_ = np_random.randint(max_)
+        if hasattr(np_random, "randint"):
+            # old gym behaviour
+            seed_ = np_random.randint(max_)
+        else:
+            seed_ = int(np_random.integers(0, max_))
     else:
         # gym finally use most recent numpy random generator
         seed_ = int(np_random.integers(0, max_))

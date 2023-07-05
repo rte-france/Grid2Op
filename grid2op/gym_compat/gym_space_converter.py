@@ -296,6 +296,7 @@ if GYM_AVAILABLE:
                                          "__module__": __name__})
     _BaseLegacyGymSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
     _BaseGymSpaceConverter = _BaseLegacyGymSpaceConverter
+    _BaseGymSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
         
 
 if GYMNASIUM_AVAILABLE:
@@ -312,3 +313,4 @@ if GYMNASIUM_AVAILABLE:
                                          "__module__": __name__})
     _BaseGymnasiumSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__
     _BaseGymSpaceConverter = _BaseGymnasiumSpaceConverter
+    _BaseGymSpaceConverter.__doc__ = __AuxBaseGymSpaceConverter.__doc__

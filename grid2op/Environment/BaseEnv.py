@@ -808,7 +808,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._attack_under_alert = copy.deepcopy(self._attack_under_alert)
         new_obj._was_alert_used_after_attack = copy.deepcopy(self._was_alert_used_after_attack)
         
-        new_obj._update_obs_after_reward = self._update_obs_after_reward
+        new_obj._update_obs_after_reward = copy.deepcopy(self._update_obs_after_reward)
 
     def get_path_env(self):
         """

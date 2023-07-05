@@ -154,6 +154,7 @@ if GYM_AVAILABLE:
                                                    "__module__": __name__})
     ContinuousToDiscreteConverterLegacyGym.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
     ContinuousToDiscreteConverter = ContinuousToDiscreteConverterLegacyGym
+    ContinuousToDiscreteConverter.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
         
 
 if GYMNASIUM_AVAILABLE:
@@ -168,3 +169,4 @@ if GYMNASIUM_AVAILABLE:
                                                    "__module__": __name__})
     ContinuousToDiscreteConverterGymnasium.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
     ContinuousToDiscreteConverter = ContinuousToDiscreteConverterGymnasium
+    ContinuousToDiscreteConverter.__doc__ = __AuxContinuousToDiscreteConverter.__doc__
