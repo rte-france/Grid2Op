@@ -400,6 +400,46 @@ class TestObservation(unittest.TestCase):
         assert info["opponent_attack_line"] is not None
         assert obs.time_since_last_attack[0] == 1
         
+
+    def test_alert_used_after_attack(self): 
+        obs : BaseObservation = self.env.reset()
+        assert obs.was_alert_used_after_attack.shape == (10,)
+        assert obs.was_alert_used_after_attack.dtype == np.int32
+        assert obs.was_alert_used_after_attack.sum() == 0
+
+          
+        # tell the opponent to make 2 attacks
+        attack_id = np.where(self.env.name_line == ALL_ATTACKABLE_LINES[0])[0][0]
+        opp = self.env._oppSpace.opponent
+        opp.custom_attack = [opp.action_space({"set_line_status" : [(l, -1)]}) for l in [attack_id, attack_id]]
+        opp.attack_duration = [1, 2]
+        opp.attack_steps = [2, 4]
+        opp.attack_id = [attack_id, attack_id]
+        
+        obs : BaseObservation = self.env.reset()
+        act = self.env.action_space()
+        act.raise_alert = [0]
+        obs, reward, done, info = self.env.step(act)
+        assert obs.time_since_last_attack[0] == -1
+        assert obs.was_alert_used_after_attack[0] == 0
+
+
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.time_since_last_attack[0] == 0
+        assert obs.was_alert_used_after_attack[0] == 0
+        
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.time_since_last_attack[0] == 1
+        assert obs.was_alert_used_after_attack[0] == 0
+
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.time_since_last_attack[0] == 0
+        assert obs.was_alert_used_after_attack[0] == 1
+        
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert obs.time_since_last_attack[0] == 1
+        assert obs.was_alert_used_after_attack[0] == 0
+
     def test_when_attacks(self):
         obs : BaseObservation = self.env.reset()
         
