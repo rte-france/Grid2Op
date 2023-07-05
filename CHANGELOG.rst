@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.9.1] - 2023-xx-yy
+[1.9.1] - 2023-07-yy
 --------------------
 - [BREAKING] (slightly): default `gym_compat` module now inherit from `gymnasium` (if 
   gymnasium is installed) instead of `gym`. If you want legacy behaviour, 
@@ -61,12 +61,16 @@ Change Log
 - [ADDED] the whole "alert" concept in grid2op with a grid2op environment supporting it (`l2rpn_idf_2023`)
 - [ADDED] the `gym_env.action_space.get_index(attr_nm)` for `BoxGymActSpace` that allows to retrieve which index
   of the action represents which attribute.
+- [ADDED] the argument `quiet_warnings` in the handlers to prevent the issue of too many warnings when using 
+  `ForecastHandler`
 - [IMPROVED] the method `act.as_serializable_dict()` to work better when exporting / importing actions on different 
   grids (the output dictionary for `set_bus` and `change_bus` now split the keys between all elements types 
   instead of relying on the "topo_vect" order (which might vary))
 - [IMPROVED] consistency between how to perform action on storage units between "raw" grid2op, 
   `GymActionSpace`, `BoxGymActSpace`, `DiscreteActSpace` and `MultiDiscreteActSpace` (
     used to be a mix of `set_storage` and `storage_power` now it's consistent and is `set_storage` everywhere)
+- [IMPROVED] error message when the "stat.clear_all()" function has been called on a statistic and this same
+  statistic is reused.
 
 [1.9.0] - 2023-06-06
 --------------------
