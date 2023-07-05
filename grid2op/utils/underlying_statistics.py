@@ -110,6 +110,9 @@ class EpisodeStatistics(object):
     STATISTICS_FOOTPRINT = ".statistics"
     METADATA = "metadata.json"
 
+
+    ERROR_MSG_CLEANED = ("This statistics has been removed from the hard drive through a call to "
+                         "`stat.clear_all()`. You cannot use it anymore.")
     def __init__(self, env, name_stats=None):
         if isinstance(env, MultiMixEnvironment):
             raise RuntimeError("MultiMixEnvironment are not supported at the moment")
@@ -118,6 +121,7 @@ class EpisodeStatistics(object):
         nm_ = self.get_name_dir(name_stats)
         self.path_save_stats = os.path.join(self.path_env, nm_)
         self.li_attributes = self.env.observation_space.attr_list_vect
+        self.__cleared = False
 
     @staticmethod
     def get_name_dir(name_stats):
@@ -331,6 +335,8 @@ class EpisodeStatistics(object):
             the same scenario.
 
         """
+        if self.__cleared:
+            raise RuntimeError(EpisodeStatistics.ERROR_MSG_CLEANED)
         # backward compatibility
         if attribute_name == "prod_p":
             attribute_name = "gen_p"
@@ -418,7 +424,8 @@ class EpisodeStatistics(object):
         Once done, this cannot be undone.
         """
         if os.path.exists(self.path_save_stats) and os.path.isdir(self.path_save_stats):
-            shutil.rmtree(self.path_save_stats)
+            shutil.rmtree(self.path_save_stats, ignore_errors=True)
+        self.__cleared = True
 
     @staticmethod
     def clean_all_stats(env):
@@ -572,6 +579,9 @@ class EpisodeStatistics(object):
 
     def get_metadata(self):
         """return the metadata as a dictionary"""
+        if self.__cleared:
+            raise RuntimeError(EpisodeStatistics.ERROR_MSG_CLEANED)
+        
         with open(
             os.path.join(self.path_save_stats, self.METADATA), "r", encoding="utf-8"
         ) as f:
@@ -726,7 +736,7 @@ class EpisodeStatistics(object):
             # reformat the observation into a proper "human readable" format
             self._clean_observations(path_tmp, episode_name)
 
-        # and now gather the information for at the top level
+        # and now gather the information for the top level
         self._gather_all(li_episodes, dict_metadata, score_names=score_names)
 
 
@@ -772,7 +782,7 @@ if __name__ == "__main__":
 
     # with multiple "scores"
     env = grid2op.make(
-        "/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alarm",
+        "l2rpn_neurips_2020_track1_with_alarm",
         backend=LightSimBackend(),
     )
     stats_dn = EpisodeStatistics(env, name_stats="do_nothing")

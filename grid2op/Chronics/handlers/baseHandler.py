@@ -440,7 +440,7 @@ class BaseHandler(RandomObject):
         """
         raise NotImplementedError()
     
-    def get_future_data(self, horizon: int) -> Optional[np.ndarray]:
+    def get_future_data(self, horizon: int, quiet_warnings : bool=False) -> Optional[np.ndarray]:
         """        
         INTERNAL
 
@@ -459,6 +459,9 @@ class BaseHandler(RandomObject):
         horizon : int
             The horizon (in minutes) to which we want the data.
 
+        quiet_warnings: bool
+            Whether to issue a warning (default, if quiet_warnings is False) or not
+            
         Returns
         -------
         Optional[np.ndarray]

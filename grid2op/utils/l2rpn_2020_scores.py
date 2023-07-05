@@ -129,6 +129,7 @@ class ScoreL2RPN2020(object):
             agent=agent_reco,
             score_names=score_names,
         )
+        self.__cleared = False 
 
     def _init_stat(
         self,
@@ -311,6 +312,7 @@ class ScoreL2RPN2020(object):
         # self.stat_no_overflow.clear_all()
         self.stat_no_overflow_rp.clear_all()
         self.stat_dn.clear_all()
+        self.__cleared = True
 
     def get(self, agent, path_save=None, nb_process=1):
         """
@@ -340,6 +342,9 @@ class ScoreL2RPN2020(object):
         total_ts: ``list``
             Total number of step for each scenario
         """
+        if  self.__cleared:
+            raise RuntimeError(EpisodeStatistics.ERROR_MSG_CLEANED)
+        
         if path_save is not None:
             need_delete = False  # TODO this is soooo dirty
             path_save = os.path.abspath(path_save)
@@ -347,6 +352,8 @@ class ScoreL2RPN2020(object):
             need_delete = True
             dir_tmp = tempfile.TemporaryDirectory()
             path_save = dir_tmp.name
+            if self.verbose >= 1:
+                print("Using a temp directory to store the intermediate data.")  # TODO logger
 
         if self.verbose >= 1:
             print("Starts the evaluation of the agent")  # TODO logger
