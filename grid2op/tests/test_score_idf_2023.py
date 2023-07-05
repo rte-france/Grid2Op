@@ -179,7 +179,6 @@ class TestScoreL2RPN2023(unittest.TestCase):
         res_50 = my_score.get(CurtailAgent(self.env.action_space, 0.5))
         for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_50[0]):
             assert abs(nres_score + 100.) <= 7
-        my_score.clear_all() 
         
         # test bellow 50% still gets close to -100
         res_30 = my_score.get(CurtailAgent(self.env.action_space, 0.3))
