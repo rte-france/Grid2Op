@@ -16,7 +16,7 @@ class _NewRenewableSourcesUsageScore(BaseReward):
     INTERNAL
 
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-            It **must not** serve as a reward. This scored needs to be **MINIMIZED**,
+            It **must not** serve as a reward. This score needs to be **MAXIMIZED**,
             and a reward needs to be maximized! Also, this "reward" is not scaled or anything. Use it as your
             own risk.
 
