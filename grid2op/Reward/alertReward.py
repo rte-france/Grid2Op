@@ -8,7 +8,7 @@
 
 import numpy as np
 
-from grid2op.Reward.BaseReward import BaseReward
+from grid2op.Reward.baseReward import BaseReward
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 
 
@@ -197,5 +197,6 @@ class AlertReward(BaseReward):
                 # update the state of the environment
                 env._was_alert_used_after_attack[lines_attack] = 1 - alert_send * 2
                 res = (self.reward_min_no_blackout - self.reward_max_no_blackout) * np.mean(alert_send) + self.reward_max_no_blackout
+                self._ts_attack[index_window, :] = False  # attack has been taken into account we "cancel" it
         return res
     

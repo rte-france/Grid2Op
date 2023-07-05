@@ -208,6 +208,28 @@ class L2RPNIDF2023Tester(unittest.TestCase):
         for i in range(12):
             obs, reward, done, info = self.env.step(self.env.action_space())
         assert obs.was_alert_used_after_attack[0] == 1
+    
+    def test_alertreward_counted_only_once_per_attack(self):
+        self.env.seed(0)
+        obs = self.env.reset()
+        for i in range(13):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        act = self.env.action_space()
+        obs, reward, done, info = self.env.step(act)  # an attack at this step
+        assert info["opponent_attack_line"] is not None
+        
+        for i in range(11):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            assert info["rewards"]["alert"] == 0, f"error for step {i}"
+            assert obs.was_alert_used_after_attack[0] == 0
+        obs, reward, done, info = self.env.step(self.env.action_space())  # end of the time window
+        assert obs.was_alert_used_after_attack[0] == 1
+        assert info["rewards"]["alert"] != 0
+        
+        for i in range(15):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            assert info["rewards"]["alert"] == 0, f"error for step {i}"
+            assert obs.was_alert_used_after_attack[0] == 0, f"error for step {i}"
         
     def do_not_run_oom_error_test_act_space_alert(self):
         # this crashed

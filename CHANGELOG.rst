@@ -44,6 +44,11 @@ Change Log
 - [BREAKING] to avoid misleading behaviour, by default the `BoxGymActSpace` no longer uses
   the "discrete" attributes ("set_line_status", "change_line_status", "set_bus", "change_bus"). You can
   still use them in the "attr_to_keep" kwargs if you want.
+- [BREAKING] rename with filename starting with lowercase all the files in the "Reward" module. This is 
+  both consistent with python practice but allows also to make the difference between the file in the 
+  module and the class imported. This should have little to no impact on all codes but to "upgrade"
+  instead of `from grid2op.Reward.BaseReward import BaseReward` just do 
+  `from grid2op.Reward import BaseReward`.
 - [FIXED] an error when an environment with alarm was created before an environment 
   without alert. This lead to a crash when creating the second environment. This is now fixed.
 - [FIXED] an issue with non renewable generators in `GymActionSpace` (some curtailment was made

@@ -8,7 +8,7 @@
 
 import numpy as np
 
-from grid2op.Reward.CombinedReward import CombinedReward
+from grid2op.Reward.combinedReward import CombinedReward
 from grid2op.dtypes import dt_float
 
 

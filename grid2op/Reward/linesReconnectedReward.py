@@ -7,19 +7,16 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-from grid2op.Reward.BaseReward import BaseReward
+
+from grid2op.Reward.baseReward import BaseReward
 from grid2op.dtypes import dt_float
 
 
-class LinesCapacityReward(BaseReward):
+class LinesReconnectedReward(BaseReward):
     """
-    Reward based on lines capacity usage
-    Returns max reward if no current is flowing in the lines
-    Returns min reward if all lines are used at max capacity
-
-    Compared to `:class:L2RPNReward`:
-    This reward is linear (instead of quadratic) and only
-    considers connected lines capacities
+    This reward computes a penalty
+    based on the number of powerline that could have been reconnected (cooldown at 0.) but
+    are still disconnected.
 
     Examples
     ---------
@@ -28,15 +25,15 @@ class LinesCapacityReward(BaseReward):
     .. code-block:
 
         import grid2op
-        from grid2op.Reward import LinesCapacityReward
+        from grid2op.Reward import LinesReconnectedReward
 
         # then you create your environment with it:
         NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
-        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=LinesCapacityReward)
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=LinesReconnectedReward)
         # and do a step with a "do nothing" action
         obs = env.reset()
         obs, reward, done, info = env.step(env.action_space())
-        # the reward is computed with the LinesCapacityReward class
+        # the reward is computed with the LinesReconnectedReward class
 
     """
 
@@ -44,21 +41,28 @@ class LinesCapacityReward(BaseReward):
         BaseReward.__init__(self, logger=logger)
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(1.0)
-
-    def initialize(self, env):
-        pass
+        self.penalty_max_at_n_lines = dt_float(2.0)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min
 
+        # Get obs from env
         obs = env.get_obs()
-        n_connected = np.sum(obs.line_status.astype(dt_float))
-        usage = np.sum(obs.rho[obs.line_status == True])
-        usage = np.clip(usage, 0.0, float(n_connected))
-        reward = np.interp(
-            n_connected - usage,
-            [dt_float(0.0), float(n_connected)],
-            [self.reward_min, self.reward_max],
+
+        # All lines ids
+        lines_id = np.arange(env.n_line)
+        lines_id = lines_id[obs.time_before_cooldown_line == 0]
+
+        n_penalties = dt_float(0.0)
+        for line_id in lines_id:
+            # Line could be reconnected but isn't
+            if obs.line_status[line_id] == False:
+                n_penalties += dt_float(1.0)
+
+        max_p = self.penalty_max_at_n_lines
+        n_penalties = np.clip(n_penalties, dt_float(0.0), max_p)
+        r = np.interp(
+            n_penalties, [dt_float(0.0), max_p], [self.reward_max, self.reward_min]
         )
-        return reward
+        return dt_float(r)
