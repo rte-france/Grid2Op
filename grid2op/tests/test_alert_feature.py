@@ -422,7 +422,7 @@ class TestObservation(unittest.TestCase):
         obs, reward, done, info = self.env.step(act)
         assert obs.time_since_last_attack[0] == -1
         assert obs.was_alert_used_after_attack[0] == 0
-
+        assert obs.was_alert_used_after_attack[1:].sum() == 0
 
         obs, reward, done, info = self.env.step(self.env.action_space())
         assert obs.time_since_last_attack[0] == 0
@@ -431,14 +431,17 @@ class TestObservation(unittest.TestCase):
         obs, reward, done, info = self.env.step(self.env.action_space())
         assert obs.time_since_last_attack[0] == 1
         assert obs.was_alert_used_after_attack[0] == 0
+        assert obs.was_alert_used_after_attack[1:].sum() == 0
 
         obs, reward, done, info = self.env.step(self.env.action_space())
         assert obs.time_since_last_attack[0] == 0
         assert obs.was_alert_used_after_attack[0] == 1
+        assert obs.was_alert_used_after_attack[1:].sum() == 0
         
         obs, reward, done, info = self.env.step(self.env.action_space())
         assert obs.time_since_last_attack[0] == 1
         assert obs.was_alert_used_after_attack[0] == 0
+        assert obs.was_alert_used_after_attack[1:].sum() == 0
 
     def test_when_attacks(self):
         obs : BaseObservation = self.env.reset()
