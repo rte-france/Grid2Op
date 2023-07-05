@@ -25,17 +25,23 @@ class TestAlertNoBlackout(unittest.TestCase):
             percentage_alert =30  # 30% of lines with alert per step
             my_agent = AlertAgent(env.action_space, percentage_alert=percentage_alert)
             runner = Runner(**env.get_params_for_runner(), agentClass=None ,agentInstance=my_agent)
-            # runner = Runner(**env.get_params_for_runner(), agentClass=AlertAgent)
-            res = runner.run(nb_episode=1, nb_process=1, path_save=None,
-                             add_detailed_output=True)
 
-            # test if the number of alerts sent er lines are recovered
-            alerts_count =np.sum([res[0][5].observations[i].active_alert for i in range(1, len(res[0][5].observations))]
+            res = runner.run(nb_episode=1, nb_process=1, path_save=None,agent_seeds=[0],env_seeds=[0],max_iter=3,
+                             add_detailed_output=True)
+            id_chron, name_chron, cum_reward, nb_time_step, max_ts, episode_data = res[0]
+
+            # test if the number of alerts sent on lines are recovered
+            alerts_count =np.sum([obs.active_alert for obs in episode_data.observations[1:]]
                                   ,axis=0)
-            assert(np.all(alerts_count==[9, 9, 4, 0, 5, 0, 0, 0, 0, 0]))
+            print(alerts_count)
+            assert(np.all(alerts_count==[3, 3, 2, 0, 1, 0, 0, 0, 0, 0]))
 
             # test that we observe the expected alert rate
-            nb_steps =res[0][4]
             nb_alertable_lines =len(env.alertable_line_names)
-            ratio_alerts_step =np.sum(alerts_count ) /(nb_steps*nb_alertable_lines)
+            ratio_alerts_step =np.sum(alerts_count ) /(nb_time_step*nb_alertable_lines)
             assert(np.round(ratio_alerts_step ,decimals=1 )==np.round(percentage_alert/100 ,decimals=1))
+
+            #check that alert agent is not doing any intervention on the grid in this short time frame
+            #as the reco power line, it should only do actions to reconnect lines when allowed, but cannot happen in this short time frame
+            has_action_impact=[act.impact_on_objects()['has_impact'] for act in episode_data.actions]
+            assert(~np.any(has_action_impact))

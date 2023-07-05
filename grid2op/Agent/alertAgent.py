@@ -27,17 +27,14 @@ class AlertAgent(RecoPowerlineAgent):
 
     """
 
-    def __init__(self, action_space,percentage_alert=30,simu_step=0):#[0, 9, 13, 14, 18, 23, 27, 39, 45, 56]):
+    def __init__(self, action_space,percentage_alert=30,simu_step=0):
         RecoPowerlineAgent.__init__(self, action_space)
         self.percentage_alert = percentage_alert
-        #self.alertable_line_ids=alertable_line_ids
         self.simu_step=simu_step
 
     def act(self, observation, reward, done=False):
         action=super().act(observation, reward, done=False)
         alertable_line_ids=observation.alertable_line_ids
-        #if (self.alertable_line_ids is None):
-        #    self.alertable_line_ids = [i for i in range(observation.n_line) if observation.name_line[i] in observation.alertable_line_names]
 
         #simu d'analyse de sécurité à chaque pas de temps sur les lignes attaquées
         n_alertable_lines=len(alertable_line_ids)
@@ -45,9 +42,8 @@ class AlertAgent(RecoPowerlineAgent):
         rho_max_N_1=np.zeros(n_alertable_lines)
 
         # test which backend to know which method to call
-
         N_1_actions=[self.action_space({"set_line_status": [(id_, -1)]}) for id_ in alertable_line_ids]
-        for i, action in enumerate(N_1_actions):
+        for i, action_to_simulate in enumerate(N_1_actions):
 
             #check that line is not already disconnected
             if (observation.line_status[alertable_line_ids[i]]):
@@ -56,7 +52,7 @@ class AlertAgent(RecoPowerlineAgent):
                     simul_reward,
                     simul_has_error,
                     simul_info,
-                ) = observation.simulate(action,time_step=self.simu_step)
+                ) = observation.simulate(action_to_simulate,time_step=self.simu_step)
 
                 rho_simu=simul_obs.rho
                 if(not simul_has_error):
@@ -68,6 +64,6 @@ class AlertAgent(RecoPowerlineAgent):
 
         #alerts to send
         indices_to_keep=list(indices[0:int(self.percentage_alert/100*n_alertable_lines)])
-        action.raise_alert = [i for i in indices_to_keep]#[self.alertable_line_ids[i] for i in indices_to_keep]#[attackable_line_id]
+        action.raise_alert = [i for i in indices_to_keep]
 
         return action
