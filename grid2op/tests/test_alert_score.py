@@ -721,8 +721,9 @@ class TestAlertBlackout(unittest.TestCase):
 # return -10
     def test_assistant_reward_value_blackout_attack_no_alert(self) -> None :
         """
-        When 1 line is attacked at step 2 and we don't raise any alert
-        we expect a reward of -10 at step 3 
+        When 1 line is attacked at step 3 and we don't raise any alert
+        and a blackout occur at step 4
+        we expect a reward of -10 at step 4 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
@@ -750,7 +751,7 @@ class TestAlertBlackout(unittest.TestCase):
             for i in range(env.max_episode_duration()):
                 attackable_line_id = 0
                 act = self.get_dn(env)
-                if i == 3 :
+                if step == 3 :
                     act = self.get_blackout(env)
                 obs, reward, done, info = env.step(act)
                 step += 1
@@ -817,8 +818,8 @@ class TestAlertBlackout(unittest.TestCase):
 # return -10
     def test_assistant_reward_value_blackout_attack_raise_alert_just_before_blackout(self) -> None :
         """
-        When 1 line is attacked at step 2 and we raise 1 alert  too late
-        we expect a reward of -10 at step 3 
+        When 1 line is attacked at step 3 and we raise 1 alert  too late
+        we expect a reward of -10 at step 4 when the blackout occur 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
@@ -868,7 +869,7 @@ class TestAlertBlackout(unittest.TestCase):
     def test_assistant_reward_value_blackout_attack_raise_alert_too_early(self) -> None :
         """
         When 1 line is attacked at step 3 and we raise 1 alert  too early
-        we expect a reward of -10 at step 4 
+        we expect a reward of -10 at step 4 when the blackout occur 
         """
         # return -10
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
@@ -919,7 +920,7 @@ class TestAlertBlackout(unittest.TestCase):
     def  test_assistant_reward_value_blackout_2_lines_same_step_in_window_good_alerts(self) -> None :
         """
         When 2 lines are attacked simustaneously at step 2 and we raise 2 alert 
-        we expect a reward of 2 at step 3 
+        we expect a reward of 2 at the blackout (step 4)
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=3, 
@@ -970,7 +971,7 @@ class TestAlertBlackout(unittest.TestCase):
     def test_assistant_reward_value_blackout_2_lines_attacked_simulaneous_only_1_alert(self) -> None:
         """
         When 2 lines are attacked simustaneously at step 2 and we raise only 1 alert 
-        we expect a reward of -4 at step 3 
+        we expect a reward of -4 when the blackout occur at step 4 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=3, 
@@ -1021,8 +1022,8 @@ class TestAlertBlackout(unittest.TestCase):
 # return 2
     def  test_assistant_reward_value_blackout_2_lines_different_step_in_window_good_alerts(self) -> None : 
         """
-        When 2 lines are attacked at different steps 2 and 3 and we raise 2  alert 
-        we expect a reward of 2 at step 3 
+        When 2 lines are attacked at different steps 3 and 4 and we raise 2  alert 
+        we expect a reward of 2 when the blackout occur at step 5 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
@@ -1073,8 +1074,8 @@ class TestAlertBlackout(unittest.TestCase):
 
     def test_assistant_reward_value_blackout_2_lines_attacked_different_step_in_window_only_1_alert_on_first_attacked_line(self) -> None:
         """
-        When 2 lines are attacked at different steps 2 and 3 and we raise 1 alert on the first attack
-        we expect a reward of -4 at step 3 
+        When 2 lines are attacked at different steps 3 and 4 and we raise 1 alert on the first attack
+        we expect a reward of -4 on blackout at step 4 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
@@ -1122,7 +1123,7 @@ class TestAlertBlackout(unittest.TestCase):
     def test_assistant_reward_value_blackout_2_lines_attacked_different_step_in_window_only_1_alert_on_second_attacked_line(self) -> None:
         """
         When 2 lines are attacked at different steps 2 and 3 and we raise 1 alert on the second attack
-        we expect a reward of -4 at step 3 
+        we expect a reward of -4 at step 5 when the blackout occur 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
@@ -1167,8 +1168,8 @@ class TestAlertBlackout(unittest.TestCase):
 # return 2 
     def test_assistant_reward_value_blackout_2_lines_attacked_different_1_in_window_1_good_alert(self) -> None:
         """
-        When 2 lines are attacked at different steps 2 and 4 and we raise 1 alert on the second attack
-        we expect a reward of 2 at step 5 
+        When 2 lines are attacked at different steps 3 and 6 and we raise 1 alert on the second attack
+        we expect a reward of 1 at step 5 and 2 at step 7 when the blackout happen 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1, 1], 
@@ -1465,11 +1466,6 @@ class TestRunner(unittest.TestCase):
         res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
         assert res[0][2] == 41, f"{res[0][2]} vs 41"
         
-        
-# TODO : test des actions ambigues  
-# Action ambigue : par exemple alert sur la ligne (nb_lignes)+1 
-# Aller voir la doc : file:///home/crochepierrelau/Documents/Git/Grid2Op/documentation/html/action.html#illegal-vs-ambiguous
-
 
 if __name__ == "__main__":
     unittest.main()
