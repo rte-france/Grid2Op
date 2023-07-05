@@ -18,7 +18,7 @@ class AlertReward(BaseReward):
         DOC IN PROGRESS !
     
     This reward is based on the "alert feature" where the agent is asked to send information about potential line overload issue
-    on the grid after unpredictable powerline disconnection (attack of the opponent).
+    on the grid after unpredictable powerline disconnection (attack of the opponent). The alerts are assessed once per attack.
 
 
     This rewards is computed as followed:

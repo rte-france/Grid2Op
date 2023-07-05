@@ -3150,10 +3150,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if self._has_attention_budget:
                 if type(self).assistant_warning_type == "zonal":
                     # this feature is implemented, so i do it
-                    reason_alert_illegal = self._attention_budget.register_action(
+                    reason_alarm_illegal = self._attention_budget.register_action(
                         self, action, is_illegal, is_ambiguous
                     )
-                    self._is_alert_illegal = reason_alert_illegal is not None
+                    self._is_alarm_illegal = reason_alarm_illegal is not None
 
             # get the modification of generator active setpoint from the environment
             self._env_modification, prod_v_chronics = self._update_actions()
