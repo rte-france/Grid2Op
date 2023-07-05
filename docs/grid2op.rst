@@ -309,7 +309,34 @@ An alert will concern a single powerline (say powerline `i`) And each of this al
   if an agent "games over" before the end.
    
 
+To model all that you have, at your disposal, in the observation, the attributes:
+
+- :attr:`grid2op.Observation.BaseObservation.active_alert`
+- :attr:`grid2op.Observation.BaseObservation.time_since_last_alert`
+- :attr:`grid2op.Observation.BaseObservation.alert_duration`
+- :attr:`grid2op.Observation.BaseObservation.total_number_of_alert`
+- :attr:`grid2op.Observation.BaseObservation.time_since_last_attack`
+- :attr:`grid2op.Observation.BaseObservation.was_alert_used_after_attack`
+- :attr:`grid2op.Observation.BaseObservation.attack_under_alert`
+
+And at each step, an agent can raise an alert with the action property :attr:`grid2op.Action.BaseAction.raise_alert`.
+
+.. note::
+  Once raised, an alert on a powerline is valid for the next step only. You need to re raise it at the next
+  step if you want it to lasts in time more than one steps.
+
+.. note::
+  For an alert to be taken into account it should be raised BEFORE a powerline is attacked. It means that
+  if the opponent alread attacked a powerline, it is not useful to raise an alert on said powerline as it 
+  will have no impact at all.
+
+Let's take some **example** (the code bellow is just and EXAMPLE if you run it you will not have the results
+that we are describing)
+
+
 TODO explain more with code examples and detail why this or that reward and the properties of the observation.
+
+
 
 Disclaimer
 -----------
