@@ -66,7 +66,8 @@ class TestNewRenewableSourcesUsageScore(unittest.TestCase):
         x = np.arange(start=50, stop=100, step=delta_x)
         f_x = _NewRenewableSourcesUsageScore._surlinear_func_curtailment(x)
         gradient_f = (f_x[1:] - f_x[:-1]) / delta_x
-        return all(gradient_f > 1)    
+        assert all(gradient_f > 1 / 50)
+        assert all(np.equal(np.argsort(gradient_f),np.arange(len(gradient_f), dtype=int)))    
     
     def test_capitalization_score(self):
 
