@@ -258,8 +258,8 @@ class SerializableActionSpace(SerializableSpace):
     def _sample_raise_alert(self, rnd_update=None):
         if rnd_update is None:
             rnd_update = {}
-        rnd_area = self.space_prng.randint(self.dim_alerts)
-        rnd_update["raise_alert"] = [rnd_area]
+        rnd_alerted_lines = self.space_prng.choice([True, False], self.dim_alerts).astype(dt_bool)
+        rnd_update["raise_alert"] = rnd_alerted_lines
         return rnd_update
 
     def sample(self):

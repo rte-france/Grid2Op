@@ -362,14 +362,15 @@ class CSVHandler(BaseHandler):
         if self.chunk_size is not None:
             self._clear()  # we should have to reload everything if all data have been already loaded
     
-    def get_future_data(self, horizon: int):
+    def get_future_data(self, horizon: int, quiet_warnings : bool=False):
         horizon = int(horizon)
         tmp_index = self.current_index + horizon // (self.time_interval.total_seconds() // 60)
         tmp_index = int(tmp_index)
         if tmp_index < self.array.shape[0]:
             res = self.array[tmp_index, :]
         else:
-            import warnings
-            warnings.warn(f"{type(self)} {self.array_name}: No more data to get, the last known data is returned.")
+            if not quiet_warnings:
+                import warnings
+                warnings.warn(f"{type(self)} {self.array_name}: No more data to get, the last known data is returned.")
             res = self.array[-1, :]
         return copy.deepcopy(res)

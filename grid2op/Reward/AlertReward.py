@@ -14,21 +14,37 @@ from grid2op.dtypes import dt_float, dt_bool, dt_int
 
 class AlertReward(BaseReward):
     """
-    DOC IN PROGRESS !
-    
+    .. note::
+        DOC IN PROGRESS !
     
     This reward is based on the "alert feature" where the agent is asked to send information about potential line overload issue
-    on the grid.
-
-    On this case, when the environment is in a "game over" state (eg it's the end) then the reward is computed
-    the following way:
-
-    - if the environment has been successfully manage until the end of the chronics, and no attack occurs then 1.0 is returned
-    - if an alarm has been raised and a attack occurs before the end of the chronics, then 2.0 is returned
-    - if an alarm has been raised, and no attack occurs then -1.0 is return
-    - if no alarm has been raised, and a attack occurs then -10.0 is return
+    on the grid after unpredictable powerline disconnection (attack of the opponent). The alerts are assessed once per attack.
 
 
+    This rewards is computed as followed:
+    
+    - if an attack occurs and the agent survives `env.parameters.ALERT_TIME_WINDOW` steps then:
+      - if the agent sent an alert BEFORE the attack, reward returns `reward_min_no_blackout` (-1 by default)
+      - if the agent did not sent an alert BEFORE the attack, reward returns `reward_max_no_blackout` (1 by default)
+    - if an attack occurs and the agent "games over" withing `env.parameters.ALERT_TIME_WINDOW` steps then:
+      - if the agent sent an alert BEFORE the attack, reward returns `reward_max_blackout` (2 by default)
+      - if the agent did not sent an alert BEFORE the attack, reward returns `reward_min_blackout` (-10 by default)
+    - whatever the attacks / no attacks / alert / no alert, if the scenario is completed until the end, 
+      then agent receive `reward_end_episode_bonus` (1 by default)
+
+    In all other cases, including but not limited to:
+    
+    - agent games over but there has been no attack within the previous `env.parameters.ALERT_TIME_WINDOW` (12) steps
+    - there is no attack 
+    
+    The reward outputs 0.
+    
+    This is then a "delayed reward": you receive the reward (in general) `env.parameters.ALERT_TIME_WINDOW` after
+    having sent the alert.
+    
+    This is also a "sparse reward": in the vast majority of cases it's 0. It is only non zero in case of blackout (at
+    most once per episode) and each time an attack occurs (and in general there is relatively few attacks)
+    
     TODO explain a bit more in the "multi lines attacked"
     
     .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information

@@ -271,7 +271,11 @@ Alert feature
 +++++++++++++++
 
 In a "human / machine" collaboration it is important that the machine tells the human when 
-it is not fully confident on its ability to handle the grid for `xxx` amount of time.
+it is not fully confident on its ability to handle the grid for `xxx` amount of time (`xxx` is 
+in fact `env.parameters.ALERT_TIME_WINDOW`).
+
+.. note::
+  At time of writing only the env "l2rpn_idf_2023" supports this feature.
 
 In our formulation, we ask the agent to send alert (through the action see :attr:`grid2op.Action.BaseAction.raise_alert`)
 at each step. 
@@ -309,7 +313,137 @@ An alert will concern a single powerline (say powerline `i`) And each of this al
   if an agent "games over" before the end.
    
 
-TODO explain more with code examples and detail why this or that reward and the properties of the observation.
+To model all that you have, at your disposal, in the observation, the attributes:
+
+- :attr:`grid2op.Observation.BaseObservation.active_alert`
+- :attr:`grid2op.Observation.BaseObservation.time_since_last_alert`
+- :attr:`grid2op.Observation.BaseObservation.alert_duration`
+- :attr:`grid2op.Observation.BaseObservation.total_number_of_alert`
+- :attr:`grid2op.Observation.BaseObservation.time_since_last_attack`
+- :attr:`grid2op.Observation.BaseObservation.was_alert_used_after_attack`
+- :attr:`grid2op.Observation.BaseObservation.attack_under_alert`
+
+And at each step, an agent can raise an alert with the action property :attr:`grid2op.Action.BaseAction.raise_alert`.
+
+We also added a dedicated reward for this feature: :class:`grid2op.Reward.AlertReward`
+
+.. note::
+  Once raised, an alert on a powerline is valid for the next step only. You need to re raise it at the next
+  step if you want it to lasts in time more than one steps.
+
+.. note::
+  For an alert to be taken into account it should be raised BEFORE a powerline is attacked. It means that
+  if the opponent alread attacked a powerline, it is not useful to raise an alert on said powerline as it 
+  will have no impact at all.
+
+Let's take some examples with the following environment and seed:
+
+.. code-block:: python
+
+  import grid2op
+  import numpy as np
+
+  env = grid2op.make("l2rpn_idf_2023", test=True)
+  env.seed(0)
+  obs = env.reset()
+  # I know (because programmer know, that's why ;-) )
+  # that an opponent will attack powerline 106 at step 14
+  # powerline 106 is attackable line id 0 (np.where(type(env).alertable_line_ids) == 106))
+  # test the attack in the original config
+  for i in range(14):
+      obs, reward, done, info = env.step(env.action_space())
+      print(obs.current_step, info["opponent_attack_line"], np.where(info["opponent_attack_line"])[0] if info["opponent_attack_line"] is not None else None)
+
+
+Let's play the same scenario again: same attack, same everything:
+
+.. code-block:: python
+
+  env.seed(0)
+  obs = env.reset()
+  for i in range(12):
+      obs, reward, done, info = env.step(env.action_space())
+  # still no attack at this point
+
+  act = env.action_space({"raise_alert": [0]})
+  obs, reward, done, info = env.step(act)  # no attack at this step, the previous action has no impact at all !
+
+  act = env.action_space({"raise_alert": [0]})
+  obs, reward, done, info = env.step(act)  # an attack at this step on line attackable 0
+
+The agent sent an alarm at the right time before the attack. It means that the agent expects to fail, 
+after this attack and within the next 12 steps. If it fails between "now" and "12 steps from now" 
+reward associated with alert will be positive else it will be negative.
+
+
+Let's replay again the same scenario again: same attack, same everything:
+
+.. code-block:: python
+
+  env.seed(0)
+  obs = env.reset()
+  for i in range(12):
+      obs, reward, done, info = env.step(env.action_space())
+  # still no attack at this point
+
+  act = env.action_space({"raise_alert": [0]})
+  obs, reward, done, info = env.step(act)  # no attack at this step, the previous action has no impact
+
+  act = env.action_space()
+  obs, reward, done, info = env.step(act)  # an attack at this step on line attackable 0
+
+The agent did not sent any alarm right before the attack on "attackable line 0".
+It means that the agent expects to survive after this attack for at least the next 12 steps. 
+If it fails between "now" and "12 steps from now" reward associated with alert will highly
+negative (this is the situation where the agent should have told the human operator "help me").
+
+
+Let's replay again (again ?) the same scenario again: same attack, same everything:
+
+.. code-block:: python
+
+  env.seed(0)
+  obs = env.reset()
+  for i in range(12):
+      obs, reward, done, info = env.step(env.action_space())
+  # still no attack at this point
+
+  act = env.action_space({"raise_alert": [0]})
+  obs, reward, done, info = env.step(act)  # no attack at this step, the previous action has no impact
+
+  act = env.action_space({"raise_alert": [1]})
+  obs, reward, done, info = env.step(act)  # an attack at this step on line attackable 0
+  print(obs.attack_under_alert[0])
+
+The agent raised an alert at the right time, but not on the attacked line. This means that
+the agent is confident that it can handle the attack (on attackable line 0) but that
+it "thinks" it would be in trouble if attackble line 1 had been attacked instead. This is
+the same case as just above: the "thinks" it will survive for at least the next 12 steps.
+
+And now let's replay one last time the same everything:
+
+.. code-block:: python
+
+  env.seed(0)
+  obs = env.reset()
+  for i in range(12):
+      obs, reward, done, info = env.step(env.action_space())
+  # still no attack at this point
+
+  act = env.action_space({"raise_alert": [0]})
+  obs, reward, done, info = env.step(act)  # no attack at this step, the previous action has no impact
+
+  act = env.action_space()
+  obs, reward, done, info = env.step(act)  # an attack at this step on line attackable 0
+
+  act = env.action_space({"raise_alert": [0]})
+  obs, reward, done, info = env.step(act)  # the attack continues at this step on line attackable 0
+
+In this case, the agent sents the alert AFTER the incident (disconnection of powerline 0)
+occurs. The sent alert will not be used by grid2op. It will be equivalent as the 2 cases above:
+the agent is confident in its ability to handle the grid for the next 12 steps even if it sends an
+alert (when the attack is happening)
+
 
 Disclaimer
 -----------
