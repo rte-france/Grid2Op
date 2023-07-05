@@ -8,7 +8,7 @@
 
 import numpy as np
 
-from grid2op.Reward.L2RPNSandBoxScore import L2RPNSandBoxScore
+from grid2op.Reward.l2RPNSandBoxScore import L2RPNSandBoxScore
 from grid2op.dtypes import dt_float
 
 

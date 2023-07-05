@@ -6,16 +6,13 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import numpy as np
-from grid2op.Reward.BaseReward import BaseReward
+from grid2op.Reward.baseReward import BaseReward
 from grid2op.dtypes import dt_float
 
 
-class IncreasingFlatReward(BaseReward):
+class FlatReward(BaseReward):
     """
-    This reward just counts the number of timestep the agent has successfully manage to perform.
-
-    It adds a constant reward for each time step successfully handled.
+    This reward return a fixed number (if there are not error) or 0 if there is an error.
 
     Examples
     ---------
@@ -24,15 +21,15 @@ class IncreasingFlatReward(BaseReward):
     .. code-block:
 
         import grid2op
-        from grid2op.Reward import IncreasingFlatReward
+        from grid2op.Reward import FlatReward
 
         # then you create your environment with it:
         NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
-        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=IncreasingFlatReward)
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=FlatReward)
         # and do a step with a "do nothing" action
         obs = env.reset()
         obs, reward, done, info = env.step(env.action_space())
-        # the reward is computed with the IncreasingFlatReward class
+        # the reward is computed with the FlatReward class
 
     """
 
@@ -40,16 +37,11 @@ class IncreasingFlatReward(BaseReward):
         BaseReward.__init__(self, logger=logger)
         self.per_timestep = dt_float(per_timestep)
         self.reward_min = dt_float(0.0)
-
-    def initialize(self, env):
-        if env.chronics_handler.max_timestep() > 0:
-            self.reward_max = env.chronics_handler.max_timestep() * self.per_timestep
-        else:
-            self.reward_max = np.inf
+        self.reward_max = dt_float(per_timestep)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if not has_error:
-            res = dt_float(env.nb_time_step * self.per_timestep)
+            res = self.per_timestep
         else:
             res = self.reward_min
         return res

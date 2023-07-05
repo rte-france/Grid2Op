@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-from grid2op.Reward.BaseReward import BaseReward
+from grid2op.Reward.baseReward import BaseReward
 from grid2op.dtypes import dt_float
 
 class _NewRenewableSourcesUsageScore(BaseReward):

@@ -6,16 +6,17 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from grid2op.Reward.BaseReward import BaseReward
+from grid2op.Reward.baseReward import BaseReward
 from grid2op.dtypes import dt_float
 
 
-class GameplayReward(BaseReward):
+class ConstantReward(BaseReward):
     """
-    This rewards is strictly computed based on the Game status.
-    It yields a negative reward in case of game over.
-    A half negative reward on rules infringement.
-    Otherwise the reward is positive.
+    Most basic implementation of reward: everything has the same values: 0.0
+
+    Note that this :class:`BaseReward` subtype is not useful at all, whether to train an :attr:`BaseAgent`
+    nor to assess its performance of course.
+
 
     Examples
     ---------
@@ -24,29 +25,20 @@ class GameplayReward(BaseReward):
     .. code-block:
 
         import grid2op
-        from grid2op.Reward import GameplayReward
+        from grid2op.Reward import ConstantReward
 
         # then you create your environment with it:
         NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
-        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=GameplayReward)
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=ConstantReward)
         # and do a step with a "do nothing" action
         obs = env.reset()
         obs, reward, done, info = env.step(env.action_space())
-        # the reward is computed with the GameplayReward class
+        # the reward is 0., always... Not really useful
 
     """
 
     def __init__(self, logger=None):
         BaseReward.__init__(self, logger=logger)
-        self.reward_min = dt_float(-1.0)
-        self.reward_max = dt_float(1.0)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        if has_error:
-            return self.reward_min
-        elif is_illegal or is_ambiguous:
-            # Did not respect the rules
-            return self.reward_min / dt_float(2.0)
-        else:
-            # Keep playing or finished episode
-            return self.reward_max
+        return dt_float(0.0)

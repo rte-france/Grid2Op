@@ -3032,6 +3032,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     - "detailed_infos_for_cascading_failures" (optional, only if the backend has been create with
                       `detailed_infos_for_cascading_failures=True`) the list of the intermediate steps computed during
                       the simulation of the "cascading failures".
+                    - "rewards": dictionary of all "other_rewards" provided when the env was built.
 
         Examples
         ---------
