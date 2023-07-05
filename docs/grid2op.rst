@@ -271,7 +271,11 @@ Alert feature
 +++++++++++++++
 
 In a "human / machine" collaboration it is important that the machine tells the human when 
-it is not fully confident on its ability to handle the grid for `xxx` amount of time.
+it is not fully confident on its ability to handle the grid for `xxx` amount of time (`xxx` is 
+in fact `env.parameters.ALERT_TIME_WINDOW`).
+
+.. note::
+  At time of writing only the env "l2rpn_idf_2023" supports this feature.
 
 In our formulation, we ask the agent to send alert (through the action see :attr:`grid2op.Action.BaseAction.raise_alert`)
 at each step. 
@@ -320,6 +324,8 @@ To model all that you have, at your disposal, in the observation, the attributes
 - :attr:`grid2op.Observation.BaseObservation.attack_under_alert`
 
 And at each step, an agent can raise an alert with the action property :attr:`grid2op.Action.BaseAction.raise_alert`.
+
+We also added a dedicated reward for this feature: :class:`grid2op.Reward.AlertReward`
 
 .. note::
   Once raised, an alert on a powerline is valid for the next step only. You need to re raise it at the next
