@@ -111,19 +111,32 @@ class L2RPNIDF2023Tester(unittest.TestCase):
         
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            box_act = BoxGymActSpace(self.env.action_space)
-            assert box_act.shape[0] == 1543
+            box_act = BoxGymActSpace(self.env.action_space,
+                                     attr_to_keep=(
+                                         "set_line_status",
+                                         "change_line_status",
+                                         "set_bus",
+                                         "change_bus",
+                                         "redispatch",
+                                         "set_storage",
+                                         "curtail",
+                                         "raise_alert",
+                                         ))
+            assert box_act.shape[0] == 1543, f'{box_act.shape[0]} vs 1543'
+            box_act2 = BoxGymActSpace(self.env.action_space)
+            assert box_act2.shape[0] == 69, f'{box_act2.shape[0]} vs 69'
+            
             box_obs = BoxGymObsSpace(self.env.observation_space)
-            assert box_obs.shape[0] == 5125
+            assert box_obs.shape[0] == 5125, f'{box_obs.shape[0]} vs 5125'
             disc_act = DiscreteActSpace(self.env.action_space)
-            assert disc_act.n == 147878
+            assert disc_act.n == 147878, f'{disc_act.n} vs 147878'
             
             multidisc_0 = MultiDiscreteActSpace(self.env.action_space)
-            assert multidisc_0.shape[0] == 1543
+            assert multidisc_0.shape[0] == 1543, f'{multidisc_0.shape[0]} vs 1543'
             multidisc_1 = MultiDiscreteActSpace(self.env.action_space, attr_to_keep=["raise_alert"])
-            assert multidisc_1.shape[0] == 22
+            assert multidisc_1.shape[0] == 22, f'{multidisc_1.shape[0]} vs 22'
             multidisc_2 = MultiDiscreteActSpace(self.env.action_space, attr_to_keep=["sub_set_bus"])
-            assert multidisc_2.shape[0] == 118
+            assert multidisc_2.shape[0] == 118, f'{multidisc_2.shape[0]} vs 118'
             assert np.array_equal(multidisc_2.nvec, [    4,     4,     8,    10,    17,     4,     4,    14,     3,
                                                          1,    58,   254,     4,     4,   242,     4,    64,     6,
                                                         30,     4,     4,     4,    30,     8,     8,     4,    58,
