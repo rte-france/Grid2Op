@@ -50,6 +50,12 @@ Change Log
   at 100% of their capacity instead of "no curtailment")
 - [FIXED] a bug in computing the datatype of `BoxGymActSpace` and `BoxGymObsSpace` leading to
   using "bool" as dtype when it should be int.
+- [FIXED] the behaviour of `BoxGymActSpace` when `subtract` / `divide` were provided (the dtype was 
+  not propagated correctly)
+- [ADDED] support for the "alert" feature (see main doc page) with new observation attributes
+  (`obs.active_alert`, `obs.time_since_last_alert`, `obs.alert_duration`, `obs.total_number_of_alert,` 
+  `obs.time_since_last_attack`, `obs.was_alert_used_after_attack` and `obs.attack_under_alert`) 
+  a new type of action: `act.raise_alert` and a new reward class `AlertReward` (among others)
 - [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
 - [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
   the same action
