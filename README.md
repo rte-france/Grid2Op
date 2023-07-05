@@ -55,17 +55,17 @@ python3 -m virtualenv venv_grid2op
 source venv_grid2op/bin/activate
 ```
 
+## Install from PyPI
+```commandline
+pip3 install grid2op
+```
+
 ## Install from source
 ```commandline
 git clone https://github.com/rte-france/Grid2Op.git
 cd Grid2Op
 pip3 install -U .
 cd ..
-```
-
-## Install from PyPI
-```commandline
-pip3 install grid2op
 ```
 
 ## Install for contributors
@@ -87,12 +87,13 @@ docker pull bdonnot/grid2op:latest
 
 # Main features of Grid2Op
 ## Core functionalities
-Built with modulartiy in mind, Grid2Op acts as a replacement of [pypownet](https://github.com/MarvinLer/pypownet) 
-as a library used for the Learning To Run Power Network [L2RPN](https://l2rpn.chalearn.org/). 
+Built with modulartiy in mind, Grid2Op as a library used for the "Learning To Run Power Network" [L2RPN](https://l2rpn.chalearn.org/)
+competitions serie. It can also
 
 Its main features are:
 * emulates the behavior of a powergrid of any size at any format (provided that a *backend* is properly implemented)
-* allows for grid modifications (active and reactive load values, generator voltages setpoints and active production)
+* allows for grid modifications (active and reactive load values, generator voltages setpoints, active production but most 
+  importantly grid topology beyond powerline connection / disconnection)
 * allows for maintenance operations and powergrid topological changes
 * can adopt any powergrid modeling, especially Alternating Current (AC) and Direct Current (DC) approximation to 
   when performing the compitations
@@ -111,6 +112,8 @@ and have Grid2Op using this powerflow instead of PandaPower.
 # Getting Started
 Some Jupyter notebook are provided as tutorials for the Grid2Op package. They are located in the 
 [getting_started](getting_started) directories. 
+
+TODO: this needs to be redone, refactorize and better explained for some of them.
 
 These notebooks will help you in understanding how this framework is used and cover the most
 interesting part of this framework:
@@ -176,10 +179,10 @@ interesting part of this framework:
 * [10_StorageUnits](getting_started/10_StorageUnits.ipynb)
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/10_StorageUnits.ipynb)
   details the usage and behaviour of the storage units
-  in grid2op.
+  in grid2op. 
 * [11_IntegrationWithExistingRLFrameworks](getting_started/11_IntegrationWithExistingRLFrameworks.ipynb)
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/11_IntegrationWithExistingRLFrameworks.ipynb)
-  explains how to use grid2op with other reinforcement learning framework.
+  explains how to use grid2op with other reinforcement learning framework. TODO: this needs to be redone
     
 Try them out in your own browser without installing 
 anything with the help of mybinder: 
@@ -268,24 +271,24 @@ Grid2op is currently tested on windows, linux and macos.
 
 The unit tests includes testing, on linux machines the correct integration of grid2op with:
 
-- python 3.7
 - python 3.8
 - python 3.9
 - python 3.10
+- python 3.11
 
 On all of these cases, we tested grid2op on all available numpy version >= 1.20 (**nb** available numpy versions depend
 on python version).
 
 The complete test suit is run on linux with the latest numpy version on python 3.8.
 
-**NB** grid2op should work on python 3.11 but as numba is not (yet) compatible with this python version, 
-and because numba is used for some tests, we do not test grid2op with python 3.11 yet.
-
-## Known issue
+## Known issues
 
 Due to the underlying behaviour of the "multiprocessing" package on windows based python versions,
 the "multiprocessing" of the grid2op "Runner" is not supported on windows. This might change in the future, 
 but it is currently not on our priorities.
+
+A quick fix that is known to work include to set the `experimental_read_from_local_dir` when creating the
+environment with `grid2op.make(..., experimental_read_from_local_dir=True)` (see doc for more information)
 
 ## Perform tests locally
 Provided that Grid2Op is installed *from source*:

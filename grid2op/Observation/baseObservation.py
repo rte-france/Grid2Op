@@ -1220,9 +1220,6 @@ class BaseObservation(GridObjects):
         self.time_since_last_attack[:] = -1
         self.was_alert_used_after_attack[:] = 0
         
-        # Reuse the same attention budget 
-        self.was_alert_used_after_attack[:] = 0
-        
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)
         self.delta_time = dt_float(5.0)

@@ -104,6 +104,7 @@ if GYM_AVAILABLE:
                                          "__module__": __name__})
     ScalerAttrConverterLegacyGym.__doc__ = __AuxScalerAttrConverter.__doc__
     ScalerAttrConverter = ScalerAttrConverterLegacyGym
+    ScalerAttrConverter.__doc__ = __AuxScalerAttrConverter.__doc__
         
 
 if GYMNASIUM_AVAILABLE:
@@ -116,3 +117,4 @@ if GYMNASIUM_AVAILABLE:
                                       "__module__": __name__})
     ScalerAttrConverterGymnasium.__doc__ = __AuxScalerAttrConverter.__doc__
     ScalerAttrConverter = ScalerAttrConverterGymnasium
+    ScalerAttrConverter.__doc__ = __AuxScalerAttrConverter.__doc__
