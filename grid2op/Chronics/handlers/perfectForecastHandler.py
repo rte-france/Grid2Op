@@ -7,6 +7,8 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from typing import Tuple
+import warnings
+
 from grid2op.Exceptions import HandlerError
 from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
@@ -29,8 +31,9 @@ class PerfectForecastHandler(BaseHandler):
         for the environment handlers. 
         
     """
-    def __init__(self, array_name, max_iter=-1):
+    def __init__(self, array_name, max_iter=-1, quiet_warnings : bool=False):
         super().__init__(array_name, max_iter)
+        self.quiet_warnings = quiet_warnings
              
     def initialize(self, order_backend_arrays, names_chronics_to_backend):
         # nothing particular to do at initialization
@@ -63,4 +66,5 @@ class PerfectForecastHandler(BaseHandler):
                  # list of the 4 env handlers: (load_p_handler, load_q_handler, gen_p_handler, gen_v_handler)
                  env_handlers : Tuple[BaseHandler, BaseHandler, BaseHandler, BaseHandler]
                  ):
-        return env_handler.get_future_data(self._h_forecast[forecast_horizon_id])
+        res = env_handler.get_future_data(self._h_forecast[forecast_horizon_id], self.quiet_warnings)
+        return res

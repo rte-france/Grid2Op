@@ -139,8 +139,9 @@ class NoisyForecastHandler(PerfectForecastHandler):
                  array_name,
                  sigma: Union[Callable, Iterable]=None,
                  noise_type : Literal["mult"] = "mult",  # TO BE ADDED LATER
+                 quiet_warnings : bool=False,
                  max_iter=-1):
-        super().__init__(array_name, max_iter)
+        super().__init__(array_name, max_iter, quiet_warnings)
         self.noise_type = noise_type
         self.sigma = sigma
         self._my_noise = None
