@@ -18,15 +18,14 @@ __all__ = [
     "EpisodeDurationReward",
     "AlarmReward",
     "N1Reward",
-    "_AlarmScore",
     # TODO it would be better to have a specific package for this, but in the mean time i put it here
     "L2RPNSandBoxScore",
     "L2RPNWCCI2022ScoreFun",
-    "AlertReward"
+    "AlertReward",
+    "_AlarmScore",
     "_NewRenewableSourcesUsageScore",
     "_AssistantConfidenceScore",
     "_AssistantCostScore"
-    
 ]
 
 from grid2op.Reward.ConstantReward import ConstantReward
@@ -52,8 +51,8 @@ from grid2op.Reward._AlarmScore import _AlarmScore
 from grid2op.Reward.n1Reward import N1Reward
 from grid2op.Reward.l2rpn_wcci2022_scorefun import L2RPNWCCI2022ScoreFun
 from grid2op.Reward.AlertReward import AlertReward
-from grid2op.Reward._NewRenewableSourcesUsageScore import _NewRenewableSourcesUsageScore
-from grid2op.Reward._AssistantScore import _AssistantConfidenceScore, _AssistantCostScore
+from grid2op.Reward._newRenewableSourcesUsageScore import _NewRenewableSourcesUsageScore
+from grid2op.Reward._assistantScore import _AssistantConfidenceScore, _AssistantCostScore
 
 
 import warnings
