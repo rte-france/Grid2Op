@@ -351,7 +351,9 @@ class BaseObservation(GridObjects):
     was_alert_used_after_attack: :class:`numpy.ndarray`, dtype:int
         .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
-        .. warning:: Only available if you use a compatible reward (*eg* :class:`grid2op.Reward.AlertReward`)
+        .. danger:: 
+           This attribute is only filled
+           if you use a compatible reward (*eg* :class:`grid2op.Reward.AlertReward`)
            as the main reward (or a "combined" reward with this reward being part of it)
            
         For each attackable line `i` it says:

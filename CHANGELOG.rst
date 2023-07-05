@@ -79,6 +79,7 @@ Change Log
     used to be a mix of `set_storage` and `storage_power` now it's consistent and is `set_storage` everywhere)
 - [IMPROVED] error message when the "stat.clear_all()" function has been called on a statistic and this same
   statistic is reused.
+- [IMPROVED] possibility to set "other_rewards" in the config file of the env
 
 [1.9.0] - 2023-06-06
 --------------------
