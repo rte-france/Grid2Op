@@ -27,6 +27,7 @@ class PlayableAction(BaseAction):
         "set_storage",
         "curtail",
         "raise_alarm",
+        "raise_alert"
     }
 
     attr_list_vect = [
@@ -38,6 +39,7 @@ class PlayableAction(BaseAction):
         "_storage_power",
         "_curtail",
         "_raise_alarm",
+        "_raise_alert"
     ]
     attr_list_set = set(attr_list_vect)
     shunt_added = True  # no shunt here
@@ -54,6 +56,7 @@ class PlayableAction(BaseAction):
             "set_storage": self._digest_storage,
             "curtail": self._digest_curtailment,
             "raise_alarm": self._digest_alarm,
+            "raise_alert": self._digest_alert,
         }
 
     def __call__(self):

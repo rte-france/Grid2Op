@@ -5,25 +5,31 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import copy
 import warnings
 import numpy as np
-from gym import spaces
 
 from grid2op.Environment import (
     Environment,
     MultiMixEnvironment,
     BaseMultiProcessEnvironment,
 )
-from grid2op.gym_compat.gym_space_converter import _BaseGymSpaceConverter
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
+if GYMNASIUM_AVAILABLE:
+    from gymnasium import spaces  # only used for type hints
+elif GYM_AVAILABLE:
+    from gym import spaces
+    
 from grid2op.Observation import BaseObservation
 from grid2op.dtypes import dt_int, dt_bool, dt_float
-from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 from grid2op.gym_compat.utils import _compute_extra_power_for_losses
 
 
-class GymObservationSpace(_BaseGymSpaceConverter):
+class __AuxGymObservationSpace:
     """
+    TODO explain gym / gymnasium
+    
     This class allows to transform the observation space into a gym space.
 
     Gym space will be a :class:`gym.spaces.Dict` with the keys being the different attributes
@@ -31,6 +37,22 @@ class GymObservationSpace(_BaseGymSpaceConverter):
 
     Note that gym space converted with this class should be seeded independently. It is NOT seeded
     when calling :func:`grid2op.Environment.Environment.seed`.
+
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`GymObservationSpace` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`GymnasiumObservationSpace`), otherwise it will
+          inherit from gym (and will be exactly :class:`LegacyGymObservationSpace`)
+        - :class:`GymnasiumObservationSpace` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`LegacyGymObservationSpace` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
 
     Examples
     --------
@@ -78,36 +100,37 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         
         if dict_variables is None:
             # get the extra variables in the gym space I want to get
-            dict_variables = {"thermal_limit":
-                spaces.Box(
+            dict_variables = {
+                "thermal_limit":
+                    type(self)._BoxType(
                         low=0.,
                         high=np.inf,
                         shape=(self._init_env.n_line, ),
                         dtype=dt_float,
                     ),
                 "theta_or":
-                     spaces.Box(
+                     type(self)._BoxType(
                         low=-180.,
                         high=180.,
                         shape=(self._init_env.n_line, ),
                         dtype=dt_float,
                     ),
                 "theta_ex":
-                     spaces.Box(
+                     type(self)._BoxType(
                         low=-180.,
                         high=180.,
                         shape=(self._init_env.n_line, ),
                         dtype=dt_float,
                     ),
                 "load_theta":
-                     spaces.Box(
+                     type(self)._BoxType(
                         low=-180.,
                         high=180.,
                         shape=(self._init_env.n_load, ),
                         dtype=dt_float,
                     ),
                 "gen_theta":
-                     spaces.Box(
+                     type(self)._BoxType(
                         low=-180.,
                         high=180.,
                         shape=(self._init_env.n_gen, ),
@@ -115,7 +138,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     )
                 }
             if self._init_env.n_storage:
-                dict_variables["storage_theta"] = spaces.Box(
+                dict_variables["storage_theta"] = type(self)._BoxType(
                         low=-180.,
                         high=180.,
                         shape=(self._init_env.n_storage, ),
@@ -125,7 +148,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         self._fill_dict_obs_space(
             dict_, env.observation_space, env.parameters, env._oppSpace, dict_variables
         )
-        _BaseGymSpaceConverter.__init__(self, dict_, dict_variables=dict_variables)
+        super().__init__(dict_, dict_variables=dict_variables) # super should point to _BaseGymSpaceConverter
 
     def reencode_space(self, key, fun):
         """
@@ -162,7 +185,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         """
 
         my_dict = self.get_dict_encoding()
-        if fun is not None and not isinstance(fun, BaseGymAttrConverter):
+        if fun is not None and not isinstance(fun, type(self)._BaseGymAttrConverterType):
             raise RuntimeError(
                 "Impossible to initialize a converter with a function of type {}".format(
                     type(fun)
@@ -179,7 +202,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     f"Impossible to find key {key} in your observation space"
                 )
         my_dict[key] = fun
-        res = GymObservationSpace(self._init_env, my_dict)
+        res = type(self)(self._init_env, my_dict)
         return res
 
     def _fill_dict_obs_space(
@@ -190,7 +213,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
             if dict_variables[attr_nm] is None:
                 # none is by default to disable this feature
                 continue
-            if isinstance(dict_variables[attr_nm], spaces.Space):
+            if isinstance(dict_variables[attr_nm], type(self)._SpaceType):
                 if hasattr(observation_space._template_obj, attr_nm):
                     # add it only if attribute exists in the observation
                     dict_[attr_nm] = dict_variables[attr_nm]
@@ -217,21 +240,21 @@ class GymObservationSpace(_BaseGymSpaceConverter):
             if dt == dt_int:
                 # discrete observation space
                 if attr_nm == "year":
-                    my_type = spaces.Discrete(n=2100)
+                    my_type = type(self)._DiscreteType(n=2100)
                 elif attr_nm == "month":
-                    my_type = spaces.Discrete(n=13)
+                    my_type = type(self)._DiscreteType(n=13)
                 elif attr_nm == "day":
-                    my_type = spaces.Discrete(n=32)
+                    my_type = type(self)._DiscreteType(n=32)
                 elif attr_nm == "hour_of_day":
-                    my_type = spaces.Discrete(n=24)
+                    my_type = type(self)._DiscreteType(n=24)
                 elif attr_nm == "minute_of_hour":
-                    my_type = spaces.Discrete(n=60)
+                    my_type = type(self)._DiscreteType(n=60)
                 elif attr_nm == "day_of_week":
-                    my_type = spaces.Discrete(n=8)
+                    my_type = type(self)._DiscreteType(n=8)
                 elif attr_nm == "topo_vect":
-                    my_type = spaces.Box(low=-1, high=2, shape=shape, dtype=dt)
+                    my_type = type(self)._BoxType(low=-1, high=2, shape=shape, dtype=dt)
                 elif attr_nm == "time_before_cooldown_line":
-                    my_type = spaces.Box(
+                    my_type = type(self)._BoxType(
                         low=0,
                         high=max(
                             env_params.NB_TIMESTEP_COOLDOWN_LINE,
@@ -242,7 +265,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                         dtype=dt,
                     )
                 elif attr_nm == "time_before_cooldown_sub":
-                    my_type = spaces.Box(
+                    my_type = type(self)._BoxType(
                         low=0,
                         high=env_params.NB_TIMESTEP_COOLDOWN_SUB,
                         shape=shape,
@@ -260,18 +283,34 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "last_alarm":
                     # can be -1 if no maintenance, otherwise always positive
                     my_type = self._generic_gym_space(dt, sh, low=-1)
+                elif attr_nm == "last_alert":
+                    # can be -1 if no maintenance, otherwise always positive
+                    my_type = self._generic_gym_space(dt, sh, low=-1)
+                elif attr_nm == "was_alert_used_after_attack":
+                    # can be -1 or >= 0
+                    my_type = self._generic_gym_space(dt, sh, low=-1, high=1)
+                elif attr_nm == "total_number_of_alert":
+                    my_type = self._generic_gym_space(dt, sh, low=0)
+                elif (attr_nm == "time_since_last_attack" or 
+                      attr_nm == "time_since_last_alert"):
+                    my_type = self._generic_gym_space(dt, sh, low=-1)
+                elif attr_nm == "attack_under_alert":
+                    my_type = self._generic_gym_space(dt, sh, low=-1, high=1)
+                elif attr_nm == "alert_duration":
+                    my_type = self._generic_gym_space(dt, sh, low=0)
+                    
             elif dt == dt_bool:
                 # boolean observation space
                 if sh > 1:
                     my_type = self._boolean_type(sh)
                 else:
-                    my_type = spaces.Discrete(n=2)
+                    my_type = type(self)._DiscreteType(n=2)
             else:
                 # continuous observation space
                 low = float("-inf")
                 high = float("inf")
                 shape = (sh,)
-                SpaceType = spaces.Box
+                SpaceType = type(self)._BoxType
                 if attr_nm == "gen_p" or attr_nm == "gen_p_before_curtail":
                     low = copy.deepcopy(observation_space.gen_pmin)
                     high = copy.deepcopy(observation_space.gen_pmax)
@@ -388,3 +427,49 @@ class GymObservationSpace(_BaseGymSpaceConverter):
     def close(self):
         if hasattr(self, "_init_env"):
             self._init_env = None  # this doesn't own the environment
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import (Discrete as LegGymDiscrete,
+                            Box as LegGymBox,
+                            Dict as LegGymDict,
+                            Space as LegGymSpace,
+                            MultiBinary as LegGymMultiBinary,
+                            Tuple as LegGymTuple)
+    from grid2op.gym_compat.gym_space_converter import _BaseLegacyGymSpaceConverter
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    LegacyGymObservationSpace = type("LegacyGymObservationSpace",
+                                     (__AuxGymObservationSpace, _BaseLegacyGymSpaceConverter, ),
+                                     {"_DiscreteType": LegGymDiscrete,
+                                      "_BoxType": LegGymBox,
+                                      "_DictType": LegGymDict,
+                                      "_SpaceType": LegGymSpace, 
+                                      "_MultiBinaryType": LegGymMultiBinary, 
+                                      "_TupleType": LegGymTuple, 
+                                      "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
+                                      "_gymnasium": False,
+                                      "__module__": __name__})
+    LegacyGymObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
+    GymObservationSpace = LegacyGymObservationSpace
+    GymObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Discrete, Box, Dict, Space, MultiBinary, Tuple
+    from grid2op.gym_compat.gym_space_converter import _BaseGymnasiumSpaceConverter
+    from grid2op.gym_compat.base_gym_attr_converter import BaseGymnasiumAttrConverter
+    GymnasiumObservationSpace = type("GymnasiumObservationSpace",
+                                     (__AuxGymObservationSpace, _BaseGymnasiumSpaceConverter, ),
+                                     {"_DiscreteType": Discrete,
+                                      "_BoxType": Box,
+                                      "_DictType": Dict,
+                                      "_SpaceType": Space, 
+                                      "_MultiBinaryType": MultiBinary, 
+                                      "_TupleType": Tuple, 
+                                      "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
+                                      "_gymnasium": True,
+                                      "__module__": __name__})
+    GymnasiumObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
+    GymObservationSpace = GymnasiumObservationSpace
+    GymObservationSpace.__doc__ = __AuxGymObservationSpace.__doc__
+    

@@ -16,7 +16,7 @@ class TestChangeParamFromObs(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_case14_sandbox")
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
         return super().setUp()
     
     def tearDown(self) -> None:

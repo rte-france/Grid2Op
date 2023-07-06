@@ -31,12 +31,14 @@ class PPExtraArgs(PandaPowerBackend):
                  lightsim2grid=False,
                  dist_slack=False,
                  max_iter=10,
-                 can_be_copied=True):
+                 can_be_copied=True,
+                 with_numba=False):
         super().__init__(detailed_infos_for_cascading_failures,
                          lightsim2grid,
                          dist_slack,
                          max_iter,
-                         can_be_copied=can_be_copied)
+                         can_be_copied=can_be_copied,
+                         with_numba=with_numba)
         self._my_kwargs["stuff"] = stuff
 
 

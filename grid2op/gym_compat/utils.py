@@ -14,13 +14,26 @@ except ModuleNotFoundError:
     # not available in python 3.7
     from importlib_metadata import distribution
 
+try:
+    import gym
+    # the current gym version (we should support most recent, but also 
+    # the very old 0.21 because it used by stable baselines3...)
+    GYM_VERSION = version.parse(distribution('gym').version)
+    GYM_AVAILABLE = True
+except ImportError:
+    GYM_AVAILABLE = False
+    GYM_VERSION = version.parse("0.17.2") 
+    
+try:
+    import gymnasium
+    GYMNASIUM_AVAILABLE = True
+except ImportError:
+    GYMNASIUM_AVAILABLE = False
+    
+    
 _MIN_GYM_VERSION = version.parse("0.17.2")
 # this is the last gym version to use the "old" numpy prng
 _MAX_GYM_VERSION_RANDINT = version.parse("0.25.99") 
-# the current gym version (we should support most recent, but also 
-# the very old 0.21 because it used by stable baselines3...)
-GYM_VERSION = version.parse(distribution('gym').version)
-
 
 ALL_ATTR = (
     "set_line_status",
@@ -31,6 +44,19 @@ ALL_ATTR = (
     "set_storage",
     "curtail",
     "raise_alarm",
+    "raise_alert",
+)
+
+
+# raise alert or alarm is not supported
+ALL_ATTR_FOR_DISCRETE = (
+    "set_line_status",
+    "change_line_status",
+    "set_bus",
+    "change_bus",
+    "redispatch",
+    "set_storage",
+    "curtail"
 )
 
 ATTR_DISCRETE = (
@@ -43,18 +69,28 @@ ATTR_DISCRETE = (
     "sub_change_bus",
     "one_sub_set",
     "one_sub_change",
-    "raise_alarm"
+    # "raise_alarm"
+    # "raise_alert"
 )
 
+ALL_ATTR_CONT = (
+    "redispatch",
+    "set_storage",
+    "curtail",
+)
 
-def check_gym_version():
-
-    if GYM_VERSION < _MIN_GYM_VERSION:
-        import gym
-        raise RuntimeError(
-            f"Grid2op does not work with gym < {_MIN_GYM_VERSION} and you have gym with "
-            f"version {gym.__version__} installed."
-        )
+def check_gym_version(use_gymnasium):
+    if not use_gymnasium:
+        if GYM_VERSION < _MIN_GYM_VERSION:
+            import gym
+            raise RuntimeError(
+                f"Grid2op does not work with gym < {_MIN_GYM_VERSION} and you have gym with "
+                f"version {gym.__version__} installed."
+            )
+    else:
+        if not GYMNASIUM_AVAILABLE:
+            raise RuntimeError("You are trying to use a class that requries gymnasium, yet you did "
+                               "not appear to have installed it.") 
 
 
 def _compute_extra_power_for_losses(gridobj):
@@ -69,8 +105,11 @@ def _compute_extra_power_for_losses(gridobj):
 def sample_seed(max_, np_random):
     """sample a seed based on gym version (np_random has not always the same behaviour)"""
     if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
-        # old gym behaviour
-        seed_ = np_random.randint(max_)
+        if hasattr(np_random, "randint"):
+            # old gym behaviour
+            seed_ = np_random.randint(max_)
+        else:
+            seed_ = int(np_random.integers(0, max_))
     else:
         # gym finally use most recent numpy random generator
         seed_ = int(np_random.integers(0, max_))

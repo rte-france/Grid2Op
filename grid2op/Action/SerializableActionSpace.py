@@ -43,6 +43,7 @@ class SerializableActionSpace(SerializableSpace):
     REDISPATCHING_ID = 4
     STORAGE_POWER_ID = 5
     RAISE_ALARM_ID = 6
+    RAISE_ALERT_ID = 7
 
     ERR_MSG_WRONG_TYPE = ('The action to update using `ActionSpace` is of type "{}" '
                          '"which is not the type of action handled by this action space "'
@@ -115,6 +116,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_types.append(cls.STORAGE_POWER_ID)
         if self.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
             rnd_types.append(cls.RAISE_ALARM_ID)
+        if self.dim_alerts > 0 and "raise_alert" in self.actionClass.authorized_keys:
+            rnd_types.append(cls.RAISE_ALERT_ID)
         return rnd_types
 
     def supports_type(self, action_type):
@@ -161,6 +164,7 @@ class SerializableActionSpace(SerializableSpace):
             "curtail",
             "curtail_mw",
             "raise_alarm",
+            "raise_alert"
         ]
         assert action_type in name_action_types, (
             f"The action type provided should be in {name_action_types}. "
@@ -242,11 +246,20 @@ class SerializableActionSpace(SerializableSpace):
         return rnd_update
 
     def _sample_raise_alarm(self, rnd_update=None):
-        """.. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\"""
+        """.. warning:: 
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        """
         if rnd_update is None:
             rnd_update = {}
         rnd_area = self.space_prng.randint(self.dim_alarms)
         rnd_update["raise_alarm"] = [rnd_area]
+        return rnd_update
+
+    def _sample_raise_alert(self, rnd_update=None):
+        if rnd_update is None:
+            rnd_update = {}
+        rnd_alerted_lines = self.space_prng.choice([True, False], self.dim_alerts).astype(dt_bool)
+        rnd_update["raise_alert"] = rnd_alerted_lines
         return rnd_update
 
     def sample(self):
@@ -324,6 +337,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_update = self._sample_storage_power()
         elif rnd_type == self.RAISE_ALARM_ID:
             rnd_update = self._sample_raise_alarm()
+        elif rnd_type == self.RAISE_ALERT_ID:
+            rnd_update = self._sample_raise_alert()
         else:
             raise Grid2OpException(
                 "Impossible to sample action of type {}".format(rnd_type)
@@ -883,13 +898,31 @@ class SerializableActionSpace(SerializableSpace):
     @staticmethod
     def get_all_unitary_alarm(action_space):
         """
-        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        .. warning::
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
         """
         res = []
         for i in range(action_space.dim_alarms):
             status = np.full(action_space.dim_alarms, fill_value=False, dtype=dt_bool)
             status[i] = True
             res.append(action_space({"raise_alarm": status}))
+        return res
+
+    @staticmethod
+    def get_all_unitary_alert(action_space):
+        """
+        Return all unitary actions that raise an alert on powerlines.
+        
+        .. warning:: There will be one action per combination of attackable lines, so basically, if 
+           you can raise alerts on 10 powerline, you will end up with 2**10 actions.
+           
+           If you got 22 attackable lines, then you got 2**22 actions... probably a TERRIBLE IDEA !
+        """
+        res = []
+        possible_values = [False, True]
+        if action_space.dim_alerts:
+            for status in itertools.product(possible_values, repeat=type(action_space).dim_alerts):
+                res.append(action_space({"raise_alert": np.array(status, dtype=dt_bool)}))
         return res
 
     @staticmethod

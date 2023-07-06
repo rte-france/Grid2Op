@@ -31,6 +31,61 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.1] - 2023-07-06
+--------------------
+- [BREAKING] (slightly): default `gym_compat` module now inherit from `gymnasium` (if 
+  gymnasium is installed) instead of `gym`. If you want legacy behaviour, 
+  do not install `gymnasium`. If you want compatibility with sota softwares using `gymnasium`,
+  install it and continue using grid2op transparently. See doc of `gym_compat` module for more
+  information.
+- [BREAKING] remove the support of the "raise_alarm" kwargs in the DiscreteActSpace
+- [BREAKING] remove support for python 3.7 that has reached end of life on 2023-06-27 on
+  pypi and on CI
+- [BREAKING] to avoid misleading behaviour, by default the `BoxGymActSpace` no longer uses
+  the "discrete" attributes ("set_line_status", "change_line_status", "set_bus", "change_bus"). You can
+  still use them in the "attr_to_keep" kwargs if you want.
+- [BREAKING] rename with filename starting with lowercase all the files in the "Reward" module. This is 
+  both consistent with python practice but allows also to make the difference between the file in the 
+  module and the class imported. This should have little to no impact on all codes but to "upgrade"
+  instead of `from grid2op.Reward.BaseReward import BaseReward` just do 
+  `from grid2op.Reward import BaseReward`.
+- [FIXED] an error when an environment with alarm was created before an environment 
+  without alert. This lead to a crash when creating the second environment. This is now fixed.
+- [FIXED] an issue with non renewable generators in `GymActionSpace` (some curtailment was made
+  at 100% of their capacity instead of "no curtailment")
+- [FIXED] a bug in computing the datatype of `BoxGymActSpace` and `BoxGymObsSpace` leading to
+  using "bool" as dtype when it should be int.
+- [FIXED] the behaviour of `BoxGymActSpace` when `subtract` / `divide` were provided (the dtype was 
+  not propagated correctly)
+- [ADDED] support for the "alert" feature (see main doc page) with new observation attributes
+  (`obs.active_alert`, `obs.time_since_last_alert`, `obs.alert_duration`, `obs.total_number_of_alert,` 
+  `obs.time_since_last_attack`, `obs.was_alert_used_after_attack` and `obs.attack_under_alert`) 
+  a new type of action: `act.raise_alert` and a new reward class `AlertReward` (among others)
+- [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
+- [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
+  the same action
+- [ADDED] the kwargs "with_numba" in `PandaPowerBackend` to offer more control on whether or not you want
+  to use numba (default behaviour did not change: "if numba is availble, use it" but now you can disable it 
+  if numba is available but you don't want it)
+- [ADDED] the method `act.decompose_as_unary_actions(...)` to automatically
+  decompose a "complex" action on its unary counterpart. 
+- [ADDED] the env attribute `env._reward_to_obs` that allows to pass information to the observation directly
+  from the reward (this can only be used by regular environment and not by `obs.simulate` nor by `ForecastEnv`)
+- [ADDED] the whole "alert" concept in grid2op with a grid2op environment supporting it (`l2rpn_idf_2023`)
+- [ADDED] the `gym_env.action_space.get_index(attr_nm)` for `BoxGymActSpace` that allows to retrieve which index
+  of the action represents which attribute.
+- [ADDED] the argument `quiet_warnings` in the handlers to prevent the issue of too many warnings when using 
+  `ForecastHandler`
+- [IMPROVED] the method `act.as_serializable_dict()` to work better when exporting / importing actions on different 
+  grids (the output dictionary for `set_bus` and `change_bus` now split the keys between all elements types 
+  instead of relying on the "topo_vect" order (which might vary))
+- [IMPROVED] consistency between how to perform action on storage units between "raw" grid2op, 
+  `GymActionSpace`, `BoxGymActSpace`, `DiscreteActSpace` and `MultiDiscreteActSpace` (
+    used to be a mix of `set_storage` and `storage_power` now it's consistent and is `set_storage` everywhere)
+- [IMPROVED] error message when the "stat.clear_all()" function has been called on a statistic and this same
+  statistic is reused.
+- [IMPROVED] possibility to set "other_rewards" in the config file of the env
+
 [1.9.0] - 2023-06-06
 --------------------
 - [BREAKING] (because prone to bug): force the environment name in the `grid2op.make` function.
@@ -94,6 +149,7 @@ Change Log
   directly from the grid2op action, see `obs.change_forecast_parameters()`
 - [ADDED] possibility to retrieve a "forecast environment" with custom forecasts, see 
   `obs.get_env_from_external_forecasts(...)`
+- [ADDED] now requires "importlib-metadata" package at install
 - [ADDED] adding the `TimedOutEnvironment` that takes "do nothing" actions when the agent
   takes too much time to compute. This involves quite some changes in the runner too.
 - [ADDED] Runner is now able to store if an action is legal or ambiguous
@@ -1166,7 +1222,7 @@ Change Log
   `5bus_example` and the `CASE_14_L2RPN2019`.
 - [FIXED] Runner skipped half the episode in some cases (sequential, even number of scenarios). Now fixed.
 - [FIXED] Some typos on the notebook "getting_started\4-StudyYourAgent.ipynb".
-- [FIXED] Error in the conversion of observation to dictionnary. Twice the same keys were used
+- [FIXED] Error in the conversion of observation to dictionary. Twice the same keys were used
   ('time_next_maintenance') for both `time_next_maintenance` and `duration_next_maintenance`.
 - [UPDATED] The first chronics that is processed by a runner is not the "first" one on the hardrive
   (if sorted in alphabetical order)
@@ -1209,7 +1265,7 @@ Change Log
 
 [0.4.2] - 2020-01-08
 --------------------
-- [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionnary) are no more compatible
+- [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionary) are no more compatible
 - [BREAKING] renaming of attributes describing the powergrid across classes for better consistency:
 
 =============================    =======================  =======================

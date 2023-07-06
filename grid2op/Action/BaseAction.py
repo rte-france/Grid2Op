@@ -213,7 +213,7 @@ class BaseAction(GridObjects):
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         # first method:
@@ -357,6 +357,7 @@ class BaseAction(GridObjects):
         "set_storage",
         "curtail",
         "raise_alarm",
+        "raise_alert",
     }
 
     attr_list_vect = [
@@ -374,6 +375,7 @@ class BaseAction(GridObjects):
         "_storage_power",
         "_curtail",
         "_raise_alarm",
+        "_raise_alert",
     ]
     attr_nan_list_set = set()
 
@@ -457,6 +459,10 @@ class BaseAction(GridObjects):
             shape=self.dim_alarms, dtype=dt_bool, fill_value=False
         )  # TODO
 
+        self._raise_alert = np.full(
+            shape=self.dim_alerts, dtype=dt_bool, fill_value=False
+        )  # TODO
+
         # change the stuff
         self._modif_inj = False
         self._modif_set_bus = False
@@ -467,6 +473,7 @@ class BaseAction(GridObjects):
         self._modif_storage = False
         self._modif_curtailment = False
         self._modif_alarm = False
+        self._modif_alert = False
 
     @classmethod
     def process_shunt_satic_data(cls):
@@ -499,6 +506,7 @@ class BaseAction(GridObjects):
             "_modif_storage",
             "_modif_curtailment",
             "_modif_alarm",
+            "_modif_alert",
             "_single_act",
         ]
 
@@ -513,6 +521,7 @@ class BaseAction(GridObjects):
             "_storage_power",
             "_curtail",
             "_raise_alarm",
+            "_raise_alert",
         ]
 
         if self.shunts_data_available:
@@ -560,6 +569,16 @@ class BaseAction(GridObjects):
 
         return res
 
+    def _aux_serialize_add_key_change(self, attr_nm, dict_key, res):
+            tmp_ = [int(id_) for id_, val in enumerate(getattr(self, attr_nm)) if val]
+            if tmp_:
+                res[dict_key] = tmp_
+
+    def _aux_serialize_add_key_set(self, attr_nm, dict_key, res):            
+            tmp_ = [(int(id_), int(val)) for id_, val in enumerate(getattr(self, attr_nm)) if val != 0.]
+            if tmp_:
+                res[dict_key] = tmp_
+                
     def as_serializable_dict(self) -> dict:
         """
         This method returns an action as a dictionnary, that can be serialized using the "json" module.
@@ -589,31 +608,43 @@ class BaseAction(GridObjects):
         """
         res = {}
         # bool elements
+        if self._modif_alert:
+            res["raise_alert"] = [
+                int(id_) for id_, val in enumerate(self._raise_alert) if val
+            ]
         if self._modif_alarm:
             res["raise_alarm"] = [
                 int(id_) for id_, val in enumerate(self._raise_alarm) if val
             ]
         if self._modif_change_bus:
-            res["change_bus"] = [
-                int(id_) for id_, val in enumerate(self._change_bus_vect) if val
-            ]
+            res["change_bus"] = {}
+            self._aux_serialize_add_key_change("load_change_bus", "loads_id", res["change_bus"])
+            self._aux_serialize_add_key_change("gen_change_bus", "generators_id", res["change_bus"])
+            self._aux_serialize_add_key_change("line_or_change_bus", "lines_or_id", res["change_bus"])
+            self._aux_serialize_add_key_change("line_ex_change_bus", "lines_ex_id", res["change_bus"])
+            self._aux_serialize_add_key_change("storage_change_bus", "storages_id", res["change_bus"])
+            
         if self._modif_change_status:
             res["change_line_status"] = [
                 int(id_) for id_, val in enumerate(self._switch_line_status) if val
             ]
+            
         # int elements
         if self._modif_set_bus:
-            res["set_bus"] = [
-                (int(id_), int(val))
-                for id_, val in enumerate(self._set_topo_vect)
-                if val != 0
-            ]
+            res["set_bus"] = {}
+            self._aux_serialize_add_key_set("load_set_bus", "loads_id", res["set_bus"])
+            self._aux_serialize_add_key_set("gen_set_bus", "generators_id", res["set_bus"])
+            self._aux_serialize_add_key_set("line_or_set_bus", "lines_or_id", res["set_bus"])
+            self._aux_serialize_add_key_set("line_ex_set_bus", "lines_ex_id", res["set_bus"])
+            self._aux_serialize_add_key_set("storage_set_bus", "storages_id", res["set_bus"])
+            
         if self._modif_set_status:
             res["set_line_status"] = [
                 (int(id_), int(val))
                 for id_, val in enumerate(self._set_line_status)
                 if val != 0
             ]
+            
         # float elements
         if self._modif_redispatch:
             res["redispatch"] = [
@@ -647,11 +678,11 @@ class BaseAction(GridObjects):
             res["shunt"] = {}
             if np.any(np.isfinite(self.shunt_p)):
                 res["shunt"]["shunt_p"] = [
-                    (int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_p)
+                    (int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_p) if np.isfinite(val)
                 ]
             if np.any(np.isfinite(self.shunt_q)):
                 res["shunt"]["shunt_q"] = [
-                    (int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_q)
+                    (int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_q) if np.isfinite(val)
                 ]
             if np.any(self.shunt_bus != 0):
                 res["shunt"]["shunt_bus"] = [
@@ -681,7 +712,8 @@ class BaseAction(GridObjects):
         """
         INTERNAL
 
-        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        .. warning:: 
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
 
         This function is used to know if the given action aimed at raising an alarm or not.
 
@@ -692,6 +724,20 @@ class BaseAction(GridObjects):
 
         """
         return np.where(self._raise_alarm)[0]
+
+    def alert_raised(self) -> np.ndarray:
+        """
+        INTERNAL
+
+        This function is used to know if the given action aimed at raising an alert or not.
+
+        Returns
+        -------
+        res: numpy array
+            The indexes of the lines where the agent has raised an alert.
+
+        """
+        return np.where(self._raise_alert)[0]
 
     @classmethod
     def process_grid2op_compat(cls):
@@ -721,6 +767,10 @@ class BaseAction(GridObjects):
         if cls.glop_version < "1.6.0":
             # this feature did not exist before.
             cls.dim_alarms = 0
+        
+        if cls.glop_version < "1.9.1":
+            # this feature did not exist before.
+            cls.dim_alerts = 0
 
     def _reset_modified_flags(self):
         self._modif_inj = False
@@ -732,6 +782,7 @@ class BaseAction(GridObjects):
         self._modif_storage = False
         self._modif_curtailment = False
         self._modif_alarm = False
+        self._modif_alert = False
 
     def can_affect_something(self) -> bool:
         """
@@ -751,6 +802,7 @@ class BaseAction(GridObjects):
             or self._modif_storage
             or self._modif_curtailment
             or self._modif_alarm
+            or self._modif_alert
         )
 
     def _get_array_from_attr_name(self, attr_name):
@@ -783,6 +835,7 @@ class BaseAction(GridObjects):
         self._modif_storage = np.any(self._storage_power != 0.0)
         self._modif_curtailment = np.any(self._curtail != -1.0)
         self._modif_alarm = np.any(self._raise_alarm)
+        self._modif_alert = np.any(self._raise_alert)
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
@@ -953,6 +1006,12 @@ class BaseAction(GridObjects):
             self._raise_alarm, other._raise_alarm
         ):
             return False
+    
+        # alarm
+        if (self._modif_alert != other._modif_alert) or not np.array_equal(
+            self._raise_alert, other._raise_alert
+        ):
+            return False
 
         # same topology changes
         if (self._modif_set_bus != other._modif_set_bus) or not np.all(
@@ -1037,7 +1096,7 @@ class BaseAction(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...  # chose an environment
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             # get an action
@@ -1180,7 +1239,7 @@ class BaseAction(GridObjects):
             This function does not check the cooldowns if you specify `check_cooldown=False`
         
         .. note::
-            As from version 1.8.2 you are no longer forced to provide an observation if `check_cooldown=False`
+            As from version 1.9.0 you are no longer forced to provide an observation if `check_cooldown=False`
             
         Examples
         ---------
@@ -1216,7 +1275,8 @@ class BaseAction(GridObjects):
             #         - Assign bus 2 to line (origin) id 44 [on substation 28]
             #         - Assign bus 1 to line (extremity) id 57 [on substation 28]
             #         - Assign bus 1 to generator id 16 [on substation 28]
-            #     - Not raise any alarm
+            #     - NOT raise any alarm 
+            #     - NOT raise any alert
 
             obs, reward, done, info = env.step(act_sub28_clean)
             # >>> info["exception"] : []
@@ -1340,7 +1400,10 @@ class BaseAction(GridObjects):
             self.shunt_bus[:] = 0
 
         # alarm
-        self._raise_alarm[:] = False
+        self._raise_alarm[:] = False        
+        
+        # alert
+        self._raise_alert[:] = False
 
         self._reset_modified_flags()
 
@@ -1375,7 +1438,7 @@ class BaseAction(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             act1 = env.action_space()
@@ -1529,6 +1592,10 @@ class BaseAction(GridObjects):
         # alarm feature
         self._raise_alarm[other._raise_alarm] = True
 
+        # line alert feature
+        self._raise_alert[other._raise_alert] = True
+
+
         # the modif flags
         self._modif_change_bus = self._modif_change_bus or other._modif_change_bus
         self._modif_set_bus = self._modif_set_bus or other._modif_set_bus
@@ -1541,6 +1608,7 @@ class BaseAction(GridObjects):
         self._modif_storage = self._modif_storage or other._modif_storage
         self._modif_curtailment = self._modif_curtailment or other._modif_curtailment
         self._modif_alarm = self._modif_alarm or other._modif_alarm
+        self._modif_alert = self._modif_alert or other._modif_alert
 
         return self
 
@@ -1638,7 +1706,7 @@ class BaseAction(GridObjects):
             shunts["shunt_p"] = self.shunt_p
             shunts["shunt_q"] = self.shunt_q
             shunts["shunt_bus"] = self.shunt_bus
-        # other remark: alarm are not handled in the backend, this is why it does not appear here !
+        # other remark: alarm and alert are not handled in the backend, this is why it does not appear here !
         return (
             dict_inj,
             set_line_status,
@@ -1884,9 +1952,16 @@ class BaseAction(GridObjects):
             self.curtail = dict_["curtail"]
 
     def _digest_alarm(self, dict_):
-        """.. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\"""
+        """
+        .. warning:: 
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\"""
         if "raise_alarm" in dict_:
             self.raise_alarm = dict_["raise_alarm"]
+
+    
+    def _digest_alert(self, dict_):
+        if "raise_alert" in dict_:
+            self.raise_alert = dict_["raise_alert"]
 
     def _reset_vect(self):
         """
@@ -2112,6 +2187,7 @@ class BaseAction(GridObjects):
             self._digest_maintenance(dict_)
             self._digest_change_status(dict_)
             self._digest_alarm(dict_)
+            self._digest_alert(dict_)
 
         return self
 
@@ -2230,6 +2306,15 @@ class BaseAction(GridObjects):
                 )
             if "raise_alarm" not in self.authorized_keys:
                 raise IllegalAction("You illegally send an alarm.")
+
+        if np.any(self._raise_alert):
+            if not self._modif_alert:
+                raise AmbiguousActionRaiseAlert(
+                    "Incorrect way to raise some alert, the appropriate flag is not "
+                    "modified properly."
+                )
+            if "raise_alert" not in self.authorized_keys:
+                raise IllegalAction("You illegally send an alert.")
 
     def _check_for_ambiguity(self):
         """
@@ -2563,6 +2648,19 @@ class BaseAction(GridObjects):
                     f"as doing so. Expect wrong behaviour."
                 )
 
+        if self._modif_alert:
+            if self._raise_alert.shape[0] != self.dim_alerts:
+                raise AmbiguousActionRaiseAlert(
+                    f"Wrong number of alert raised: {self._raise_alert.shape[0]} raised, expecting "
+                    f"{self.dim_alerts}"
+                )
+        else:
+            if np.any(self._raise_alert):
+                raise AmbiguousActionRaiseAlert(
+                    f"Unrecognize alert action: an action acts on the alert, yet it's not tagged "
+                    f"as doing so. Expect wrong behaviour."
+                )
+
     def _is_storage_ambiguous(self):
         """check if storage actions are ambiguous"""
         if self._modif_storage:
@@ -2834,8 +2932,8 @@ class BaseAction(GridObjects):
         else:
             res.append("\t - NOT force any particular bus configuration")
 
-        if type(self).dim_alarms > 0:
-            my_cls = type(self)
+        my_cls = type(self)
+        if my_cls.dim_alarms > 0:
             if self._modif_alarm:
                 li_area = np.array(my_cls.alarms_area_names)[
                     np.where(self._raise_alarm)[0]
@@ -2847,6 +2945,19 @@ class BaseAction(GridObjects):
                 res.append(f"\t - Raise an alarm on area" f"{area_str}")
             else:
                 res.append("\t - Not raise any alarm")
+        
+        if my_cls.dim_alerts > 0:
+            if self._modif_alert:
+                i_alert = np.where(self._raise_alert)[0]
+                li_line = np.array(my_cls.alertable_line_names)[i_alert]
+                if len(li_line) == 1:
+                    line_str = f": {i_alert[0]} (on line {li_line[0]})"
+                else:
+                    line_str = "s: \n\t \t - " + "\n\t \t - ".join(
+                        [f": {i} (on line {l})" for i,l in zip(i_alert,li_line)])
+                res.append(f"\t - Raise alert(s) " f"{line_str}")
+            else:
+                res.append("\t - Not raise any alert")
         return "\n".join(res)
 
     def impact_on_objects(self) -> dict:
@@ -4724,7 +4835,9 @@ class BaseAction(GridObjects):
     @property
     def raise_alarm(self) -> np.ndarray:
         """
-        .. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        .. warning::
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+                
         Property to raise alarm.
 
         If you set it to ``True`` an alarm is raised for the given area, otherwise None are raised.
@@ -4737,7 +4850,7 @@ class BaseAction(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...  # chose an environment that supports the alarm feature
+            env_name = "l2rpn_icaps_2021"  # chose an environment that supports the alarm feature
             env = grid2op.make(env_name)
             act = env.action_space()
 
@@ -4756,7 +4869,10 @@ class BaseAction(GridObjects):
 
     @raise_alarm.setter
     def raise_alarm(self, values):
-        """.. warning:: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\"""
+        """
+        .. warning::
+            /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+        """
         if "raise_alarm" not in self.authorized_keys:
             raise IllegalAction("Impossible to send alarms with this action type.")
         orig_ = copy.deepcopy(self._raise_alarm)
@@ -4774,6 +4890,54 @@ class BaseAction(GridObjects):
             self._raise_alarm[:] = orig_
             raise IllegalAction(
                 f"Impossible to modify the alarm with your input. "
+                f"Please consult the documentation. "
+                f'The error was:\n"{exc_}"'
+            )
+
+    @property
+    def raise_alert(self) -> np.ndarray:
+        """
+        Property to raise alert.
+
+        If you set it to ``True`` an alert is raised for the given line, otherwise no alert is raised.
+
+        Notes
+        -----
+        
+        .. code-block:: python
+
+            import grid2op
+            env_name = "l2rpn_idf_2023"  # chose an environment that supports the alert feature
+            env = grid2op.make(env_name)
+            act = env.action_space()
+
+            act.raise_alert = [0]
+            # this act will raise an alert on the powerline attackable 0 (powerline concerned will be action.alertable_line_ids[0])
+
+        """
+        res = copy.deepcopy(self._raise_alert)
+        res.flags.writeable = False
+        return res
+
+    @raise_alert.setter
+    def raise_alert(self, values):
+        if "raise_alert" not in self.authorized_keys:
+            raise IllegalAction("Impossible to send alerts with this action type.")
+        orig_ = copy.deepcopy(self._raise_alert)
+        try:
+            self._aux_affect_object_bool(
+                values,
+                "raise alert",
+                self.dim_alerts,
+                self.alertable_line_names,
+                np.arange(self.dim_alerts),
+                self._raise_alert,
+            )
+            self._modif_alert = True
+        except Exception as exc_:
+            self._raise_alert[:] = orig_
+            raise IllegalAction(
+                f"Impossible to modify the alert with your input. "
                 f"Please consult the documentation. "
                 f'The error was:\n"{exc_}"'
             )
@@ -5734,3 +5898,254 @@ class BaseAction(GridObjects):
                     res._storage_power[do_storage_prod] += tmp_
                     res_add_storage[do_storage_prod] = tmp_
         return res, res_add_curtailed, res_add_storage
+
+    def _aux_decompose_as_unary_actions_change(self, cls, group_topo, res):
+        if group_topo:
+            tmp = cls()
+            tmp._modif_change_bus = True
+            tmp._change_bus_vect = copy.deepcopy(self._change_bus_vect)
+            res["change_bus"] = [tmp]
+        else:
+            subs_changed = cls.grid_objects_types[self._change_bus_vect, cls.SUB_COL]
+            subs_changed = np.unique(subs_changed)
+            res["change_bus"] = []
+            for sub_id in subs_changed:
+                tmp = cls()
+                tmp._modif_change_bus = True
+                mask_sub = cls.grid_objects_types[:, cls.SUB_COL] == sub_id
+                tmp._change_bus_vect[mask_sub] = self._change_bus_vect[mask_sub]
+                res["change_bus"].append(tmp)
+
+    def _aux_decompose_as_unary_actions_change_ls(self, cls, group_line_status, res):
+        if group_line_status:
+            tmp = cls()
+            tmp._modif_change_status = True
+            tmp._switch_line_status = copy.deepcopy(self._switch_line_status)
+            res["change_line_status"] = [tmp]
+        else:
+            lines_changed = np.where(self._switch_line_status)[0]
+            res["change_line_status"] = []
+            for l_id in lines_changed:
+                tmp = cls()
+                tmp._modif_change_status = True   
+                tmp._switch_line_status[l_id] = True
+                res["change_line_status"].append(tmp)
+
+    def _aux_decompose_as_unary_actions_set(self, cls, group_topo, res):
+        if group_topo:
+            tmp = cls()
+            tmp._modif_set_bus = True
+            tmp._set_topo_vect = 1 * self._set_topo_vect
+            res["set_bus"] = [tmp]
+        else:
+            subs_changed = cls.grid_objects_types[self._set_topo_vect != 0, cls.SUB_COL]
+            subs_changed = np.unique(subs_changed)
+            res["set_bus"] = []
+            for sub_id in subs_changed:
+                tmp = cls()
+                tmp._modif_set_bus = True
+                mask_sub = cls.grid_objects_types[:, cls.SUB_COL] == sub_id    
+                tmp._set_topo_vect[mask_sub] = self._set_topo_vect[mask_sub]
+                res["set_bus"].append(tmp)
+             
+    def _aux_decompose_as_unary_actions_set_ls(self, cls, group_line_status, res):
+        if group_line_status:
+            tmp = cls()
+            tmp._modif_set_status = True
+            tmp._set_line_status = 1 * self._set_line_status
+            res["set_line_status"] = [tmp]
+        else:
+            lines_changed = np.where(self._set_line_status != 0)[0]
+            res["set_line_status"] = []
+            for l_id in lines_changed:
+                tmp = cls()
+                tmp._modif_set_status = True   
+                tmp._set_line_status[l_id] = self._set_line_status[l_id]
+                res["set_line_status"].append(tmp)
+    
+    def _aux_decompose_as_unary_actions_redisp(self, cls, group_redispatch, res):
+        if group_redispatch:
+            tmp = cls()
+            tmp._modif_redispatch = True
+            tmp._redispatch = 1. * self._redispatch
+            res["redispatch"] = [tmp]
+        else:
+            gen_changed = np.where(self._redispatch != 0.)[0]
+            res["redispatch"] = []
+            for g_id in gen_changed:
+                tmp = cls()
+                tmp._modif_redispatch = True   
+                tmp._redispatch[g_id] = self._redispatch[g_id]
+                res["redispatch"].append(tmp)
+                
+    def _aux_decompose_as_unary_actions_storage(self, cls, group_storage, res):
+        if group_storage:
+            tmp = cls()
+            tmp._modif_storage = True
+            tmp._storage_power = 1. * self._storage_power
+            res["set_storage"] = [tmp]
+        else:
+            sto_changed = np.where(self._storage_power != 0.)[0]
+            res["set_storage"] = []
+            for s_id in sto_changed:
+                tmp = cls()
+                tmp._modif_storage = True   
+                tmp._storage_power[s_id] = self._storage_power[s_id]
+                res["set_storage"].append(tmp)
+                
+    def _aux_decompose_as_unary_actions_curtail(self, cls, group_curtailment, res):
+        if group_curtailment:
+            tmp = cls()
+            tmp._modif_curtailment = True
+            tmp._curtail = 1. * self._curtail
+            res["curtail"] = [tmp]
+        else:
+            gen_changed = np.where(self._curtail != -1.)[0]
+            res["curtail"] = []
+            for g_id in gen_changed:
+                tmp = cls()
+                tmp._modif_curtailment = True   
+                tmp._curtail[g_id] = self._curtail[g_id]
+                res["curtail"].append(tmp)
+            
+    def decompose_as_unary_actions(self,
+                                   group_topo=False,
+                                   group_line_status=False,
+                                   group_redispatch=True,
+                                   group_storage=True,
+                                   group_curtail=True) -> dict:
+        """This function allows to split a possibly "complex" action into its
+        "unary" counterpart.
+        
+        By "unary" action here we mean "action that acts on only 
+        one type". For example an action that only `set_line_status` is 
+        unary but an action that acts on `set_line_status` AND `set_bus` is
+        not. Also, note that an action that acts on `set_line_status`
+        and `change_line_status` is not considered as "unary" by this method.
+        
+        This functions output a dictionnary with up to 7 keys:
+        
+        -  "change_bus" if the action affects the grid with `change_bus`. 
+           In this case the value associated with this key is a list containing
+           only action that performs `change_bus`
+        -  "set_bus" if the action affects the grid with`set_bus`. 
+           In this case the value associated with this key is a list containing
+           only action that performs `set_bus`
+        -  "change_line_status" if the action affects the grid with `change_line_status`
+           In this case the value associated with this key is a list containing
+           only action that performs `change_line_status`
+        -  "set_line_status" if the action affects the grid with `set_line_status`
+           In this case the value associated with this key is a list containing
+           only action that performs `set_line_status`
+        -  "redispatch" if the action affects the grid with `redispatch`
+           In this case the value associated with this key is a list containing
+           only action that performs `redispatch`
+        -  "set_storage" if the action affects the grid with `set_storage`
+           In this case the value associated with this key is a list containing
+           only action that performs `set_storage`
+        -  "curtail" if the action affects the grid with `curtail`
+           In this case the value associated with this key is a list containing
+           only action that performs `curtail`
+
+        **NB** if the action is a "do nothing" action type, then this function will
+        return an empty dictionary.
+        
+        .. versionadded:: 1.9.1
+        
+        Notes
+        -------
+        If the action is not ambiguous (ie it is valid and can be correctly
+        understood by grid2op) and if you sum all the actions in all 
+        the lists of all the keys of the
+        dictionnary returned by this function, you will retrieve exactly the
+        current action.
+        
+        For example:
+        
+        .. code-block:: python
+        
+            import grid2op
+            
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name, ...)
+            
+            act = env.action_space({"curtail": [(4, 0.8), (5, 0.7)],
+                                    "set_storage": [(0, +1.), (1, -1.)],
+                                    "redispatch": [(0, +1.), (1, -1.)],
+                                    "change_line_status": [2, 3],
+                                    "set_line_status": [(0, -1), (1, -1)],
+                                    "set_bus": {"loads_id": [(0, 2), (1, 2)],
+                                                "generators_id": [(0, 2)]},
+                                    "change_bus": {"loads_id": [2, 3],
+                                                "generators_id": [1]}
+                                    })
+            res = act.decompose_as_unary_actions()
+            tmp = env.action_space()
+            for k, v in res.items():
+                for a in v:
+                    tmp += a
+            assert tmp == act
+        
+        
+        Parameters
+        ----------
+        group_topo : bool, optional
+            This flag allows you to control the size of the `change_bus` and 
+            `set_bus` values. If it's ``True`` then the values 
+            associated with this keys will be unique (made of one single element)
+            that will affect all the elements affected by this action (grouping them 
+            all together)
+            Otherwise, it will counts as many elements as the number of 
+            substations affected by a `change_bus` or a `set_bus`. Each action
+            returned by this will then act on only one substation. By default False (meaning there will be as many element 
+            in `change_bus` as the number of substations affected by a `change_bus` 
+            action [same for `set_bus`])
+        group_line_status : bool, optional
+            Whether to group the line status in one single action (so the values associated
+            with the keys `set_line_status` and `change_line_status` will count
+            exactly one element - if present) or not. By default False (meaning there will be as many element 
+            in `change_line_status` as the number of lines affected by a 
+            `change_line_status` action [same for `set_line_status`] : if 
+            the original action `set` the status of two powerlines, then the 
+            value associated with `set_line_status` will count 2 elements: 
+            the first action will `set` the status of the first line affected by 
+            the action, the second will... `set` the status of the
+            second line affected by the action)
+        group_redispatch : bool, optional
+            same behaviour as `group_line_status` but for "generators" and 
+            "redispatching" instead of "powerline" and `set_line_status`, by default True (meaning the value associated with 
+            the key `redispatch` will be a list of one element performing 
+            a redispatching action on all generators modified by the current action)
+        group_storage : bool, optional
+            same behaviour as `group_line_status` but for "storage units" and 
+            "set setpoint" instead of "powerline" and `set_line_status`, by default True (meaning the value associated with 
+            the key `set_storage` will be a list of one element performing 
+            a set point action on all storage units modified by the current action)
+        group_curtail : bool, optional
+            same behaviour as `group_line_status` but for "generators" and 
+            "curtailment" instead of "powerline" and `set_line_status`, , by default True (meaning the value associated with 
+            the key `curtail` will be a list of one element performing 
+            a curtailment on all storage generators modified by the current action)
+
+        Returns
+        -------
+        dict
+            See description for further information.
+        """
+        res = {}
+        cls = type(self)
+        if self._modif_change_bus:
+            self._aux_decompose_as_unary_actions_change(cls, group_topo, res)
+        if self._modif_set_bus:
+            self._aux_decompose_as_unary_actions_set(cls, group_topo, res)
+        if self._modif_change_status:
+            self._aux_decompose_as_unary_actions_change_ls(cls, group_line_status, res)
+        if self._modif_set_status:
+            self._aux_decompose_as_unary_actions_set_ls(cls, group_line_status, res)
+        if self._modif_redispatch:
+            self._aux_decompose_as_unary_actions_redisp(cls, group_redispatch, res)
+        if self._modif_storage:
+            self._aux_decompose_as_unary_actions_storage(cls, group_storage, res)
+        if self._modif_curtailment:
+            self._aux_decompose_as_unary_actions_curtail(cls, group_curtail, res)
+        return res

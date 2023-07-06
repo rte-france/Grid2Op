@@ -14,8 +14,7 @@ from grid2op.Exceptions.EnvExceptions import EnvError
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
-from grid2op.Rules import RulesChecker, BaseRules
-from grid2op.Exceptions import Grid2OpException
+from grid2op.Rules import RulesChecker
 from grid2op.operator_attention import LinearAttentionBudget
 
 
@@ -88,7 +87,8 @@ class _ObsEnv(BaseEnv):
             kwargs_attention_budget=kwargs_attention_budget,
             kwargs_observation=None,
             logger=logger,
-            highres_sim_counter=highres_sim_counter
+            highres_sim_counter=highres_sim_counter,
+            update_obs_after_reward=False,
         )
         self.__unusable = False  # unsuable if backend cannot be copied
         
@@ -185,6 +185,7 @@ class _ObsEnv(BaseEnv):
         self._game_rules = RulesChecker(legalActClass=legalActClass)
         self._game_rules.initialize(self)
         self._legalActClass = legalActClass
+        
         # self._action_space = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
 
@@ -207,6 +208,9 @@ class _ObsEnv(BaseEnv):
         self.current_obs_init = self._obsClass(obs_env=None, action_helper=None)
         self.current_obs = self.current_obs_init
 
+        # init the alert relate attributes
+        self._init_alert_data()
+        
         # backend has loaded everything
         self._hazard_duration = np.zeros(shape=self.n_line, dtype=dt_int)
 

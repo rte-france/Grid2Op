@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import grid2op
-from grid2op.gym_compat import GymEnv
+from grid2op.gym_compat import GymEnv, GYMNASIUM_AVAILABLE
 import unittest
 import warnings
 import numpy as np
@@ -25,17 +25,22 @@ class Issue418Tester(unittest.TestCase):
     
     def test_seed(self):
         gymenv = GymEnv(self.env)
-        if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
+        if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT and not GYMNASIUM_AVAILABLE:
+            # legacy gym, with old gym gym version
             gymenv.seed(42)
             obs = gymenv.reset()
             curt = np.array([1,1.,0.35566905,0.23095788,0.6338101,1])
             year = 1249
             day = 28
         else:
+            # most recent gym API
             obs = gymenv.reset(seed=42)
             curt = np.array([1,1.,0.18852758,0.5537014,0.43770432,1])
+            curt = np.array([-1,-1.,0.18852758,0.5537014,0.43770432,-1])
             year = 571
             day = 9
+            # year = 1887
+            # day = 9
         
         # test that the seeding worked also in action space and observation space
         sampled_act = gymenv.action_space.sample()

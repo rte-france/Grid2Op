@@ -281,6 +281,5 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
             "Please fix the test and try again"
         )
 
-
 if __name__ == "__main__":
     unittest.main()

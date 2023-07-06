@@ -182,3 +182,170 @@ class LinearAttentionBudget:
                 self._max_budget, self._budget_per_ts + self._current_budget
             )
         return None
+
+class _LinearAttentionBudgetByLine:
+    """Currently not implemented, DO NOT USE !"""
+    def __init__(self):
+        self._max_budget = None
+        self._budget_per_ts = None
+        self._alert_cost = None
+        self._current_budget = None
+        self._init_budget = None
+        self._time_last_alert_raised = dt_int(-1)
+        self._time_last_successful_alert_raised = dt_int(-1)
+        self._is_last_alert_successful = None
+        self._time_window = None
+        self._alert_size = None
+        self._last_alert_action_filtered_by_budget = None
+
+    @property
+    def time_last_alert_raised(self):
+        """
+        Time step of the last alert raised (-1 if no alert has been raised yet)
+        Returns
+        -------
+
+        """
+        return self._time_last_alert_raised
+
+    @property
+    def time_last_successful_alert_raised(self):
+        """time of the last successful alert raised"""
+        return self._time_last_successful_alert_raised
+
+    @property
+    def current_budget(self):
+        """current attention budget"""
+        return self._current_budget
+
+    @property
+    def is_last_alert_successful(self):
+        """
+        boolean value telling whether the alert is successfully raised (according to compliance with the budget)
+        """
+        return self._is_last_alert_successful
+
+    @property
+    def last_alert_action_filtered_by_budget(self): 
+        """the actual alert action, after filtering to be compliant with the budget constraint"""
+        return self._last_alert_action_filtered_by_budget
+
+    @property
+    def time_window(self): 
+        """ """
+        return self._time_window
+
+    def init(
+        self, partial_env, init_budget, max_budget, budget_per_ts, alert_cost, **kwargs
+    ):
+        self._max_budget = dt_float(max_budget)
+        self._budget_per_ts = dt_float(budget_per_ts)
+        self._alert_cost = dt_float(alert_cost)
+        self._init_budget = dt_float(init_budget)
+        self._time_window = partial_env.parameters.ALERT_TIME_WINDOW
+        self._dim_alerts = 0
+        if "dim_alerts" in kwargs.keys():
+            self._dim_alerts = kwargs["dim_alerts"]
+        self.reset()
+
+    def reset(self):
+        """
+        called each time the scenario is over by the environment
+
+        Returns
+        -------
+
+        """
+        self._current_budget = self._init_budget
+        self._time_last_alert_raised = dt_int(-1)
+        self._time_last_successful_alert_raised = dt_int(-1)
+        self._is_last_alert_successful = False
+        self._last_alert_action_filtered_by_budget = np.full(self._dim_alerts, False, dtype=dt_bool)
+        
+
+    def get_state(self):
+        """used to retrieve the sate in simulate"""
+        res = (
+            self._time_last_alert_raised,
+            self._current_budget,
+            self._time_last_successful_alert_raised,
+            self._is_last_alert_successful, 
+            self._last_alert_action_filtered_by_budget
+        )
+        return res
+
+    def set_state(self, state):
+        """used to update the internal state of the budget, for simulate"""
+        (
+            _time_last_alert_raised,
+            _current_budget,
+            _time_last_successful_alert_raised,
+            _is_last_alert_successful,
+            _last_alert_action_filtered_by_budget
+        ) = state
+
+        self._time_last_alert_raised = _time_last_alert_raised
+        self._current_budget = _current_budget
+        self._time_last_successful_alert_raised = _time_last_successful_alert_raised
+        self._is_last_alert_successful = _is_last_alert_successful
+        self._last_alert_action_filtered_by_budget = _last_alert_action_filtered_by_budget
+
+    def register_action(self, env, action, is_action_illegal, is_action_ambiguous):
+        """
+        INTERNAL
+
+        Called at each step to update the budget according to the action played
+
+        Parameters
+        ----------
+        env
+        action
+        is_action_illegal
+        is_action_ambiguous
+
+        Returns
+        -------
+
+        """
+        if action.dim_alerts == 0 or is_action_illegal or is_action_ambiguous:
+            # this feature is not supported (grid2op <= 1.6.0) or is not activated
+
+            # also, if the action is illegal is ambiguous, it is replaced with do nothing, but i don't really
+            # want to affect the budget on this case
+
+            self._is_last_alert_successful = False
+            self._last_alert_action_filtered_by_budget[:] = False
+
+            return None
+
+        self._is_last_alert_successful = False
+        self._last_alert_action_filtered_by_budget[:] = False
+
+        if action.alert_raised().size:
+            
+            # an alert has been raised
+            self._time_last_alert_raised = env.nb_time_step
+
+            self._is_last_alert_successful = True
+            self._last_alert_action_filtered_by_budget = action._raise_alert
+
+            nb_of_alerts = sum(action._raise_alert)
+            if self._current_budget >= self._alert_cost * nb_of_alerts :
+                # The alert is raisable 
+                self._current_budget -= self._alert_cost * nb_of_alerts
+                self._time_last_successful_alert_raised = env.nb_time_step
+                
+            else:
+                # not enough budget
+                current_budget = self._current_budget
+                # self._current_budget = 0
+                return NotEnoughAttentionBudget(
+                    f"You need a budget of {self._alert_cost} to raise an alert "
+                    f"but you had only {current_budget}. Nothing is done."
+                )
+        else:
+            # no alert has been raised, budget increases
+            self._current_budget = min(
+                self._max_budget, self._budget_per_ts + self._current_budget
+            )
+        return None

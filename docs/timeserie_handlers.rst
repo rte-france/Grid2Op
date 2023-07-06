@@ -5,8 +5,8 @@
 Time Series Handlers
 ======================
 
-.. versionadded:: 1.8.2
-    This module is new in version 1.8.2
+.. versionadded:: 1.9.0
+    This module is new in version 1.9.0
 
 The goal of this module is to allow some fine-grain manipulation over the generation
 of the "time series" data of the environment.
