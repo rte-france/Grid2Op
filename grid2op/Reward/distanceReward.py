@@ -7,16 +7,14 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-
-from grid2op.Reward.BaseReward import BaseReward
+from grid2op.Reward.baseReward import BaseReward
 from grid2op.dtypes import dt_float
 
 
-class LinesReconnectedReward(BaseReward):
+class DistanceReward(BaseReward):
     """
-    This reward computes a penalty
-    based on the number of powerline that could have been reconnected (cooldown at 0.) but
-    are still disconnected.
+    This reward computes a penalty based on the distance of the current grid to the grid at time 0 where
+    everything is connected to bus 1.
 
     Examples
     ---------
@@ -25,15 +23,15 @@ class LinesReconnectedReward(BaseReward):
     .. code-block:
 
         import grid2op
-        from grid2op.Reward import LinesReconnectedReward
+        from grid2op.Reward import DistanceReward
 
         # then you create your environment with it:
         NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
-        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=LinesReconnectedReward)
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=DistanceReward)
         # and do a step with a "do nothing" action
         obs = env.reset()
         obs, reward, done, info = env.step(env.action_space())
-        # the reward is computed with the LinesReconnectedReward class
+        # the reward is computed with the DistanceReward class
 
     """
 
@@ -41,28 +39,33 @@ class LinesReconnectedReward(BaseReward):
         BaseReward.__init__(self, logger=logger)
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(1.0)
-        self.penalty_max_at_n_lines = dt_float(2.0)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min
 
-        # Get obs from env
+        # Get topo from env
         obs = env.get_obs()
+        topo = obs.topo_vect
 
-        # All lines ids
-        lines_id = np.arange(env.n_line)
-        lines_id = lines_id[obs.time_before_cooldown_line == 0]
+        idx = 0
+        diff = dt_float(0.0)
+        for n_elems_on_sub in obs.sub_info:
+            # Find this substation elements range in topology vect
+            sub_start = idx
+            sub_end = idx + n_elems_on_sub
+            current_sub_topo = topo[sub_start:sub_end]
 
-        n_penalties = dt_float(0.0)
-        for line_id in lines_id:
-            # Line could be reconnected but isn't
-            if obs.line_status[line_id] == False:
-                n_penalties += dt_float(1.0)
+            # Count number of elements not on bus 1
+            # Because at the initial state, all elements are on bus 1
+            diff += dt_float(1.0) * np.count_nonzero(current_sub_topo != 1)
 
-        max_p = self.penalty_max_at_n_lines
-        n_penalties = np.clip(n_penalties, dt_float(0.0), max_p)
+            # Set index to next sub station
+            idx += n_elems_on_sub
+
         r = np.interp(
-            n_penalties, [dt_float(0.0), max_p], [self.reward_max, self.reward_min]
+            diff,
+            [dt_float(0.0), len(topo) * dt_float(1.0)],
+            [self.reward_max, self.reward_min],
         )
-        return dt_float(r)
+        return r

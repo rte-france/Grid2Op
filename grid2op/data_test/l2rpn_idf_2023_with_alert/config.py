@@ -1,11 +1,17 @@
 from grid2op.Action import PlayableAction, PowerlineSetAction
-from grid2op.Reward import AlarmReward
+from grid2op.Reward import AlertReward
 from grid2op.Rules import DefaultRules
 from grid2op.Chronics import Multifolder
 from grid2op.Chronics import GridStateFromFileWithForecastsWithMaintenance
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Opponent import GeometricOpponent, BaseActionBudget
-from grid2op.operator_attention import LinearAttentionBudget
+
+try:
+    from grid2op.l2rpn_utils import ActionIDF2023, ObservationIDF2023
+except ImportError:
+    warnings.warn("The grid2op version you are trying to use is too old for this environment. Please upgrade it.")
+    ActionIDF2023 = PlayableAction
+    ObservationIDF2023 = CompleteObservation
 
 lines_attacked = [
     "62_58_180",
@@ -30,7 +36,7 @@ config = {
     "backend": PandaPowerBackend,
     "action_class": PlayableAction,
     "observation_class": None,
-    "reward_class": AlarmReward,
+    "reward_class": AlertReward,
     "gamerules_class": DefaultRules,
     "chronics_class": Multifolder,
     "grid_value_class": GridStateFromFileWithForecastsWithMaintenance,
@@ -111,11 +117,10 @@ config = {
         "minimum_attack_duration_hour": 1,
     },
     "has_attention_budget": True,
-    "attention_budget_class": LinearAttentionBudget,
     "kwargs_attention_budget": {
         "max_budget": 3.0,
         "budget_per_ts": 1.0 / (12.0 * 16),
-        "alarm_cost": 1.0,
+        "alert_cost": 1.0,
         "init_budget": 2.0,
     },
 }

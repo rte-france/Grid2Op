@@ -74,7 +74,7 @@ class __AuxGymEnv:
         import grid2op
         from grid2op.gym_compat import GymEnv
 
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
         gym_env = GymEnv(env)  # is a gym environment properly inheriting from gym.Env !
 
@@ -182,9 +182,11 @@ class __AuxGymEnv:
             self.init_env.close()
             del self.init_env
         self.init_env = None
+        
         if hasattr(self, "action_space") and self.action_space is not None:
             self.action_space.close()
         self.action_space = None
+        
         if hasattr(self, "observation_space") and self.observation_space is not None:
             self.observation_space.close()
         self.observation_space = None

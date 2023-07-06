@@ -87,7 +87,8 @@ class _ObsEnv(BaseEnv):
             kwargs_attention_budget=kwargs_attention_budget,
             kwargs_observation=None,
             logger=logger,
-            highres_sim_counter=highres_sim_counter
+            highres_sim_counter=highres_sim_counter,
+            update_obs_after_reward=False,
         )
         self.__unusable = False  # unsuable if backend cannot be copied
         
@@ -207,6 +208,9 @@ class _ObsEnv(BaseEnv):
         self.current_obs_init = self._obsClass(obs_env=None, action_helper=None)
         self.current_obs = self.current_obs_init
 
+        # init the alert relate attributes
+        self._init_alert_data()
+        
         # backend has loaded everything
         self._hazard_duration = np.zeros(shape=self.n_line, dtype=dt_int)
 

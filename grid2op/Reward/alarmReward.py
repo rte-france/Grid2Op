@@ -9,7 +9,7 @@
 import numpy as np
 
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Reward.BaseReward import BaseReward
+from grid2op.Reward.baseReward import BaseReward
 from grid2op.dtypes import dt_float
 
 

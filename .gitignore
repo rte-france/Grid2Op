@@ -385,6 +385,7 @@ test_malte.7z
 test_malte.py
 example_gym_act.py
 test_to_fix.txt
+doc_raise_alert.py
 
 # profiling files
 **.prof

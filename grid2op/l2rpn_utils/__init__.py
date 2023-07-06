@@ -11,9 +11,11 @@ __all__ = [
     "ActionNeurips2020", "ObservationNeurips2020",
     "ActionICAPS2021", "ObservationICAPS2021",
     "ActionWCCI2022", "ObservationWCCI2022",
+    "ActionIDF2023", "ObservationIDF2023"
     ]
 
 from grid2op.l2rpn_utils.wcci_2020 import ActionWCCI2020, ObservationWCCI2020
 from grid2op.l2rpn_utils.neurips_2020 import ActionNeurips2020, ObservationNeurips2020
 from grid2op.l2rpn_utils.icaps_2021 import ActionICAPS2021, ObservationICAPS2021
 from grid2op.l2rpn_utils.wcci_2022 import ActionWCCI2022, ObservationWCCI2022
+from grid2op.l2rpn_utils.idf_2023 import ActionIDF2023, ObservationIDF2023

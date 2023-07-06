@@ -9,7 +9,6 @@
 import copy
 import warnings
 import numpy as np
-# from gym.spaces import MultiDiscrete, Box
 
 from grid2op.Action import ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
@@ -54,6 +53,8 @@ class __AuxMultiDiscreteActSpace:
     - "set_storage": `n_storage` dimensions, each containing a certain number of choices depending on the value
       of the keyword argument `nb_bins["set_storage"]` (by default 7). This is the "conversion to discrete action"
       of the action on storage units.
+    - "raise_alarm": TODO
+    - "raise_alert": TODO
 
 
     We offer some extra customization, with the keywords:
@@ -108,6 +109,9 @@ class __AuxMultiDiscreteActSpace:
 
         The same as above holds for "change_bus", "sub_change_bus" and "one_sub_change": Use only one of these !
 
+    .. danger::
+        The keys `set_bus` and `change_bus` does not have the same meaning between this representation of the
+        action and the DiscreteActSpace.
     .. warning::
         Depending on the presence absence of gymnasium and gym packages this class might behave differently.
         
@@ -131,7 +135,7 @@ class __AuxMultiDiscreteActSpace:
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         from grid2op.gym_compat import GymEnv, MultiDiscreteActSpace
@@ -230,6 +234,11 @@ class __AuxMultiDiscreteActSpace:
             "raise_alarm": (
                 [2 for _ in range(act_sp.dim_alarms)],
                 act_sp.dim_alarms,
+                self.ATTR_CHANGE,
+            ),
+            "raise_alert": (
+                [2 for _ in range(act_sp.dim_alerts)],
+                act_sp.dim_alerts,
                 self.ATTR_CHANGE,
             ),
             "sub_set_bus": (

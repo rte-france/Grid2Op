@@ -117,7 +117,7 @@ class _AlarmScore(AlarmReward):
         return 1 - disc_lines_to_consider_for_score
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        if isinstance(env, self._deactivate_reward_cls):
+        if self.is_simulated_env(env):
             return self.reward_no_game_over
 
         disc_lines_now = env._disc_lines

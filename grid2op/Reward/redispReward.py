@@ -12,7 +12,7 @@ import numpy as np
 import re
 from grid2op._glop_platform_info import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Reward.BaseReward import BaseReward
+from grid2op.Reward.baseReward import BaseReward
 from grid2op.dtypes import dt_float
 
 
@@ -56,7 +56,7 @@ class RedispReward(BaseReward):
                                                                min_reward=-10.,
                                                                reward_illegal_ambiguous=0.,
                                                                least_losses_ratio=0.015)
-        env_name = ...  #eg "l2rpn_case14_sandbox"
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name,reward_class=reward_cls)
 
     These meta parameters means:

@@ -596,6 +596,9 @@ def make_from_dataset_path(
     )
 
     ### other rewards
+    other_rewards_cfg = {}
+    if "other_rewards" in config_data and config_data["other_rewards"] is not None:
+        other_rewards_cfg = config_data["other_rewards"]
     other_rewards = _get_default_aux(
         "other_rewards",
         kwargs,
@@ -604,6 +607,9 @@ def make_from_dataset_path(
         msg_error=ERR_MSG_KWARGS["other_rewards"],
         isclass=False,
     )
+    for k in other_rewards_cfg:
+        if k not in other_rewards:
+            other_rewards[k] = other_rewards_cfg[k]
 
     # Opponent
     opponent_space_type_cfg = OpponentSpace

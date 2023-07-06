@@ -117,6 +117,12 @@ class BaseReward(ABC):
             self.logger.disabled = True
         else:
             self.logger: logging.Logger = logger.getChild(f"{type(self).__name__}")
+    
+    def is_simulated_env(self, env):
+        # to prevent cyclical import
+        from grid2op.Environment._ObsEnv import _ObsEnv
+        from grid2op.Environment._forecast_env import _ForecastEnv
+        return isinstance(env, (_ObsEnv, _ForecastEnv))
             
     def initialize(self, env):
         """
@@ -251,3 +257,6 @@ class BaseReward(ABC):
     def close(self):
         """overide this for certain reward that might need specific behaviour"""
         pass
+
+    def is_in_blackout(self, has_error, is_done):
+        return is_done and has_error

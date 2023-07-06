@@ -7,8 +7,8 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
 
-from grid2op.Reward.BaseReward import BaseReward
-from grid2op.Reward.ConstantReward import ConstantReward
+from grid2op.Reward.baseReward import BaseReward
+from grid2op.Reward.constantReward import ConstantReward
 from grid2op.Exceptions import Grid2OpException
 
 

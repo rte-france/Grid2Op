@@ -290,9 +290,13 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "storage_discharging_efficiency": [],
             "_init_subtype": "grid2op.Observation.completeObservation.CompleteObservation",
             "dim_alarms": 0,
+            "dim_alerts": 0,
             "alarms_area_names": [],
             "alarms_lines_area": {},
             "alarms_area_lines": [],
+            "alertable_line_names": [],
+            "alertable_line_ids": [],
+            "assistant_warning_type": None,
             "_PATH_ENV": None,
         }
 
@@ -835,6 +839,13 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "current_step": [0],
             "max_step": [8064],
             "delta_time": [5.0],
+            "time_since_last_alert": [],
+            "active_alert": [],
+            "alert_duration": [],
+            "total_number_of_alert": [],
+            "time_since_last_attack": [],
+            "was_alert_used_after_attack": [],
+            "attack_under_alert": [],
         }
         self.dtypes = np.array(
             [
@@ -895,6 +906,14 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 # gen margins
                 dt_float,
                 dt_float,
+                # alert feature
+                dt_bool,
+                dt_int,
+                dt_int,
+                dt_int,
+                dt_int,
+                dt_int,
+                dt_int,
             ],
             dtype=object,
         )
@@ -955,9 +974,17 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 1,
                 5,
                 5,
+                # alert
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
             ]
         )
-        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5
+        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5 + 0
 
     def tearDown(self):
         self.env.close()
@@ -989,10 +1016,10 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_proper_size(self):
         obs = self.env.observation_space(self.env)
-        assert obs.size() == self.size_obs
+        assert obs.size() == self.size_obs, f"{obs.size()} vs {self.size_obs}"
 
     def test_size_observation_space(self):
-        assert self.env.observation_space.size() == self.size_obs
+        assert self.env.observation_space.size() == self.size_obs, f"{self.env.observation_space.size()} vs {self.size_obs}"
 
     def aux_test_bus_conn_mat(self, as_csr=False):
         obs = self.env.observation_space(self.env)
@@ -2161,8 +2188,28 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_space_to_dict(self):
         dict_ = self.env.observation_space.cls_to_dict()
-        self.maxDiff = None
-        self.assertDictEqual(dict_, self.dict_)
+        for el in dict_:
+            assert el in self.dict_, f"missing key {el} in self.dict_"
+        for el in self.dict_:
+            assert el in dict_, f"missing key {el} in dict_"
+            
+        for el in self.dict_:
+            val = dict_[el]
+            val_res = self.dict_[el]
+            if val is None and val_res is not None:
+                raise AssertionError(f"val is None and val_res is not None: val_res: {val_res}")
+            if val is not None and val_res is None:
+                raise AssertionError(f"val is not None and val_res is None: val {val}")
+            if val is None and val_res is None:
+                continue
+            
+            ok_ = np.array_equal(val, val_res)
+            assert ok_, (f"values different for {el}: "
+                         f"{dict_[el]}"
+                         f"{self.dict_[el]}")
+            
+        # self.maxDiff = None
+        # self.assertDictEqual(dict_, self.dict_)
 
     def test_from_dict(self):
         res = ObservationSpace.from_dict(self.dict_)

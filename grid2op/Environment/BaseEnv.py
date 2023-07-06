@@ -14,7 +14,7 @@ import copy
 import os
 import json
 from typing import Optional, Tuple
-
+import warnings
 import numpy as np
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
@@ -229,6 +229,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     """
 
     ALARM_FILE_NAME = "alerts_info.json"
+    ALARM_KEY = "fixed"
+    ALERT_FILE_NAME = "alerts_info.json"
+    ALERT_KEY = "by_line"
+    
     CAN_SKIP_TS = False  # each step is exactly one time step
 
     def __init__(
@@ -259,6 +263,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         observation_bk_class=None,  # type of backend for the observation space
         observation_bk_kwargs=None,  # type of backend for the observation space
         highres_sim_counter=None,
+        update_obs_after_reward=False,
         _is_test: bool = False,  # TODO not implemented !!
         _init_obs: Optional[BaseObservation] =None
     ):
@@ -483,6 +488,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._attention_budget_cls = attention_budget_cls
         self._is_alarm_illegal = False
         self._is_alarm_used_in_reward = False
+
+        # alert infos
+        self._is_alert_illegal = False
+        self._is_alert_used_in_reward = False
+
         self._kwargs_attention_budget = copy.deepcopy(kwargs_attention_budget)
 
         # to ensure self.get_obs() has a reproducible behaviour
@@ -515,6 +525,21 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._highres_sim_counter = highres_sim_counter
         else:
             self._highres_sim_counter = HighResSimCounter()
+            
+        self._update_obs_after_reward = update_obs_after_reward
+        
+        # alert
+        self._last_alert = None
+        self._time_since_last_alert = None
+        self._alert_duration= None
+        self._total_number_of_alert = 0
+        self._time_since_last_attack = None
+        self._was_alert_used_after_attack = None
+        self._attack_under_alert = None
+        self._is_already_attacked = None
+        
+        # general things that can be used by the reward
+        self._reward_to_obs = {}
     
     @property
     def highres_sim_counter(self):
@@ -744,11 +769,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._attention_budget_cls = self._attention_budget_cls  # const
         new_obj._is_alarm_illegal = copy.deepcopy(self._is_alarm_illegal)
         new_obj._is_alarm_used_in_reward = copy.deepcopy(self._is_alarm_used_in_reward)
+
+        # alert 
+        new_obj._is_alert_illegal = copy.deepcopy(self._is_alert_illegal)
+        new_obj._is_alert_used_in_reward = copy.deepcopy(self._is_alert_used_in_reward)
+        
         new_obj._kwargs_attention_budget = copy.deepcopy(self._kwargs_attention_budget)
 
         new_obj._last_obs = self._last_obs.copy()
 
         new_obj._has_just_been_seeded = self._has_just_been_seeded
+        
+        # extra things used by the reward to pass to the obs
+        new_obj._reward_to_obs = copy.deepcopy(self._reward_to_obs)
         
         # time_dependant attributes for the "forecast env"
         if self._init_obs is None:
@@ -763,7 +796,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._is_test = self._is_test
         
         # do not copy it.
-        new_obj._highres_sim_counter = self._highres_sim_counter
+        new_obj._highres_sim_counter = self._highres_sim_counter        
+        
+        # alert
+        new_obj._last_alert = copy.deepcopy(self._last_alert)
+        new_obj._time_since_last_alert = copy.deepcopy(self._time_since_last_alert)
+        new_obj._alert_duration = copy.deepcopy(self._alert_duration)
+        new_obj._total_number_of_alert = self._total_number_of_alert
+        new_obj._time_since_last_attack = copy.deepcopy(self._time_since_last_attack)
+        new_obj._is_already_attacked = copy.deepcopy(self._is_already_attacked)
+        new_obj._attack_under_alert = copy.deepcopy(self._attack_under_alert)
+        new_obj._was_alert_used_after_attack = copy.deepcopy(self._was_alert_used_after_attack)
+        
+        new_obj._update_obs_after_reward = copy.deepcopy(self._update_obs_after_reward)
 
     def get_path_env(self):
         """
@@ -779,6 +824,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         res = self._init_env_path if self._init_env_path is not None else ""
         return res
 
+    def _check_alarm_file_consistent(self, dict_):
+        if (self.ALERT_KEY not in dict_) and (self.ALARM_KEY not in dict_):
+            raise EnvError(
+                f'One of {self.ALERT_KEY} or {self.ALARM_KEY} should be present in the alarm data json, for now.'
+            )
+    
+    def _set_no_alarm(self):        
+        bk_cls = type(self.backend)
+        bk_cls.dim_alarms = 0
+        bk_cls.alarms_area_names = []
+        bk_cls.alarms_lines_area = {}
+        bk_cls.alarms_area_lines = []
+        
     def load_alarm_data(self):
         """
         Internal
@@ -805,20 +863,22 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if os.path.exists(file_alarms) and os.path.isfile(file_alarms):
             with open(file_alarms, mode="r", encoding="utf-8") as f:
                 dict_alarm = json.load(f)
-            key = "fixed"
-            if key not in dict_alarm:
-                raise EnvError(
-                    'The key "fixed" should be present in the alarm data json, for now.'
-                )
-            nb_areas = len(dict_alarm[key])  # need to be remembered
+            self._check_alarm_file_consistent(dict_alarm)
+            
+            if self.ALARM_KEY not in dict_alarm:
+                # not an alarm but an alert
+                self._set_no_alarm()
+                return # TODO update grid in this case !
+            
+            nb_areas = len(dict_alarm[self.ALARM_KEY])  # need to be remembered
             line_names = {
                 el: [] for el in self.backend.name_line
             }  # need to be remembered
-            area_names = sorted(dict_alarm[key].keys())  # need to be remembered
+            area_names = sorted(dict_alarm[self.ALARM_KEY].keys())  # need to be remembered
             area_lines = [[] for _ in range(nb_areas)]  # need to be remembered
             for area_id, area_name in enumerate(area_names):
                 # check that: all lines in files are in the grid
-                area = dict_alarm[key][area_name]
+                area = dict_alarm[self.ALARM_KEY][area_name]
                 for line in area:
                     if line not in line_names:
                         raise EnvError(
@@ -841,17 +901,70 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             # every check pass, i update the backend class
             bk_cls = type(self.backend)
-            bk_cls.dim_alarms = nb_areas
+            bk_cls.tell_dim_alarm(nb_areas)
             bk_cls.alarms_area_names = copy.deepcopy(area_names)
             bk_cls.alarms_lines_area = copy.deepcopy(line_names)
             bk_cls.alarms_area_lines = copy.deepcopy(area_lines)
         else:
-            bk_cls = type(self.backend)
-            bk_cls.dim_alarms = 0
-            bk_cls.alarms_area_names = []
-            bk_cls.alarms_lines_area = {}
-            bk_cls.alarms_area_lines = []
+            self._set_no_alarm()
+
+    def _set_no_alert(self):
+        bk_cls = type(self.backend)
+        bk_cls.tell_dim_alert(0)
+        bk_cls.alertable_line_names = []
+        bk_cls.alertable_line_ids = np.array([], dtype=dt_int)
+        
+    def load_alert_data(self):
+        """
+        Internal
+
+        Notes
+        ------
+        This is called to get the alertable lines when the warning is raised "by line"
+
+        Returns
+        -------
+
+        """
+        file_alarms = os.path.join(self.get_path_env(), BaseEnv.ALERT_FILE_NAME)
+        if os.path.exists(file_alarms) and os.path.isfile(file_alarms):
+            with open(file_alarms, mode="r", encoding="utf-8") as f:
+                dict_alert = json.load(f)
+                
+            self._check_alarm_file_consistent(dict_alert)
+            if self.ALERT_KEY not in dict_alert:
+                # not an alert but an alarm
+                self._set_no_alert()
+                return
             
+            if dict_alert[self.ALERT_KEY] != "opponent":
+                raise EnvError('You can only define alert from the opponent for now.')
+            
+            if "lines_attacked" in self._kwargs_opponent:
+                lines_attacked = copy.deepcopy(self._kwargs_opponent["lines_attacked"])
+                if isinstance(lines_attacked[0], list):
+                    lines_attacked = sum(lines_attacked, start=[])
+            else:
+                lines_attacked = []
+                warnings.warn("The kwargs \"lines_attacked\" is not present in the description of your opponent "
+                              "yet you want to use alert. Know that in this case no alert will be defined...")
+                    
+            alertable_line_names = copy.deepcopy(lines_attacked)
+            alertable_line_ids = np.empty(len(alertable_line_names), dtype=dt_int)
+            for i, el in enumerate(alertable_line_names): 
+                indx = np.where(self.backend.name_line == el)[0]
+                if not len(indx):
+                    raise Grid2OpException(f"Attacked line {el} is not found in the grid.")
+                alertable_line_ids[i] = indx[0]
+            nb_lines = len(alertable_line_ids)
+        
+            bk_cls = type(self.backend)
+            bk_cls.tell_dim_alert(nb_lines)
+            bk_cls.alertable_line_names = copy.deepcopy(alertable_line_names)
+            bk_cls.alertable_line_ids = np.array(alertable_line_ids).astype(dt_int)
+        else:
+            self._set_no_alert()
+
     @property
     def action_space(self) -> ActionSpace:
         """this represent a view on the action space"""
@@ -903,7 +1016,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             import grid2op
             from grid2op.Parameters import Parameters
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
 
             env = grid2op.make(env_name)
             env.parameters.NO_OVERFLOW_DISCONNECTION  # -> False
@@ -952,7 +1065,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         .. code-block:: python
         
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             
             param = env.parameters
@@ -981,23 +1094,27 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_parameters.check_valid()  # check the provided parameters are valid
         self.__new_forecast_param = new_parameters
 
-    def _create_attention_budget(self):
+    def _create_attention_budget(self, **kwargs):
         if not self.__is_init:
             raise EnvError(
                 "Impossible to create an attention budget with a non initialized environment!"
             )
         if self._has_attention_budget:
-            self._attention_budget = self._attention_budget_cls()
-            try:
-                self._attention_budget.init(
-                    partial_env=self, **self._kwargs_attention_budget
-                )
-            except TypeError as exc_:
-                raise EnvError(
-                    "Impossible to create the attention budget with the provided argument. Please "
-                    'change the content of the argument "kwargs_attention_budget".'
-                ) from exc_
-
+            if type(self).assistant_warning_type == "zonal":
+                self._attention_budget = self._attention_budget_cls()
+                try:
+                    self._kwargs_attention_budget.update(kwargs)
+                    self._attention_budget.init(
+                        partial_env=self, **self._kwargs_attention_budget
+                    )
+                except TypeError as exc_:
+                    raise EnvError(
+                        "Impossible to create the attention budget with the provided argument. Please "
+                        'change the content of the argument "kwargs_attention_budget".'
+                    ) from exc_
+            elif type(self).assistant_warning_type == "by_line":
+                self._has_attention_budget = False
+                
     def _create_opponent(self):
         if not self.__is_init:
             raise EnvError(
@@ -1198,8 +1315,20 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.seed(None, _seed_me=False)
         self._reset_storage()
         self._reset_curtailment()
+        self._reset_alert()
+        self._reward_to_obs = {}
         self._has_just_been_seeded = False
 
+    def _reset_alert(self):
+        self._last_alert[:] = False
+        self._is_already_attacked[:] = False
+        self._time_since_last_alert[:] = -1
+        self._alert_duration[:] = 0
+        self._total_number_of_alert = 0
+        self._time_since_last_attack[:] = -1
+        self._was_alert_used_after_attack[:] = 0
+        self._attack_under_alert[:] = 0
+        
     def _reset_storage(self):
         """reset storage capacity at the beginning of new environment if needed"""
         if self.n_storage > 0:
@@ -1426,6 +1555,24 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._observation_space.reactivate_forecast(self)
         self.with_forecast = True
 
+    def _init_alert_data(self):
+        cls = type(self)
+        self._last_alert = np.full(cls.dim_alerts,
+                                   dtype=dt_bool, fill_value=False)
+        self._is_already_attacked = np.full(cls.dim_alerts, dtype=dt_bool,
+                                            fill_value=False)
+        self._time_since_last_alert = np.full(cls.dim_alerts,
+                                              dtype=dt_int, fill_value=-1)
+        self._alert_duration = np.full(cls.dim_alerts,
+                                       dtype=dt_int, fill_value=0)
+        self._total_number_of_alert = 0
+        self._time_since_last_attack = np.full(cls.dim_alerts,
+                                               dtype=dt_int, fill_value=-1)
+        self._was_alert_used_after_attack = np.full(cls.dim_alerts,
+                                                    dtype=dt_int, fill_value=0)
+        self._attack_under_alert = np.full(cls.dim_alerts,
+                                           dtype=dt_int, fill_value=0)
+        
     @abstractmethod
     def _init_backend(
         self,
@@ -2622,7 +2769,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         )
 
         if except_tmp is not None:
+            orig_action = action
             action = self._action_space({})
+            if type(self).dim_alerts:
+                action.raise_alert = orig_action.raise_alert
             is_illegal_redisp = True
             except_.append(except_tmp)
 
@@ -2653,7 +2803,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if not valid_disp or except_tmp is not None:
             # game over case (divergence of the scipy routine to compute redispatching)
-            action = self._action_space({})
+            res_action = self._action_space({})
+            if type(self).dim_alerts:
+                res_action.raise_alert = action.raise_alert
             is_illegal_redisp = True
             except_.append(except_tmp)
             is_done = True
@@ -2667,15 +2819,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     "a generator would be damaged in real life. This is a game over."
                 )
             )
-            return action, is_illegal_redisp, is_illegal_reco, is_done
+            return res_action, is_illegal_redisp, is_illegal_reco, is_done
 
         # check the validity of min downtime and max uptime
         except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
         if except_tmp is not None:
             is_illegal_reco = True
-            action = self._action_space({})
+            res_action = self._action_space({})
+            if type(self).dim_alerts:
+                res_action.raise_alert = action.raise_alert
             except_.append(except_tmp)
-        return action, is_illegal_redisp, is_illegal_reco, is_done
+        else:
+            res_action = action
+        return res_action, is_illegal_redisp, is_illegal_reco, is_done
 
     def _aux_update_backend_action(self, action, action_storage_power, init_disp):
         # make sure the dispatching action is not implemented "as is" by the backend.
@@ -2690,6 +2846,46 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._backend_action += self._env_modification
         self._backend_action.set_redispatch(self._actual_dispatch)
 
+    def _update_alert_properties(self, action, lines_attacked, subs_attacked):
+        # update the environment with the alert information from the
+        # action (if env supports it)
+        if type(self).dim_alerts == 0:
+            return
+        
+        self._last_alert[:] = action.raise_alert
+        
+        self._time_since_last_alert[~self._last_alert & (self._time_since_last_alert != -1)] += 1
+        self._time_since_last_alert[self._last_alert] = 0
+        
+        self._alert_duration[self._last_alert] += 1
+        self._alert_duration[~self._last_alert] = 0
+        
+        self._total_number_of_alert += self._last_alert.sum()
+        
+        if lines_attacked is not None:
+            lines_attacked_al = lines_attacked[type(self).alertable_line_ids]
+            mask_first_ts_attack = lines_attacked_al & (~self._is_already_attacked)
+            self._time_since_last_attack[mask_first_ts_attack] = 0
+            self._time_since_last_attack[~mask_first_ts_attack & (self._time_since_last_attack != -1)] += 1
+            
+            # update the time already attacked
+            self._is_already_attacked[lines_attacked_al] = False
+            self._is_already_attacked[lines_attacked_al] = True
+        else:
+            self._time_since_last_attack[self._time_since_last_attack != -1] += 1
+            self._is_already_attacked[:] = False
+            
+        mask_new_attack = self._time_since_last_attack == 0
+        self._attack_under_alert[mask_new_attack] =  2 * self._last_alert[mask_new_attack] - 1
+        mask_attack_too_old = self._time_since_last_attack > self._parameters.ALERT_TIME_WINDOW
+        self._attack_under_alert[mask_attack_too_old] = 0
+        
+        # TODO more complicated (will do it in update_after_reward)
+        # self._was_alert_used_after_attack[:] = XXX
+        
+        # TODO after alert budget will be implemented !
+        # self._is_alert_illegal
+    
     def _aux_register_env_converged(self, disc_lines, action, init_line_status, new_p):
         beg_res = time.perf_counter()
         self.backend.update_thermal_limit(
@@ -2824,6 +3020,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     - "is_illegal_reco" (``bool``) was the action illegal due to a powerline reconnection
                     - "reason_alarm_illegal" (``None`` or ``Exception``) reason for which the alarm is illegal
                       (it's None if no alarm are raised or if the alarm feature is not used)
+                    - "reason_alert_illegal" (``None`` or ``Exception``) reason for which the alert is illegal
+                      (it's None if no alert are raised or if the alert feature is not used)
                     - "opponent_attack_line" (``np.ndarray``, ``bool``) for each powerline, say if the opponent
                       attacked it (``True``) or not (``False``).
                     - "opponent_attack_sub" (``np.ndarray``, ``bool``) for each substation, say if the opponent
@@ -2834,6 +3032,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     - "detailed_infos_for_cascading_failures" (optional, only if the backend has been create with
                       `detailed_infos_for_cascading_failures=True`) the list of the intermediate steps computed during
                       the simulation of the "cascading failures".
+                    - "rewards": dictionary of all "other_rewards" provided when the env was built.
 
         Examples
         ---------
@@ -2891,9 +3090,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         reason_alarm_illegal = None
         self._is_alarm_illegal = False
         self._is_alarm_used_in_reward = False
+        reason_alert_illegal = None
+        self._is_alert_illegal = False
+        self._is_alert_used_in_reward = False
         except_ = []
         detailed_info = []
         init_disp = 1.0 * action._redispatch  # dispatching action
+        init_alert = None
+        if type(self).dim_alerts > 0:
+            init_alert = copy.deepcopy(action._raise_alert)
+            
         action_storage_power = 1.0 * action._storage_power  # battery information
         attack_duration = 0
         lines_attacked, subs_attacked = None, None
@@ -2908,17 +3114,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         try:
             beg_ = time.perf_counter()
 
-            is_legal, reason = self._game_rules(action=action, env=self)
-            if not is_legal:
-                # action is replace by do nothing
-                action = self._action_space({})
-                init_disp = 1.0 * action._redispatch  # dispatching action
-                action_storage_power = (
-                    1.0 * action._storage_power
-                )  # battery information
-                except_.append(reason)
-                is_illegal = True
-
             ambiguous, except_tmp = action.is_ambiguous()
             if ambiguous:
                 # action is replace by do nothing
@@ -2928,14 +3123,38 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     1.0 * action._storage_power
                 )  # battery information
                 is_ambiguous = True
+                    
+                if type(self).dim_alerts > 0:
+                    # keep the alert even if the rest is ambiguous (if alert is non ambiguous)
+                    is_ambiguous_alert = isinstance(except_tmp, AmbiguousActionRaiseAlert)
+                    if is_ambiguous_alert:
+                        # reset the alert
+                        init_alert = np.zeros(type(self).dim_alerts, dtype=dt_bool)
+                    else:
+                        action.raise_alert = init_alert
                 except_.append(except_tmp)
 
+            is_legal, reason = self._game_rules(action=action, env=self)
+            if not is_legal:
+                # action is replace by do nothing
+                action = self._action_space({})
+                init_disp = 1.0 * action._redispatch  # dispatching action
+                action_storage_power = (
+                    1.0 * action._storage_power
+                )  # battery information
+                except_.append(reason)
+                if type(self).dim_alerts > 0:
+                    # keep the alert even if the rest is illegal
+                    action.raise_alert = init_alert
+                is_illegal = True
+
             if self._has_attention_budget:
-                # this feature is implemented, so i do it
-                reason_alarm_illegal = self._attention_budget.register_action(
-                    self, action, is_illegal, is_ambiguous
-                )
-                self._is_alarm_illegal = reason_alarm_illegal is not None
+                if type(self).assistant_warning_type == "zonal":
+                    # this feature is implemented, so i do it
+                    reason_alarm_illegal = self._attention_budget.register_action(
+                        self, action, is_illegal, is_ambiguous
+                    )
+                    self._is_alarm_illegal = reason_alarm_illegal is not None
 
             # get the modification of generator active setpoint from the environment
             self._env_modification, prod_v_chronics = self._update_actions()
@@ -2989,6 +3208,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
                 # now it's time to run the powerflow properly
                 # and to update the time dependant properties
+                self._update_alert_properties(action, lines_attacked, subs_attacked)
                 detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
                     action, init_line_status, new_p, except_
                 )
@@ -3011,6 +3231,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "is_dispatching_illegal": is_illegal_redisp,
             "is_illegal_reco": is_illegal_reco,
             "reason_alarm_illegal": reason_alarm_illegal,
+            "reason_alert_illegal": reason_alert_illegal,
             "opponent_attack_line": lines_attacked,
             "opponent_attack_sub": subs_attacked,
             "opponent_attack_duration": attack_duration,
@@ -3035,9 +3256,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._is_alarm_used_in_reward = (
                     self._reward_helper.template_reward.is_alarm_used
                 )
+            if hasattr(self._reward_helper.template_reward, "has_alert_component"):
+                self._is_alert_used_in_reward = (
+                    self._reward_helper.template_reward.is_alert_used
+                )
             self.current_obs = self.get_obs(_update_state=False)
             # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
+            
+        if self._update_obs_after_reward and self.current_obs is not None:
+            # transfer some information computed in the reward into the obs (if any)
+            self.current_obs.update_after_reward(self)
             
         # TODO documentation on all the possible way to be illegal now
         if self.done:
@@ -3156,7 +3385,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError(
-                "This environment is closed already, you cannot close it a second time."
+                f"This environment {id(self)} {self} is closed already, you cannot close it a second time."
             )
 
         # todo there might be some side effect
@@ -3169,34 +3398,42 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             del self.backend
         self.backend :Backend = None
 
-        if hasattr(self, "observation_space") and self.observation_space is not None:
+        if hasattr(self, "_observation_space") and self._observation_space is not None:
             # do not forget to close the backend of the observation (used for simulate)
-            self.observation_space.close()
+            self._observation_space.close()
+            self._observation_space = None
 
         if hasattr(self, "_voltage_controler") and self._voltage_controler is not None:
             # in case there is a backend in the voltage controler
             self._voltage_controler.close()
+            self._voltage_controler = None
 
         if hasattr(self, "_oppSpace") and self._oppSpace is not None:
             # in case there is a backend in the opponent space
             self._oppSpace.close()
+            self._oppSpace = None
 
         if hasattr(self, "_helper_action_env") and self._helper_action_env is not None:
             # close the action helper
             self._helper_action_env.close()
+            self._helper_action_env = None
 
-        if hasattr(self, "action_space") and self.action_space is not None:
+        if hasattr(self, "_action_space") and self._action_space is not None:
             # close the action space if needed
-            self.action_space.close()
+            self._action_space.close()
+            self._action_space = None
 
         if hasattr(self, "_reward_helper") and self._reward_helper is not None:
             # close the reward if needed
             self._reward_helper.close()
+            self._reward_helper = None
 
-        if hasattr(self, "other_rewards"):
+        if hasattr(self, "other_rewards") and self.other_rewards is not None:
             for el, reward in self.other_rewards.items():
                 # close the "other rewards"
                 reward.close()
+            self.other_rewards = None
+            
         self.backend : Backend = None
         self.__is_init = False
         self.__closed = True
@@ -3303,6 +3540,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_attention_budget_cls",
             "_is_alarm_illegal",
             "_is_alarm_used_in_reward",
+            "_is_alert_illegal",
+            "_is_alert_used_in_reward",
             "_kwargs_attention_budget",
             "_limited_before",
         ]:
@@ -3573,19 +3812,24 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def generate_classes(self, _guard=None, _is_base_env__=True, sys_path=None):
         """
-        Use with extra care !
+        Use with care, but can be incredibly useful !
+        
         If you get into trouble like :
 
         .. code-block:: none
         
             AttributeError: Can't get attribute 'ActionSpace_l2rpn_icaps_2021_small' 
             on <module 'grid2op.Space.GridObjects' from
-            /home/benjamin/Documents/grid2op_dev/grid2op/Space/GridObjects.py'>
+            /home/user/Documents/grid2op_dev/grid2op/Space/GridObjects.py'>
         
         You might want to call this function and that MIGHT solve your problem.
 
-        This function will create a subdirectory ino the env directory, that will be accessed when loadin the class
-        used for the environment. The default behaviour is to build the class on the fly.
+        This function will create a subdirectory ino the env directory, 
+        that will be accessed when loading the classes
+        used for the environment. 
+        
+        The default behaviour is to build the class on the fly which can cause some 
+        issues when using `pickle` or `multiprocessing` for example.
 
         Examples
         --------
@@ -3609,7 +3853,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
 
             env = grid2op.make(env_name, ...)  # again: redo this step each time you customize "..."
             # for example if you change the `action_class` or the `backend` etc.

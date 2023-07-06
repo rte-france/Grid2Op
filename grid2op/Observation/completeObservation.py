@@ -101,8 +101,24 @@ class CompleteObservation(BaseObservation):
             [``int``]
         41. :attr:`BaseObservation.was_alarm_used_after_game_over` : was the last alarm used to compute anything related
             to the attention budget when there was a game over (can only be set to ``True`` if the observation
-            corresponds to a game over) [``bool``] 
-            .. warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ 
+            corresponds to a game over), warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\ 
+            [``bool``]
+        42. :attr:`BaseObservation.is_alarm_illegal` whether the last alert has been illegal (due to budget
+            constraint) [``bool``]
+        43. :attr:`BaseObservation.curtailment_limit` : the current curtailment limit (if any)
+            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
+        44. :attr:`BaseObservation.curtailment_limit_effective` TODO
+        45. :attr:`BaseObservation.current_step` TODO
+        46. :attr:`BaseObservation.max_step` TODO
+        47. :attr:`BaseObservation.delta_time` TODO
+        48. :attr:`BaseObservation.gen_margin_up` TODO
+        49. :attr:`BaseObservation.gen_margin_down` TODO   
+        50. :attr:`BaseObservation.last_alert` TODO
+        51. :attr:`BaseObservation.time_since_last_alert` TODO
+        52. :attr:`BaseObservation.alert_duration` TODO
+        53. :attr:`BaseObservation.total_number_of_alert` TODO
+        54. :attr:`BaseObservation.time_since_last_attack` TODO
+        55. :attr:`BaseObservation.was_alert_used_after_attack` TODO
     """
 
     attr_list_vect = [
@@ -157,6 +173,14 @@ class CompleteObservation(BaseObservation):
         "delta_time",  # starting grid2op version 1.6.5
         "gen_margin_up",
         "gen_margin_down",  # starting grid2op version 1.6.6
+        # line alert (starting grid2Op 1.9.1, for compatible envs)
+        "active_alert",
+        "attack_under_alert",
+        "time_since_last_alert",
+        "alert_duration",
+        "total_number_of_alert",
+        "time_since_last_attack",
+        "was_alert_used_after_attack",
     ]
     attr_list_json = [
         "_thermal_limit",

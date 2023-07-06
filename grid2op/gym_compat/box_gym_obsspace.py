@@ -65,8 +65,14 @@ ALL_ATTR_OBS = (
     "last_alarm",
     "attention_budget",
     "was_alarm_used_after_game_over",
-    "current_step",
     "max_step",
+    "active_alert",
+    "attack_under_alert",
+    "time_since_last_alert",
+    "alert_duration",
+    "total_number_of_alert",
+    "time_since_last_attack",
+    "was_alert_used_after_attack",
     "theta_or",
     "theta_ex",
     "load_theta",
@@ -112,7 +118,7 @@ class __AuxBoxGymObsSpace:
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         from grid2op.gym_compat import GymEnv, BoxGymObsSpace
@@ -543,6 +549,49 @@ class __AuxBoxGymObsSpace:
                 (1,),
                 dt_float,
             ),
+            # alert stuff
+            "active_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=False, dtype=dt_bool),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=True, dtype=dt_bool),
+                (ob_sp.dim_alerts,),
+                dt_bool,
+            ),
+            "time_since_last_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "alert_duration": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "total_number_of_alert": (
+                np.full(shape=(1 if ob_sp.dim_alerts else 0,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(1 if ob_sp.dim_alerts else 0,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (1 if ob_sp.dim_alerts else 0,),
+                dt_int,
+            ),
+            "time_since_last_attack": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "was_alert_used_after_attack": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=1, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "attack_under_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=1, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
         }
         self._dict_properties["max_step"] = copy.deepcopy(self._dict_properties["current_step"])
         self._dict_properties["delta_time"] = copy.deepcopy(self._dict_properties["current_step"])
@@ -582,7 +631,34 @@ class __AuxBoxGymObsSpace:
 
         # initialize the base container
         type(self)._BoxType.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
+        
+        # convert data in `_add` and `_multiply` to the right type
+            
+        # self._subtract = {k: v.astype(self.dtype) for k, v in self._subtract.items()}
+        # self._divide = {k: v.astype(self.dtype) for k, v in self._divide.items()}
+        self._fix_value_sub_div(self._subtract, functs)
+        self._fix_value_sub_div(self._divide, functs)
 
+    def _get_shape(self, el, functs):
+        if el in functs:
+            callable_, low_, high_, shape_, dtype_ = functs[el]
+        elif el in self._dict_properties:
+            # el is an attribute of an observation, for example "load_q" or "topo_vect"
+            low_, high_, shape_, dtype_ = self._dict_properties[el]
+        return shape_
+    
+    def _fix_value_sub_div(self, dict_, functs):
+        """dict_ is either self._subtract or self._divide"""
+        keys = list(dict_.keys())
+        for k in keys:
+            v = dict_[k]
+            if isinstance(v, (list, tuple)):
+                v = np.array(v).astype(self.dtype)
+            else:
+                shape = self._get_shape(k, functs)
+                v = np.full(shape, fill_value=v, dtype=self.dtype)
+            dict_[k] = v
+        
     def _get_info(self, functs):
         low = None
         high = None
@@ -660,7 +736,11 @@ class __AuxBoxGymObsSpace:
                 dtype = dtype_
             else:
                 if dtype_ == dt_float:
+                    # promote whatever to float anyway
                     dtype = dt_float
+                elif dtype_ == dt_int and dtype == dt_bool:
+                    # promote bool to int
+                    dtype = dt_int
 
             # handle the shape
             if shape is None:
