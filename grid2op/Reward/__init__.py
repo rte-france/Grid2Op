@@ -24,8 +24,7 @@ __all__ = [
     "AlertReward",
     "_AlarmScore",
     "_NewRenewableSourcesUsageScore",
-    "_AssistantConfidenceScore",
-    "_AssistantCostScore"
+    "_AlertCostScore"
 ]
 
 from grid2op.Reward.constantReward import ConstantReward
@@ -52,7 +51,7 @@ from grid2op.Reward.n1Reward import N1Reward
 from grid2op.Reward.l2rpn_wcci2022_scorefun import L2RPNWCCI2022ScoreFun
 from grid2op.Reward.alertReward import AlertReward
 from grid2op.Reward._newRenewableSourcesUsageScore import _NewRenewableSourcesUsageScore
-from grid2op.Reward._assistantScore import _AssistantConfidenceScore, _AssistantCostScore
+from grid2op.Reward._alertCostScore import _AlertCostScore
 
 
 import warnings

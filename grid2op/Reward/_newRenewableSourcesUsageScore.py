@@ -42,8 +42,9 @@ class _NewRenewableSourcesUsageScore(BaseReward):
         if self._is_simul_env:
             return
         
-        self.gen_res_p_curtailed_list = np.zeros(env.chronics_handler.max_timestep() + 1)
-        self.gen_res_p_before_curtail_list = np.zeros(env.chronics_handler.max_timestep() + 1)
+        max_timesteps = env.chronics_handler.max_timestep() + 1
+        self.gen_res_p_curtailed_list = np.zeros(max_timesteps)
+        self.gen_res_p_before_curtail_list = np.zeros(max_timesteps)
         
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
 

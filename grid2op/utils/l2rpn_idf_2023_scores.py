@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.utils.l2rpn_2020_scores import ScoreL2RPN2020
-from grid2op.Reward import L2RPNSandBoxScore, _NewRenewableSourcesUsageScore, _AssistantConfidenceScore, _AssistantCostScore
+from grid2op.Reward import L2RPNSandBoxScore, _NewRenewableSourcesUsageScore, AlertReward, _AlertCostScore
 from grid2op.utils.underlying_statistics import EpisodeStatistics
 
 
@@ -102,13 +102,13 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             nb_process_stats=nb_process_stats,
             scores_func={
                 "grid_operational_cost": L2RPNSandBoxScore,
-                #"assistance_confidence": _AssistantConfidenceScore,
-                #"assistant_cost": _AssistantCostScore,
+                "assistance_confidence": AlertReward,
+                "assistant_cost": _AlertCostScore,
                 "new_renewable_sources_usage": _NewRenewableSourcesUsageScore,
             },
             score_names=["grid_operational_cost_scores",
-                         #"assistant_confidence_scores",
-                         #"assistant_cost_scores",
+                         "assistant_confidence_scores",
+                         "assistant_cost_scores",
                          "new_renewable_sources_usage_scores"],
         )
         
@@ -164,18 +164,18 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         nres_score = self.scale_nres_score * nres_score 
         
         #assistant_confidence_score
-        # new_renewable_sources_usage_score_nm = "assistant_confidence_scores"
-        # real_nm = EpisodeStatistics._nm_score_from_attr_name(new_renewable_sources_usage_score_nm)
-        # key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
-        # assistant_confidence_score = float(other_rewards[-1][key_score_file])
-        assistant_confidence_score = 0 #self.scale_assistant_score * assistant_confidence_score
+        assistant_confidence_score_nm = "assistant_confidence_scores"
+        real_nm = EpisodeStatistics._nm_score_from_attr_name(assistant_confidence_score_nm)
+        key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
+        assistant_confidence_score = float(other_rewards[-1][key_score_file])
+        assistant_confidence_score = self.scale_assistant_score * assistant_confidence_score
         
         #assistant_cost_score
-        # new_renewable_sources_usage_score_nm = "assistant_cost_scores"
-        # real_nm = EpisodeStatistics._nm_score_from_attr_name(new_renewable_sources_usage_score_nm)
-        # key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
-        # assistant_cost_score = float(other_rewards[-1][key_score_file])
-        assistant_cost_score  = 0 #self.scale_assistant_score * assistant_cost_score
+        assistant_cost_score_nm = "assistant_cost_scores"
+        real_nm = EpisodeStatistics._nm_score_from_attr_name(assistant_cost_score_nm)
+        key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
+        assistant_cost_score = float(other_rewards[-1][key_score_file])
+        assistant_cost_score  = self.scale_assistant_score * assistant_cost_score
         
         assistant_score = self.weight_confidence_assistant_score * assistant_confidence_score +\
              (1. - self.weight_confidence_assistant_score) * assistant_cost_score
