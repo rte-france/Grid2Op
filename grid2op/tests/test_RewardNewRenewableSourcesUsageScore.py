@@ -148,6 +148,14 @@ class TestNewRenewableSourcesUsageScore(unittest.TestCase):
                 break
             
         return reward == 1.
+    
+    def test_simulated_env(self):
+        obs = self.env.reset()
+        f_env = obs.get_forecast_env()
+        forD = False
+        while not forD:
+            forO, forR, forD, forI = f_env.step(self.env.action_space())
+            assert forR == 0.
             
     
 if __name__ == "__main__":

@@ -34,6 +34,8 @@ class _AlertCostScore(BaseReward):
         self.reward_min = dt_float(-1.0)
         self.reward_max = dt_float(1.0)
         self._is_simul_env = False
+        self.total_nb_alertes_possible = None
+        self.total_nb_alerts = None
         
     def __initialize__(self, env):
         if not env._has_attention_budget:
@@ -48,18 +50,19 @@ class _AlertCostScore(BaseReward):
         self._is_simul_env = self.is_simulated_env(env)
         if self._is_simul_env:
             return
+        
         self.total_nb_alertes_possible = (env.chronics_handler.max_timestep() + 1) * (env.dim_alerts)
         self.total_nb_alerts = 0
         
-    def __call__(self, env, obs, is_done):
-        if self._is_simul_env:
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+        if self.is_simulated_env(env):
             return dt_float(0.)
         
         if is_done:
             ratio_nb_alerts = 100 * ( 1 - self.total_nb_alerts / self.total_nb_alertes_possible)
             return self._penalization_fun(ratio_nb_alerts)
         else:
-            self.total_nb_alerts = obs.total_number_of_alerts
+            self.total_nb_alerts = env._total_number_of_alert
             return dt_float(0.)
         
     @staticmethod

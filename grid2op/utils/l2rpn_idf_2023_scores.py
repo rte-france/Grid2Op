@@ -88,6 +88,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         weight_nres_score=0.15,
         weight_confidence_assistant_score=0.7,
         min_nres_score=-100,
+        min_assistant_cost_score=-100,
     ):
 
         ScoreL2RPN2020.__init__(
@@ -122,6 +123,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         self.weight_nres_score = weight_nres_score
         self.weight_confidence_assistant_score = weight_confidence_assistant_score
         self.min_nres_score = min_nres_score
+        self.min_assistant_cost_score = min_assistant_cost_score
 
     def _compute_episode_score(
         self,
@@ -175,6 +177,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         real_nm = EpisodeStatistics._nm_score_from_attr_name(assistant_cost_score_nm)
         key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
         assistant_cost_score = float(other_rewards[-1][key_score_file])
+        assistant_cost_score = max(assistant_cost_score, self.min_assistant_cost_score / self.scale_assistant_score)
         assistant_cost_score  = self.scale_assistant_score * assistant_cost_score
         
         assistant_score = self.weight_confidence_assistant_score * assistant_confidence_score +\
