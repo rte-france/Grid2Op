@@ -1,6 +1,6 @@
 from grid2op.Action import PlayableAction, PowerlineSetAction
 from grid2op.Observation import CompleteObservation
-from grid2op.Reward import RedispReward
+from grid2op.Reward import RedispReward, AlertReward
 from grid2op.Rules import RulesByArea
 from grid2op.Chronics import Multifolder
 from grid2op.Chronics import GridStateFromFileWithForecastsWithMaintenance
@@ -8,13 +8,12 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Opponent import GeometricOpponentMultiArea, BaseActionBudget
 
 try:
-    # This will change TODO
     from grid2op.l2rpn_utils import ActionIDF2023, ObservationIDF2023
 except ImportError:
     from grid2op.Action import PlayableAction
     from grid2op.Observation import CompleteObservation
     import warnings
-    warnings.warn("The grid2op version you are trying to use is too old for this environment. Please upgrade it.")
+    warnings.warn("The grid2op version you are trying to use is too old for this environment. Please upgrade it to at least grid2op 1.9.1")
     ActionIDF2023 = PlayableAction
     ObservationIDF2023 = CompleteObservation
 
@@ -110,4 +109,5 @@ config = {
         "minimum_attack_duration_hour": 1,
         "pmax_pmin_ratio": 4
     },
+    "other_rewards": {"alert": AlertReward}
 }

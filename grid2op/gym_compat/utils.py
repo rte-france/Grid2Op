@@ -16,10 +16,14 @@ except ModuleNotFoundError:
 
 try:
     import gym
+    # the current gym version (we should support most recent, but also 
+    # the very old 0.21 because it used by stable baselines3...)
+    GYM_VERSION = version.parse(distribution('gym').version)
     GYM_AVAILABLE = True
 except ImportError:
     GYM_AVAILABLE = False
-
+    GYM_VERSION = version.parse("0.17.2") 
+    
 try:
     import gymnasium
     GYMNASIUM_AVAILABLE = True
@@ -30,10 +34,6 @@ except ImportError:
 _MIN_GYM_VERSION = version.parse("0.17.2")
 # this is the last gym version to use the "old" numpy prng
 _MAX_GYM_VERSION_RANDINT = version.parse("0.25.99") 
-# the current gym version (we should support most recent, but also 
-# the very old 0.21 because it used by stable baselines3...)
-GYM_VERSION = version.parse(distribution('gym').version)
-
 
 ALL_ATTR = (
     "set_line_status",

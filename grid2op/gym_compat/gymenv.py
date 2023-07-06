@@ -182,9 +182,11 @@ class __AuxGymEnv:
             self.init_env.close()
             del self.init_env
         self.init_env = None
+        
         if hasattr(self, "action_space") and self.action_space is not None:
             self.action_space.close()
         self.action_space = None
+        
         if hasattr(self, "observation_space") and self.observation_space is not None:
             self.observation_space.close()
         self.observation_space = None

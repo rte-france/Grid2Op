@@ -3032,6 +3032,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     - "detailed_infos_for_cascading_failures" (optional, only if the backend has been create with
                       `detailed_infos_for_cascading_failures=True`) the list of the intermediate steps computed during
                       the simulation of the "cascading failures".
+                    - "rewards": dictionary of all "other_rewards" provided when the env was built.
 
         Examples
         ---------
@@ -3150,10 +3151,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if self._has_attention_budget:
                 if type(self).assistant_warning_type == "zonal":
                     # this feature is implemented, so i do it
-                    reason_alert_illegal = self._attention_budget.register_action(
+                    reason_alarm_illegal = self._attention_budget.register_action(
                         self, action, is_illegal, is_ambiguous
                     )
-                    self._is_alert_illegal = reason_alert_illegal is not None
+                    self._is_alarm_illegal = reason_alarm_illegal is not None
 
             # get the modification of generator active setpoint from the environment
             self._env_modification, prod_v_chronics = self._update_actions()
@@ -3384,7 +3385,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         if self.__closed:
             raise EnvError(
-                "This environment is closed already, you cannot close it a second time."
+                f"This environment {id(self)} {self} is closed already, you cannot close it a second time."
             )
 
         # todo there might be some side effect
@@ -3397,34 +3398,42 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             del self.backend
         self.backend :Backend = None
 
-        if hasattr(self, "observation_space") and self.observation_space is not None:
+        if hasattr(self, "_observation_space") and self._observation_space is not None:
             # do not forget to close the backend of the observation (used for simulate)
-            self.observation_space.close()
+            self._observation_space.close()
+            self._observation_space = None
 
         if hasattr(self, "_voltage_controler") and self._voltage_controler is not None:
             # in case there is a backend in the voltage controler
             self._voltage_controler.close()
+            self._voltage_controler = None
 
         if hasattr(self, "_oppSpace") and self._oppSpace is not None:
             # in case there is a backend in the opponent space
             self._oppSpace.close()
+            self._oppSpace = None
 
         if hasattr(self, "_helper_action_env") and self._helper_action_env is not None:
             # close the action helper
             self._helper_action_env.close()
+            self._helper_action_env = None
 
-        if hasattr(self, "action_space") and self.action_space is not None:
+        if hasattr(self, "_action_space") and self._action_space is not None:
             # close the action space if needed
-            self.action_space.close()
+            self._action_space.close()
+            self._action_space = None
 
         if hasattr(self, "_reward_helper") and self._reward_helper is not None:
             # close the reward if needed
             self._reward_helper.close()
+            self._reward_helper = None
 
-        if hasattr(self, "other_rewards"):
+        if hasattr(self, "other_rewards") and self.other_rewards is not None:
             for el, reward in self.other_rewards.items():
                 # close the "other rewards"
                 reward.close()
+            self.other_rewards = None
+            
         self.backend : Backend = None
         self.__is_init = False
         self.__closed = True

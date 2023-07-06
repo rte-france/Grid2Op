@@ -174,10 +174,9 @@ class TestAction(unittest.TestCase):
 
     def test_print_alert_action(self) -> None :
         """test i can print an alert on all attackable lines"""
-        env = self.env
         attackable_line_id = 0
         # raise alert on line number line_id
-        act = env.action_space()
+        act = self.env.action_space()
         act.raise_alert = [attackable_line_id]
 
         assert act.__str__() == 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any redispatching action\n\t - NOT modify any storage capacity\n\t - NOT perform any curtailment\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - NOT switch anything in the topology\n\t - NOT force any particular bus configuration\n\t - Raise alert(s) : 0 (on line 62_58_180)'
@@ -188,6 +187,28 @@ class TestAction(unittest.TestCase):
         assert random_action.raise_alert.shape == (self.env.dim_alerts,)
         assert isinstance(random_action.raise_alert, np.ndarray)
         assert random_action.raise_alert.dtype == bool
+
+
+    def test_ambiguous_illicit_alert_action(self) -> None : 
+        """test an alert is ambiguous or not """
+        attackable_line_id = 0
+        # raise alert on line number line_id
+        act = self.env.action_space()
+        act.raise_alert = [attackable_line_id]
+        assert not act.is_ambiguous()[0]
+
+
+        attackable_line_id = 0
+        # raise alert on line number line_id
+        act2 = self.env.action_space()
+        try:
+            act2.raise_alert = [self.env.dim_alerts]
+        except Exception as e:
+            assert e.args[0] ==  'Impossible to modify the alert with your input. Please consult the documentation. The error was:\n"Grid2OpException IllegalAction "Impossible to change a raise alert id 10 because there are only 10 on the grid (and in python id starts at 0)""'
+
+        # TODO : is it really illicit or rather ambiguous ? 
+        #assert act.is_ambiguous()[0]
+
 
 
 # Test alert blackout / tets alert no blackout
@@ -554,6 +575,6 @@ class TestObservation(unittest.TestCase):
 # TODO test the update_obs_after_reward in the runner !
 
 # TODO test "as_dict" and "as_json"
-        
+
 if __name__ == "__main__":
     unittest.main()

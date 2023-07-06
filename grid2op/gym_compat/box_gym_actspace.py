@@ -327,9 +327,31 @@ class __AuxBoxGymActSpace:
         type(self)._BoxType.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
         
         # convert data in `_add` and `_multiply` to the right type
-        self._add = {k: v.astype(dtype) for k, v in self._add.items()}
-        self._multiply = {k: v.astype(dtype) for k, v in self._multiply.items()}
-            
+        # self._add = {k: v.astype(self.dtype) for k, v in self._add.items()}
+        # self._multiply = {k: v.astype(self.dtype) for k, v in self._multiply.items()}
+        self._fix_value_sub_div(self._add, functs)
+        self._fix_value_sub_div(self._multiply, functs)
+        
+    def _get_shape(self, el, functs):
+        if el in functs:
+            callable_, low_, high_, shape_, dtype_ = functs[el]
+        elif el in self._dict_properties:
+            # el is an attribute of an observation, for example "load_q" or "topo_vect"
+            low_, high_, shape_, dtype_ = self._dict_properties[el]
+        return shape_
+    
+    def _fix_value_sub_div(self, dict_, functs):
+        """dict_ is either self._add or self._multiply"""
+        keys = list(dict_.keys())
+        for k in keys:
+            v = dict_[k]
+            if isinstance(v, (list, tuple)):
+                v = np.array(v).astype(self.dtype)
+            else:
+                shape = self._get_shape(k, functs)
+                v = np.full(shape, fill_value=v, dtype=self.dtype)
+            dict_[k] = v
+                       
     def _get_info(self, functs):
         low = None
         high = None
@@ -405,7 +427,11 @@ class __AuxBoxGymActSpace:
                 dtype = dtype_
             else:
                 if dtype_ == dt_float:
+                    # promote whatever to float anyway
                     dtype = dt_float
+                elif dtype_ == dt_int and dtype == dt_bool:
+                    # promote bool to int
+                    dtype = dt_int
 
             # handle the shape
             if shape is None:
