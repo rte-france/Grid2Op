@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.9.1] - 2023-07-yy
+[1.9.1] - 2023-07-06
 --------------------
 - [BREAKING] (slightly): default `gym_compat` module now inherit from `gymnasium` (if 
   gymnasium is installed) instead of `gym`. If you want legacy behaviour, 
