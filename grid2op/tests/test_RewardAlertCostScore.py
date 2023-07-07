@@ -127,9 +127,10 @@ class TestRunner(unittest.TestCase):
         obs = self.env.reset()
         runner = Runner(**self.env.get_params_for_runner())
         res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
-        assert res[0][2] == 1.
+        assert res[0][2] == 1. #it got to the end
     
     def test_simagent(self):
+        #simulate blackout but act donothing
         obs = self.env.reset()
         
         class SimAgent(BaseAgent):

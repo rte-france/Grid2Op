@@ -49,7 +49,7 @@ class CurtailAgent(BaseAgent):
 class TestScoreL2RPN2023(unittest.TestCase):
     
     def setUp(self) -> None:
-        env_name = "l2rpn_case14_sandbox"
+        env_name = "l2rpn_idf_2023_with_alert"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(env_name,
