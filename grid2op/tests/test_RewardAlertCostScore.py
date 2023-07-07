@@ -90,7 +90,7 @@ class TestSimulate(unittest.TestCase):
         
         go_act = self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}})
         simO, simr, simd, simi = obs.simulate(go_act)
-        assert simr == 1., f"{simr} vs 1."
+        assert simr == 0., f"{simr} vs 0."
         assert simd
         
     def test_simulated_env(self):
@@ -106,7 +106,7 @@ class TestSimulate(unittest.TestCase):
         go_act = self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}})
         while not forD:
             forO, forR, forD, forI = f_env.step(go_act)
-            assert forR == 1.
+            assert forR == 0.
     
     
 class TestRunner(unittest.TestCase):

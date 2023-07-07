@@ -146,6 +146,35 @@ class TestScoreL2RPN2023(unittest.TestCase):
             assert res_agent1[0][1][2] - res_agent2[0][1][2] >= res_agent2[0][1][2] - res_agent2[0][1][2]
         finally:
             my_score.clear_all() 
+            
+    def test_score_helper2(self):
+        """basic tests for ScoreL2RPN2023 class"""
+        self.env.reset() 
+        try:
+            my_score = ScoreL2RPN2023(
+                self.env,
+                nb_scenario=self.nb_scenario,
+                env_seeds=[0 for _ in range(self.nb_scenario)],
+                agent_seeds=[0 for _ in range(self.nb_scenario)],
+                max_step=self.max_iter,
+                weight_op_score=0.65,
+                weight_assistant_score=25,
+                weight_nres_score=0.15,
+                scale_nres_score=100,
+                scale_assistant_score=100,
+                min_nres_score=-100.,
+                min_assistant_cost_score=-100)
+            
+            # test do nothing indeed gets 100.
+            res_dn = my_score.get(DoNothingAgent(self.env.action_space))
+            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_dn[0]):
+                assert nres_score == 100.
+                assert ep_score == 0.65 * op_score + 0.15 * nres_score + 0.25 * (0.7 * assistant_confidence_score + 0.3 * assistant_cost_score)
+                assert assistant_cost_score == 100.
+                assert assistant_confidence_score == 100. #no blackout with no disconnections
+                
+        finally:
+            my_score.clear_all()
 
     def test_min_score(self):
         """test the score does not go bellow the minimum in input"""
