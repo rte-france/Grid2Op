@@ -55,7 +55,7 @@ class _AlertCostScore(BaseReward):
         self.total_nb_alerts = 0
         
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        if self.is_simulated_env(env):
+        if any([self.is_simulated_env(env), not env._has_attention_budget]):
             return dt_float(0.)
         
         if is_done:
