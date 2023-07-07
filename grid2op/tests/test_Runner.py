@@ -497,6 +497,8 @@ class TestRunner(HelperTests):
             "1.7.1",
             "1.7.2",
             "1.8.1",
+            "1.9.0",
+            "1.9.1",
         ]
         curr_version = "test_version"
         assert (

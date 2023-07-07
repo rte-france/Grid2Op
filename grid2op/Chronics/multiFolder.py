@@ -211,7 +211,7 @@ class Multifolder(GridValue):
             self.subpaths = [
                 os.path.join(self.path, el)
                 for el in os.listdir(self.path)
-                if os.path.isdir(os.path.join(self.path, el))
+                if os.path.isdir(os.path.join(self.path, el)) and (el != "__pycache__") and (not el.startwith("."))
             ]
             self.subpaths.sort()
             self.subpaths = np.array(self.subpaths)

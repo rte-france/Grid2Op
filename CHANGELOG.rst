@@ -31,6 +31,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.2] - 2023-07-xx
+---------------------
+- [FIXED] broken environ "l2rpn_idf_2023" (with test=True) due to the presence of a `__pycache__` folder
+- [FIXED] time series `MultiFolder` will now ignore folder `__pycache__`
+
 [1.9.1] - 2023-07-06
 --------------------
 - [BREAKING] (slightly): default `gym_compat` module now inherit from `gymnasium` (if 
