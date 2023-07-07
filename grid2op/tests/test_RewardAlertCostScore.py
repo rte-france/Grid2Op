@@ -11,7 +11,7 @@ import numpy as np
 import unittest
 import tempfile
 import grid2op
-from grid2op.Reward import _AlertCostScore
+from grid2op.Reward import _AlertCostScore, _AlertTrustScore
 from grid2op.Agent import DoNothingAgent, BaseAgent
 from grid2op.tests.helper_path_test import *
 from grid2op.Exceptions import Grid2OpException
@@ -161,7 +161,40 @@ class TestRunner(unittest.TestCase):
             ep0, *_ = EpisodeData.list_episode(f)
             ep = EpisodeData.from_disk(*ep0)
             assert ep.rewards[8] == 1.
-            
+ 
+
+class TestAlertTrustScore(unittest.TestCase):  
+    def setUp(self) -> None:
+        self.env_nm = os.path.join(
+            PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
+        )
+        
+    def tearDown(self) -> None:
+        return super().tearDown()   
+    
+    def test_assistant_reward_value_no_blackout_no_attack_no_alert(self) -> None : 
+        """ When no blackout and no attack occur, and no alert is raised we expect a reward of 0
+            until the end of the episode where we get the max reward 1.
+
+        Raises:
+            Grid2OpException: raise an exception if an attack occur
+        """
+        with grid2op.make(
+            self.env_nm,
+            test=True,
+            difficulty="1",
+            reward_class=_AlertTrustScore
+        ) as env:
+            env.seed(0)
+            env.reset()
+
+            done = False
+            for i in range(env.max_episode_duration()):
+                obs, reward, done, info = env.step(env.action_space())
+                if done:
+                    assert reward == 1.
+                else:
+                    assert reward == 0.      
     
 if __name__ == "__main__":
     unittest.main()        

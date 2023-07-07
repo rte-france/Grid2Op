@@ -36,7 +36,7 @@ class _AlertTrustScore(AlertReward):
                  reward_max_blackout=2.0,
                  reward_end_episode_bonus=1.0):
         
-        super().init(logger,
+        super().__init__(logger,
                  reward_min_no_blackout,
                  reward_min_blackout, 
                  reward_max_no_blackout,
