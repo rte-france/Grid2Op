@@ -63,7 +63,7 @@ class _AlertTrustScore(AlertReward):
             
             res = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
             self.cumulated_reward += res
-            self.total_nb_attacks += 1.* (env._time_since_last_attack == 0)
+            self.total_nb_attacks += 1.* (any(env._time_since_last_attack == 0))
             
             if not is_done:
                 return score_ep
