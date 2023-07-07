@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.utils.l2rpn_2020_scores import ScoreL2RPN2020
-from grid2op.Reward import L2RPNSandBoxScore, _NewRenewableSourcesUsageScore, AlertReward, _AlertCostScore
+from grid2op.Reward import L2RPNSandBoxScore, _NewRenewableSourcesUsageScore, _AlertTrustScore, _AlertCostScore
 from grid2op.utils.underlying_statistics import EpisodeStatistics
 
 
@@ -103,7 +103,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             nb_process_stats=nb_process_stats,
             scores_func={
                 "grid_operational_cost": L2RPNSandBoxScore,
-                "assistance_confidence": AlertReward,
+                "assistance_confidence": _AlertTrustScore,
                 "assistant_cost": _AlertCostScore,
                 "new_renewable_sources_usage": _NewRenewableSourcesUsageScore,
             },
