@@ -57,16 +57,16 @@ class _AlertTrustScore(AlertReward):
             self.cumulated_reward = 0
             
         def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-            res = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
-            
+            score_ep = 0.
             if self.is_simulated_env(env):
-                return 0.
+                return score_ep
             
+            res = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
             self.cumulated_reward += res
             self.total_nb_attacks += 1.* (env._time_since_last_attack == 0)
             
             if not is_done:
-                return 0.
+                return score_ep
             else:
                 score_min_ep = self.score_min_ep(self.total_nb_attacks)
                 score_max_ep = self.score_max_ep(self.total_nb_attacks)
