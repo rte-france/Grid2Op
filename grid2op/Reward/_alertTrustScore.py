@@ -74,8 +74,13 @@ class _AlertTrustScore(AlertReward):
         else:
             # score_min_ep = self.score_min_ep(self.total_nb_attacks)
             # score_max_ep = self.score_max_ep(self.total_nb_attacks)
-            # standardized_score = (self.cumulated_reward - score_min_ep) / (score_max_ep - score_min_ep + 1e-6)
-            # score_ep = standardized_score * 2. - 1.
-            score_ep = self.cumulated_reward
+            score_ep = self.cumulated_reward # self._normalisation_fun(self.cumulated_reward, score_min_ep, score_max_ep)
                 
             return score_ep
+        
+    @staticmethod
+    def _normalisation_fun(score, score_min_ep, score_max_ep):
+        standardized_score = (score - score_min_ep) / (score_max_ep - score_min_ep)
+        score_ep = standardized_score * 2. - 1.
+        return score_ep
+         
