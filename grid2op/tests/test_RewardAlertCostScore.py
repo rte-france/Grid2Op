@@ -227,6 +227,9 @@ class TestAlertTrustScore(unittest.TestCase):
     def tearDown(self) -> None:
         return super().tearDown()
     
+    def get_dn(self, env):
+        return env.action_space({})
+    
     def get_blackout(self, env):
         blackout_action = env.action_space({})
         blackout_action.gen_set_bus = [(0, -1)]
