@@ -37,13 +37,8 @@ class _AlertCostScore(BaseReward):
         self.total_nb_alertes_possible = None
         self.total_nb_alerts = None
         
-    def __initialize__(self, env):
-        if not env._has_attention_budget:
-            raise Grid2OpException(
-                'Impossible to use the "_AlertCostScore" with an environment for which the Assistant feature '
-                'is disabled. Please make sure "env._has_attention_budget" is set to ``True`` or '
-                "change the reward class with `grid2op.make(..., reward_class=AnyOtherReward)`"
-            )
+    def initialize(self, env):
+
         if not env.dim_alerts > 0:
             raise Grid2OpException(
                 'Impossible to use the "_AlertCostScore" with an environment for which the Assistant feature '
@@ -61,7 +56,7 @@ class _AlertCostScore(BaseReward):
         self.total_nb_alerts = 0
         
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        if self.is_simulated_env(env):
+        if self._is_simul_env:
             return dt_float(0.)
         
         if is_done:

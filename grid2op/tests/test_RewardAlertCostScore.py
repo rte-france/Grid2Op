@@ -109,7 +109,7 @@ class TestSimulate(unittest.TestCase):
             assert forR == 0.
     
     
-class TestRunner(unittest.TestCase):
+class TestRunnerAlertCost(unittest.TestCase):
     def setUp(self) -> None:
         self.env_nm = os.path.join(
             PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
@@ -193,9 +193,64 @@ class TestAlertTrustScore(unittest.TestCase):
             for i in range(env.max_episode_duration()):
                 obs, reward, done, info = env.step(env.action_space())
                 if done:
-                    assert reward == 1.
+                    assert reward == 1., f"{reward} vs 1."
                 else:
-                    assert reward == 0.      
+                    assert reward == 0., f"{reward} vs 0."
+                    
+                    
+class TestRunnerAlertTrust(unittest.TestCase):
+    def setUp(self) -> None:
+        self.env_nm = os.path.join(
+            PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
+        )
+        self.env = grid2op.make(self.env_nm, test=True, difficulty="1",
+                        reward_class=_AlertTrustScore)
+        self.env.seed(0)
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_dn_agent(self):
+        obs = self.env.reset()
+        runner = Runner(**self.env.get_params_for_runner())
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
+        assert res[0][2] == 1. #it got to the end
+    
+    def test_simagent(self):
+        #simulate blackout but act donothing
+        obs = self.env.reset()
+        
+        class SimAgent(BaseAgent):
+            def act(self, observation: BaseObservation, reward: float, done: bool = False) -> BaseAction:
+                go_act = self.action_space({"set_bus": {"generators_id": [(0, -1)]}})
+                simO, simr, simd, simi = obs.simulate(go_act)
+                simO, simr, simd, simi = obs.simulate(self.action_space())
+                return super().act(observation, reward, done)
+            
+        runner = Runner(**self.env.get_params_for_runner(),
+                        agentClass=SimAgent)
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
+        assert res[0][2] == 1.
+        
+    def test_episodeData(self):
+        obs = self.env.reset()
+        runner = Runner(**self.env.get_params_for_runner())
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0], add_detailed_output=True)
+        assert res[0][2] == 1.
+        assert res[0][5].rewards[8] == 1.
+        
+    def test_with_save(self):
+        obs = self.env.reset()
+        runner = Runner(**self.env.get_params_for_runner())
+        with tempfile.TemporaryDirectory() as f:
+            res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0],
+                             path_save=f)
+            assert res[0][2] == 1.
+            ep0, *_ = EpisodeData.list_episode(f)
+            ep = EpisodeData.from_disk(*ep0)
+            assert ep.rewards[8] == 1.    
     
 if __name__ == "__main__":
     unittest.main()        

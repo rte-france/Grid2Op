@@ -48,29 +48,33 @@ class _AlertTrustScore(AlertReward):
         self.score_min_ep = lambda k: reward_min_no_blackout * (k - 1) + reward_min_blackout
         self.score_max_ep = lambda k: reward_max_no_blackout * k + reward_end_episode_bonus
         
-        def __initialize__(self, env):
-            super().__initialize__(env)
+    def initialize(self, env):
+        self._is_simul_env = self.is_simulated_env(env)
+        if self._is_simul_env:
+            return
+        self.reset(env)
+        return super().initialize(env)
             
-        def reset(self, env):
-            super().reset(env)
-            self.total_nb_attacks = 0
-            self.cumulated_reward = 0
+    def reset(self, env):
+        super().reset(env)
+        self.total_nb_attacks = 0
+        self.cumulated_reward = 0
             
-        def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-            score_ep = 0.
-            if self.is_simulated_env(env):
-                return score_ep
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+        score_ep = 0.
+        if self._is_simul_env:
+            return score_ep
             
-            res = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
-            self.cumulated_reward += res
-            self.total_nb_attacks += np.sum(env._time_since_last_attack == 0)
+        res = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
+        self.cumulated_reward += res
+        self.total_nb_attacks += np.sum(env._time_since_last_attack == 0)
             
-            if not is_done:
-                return score_ep
-            else:
-                score_min_ep = self.score_min_ep(self.total_nb_attacks)
-                score_max_ep = self.score_max_ep(self.total_nb_attacks)
-                standardized_score = (self.cumulated_reward - score_min_ep) / (score_max_ep - score_min_ep + 1e-6)
-                score_ep = standardized_score * 2. - 1.
+        if not is_done:
+            return score_ep
+        else:
+            score_min_ep = self.score_min_ep(self.total_nb_attacks)
+            score_max_ep = self.score_max_ep(self.total_nb_attacks)
+            standardized_score = (self.cumulated_reward - score_min_ep) / (score_max_ep - score_min_ep + 1e-6)
+            score_ep = standardized_score * 2. - 1.
                 
-                return score_ep
+            return score_ep
