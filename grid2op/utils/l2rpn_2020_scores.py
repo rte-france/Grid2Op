@@ -91,6 +91,7 @@ class ScoreL2RPN2020(object):
         nb_process_stats=1,
         scores_func=L2RPNSandBoxScore,
         score_names=None,
+        add_nb_highres_sim=False,
     ):
         self.env = env
         self.nb_scenario = nb_scenario
@@ -129,6 +130,7 @@ class ScoreL2RPN2020(object):
             agent=agent_reco,
             score_names=score_names,
         )
+        self.add_nb_highres_sim = add_nb_highres_sim
         self.__cleared = False 
 
     def _init_stat(
@@ -357,7 +359,7 @@ class ScoreL2RPN2020(object):
 
         if self.verbose >= 1:
             print("Starts the evaluation of the agent")  # TODO logger
-        EpisodeStatistics.run_env(
+        nb_highres_sim = EpisodeStatistics.run_env(
             self.env,
             env_seeds=self.env_seeds,
             agent_seeds=self.agent_seeds,
@@ -369,7 +371,9 @@ class ScoreL2RPN2020(object):
             nb_scenario=self.nb_scenario,
             pbar=self.verbose >= 2,
             nb_process=nb_process,
+            add_nb_highres_sim=self.add_nb_highres_sim,
         )
+        # NB nb_highres_sim is None if self.add_nb_highres_sim is False !
         if self.verbose >= 1:
             print("Start the evaluation of the scores")  # TODO logger
 
@@ -406,7 +410,10 @@ class ScoreL2RPN2020(object):
 
         if need_delete:
             dir_tmp.cleanup()
-        return all_scores, ts_survived, total_ts
+        res = all_scores, ts_survived, total_ts
+        if self.add_nb_highres_sim:
+            res = all_scores, ts_survived, total_ts, nb_highres_sim
+        return res
 
 
 if __name__ == "__main__":

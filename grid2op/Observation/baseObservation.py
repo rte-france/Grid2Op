@@ -297,12 +297,19 @@ class BaseObservation(GridObjects):
     active_alert: :class:`numpy.ndarray`, dtype:bool
         .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
-        This function gives the lines "under alert" at the given observation.
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+        This attribute gives the lines "under alert" at the given observation.
         It is only relevant for the "real" environment and not for `obs.simulate` nor `obs.get_forecast_env`
-        active_alert time_since_last_alert alert_duration total_number_of_alert time_since_last_attack was_alert_used_after_attack
         
     time_since_last_alert: :class:`numpy.ndarray`, dtype:int
         .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
         
         Give the time since an alert has been raised for each powerline. If you just raise an
         alert for attackable line `i` then obs.time_since_last_alert[i] = 0 (and counter
@@ -313,20 +320,32 @@ class BaseObservation(GridObjects):
     alert_duration: :class:`numpy.ndarray`, dtype:int
         .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
         Give the time since an alert has started for all attackable line. If you just raise an
         alert for attackable line `i` then obs.time_since_last_alert[i] = 1 and this counter
         increase by 1 each step as long as the agent continues to "raise an alert on attackable line i"
         
         When the attackable line `i` is not under an alert then obs.time_since_last_alert[i] = 0
         
-    total_number_of_alerts: :class:`numpy.ndarray`, dtype:int
+    total_number_of_alert: :class:`numpy.ndarray`, dtype:int
         .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
         
-        This function counts, since the beginning of the current episode, the total number
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+        This attribute stores, since the beginning of the current episode, the total number
         of alerts (here 1 alert = one alert for 1 powerline for 1 step) sent by the agent.
         
     time_since_last_attack: :class:`numpy.ndarray`, dtype:int
         .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
         
         Similar to `time_since_last_alert` but for the attack.
         
@@ -355,7 +374,11 @@ class BaseObservation(GridObjects):
            This attribute is only filled
            if you use a compatible reward (*eg* :class:`grid2op.Reward.AlertReward`)
            as the main reward (or a "combined" reward with this reward being part of it)
-           
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
         For each attackable line `i` it says:
         
         - obs.was_alert_used_after_attack[i] = 0 => attackable line i has not been attacked
@@ -370,6 +393,10 @@ class BaseObservation(GridObjects):
 
     attack_under_alert: :class:`numpy.ndarray`, dtype:int
         .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
         
         For each attackable line `i` it says:
         
@@ -3522,7 +3549,7 @@ class BaseObservation(GridObjects):
 
         Returns
         -------
-        res: :class:`grid2op.Observation.Observation`
+        res: :class:`grid2op.Observation.BaseObservation`
             The resulting observation. Note that this observation is not initialized with everything.
             It is only relevant when you want to study the resulting topology after you applied an
             action. Lots of `res` attributes are empty.
@@ -4438,7 +4465,7 @@ class BaseObservation(GridObjects):
             You probably don't have to use except if you develop a specific
             observation class !
             
-        .. info::
+        .. note::
             If you want to develop a new type of observation with a new type of reward, you can use the 
             `env._reward_to_obs` attribute (dictionary) in the reward to pass information to the 
             observation (in this function).

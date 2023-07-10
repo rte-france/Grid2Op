@@ -22,6 +22,9 @@ __all__ = [
 
 from grid2op.gym_compat.utils import _MAX_GYM_VERSION_RANDINT, GYM_VERSION, GYMNASIUM_AVAILABLE, GYM_AVAILABLE
 
+if GYM_AVAILABLE is False and GYMNASIUM_AVAILABLE is False:
+    raise ImportError("Neither gymnasium nor gym are installed. The `grid2op.gym_compat` module cannot be used.")
+
 # base for all gym converter
 from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 if GYMNASIUM_AVAILABLE:

@@ -4,6 +4,10 @@
 .. |l2rpn_neurips_2020_track1_layout| image:: ./img/l2rpn_neurips_2020_track1_layout.png
 .. |l2rpn_neurips_2020_track2_layout| image:: ./img/l2rpn_neurips_2020_track2_layout.png
 .. |l2rpn_wcci_2022_layout| image:: ./img/l2rpn_wcci_2022_layout.png
+.. |l2rpn_idf_2023_layout| image:: ./img/l2rpn_idf_2023_layout.png
+.. |l2rpn_idf_2023_areas| image:: ./img/l2rpn_idf_2023_areas.png
+.. |l2rpn_idf_2023_maint| image:: ./img/l2rpn_idf_2023_maint.png
+.. |l2rpn_idf_2023_att| image:: ./img/l2rpn_idf_2023_att.png
 
 
 Available environments
@@ -55,6 +59,7 @@ env name                          grid size     maintenance    opponent    redis
 :ref:`l2rpn_neurips_2020_track2`   118 sub.      ✔️  ️         ❌   ️         ✔️ ️                 ❌
 :ref:`l2rpn_icaps_2021`            36 sub.       ✔️  ️         ✔️ ️       ✔️ ️                 ❌
 :ref:`l2rpn_wcci_2022`             118 sub.      ✔️  ️         ✔️ ️       ✔️ ️                 ✔️ ️
+:ref:`l2rpn_idf_2023`              118 sub.      ✔️  ️         ✔️ ️       ✔️ ️                 ✔️ ️
 \* educ_case14_redisp \*           14 sub.       ❌️             ❌  ️ ️       ✔️ ️                 ❌
 \* educ_case14_storage \*          14 sub.       ❌️             ❌   ️         ✔️ ️                 ✔️
 \* rte_case5_example \*            5 sub.        ❌️             ❌  ️ ️        ❌ ️ ️                  ❌
@@ -139,6 +144,83 @@ This grid looks like:
 |l2rpn_case14_sandbox_layout|
 
 
+.. _l2rpn_idf_2023:
+
+
+l2rpn_idf_2023
+++++++++++++++++
+
+This environment is also based on the 118 grid. The original grid has been modified (mainly for generator and loads location) to 
+accomodate for the "possible energy mix" of France in 2035.
+
+It comes with 16 years worth of data, 1 year being divided in 52 weeks so 16 x 52 = 832 different scenarios and takes up around
+~ 5.4 GB of space.
+
+To create it you can : 
+
+.. code-block:: python
+
+    import grid2op
+    env_name  = "lrpn_idf_2023"
+    env = grid2op.make(env_name)
+
+It counts 118 substations, 186 powerlines, 99 loads and 62 generators. It will be used for the L2RPN competitions funded by Region Ile De France:
+"Paris Region AI Challenge Energy Transition" and is free to use for everyone.
+
+You have the possibility, provided that you installed `chronix2grid` (with `pip install grid2op[chronix2grid]`), to generate as
+much data as you want with the :func:`grid2op.Environment.Environment.generate_data` function. See its documentation for more information.
+
+The environment can be seen:
+
+|l2rpn_idf_2023_layout|
+
+Compared to previous available environments there are some new features including:
+
+- 12 steps ahead forecast: with any observation, you can now have access to forecast 12 steps ahead with, for example `obs.simulate(..., time_step=12)`
+  or `obs.get_forecast_env()` which has a maximum duration of 12 steps (previously it was only 1 step ahead forecast). This could be used in
+  `model based` strategy for example (see page :ref:`model_based_rl` for more examples)
+- a more complex opponent: the opponent can attack 3 lines in 3 different areas of the grid at the same time (instead of 
+  being limited to just 1 attack)
+- more complex rules: in this environment to balance for the fact that the opponent can makes 3 attacks, the agent can also act on 3 different 
+  powerlines and 3 different substation per step (one per area).
+
+The grid is split in 3 disctinct areas:
+
+|l2rpn_idf_2023_areas|
+
+Like most grid2op environment, it also has maintenance. Lines that can be in maintenance are:
+
+.. line_color_maint = np.zeros(env.n_line) 
+.. line_in_maintenance = {'21_22_93', '39_41_121', '54_58_154', '17_18_88', '29_37_117',
+..                                                             '91_92_37', '41_48_131', '80_79_175', '88_91_33', '48_50_136',
+..                                                             '43_44_125', '12_14_68', '62_58_180', '44_45_126', '74_117_81',
+..                                                             '26_31_106', '4_10_162', '93_95_43', '62_63_160', '48_53_141',
+..                                                             '34_35_110'}
+.. line_in_maintenance = list(line_in_maintenance)
+
+.. line_color_maint[np.isin(env.name_line, line_in_maintenance) & np.isin(np.arange(env.n_line), lines_by_area[0])] = 1.0
+.. line_color_maint[np.isin(env.name_line, line_in_maintenance) & np.isin(np.arange(env.n_line), lines_by_area[1])] = 2.0
+.. line_color_maint[np.isin(env.name_line, line_in_maintenance) & np.isin(np.arange(env.n_line), lines_by_area[2])] = 3.0
+.. plot_helper._line_color_scheme = ["gray", "blue", "orange", "red"]
+.. _ = plot_helper.plot_info(line_values=line_color_maint, coloring="line")
+.. plot_helper.restore_line_palette()
+
+|l2rpn_idf_2023_maint|
+
+And the lines that can be attacked by the opponent are:
+
+.. attacked_lines = [106,  93,  88, 162,  68, 117, 180, 160, 136, 141, 131, 121, 125, 126, 110, 154,  81,  43,  33,  37,  62,  61]
+.. line_color_att = np.zeros(env.n_line)
+.. line_color_att[np.isin(np.arange(env.n_line), attacked_lines) & np.isin(np.arange(env.n_line), lines_by_area[0])] = 1.0
+.. line_color_att[np.isin(np.arange(env.n_line), attacked_lines) & np.isin(np.arange(env.n_line), lines_by_area[1])] = 2.0
+.. line_color_att[np.isin(np.arange(env.n_line), attacked_lines) & np.isin(np.arange(env.n_line), lines_by_area[2])] = 3.0
+.. plot_helper._line_color_scheme = ["gray", "blue", "orange", "red"]
+.. _ = plot_helper.plot_info(line_values=line_color_att, coloring="line")
+.. plot_helper.restore_line_palette()
+
+|l2rpn_idf_2023_att|
+
+
 .. _l2rpn_wcci_2022:
 
 l2rpn_wcci_2022
@@ -159,7 +241,7 @@ much data as you want with the :func:`grid2op.Environment.Environment.generate_d
     env_name  = "l2rpn_wcci_2022"
     env = grid2op.make(env_name)
 
-It counts 118 substations, 186 powerlines, 91 loads and 62 loads. It will be used for the L2RPN competitions at WCCI in 2022.
+It counts 118 substations, 186 powerlines, 91 loads and 62 generators. It will be used for the L2RPN competitions at WCCI in 2022.
 
 |l2rpn_wcci_2022_layout|
 

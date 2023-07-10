@@ -40,18 +40,18 @@ class ObservationSpace(SerializableObservationSpace):
     _simulate_parameters: :class:`grid2op.Parameters.Parameters`
         Type of Parameters used to compute powerflow for the forecast.
 
-    rewardClass: ``type``
+    rewardClass: Union[type, BaseReward]
         Class used by the :class:`grid2op.Environment.Environment` to send information about its state to the
-        :class:`grid2op.BaseAgent.BaseAgent`. You can change this class to differentiate between the reward of output of
+        :class:`grid2op.Agent.BaseAgent`. You can change this class to differentiate between the reward of output of
         :func:`BaseObservation.simulate`  and the reward used to train the BaseAgent.
 
     action_helper_env: :class:`grid2op.Action.ActionSpace`
         BaseAction space used to create action during the :func:`BaseObservation.simulate`
 
-    reward_helper: :class:`grid2op.Reward.HelperReward`
+    reward_helper: :class:`grid2op.Reward.RewardHelper`
         BaseReward function used by the the :func:`BaseObservation.simulate` function.
 
-    obs_env: :class:`_ObsEnv`
+    obs_env: :class:`grid2op.Environment._Obsenv._ObsEnv`
         Instance of the environment used by the BaseObservation Helper to provide forcecast of the grid state.
 
     _empty_obs: :class:`BaseObservation`
@@ -78,7 +78,7 @@ class ObservationSpace(SerializableObservationSpace):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
+        Env: requires :attr:`grid2op.Environment.BaseEnv.parameters` and :attr:`grid2op.Environment.BaseEnv.backend` to be valid
         """
 
         # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
