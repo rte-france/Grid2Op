@@ -57,7 +57,7 @@ class Backend(GridObjects, ABC):
 
     It is NOT recommended to use this class outside the Environment.
 
-    An example of a valid backend is provided in the :class:`PandapowerBackend`.
+    An example of a valid backend is provided in the :class:`PandaPowerBackend`.
 
     All the abstract methods (that need to be implemented for a backend to work properly) are (more information given
     in the :ref:`create-backend-module` page):
@@ -622,7 +622,7 @@ class Backend(GridObjects, ABC):
 
     def update_thermal_limit_from_vect(self, thermal_limit_a):
         """You can use it if your backend stores the thermal limits
-        of the grid in a vector (see PandaPowerBackend for example)
+        of the grid in a vector (see :class:`PandaPowerBackend` for example)
         
         .. warning::
             This is not called by the environment and cannot be used to

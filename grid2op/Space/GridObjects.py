@@ -439,7 +439,28 @@ class GridObjects:
     alarms_lines_area = {}  # for each lines of the grid, gives on which area(s) it is  # TODO
     alarms_area_lines = []  # for each area in the grid, gives which powerlines it contains # TODO
 
-    # TODO specify the unit of redispatching data MWh, $/MW etc.
+    dim_alerts: `int`
+        The dimension of the "alert space" (number of powerline on which the agent can sent an alert)
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+    
+        .. versionadded:: 1.9.1
+        
+    alertable_line_names: `np.ndarray`
+        Name (in order) of each powerline on which the agent can send an alarm. It has the size corresponding to :attr:`GridObjects.dim_alerts`
+        and contain names of powerlines (string).
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+    alertable_line_ids: `np.ndarray`
+        Id (in order) of each powerline on which the agent can send an alarm. It has the size corresponding to :attr:`GridObjects.dim_alerts`
+        and contain ids of powerlines (integer).
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+
+        .. versionadded:: 1.9.1
     """
 
     BEFORE_COMPAT_VERSION = "neurips_2020_compat"
@@ -2706,9 +2727,12 @@ class GridObjects:
             # this feature did not exist before.
             cls.dim_alarms = 0
             cls.assistant_warning_type = None
+            
         if cls.glop_version < "1.9.1":
             # this feature did not exists before
             cls.dim_alerts = 0 
+            cls.alertable_line_names = []
+            cls.alertable_line_ids = []
 
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
@@ -3705,12 +3729,17 @@ class GridObjects:
         if "dim_alerts" in dict_: 
             # NB by default the constructor do as if there were no alert so that's great !
             cls.dim_alerts = dict_["dim_alerts"]
-            cls.alertable_line_names = extract_from_dict(
-                dict_, "alertable_line_names", lambda x: np.array(x).astype(str)
-                )
-            cls.alertable_line_ids = extract_from_dict(
-                dict_, "alertable_line_ids", lambda x: np.array(x).astype(dt_int)
-                )
+            if cls.dim_alerts > 0:
+                cls.alertable_line_names = extract_from_dict(
+                    dict_, "alertable_line_names", lambda x: np.array(x).astype(str)
+                    )
+                cls.alertable_line_ids = extract_from_dict(
+                    dict_, "alertable_line_ids", lambda x: np.array(x).astype(dt_int)
+                    )
+            else:
+                cls.alertable_line_names = []
+                cls.alertable_line_ids = []
+                
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo_cls()

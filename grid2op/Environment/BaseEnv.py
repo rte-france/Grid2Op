@@ -108,7 +108,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         The current observation (or None if it's not intialized)
 
     backend: :class:`grid2op.Backend.Backend`
-        The backend used to compute the powerflows and cascading failures.
+        The backend used to compute the powerflows.
 
     done: ``bool``
         Whether the environment is "done". If ``True`` you need to call :func:`Environment.reset` in order
@@ -3738,7 +3738,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             
             .. code-block:: python
             
-                env.params.WHATEVER = NEW_VALUE
+                env.params.WHATEVER = NEW_VALUE  # no effet !
                 
             This will have absolutely no impact.
             
