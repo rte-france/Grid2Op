@@ -439,7 +439,28 @@ class GridObjects:
     alarms_lines_area = {}  # for each lines of the grid, gives on which area(s) it is  # TODO
     alarms_area_lines = []  # for each area in the grid, gives which powerlines it contains # TODO
 
-    # TODO specify the unit of redispatching data MWh, $/MW etc.
+    dim_alerts: `int`
+        The dimension of the "alert space" (number of powerline on which the agent can sent an alert)
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+    
+        .. versionadded:: 1.9.1
+        
+    alertable_line_names: `np.ndarray`
+        Name (in order) of each powerline on which the agent can send an alarm. It has the size corresponding to :attr:`GridObjects.dim_alerts`
+        and contain names of powerlines (string).
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+    alertable_line_ids: `np.ndarray`
+        Id (in order) of each powerline on which the agent can send an alarm. It has the size corresponding to :attr:`GridObjects.dim_alerts`
+        and contain ids of powerlines (integer).
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+
+        .. versionadded:: 1.9.1
     """
 
     BEFORE_COMPAT_VERSION = "neurips_2020_compat"
