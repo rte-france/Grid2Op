@@ -17,14 +17,68 @@ from grid2op.tests.helper_path_test import *
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Runner import Runner 
 from grid2op.Observation import BaseObservation
-from grid2op.Action import BaseAction
 from grid2op.Episode import EpisodeData
+from grid2op.Parameters import Parameters
+from grid2op.Opponent import BaseOpponent, GeometricOpponent
+from grid2op.Action import BaseAction, PlayableAction
+
+
+ALL_ATTACKABLE_LINES= [
+            "62_58_180",
+            "62_63_160",
+            "48_50_136",
+            "48_53_141",
+            "41_48_131",
+            "39_41_121",
+            "43_44_125",
+            "44_45_126",
+            "34_35_110",
+            "54_58_154",
+        ] 
+
+ATTACKED_LINE = "48_50_136"
+
+def _get_steps_attack(kwargs_opponent, multi=False):
+    """computes the steps for which there will be attacks"""
+    ts_attack = np.array(kwargs_opponent["steps_attack"])
+    res = []
+    for i, ts in enumerate(ts_attack):
+        if not multi:
+            res.append(ts + np.arange(kwargs_opponent["duration"]))
+        else:
+            res.append(ts + np.arange(kwargs_opponent["duration"][i]))
+    return np.unique(np.concatenate(res).flatten())
 
 class AlertAgent(BaseAgent):
     def act(self, observation: BaseObservation, reward: float, done: bool = False) -> BaseAction:
         if observation.current_step == 2:
             return self.action_space({"raise_alert": [0]})
         return super().act(observation, reward, done)
+    
+class TestOpponent(BaseOpponent): 
+    """An opponent that can select the line attack, the time and duration of the attack."""
+    
+    def __init__(self, action_space):
+        super().__init__(action_space)
+        self.custom_attack = None
+        self.duration = None
+        self.steps_attack = None
+
+    def init(self, partial_env,  lines_attacked=[ATTACKED_LINE], duration=10, steps_attack=[0,1]):
+        attacked_line = lines_attacked[0]
+        self.custom_attack = self.action_space({"set_line_status" : [(l, -1) for l in lines_attacked]})
+        self.duration = duration
+        self.steps_attack = steps_attack
+        self.env = partial_env
+
+    def attack(self, observation, agent_action, env_action, budget, previous_fails): 
+        if observation is None:
+            return None, None
+        current_step = self.env.nb_time_step
+        if current_step not in self.steps_attack: 
+            return None, None
+        
+        return self.custom_attack, self.duration
 
 
 class TestAlertCostScore(unittest.TestCase):
@@ -171,11 +225,16 @@ class TestAlertTrustScore(unittest.TestCase):
         )
         
     def tearDown(self) -> None:
-        return super().tearDown()   
+        return super().tearDown()
+    
+    def get_blackout(self, env):
+        blackout_action = env.action_space({})
+        blackout_action.gen_set_bus = [(0, -1)]
+        return blackout_action   
     
     def test_assistant_reward_value_no_blackout_no_attack_no_alert(self) -> None : 
         """ When no blackout and no attack occur, and no alert is raised we expect a reward of 0
-            until the end of the episode where we get the max reward 1.
+            until the end of the episode where we get the max reward 1 as score.
 
         Raises:
             Grid2OpException: raise an exception if an attack occur
@@ -196,6 +255,108 @@ class TestAlertTrustScore(unittest.TestCase):
                     assert reward == 1., f"{reward} vs 1."
                 else:
                     assert reward == 0., f"{reward} vs 0."
+                    
+    def test_assistant_reward_value_blackout_attack_no_alert(self) -> None :
+        """
+        When 1 line is attacked at step 3 and we don't raise any alert
+        and a blackout occur at step 4
+        we expect a score of -10 at step 4 
+        """
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                               duration=3, 
+                               steps_attack=[3])
+        with grid2op.make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponent, 
+                  kwargs_opponent=kwargs_opponent, 
+                  reward_class=_AlertTrustScore,
+                  _add_to_name="_tarvbana"
+            ) as env : 
+            new_param = Parameters()
+            new_param.MAX_LINE_STATUS_CHANGED = 10
+
+            env.change_parameters(new_param)
+            env.seed(0)
+            env.reset()
+            step = 0
+            for i in range(env.max_episode_duration()):
+                attackable_line_id = 0
+                act = self.get_dn(env)
+                if step == 3 :
+                    act = self.get_blackout(env)
+                obs, reward, done, info = env.step(act)
+                step += 1
+                
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                
+                if step == 4: 
+                    # When the blackout occurs, reward is -10 because we didn't raise an attack
+                    assert reward == -10, f"error for step {step}: {reward} vs -10"
+                    assert done
+                    break
+                else : 
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
+                    
+    def test_assistant_reward_value_blackout_attack_raise_good_alert(self) -> None :
+        """
+        When 1 line is attacked at step 3 and we do raise an alert
+        and a blackout occur at step 4
+        we expect a score of 2. at step 4 
+        """
+        kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
+                               duration=3, 
+                               steps_attack=[3])
+        with grid2op.make(self.env_nm,
+                  test=True,
+                  difficulty="1", 
+                  opponent_attack_cooldown=0, 
+                  opponent_attack_duration=99999, 
+                  opponent_budget_per_ts=1000, 
+                  opponent_init_budget=10000., 
+                  opponent_action_class=PlayableAction, 
+                  opponent_class=TestOpponent, 
+                  kwargs_opponent=kwargs_opponent,
+                  reward_class=_AlertTrustScore,
+                  _add_to_name="_tarvbarga"
+            ) as env : 
+            new_param = Parameters()
+            new_param.MAX_LINE_STATUS_CHANGED = 10
+
+            env.change_parameters(new_param)
+            env.seed(0)
+            env.reset()
+            step = 0
+            for i in range(env.max_episode_duration()):
+                attackable_line_id = 0
+                act = self.get_dn(env)
+                if i == 3 : 
+                    act = self.get_blackout(env)
+                elif i == 2:
+                    # I raise the alert (on the right line) just before the opponent attack
+                    # opp attack at step = 3, so i = 2
+                    act = env.action_space({"raise_alert": [attackable_line_id]})
+                obs, reward, done, info = env.step(act)
+                step += 1
+                if step in _get_steps_attack(kwargs_opponent): 
+                    assert info["opponent_attack_line"] is not None, f"no attack is detected at step {step}"
+                else:
+                    assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
+                
+                if step == 4: 
+                    assert reward == 2, f"error for step {step}: {reward} vs 2"
+                    assert done
+                    break
+                else : 
+                    assert reward == 0, f"error for step {step}: {reward} vs 0"
                     
                     
 class TestRunnerAlertTrust(unittest.TestCase):
