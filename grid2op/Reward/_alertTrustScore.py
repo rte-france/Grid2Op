@@ -74,10 +74,10 @@ class _AlertTrustScore(AlertReward):
         self.cumulated_reward += res
         lines_attacked = env._time_since_last_attack == 0
         self.total_nb_attacks += np.sum(lines_attacked)
-        self.true_alert_true_attack = np.sum(env._time_since_last_alert[lines_attacked]==0)
-        self.true_alert_false_attack = np.sum(env._time_since_last_alert[~lines_attacked]==0)
-        self.false_alert_true_attack = np.sum(env._time_since_last_alert[lines_attacked]!=0)
-        self.false_alert_false_attack = np.sum(env._time_since_last_alert[~lines_attacked]!=0)
+        self.true_alert_true_attack += np.sum(env._time_since_last_alert[lines_attacked]==0)
+        self.true_alert_false_attack += np.sum(env._time_since_last_alert[~lines_attacked]==0)
+        self.false_alert_true_attack += np.sum(env._time_since_last_alert[lines_attacked]!=0)
+        self.false_alert_false_attack += np.sum(env._time_since_last_alert[~lines_attacked]!=0)
             
         if not is_done:
             return score_ep
