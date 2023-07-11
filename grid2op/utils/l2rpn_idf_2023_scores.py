@@ -104,7 +104,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             nb_process_stats=nb_process_stats,
             scores_func={
                 "grid_operational_cost": L2RPNSandBoxScore,
-                "assistance_confidence": _AlertTrustScore,
+                "assistant_confidence": _AlertTrustScore,
                 "assistant_cost": _AlertCostScore,
                 "new_renewable_sources_usage": _NewRenewableSourcesUsageScore,
             },
