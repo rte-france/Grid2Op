@@ -46,7 +46,7 @@ class _AlertTrustScore(AlertReward):
         self.reward_min = dt_float(-1.0)
         self.reward_max = dt_float(1.0)
         self.score_min_ep = lambda k: reward_min_no_blackout * (k - 1) + reward_min_blackout
-        self.score_max_ep = lambda k: np.max(reward_max_no_blackout * (k - 1) + reward_max_blackout,
+        self.score_max_ep = lambda k: max(reward_max_no_blackout * (k - 1) + reward_max_blackout,
                                              reward_max_no_blackout * k + reward_end_episode_bonus)
         
     def initialize(self, env):
