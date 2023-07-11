@@ -94,6 +94,7 @@ class _ObsEnv(BaseEnv):
         
         self._reward_helper = reward_helper
         self._helper_action_class = helper_action_class
+        # TODO init reward and other reward
 
         # initialize the observation space
         self._obsClass = None
