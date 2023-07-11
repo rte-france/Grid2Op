@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import os
 import warnings
 import numpy as np
 import unittest
@@ -18,6 +19,7 @@ from grid2op.Agent.doNothing import DoNothingAgent, BaseAgent
 from grid2op.Chronics import FromHandlers
 from grid2op.Chronics.handlers import CSVHandler, PerfectForecastHandler
 from grid2op.Reward import _NewRenewableSourcesUsageScore
+from grid2op.tests.helper_path_test import *
 
 
 class CurtailTrackerAgent(BaseAgent):
@@ -49,7 +51,9 @@ class CurtailAgent(BaseAgent):
 class TestScoreL2RPN2023(unittest.TestCase):
     
     def setUp(self) -> None:
-        env_name = "l2rpn_idf_2023_with_alert"
+        env_name = os.path.join(
+            PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
+        )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(env_name,
