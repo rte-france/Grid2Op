@@ -36,6 +36,8 @@ Change Log
 - [FIXED] broken environ "l2rpn_idf_2023" (with test=True) due to the presence of a `__pycache__` folder
 - [FIXED] time series `MultiFolder` will now ignore folder `__pycache__`
 - [FIXED] an issue with compatibility with previous versions (due to alert)
+- [FIXED] an issue with the `_ObsEnv` when using reward that could not be used in forecast (self.is_simulated_env()
+  was not working as expected due to a wrong init of the reward in `_ObsEnv`)
 
 [1.9.1] - 2023-07-06
 --------------------
