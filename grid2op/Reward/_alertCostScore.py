@@ -52,7 +52,7 @@ class _AlertCostScore(BaseReward):
         if self._is_simul_env:
             return
         
-        self.total_nb_alertes_possible = (env.chronics_handler.max_timestep() + 1) * (env.dim_alerts)
+        #self.total_nb_alertes_possible = (env.chronics_handler.max_timestep() + 1) * (env.dim_alerts)
         self.total_nb_alerts = 0
         
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
@@ -60,6 +60,7 @@ class _AlertCostScore(BaseReward):
             return dt_float(0.)
         
         if is_done:
+            self.total_nb_alertes_possible = env.nb_time_step * env.dim_alerts
             ratio_nb_alerts = 100 * ( 1 - self.total_nb_alerts / self.total_nb_alertes_possible)
             return self._penalization_fun(ratio_nb_alerts)
         else:

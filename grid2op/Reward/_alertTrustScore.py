@@ -46,7 +46,8 @@ class _AlertTrustScore(AlertReward):
         self.reward_min = dt_float(-1.0)
         self.reward_max = dt_float(1.0)
         self.score_min_ep = lambda k: reward_min_no_blackout * (k - 1) + reward_min_blackout
-        self.score_max_ep = lambda k: reward_max_no_blackout * k + reward_end_episode_bonus
+        self.score_max_ep = lambda k: np.max(reward_max_no_blackout * (k - 1) + reward_max_blackout,
+                                             reward_max_no_blackout * k + reward_end_episode_bonus)
         
     def initialize(self, env):
         self._is_simul_env = self.is_simulated_env(env)
@@ -72,9 +73,9 @@ class _AlertTrustScore(AlertReward):
         if not is_done:
             return score_ep
         else:
-            # score_min_ep = self.score_min_ep(self.total_nb_attacks)
-            # score_max_ep = self.score_max_ep(self.total_nb_attacks)
-            score_ep = self.cumulated_reward # self._normalisation_fun(self.cumulated_reward, score_min_ep, score_max_ep)
+            score_min_ep = self.score_min_ep(self.total_nb_attacks)
+            score_max_ep = self.score_max_ep(self.total_nb_attacks)
+            score_ep = self._normalisation_fun(self.cumulated_reward, score_min_ep, score_max_ep)
                 
             return score_ep
         

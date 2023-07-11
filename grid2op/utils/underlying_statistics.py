@@ -104,7 +104,7 @@ class EpisodeStatistics(object):
     SCENARIO_IDS = "scenario_ids.npz"
     SCORES = "scores.npz"
     SCORES_CLEAN = re.sub("\\.npz", "", SCORES)
-    KEY_SCORE = "__scores"
+    KEY_SCORE = "_scores"
     SCORE_FOOTPRINT = ".has_score"
     STATISTICS_FOLDER = "_statistics"
     STATISTICS_FOOTPRINT = ".statistics"
