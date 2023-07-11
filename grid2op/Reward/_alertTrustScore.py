@@ -60,6 +60,10 @@ class _AlertTrustScore(AlertReward):
         super().reset(env)
         self.total_nb_attacks = 0
         self.cumulated_reward = 0
+        self.true_alert_true_attack = 0
+        self.true_alert_false_attack = 0
+        self.false_alert_true_attack = 0
+        self.false_alert_false_attack = 0
             
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         score_ep = 0.
@@ -68,7 +72,12 @@ class _AlertTrustScore(AlertReward):
             
         res = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
         self.cumulated_reward += res
-        self.total_nb_attacks += np.sum(env._time_since_last_attack == 0)
+        lines_attacked = env._time_since_last_attack == 0
+        self.total_nb_attacks += np.sum(lines_attacked)
+        self.true_alert_true_attack = np.sum(env._time_since_last_alert[lines_attacked]==0)
+        self.true_alert_false_attack = np.sum(env._time_since_last_alert[~lines_attacked]==0)
+        self.false_alert_true_attack = np.sum(env._time_since_last_alert[lines_attacked]!=0)
+        self.false_alert_false_attack = np.sum(env._time_since_last_alert[~lines_attacked]!=0)
             
         if not is_done:
             return score_ep
