@@ -123,6 +123,8 @@ class ObservationSpace(SerializableObservationSpace):
         if _with_obs_env:
             self._create_obs_env(env)
             self.reward_helper.initialize(self.obs_env)
+            for k, v in self.obs_env.other_rewards.items():
+                v.reset(self.obs_env)
         else:
             self.with_forecast = False
             self.obs_env = None
@@ -445,9 +447,9 @@ class ObservationSpace(SerializableObservationSpace):
         self.__nb_simulate_called_this_step = 0
         self.__nb_simulate_called_this_episode = 0
         if self.with_forecast:
-            self.obs_env._reward_helper.reset(real_env)
+            self.obs_env._reward_helper.reset(self.obs_env)
             for k, v in self.obs_env.other_rewards.items():
-                v.reset(real_env)
+                v.reset(self.obs_env)
             self.obs_env.reset()
         self._env_param = copy.deepcopy(real_env.parameters)
 
