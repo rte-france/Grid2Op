@@ -141,6 +141,9 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                 if info["opponent_attack_line"] is None : 
                     if i == env.max_episode_duration()-1: 
                         assert score == 42
+                        assert env._reward_helper.template_reward.total_nb_attacks==0
+                        assert env._reward_helper.template_reward.cumulated_reward==42
+                        
                     else : 
                         assert score == 0
                 else : 
@@ -177,6 +180,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                 if info["opponent_attack_line"] is None : 
                     if step == env.max_episode_duration(): 
                         assert score == 42
+                        assert env._reward_helper.template_reward.total_nb_attacks==0
+                        assert env._reward_helper.template_reward.cumulated_reward==42
                     else : 
                         assert score == 0
                 else : 
@@ -220,6 +225,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done: 
                         assert score == 43
+                        assert env._reward_helper.template_reward.total_nb_attacks==1
+                        assert env._reward_helper.template_reward.cumulated_reward==43
                 else : 
                     assert score == 0
 
@@ -260,6 +267,9 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done:
                     assert score == 41
+                    
+                    assert env._reward_helper.template_reward.total_nb_attacks==1
+                    assert env._reward_helper.template_reward.cumulated_reward==41
                 else : 
                     assert score == 0
 
@@ -301,6 +311,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done:
                     assert score == 43
+                    assert env._reward_helper.template_reward.total_nb_attacks==1
+                    assert env._reward_helper.template_reward.cumulated_reward==43
                 else : 
                     assert score == 0
 
@@ -343,6 +355,9 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done:
                     assert score == 43
+
+                    assert env._reward_helper.template_reward.total_nb_attacks==1
+                    assert env._reward_helper.template_reward.cumulated_reward==43
                 else : 
                     assert score == 0
 
@@ -382,6 +397,9 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done:
                     assert score == 43
+
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==43
                 else : 
                     assert score == 0
     
@@ -422,6 +440,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done: 
                     assert score == 42
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==42
                 else : 
                     assert score == 0
 
@@ -462,6 +482,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done:
                     assert score == 41
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==41
                 else : 
                     assert score == 0
 
@@ -502,6 +524,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done:
                     assert score == 44
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==44
                 else : 
                     assert score == 0
         
@@ -544,6 +568,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done:
                     assert score == 40
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==40
                 else : 
                     assert score == 0
 
@@ -584,6 +610,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done:
                     score == 42
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==42
                 else : 
                     assert score == 0
 
@@ -624,6 +652,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done:
                     assert score == 42
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==42
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
 
@@ -691,6 +721,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 
                 if done:
                     assert score == -10
+                    assert env._reward_helper.template_reward.total_nb_attacks==1
+                    assert env._reward_helper.template_reward.cumulated_reward==-10
                     break
                 else : 
                     assert score == 0
@@ -713,6 +745,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
+                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
                   _add_to_name="_tatsbarga"
             ) as env : 
             new_param = Parameters()
@@ -740,6 +773,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 
                 if done: 
                     assert score == 2
+                    assert env._reward_helper.template_reward.total_nb_attacks==1
+                    assert env._reward_helper.template_reward.cumulated_reward==2
                     break
                 else : 
                     assert score == 0
@@ -763,6 +798,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
+                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
                   _add_to_name="_tatsbarajbb"
             ) as env : 
             new_param = Parameters()
@@ -790,6 +826,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 
                 if done: 
                     assert score == -10
+                    assert env._reward_helper.template_reward.total_nb_attacks==1
+                    assert env._reward_helper.template_reward.cumulated_reward==-10
                     break
                 else : 
                     assert score == 0
@@ -813,6 +851,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
+                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
                   _add_to_name="_tatsbarate"
             ) as env : 
             new_param = Parameters()
@@ -839,6 +878,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 
                 if done: 
                     assert score == -10
+                    assert env._reward_helper.template_reward.total_nb_attacks==1
+                    assert env._reward_helper.template_reward.cumulated_reward==-10
                     break
                 else : 
                     assert score == 0
@@ -862,6 +903,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
+                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
                   _add_to_name="_tatsb2lssiwga"
             ) as env : 
             new_param = Parameters()
@@ -889,6 +931,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 
                 if done: 
                     assert score == 2
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==2
                     break
                 else : 
                     assert score == 0
@@ -905,6 +949,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
+                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
                   opponent_attack_cooldown=0, 
                   opponent_attack_duration=99999, 
                   opponent_budget_per_ts=1000, 
@@ -940,6 +985,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 
                 if done: 
                     assert score == -4
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==-4
                     break
                 else : 
                     assert score == 0
@@ -990,6 +1037,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 
                 if done : 
                     assert score == 2
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==2
                     break
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
@@ -1034,6 +1083,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     
                 if done : 
                     assert score == -4
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==-4
                     break
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
@@ -1079,6 +1130,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     
                 if done : 
                     assert score == -4., f"error for step {step}: {score} vs -4"
+
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==-4
                     break
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
@@ -1124,7 +1178,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done : 
-                    assert score == 3, f"error for step {step}: {score} vs 2"
+                    assert score == 3
+                    assert env._reward_helper.template_reward.total_nb_attacks==2
+                    assert env._reward_helper.template_reward.cumulated_reward==3
                     assert done
                     break
                 else : 
@@ -1154,6 +1210,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 obs, score, done, info = env.step(act)
                 if info["opponent_attack_line"] is None : 
                     assert score == 0.
+                    assert env._reward_helper.template_reward.total_nb_attacks==0.
+                    assert env._reward_helper.template_reward.cumulated_reward==0.
                 else : 
                     raise Grid2OpException('No attack expected')
 
@@ -1183,6 +1241,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 obs, score, done, info = env.step(act)
                 if info["opponent_attack_line"] is None : 
                     assert score == 0.
+                    assert env._reward_helper.template_reward.total_nb_attacks==0.
+                    assert env._reward_helper.template_reward.cumulated_reward==0.
                 else : 
                     raise Grid2OpException('No attack expected')
 
@@ -1214,6 +1274,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 obs, score, done, info = env.step(act)
                 if info["opponent_attack_line"] is None : 
                     assert score == 0.
+                    assert env._reward_helper.template_reward.total_nb_attacks==0.
+                    assert env._reward_helper.template_reward.cumulated_reward==0.
                 else : 
                     raise Grid2OpException('No attack expected')
 
@@ -1247,6 +1309,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 
                 if info["opponent_attack_line"] is None : 
                     assert score == 0.
+                    assert env._reward_helper.template_reward.total_nb_attacks==0.
+                    assert env._reward_helper.template_reward.cumulated_reward==0.
                 else : 
                     raise Grid2OpException('No attack expected')
 
