@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import os
 import warnings
 import numpy as np
 import unittest
@@ -18,6 +19,7 @@ from grid2op.Agent.doNothing import DoNothingAgent, BaseAgent
 from grid2op.Chronics import FromHandlers
 from grid2op.Chronics.handlers import CSVHandler, PerfectForecastHandler
 from grid2op.Reward import _NewRenewableSourcesUsageScore
+from grid2op.tests.helper_path_test import *
 
 
 class CurtailTrackerAgent(BaseAgent):
@@ -49,7 +51,9 @@ class CurtailAgent(BaseAgent):
 class TestScoreL2RPN2023(unittest.TestCase):
     
     def setUp(self) -> None:
-        env_name = "l2rpn_idf_2023_with_alert"
+        env_name = os.path.join(
+            PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
+        )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(env_name,
@@ -160,9 +164,10 @@ class TestScoreL2RPN2023(unittest.TestCase):
             for scen_id, (ep_score, op_score, nres_score, assistant_score) in enumerate(res_dn[0]):
                 assert nres_score == 100.
                 assert ep_score == 0.6 * op_score + 0.15 * nres_score + 0.25 * assistant_score
-                assert assistant_score == 100.
+                assert assistant_score == 100. #no blackout with no disconnections
                 assert op_score == 0
             
+                
         finally:
             my_score.clear_all()
 

@@ -46,7 +46,8 @@ class _AlertTrustScore(AlertReward):
         self.reward_min = dt_float(-1.0)
         self.reward_max = dt_float(1.0)
         self.score_min_ep = lambda k: reward_min_no_blackout * (k - 1) + reward_min_blackout
-        self.score_max_ep = lambda k: reward_max_no_blackout * k + reward_end_episode_bonus
+        self.score_max_ep = lambda k: max(reward_max_no_blackout * (k - 1) + reward_max_blackout,
+                                             reward_max_no_blackout * k + reward_end_episode_bonus)
         
     def initialize(self, env):
         self._is_simul_env = self.is_simulated_env(env)
@@ -59,6 +60,10 @@ class _AlertTrustScore(AlertReward):
         super().reset(env)
         self.total_nb_attacks = 0
         self.cumulated_reward = 0
+        self.true_alert_true_attack = 0
+        self.true_alert_false_attack = 0
+        self.false_alert_true_attack = 0
+        self.false_alert_false_attack = 0
             
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         score_ep = 0.
@@ -67,14 +72,19 @@ class _AlertTrustScore(AlertReward):
             
         res = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
         self.cumulated_reward += res
-        self.total_nb_attacks += np.sum(env._time_since_last_attack == 0)
+        lines_attacked = env._time_since_last_attack == 0
+        self.total_nb_attacks += np.sum(lines_attacked)
+        self.true_alert_true_attack += np.sum(env._time_since_last_alert[lines_attacked]==0)
+        self.true_alert_false_attack += np.sum(env._time_since_last_alert[~lines_attacked]==0)
+        self.false_alert_true_attack += np.sum(env._time_since_last_alert[lines_attacked]!=0)
+        self.false_alert_false_attack += np.sum(env._time_since_last_alert[~lines_attacked]!=0)
             
         if not is_done:
             return score_ep
         else:
-            # score_min_ep = self.score_min_ep(self.total_nb_attacks)
-            # score_max_ep = self.score_max_ep(self.total_nb_attacks)
-            score_ep = self.cumulated_reward # self._normalisation_fun(self.cumulated_reward, score_min_ep, score_max_ep)
+            score_min_ep = self.score_min_ep(self.total_nb_attacks)
+            score_max_ep = self.score_max_ep(self.total_nb_attacks)
+            score_ep = self._normalisation_fun(self.cumulated_reward, score_min_ep, score_max_ep)
                 
             return score_ep
         

@@ -302,8 +302,8 @@ class TestAlertTrustScore(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if step == 4: 
-                    # When the blackout occurs, reward is -10 because we didn't raise an attack
-                    assert reward == -10, f"error for step {step}: {reward} vs -10"
+                    # When the blackout occurs, reward is -1 because we didn't raise an attack so min
+                    assert reward == -1, f"error for step {step}: {reward} vs -1"
                     assert done
                     break
                 else : 
@@ -313,7 +313,7 @@ class TestAlertTrustScore(unittest.TestCase):
         """
         When 1 line is attacked at step 3 and we do raise an alert
         and a blackout occur at step 4
-        we expect a score of 2. at step 4 
+        we expect a score max at step 4 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
@@ -355,7 +355,7 @@ class TestAlertTrustScore(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if step == 4: 
-                    assert reward == 2, f"error for step {step}: {reward} vs 2"
+                    assert reward == 1, f"error for step {step}: {reward} vs 1" #we did rise alert at first attack on going blackout
                     assert done
                     break
                 else : 
