@@ -31,4 +31,4 @@ from grid2op.Chronics.multifolderWithCache import MultifolderWithCache
 from grid2op.Chronics.fromNPY import FromNPY
 from grid2op.Chronics.fromChronix2grid import FromChronix2grid
 from grid2op.Chronics.time_series_from_handlers import FromHandlers
-from grid2op.Chronics.fromEpisodeData import FromOneEpisodeData
+from grid2op.Chronics.fromOneEpisodeData import FromOneEpisodeData

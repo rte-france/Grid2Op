@@ -40,14 +40,12 @@ class FromOneEpisodeData(GridValue):
     .. code-block:: python
     
         import grid2op
-        from grid2op.Chronics import FromHandlers
-        from grid2op.Chronics.handlers import CSVHandler, DoNothingHandler, PerfectForecastHandler
+        from grid2op.Chronics import FromOneEpisodeData
         env_name = "l2rpn_case14_sandbox"
         
         env = grid2op.make(env_name,
-                       data_feeding_kwargs={"gridvalueClass": FromEpisodeData,
-                                            "ep_data": EpData
-                                           }
+                           chronics_class=FromOneEpisodeData,
+                           data_feeding_kwargs={"ep_data": EpData}
                       )
 
         obs = env.reset()
@@ -67,6 +65,7 @@ class FromOneEpisodeData(GridValue):
         start_datetime=datetime(year=2019, month=1, day=1),
         chunk_size=None,
         h_forecast=(5,),
+        **kwargs,  # unused
     ):
         GridValue.__init__(
             self,
@@ -109,7 +108,6 @@ class FromOneEpisodeData(GridValue):
         names_chronics_to_backend=None,
     ):
         # set the current path of the time series
-        self._set_path(self.path)
         
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
@@ -123,23 +121,20 @@ class FromOneEpisodeData(GridValue):
         self._no_mh_time = np.full(self.n_line, fill_value=-1, dtype=dt_int)
         self._no_mh_duration = np.full(self.n_line, fill_value=0, dtype=dt_int)
         
-    def load_next(self):
+    def load_next(self):       
+        obs = self._episode_data.observations[self.curr_iter]
         self.current_datetime += self.time_interval
         self.curr_iter += 1
-        
+         
         res = {}
         # load the injection
-        dict_inj, prod_v = self._load_injection()
+        dict_inj, prod_v = self._load_injection(obs)
         res["injection"] = dict_inj
         
         # load maintenance
-        obs = self._episode_data.observations[self.curr_iter]
         res["maintenance"] = obs.time_next_maintenance == 0
-        maintenance_time = self._no_mh_time.copy()
-        maintenance_duration = self._no_mh_duration.copy()
-        # TODO !
-        maintenance_time[res["maintenance"] ] = 0
-        maintenance_duration[res["maintenance"] ] = 1
+        maintenance_time = 1 * obs.time_next_maintenance
+        maintenance_duration = 1 * obs.duration_next_maintenance
         
         self.current_inj = res
         return (
@@ -164,7 +159,8 @@ class FromOneEpisodeData(GridValue):
         # I am done if the part I control is "over"
         if self._max_iter > 0 and self.curr_iter > self._max_iter:
             return True
-        # TODO
+        if self.curr_iter > len(self._episode_data):
+            return True
         return False
     
     def check_validity(self, backend):
@@ -180,6 +176,8 @@ class FromOneEpisodeData(GridValue):
         
     def forecasts(self):
         res = []
+        return res
+        # TODO
         if not self._forcast_handlers:
             # nothing to handle forecast in this class
             return res
@@ -224,9 +222,8 @@ class FromOneEpisodeData(GridValue):
         # nothing to do in this case, environment is purely deterministic
         super().seed(seed)
         
-    def _load_injection(self):
+    def _load_injection(self, obs):
         dict_ = {}
-        obs = self._episode_data.observations[self.curr_iter]
         prod_v = None
         
         tmp_ = obs.load_p
