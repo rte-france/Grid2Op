@@ -88,7 +88,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         weight_nres_score=0.15,
         #weight_confidence_assistant_score=0.7,
         min_nres_score=-100,
-        #min_assistant_cost_score=-100,
+        min_assistant_cost_score=-100,
         add_nb_highres_sim=False,
     ):
 
