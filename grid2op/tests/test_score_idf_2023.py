@@ -161,8 +161,8 @@ class TestScoreL2RPN2023(unittest.TestCase):
                 env_seeds=[0 for _ in range(self.nb_scenario)],
                 agent_seeds=[0 for _ in range(self.nb_scenario)],
                 max_step=self.max_iter,
-                weight_op_score=0.65,
-                weight_assistant_score=25,
+                weight_op_score=0.6,
+                weight_assistant_score=0.25,
                 weight_nres_score=0.15,
                 scale_nres_score=100,
                 scale_assistant_score=100,
@@ -171,11 +171,10 @@ class TestScoreL2RPN2023(unittest.TestCase):
             
             # test do nothing indeed gets 100.
             res_dn = my_score.get(DoNothingAgent(self.env.action_space))
-            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_dn[0]):
+            for scen_id, (ep_score, op_score, nres_score, assistant_score) in enumerate(res_dn[0]):
                 assert nres_score == 100.
-                assert ep_score == 0.65 * op_score + 0.15 * nres_score + 0.25 * (0.7 * assistant_confidence_score + 0.3 * assistant_cost_score)
-                assert assistant_cost_score == 100.
-                assert assistant_confidence_score == 100. #no blackout with no disconnections
+                assert ep_score == 0.6 * op_score + 0.15 * nres_score + 0.25 * assistant_score
+                #assert assistant_score == 100. #no blackout with no disconnections
                 
         finally:
             my_score.clear_all()

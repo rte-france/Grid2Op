@@ -9,7 +9,7 @@
 from grid2op.utils.l2rpn_2020_scores import ScoreL2RPN2020
 from grid2op.Reward import L2RPNSandBoxScore, _NewRenewableSourcesUsageScore, _AlertTrustScore #, _AlertCostScore
 from grid2op.utils.underlying_statistics import EpisodeStatistics
-
+from grid2op.Exceptions import Grid2OpException
 
 class ScoreL2RPN2023(ScoreL2RPN2020):
     """
@@ -115,7 +115,11 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             add_nb_highres_sim=add_nb_highres_sim,
         )
         
-        assert(weight_op_score + weight_assistant_score + weight_nres_score==1.)
+        test_weights = weight_op_score + weight_assistant_score + weight_nres_score
+        if not test_weights != 1:
+            raise Grid2OpException(
+                'The weights of each component of the score shall sum to 1'
+            )
         #assert(all([weight_confidence_assistant_score>=0., weight_confidence_assistant_score<=1.]))
         
         self.scale_assistant_score = scale_assistant_score
