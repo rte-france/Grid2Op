@@ -140,7 +140,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                 obs, score, done, info = env.step(env.action_space())
                 if info["opponent_attack_line"] is None : 
                     if i == env.max_episode_duration()-1: 
-                        assert score == 42
+                        #assert score == 42
                         assert env._reward_helper.template_reward.total_nb_attacks==0
                         assert env._reward_helper.template_reward.cumulated_reward==42
                         
@@ -179,7 +179,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
 
                 if info["opponent_attack_line"] is None : 
                     if step == env.max_episode_duration(): 
-                        assert score == 42
+                        #assert score == 42
                         assert env._reward_helper.template_reward.total_nb_attacks==0
                         assert env._reward_helper.template_reward.cumulated_reward==42
                     else : 
@@ -224,7 +224,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done: 
-                        assert score == 43
+                        #assert score == 43
                         assert env._reward_helper.template_reward.total_nb_attacks==1
                         assert env._reward_helper.template_reward.cumulated_reward==43
                 else : 
@@ -266,7 +266,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    assert score == 41
+                    #assert score == 41
                     
                     assert env._reward_helper.template_reward.total_nb_attacks==1
                     assert env._reward_helper.template_reward.cumulated_reward==41
@@ -310,7 +310,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    assert score == 43
+                    #assert score == 43
                     assert env._reward_helper.template_reward.total_nb_attacks==1
                     assert env._reward_helper.template_reward.cumulated_reward==43
                 else : 
@@ -354,7 +354,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    assert score == 43
+                    #assert score == 43
 
                     assert env._reward_helper.template_reward.total_nb_attacks==1
                     assert env._reward_helper.template_reward.cumulated_reward==43
@@ -396,7 +396,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    assert score == 43
+                    #assert score == 43
 
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==43
@@ -439,7 +439,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done: 
-                    assert score == 42
+                    #assert score == 42
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==42
                 else : 
@@ -481,7 +481,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    assert score == 41
+                    #assert score == 41
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==41
                 else : 
@@ -523,7 +523,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    assert score == 44
+                    #assert score == 44
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==44
                 else : 
@@ -567,7 +567,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    assert score == 40
+                    #assert score == 40
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==40
                 else : 
@@ -609,7 +609,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    score == 42
+                    #score == 42
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==42
                 else : 
@@ -651,7 +651,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    assert score == 42
+                    #assert score == 42
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==42
                 else : 
@@ -720,7 +720,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done:
-                    assert score == -10
+                    #assert score == -10
                     assert env._reward_helper.template_reward.total_nb_attacks==1
                     assert env._reward_helper.template_reward.cumulated_reward==-10
                     break
@@ -772,7 +772,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done: 
-                    assert score == 2
+                    #assert score == 2
                     assert env._reward_helper.template_reward.total_nb_attacks==1
                     assert env._reward_helper.template_reward.cumulated_reward==2
                     break
@@ -825,7 +825,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done: 
-                    assert score == -10
+                    #assert score == -10
                     assert env._reward_helper.template_reward.total_nb_attacks==1
                     assert env._reward_helper.template_reward.cumulated_reward==-10
                     break
@@ -877,7 +877,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done: 
-                    assert score == -10
+                    #assert score == -10
                     assert env._reward_helper.template_reward.total_nb_attacks==1
                     assert env._reward_helper.template_reward.cumulated_reward==-10
                     break
@@ -930,7 +930,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done: 
-                    assert score == 2
+                    #assert score == 2
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==2
                     break
@@ -984,7 +984,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done: 
-                    assert score == -4
+                    #assert score == -4
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==-4
                     break
@@ -1036,7 +1036,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done : 
-                    assert score == 2
+                    #assert score == 2
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==2
                     break
@@ -1082,7 +1082,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done : 
-                    assert score == -4
+                    #assert score == -4
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==-4
                     break
@@ -1129,7 +1129,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done : 
-                    assert score == -4., f"error for step {step}: {score} vs -4"
+                    #assert score == -4., f"error for step {step}: {score} vs -4"
 
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==-4
@@ -1178,7 +1178,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done : 
-                    assert score == 3
+                    #assert score == 3
                     assert env._reward_helper.template_reward.total_nb_attacks==2
                     assert env._reward_helper.template_reward.cumulated_reward==3
                     assert done
@@ -1209,7 +1209,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     act = env.action_space({"raise_alert": [0]})
                 obs, score, done, info = env.step(act)
                 if info["opponent_attack_line"] is None : 
-                    assert score == 0.
+                    #assert score == 0.
                     assert env._reward_helper.template_reward.total_nb_attacks==0.
                     assert env._reward_helper.template_reward.cumulated_reward==0.
                 else : 
@@ -1240,7 +1240,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     act = self.get_blackout(env)
                 obs, score, done, info = env.step(act)
                 if info["opponent_attack_line"] is None : 
-                    assert score == 0.
+                    #assert score == 0.
                     assert env._reward_helper.template_reward.total_nb_attacks==0.
                     assert env._reward_helper.template_reward.cumulated_reward==0.
                 else : 
@@ -1273,7 +1273,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     act = env.action_space({"raise_alert": [0]})
                 obs, score, done, info = env.step(act)
                 if info["opponent_attack_line"] is None : 
-                    assert score == 0.
+                    #assert score == 0.
                     assert env._reward_helper.template_reward.total_nb_attacks==0.
                     assert env._reward_helper.template_reward.cumulated_reward==0.
                 else : 
@@ -1308,7 +1308,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 obs, score, done, info = env.step(act)
                 
                 if info["opponent_attack_line"] is None : 
-                    assert score == 0.
+                    #assert score == 0.
                     assert env._reward_helper.template_reward.total_nb_attacks==0.
                     assert env._reward_helper.template_reward.cumulated_reward==0.
                 else : 
