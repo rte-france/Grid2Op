@@ -116,7 +116,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         )
         
         test_weights = weight_op_score + weight_assistant_score + weight_nres_score
-        if not test_weights != 1:
+        if not test_weights == 1:
             raise Grid2OpException(
                 'The weights of each component of the score shall sum to 1'
             )
