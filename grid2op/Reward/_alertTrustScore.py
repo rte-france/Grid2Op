@@ -77,9 +77,9 @@ class _AlertTrustScore(AlertReward):
         
         lines_attacked = env._time_since_last_attack == 0      
         self.total_nb_attacks += np.sum(lines_attacked)
-        self.total_nb_alerts += np.sum(env._time_since_last_alert == 0)
         
         lines_alerted_beforeattack = np.equal(env._time_since_last_alert, env._time_since_last_attack + 1)
+        self.total_nb_alerts += np.sum(lines_alerted_beforeattack)
             
         if not is_done:
             lines_attacked_no_blackout = env._time_since_last_attack == SURVIVOR_TIMESTEPS
