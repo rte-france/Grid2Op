@@ -73,7 +73,7 @@ class AlertReward(BaseReward):
 
     def __init__(self,
                  logger=None,
-                 reward_min_no_blackout=-1.0,
+                reward_min_no_blackout=-1.0,
                  reward_min_blackout=-10.0, 
                  reward_max_no_blackout=1.0,
                  reward_max_blackout=2.0,
@@ -115,6 +115,19 @@ class AlertReward(BaseReward):
         
         self._i_am_simulate = self.is_simulated_env(env)
         return super().initialize(env)      
+
+    def reset(self, env):
+        self.total_time_steps = env.max_episode_duration()
+        self.time_window = env.parameters.ALERT_TIME_WINDOW
+        self._nrows_array = self.time_window + 2
+        
+        self._ts_attack[:,:] = False
+        self._alert_launched[:,:] = False
+        self._current_id = 0
+        self._lines_currently_attacked[:] = False
+        
+        self._i_am_simulate = self.is_simulated_env(env)
+        return super().reset(env)      
     
     def _update_attack(self, env):
         if env.infos["opponent_attack_line"] is None:

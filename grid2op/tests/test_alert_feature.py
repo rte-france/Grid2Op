@@ -254,6 +254,33 @@ class TestObservation(unittest.TestCase):
     def test_init_observation(self) -> None :    
         obs : BaseObservation = self.env.reset()
         self._aux_obs_init(obs)
+
+    def test_reset_obs(self) -> None :
+        obs1 : BaseObservation = self.env.reset()
+        assert (obs1.time_since_last_alert == np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1])).all()
+
+        obs2, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+
+        assert (obs2.time_since_last_alert == np.array([0, -1, -1, -1, -1, -1, -1, -1, -1, -1])).all()
+
+        obs2bis, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
+        assert (obs2bis.time_since_last_alert == np.array([1, 0, -1, -1, -1, -1, -1, -1, -1, -1])).all()
+
+        obs3 : BaseObservation = self.env.reset()
+        assert (obs3.time_since_last_alert == obs1.time_since_last_alert).all()
+
+    def test_reset_reward(self) -> None :
+        obs1 : BaseObservation = self.env.reset()
+        assert self.env._reward_helper.template_reward._current_id == 0
+        obs2, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+
+        assert self.env._reward_helper.template_reward._current_id == 1
+
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
+        assert self.env._reward_helper.template_reward._current_id == 2
+
+        obs3 : BaseObservation = self.env.reset()
+        assert self.env._reward_helper.template_reward._current_id == 0
     
     def _aux_alert_0(self, obs):
         assert obs.active_alert[0]
