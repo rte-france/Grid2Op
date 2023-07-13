@@ -255,7 +255,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
 
     def test_assistant_trust_score_no_blackout_attack_alert(self) -> None :
         """While an attack occurs at step 2, we raise an alert at step 1 
-            We expect a score of 41
+            We expect a score of bcp
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
@@ -290,13 +290,13 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     
                 if done:                  
                     assert env._reward_helper.template_reward.total_nb_attacks==1.
-                    assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] -\
-                        DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]
+                    assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_max_blackout"]
                     assert env._reward_helper.template_reward.total_nb_alerts==1.
+                    assert env._reward_helper.template_reward.alert_attack_blackout==1
                     score_min, score_max = env._reward_helper.template_reward._compute_min_max_reward(
                         env._reward_helper.template_reward.total_nb_attacks)
-                    assert score_min == 0. #TODO A vérifier
-                    assert score_max == DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] #TODO A vérifier
+                    assert score_min == DEFAULT_PARAMS_TRUSTSCORE["reward_min_blackout"] #TODO A vérifier
+                    assert score_max == DEFAULT_PARAMS_TRUSTSCORE["reward_max_blackout"] #TODO A vérifier
                     assert score == 1. #TODO A vérifier
                     
                 else : 
