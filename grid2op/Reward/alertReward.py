@@ -73,7 +73,7 @@ class AlertReward(BaseReward):
 
     def __init__(self,
                  logger=None,
-                 reward_min_no_blackout=-1.0,
+                reward_min_no_blackout=-1.0,
                  reward_min_blackout=-10.0, 
                  reward_max_no_blackout=1.0,
                  reward_max_blackout=2.0,
@@ -121,13 +121,10 @@ class AlertReward(BaseReward):
         self.time_window = env.parameters.ALERT_TIME_WINDOW
         self._nrows_array = self.time_window + 2
         
-        # TODO simulate env stuff !
-        
-        # TODO vectors proper size
-        self._ts_attack = np.full((self._nrows_array, type(env).dim_alerts), False, dtype=dt_bool)
-        self._alert_launched = np.full((self._nrows_array, type(env).dim_alerts), False, dtype=dt_bool)
+        self._ts_attack[:,:] = False
+        self._alert_launched[:,:] = False
         self._current_id = 0
-        self._lines_currently_attacked = np.full(type(env).dim_alerts, False, dtype=dt_bool)
+        self._lines_currently_attacked[:] = False
         
         self._i_am_simulate = self.is_simulated_env(env)
         return super().reset(env)      
