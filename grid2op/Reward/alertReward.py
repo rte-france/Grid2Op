@@ -73,11 +73,11 @@ class AlertReward(BaseReward):
 
     def __init__(self,
                  logger=None,
-                reward_min_no_blackout=-1.0,
-                 reward_min_blackout=-10.0, 
-                 reward_max_no_blackout=1.0,
-                 reward_max_blackout=2.0,
-                 reward_end_episode_bonus=1.0):
+                 reward_min_no_blackout=-1,
+                 reward_min_blackout=-6.2, 
+                 reward_max_no_blackout=0.06,
+                 reward_max_blackout=27.,
+                 reward_end_episode_bonus=9.2):
         BaseReward.__init__(self, logger=logger)
         
         self.reward_min_no_blackout = dt_float(reward_min_no_blackout)
