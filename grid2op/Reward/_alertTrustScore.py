@@ -79,14 +79,13 @@ class _AlertTrustScore(AlertReward):
         self.total_nb_attacks += np.sum(lines_attacked)
         self.total_nb_alerts += np.sum(env._time_since_last_alert == 0)
         
-        lines_alerted_beforeattack = np.greater(env._time_since_last_alert, env._time_since_last_attack)
+        lines_alerted_beforeattack = np.equal(env._time_since_last_alert, env._time_since_last_attack + 1)
             
         if not is_done:
             lines_attacked_no_blackout = env._time_since_last_attack == SURVIVOR_TIMESTEPS
-            lines_alerted_no_blackout = (env._time_since_last_alert >= 0) * (env._time_since_last_alert <= SURVIVOR_TIMESTEPS) * lines_alerted_beforeattack
             
-            self.alert_attack_no_blackout += np.sum(lines_alerted_no_blackout[lines_attacked_no_blackout])
-            self.no_alert_attack_no_blackout += np.sum(~lines_alerted_no_blackout[lines_attacked_no_blackout])
+            self.alert_attack_no_blackout += np.sum(lines_alerted_beforeattack[lines_attacked_no_blackout])
+            self.no_alert_attack_no_blackout += np.sum(~lines_alerted_beforeattack[lines_attacked_no_blackout])
             
             return score_ep
             
@@ -96,10 +95,9 @@ class _AlertTrustScore(AlertReward):
             
             if self.is_in_blackout(has_error, is_done):
                 lines_attacked_dangerzone = (env._time_since_last_attack >= 0) * (env._time_since_last_attack < SURVIVOR_TIMESTEPS)
-                lines_alerted_dangerzone = (env._time_since_last_alert >= 0) * (env._time_since_last_alert < SURVIVOR_TIMESTEPS) * lines_alerted_beforeattack
                 
-                self.alert_attack_blackout += 1. * any(lines_alerted_dangerzone[lines_attacked_dangerzone])
-                self.no_alert_attack_blackout += 1. * any(~lines_alerted_dangerzone[lines_attacked_dangerzone])
+                self.alert_attack_blackout += 1. * any(lines_alerted_beforeattack[lines_attacked_dangerzone])
+                self.no_alert_attack_blackout += 1. * any(~lines_alerted_beforeattack[lines_attacked_dangerzone])
                 
             return score_ep
         
