@@ -78,24 +78,28 @@ class _AlertTrustScore(AlertReward):
         lines_attacked = env._time_since_last_attack == 0      
         self.total_nb_attacks += np.sum(lines_attacked)
         self.total_nb_alerts += np.sum(env._time_since_last_alert == 0)
+        
+        lines_alerted_beforeattack = np.greater(env._time_since_last_alert, env._time_since_last_attack)
             
         if not is_done:
             lines_attacked_no_blackout = env._time_since_last_attack == SURVIVOR_TIMESTEPS
-            lines_alerted_no_blackout = (env._time_since_last_alert >= 0) * (env._time_since_last_alert <= SURVIVOR_TIMESTEPS)
+            lines_alerted_no_blackout = (env._time_since_last_alert >= 0) * (env._time_since_last_alert <= SURVIVOR_TIMESTEPS) * lines_alerted_beforeattack
             
             self.alert_attack_no_blackout += np.sum(lines_alerted_no_blackout[lines_attacked_no_blackout])
             self.no_alert_attack_no_blackout += np.sum(~lines_alerted_no_blackout[lines_attacked_no_blackout])
             
             return score_ep
+            
         else:
-            lines_attacked_dangerzone = (env._time_since_last_attack >= 0) * (env._time_since_last_attack < SURVIVOR_TIMESTEPS)
-            lines_alerted_dangerzone = (env._time_since_last_alert >= 0) * (env._time_since_last_alert < SURVIVOR_TIMESTEPS)
-            
-            self.alert_attack_blackout += 1. * any(lines_alerted_dangerzone[lines_attacked_dangerzone])
-            self.no_alert_attack_blackout += 1. * any(~lines_alerted_dangerzone[lines_attacked_dangerzone])
-            
-            score_min_ep, score_max_ep = self._compute_min_max_reward(self.total_nb_attacks)
+            score_min_ep, score_max_ep = self._compute_min_max_reward(self.total_nb_attacks, self.is_in_blackout(has_error, is_done))
             score_ep = self._normalisation_fun(self.cumulated_reward, score_min_ep, score_max_ep)
+            
+            if self.is_in_blackout(has_error, is_done):
+                lines_attacked_dangerzone = (env._time_since_last_attack >= 0) * (env._time_since_last_attack < SURVIVOR_TIMESTEPS)
+                lines_alerted_dangerzone = (env._time_since_last_alert >= 0) * (env._time_since_last_alert < SURVIVOR_TIMESTEPS) * lines_alerted_beforeattack
+                
+                self.alert_attack_blackout += 1. * any(lines_alerted_dangerzone[lines_attacked_dangerzone])
+                self.no_alert_attack_blackout += 1. * any(~lines_alerted_dangerzone[lines_attacked_dangerzone])
                 
             return score_ep
         
@@ -105,10 +109,13 @@ class _AlertTrustScore(AlertReward):
         score_ep = standardized_score * 2. - 1.
         return score_ep
     
-    def _compute_min_max_reward(self, nb_attacks):
-        score_min_ep = lambda k: self.reward_min_no_blackout * (k - 1) + self.reward_min_blackout
-        score_max_ep = lambda k: max(self.reward_max_no_blackout * (k - 1) + self.reward_max_blackout,
-                                             self.reward_max_no_blackout * k + self.reward_end_episode_bonus)
+    def _compute_min_max_reward(self, nb_attacks, is_blackout):
+        if is_blackout:
+            score_min_ep = lambda k: self.reward_min_no_blackout * (k - 1) + self.reward_min_blackout
+            score_max_ep = lambda k: self.reward_max_no_blackout * (k - 1) + self.reward_max_blackout
+        else:
+            score_min_ep = lambda k: self.reward_min_no_blackout * k
+            score_max_ep = lambda k: self.reward_max_no_blackout * k + self.reward_end_episode_bonus
         
         return score_min_ep(nb_attacks), score_max_ep(nb_attacks)
         
