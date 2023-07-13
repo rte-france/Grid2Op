@@ -17,7 +17,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import BaseEnv, Environment
 from grid2op.Observation import BaseObservation, CompleteObservation
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
-from grid2op.Opponent.OpponentSpace import OpponentSpace
+from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.Reward import FlatReward
 from grid2op.Rules import AlwaysLegal
 from grid2op.Runner import Runner
@@ -191,8 +191,6 @@ class TestTSFromEpisode(unittest.TestCase):
         # now run as usual
         res2 = runner2.run(nb_episode=1, max_iter=self.max_iter, add_detailed_output=True)
         ep_data2 = res2[0][-1]
-        import pdb
-        pdb.set_trace()
         assert len(ep_data2) == 7, f"{len(ep_data2)} vs 7"
         assert ep_data2.observations[2].time_next_maintenance[2] == 0  # check right maintenance is applied
         assert ep_data2.observations[2].duration_next_maintenance[2] == 5  # check right maintenance is applied

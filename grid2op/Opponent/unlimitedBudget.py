@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.dtypes import dt_float
-from grid2op.Opponent.BaseActionBudget import BaseActionBudget
+from grid2op.Opponent.baseActionBudget import BaseActionBudget
 
 
 class UnlimitedBudget(BaseActionBudget):

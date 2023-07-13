@@ -12,7 +12,7 @@ import numpy as np
 import re
 
 import grid2op
-from grid2op.Opponent.OpponentSpace import OpponentSpace
+from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Action import (
     ActionSpace,
