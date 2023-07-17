@@ -40,6 +40,11 @@ ALL_ATTACKABLE_LINES= [
 
 ATTACKED_LINE = "48_50_136"
 
+DEFAULT_ALERT_REWARD_PARAMS = dict(reward_min_no_blackout=-1.0,
+                                   reward_min_blackout=-10.0, 
+                                   reward_max_no_blackout=1.0,
+                                   reward_max_blackout=2.0,
+                                   reward_end_episode_bonus=42.0)
 
 def _get_steps_attack(kwargs_opponent, multi=False):
     """computes the steps for which there will be attacks"""
@@ -128,11 +133,7 @@ class TestAlertNoBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                     reward_min_blackout=-10.0, 
-                                     reward_max_no_blackout=1.0,
-                                     reward_max_blackout=2.0,
-                                     reward_end_episode_bonus=42.0)
+            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS)
         ) as env:
             env.seed(0)
             env.reset()
@@ -161,11 +162,7 @@ class TestAlertNoBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                     reward_min_blackout=-10.0, 
-                                     reward_max_no_blackout=1.0,
-                                     reward_max_blackout=2.0,
-                                     reward_end_episode_bonus=42.0)
+            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS)
         ) as env:
             env.seed(0)
             env.reset()
@@ -211,11 +208,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnbana"
             ) as env : 
             env.seed(0)
@@ -254,11 +247,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnba"
             ) as env : 
             env.seed(0)
@@ -304,11 +293,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnbaatl"
             ) as env : 
             env.seed(0)
@@ -354,11 +339,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnbaate"
             ) as env : 
             env.seed(0)
@@ -406,11 +387,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnb2astna"
             ) as env : 
             env.seed(0)
@@ -452,11 +429,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnb2ast1a"
             ) as env : 
             env.seed(0)
@@ -501,11 +474,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnb2ast2a"
             ) as env : 
             env.seed(0)
@@ -552,11 +521,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnb2dtna"
             ) as env : 
             env.seed(0)
@@ -602,11 +567,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnb2dt2a"
             ) as env : 
             env.seed(0)
@@ -655,11 +616,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnb2dtafa"
             ) as env : 
             env.seed(0)
@@ -706,11 +663,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvnb2dtasa"
             ) as env : 
             env.seed(0)
@@ -742,11 +695,7 @@ class TestAlertNoBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                     reward_min_blackout=-10.0, 
-                                     reward_max_no_blackout=1.0,
-                                     reward_max_blackout=2.0,
-                                     reward_end_episode_bonus=42.0)
+            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS)
         ) as env:
             env.seed(0)
             env.reset()
@@ -798,11 +747,7 @@ class TestAlertBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent, 
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvbana"
             ) as env : 
             new_param = Parameters()
@@ -847,6 +792,7 @@ class TestAlertBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvbarga"
             ) as env : 
             new_param = Parameters()
@@ -898,6 +844,7 @@ class TestAlertBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvbarajbb"
             ) as env : 
             new_param = Parameters()
@@ -949,6 +896,7 @@ class TestAlertBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvbarate"
             ) as env : 
             new_param = Parameters()
@@ -999,6 +947,7 @@ class TestAlertBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvb2lssiwga"
             ) as env : 
             new_param = Parameters()
@@ -1050,6 +999,8 @@ class TestAlertBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
+                  
                   _add_to_name="_tarvb2laso1a"
             ) as env : 
             new_param = Parameters()
@@ -1102,11 +1053,7 @@ class TestAlertBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvb2ldsiwga"
             ) as env : 
             env.seed(0)
@@ -1158,11 +1105,7 @@ class TestAlertBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvb2ladsiwo1aofal"
             ) as env : 
             env.seed(0)
@@ -1210,11 +1153,7 @@ class TestAlertBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvb2ladsiwo1aosal"
             ) as env : 
             env.seed(0)
@@ -1260,11 +1199,7 @@ class TestAlertBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                           reward_min_blackout=-10.0, 
-                                           reward_max_no_blackout=1.0,
-                                           reward_max_blackout=2.0,
-                                           reward_end_episode_bonus=42.0),
+                  reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                   _add_to_name="_tarvb2lad1iw1ga"
             ) as env : 
             env.seed(0)
@@ -1303,11 +1238,7 @@ class TestAlertBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                     reward_min_blackout=-10.0, 
-                                     reward_max_no_blackout=1.0,
-                                     reward_max_blackout=2.0,
-                                     reward_end_episode_bonus=42.0)
+            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS)
         ) as env:
             env.seed(0)
             env.reset()
@@ -1338,11 +1269,7 @@ class TestAlertBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                     reward_min_blackout=-10.0, 
-                                     reward_max_no_blackout=1.0,
-                                     reward_max_blackout=2.0,
-                                     reward_end_episode_bonus=42.0)
+            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS)
         ) as env:
             env.seed(0)
             env.reset()
@@ -1371,11 +1298,7 @@ class TestAlertBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                     reward_min_blackout=-10.0, 
-                                     reward_max_no_blackout=1.0,
-                                     reward_max_blackout=2.0,
-                                     reward_end_episode_bonus=42.0)
+            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS)
         ) as env:
             env.seed(0)
             env.reset()
@@ -1406,11 +1329,7 @@ class TestAlertBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=AlertReward(reward_min_no_blackout=-1.0,
-                                     reward_min_blackout=-10.0, 
-                                     reward_max_no_blackout=1.0,
-                                     reward_max_blackout=2.0,
-                                     reward_end_episode_bonus=42.0)
+            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS)
         ) as env:
             env.seed(0)
             env.reset()

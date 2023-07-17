@@ -117,10 +117,6 @@ class AlertReward(BaseReward):
         return super().initialize(env)      
 
     def reset(self, env):
-        self.total_time_steps = env.max_episode_duration()
-        self.time_window = env.parameters.ALERT_TIME_WINDOW
-        self._nrows_array = self.time_window + 2
-        
         self._ts_attack[:,:] = False
         self._alert_launched[:,:] = False
         self._current_id = 0
