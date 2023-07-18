@@ -612,6 +612,7 @@ class GridObjects:
     alertable_line_ids = []
     
     def __init__(self):
+        """nothing to do when an object of this class is created, the information is held by the class attributes"""
         pass
 
     @classmethod

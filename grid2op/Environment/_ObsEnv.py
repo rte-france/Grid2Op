@@ -471,7 +471,6 @@ class _ObsEnv(BaseEnv):
             self.current_obs.update(self, with_forecast=False)
             
         if _do_copy:
-            # res = self.current_obs.copy()
             res = copy.deepcopy(self.current_obs)
         else:
             res = self.current_obs

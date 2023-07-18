@@ -2334,7 +2334,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 env=self, _update_state=_update_state
             )
         if _do_copy:
-            # return self._last_obs.copy()
             return copy.deepcopy(self._last_obs)
         else:
             return self._last_obs
@@ -2877,7 +2876,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._time_since_last_attack[~mask_first_ts_attack & (self._time_since_last_attack != -1)] += 1
             
             # update the time already attacked
-            self._is_already_attacked[lines_attacked_al] = False
             self._is_already_attacked[lines_attacked_al] = True
         else:
             self._time_since_last_attack[self._time_since_last_attack != -1] += 1

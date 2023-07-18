@@ -45,9 +45,6 @@ class LinesCapacityReward(BaseReward):
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(1.0)
 
-    def initialize(self, env):
-        pass
-
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min

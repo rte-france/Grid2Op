@@ -10,7 +10,6 @@ from typing import Tuple
 import copy
 import warnings
 import numpy as np
-# from gym.spaces import Box
 
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float

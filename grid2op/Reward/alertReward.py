@@ -8,6 +8,7 @@
 
 import numpy as np
 
+from typing import Optional
 from grid2op.Reward.baseReward import BaseReward
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 
@@ -80,23 +81,23 @@ class AlertReward(BaseReward):
                  reward_end_episode_bonus=1.0):
         BaseReward.__init__(self, logger=logger)
         
-        self.reward_min_no_blackout = dt_float(reward_min_no_blackout)
-        self.reward_min_blackout = dt_float(reward_min_blackout)
-        self.reward_max_no_blackout = dt_float(reward_max_no_blackout)
-        self.reward_max_blackout = dt_float(reward_max_blackout)
-        self.reward_end_episode_bonus = dt_float(reward_end_episode_bonus)
-        self.reward_no_game_over = dt_float(0.0)
+        self.reward_min_no_blackout : float = dt_float(reward_min_no_blackout)
+        self.reward_min_blackout : float = dt_float(reward_min_blackout)
+        self.reward_max_no_blackout : float = dt_float(reward_max_no_blackout)
+        self.reward_max_blackout : float = dt_float(reward_max_blackout)
+        self.reward_end_episode_bonus : float = dt_float(reward_end_episode_bonus)
+        self.reward_no_game_over : float = dt_float(0.0)
         
-        self._reward_range_blackout = (self.reward_max_blackout - self.reward_min_blackout)
+        self._reward_range_blackout : float = (self.reward_max_blackout - self.reward_min_blackout)
 
-        self.total_time_steps = dt_int(0.0)
-        self.time_window = None
+        self.total_time_steps : Optional[int] = dt_int(0)
+        self.time_window : Optional[int] = None
         
-        self._ts_attack : np.ndarray = None
+        self._ts_attack : Optional[np.ndarray] = None
         self._current_id : int = 0
-        self._lines_currently_attacked : np.ndarray = None
-        self._alert_launched : np.ndarray = None
-        self._nrows_array : int = None
+        self._lines_currently_attacked : Optional[np.ndarray] = None
+        self._alert_launched : Optional[np.ndarray] = None
+        self._nrows_array : Optional[int] = None
         
         self._i_am_simulate : bool = False
 

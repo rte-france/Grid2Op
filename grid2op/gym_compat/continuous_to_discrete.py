@@ -11,9 +11,6 @@ import numpy as np
 from grid2op.dtypes import dt_int
 from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 
-# from gym.spaces import Box, MultiDiscrete
-# from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
-
 
 class __AuxContinuousToDiscreteConverter:
     """

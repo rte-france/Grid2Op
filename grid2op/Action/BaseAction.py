@@ -846,9 +846,8 @@ class BaseAction(GridObjects):
             super()._assign_attr_from_name(attr_nm, vect)
             self._post_process_from_vect()
         else:
-            if np.isfinite(vect).any():
-                if (vect != 0.0).any():
-                    self._dict_inj[attr_nm] = vect
+            if np.isfinite(vect).any() and (vect != 0.0).any():
+                self._dict_inj[attr_nm] = vect
 
     def check_space_legit(self):
         """
@@ -2657,8 +2656,8 @@ class BaseAction(GridObjects):
         else:
             if self._raise_alert.any():
                 raise AmbiguousActionRaiseAlert(
-                    f"Unrecognize alert action: an action acts on the alert, yet it's not tagged "
-                    f"as doing so. Expect wrong behaviour."
+                    "Unrecognize alert action: an action acts on the alert, yet it's not tagged "
+                    "as doing so. Expect wrong behaviour."
                 )
 
     def _is_storage_ambiguous(self):
@@ -2955,7 +2954,7 @@ class BaseAction(GridObjects):
                 else:
                     line_str = "s: \n\t \t - " + "\n\t \t - ".join(
                         [f": {i} (on line {l})" for i,l in zip(i_alert,li_line)])
-                res.append(f"\t - Raise alert(s) " f"{line_str}")
+                res.append(f"\t - Raise alert(s) {line_str}")
             else:
                 res.append("\t - Not raise any alert")
         return "\n".join(res)

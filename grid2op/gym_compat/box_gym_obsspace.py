@@ -632,10 +632,7 @@ class __AuxBoxGymObsSpace:
         # initialize the base container
         type(self)._BoxType.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
         
-        # convert data in `_add` and `_multiply` to the right type
-            
-        # self._subtract = {k: v.astype(self.dtype) for k, v in self._subtract.items()}
-        # self._divide = {k: v.astype(self.dtype) for k, v in self._divide.items()}
+        # convert data in `_subtract` and `_divide` to the right type
         self._fix_value_sub_div(self._subtract, functs)
         self._fix_value_sub_div(self._divide, functs)
 
