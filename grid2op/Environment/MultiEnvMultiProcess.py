@@ -67,14 +67,14 @@ class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
                 'convert it to such with error "{}"'.format(exc_)
             )
 
-        if np.any(nb_envs < 0):
+        if (nb_envs < 0).any():
             raise MultiEnvException(
                 'You ask to perform "{}" copy of an environment. This is a negative '
                 'integer. I cannot do that. Please make sure "nb_envs" argument '
                 "is all made of strictly positive integers and not {}."
                 "".format(np.min(nb_envs), nb_envs)
             )
-        if np.any(nb_envs == 0):
+        if (nb_envs == 0).any():
             raise MultiEnvException(
                 "You ask to perform 0 copy of an environment. This is not supported at "
                 'the moment. Please make sure "nb_envs" argument '

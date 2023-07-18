@@ -172,7 +172,7 @@ class WeightedRandomOpponent(BaseOpponent):
 
         # If all attackable lines are disconnected, do not attack
         status = observation.line_status[self._lines_ids]
-        if not np.sum(status):
+        if not status.sum():
             return None, 0
 
         available_attacks = self._attacks[status]

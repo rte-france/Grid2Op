@@ -107,11 +107,11 @@ class _AlarmScore(AlarmReward):
                 self.disc_lines_all_before_cascade[step] >= 0
             ] = True
 
-        if np.sum(disc_lines_to_consider_for_score) == 0:
+        if disc_lines_to_consider_for_score.sum() == 0:
             disc_lines_to_consider_for_score = disc_lines_at_cascading_time == 0
 
         # if we are there, it is because we have identified before that the failure is due to disconnected powerlines
-        assert np.any(disc_lines_to_consider_for_score)
+        assert (disc_lines_to_consider_for_score).any()
 
         # we transform the vector so that disconnected lines have a zero, to be coherent with env._disc_lines
         return 1 - disc_lines_to_consider_for_score

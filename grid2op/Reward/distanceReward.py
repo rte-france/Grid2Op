@@ -45,7 +45,7 @@ class DistanceReward(BaseReward):
             return self.reward_min
 
         # Get topo from env
-        obs = env.get_obs()
+        obs = env.get_obs(_do_copy=False)
         topo = obs.topo_vect
 
         idx = 0
