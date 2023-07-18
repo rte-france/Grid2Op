@@ -25,7 +25,7 @@ class ValueStore:
     def __init__(self, size, dtype):
         ## TODO at the init it's mandatory to have everything at "1" here
         # if topo is not "fully connected" it will not work
-        self.values = np.ones(size, dtype=dtype)
+        self.values = np.empty(size, dtype=dtype)
         self.changed = np.full(size, dtype=dt_bool, fill_value=False)
         self.last_index = 0
         self.__size = size
@@ -62,7 +62,7 @@ class ValueStore:
         self.last_index = 0
 
     def change_status(self, switch, lineor_id, lineex_id, old_vect):
-        if not np.any(switch):
+        if not switch.any():
             # nothing is modified so i stop here
             return
 
@@ -188,6 +188,18 @@ class ValueStore:
         res.__size = self.__size
         return res
 
+    def copy(self, other):
+        """deepcopy, shallow or deep, without having to initialize everything again"""
+        self.values[:] = other.values
+        self.changed[:] = other.changed
+        self.last_index = other.last_index
+        self.__size = other.__size
+        
+    def force_unchanged(self, mask, local_bus):
+        to_unchanged = local_bus == -1
+        to_unchanged[~mask] = False
+        self.changed[to_unchanged] = False
+        
 
 class _BackendAction(GridObjects):
     """
@@ -206,6 +218,10 @@ class _BackendAction(GridObjects):
 
         # topo at time t
         self.current_topo = ValueStore(self.dim_topo, dtype=dt_int)
+        
+        # by default everything is on busbar 1
+        self.last_topo_registered.values[:] = 1
+        self.current_topo.values[:] = 1  
 
         # injection at time t
         self.prod_p = ValueStore(self.n_gen, dtype=dt_float)
@@ -239,59 +255,35 @@ class _BackendAction(GridObjects):
     def __deepcopy__(self, memodict={}):
         res = type(self)()
         # last connected registered
-        res.last_topo_registered = copy.deepcopy(self.last_topo_registered)
-        res.current_topo = copy.deepcopy(self.current_topo)
-        res.prod_p = copy.deepcopy(self.prod_p)
-        res.prod_v = copy.deepcopy(self.prod_v)
-        res.load_p = copy.deepcopy(self.load_p)
-        res.load_q = copy.deepcopy(self.load_q)
-        res.storage_power = copy.deepcopy(self.storage_power)
-        res.activated_bus[:] = self.activated_bus
-        res.big_topo_to_subid[:] = self.big_topo_to_subid
+        res.last_topo_registered.copy(self.last_topo_registered)
+        res.current_topo.copy(self.current_topo)
+        res.prod_p.copy(self.prod_p)
+        res.prod_v.copy(self.prod_v)
+        res.load_p.copy(self.load_p)
+        res.load_q.copy(self.load_q)
+        res.storage_power.copy(self.storage_power)
+        res.activated_bus[:, :] = self.activated_bus
+        # res.big_topo_to_subid[:] = self.big_topo_to_subid  # cste
         if self.shunts_data_available:
-            res.shunt_p = copy.deepcopy(self.shunt_p)
-            res.shunt_q = copy.deepcopy(self.shunt_q)
-            res.shunt_bus = copy.deepcopy(self.shunt_bus)
+            res.shunt_p.copy(self.shunt_p)
+            res.shunt_q.copy(self.shunt_q)
+            res.shunt_bus.copy(self.shunt_bus)
 
         res._status_or_before[:] = self._status_or_before
         res._status_ex_before[:] = self._status_ex_before
         res._status_or[:] = self._status_or
         res._status_ex[:] = self._status_ex
-
+        
         res._loads_bus = copy.deepcopy(self._loads_bus)
         res._gens_bus = copy.deepcopy(self._gens_bus)
         res._lines_or_bus = copy.deepcopy(self._lines_or_bus)
         res._lines_ex_bus = copy.deepcopy(self._lines_ex_bus)
         res._storage_bus = copy.deepcopy(self._storage_bus)
+        
         return res
 
     def __copy__(self):
-        res = type(self)()
-        # last connected registered
-        res.last_topo_registered = copy.copy(self.last_topo_registered)
-        res.current_topo = copy.copy(self.current_topo)
-        res.prod_p = copy.copy(self.prod_p)
-        res.prod_v = copy.copy(self.prod_v)
-        res.load_p = copy.copy(self.load_p)
-        res.load_q = copy.copy(self.load_q)
-        res.storage_power = copy.copy(self.storage_power)
-        res.activated_bus[:] = self.activated_bus
-        res.big_topo_to_subid[:] = self.big_topo_to_subid
-        if self.shunts_data_available:
-            res.shunt_p = copy.copy(self.shunt_p)
-            res.shunt_q = copy.copy(self.shunt_q)
-            res.shunt_bus = copy.copy(self.shunt_bus)
-
-        res._status_or_before[:] = self._status_or_before
-        res._status_ex_before[:] = self._status_ex_before
-        res._status_or[:] = self._status_or
-        res._status_ex[:] = self._status_ex
-
-        res._loads_bus = copy.copy(self._loads_bus)
-        res._gens_bus = copy.copy(self._gens_bus)
-        res._lines_or_bus = copy.copy(self._lines_or_bus)
-        res._lines_ex_bus = copy.copy(self._lines_ex_bus)
-        res._storage_bus = copy.copy(self._storage_bus)
+        res = self.__deepcopy__()  # nothing less to do
         return res
 
     def reorder(self, no_load, no_gen, no_topo, no_storage, no_shunt):
@@ -490,7 +482,24 @@ class _BackendAction(GridObjects):
 
         return self
 
+    def _assign_0_to_disco_el(self):
+        """do not consider disconnected elements are modified for there active / reactive / voltage values"""
+        gen_changed = self.current_topo.changed[type(self).gen_pos_topo_vect]
+        gen_bus = self.current_topo.values[type(self).gen_pos_topo_vect]
+        self.prod_p.force_unchanged(gen_changed, gen_bus)
+        self.prod_v.force_unchanged(gen_changed, gen_bus)
+        
+        load_changed = self.current_topo.changed[type(self).load_pos_topo_vect]
+        load_bus = self.current_topo.values[type(self).load_pos_topo_vect]
+        self.load_p.force_unchanged(load_changed, load_bus)
+        self.load_q.force_unchanged(load_changed, load_bus)
+        
+        sto_changed = self.current_topo.changed[type(self).storage_pos_topo_vect]
+        sto_bus = self.current_topo.values[type(self).storage_pos_topo_vect]
+        self.storage_power.force_unchanged(sto_changed, sto_bus)
+        
     def __call__(self):
+        self._assign_0_to_disco_el()
         injections = (
             self.prod_p,
             self.prod_v,
@@ -565,9 +574,10 @@ class _BackendAction(GridObjects):
         return self._aux_to_global(tmp_, self.storage_to_subid)
 
     def _get_active_bus(self):
-        self.activated_bus[:] = False
+        self.activated_bus[:, :] = False
         tmp = self.current_topo.values - 1
-        self.activated_bus[self.big_topo_to_subid, tmp] = True
+        is_el_conn = tmp >= 0
+        self.activated_bus[self.big_topo_to_subid[is_el_conn], tmp[is_el_conn]] = True
 
     def update_state(self, powerline_disconnected):
         """
@@ -576,7 +586,7 @@ class _BackendAction(GridObjects):
         Update the internal state. Should be called after the cascading failures
 
         """
-        if np.any(powerline_disconnected >= 0):
+        if (powerline_disconnected >= 0).any():
             arr_ = np.zeros(powerline_disconnected.shape, dtype=dt_int)
             arr_[powerline_disconnected >= 0] = -1
             self.current_topo.set_status(

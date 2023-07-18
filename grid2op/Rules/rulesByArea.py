@@ -100,13 +100,13 @@ class RulesByArea(BaseRules):
         powerline_status = env.get_current_line_status()
 
         aff_lines, aff_subs = action.get_topological_impact(powerline_status)
-        if any([np.sum(aff_lines[line_ids]) > env._parameters.MAX_LINE_STATUS_CHANGED for line_ids in self.lines_id_by_area.values()]):
+        if any([(aff_lines[line_ids]).sum() > env._parameters.MAX_LINE_STATUS_CHANGED for line_ids in self.lines_id_by_area.values()]):
             ids = [[k for k in np.where(aff_lines)[0] if k in line_ids] for line_ids in self.lines_id_by_area.values()]
             return False, IllegalAction(
                 "More than {} line status affected by the action in one area: {}"
                 "".format(env.parameters.MAX_LINE_STATUS_CHANGED, ids)
             )
-        if any([np.sum(aff_subs[sub_ids]) > env._parameters.MAX_SUB_CHANGED for sub_ids in self.substations_id_by_area.values()]):
+        if any([(aff_subs[sub_ids]).sum() > env._parameters.MAX_SUB_CHANGED for sub_ids in self.substations_id_by_area.values()]):
             ids = [[k for k in np.where(aff_subs)[0] if k in sub_ids] for sub_ids in self.substations_id_by_area.values()]
             return False, IllegalAction(
                 "More than {} substation affected by the action in one area: {}"

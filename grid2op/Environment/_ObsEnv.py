@@ -327,7 +327,7 @@ class _ObsEnv(BaseEnv):
                 reconnected,
                 first_ts_maintenance,
             ) = self._update_vector_with_timestep(time_step, is_overflow)
-            if np.any(first_ts_maintenance):
+            if first_ts_maintenance.any():
                 set_status = np.array(self._line_status_me, dtype=dt_int)
                 set_status[first_ts_maintenance] = -1
                 topo_vect = np.array(self._topo_vect, dtype=dt_int)
@@ -337,7 +337,7 @@ class _ObsEnv(BaseEnv):
                 set_status = self._line_status_me
                 topo_vect = self._topo_vect
             
-            if np.any(still_in_maintenance):
+            if still_in_maintenance.any():
                 set_status[still_in_maintenance] = -1
                 topo_vect = np.array(self._topo_vect, dtype=dt_int)
                 topo_vect[self.line_or_pos_topo_vect[still_in_maintenance]] = -1
@@ -451,7 +451,7 @@ class _ObsEnv(BaseEnv):
         obs, reward, done, info = self.step(action)
         return obs, reward, done, info
 
-    def get_obs(self, _update_state=True):
+    def get_obs(self, _update_state=True, _do_copy=True):
         """
         INTERNAL
 
@@ -469,7 +469,11 @@ class _ObsEnv(BaseEnv):
                            "environment that cannot be copied.")
         if _update_state:
             self.current_obs.update(self, with_forecast=False)
-        res = self.current_obs.copy()
+            
+        if _do_copy:
+            res = copy.deepcopy(self.current_obs)
+        else:
+            res = self.current_obs
         return res
 
     def update_grid(self, env):
