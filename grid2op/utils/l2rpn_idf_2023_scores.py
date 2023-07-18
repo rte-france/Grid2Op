@@ -103,13 +103,9 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             nb_process_stats=nb_process_stats,
             scores_func={
                 "grid_operational_cost": L2RPNSandBoxScore,
-                #"assistance_confidence": _AssistantConfidenceScore,
-                #"assistant_cost": _AssistantCostScore,
                 "new_renewable_sources_usage": _NewRenewableSourcesUsageScore,
             },
             score_names=["grid_operational_cost_scores",
-                         #"assistant_confidence_scores",
-                         #"assistant_cost_scores",
                          "new_renewable_sources_usage_scores"],
             add_nb_highres_sim=add_nb_highres_sim,
         )
