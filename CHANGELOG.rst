@@ -42,7 +42,11 @@ Change Log
   action: the behaviour could depend on the backend. As of 1.9.2 the "disconnections" has the priority and 
 - [IMPROVED] overall performances by calling `arr.sum()` or `arr.any()` instead of `np.sum(arr)` or
   `np.any(arr)` see https://numpy.org/neps/nep-0018-array-function-protocol.html#performance
-- [IMPROVED] overall performance of the `simulate` function by improving speed of copy of `_BackendAction`
+- [IMPROVED] overall performance of `obs.simulate` function by improving speed of copy of `_BackendAction`
+- [IMPROVED] overall performance of `env.step` / `obs.simulate` by preventing unnecessary observation deep copy
+- [IMPROVED] overall performance of `env.step` / `obs.simulate` by switching to `copy.deepcopy(obs)` instead of
+  `obs.copy()`
+  
 [1.9.1] - 2023-07-06
 --------------------
 - [BREAKING] (slightly): default `gym_compat` module now inherit from `gymnasium` (if 

@@ -79,8 +79,8 @@ if __name__ == "__main__":
     cp_env = cProfile.Profile()
     run_env(env, cp_env, cp_simu)
     nm_f, ext = os.path.splitext(__file__)
-    nm_out_simu = f"{nm_f}_{nm_bk_used}_{ENV_NAME}_{NB_SIMULATE}_simu_1.prof"
-    nm_out_env = f"{nm_f}_{nm_bk_used}_{ENV_NAME}_{NB_SIMULATE}_env_1.prof"
+    nm_out_simu = f"{nm_f}_{nm_bk_used}_{ENV_NAME}_{NB_SIMULATE}_simu.prof"
+    nm_out_env = f"{nm_f}_{nm_bk_used}_{ENV_NAME}_{NB_SIMULATE}_env.prof"
     cp_simu.dump_stats(nm_out_simu)
     cp_env.dump_stats(nm_out_env)
     print("You can view profiling results with:\n\tsnakeviz {}".format(nm_out_env))
