@@ -181,7 +181,7 @@ class AlertReward(BaseReward):
             # if there is no attack, I do nothing
             indexes_to_look = (np.arange(-self.time_window, 1) + self._current_id) % self._nrows_array  # include current step (hence the np.arange(..., **1**))
             ts_attack_in_order = self._ts_attack[indexes_to_look, :]
-            has_attack = np.any(ts_attack_in_order)
+            has_attack = (ts_attack_in_order).any()
             if has_attack:
                 # I need to check the alarm for the attacked lines
                 res = self._compute_score_attack_blackout(env, ts_attack_in_order, indexes_to_look)
@@ -189,7 +189,7 @@ class AlertReward(BaseReward):
             # no blackout: i check the first step in the window before me to see if there is an attack,
             index_window = (self._current_id - self.time_window) % self._nrows_array
             lines_attack = self._ts_attack[index_window, :]
-            if np.any(lines_attack):
+            if lines_attack.any():
                 # prev_ind = (index_window - 1) % self._nrows_array
                 # I don't need the "-1" because the action is already BEFORE the observation in the reward.
                 prev_ind = index_window

@@ -231,8 +231,8 @@ class __AuxBoxGymActSpace:
 
         low_gen = -1.0 * act_sp.gen_max_ramp_down[act_sp.gen_redispatchable]
         high_gen = 1.0 * act_sp.gen_max_ramp_up[act_sp.gen_redispatchable]
-        nb_redisp = np.sum(act_sp.gen_redispatchable)
-        nb_curtail = np.sum(act_sp.gen_renewable)
+        nb_redisp = act_sp.gen_redispatchable.sum()
+        nb_curtail = act_sp.gen_renewable.sum()
         curtail = np.full(shape=(nb_curtail,), fill_value=0.0, dtype=dt_float)
         curtail_mw = np.full(shape=(nb_curtail,), fill_value=0.0, dtype=dt_float)
         self._dict_properties = {
@@ -654,7 +654,7 @@ class __AuxBoxGymActSpace:
                 both_finite = finite_high & finite_low
                 both_finite &= curr_high > curr_low
 
-                if np.any(~both_finite):
+                if (~both_finite).any():
                     warnings.warn(f"The normalization of attribute \"{both_finite}\" cannot be performed entirely as "
                                   f"there are some non finite value, or `high == `low` "
                                   f"for some components.")

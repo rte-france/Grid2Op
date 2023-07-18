@@ -134,7 +134,7 @@ class __AuxContinuousToDiscreteConverter:
     def g2op_to_gym(self, g2op_object):
         mask = self._bins_size >= g2op_object
         mask = 1 - mask
-        res = np.sum(mask, axis=0)
+        res = mask.sum(axis=0)
         res[self._ignored] = 0
         return res
 

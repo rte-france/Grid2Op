@@ -1674,7 +1674,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     "Attempt to set thermal limit on {} powerlines while there are {}"
                     "on the grid".format(tmp.shape[0], self.n_line)
                 )
-            if np.any(~np.isfinite(tmp)):
+            if (~np.isfinite(tmp)).any():
                 raise Grid2OpException(
                     "Impossible to use non finite value for thermal limits."
                 )
@@ -1748,7 +1748,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         ):
             return valid, except_, info_
         # check that everything is consistent with pmin, pmax:
-        if np.any(self._target_dispatch > self.gen_pmax - self.gen_pmin):
+        if (self._target_dispatch > self.gen_pmax - self.gen_pmin).any():
             # action is invalid, the target redispatching would be above pmax for at least a generator
             cond_invalid = self._target_dispatch > self.gen_pmax - self.gen_pmin
             except_ = InvalidRedispatching(
@@ -1760,7 +1760,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
             self._target_dispatch -= redisp_act_orig
             return valid, except_, info_
-        if np.any(self._target_dispatch < self.gen_pmin - self.gen_pmax):
+        if (self._target_dispatch < self.gen_pmin - self.gen_pmax).any():
             # action is invalid, the target redispatching would be below pmin for at least a generator
             cond_invalid = self._target_dispatch < self.gen_pmin - self.gen_pmax
             except_ = InvalidRedispatching(
@@ -1774,7 +1774,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             return valid, except_, info_
 
         # i can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
-        if np.any(redisp_act_orig[new_p == 0.0]) and self._forbid_dispatch_off:
+        if (redisp_act_orig[new_p == 0.0]).any() and self._forbid_dispatch_off:
             # action is invalid, a generator has been redispatched, but it's turned off
             except_ = InvalidRedispatching(
                 "Impossible to dispatch a turned off generator"
@@ -1785,7 +1785,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._forbid_dispatch_off is True:
             redisp_act_orig_cut = 1.0 * redisp_act_orig
             redisp_act_orig_cut[new_p == 0.0] = 0.0
-            if np.any(redisp_act_orig_cut != redisp_act_orig):
+            if (redisp_act_orig_cut != redisp_act_orig).any():
                 info_.append(
                     {
                         "INFO: redispatching cut because generator will be turned_off": np.where(
@@ -1804,7 +1804,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         mismatch = self._actual_dispatch - self._target_dispatch
         mismatch = np.abs(mismatch)
         if (
-            np.abs(np.sum(self._actual_dispatch)) >= self._tol_poly
+            np.abs((self._actual_dispatch).sum()) >= self._tol_poly
             or np.max(mismatch) >= self._tol_poly
             or np.abs(self._amount_storage) >= self._tol_poly
             or np.abs(self._sum_curtailment_mw) >= self._tol_poly
@@ -1886,7 +1886,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         )
         already_modified_gen_me = already_modified_gen[gen_participating]
         target_vals_me = target_vals[already_modified_gen_me]
-        nb_dispatchable = np.sum(gen_participating)
+        nb_dispatchable = gen_participating.sum()
         tmp_zeros = np.zeros((1, nb_dispatchable), dtype=dt_float)
         coeffs = 1.0 / (
             self.gen_max_ramp_up + self.gen_max_ramp_down + self._epsilon_poly
@@ -1909,7 +1909,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
         # where they advised to scale the function
-        scale_objective = max(0.5 * np.sum(np.abs(target_vals_me_optim)) ** 2, 1.0)
+        scale_objective = max(0.5 * np.abs(target_vals_me_optim).sum() ** 2, 1.0)
         scale_objective = np.round(scale_objective, decimals=4)
         scale_objective = dt_float(scale_objective)
 
@@ -1969,8 +1969,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # choose a good initial point (close to the solution)
         # the idea here is to chose a initial point that would be close to the
         # desired solution (split the (sum of the) dispatch to the available generators)
-        x0 = np.zeros(np.sum(gen_participating))
-        if np.any(self._target_dispatch != 0.) or np.any(already_modified_gen):
+        x0 = np.zeros(gen_participating.sum())
+        if (self._target_dispatch != 0.).any() or already_modified_gen.any():
             gen_for_x0 = self._target_dispatch[gen_participating] != 0.
             gen_for_x0 |= already_modified_gen[gen_participating]
             x0[gen_for_x0] = (
@@ -1984,9 +1984,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # in this "if" block I set the other component of x0 to 
             # their "right" value
             can_adjust = (x0 == 0.0)
-            if np.any(can_adjust):
-                init_sum = np.sum(x0)
-                denom_adjust = np.sum(1.0 / weights[can_adjust])
+            if can_adjust.any():
+                init_sum = x0.sum()
+                denom_adjust = (1.0 / weights[can_adjust]).sum()
                 if denom_adjust <= 1e-2:
                     # i don't want to divide by something too cloose to 0.
                     denom_adjust = 1.0
@@ -2064,10 +2064,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """This function is an attempt to give more detailed log by detecting infeasible dispatch"""
         except_ = None
         sum_move = (
-            np.sum(incr_in_chronics) + self._amount_storage - self._sum_curtailment_mw
+            incr_in_chronics.sum() + self._amount_storage - self._sum_curtailment_mw
         )
-        avail_down_sum = np.sum(avail_down)
-        avail_up_sum = np.sum(avail_up)
+        avail_down_sum = avail_down.sum()
+        avail_up_sum = avail_up.sum()
         gen_setpoint = self._gen_activeprod_t_redisp[self.gen_redispatchable]
         if sum_move > avail_up_sum:
             # infeasible because too much is asked
@@ -2237,11 +2237,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         gen_still_connected = gen_up_before & gen_up_after
         gen_still_disconnected = (~gen_up_before) & (~gen_up_after)
 
-        if (
-            np.any(
+        if ((
                 self._gen_downtime[gen_connected_this_timestep]
                 < self.gen_min_downtime[gen_connected_this_timestep]
-            )
+            ).any()
             and not self._ignore_min_up_down_times
         ):
             # i reconnected a generator before the minimum time allowed
@@ -2260,10 +2259,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._gen_uptime[gen_connected_this_timestep] = 1
 
         if (
-            np.any(
+            (
                 self._gen_uptime[gen_disconnected_this]
                 < self.gen_min_uptime[gen_disconnected_this]
-            )
+            ).any()
             and not self._ignore_min_up_down_times
         ):
             # i disconnected a generator before the minimum time allowed
@@ -2285,12 +2284,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_downtime[gen_still_disconnected] += 1
         return except_
 
-    def get_obs(self, _update_state=True):
+    def get_obs(self, _update_state=True, _do_copy=True):
         """
         Return the observations of the current environment made by the :class:`grid2op.Agent.BaseAgent`.
 
         .. note::
             This function is called twice when the env is reset, otherwise once per step
+
+        _do_copy : 
+            .. versionadded: 1.9.2
+            
+            Whether or not to make a copy of the returned observation. By default it will do one. Be aware that
+            this might cause trouble if used incorrectly.
 
         Returns
         -------
@@ -2328,8 +2333,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._last_obs = self._observation_space(
                 env=self, _update_state=_update_state
             )
-        
-        return self._last_obs.copy()
+        if _do_copy:
+            # return self._last_obs.copy()
+            return copy.deepcopy(self._last_obs)
+        else:
+            return self._last_obs
 
     def get_thermal_limit(self):
         """
@@ -2420,10 +2428,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         coeff_p_to_E = (
             self.delta_time_seconds / 3600.0
         )  # TODO optim this is const for all time steps
-        if np.any(storage_act):
+        if storage_act.any():
             modif = True
             this_act_stor = action_storage_power[storage_act]
-            eff_ = np.ones(np.sum(storage_act))
+            eff_ = np.ones(storage_act.sum())
             if self._parameters.ACTIVATE_STORAGE_LOSS:
                 fill_storage = (
                     this_act_stor > 0.0
@@ -2446,7 +2454,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if modif:
             # indx when there is too much energy on the battery
             indx_too_high = self._storage_current_charge > self.storage_Emax
-            if np.any(indx_too_high):
+            if indx_too_high.any():
                 delta_ = (
                     self._storage_current_charge[indx_too_high]
                     - self.storage_Emax[indx_too_high]
@@ -2458,7 +2466,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             # indx when there is not enough energy on the battery
             indx_too_low = self._storage_current_charge < self.storage_Emin
-            if np.any(indx_too_low):
+            if indx_too_low.any():
                 delta_ = (
                     self._storage_current_charge[indx_too_low]
                     - self.storage_Emin[indx_too_low]
@@ -2473,7 +2481,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
             # storage is "load convention", dispatch is "generator convention"
             # i need the generator to have the same sign as the action on the batteries
-            self._amount_storage = np.sum(self._storage_power)
+            self._amount_storage = self._storage_power.sum()
         else:
             # battery effect should be removed, so i multiply it by -1.
             self._amount_storage = 0.0
@@ -2510,10 +2518,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.gen_pmin[self.gen_redispatchable],
         )
 
-        max_total_up = np.sum(th_max - new_p[self.gen_redispatchable])
-        max_total_down = np.sum(
+        max_total_up = (th_max - new_p[self.gen_redispatchable]).sum()
+        max_total_down = (
             th_min - new_p[self.gen_redispatchable]
-        )  # TODO is that it ?
+        ).sum()  # TODO is that it ?
         return max_total_down, max_total_up
 
     def _aux_update_curtail_env_act(self, new_p):
@@ -2543,7 +2551,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _aux_handle_curtailment_without_limit(self, action, new_p):
         """modifies the new_p argument !!!! (but not the action)"""
         if self.redispatching_unit_commitment_availble and (
-            action._modif_curtailment or np.any(self._limit_curtailment != 1.0)
+            action._modif_curtailment or (self._limit_curtailment != 1.0).any()
         ):
             self._aux_update_curtailment_act(action)
 
@@ -2552,8 +2560,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
 
             tmp_sum_curtailment_mw = dt_float(
-                np.sum(new_p[gen_curtailed])
-                - np.sum(self._gen_before_curtailment[gen_curtailed])
+                new_p[gen_curtailed].sum()
+                - self._gen_before_curtailment[gen_curtailed].sum()
             )
 
             self._sum_curtailment_mw = (
@@ -2653,7 +2661,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         avail_up = np.minimum(p_max_up, self.gen_max_ramp_up[gen_redisp])
 
         sum_move = (
-            np.sum(normal_increase) + self._amount_storage - self._sum_curtailment_mw
+            normal_increase.sum() + self._amount_storage - self._sum_curtailment_mw
         )
         total_storage_curtail = self._amount_storage - self._sum_curtailment_mw
         update_env_act = False
@@ -2661,19 +2669,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if abs(total_storage_curtail) >= self._tol_poly:
             # if there is an impact on the curtailment / storage (otherwise I cannot fix anything)
             too_much = 0.0
-            if sum_move > np.sum(avail_up):
+            if sum_move > avail_up.sum():
                 # I need to limit curtailment (not enough ramps up available)
-                too_much = dt_float(sum_move - np.sum(avail_up) + self._tol_poly)
+                too_much = dt_float(sum_move - avail_up.sum() + self._tol_poly)
                 self._limited_before = too_much
-            elif sum_move < np.sum(avail_down):
+            elif sum_move < avail_down.sum():
                 # I need to limit storage unit (not enough ramps down available)
-                too_much = dt_float(sum_move - np.sum(avail_down) - self._tol_poly)
+                too_much = dt_float(sum_move - avail_down.sum() - self._tol_poly)
                 self._limited_before = too_much
             elif np.abs(self._limited_before) >= self._tol_poly:
                 # adjust the "mess" I did before by not curtailing enough
                 # max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
                 update_env_act = True
-                too_much = min(np.sum(avail_up) - self._tol_poly, self._limited_before)
+                too_much = min(avail_up.sum() - self._tol_poly, self._limited_before)
                 self._limited_before -= too_much
                 too_much = self._limited_before
 
@@ -3260,7 +3268,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._is_alert_used_in_reward = (
                     self._reward_helper.template_reward.is_alert_used
                 )
-            self.current_obs = self.get_obs(_update_state=False)
+            self.current_obs = self.get_obs(_update_state=False, _do_copy=False)
             # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
             

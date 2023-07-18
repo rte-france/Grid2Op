@@ -52,9 +52,9 @@ class LinesCapacityReward(BaseReward):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min
 
-        obs = env.get_obs()
-        n_connected = np.sum(obs.line_status.astype(dt_float))
-        usage = np.sum(obs.rho[obs.line_status == True])
+        obs = env.get_obs(_do_copy=False)
+        n_connected = obs.line_status.sum(dytpe=dt_float)
+        usage = obs.rho[obs.line_status == True].sum()
         usage = np.clip(usage, 0.0, float(n_connected))
         reward = np.interp(
             n_connected - usage,

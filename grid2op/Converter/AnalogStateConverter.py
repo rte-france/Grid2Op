@@ -230,7 +230,7 @@ class AnalogStateConverter(Converter):
                 obs.n_line * 5,
             ]
         )
-        return np.sum(dims)
+        return dims.sum()
 
     @staticmethod
     def netbus_to_act_setbus(obs, net_bus):
@@ -286,7 +286,7 @@ class AnalogStateConverter(Converter):
         # Pick the elements to change at random
         rnd_sub_elems = np.random.randint(0, n_elem, rnd_n_changes)
         # Set the topo vect
-        sub_topo_pos = np.sum(obs.sub_info[0:rnd_sub])
+        sub_topo_pos = obs.sub_info[0:rnd_sub].sum()
         for elem_pos in rnd_sub_elems:
             rnd_bus = np.random.randint(n_bus)
             rnd_topo[rnd_bus][sub_topo_pos + elem_pos] = 1.0

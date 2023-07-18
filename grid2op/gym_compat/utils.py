@@ -99,7 +99,7 @@ def _compute_extra_power_for_losses(gridobj):
     """
     import numpy as np
 
-    return 0.3 * np.sum(np.abs(gridobj.gen_pmax))
+    return 0.3 * np.abs(gridobj.gen_pmax).sum()
 
 
 def sample_seed(max_, np_random):

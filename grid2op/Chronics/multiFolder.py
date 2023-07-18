@@ -341,7 +341,7 @@ class Multifolder(GridValue):
             probabilities = np.ones(self._order.shape[0])
 
         # make sure it sums to 1
-        probabilities /= np.sum(probabilities)
+        probabilities /= probabilities.sum()
         # take one at "random" among these
         selected = self.space_prng.choice(self._order, p=probabilities)
         id_sel = np.where(self._order == selected)[0]

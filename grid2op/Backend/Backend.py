@@ -945,7 +945,7 @@ class Backend(GridObjects, ABC):
             ] = True
 
             # disconnect the current power lines
-            if np.sum(to_disc[lines_status]) == 0:
+            if to_disc[lines_status].sum() == 0:
                 # no powerlines have been disconnected at this time step, i stop the computation there
                 break
             disconnected_during_cf[to_disc] = ts
@@ -1653,7 +1653,7 @@ class Backend(GridObjects, ABC):
         if self.shunts_data_available:
             p_s, q_s, sh_v, bus_s = self.shunt_info()
             dict_["shunt"] = {"shunt_bus": bus_s}
-            if np.sum(bus_s >= 1):
+            if (bus_s >= 1).sum():
                 p_s *= (self._sh_vnkv / sh_v) ** 2
                 q_s *= (self._sh_vnkv / sh_v) ** 2
                 p_s[bus_s == -1] = np.NaN
@@ -1722,7 +1722,7 @@ class Backend(GridObjects, ABC):
 
             dict_["shunt"] = {"shunt_bus": obs._shunt_bus}
             shunt_co = obs._shunt_bus >= 1
-            if np.sum(shunt_co):
+            if shunt_co.any():
                 mults = (self._sh_vnkv / obs._shunt_v) ** 2
                 sh_p = obs._shunt_p * mults
                 sh_q = obs._shunt_q * mults
@@ -1791,22 +1791,22 @@ class Backend(GridObjects, ABC):
         tmp = self.get_line_status()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_line_status()"')
-        if np.any(~np.isfinite(tmp)):
+        if (~np.isfinite(tmp)).any():
             raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_line_flow()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_line_flow()"')
-        if np.any(~np.isfinite(tmp)):
+        if (~np.isfinite(tmp)).any():
             raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_thermal_limit()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_thermal_limit()"')
-        if np.any(~np.isfinite(tmp)):
+        if (~np.isfinite(tmp)).any():
             raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_line_overflow()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_line_overflow()"')
-        if np.any(~np.isfinite(tmp)):
+        if (~np.isfinite(tmp)).any():
             raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
 
         tmp = self.generators_info()
@@ -1857,10 +1857,10 @@ class Backend(GridObjects, ABC):
                     )
 
         tmp = self.get_topo_vect()
-        if tmp.shape[0] != np.sum(self.sub_info):
+        if tmp.shape[0] != self.sub_info.sum():
             raise IncorrectNumberOfElements('returned by "backend.get_topo_vect()"')
 
-        if np.any(~np.isfinite(tmp)):
+        if (~np.isfinite(tmp)).any():
             raise EnvError(
                 'Some components of "backend.get_topo_vect()" are not finite. This should be integer.'
             )

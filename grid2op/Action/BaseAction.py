@@ -676,15 +676,15 @@ class BaseAction(GridObjects):
 
         if type(self).shunts_data_available:
             res["shunt"] = {}
-            if np.any(np.isfinite(self.shunt_p)):
+            if np.isfinite(self.shunt_p).any():
                 res["shunt"]["shunt_p"] = [
                     (int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_p) if np.isfinite(val)
                 ]
-            if np.any(np.isfinite(self.shunt_q)):
+            if np.isfinite(self.shunt_q).any():
                 res["shunt"]["shunt_q"] = [
                     (int(sh_id), float(val)) for sh_id, val in enumerate(self.shunt_q) if np.isfinite(val)
                 ]
-            if np.any(self.shunt_bus != 0):
+            if (self.shunt_bus != 0).any():
                 res["shunt"]["shunt_bus"] = [
                     (int(sh_id), int(val))
                     for sh_id, val in enumerate(self.shunt_bus)
@@ -825,17 +825,17 @@ class BaseAction(GridObjects):
 
     def _post_process_from_vect(self):
         self._modif_inj = self._dict_inj != {}
-        self._modif_set_bus = np.any(self._set_topo_vect != 0)
-        self._modif_change_bus = np.any(self._change_bus_vect)
-        self._modif_set_status = np.any(self._set_line_status != 0)
-        self._modif_change_status = np.any(self._switch_line_status)
-        self._modif_redispatch = np.any(
+        self._modif_set_bus = (self._set_topo_vect != 0).any()
+        self._modif_change_bus = (self._change_bus_vect).any()
+        self._modif_set_status = (self._set_line_status != 0).any()
+        self._modif_change_status = (self._switch_line_status).any()
+        self._modif_redispatch = (
             np.isfinite(self._redispatch) & (self._redispatch != 0.0)
-        )
-        self._modif_storage = np.any(self._storage_power != 0.0)
-        self._modif_curtailment = np.any(self._curtail != -1.0)
-        self._modif_alarm = np.any(self._raise_alarm)
-        self._modif_alert = np.any(self._raise_alert)
+        ).any()
+        self._modif_storage = (self._storage_power != 0.0).any()
+        self._modif_curtailment = (self._curtail != -1.0).any()
+        self._modif_alarm = self._raise_alarm.any()
+        self._modif_alert = self._raise_alert.any()
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
@@ -846,8 +846,8 @@ class BaseAction(GridObjects):
             super()._assign_attr_from_name(attr_nm, vect)
             self._post_process_from_vect()
         else:
-            if np.any(np.isfinite(vect)):
-                if np.any(vect != 0.0):
+            if np.isfinite(vect).any():
+                if (vect != 0.0).any():
                     self._dict_inj[attr_nm] = vect
 
     def check_space_legit(self):
@@ -1029,17 +1029,17 @@ class BaseAction(GridObjects):
                 return False
             is_ok_me = np.isfinite(self.shunt_p)
             is_ok_ot = np.isfinite(other.shunt_p)
-            if np.any(is_ok_me != is_ok_ot):
+            if (is_ok_me != is_ok_ot).any():
                 return False
-            if not np.all(self.shunt_p[is_ok_me] == other.shunt_p[is_ok_ot]):
+            if not (self.shunt_p[is_ok_me] == other.shunt_p[is_ok_ot]).all():
                 return False
             is_ok_me = np.isfinite(self.shunt_q)
             is_ok_ot = np.isfinite(other.shunt_q)
-            if np.any(is_ok_me != is_ok_ot):
+            if (is_ok_me != is_ok_ot).any():
                 return False
-            if not np.all(self.shunt_q[is_ok_me] == other.shunt_q[is_ok_ot]):
+            if not (self.shunt_q[is_ok_me] == other.shunt_q[is_ok_ot]).all():
                 return False
-            if not np.all(self.shunt_bus == other.shunt_bus):
+            if not (self.shunt_bus == other.shunt_bus).all():
                 return False
 
         return True
@@ -1414,7 +1414,7 @@ class BaseAction(GridObjects):
             old_is_finite = np.isfinite(old_value)
             new_finite = new_value[new_is_finite | old_is_finite]
             old_finite = old_value[new_is_finite | old_is_finite]
-            if np.any(new_finite != old_finite):
+            if (new_finite != old_finite).any():
                 warnings.warn(
                     type(self).ERR_ACTION_CUT.format(attr_name)
                 )
@@ -1473,7 +1473,7 @@ class BaseAction(GridObjects):
                 )
         # redispatching
         redispatching = other._redispatch
-        if np.any(redispatching != 0.0):
+        if (redispatching != 0.0).any():
             if "_redispatch" not in self.attr_list_set:
                 warnings.warn(
                     type(self).ERR_ACTION_CUT.format("_redispatch")
@@ -1484,8 +1484,8 @@ class BaseAction(GridObjects):
 
         # storage
         set_storage = other._storage_power
-        ok_ind = np.isfinite(set_storage) & np.any(set_storage != 0.0)
-        if np.any(ok_ind):
+        ok_ind = np.isfinite(set_storage) & (set_storage != 0.0).any()
+        if ok_ind.any():
             if "_storage_power" not in self.attr_list_set:
                 warnings.warn(
                     type(self).ERR_ACTION_CUT.format("_storage_power")
@@ -1496,7 +1496,7 @@ class BaseAction(GridObjects):
         # curtailment
         curtailment = other._curtail
         ok_ind = np.isfinite(curtailment) & (curtailment != -1.0)
-        if np.any(ok_ind):
+        if ok_ind.any():
             if "_curtail" not in self.attr_list_set:
                 warnings.warn(
                     type(self).ERR_ACTION_CUT.format("_curtail")
@@ -2222,7 +2222,7 @@ class BaseAction(GridObjects):
                 )
             if "injection" not in self.authorized_keys:
                 raise IllegalAction("You illegally act on the injection")
-        if np.any(self._change_bus_vect):
+        if self._change_bus_vect.any():
             if not self._modif_change_bus:
                 raise AmbiguousAction(
                     "A action of type change_bus is performed while the appropriate flag is not "
@@ -2231,7 +2231,7 @@ class BaseAction(GridObjects):
                 )
             if "change_bus" not in self.authorized_keys:
                 raise IllegalAction("You illegally act on the bus (using change)")
-        if np.any(self._set_topo_vect != 0):
+        if (self._set_topo_vect != 0).any():
             if not self._modif_set_bus:
                 raise AmbiguousAction(
                     "A action of type set_bus is performed while the appropriate flag is not "
@@ -2241,7 +2241,7 @@ class BaseAction(GridObjects):
             if "set_bus" not in self.authorized_keys:
                 raise IllegalAction("You illegally act on the bus (using set)")
 
-        if np.any(self._set_line_status != 0):
+        if (self._set_line_status != 0).any():
             if not self._modif_set_status:
                 raise AmbiguousAction(
                     "A action of type line_set_status is performed while the appropriate flag is not "
@@ -2254,7 +2254,7 @@ class BaseAction(GridObjects):
                     "You illegally act on the powerline status (using set)"
                 )
 
-        if np.any(self._switch_line_status):
+        if (self._switch_line_status).any():
             if not self._modif_change_status:
                 raise AmbiguousAction(
                     "A action of type line_change_status is performed while the appropriate flag "
@@ -2267,7 +2267,7 @@ class BaseAction(GridObjects):
                     "You illegally act on the powerline status (using change)"
                 )
 
-        if np.any(self._redispatch != 0.0):
+        if (self._redispatch != 0.0).any():
             if not self._modif_redispatch:
                 raise AmbiguousAction(
                     "A action of type redispatch is performed while the appropriate flag "
@@ -2278,7 +2278,7 @@ class BaseAction(GridObjects):
             if "redispatch" not in self.authorized_keys:
                 raise IllegalAction("You illegally act on the redispatching")
 
-        if np.any(self._storage_power != 0.0):
+        if (self._storage_power != 0.0).any():
             if not self._modif_storage:
                 raise AmbiguousAction(
                     "A action on the storage unit is performed while the appropriate flag "
@@ -2289,7 +2289,7 @@ class BaseAction(GridObjects):
             if "set_storage" not in self.authorized_keys:
                 raise IllegalAction("You illegally act on the storage unit")
 
-        if np.any(self._curtail != -1.0):
+        if (self._curtail != -1.0).any():
             if not self._modif_curtailment:
                 raise AmbiguousAction(
                     "A curtailment is performed while the action is not supposed to have done so. "
@@ -2298,7 +2298,7 @@ class BaseAction(GridObjects):
             if "curtail" not in self.authorized_keys:
                 raise IllegalAction("You illegally act on the curtailment")
 
-        if np.any(self._raise_alarm):
+        if (self._raise_alarm).any():
             if not self._modif_alarm:
                 raise AmbiguousAction(
                     "Incorrect way to raise some alarm, the appropriate flag is not "
@@ -2307,7 +2307,7 @@ class BaseAction(GridObjects):
             if "raise_alarm" not in self.authorized_keys:
                 raise IllegalAction("You illegally send an alarm.")
 
-        if np.any(self._raise_alert):
+        if (self._raise_alert).any():
             if not self._modif_alert:
                 raise AmbiguousActionRaiseAlert(
                     "Incorrect way to raise some alert, the appropriate flag is not "
@@ -2374,7 +2374,7 @@ class BaseAction(GridObjects):
         if (
             self._modif_change_status
             and self._modif_set_status
-            and np.any(self._set_line_status[self._switch_line_status] != 0)
+            and (self._set_line_status[self._switch_line_status] != 0).any()
         ):
             raise InvalidLineStatus(
                 "You asked to change the status (connected / disconnected) of a powerline by"
@@ -2446,17 +2446,17 @@ class BaseAction(GridObjects):
                     "environment. Please set up the proper costs for generator"
                 )
 
-            if np.any(self._redispatch[~self.gen_redispatchable] != 0.0):
+            if (self._redispatch[~self.gen_redispatchable] != 0.0).any():
                 raise InvalidRedispatching(
                     "Trying to apply a redispatching action on a non redispatchable generator"
                 )
 
             if self._single_act:
-                if np.any(self._redispatch > self.gen_max_ramp_up):
+                if (self._redispatch > self.gen_max_ramp_up).any():
                     raise InvalidRedispatching(
                         "Some redispatching amount are above the maximum ramp up"
                     )
-                if np.any(-self._redispatch > self.gen_max_ramp_down):
+                if (-self._redispatch > self.gen_max_ramp_down).any():
                     raise InvalidRedispatching(
                         "Some redispatching amount are bellow the maximum ramp down"
                     )
@@ -2465,12 +2465,12 @@ class BaseAction(GridObjects):
                     new_p = self._dict_inj["prod_p"]
                     tmp_p = new_p + self._redispatch
                     indx_ok = np.isfinite(new_p)
-                    if np.any(tmp_p[indx_ok] > self.gen_pmax[indx_ok]):
+                    if (tmp_p[indx_ok] > self.gen_pmax[indx_ok]).any():
                         raise InvalidRedispatching(
                             "Some redispatching amount, cumulated with the production setpoint, "
                             "are above pmax for some generator."
                         )
-                    if np.any(tmp_p[indx_ok] < self.gen_pmin[indx_ok]):
+                    if (tmp_p[indx_ok] < self.gen_pmin[indx_ok]).any():
                         raise InvalidRedispatching(
                             "Some redispatching amount, cumulated with the production setpoint, "
                             "are below pmin for some generator."
@@ -2486,20 +2486,20 @@ class BaseAction(GridObjects):
         if (
             self._modif_set_bus
             and self._modif_change_bus
-            and np.any(self._set_topo_vect[self._change_bus_vect] != 0)
+            and (self._set_topo_vect[self._change_bus_vect] != 0).any()
         ):
             raise InvalidBusStatus(
                 "You asked to change the bus of an object with"
                 ' using the keyword "change_bus" and set this same object state in "set_bus"'
                 ". This ambiguous behaviour is not supported"
             )
-        if self._modif_set_bus and np.any(self._set_topo_vect < -1):
+        if self._modif_set_bus and (self._set_topo_vect < -1).any():
             raise InvalidBusStatus(
                 "Invalid set_bus. Buses should be either -1 (disconnect), 0 (change nothing),"
                 "1 (assign this object to bus one) or 2 (assign this object to bus"
                 "2). A negative number has been found."
             )
-        if self._modif_set_bus and np.any(self._set_topo_vect > 2):
+        if self._modif_set_bus and (self._set_topo_vect > 2).any():
             raise InvalidBusStatus(
                 "Invalid set_bus. Buses should be either -1 (disconnect), 0 (change nothing),"
                 "1 (assign this object to bus one) or 2 (assign this object to bus"
@@ -2526,13 +2526,13 @@ class BaseAction(GridObjects):
 
         if self._modif_set_bus:
             disco_or = self._set_topo_vect[self.line_or_pos_topo_vect] == -1
-            if np.any(self._set_topo_vect[self.line_ex_pos_topo_vect][disco_or] > 0):
+            if (self._set_topo_vect[self.line_ex_pos_topo_vect][disco_or] > 0).any():
                 raise InvalidLineStatus(
                     "A powerline is connected (set to a bus at extremity end) and "
                     "disconnected (set to bus -1 at origin end)"
                 )
             disco_ex = self._set_topo_vect[self.line_ex_pos_topo_vect] == -1
-            if np.any(self._set_topo_vect[self.line_or_pos_topo_vect][disco_ex] > 0):
+            if (self._set_topo_vect[self.line_or_pos_topo_vect][disco_ex] > 0).any():
                 raise InvalidLineStatus(
                     "A powerline is connected (set to a bus at origin end) and "
                     "disconnected (set to bus -1 at extremity end)"
@@ -2551,17 +2551,17 @@ class BaseAction(GridObjects):
                 raise AmbiguousAction(
                     'Action of type "set_bus" are not supported by this action type'
                 )
-            if np.any(
+            if (
                 self._set_topo_vect[self.line_or_pos_topo_vect[id_disc]] > 0
-            ) or np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
+            ).any() or (self._set_topo_vect[self.line_ex_pos_topo_vect[id_disc]] > 0).any():
                 raise InvalidLineStatus(
                     "You ask to disconnect a powerline but also to connect it "
                     "to a certain bus."
                 )
                 
-            if np.any(
+            if (
                 self._set_topo_vect[self.line_or_pos_topo_vect[id_reco]] == -1
-            ) or np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_reco]] == -1):
+            ).any() or (self._set_topo_vect[self.line_ex_pos_topo_vect[id_reco]] == -1).any():
                 raise InvalidLineStatus(
                     "You ask to reconnect a powerline but also to disconnect it "
                     "from a certain bus."
@@ -2571,27 +2571,27 @@ class BaseAction(GridObjects):
                 raise AmbiguousAction(
                     'Action of type "change_bus" are not supported by this action type'
                 )
-            if np.any(
+            if (
                 self._change_bus_vect[self.line_or_pos_topo_vect[id_disc]] > 0
-            ) or np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
+            ).any() or (self._change_bus_vect[self.line_ex_pos_topo_vect[id_disc]] > 0).any():
                 raise InvalidLineStatus(
                     "You ask to disconnect a powerline but also to change its bus."
                 )
 
-            if np.any(
+            if (
                 self._change_bus_vect[
                     self.line_or_pos_topo_vect[self._set_line_status == 1]
                 ]
-            ):
+            ).any():
                 raise InvalidLineStatus(
                     "You ask to connect an origin powerline but also to *change* the bus  to which "
                     "it  is connected. This is ambiguous. You must *set* this bus instead."
                 )
-            if np.any(
+            if (
                 self._change_bus_vect[
                     self.line_ex_pos_topo_vect[self._set_line_status == 1]
                 ]
-            ):
+            ).any():
                 raise InvalidLineStatus(
                     "You ask to connect an extremity powerline but also to *change* the bus  to "
                     "which it is connected. This is ambiguous. You must *set* this bus instead."
@@ -2642,7 +2642,7 @@ class BaseAction(GridObjects):
                     f"{self.dim_alarms}"
                 )
         else:
-            if np.any(self._raise_alarm):
+            if self._raise_alarm.any():
                 raise AmbiguousAction(
                     f"Unrecognize alarm action: an action acts on the alarm, yet it's not tagged "
                     f"as doing so. Expect wrong behaviour."
@@ -2655,7 +2655,7 @@ class BaseAction(GridObjects):
                     f"{self.dim_alerts}"
                 )
         else:
-            if np.any(self._raise_alert):
+            if self._raise_alert.any():
                 raise AmbiguousActionRaiseAlert(
                     f"Unrecognize alert action: an action acts on the alert, yet it's not tagged "
                     f"as doing so. Expect wrong behaviour."
@@ -2677,13 +2677,13 @@ class BaseAction(GridObjects):
                     "self._storage_power.shape[0] != self.n_storage: wrong number of storage "
                     "units affected"
                 )
-            if np.any(self._storage_power < -self.storage_max_p_prod):
+            if (self._storage_power < -self.storage_max_p_prod).any():
                 where_bug = np.where(self._storage_power < -self.storage_max_p_prod)[0]
                 raise InvalidStorage(
                     f"you asked a storage unit to absorb more than what it can: "
                     f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}]."
                 )
-            if np.any(self._storage_power > self.storage_max_p_absorb):
+            if (self._storage_power > self.storage_max_p_absorb).any():
                 where_bug = np.where(self._storage_power > self.storage_max_p_absorb)[0]
                 raise InvalidStorage(
                     f"you asked a storage unit to produce more than what it can: "
@@ -2691,9 +2691,9 @@ class BaseAction(GridObjects):
                 )
 
         if "_storage_power" not in self.attr_list_set:
-            if np.any(self._set_topo_vect[self.storage_pos_topo_vect] > 0):
+            if (self._set_topo_vect[self.storage_pos_topo_vect] > 0).any():
                 raise InvalidStorage("Attempt to modify bus (set) of a storage unit")
-            if np.any(self._change_bus_vect[self.storage_pos_topo_vect]):
+            if (self._change_bus_vect[self.storage_pos_topo_vect]).any():
                 raise InvalidStorage("Attempt to modify bus (change) of a storage unit")
 
     def _is_curtailment_ambiguous(self):
@@ -2717,21 +2717,21 @@ class BaseAction(GridObjects):
                     "units affected"
                 )
 
-            if np.any((self._curtail < 0.0) & (self._curtail != -1.0)):
+            if ((self._curtail < 0.0) & (self._curtail != -1.0)).any():
                 where_bug = np.where((self._curtail < 0.0) & (self._curtail != -1.0))[0]
                 raise InvalidCurtailment(
                     f"you asked to perform a negative curtailment: "
                     f"self._curtail[{where_bug}] < 0. "
                     f"Curtailment should be a real number between 0.0 and 1.0"
                 )
-            if np.any(self._curtail > 1.0):
+            if (self._curtail > 1.0).any():
                 where_bug = np.where(self._curtail > 1.0)[0]
                 raise InvalidCurtailment(
                     f"you asked a storage unit to produce more than what it can: "
                     f"self._curtail[{where_bug}] > 1. "
                     f"Curtailment should be a real number between 0.0 and 1.0"
                 )
-            if np.any(self._curtail[~self.gen_renewable] != -1.0):
+            if (self._curtail[~self.gen_renewable] != -1.0).any():
                 raise InvalidCurtailment(
                     "Trying to apply a curtailment on a non renewable generator"
                 )
@@ -2988,32 +2988,32 @@ class BaseAction(GridObjects):
             "reconnections": {"count": 0, "powerlines": []},
             "disconnections": {"count": 0, "powerlines": []},
         }
-        if np.any(self._set_line_status == 1):
+        if (self._set_line_status == 1).any():
             force_line_status["changed"] = True
             has_impact = True
-            force_line_status["reconnections"]["count"] = np.sum(
+            force_line_status["reconnections"]["count"] = (
                 self._set_line_status == 1
-            )
+            ).sum()
             force_line_status["reconnections"]["powerlines"] = np.where(
                 self._set_line_status == 1
             )[0]
 
-        if np.any(self._set_line_status == -1):
+        if (self._set_line_status == -1).any():
             force_line_status["changed"] = True
             has_impact = True
-            force_line_status["disconnections"]["count"] = np.sum(
+            force_line_status["disconnections"]["count"] = (
                 self._set_line_status == -1
-            )
+            ).sum()
             force_line_status["disconnections"]["powerlines"] = np.where(
                 self._set_line_status == -1
             )[0]
 
         # handles action on swtich line status
         switch_line_status = {"changed": False, "count": 0, "powerlines": []}
-        if np.sum(self._switch_line_status):
+        if self._switch_line_status.sum():
             switch_line_status["changed"] = True
             has_impact = True
-            switch_line_status["count"] = np.sum(self._switch_line_status)
+            switch_line_status["count"] = self._switch_line_status.sum()
             switch_line_status["powerlines"] = np.where(self._switch_line_status)[0]
 
         topology = {
@@ -3023,7 +3023,7 @@ class BaseAction(GridObjects):
             "disconnect_bus": [],
         }
         # handles topology
-        if np.any(self._change_bus_vect):
+        if self._change_bus_vect.any():
             for id_, k in enumerate(self._change_bus_vect):
                 if k:
                     obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(
@@ -3040,7 +3040,7 @@ class BaseAction(GridObjects):
             topology["changed"] = True
             has_impact = True
 
-        if np.any(self._set_topo_vect != 0):
+        if (self._set_topo_vect != 0).any():
             for id_, k in enumerate(self._set_topo_vect):
                 if k > 0:
                     obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(
@@ -3072,7 +3072,7 @@ class BaseAction(GridObjects):
 
         # handle redispatching
         redispatch = {"changed": False, "generators": []}
-        if np.any(self._redispatch != 0.0):
+        if (self._redispatch != 0.0).any():
             for gen_idx in range(self.n_gen):
                 if self._redispatch[gen_idx] != 0.0:
                     gen_name = self.name_gen[gen_idx]
@@ -3198,12 +3198,12 @@ class BaseAction(GridObjects):
                 res[k] = 1.0 * self._dict_inj[k]
 
         # handles actions on force line status
-        if np.any(self._set_line_status != 0):
+        if (self._set_line_status != 0).any():
             res["set_line_status"] = {}
-            res["set_line_status"]["nb_connected"] = np.sum(self._set_line_status == 1)
-            res["set_line_status"]["nb_disconnected"] = np.sum(
+            res["set_line_status"]["nb_connected"] = (self._set_line_status == 1).sum()
+            res["set_line_status"]["nb_disconnected"] = (
                 self._set_line_status == -1
-            )
+            ).sum()
             res["set_line_status"]["connected_id"] = np.where(
                 self._set_line_status == 1
             )[0]
@@ -3212,17 +3212,17 @@ class BaseAction(GridObjects):
             )[0]
 
         # handles action on swtich line status
-        if np.sum(self._switch_line_status):
+        if self._switch_line_status.sum():
             res["change_line_status"] = {}
-            res["change_line_status"]["nb_changed"] = np.sum(self._switch_line_status)
+            res["change_line_status"]["nb_changed"] = self._switch_line_status.sum()
             res["change_line_status"]["changed_id"] = np.where(
                 self._switch_line_status
             )[0]
 
         # handles topology change
-        if np.any(self._change_bus_vect):
+        if (self._change_bus_vect).any():
             res["change_bus_vect"] = {}
-            res["change_bus_vect"]["nb_modif_objects"] = np.sum(self._change_bus_vect)
+            res["change_bus_vect"]["nb_modif_objects"] = self._change_bus_vect.sum()
             all_subs = set()
             for id_, k in enumerate(self._change_bus_vect):
                 if k:
@@ -3241,9 +3241,9 @@ class BaseAction(GridObjects):
             res["change_bus_vect"]["modif_subs_id"] = sorted(all_subs)
 
         # handles topology set
-        if np.any(self._set_topo_vect):
+        if (self._set_topo_vect!= 0).any():
             res["set_bus_vect"] = {}
-            res["set_bus_vect"]["nb_modif_objects"] = np.sum(self._set_topo_vect)
+            res["set_bus_vect"]["nb_modif_objects"] = (self._set_topo_vect != 0).sum()
             all_subs = set()
             for id_, k in enumerate(self._set_topo_vect):
                 if k != 0:
@@ -3262,15 +3262,15 @@ class BaseAction(GridObjects):
             res["set_bus_vect"]["nb_modif_subs"] = len(all_subs)
             res["set_bus_vect"]["modif_subs_id"] = sorted(all_subs)
 
-        if np.any(self._hazards):
+        if self._hazards.any():
             res["hazards"] = np.where(self._hazards)[0]
-            res["nb_hazards"] = np.sum(self._hazards)
+            res["nb_hazards"] = self._hazards.sum()
 
-        if np.any(self._maintenance):
+        if self._maintenance.any():
             res["maintenance"] = np.where(self._maintenance)[0]
-            res["nb_maintenance"] = np.sum(self._maintenance)
+            res["nb_maintenance"] = self._maintenance.sum()
 
-        if np.any(self._redispatch != 0.0):
+        if (self._redispatch != 0.0).any():
             res["redispatch"] = 1.0 * self._redispatch
 
         if self._modif_storage:
@@ -3328,14 +3328,14 @@ class BaseAction(GridObjects):
         injection = "load_p" in self._dict_inj or "prod_p" in self._dict_inj
         voltage = "prod_v" in self._dict_inj
         if self.shunts_data_available:
-            voltage = voltage or np.any(np.isfinite(self.shunt_p))
-            voltage = voltage or np.any(np.isfinite(self.shunt_q))
-            voltage = voltage or np.any(self.shunt_bus != 0)
+            voltage = voltage or np.isfinite(self.shunt_p).any()
+            voltage = voltage or np.isfinite(self.shunt_q).any()
+            voltage = voltage or (self.shunt_bus != 0).any()
 
         lines_impacted, subs_impacted = self.get_topological_impact()
-        topology = np.any(subs_impacted)
-        line = np.any(lines_impacted)
-        redispatching = np.any(self._redispatch != 0.0)
+        topology = subs_impacted.any()
+        line = lines_impacted.any()
+        redispatching = (self._redispatch != 0.0).any()
         storage = self._modif_storage
         curtailment = self._modif_curtailment
         return injection, voltage, topology, line, redispatching, storage, curtailment
@@ -3427,7 +3427,7 @@ class BaseAction(GridObjects):
             raise Grid2OpException(f"`substation_id` should be positive.")
 
         res = {}
-        beg_ = int(np.sum(self.sub_info[:substation_id]))
+        beg_ = int(self.sub_info[:substation_id].sum())
         end_ = int(beg_ + self.sub_info[substation_id])
         res["change_bus"] = self._change_bus_vect[beg_:end_]
         res["set_bus"] = self._set_topo_vect[beg_:end_]
@@ -3762,11 +3762,11 @@ class BaseAction(GridObjects):
                 raise IllegalAction(
                     f'{name_el}_id should be convertible to integer. Error was : "{exc_}"'
                 )
-            if np.any(values < min_val):
+            if (values < min_val).any():
                 raise IllegalAction(
                     f"new_bus should be between {min_val} and {max_val}, found a value < {min_val}"
                 )
-            if np.any(values > max_val):
+            if (values > max_val).any():
                 raise IllegalAction(
                     f"new_bus should be between {min_val} and {max_val}, found a value  > {max_val}"
                 )
@@ -4391,11 +4391,11 @@ class BaseAction(GridObjects):
                 raise IllegalAction(
                     f'{name_el}_id should be convertible to integer. Error was : "{exc_}"'
                 )
-            if np.any(values < 0):
+            if (values < 0).any():
                 raise IllegalAction(
                     f"Impossible to change a negative {name_el} with negative id"
                 )
-            if np.any(values > nb_els):
+            if (values > nb_els).any():
                 raise IllegalAction(
                     f"Impossible to change a {name_el} id because there are only "
                     f"{nb_els} on the grid and you wanted to change an element with an "
@@ -5391,12 +5391,12 @@ class BaseAction(GridObjects):
                 "of float."
             )
         array_ = array_.astype(dt_int)
-        if np.any(array_ < -1):
+        if (array_ < -1).any():
             raise IllegalAction(
                 f"Impossible to set element to bus {np.min(array_)}. Buses must be "
                 f"-1, 0, 1 or 2."
             )
-        if np.any(array_ > 2):
+        if (array_ > 2).any():
             raise IllegalAction(
                 f"Impossible to set element to bus {np.max(array_)}. Buses must be "
                 f"-1, 0, 1 or 2."
@@ -5434,7 +5434,7 @@ class BaseAction(GridObjects):
             # should be a tuple (sub_id, new_topo)
             sub_id, topo_repr, nb_el = self._check_for_right_vectors_sub(values)
             topo_repr = self._aux_aux_convert_and_check_np_array(topo_repr)
-            start_ = np.sum(self.sub_info[:sub_id])
+            start_ = self.sub_info[:sub_id].sum()
             end_ = start_ + nb_el
             self._set_topo_vect[start_:end_] = topo_repr
         elif isinstance(values, list):
@@ -5582,7 +5582,7 @@ class BaseAction(GridObjects):
             sub_id, topo_repr, nb_el = self._check_for_right_vectors_sub(values)
 
             topo_repr = self._aux_aux_convert_and_check_np_array_change(topo_repr)
-            start_ = np.sum(self.sub_info[:sub_id])
+            start_ = self.sub_info[:sub_id].sum()
             end_ = start_ + nb_el
             self._change_bus_vect[start_:end_] = topo_repr
         elif isinstance(values, list):
@@ -5813,12 +5813,12 @@ class BaseAction(GridObjects):
         res_add_storage = np.zeros(cls.n_storage, dtype=dt_float)
         res_add_curtailed = np.zeros(cls.n_gen, dtype=dt_float)
         
-        max_down = np.sum(obs.gen_margin_down)
-        max_up = np.sum(obs.gen_margin_up)
+        max_down = obs.gen_margin_down.sum()
+        max_up = obs.gen_margin_up.sum()
         
         # storage
-        total_mw_storage = np.sum(res._storage_power)
-        total_storage_consumed = np.sum(res._storage_power)
+        total_mw_storage = res._storage_power.sum()
+        total_storage_consumed = res._storage_power.sum()
         
         # curtailment
         gen_curtailed = (res._curtail != -1) & cls.gen_renewable
@@ -5836,8 +5836,8 @@ class BaseAction(GridObjects):
         mw_curtailed_down[mw_curtailed_down < 0.] = 0.
         mw_curtailed_up = -1.0 * mw_curtailed
         mw_curtailed_up[mw_curtailed_up < 0.] = 0.
-        total_mw_curtailed_down = np.sum(mw_curtailed_down)
-        total_mw_curtailed_up = np.sum(mw_curtailed_up)
+        total_mw_curtailed_down = mw_curtailed_down.sum()
+        total_mw_curtailed_up = mw_curtailed_up.sum()
         total_mw_curtailed = total_mw_curtailed_down - total_mw_curtailed_up
         total_mw_act = total_mw_curtailed + total_mw_storage
         
@@ -5866,7 +5866,7 @@ class BaseAction(GridObjects):
                     do_storage_consum = res._storage_power > 0. 
                     remove_storage_mw =  remove_mw * total_mw_storage / (total_mw_curtailed_down + total_mw_storage)
                     tmp_ = -(res._storage_power[do_storage_consum] * 
-                             remove_storage_mw / np.sum(res._storage_power[do_storage_consum]))
+                             remove_storage_mw / res._storage_power[do_storage_consum].sum())
                     res._storage_power[do_storage_consum] += tmp_
                     res_add_storage[do_storage_consum] = tmp_
                     
@@ -5894,7 +5894,7 @@ class BaseAction(GridObjects):
                     do_storage_prod = res._storage_power < 0. 
                     remove_storage_mw = add_mw * total_mw_storage / (total_mw_curtailed_up + total_mw_storage)
                     tmp_ = (res._storage_power[do_storage_prod] * 
-                             remove_storage_mw / np.sum(res._storage_power[do_storage_prod]))
+                             remove_storage_mw / res._storage_power[do_storage_prod].sum())
                     res._storage_power[do_storage_prod] += tmp_
                     res_add_storage[do_storage_prod] = tmp_
         return res, res_add_curtailed, res_add_storage
