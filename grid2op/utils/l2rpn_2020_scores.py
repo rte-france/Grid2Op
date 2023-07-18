@@ -270,7 +270,7 @@ class ScoreL2RPN2020(object):
         )
         if dn_metadata["max_step"] == self.max_step:
             ep_cost = ep_cost[:-1]
-        ep_cost = ep_cost.Sum()
+        ep_cost = ep_cost.sum()
         ep_cost += ep_loads[n_played:].sum() * ep_marginal_cost
 
         # Compute ranges

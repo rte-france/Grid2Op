@@ -378,7 +378,7 @@ class ConnectivityConverter(Converter):
             raise RuntimeError(
                 f"Invalid encoded_act shape provided it should be {self.n}"
             )
-        if ((encoded_act < -1.0) | (encoded_act > 1.0)).abs():
+        if ((encoded_act < -1.0) | (encoded_act > 1.0)).any():
             errors = (encoded_act < -1.0) | (encoded_act > 1.0)
             indexes = np.where(errors)[0]
             raise RuntimeError(

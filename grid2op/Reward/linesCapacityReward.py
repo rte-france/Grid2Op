@@ -53,7 +53,7 @@ class LinesCapacityReward(BaseReward):
             return self.reward_min
 
         obs = env.get_obs(_do_copy=False)
-        n_connected = obs.line_status.sum(dytpe=dt_float)
+        n_connected = dt_float(obs.line_status.sum())
         usage = obs.rho[obs.line_status == True].sum()
         usage = np.clip(usage, 0.0, float(n_connected))
         reward = np.interp(
