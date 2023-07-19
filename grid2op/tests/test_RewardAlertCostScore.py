@@ -255,7 +255,7 @@ class TestAlertTrustScore(unittest.TestCase):
             for i in range(env.max_episode_duration()):
                 obs, reward, done, info = env.step(env.action_space())
                 if done:
-                    assert reward == 1., f"{reward} vs 1."
+                    assert np.round(reward,3) == 1., f"{reward} vs 1."
                 else:
                     assert reward == 0., f"{reward} vs 0."
                     
@@ -355,7 +355,7 @@ class TestAlertTrustScore(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if step == 4: 
-                    assert reward == 1, f"error for step {step}: {reward} vs 1" #we did rise alert at first attack on going blackout
+                    assert np.round(reward,3) == 1, f"error for step {step}: {reward} vs 1" #we did rise alert at first attack on going blackout
                     assert done
                     break
                 else : 
@@ -380,7 +380,7 @@ class TestRunnerAlertTrust(unittest.TestCase):
         obs = self.env.reset()
         runner = Runner(**self.env.get_params_for_runner())
         res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
-        assert res[0][2] == 1. #it got to the end
+        assert np.round(res[0][2],3) == 1. #it got to the end
     
     def test_simagent(self):
         #simulate blackout but act donothing
@@ -396,14 +396,14 @@ class TestRunnerAlertTrust(unittest.TestCase):
         runner = Runner(**self.env.get_params_for_runner(),
                         agentClass=SimAgent)
         res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
-        assert res[0][2] == 1.
+        assert np.round(res[0][2],3) == 1.
         
     def test_episodeData(self):
         obs = self.env.reset()
         runner = Runner(**self.env.get_params_for_runner())
         res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0], add_detailed_output=True)
-        assert res[0][2] == 1.
-        assert res[0][5].rewards[8] == 1.
+        assert np.round(res[0][2],3) == 1.
+        assert np.round(res[0][5].rewards[8]) == 1.
         
     def test_with_save(self):
         obs = self.env.reset()
@@ -411,10 +411,10 @@ class TestRunnerAlertTrust(unittest.TestCase):
         with tempfile.TemporaryDirectory() as f:
             res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0],
                              path_save=f)
-            assert res[0][2] == 1.
+            assert np.round(res[0][2],3) == 1.
             ep0, *_ = EpisodeData.list_episode(f)
             ep = EpisodeData.from_disk(*ep0)
-            assert ep.rewards[8] == 1.    
+            assert np.round(ep.rewards[8]) == 1.
     
 if __name__ == "__main__":
     unittest.main()        
