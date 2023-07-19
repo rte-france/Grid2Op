@@ -27,7 +27,7 @@ class _AlertCostScore(BaseReward):
     disconnection (attack of the opponent).
     The alerts are assessed once per attack. In this scheme, this "reward" computed the assistant"cost score", which penalized the number of alerts
     the assistant have produced during an episode. It should not be used to train an agent.
-    
+    For information, it will not be used for the L2RPN_IDF_2023 competition.
     """
     def __init__(self, logger=None):
         BaseReward.__init__(self, logger=logger)

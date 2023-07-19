@@ -55,7 +55,6 @@ DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
                                  reward_end_episode_bonus=0.0,
                                  min_score=-1.0)
 
-
 def _get_steps_attack(kwargs_opponent, multi=False):
     """computes the steps for which there will be attacks"""
     ts_attack = np.array(kwargs_opponent["steps_attack"])

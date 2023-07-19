@@ -39,6 +39,11 @@ ALL_ATTACKABLE_LINES = [
             "54_58_154",
         ] 
 
+DEFAULT_ALERT_REWARD_PARAMS = dict(reward_min_no_blackout=-1.0,
+                                   reward_min_blackout=-10.0, 
+                                   reward_max_no_blackout=1.0,
+                                   reward_max_blackout=2.0,
+                                   reward_end_episode_bonus=42.0)
 
 def _get_steps_attack(kwargs_opponent, multi=False):
     """computes the steps for which there will be attacks"""
@@ -117,7 +122,7 @@ class TestAction(unittest.TestCase):
                             opponent_action_class=PlayableAction, 
                             opponent_class=OpponentForTestAlert, 
                             kwargs_opponent=kwargs_opponent, 
-                            reward_class=AlertReward(reward_end_episode_bonus=42),
+                            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                             _add_to_name="_tafta")
 
     def tearDown(self) -> None:
@@ -232,7 +237,7 @@ class TestObservation(unittest.TestCase):
                             opponent_action_class=PlayableAction, 
                             opponent_class=OpponentForTestAlert, 
                             kwargs_opponent=kwargs_opponent, 
-                            reward_class=AlertReward(reward_end_episode_bonus=42),
+                            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                             _add_to_name="_tafto")
         param = self.env.parameters
         param.ALERT_TIME_WINDOW = 2
@@ -254,6 +259,33 @@ class TestObservation(unittest.TestCase):
     def test_init_observation(self) -> None :    
         obs : BaseObservation = self.env.reset()
         self._aux_obs_init(obs)
+
+    def test_reset_obs(self) -> None :
+        obs1 : BaseObservation = self.env.reset()
+        assert (obs1.time_since_last_alert == np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1])).all()
+
+        obs2, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+
+        assert (obs2.time_since_last_alert == np.array([0, -1, -1, -1, -1, -1, -1, -1, -1, -1])).all()
+
+        obs2bis, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
+        assert (obs2bis.time_since_last_alert == np.array([1, 0, -1, -1, -1, -1, -1, -1, -1, -1])).all()
+
+        obs3 : BaseObservation = self.env.reset()
+        assert (obs3.time_since_last_alert == obs1.time_since_last_alert).all()
+
+    def test_reset_reward(self) -> None :
+        obs1 : BaseObservation = self.env.reset()
+        assert self.env._reward_helper.template_reward._current_id == 0
+        obs2, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
+
+        assert self.env._reward_helper.template_reward._current_id == 1
+
+        obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
+        assert self.env._reward_helper.template_reward._current_id == 2
+
+        obs3 : BaseObservation = self.env.reset()
+        assert self.env._reward_helper.template_reward._current_id == 0
     
     def _aux_alert_0(self, obs):
         assert obs.active_alert[0]
