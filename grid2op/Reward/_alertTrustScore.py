@@ -62,10 +62,12 @@ class _AlertTrustScore(AlertReward):
         
     def initialize(self, env):
         self._is_simul_env = self.is_simulated_env(env)
+        #SURVIVOR_TIMESTEPS=env._al
             
         self.cumulated_reward = 0
         #KPIs
         self.total_nb_attacks = 0
+        self.nb_last_attacks = 0 #attacks in the AlertTimeWindow before done
 
         #TODO
         #self.total_nb_alerts = 0
@@ -81,6 +83,7 @@ class _AlertTrustScore(AlertReward):
         self.cumulated_reward = 0
         #KPIs
         self.total_nb_attacks = 0
+        self.nb_last_attacks=0
 
         # TODO
         #self.total_nb_alerts = 0
@@ -119,7 +122,8 @@ class _AlertTrustScore(AlertReward):
             return score_ep
             
         else:
-            cm_reward_min_ep, cm_reward_max_ep = self._compute_min_max_reward(self.total_nb_attacks)
+            self.nb_last_attacks=np.sum(self._ts_attack)
+            cm_reward_min_ep, cm_reward_max_ep = self._compute_min_max_reward(self.total_nb_attacks,self.nb_last_attacks)
             score_ep = self._normalisation_fun(self.cumulated_reward, cm_reward_min_ep, cm_reward_max_ep,self.min_score,self.max_score)
 
             # TODO
@@ -138,15 +142,24 @@ class _AlertTrustScore(AlertReward):
         
     @staticmethod
     def _normalisation_fun(cm_reward, cm_reward_min_ep, cm_reward_max_ep,min_score,max_score):
-        standardized_score = (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep)
+        standardized_score = (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep +1e-5)
         #score_ep = standardized_score * 2. - 1.
         score_ep = min_score + (max_score - min_score) * standardized_score
         return score_ep
     
-    def _compute_min_max_reward(self, nb_attacks):
-        if self.blackout_encountered:
-            cm_reward_min_ep = lambda k: self.reward_min_no_blackout * (k - 1) + self.reward_min_blackout
-            cm_reward_max_ep = lambda k: self.reward_max_no_blackout * (k - 1) + self.reward_max_blackout
+    def _compute_min_max_reward(self, nb_attacks,nb_last_attacks):
+        #TODO
+        #add case multiple attack before blackout: weighted sum
+        if (nb_attacks==0 and self.blackout_encountered):
+            cm_reward_min_ep= lambda k: k
+            cm_reward_max_ep= lambda k: k
+        elif(self.blackout_encountered):
+            if(nb_last_attacks==0):
+                cm_reward_min_ep = lambda k: self.reward_min_no_blackout * k
+                cm_reward_max_ep = lambda k: self.reward_max_no_blackout * k
+            elif(nb_last_attacks>=1):
+                cm_reward_min_ep = lambda k: self.reward_min_no_blackout * (k - nb_last_attacks) + self.reward_min_blackout
+                cm_reward_max_ep = lambda k: self.reward_max_no_blackout * (k - nb_last_attacks) + self.reward_max_blackout
         else:
             cm_reward_min_ep = lambda k: self.reward_min_no_blackout * k
             cm_reward_max_ep = lambda k: self.reward_max_no_blackout * k + self.reward_end_episode_bonus
