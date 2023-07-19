@@ -41,6 +41,13 @@ ALL_ATTACKABLE_LINES= [
 ATTACKED_LINE = "48_50_136"
 
 
+DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
+                                 reward_min_blackout=-10.0, 
+                                 reward_max_no_blackout=1.0,
+                                 reward_max_blackout=2.0,
+                                 reward_end_episode_bonus=42.0)
+
+
 def _get_steps_attack(kwargs_opponent, multi=False):
     """computes the steps for which there will be attacks"""
     ts_attack = np.array(kwargs_opponent["steps_attack"])
@@ -130,7 +137,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=_AlertTrustScore(reward_end_episode_bonus=42)
+            reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE)
         ) as env:
             env.seed(0)
             env.reset()

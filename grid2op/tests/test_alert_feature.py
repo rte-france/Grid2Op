@@ -39,6 +39,11 @@ ALL_ATTACKABLE_LINES = [
             "54_58_154",
         ] 
 
+DEFAULT_ALERT_REWARD_PARAMS = dict(reward_min_no_blackout=-1.0,
+                                   reward_min_blackout=-10.0, 
+                                   reward_max_no_blackout=1.0,
+                                   reward_max_blackout=2.0,
+                                   reward_end_episode_bonus=42.0)
 
 def _get_steps_attack(kwargs_opponent, multi=False):
     """computes the steps for which there will be attacks"""
@@ -117,7 +122,7 @@ class TestAction(unittest.TestCase):
                             opponent_action_class=PlayableAction, 
                             opponent_class=OpponentForTestAlert, 
                             kwargs_opponent=kwargs_opponent, 
-                            reward_class=AlertReward(reward_end_episode_bonus=42),
+                            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                             _add_to_name="_tafta")
 
     def tearDown(self) -> None:
@@ -232,7 +237,7 @@ class TestObservation(unittest.TestCase):
                             opponent_action_class=PlayableAction, 
                             opponent_class=OpponentForTestAlert, 
                             kwargs_opponent=kwargs_opponent, 
-                            reward_class=AlertReward(reward_end_episode_bonus=42),
+                            reward_class=AlertReward(**DEFAULT_ALERT_REWARD_PARAMS),
                             _add_to_name="_tafto")
         param = self.env.parameters
         param.ALERT_TIME_WINDOW = 2
