@@ -56,7 +56,7 @@ class L2RPNSandBoxScore(BaseReward):
         return gen_p
     
     def _get_losses(self, env, gen_p, load_p):
-        return (np.sum(gen_p, dtype=dt_float) - np.sum(load_p, dtype=dt_float)) * env.delta_time_seconds / 3600.0
+        return (gen_p.sum(dtype=dt_float) - load_p.sum(dtype=dt_float)) * env.delta_time_seconds / 3600.0
     
     def _get_marginal_cost(self, env):
         gen_activeprod_t = env._gen_activeprod_t
@@ -67,7 +67,7 @@ class L2RPNSandBoxScore(BaseReward):
     def _get_redisp_cost(self, env, p_t):
         actual_dispatch = env._actual_dispatch
         c_redispatching = (
-            np.sum(np.abs(actual_dispatch)) * p_t * env.delta_time_seconds / 3600.0
+            np.abs(actual_dispatch).sum() * p_t * env.delta_time_seconds / 3600.0
         )
         return c_redispatching
     
@@ -86,7 +86,7 @@ class L2RPNSandBoxScore(BaseReward):
         return c_loss
         
     def _get_storage_cost(self, env, p_t):
-        c_storage = np.sum(np.abs(env._storage_power)) * p_t * env.delta_time_seconds / 3600.0
+        c_storage = np.abs(env._storage_power).sum() * p_t * env.delta_time_seconds / 3600.0
         return c_storage
     
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):

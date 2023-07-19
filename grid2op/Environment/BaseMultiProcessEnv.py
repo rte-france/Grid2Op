@@ -158,7 +158,7 @@ class RemoteEnv(Process):
                     data = self.env.action_space.from_vect(data)
                 obs, reward, done, info = self.env.step(data)
                 obs_v = obs.to_vect()
-                if done or np.any(~np.isfinite(obs_v)):
+                if done or (~np.isfinite(obs_v)).any():
                     # if done do a reset
                     res_obs = self.get_obs_ifnotconv()
                 elif self._obs_to_vect:

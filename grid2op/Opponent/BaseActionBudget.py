@@ -54,5 +54,5 @@ class BaseActionBudget:
                 "".format(type(attack), self.action_space.actionClass)
             )
         aff_lines, aff_subs = attack.get_topological_impact()
-        cost = np.sum(aff_lines) + np.sum(aff_subs)
+        cost = aff_lines.sum() + aff_subs.sum()
         return cost

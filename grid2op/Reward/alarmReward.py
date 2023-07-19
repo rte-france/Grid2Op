@@ -110,7 +110,7 @@ class AlarmReward(BaseReward):
         lines_disconnected_first = np.where(disc_lines == 0)[0]
 
         if (
-            np.sum(alarm) > 1
+            alarm.sum() > 1
         ):  # if we have more than one zone in the alarm, we cannot discrtiminate, no bonus points
             return res
 
@@ -127,7 +127,7 @@ class AlarmReward(BaseReward):
         list_zone_ids = np.where(np.isin(env.alarms_area_names, list_zone_names))[0]
         # and finally, award some extra points if one of the zone, containing one of the powerline disconnected
         # by protection is in the alarm
-        if np.any(alarm[list_zone_ids]):
+        if alarm[list_zone_ids].any():
             res *= self.mult_for_right_zone
         return res
 

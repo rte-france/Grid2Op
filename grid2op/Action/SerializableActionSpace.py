@@ -1092,15 +1092,15 @@ class SerializableActionSpace(SerializableSpace):
                     dt_bool
                 )  # add a zero to first element -> break symmetry
                 indx[tup] = True
-                if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
+                if indx.sum() >= 2 and (~indx).sum() >= 2:
                     # i need 2 elements on each bus at least (almost all the times, except when a powerline
                     # is alone on its bus)
                     new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
                     new_topo[~indx] = 2
 
                     if (
-                        np.sum(indx[powerlines_id]) == 0
-                        or np.sum(~indx[powerlines_id]) == 0
+                        indx[powerlines_id].sum() == 0
+                        or (~indx[powerlines_id]).sum() == 0
                     ):
                         # if there is a "node" without a powerline, the topology is not valid
                         continue
@@ -1112,8 +1112,8 @@ class SerializableActionSpace(SerializableSpace):
                 else:
                     # i need to take into account the case where 1 powerline is alone on a bus too
                     if (
-                        np.sum(indx[powerlines_id]) >= 1
-                        and np.sum(~indx[powerlines_id]) >= 1
+                        (indx[powerlines_id]).sum() >= 1
+                        and (~indx[powerlines_id]).sum() >= 1
                     ):
                         new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
                         new_topo[~indx] = 2
@@ -1317,7 +1317,7 @@ class SerializableActionSpace(SerializableSpace):
 
     def _aux_get_back_to_ref_state_curtail(self, res, obs):
         is_curtailed = obs.curtailment_limit != 1.0
-        if np.any(is_curtailed):
+        if is_curtailed.any():
             res["curtailment"] = []
             if not self.supports_type("curtail"):
                 warnings.warn(
@@ -1333,7 +1333,7 @@ class SerializableActionSpace(SerializableSpace):
 
     def _aux_get_back_to_ref_state_line(self, res, obs):
         disc_lines = ~obs.line_status
-        if np.any(disc_lines):
+        if disc_lines.any():
             li_disc = np.where(disc_lines)[0]
             res["powerline"] = []
             for el in li_disc:
@@ -1351,7 +1351,7 @@ class SerializableActionSpace(SerializableSpace):
 
     def _aux_get_back_to_ref_state_sub(self, res, obs):
         not_on_bus_1 = obs.topo_vect > 1  # disconnected lines are handled above
-        if np.any(not_on_bus_1):
+        if not_on_bus_1.any():
             res["substation"] = []
             subs_changed = type(self).grid_objects_types[
                 not_on_bus_1, type(self).SUB_COL
@@ -1377,7 +1377,7 @@ class SerializableActionSpace(SerializableSpace):
     def _aux_get_back_to_ref_state_redisp(self, res, obs, precision=1e-5):
         # TODO this is ugly, probably slow and could definitely be optimized
         notredisp_setpoint = obs.target_dispatch != 0.0
-        if np.any(notredisp_setpoint):
+        if notredisp_setpoint.any():
             need_redisp = np.where(notredisp_setpoint)[0]
             res["redispatching"] = []
             # combine generators and do not exceed ramps (up or down)
@@ -1442,7 +1442,7 @@ class SerializableActionSpace(SerializableSpace):
         # TODO refacto with the redispatching
         notredisp_setpoint = obs.storage_charge / obs.storage_Emax != storage_setpoint
         delta_time_hour = dt_float(obs.delta_time / 60.0)
-        if np.any(notredisp_setpoint):
+        if notredisp_setpoint.any():
             need_ajust = np.where(notredisp_setpoint)[0]
             res["storage"] = []
             # combine storage units and do not exceed maximum power

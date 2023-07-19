@@ -56,15 +56,15 @@ class _NewRenewableSourcesUsageScore(BaseReward):
             self.gen_res_p_before_curtail_list[env.nb_time_step] = gen_nres_p_before_curtail
             return dt_float(0.)
         else:
-            ratio_nres_usage = 100 * np.sum(self.gen_res_p_curtailed_list[1:]) / np.sum(self.gen_res_p_before_curtail_list[1:])
+            ratio_nres_usage = 100 * self.gen_res_p_curtailed_list[1:].sum() / self.gen_res_p_before_curtail_list[1:].sum()
             return self._surlinear_func_curtailment(ratio_nres_usage)
             
     @staticmethod
     def _get_total_nres_usage(env):
         nres_mask = env.gen_renewable
         gen_p, *_ = env.backend.generators_info()
-        gen_nres_p_before_curtail = np.sum(env._gen_before_curtailment[nres_mask])
-        gen_nres_p_effective = np.sum(gen_p[nres_mask])
+        gen_nres_p_before_curtail = env._gen_before_curtailment[nres_mask].sum()
+        gen_nres_p_effective = gen_p[nres_mask].sum()
         
         return gen_nres_p_effective, gen_nres_p_before_curtail
     

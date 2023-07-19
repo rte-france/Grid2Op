@@ -272,8 +272,8 @@ class __AuxMultiDiscreteActSpace:
                         f"how to convert it to a discrete space. See the documentation "
                         f"for more information."
                     )
-                nb_redispatch = np.sum(act_sp.gen_redispatchable)
-                nb_renew = np.sum(act_sp.gen_renewable)
+                nb_redispatch = act_sp.gen_redispatchable.sum()
+                nb_renew = act_sp.gen_renewable.sum()
                 if el == "redispatch":
                     self.dict_properties[el] = (
                         [nb_bins[el] for _ in range(nb_redispatch)],
