@@ -196,7 +196,15 @@ class AlertReward(BaseReward):
                 alert_send = self._alert_launched[prev_ind, lines_attack]
                 # update the state of the environment
                 env._was_alert_used_after_attack[lines_attack] = 1 - alert_send * 2
-                res = (self.reward_min_no_blackout - self.reward_max_no_blackout) * np.mean(alert_send) + self.reward_max_no_blackout
+
+                res=0
+                for alert in alert_send:
+                    if(alert):
+                        res += self.reward_min_no_blackout
+                    else:
+                        res += self.reward_max_no_blackout
+                #res = (self.reward_min_no_blackout - self.reward_max_no_blackout) * np.mean(alert_send) + self.reward_max_no_blackout
+
                 self._ts_attack[index_window, :] = False  # attack has been taken into account we "cancel" it
         return res
     

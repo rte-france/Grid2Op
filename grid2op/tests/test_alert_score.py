@@ -396,7 +396,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if step == 3 : 
-                    assert reward == 1
+                    assert reward == 2 #2 and not 1, both alerts count if no blackout
                 elif step == env.max_episode_duration(): 
                         assert reward == 42
                 else : 
@@ -484,7 +484,7 @@ class TestAlertNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if step == 4 : 
-                    assert reward == -1
+                    assert reward == -2 #-2 and not -1, both alerts count if no blackout
                 elif step == env.max_episode_duration(): 
                     assert reward == 1
                 else : 

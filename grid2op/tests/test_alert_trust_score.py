@@ -41,13 +41,19 @@ ALL_ATTACKABLE_LINES= [
 ATTACKED_LINE = "48_50_136"
 
 
-DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
-                                 reward_min_blackout=-10.0,
-                                 reward_max_no_blackout=1.0,
-                                 reward_max_blackout=2.0,
-                                 reward_end_episode_bonus=42.0,
-                                 min_score=-1.0)
+#DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
+#                                 reward_min_blackout=-10.0,
+#                                 reward_max_no_blackout=1.0,
+#                                 reward_max_blackout=2.0,
+#                                 reward_end_episode_bonus=42.0,
+#                                 min_score=-1.0)
 
+DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
+                                 reward_min_blackout=-50.0,
+                                 reward_max_no_blackout=0.0,
+                                 reward_max_blackout=0.0,
+                                 reward_end_episode_bonus=0.0,
+                                 min_score=-1.0)
 
 
 def _get_steps_attack(kwargs_opponent, multi=False):
@@ -517,8 +523,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert nb_last_attacks == 0
                     assert total_nb_attacks == 2
 
-                    assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] +\
-                            DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"] + DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]
+                    assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] + \
+                           DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"] + DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]
 
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
@@ -571,7 +577,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert nb_last_attacks == 0
                     assert total_nb_attacks == 2
                     assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] +\
-                            DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]
+                            DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]*total_nb_attacks
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"] * total_nb_attacks
@@ -1085,7 +1091,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponent, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
+                  reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
                   _add_to_name="_tatsb2lssiwga"
             ) as env : 
             new_param = Parameters()
@@ -1119,10 +1125,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert nb_last_attacks == 2
                     assert total_nb_attacks == 2
 
-                    assert env._reward_helper.template_reward.cumulated_reward==2
-
-                    assert env._reward_helper.template_reward.cumulated_reward == DEFAULT_PARAMS_TRUSTSCORE[
-                        'reward_max_blackout']
+                    assert env._reward_helper.template_reward.cumulated_reward == (DEFAULT_PARAMS_TRUSTSCORE[
+                        'reward_max_blackout']+DEFAULT_PARAMS_TRUSTSCORE[
+                        'reward_max_blackout'])/total_nb_attacks
 
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
@@ -1146,7 +1151,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
-                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
+                  reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
                   opponent_attack_cooldown=0, 
                   opponent_attack_duration=99999, 
                   opponent_budget_per_ts=1000, 
@@ -1220,7 +1225,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
+                  reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
                   _add_to_name="_tatsb2ldsiwga"
             ) as env : 
             env.seed(0)
@@ -1288,7 +1293,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
+                  reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
                   _add_to_name="_tatsb2ladsiwo1aofal"
             ) as env : 
             env.seed(0)
@@ -1348,7 +1353,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
+                  reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
                   _add_to_name="_tatsb2ladsiwo1aosal"
             ) as env : 
             env.seed(0)
@@ -1408,7 +1413,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                   opponent_action_class=PlayableAction, 
                   opponent_class=TestOpponentMultiLines, 
                   kwargs_opponent=kwargs_opponent,
-                  reward_class=_AlertTrustScore(reward_end_episode_bonus=42),
+                  reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
                   _add_to_name="_tatsb2lad1iw1ga"
             ) as env : 
             env.seed(0)
@@ -1461,7 +1466,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=_AlertTrustScore(reward_end_episode_bonus=42)
+            reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE)
         ) as env:
             env.seed(0)
             env.reset()
@@ -1507,7 +1512,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=_AlertTrustScore(reward_end_episode_bonus=42)
+            reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE)
         ) as env:
             env.seed(0)
             env.reset()
@@ -1551,7 +1556,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=_AlertTrustScore(reward_end_episode_bonus=42)
+            reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE)
         ) as env:
             env.seed(0)
             env.reset()
@@ -1597,7 +1602,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=_AlertTrustScore(reward_end_episode_bonus=42)
+            reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE)
         ) as env:
             env.seed(0)
             env.reset()
