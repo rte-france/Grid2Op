@@ -53,7 +53,7 @@ DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
                                  reward_max_no_blackout=0.0,
                                  reward_max_blackout=0.0,
                                  reward_end_episode_bonus=0.0,
-                                 min_score=-1.0)
+                                 min_score=-3.0)
 
 def _get_steps_attack(kwargs_opponent, multi=False):
     """computes the steps for which there will be attacks"""
@@ -154,7 +154,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                 obs, score, done, info = env.step(env.action_space())
                 if info["opponent_attack_line"] is None : 
                     if i == env.max_episode_duration()-1: 
-                        #assert score == 42
+                        assert score == 0.0
                         total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                         nb_last_attacks= env._reward_helper.template_reward.nb_last_attacks
                         assert total_nb_attacks==0
@@ -200,7 +200,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
 
                 if info["opponent_attack_line"] is None : 
                     if step == env.max_episode_duration(): 
-                        #assert score == 42
+                        assert score == 0.0
                         total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                         nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
                         assert total_nb_attacks == 0
@@ -252,7 +252,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done: 
-                        #assert score == 43                        total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
+                        assert np.round(score,3) == env._reward_helper.template_reward.max_score
                         total_nb_attacks=env._reward_helper.template_reward.total_nb_attacks
                         nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -267,7 +267,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert score == 0
 
     def test_assistant_trust_score_no_blackout_attack_alert(self) -> None :
-        """When an alert occur at step 2, we raise an alert at step 1 
+        """When an attack occur at step 2, we raise an alert at step 1
             We expect a score of 41
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
@@ -302,7 +302,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    #assert score == 41
+                    assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
 
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
@@ -355,7 +355,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    #assert score == 43
+                    assert score == env._reward_helper.template_reward.max_score
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -409,7 +409,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    #assert score == 43
+                    assert score == env._reward_helper.template_reward.max_score
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -462,7 +462,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    #assert score == 43
+                    assert score == env._reward_helper.template_reward.max_score
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -515,7 +515,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done: 
-                    #assert score == 42
+                    assert score == (env._reward_helper.template_reward.max_score+DEFAULT_PARAMS_TRUSTSCORE["min_score"])/2
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -569,7 +569,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    #assert score == 41
+                    assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -621,7 +621,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    #assert score == 44
+                    assert score == env._reward_helper.template_reward.max_score
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -676,7 +676,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    #assert score == 40
+                    assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -730,7 +730,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    #score == 42
+                    assert score == (env._reward_helper.template_reward.max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -785,7 +785,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
                 if done:
-                    #assert score == 42
+                    assert score == (env._reward_helper.template_reward.max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -868,7 +868,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done:
-                    #assert score == -10
+                    assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -927,8 +927,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 else:
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
-                if done: 
-                    #assert score == 2
+                if done:
+                    assert score == env._reward_helper.template_reward.max_score
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -991,7 +991,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done: 
-                    #assert score == -10
+                    assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -1053,7 +1053,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done: 
-                    #assert score == -10
+                    assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -1117,7 +1117,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done: 
-                    #assert score == 2
+                    assert score == env._reward_helper.template_reward.max_score
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -1186,13 +1186,15 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 
                 if done: 
                     #assert score == -4
+
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
                     assert nb_last_attacks == 2
                     assert total_nb_attacks == 2
 
-                    assert env._reward_helper.template_reward.cumulated_reward == (DEFAULT_PARAMS_TRUSTSCORE[
+                    cm_reward=env._reward_helper.template_reward.cumulated_reward
+                    assert cm_reward == (DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_max_blackout']+DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_min_blackout'])/total_nb_attacks
 
@@ -1201,6 +1203,12 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     #attention, attaque dans une même fenêtre avant blackout ne compte que pour une seule attaque pondérée...
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
+
+                    manual_standardized_score = np.round(
+                        (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
+                    manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE["min_score"]) * manual_standardized_score
+
+                    assert score == manual_score
                     break
                 else : 
                     assert score == 0
@@ -1250,16 +1258,15 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done : 
-                    #assert score == 2
+                    assert score == env._reward_helper.template_reward.max_score
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
                     assert nb_last_attacks == 2
                     assert total_nb_attacks == 2
 
-                    assert env._reward_helper.template_reward.cumulated_reward == (DEFAULT_PARAMS_TRUSTSCORE[
-                                                                                       'reward_max_blackout'] +
-                                                                                   DEFAULT_PARAMS_TRUSTSCORE[
+                    cm_reward = env._reward_helper.template_reward.cumulated_reward
+                    assert cm_reward == (DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout'] +DEFAULT_PARAMS_TRUSTSCORE[
                                                                                        'reward_max_blackout']) / total_nb_attacks
 
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
@@ -1270,6 +1277,13 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_max_blackout']  # +DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
 
+                    manual_standardized_score = np.round(
+                        (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
+                    manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
+                                env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
+                            "min_score"]) * manual_standardized_score
+
+                    assert score == manual_score
                     break
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
@@ -1312,15 +1326,15 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 else:
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
-                if done : 
-                    #assert score == -4
+                if done :
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
                     assert nb_last_attacks == 2
                     assert total_nb_attacks == 2
 
-                    assert env._reward_helper.template_reward.cumulated_reward == (DEFAULT_PARAMS_TRUSTSCORE[
+                    cm_reward = env._reward_helper.template_reward.cumulated_reward
+                    assert cm_reward == (DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_max_blackout']+DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_min_blackout'])/total_nb_attacks
 
@@ -1329,6 +1343,14 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     #attention, attaque dans une même fenêtre avant blackout ne compte que pour une seule attaque pondérée...
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
+
+                    manual_standardized_score = np.round(
+                        (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
+                    manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
+                                env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
+                            "min_score"]) * manual_standardized_score
+                    assert score == manual_score
+
                     break
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
@@ -1372,15 +1394,15 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 else:
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                     
-                if done : 
-                    #assert score == -4., f"error for step {step}: {score} vs -4"
+                if done :
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
                     assert nb_last_attacks == 2
                     assert total_nb_attacks == 2
 
-                    assert env._reward_helper.template_reward.cumulated_reward == (DEFAULT_PARAMS_TRUSTSCORE[
+                    cm_reward = env._reward_helper.template_reward.cumulated_reward
+                    assert cm_reward == (DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_max_blackout']+DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_min_blackout'])/total_nb_attacks
 
@@ -1389,6 +1411,14 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     #attention, attaque dans une même fenêtre avant blackout ne compte que pour une seule attaque pondérée...
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
+
+
+                    manual_standardized_score = np.round(
+                        (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
+                    manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
+                                env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
+                            "min_score"]) * manual_standardized_score
+                    assert score == manual_score
                     break
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
@@ -1434,7 +1464,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done : 
-                    #assert score == 3
+                    assert score == env._reward_helper.template_reward.max_score
                     assert done
 
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
@@ -1480,7 +1510,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 obs, score, done, info = env.step(act)
                 if info["opponent_attack_line"] is None:
                     if done : #info["opponent_attack_line"] is None :
-                        #assert score == 0.
+                        assert score == 0.
                         total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                         nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -1524,7 +1554,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 obs, score, done, info = env.step(act)
                 if info["opponent_attack_line"] is None :
                     if done:
-                        #assert score == 0.
+                        assert score == 0.
                         total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                         nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
@@ -1569,7 +1599,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     act = env.action_space({"raise_alert": [0]})
                 obs, score, done, info = env.step(act)
                 if info["opponent_attack_line"] is None : 
-                    #assert score == 0.
+                    assert score == 0.
                     if done:
                         total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                         nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
@@ -1617,7 +1647,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                 obs, score, done, info = env.step(act)
                 
                 if info["opponent_attack_line"] is None : 
-                    #assert score == 0.
+                    assert score == 0.
                     if done:
 
                         total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks

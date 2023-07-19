@@ -142,9 +142,9 @@ class _AlertTrustScore(AlertReward):
         
     @staticmethod
     def _normalisation_fun(cm_reward, cm_reward_min_ep, cm_reward_max_ep,min_score,max_score):
-        standardized_score = (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep +1e-5)
-        #score_ep = standardized_score * 2. - 1.
-        score_ep = min_score + (max_score - min_score) * standardized_score
+        standardized_score = np.round((cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep +1e-5),4)
+        #in case cm_reward_min_ep=cm_reward_max_ep=0, score is 0.0
+        score_ep = (cm_reward_min_ep!=cm_reward_max_ep)*min_score + (max_score - min_score) * standardized_score
         return score_ep
     
     def _compute_min_max_reward(self, nb_attacks,nb_last_attacks):
