@@ -16,13 +16,12 @@ import json
 from typing import Optional, Tuple
 import warnings
 import numpy as np
-from scipy.optimize import minimize
-from scipy.optimize import LinearConstraint
+from scipy.optimize import (minimize, LinearConstraint)
 from abc import ABC, abstractmethod
-from grid2op.Action.ActionSpace import ActionSpace
-from grid2op.Observation.baseObservation import BaseObservation
-from grid2op.Observation.observationSpace import ObservationSpace
-from grid2op.Observation.highresSimCounter import HighResSimCounter
+from grid2op.Action import ActionSpace
+from grid2op.Observation import (BaseObservation,
+                                 ObservationSpace,
+                                 HighResSimCounter)
 from grid2op.Backend import Backend
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects, RandomObject
@@ -35,7 +34,7 @@ from grid2op.Action import DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
 from grid2op.operator_attention import LinearAttentionBudget
-from grid2op.Action._BackendAction import _BackendAction
+from grid2op.Action._backendAction import _BackendAction
 from grid2op.Chronics import ChronicsHandler
 from grid2op.Rules import AlwaysLegal, BaseRules
 
