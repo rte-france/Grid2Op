@@ -82,7 +82,7 @@ class ObservationSpace(SerializableObservationSpace):
         """
 
         # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
-        from grid2op.Environment._ObsEnv import _ObsEnv
+        from grid2op.Environment._obsEnv import _ObsEnv
 
         if actionClass is None:
             from grid2op.Action import CompleteAction
@@ -150,7 +150,7 @@ class ObservationSpace(SerializableObservationSpace):
         if not self.with_forecast:
             return 
         # I don't need the backend nor the chronics_handler
-        from grid2op.Environment.Environment import Environment
+        from grid2op.Environment import Environment
         self._real_env_kwargs = Environment.get_kwargs(env, False, False)
         
         # remove the parameters anyways (the 'forecast parameters will be used

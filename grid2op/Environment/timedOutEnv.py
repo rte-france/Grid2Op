@@ -9,7 +9,7 @@
 import time
 from math import floor
 from typing import Tuple, Union, List
-from grid2op.Environment.Environment import Environment
+from grid2op.Environment.environment import Environment
 from grid2op.Action import BaseAction
 from grid2op.Observation import BaseObservation
 from grid2op.Exceptions import EnvError
