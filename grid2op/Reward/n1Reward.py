@@ -8,7 +8,7 @@
 
 import copy
 from grid2op.Reward import BaseReward
-from grid2op.Action._BackendAction import _BackendAction
+from grid2op.Action._backendAction import _BackendAction
 
 
 class N1Reward(BaseReward):

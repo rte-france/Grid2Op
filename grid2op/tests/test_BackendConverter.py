@@ -15,18 +15,18 @@ from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
 from grid2op.Backend import PandaPowerBackend
 
 from grid2op.tests.helper_path_test import HelperTests
-from grid2op.tests.BaseBackendTest import BaseTestNames
-from grid2op.tests.BaseBackendTest import BaseTestLoadingCase
-from grid2op.tests.BaseBackendTest import BaseTestLoadingBackendFunc
-from grid2op.tests.BaseBackendTest import BaseTestTopoAction
-from grid2op.tests.BaseBackendTest import BaseTestEnvPerformsCorrectCascadingFailures
-from grid2op.tests.BaseBackendTest import BaseTestChangeBusAffectRightBus
-from grid2op.tests.BaseBackendTest import BaseTestShuntAction
-from grid2op.tests.BaseBackendTest import BaseTestResetEqualsLoadGrid
-from grid2op.tests.BaseBackendTest import BaseTestVoltageOWhenDisco
-from grid2op.tests.BaseBackendTest import BaseTestChangeBusSlack
-from grid2op.tests.BaseBackendTest import BaseIssuesTest
-from grid2op.tests.BaseBackendTest import BaseStatusActions
+from grid2op.tests.BaseBackendTest import (BaseTestNames,
+                                           BaseTestLoadingCase,
+                                           BaseTestLoadingBackendFunc,
+                                           BaseTestTopoAction,
+                                           BaseTestEnvPerformsCorrectCascadingFailures,
+                                           BaseTestChangeBusAffectRightBus,
+                                           BaseTestShuntAction,
+                                           BaseTestResetEqualsLoadGrid,
+                                           BaseTestVoltageOWhenDisco,
+                                           BaseTestChangeBusSlack,
+                                           BaseIssuesTest,
+                                           BaseStatusActions)
 
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP

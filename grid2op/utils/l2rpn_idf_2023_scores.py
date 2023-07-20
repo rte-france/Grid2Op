@@ -88,6 +88,7 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         weight_nres_score=0.15,
         weight_confidence_assistant_score=0.7,
         min_nres_score=-100,
+        add_nb_highres_sim=False,
     ):
 
         ScoreL2RPN2020.__init__(
@@ -102,14 +103,11 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             nb_process_stats=nb_process_stats,
             scores_func={
                 "grid_operational_cost": L2RPNSandBoxScore,
-                #"assistance_confidence": _AssistantConfidenceScore,
-                #"assistant_cost": _AssistantCostScore,
                 "new_renewable_sources_usage": _NewRenewableSourcesUsageScore,
             },
             score_names=["grid_operational_cost_scores",
-                         #"assistant_confidence_scores",
-                         #"assistant_cost_scores",
                          "new_renewable_sources_usage_scores"],
+            add_nb_highres_sim=add_nb_highres_sim,
         )
         
         assert(weight_op_score + weight_assistant_score + weight_nres_score==1.)

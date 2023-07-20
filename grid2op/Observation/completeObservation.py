@@ -67,9 +67,9 @@ class CompleteObservation(BaseObservation):
         26. :attr:`BaseObservation.time_before_cooldown_sub` representation of the cooldown time on the substations
             [:attr:`grid2op.Space.GridObjects.n_sub` elements]
         27. :attr:`BaseObservation.time_next_maintenance` number of timestep before the next maintenance (-1 means
-            no maintenance are planned, 0 a maintenance is in operation) [:attr:`BaseObservation.n_line` elements]
+            no maintenance are planned, 0 a maintenance is in operation) [:attr:`grid2op.Space.GridObjects.n_line` elements]
         28. :attr:`BaseObservation.duration_next_maintenance` duration of the next maintenance. If a maintenance
-            is taking place, this is the number of timestep before it ends. [:attr:`BaseObservation.n_line` elements]
+            is taking place, this is the number of timestep before it ends. [:attr:`grid2op.Space.GridObjects.n_line` elements]
         29. :attr:`BaseObservation.target_dispatch` the target dispatch for each generator
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         30. :attr:`BaseObservation.actual_dispatch` the actual dispatch for each generator
@@ -107,18 +107,32 @@ class CompleteObservation(BaseObservation):
             constraint) [``bool``]
         43. :attr:`BaseObservation.curtailment_limit` : the current curtailment limit (if any)
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
-        44. :attr:`BaseObservation.curtailment_limit_effective` TODO
-        45. :attr:`BaseObservation.current_step` TODO
-        46. :attr:`BaseObservation.max_step` TODO
-        47. :attr:`BaseObservation.delta_time` TODO
-        48. :attr:`BaseObservation.gen_margin_up` TODO
-        49. :attr:`BaseObservation.gen_margin_down` TODO   
-        50. :attr:`BaseObservation.last_alert` TODO
-        51. :attr:`BaseObservation.time_since_last_alert` TODO
-        52. :attr:`BaseObservation.alert_duration` TODO
-        53. :attr:`BaseObservation.total_number_of_alert` TODO
-        54. :attr:`BaseObservation.time_since_last_attack` TODO
-        55. :attr:`BaseObservation.was_alert_used_after_attack` TODO
+        44. :attr:`BaseObservation.curtailment_limit_effective` Limit (in ratio of gen_pmax) imposed on 
+            each renewable generator effectively imposed by the environment.
+        45. :attr:`BaseObservation.current_step` the number of steps since the beginning of the episode (it's
+            0 for the observation after a call to `env.reset()`)
+        46. :attr:`BaseObservation.max_step` maximum number of steps that can be done by the environment.
+            When :attr:`BaseObservation.current_step` is  :attr:`BaseObservation.max_step` the the environment
+            is done.
+        47. :attr:`BaseObservation.delta_time` Amount of time (in minutes) represented by a step. In general, there
+            are the equivalent of 5 minutes between two steps.
+        48. :attr:`BaseObservation.gen_margin_up` From how much can you increase each generators production between this
+            step and the next.
+        49. :attr:`BaseObservation.gen_margin_down` From how much can you decrease each generators production between this
+            step and the next.   
+        50. :attr:`BaseObservation.active_alert` This attribute gives the lines "under alert" at the given observation.
+        51. :attr:`BaseObservation.time_since_last_alert`  Give the time since an alert has been raised for each powerline.
+        52. :attr:`BaseObservation.alert_duration` Give the time since an alert has started for all attackable line.
+        53. :attr:`BaseObservation.total_number_of_alert` Total number of alerts since the beginning of the episode sent by 
+            the agent
+        54. :attr:`BaseObservation.time_since_last_attack` For each attackable line `i` it counts the number of steps since the powerline has
+            been attacked
+        55. :attr:`BaseObservation.was_alert_used_after_attack` For each attackable line `i` it says if an alert has been used or not
+            for the computation of the reward: +1 means "used and the alert was correct", -1 means "used and the alert was not correct"
+            and 0 means "not used" 
+        56. :attr:`BaseObservation.attack_under_alert` For each attackable line `i` it says if an alert has been sent (+1) or not (-1)
+            for each attackable line currently under attack.
+            
     """
 
     attr_list_vect = [

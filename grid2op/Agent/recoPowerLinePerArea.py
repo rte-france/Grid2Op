@@ -44,7 +44,7 @@ class RecoPowerlinePerArea(BaseAgent):
             for line_id, subor_id in enumerate(type(action_space).line_or_to_subid):
                 if subor_id in sub_this_area:
                     self.lines_to_area_id[line_id] = aread_id
-        if np.any(self.lines_to_area_id == -1):
+        if (self.lines_to_area_id == -1).any():
             raise AgentError("some powerline have no area id")
         self.nb_area = len(areas_by_sub_id)
     
@@ -52,7 +52,7 @@ class RecoPowerlinePerArea(BaseAgent):
         line_stat_s = observation.line_status
         cooldown = observation.time_before_cooldown_line
         can_be_reco = ~line_stat_s & (cooldown == 0)
-        if not np.any(can_be_reco):
+        if not can_be_reco.any():
             # no line to reconnect
             return self.action_space()
         area_used = np.full(self.nb_area, fill_value=False, dtype=bool)

@@ -40,18 +40,18 @@ class ObservationSpace(SerializableObservationSpace):
     _simulate_parameters: :class:`grid2op.Parameters.Parameters`
         Type of Parameters used to compute powerflow for the forecast.
 
-    rewardClass: ``type``
+    rewardClass: Union[type, BaseReward]
         Class used by the :class:`grid2op.Environment.Environment` to send information about its state to the
-        :class:`grid2op.BaseAgent.BaseAgent`. You can change this class to differentiate between the reward of output of
+        :class:`grid2op.Agent.BaseAgent`. You can change this class to differentiate between the reward of output of
         :func:`BaseObservation.simulate`  and the reward used to train the BaseAgent.
 
     action_helper_env: :class:`grid2op.Action.ActionSpace`
         BaseAction space used to create action during the :func:`BaseObservation.simulate`
 
-    reward_helper: :class:`grid2op.Reward.HelperReward`
+    reward_helper: :class:`grid2op.Reward.RewardHelper`
         BaseReward function used by the the :func:`BaseObservation.simulate` function.
 
-    obs_env: :class:`_ObsEnv`
+    obs_env: :class:`grid2op.Environment._Obsenv._ObsEnv`
         Instance of the environment used by the BaseObservation Helper to provide forcecast of the grid state.
 
     _empty_obs: :class:`BaseObservation`
@@ -78,11 +78,11 @@ class ObservationSpace(SerializableObservationSpace):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
+        Env: requires :attr:`grid2op.Environment.BaseEnv.parameters` and :attr:`grid2op.Environment.BaseEnv.backend` to be valid
         """
 
         # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
-        from grid2op.Environment._ObsEnv import _ObsEnv
+        from grid2op.Environment._obsEnv import _ObsEnv
 
         if actionClass is None:
             from grid2op.Action import CompleteAction
@@ -123,6 +123,8 @@ class ObservationSpace(SerializableObservationSpace):
         if _with_obs_env:
             self._create_obs_env(env)
             self.reward_helper.initialize(self.obs_env)
+            for k, v in self.obs_env.other_rewards.items():
+                v.reset(self.obs_env)
         else:
             self.with_forecast = False
             self.obs_env = None
@@ -148,7 +150,7 @@ class ObservationSpace(SerializableObservationSpace):
         if not self.with_forecast:
             return 
         # I don't need the backend nor the chronics_handler
-        from grid2op.Environment.Environment import Environment
+        from grid2op.Environment import Environment
         self._real_env_kwargs = Environment.get_kwargs(env, False, False)
         
         # remove the parameters anyways (the 'forecast parameters will be used
@@ -445,9 +447,9 @@ class ObservationSpace(SerializableObservationSpace):
         self.__nb_simulate_called_this_step = 0
         self.__nb_simulate_called_this_episode = 0
         if self.with_forecast:
-            self.obs_env._reward_helper.reset(real_env)
+            self.obs_env._reward_helper.reset(self.obs_env)
             for k, v in self.obs_env.other_rewards.items():
-                v.reset(real_env)
+                v.reset(self.obs_env)
             self.obs_env.reset()
         self._env_param = copy.deepcopy(real_env.parameters)
 
