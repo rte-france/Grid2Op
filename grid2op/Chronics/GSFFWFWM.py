@@ -181,7 +181,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         idx_line_maintenance = np.array(
             [el in line_to_maintenance for el in columnsNames]
         )
-        nb_line_maint = np.sum(idx_line_maintenance)
+        nb_line_maint = idx_line_maintenance.sum()
         if nb_line_maint == 0:
             # TODO log something there !
             return res
@@ -240,7 +240,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
                     size=n_lines_maintenance,
                 )
 
-                n_Generated_Maintenance = np.sum(are_lines_in_maintenance)
+                n_Generated_Maintenance = are_lines_in_maintenance.sum()
                 # check if the number of maintenance is not above the max allowed. otherwise randomly pick up the right
                 # number
                 if n_Generated_Maintenance > maxDailyMaintenance:

@@ -12,8 +12,8 @@ import warnings
 import numpy as np
 from datetime import timedelta, datetime
 
-from grid2op.dtypes import dt_int
-from grid2op.Exceptions import *
+from grid2op.dtypes import dt_int, dt_float
+from grid2op.Exceptions import ChronicsNotFoundError, ChronicsError
 from grid2op.Chronics.gridValue import GridValue
 from grid2op.Chronics.gridStateFromFile import GridStateFromFile
 
@@ -339,9 +339,17 @@ class Multifolder(GridValue):
         self._prev_cache_id = -1
         if probabilities is None:
             probabilities = np.ones(self._order.shape[0])
-
+        try:
+            probabilities = np.array(probabilities, dtype=dt_float)
+        except Exception as exc_:
+            raise ChronicsError("Impossible to convert the probablities given to an array of float") from exc_
+        
+        sum_prob = probabilities.sum()
+        if abs(sum_prob) <= 1e-5:
+            raise ChronicsError("Impossible to use the given probabilities argument, it sums to 0. (or close enough to it)")
+            
         # make sure it sums to 1
-        probabilities /= np.sum(probabilities)
+        probabilities /= sum_prob
         # take one at "random" among these
         selected = self.space_prng.choice(self._order, p=probabilities)
         id_sel = np.where(self._order == selected)[0]
@@ -377,7 +385,7 @@ class Multifolder(GridValue):
             self._order.append(i)
 
         if len(self._order) == 0:
-            raise RuntimeError(
+            raise ChronicsError(
                 'Impossible to initialize the Multifolder. Your "filter_fun" filters out all the '
                 "possible scenarios."
             )

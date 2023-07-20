@@ -9,13 +9,12 @@
 import warnings
 import os
 import json
-from grid2op.Action.BaseAction import BaseAction
+from grid2op.Action import BaseAction, PlayableAction
 from grid2op.tests.helper_path_test import *
 
 from grid2op.MakeEnv import make
 from grid2op.Parameters import Parameters
 from grid2op.Converter import ConnectivityConverter, IdToAct
-from grid2op.Action import PlayableAction
 import tempfile
 import pdb
 

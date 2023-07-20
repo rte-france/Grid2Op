@@ -14,7 +14,7 @@ from grid2op.Exceptions import EnvError
 from grid2op.dtypes import dt_int
 from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
-from grid2op.Environment import Environment
+from grid2op.Environment.environment import Environment
 from grid2op.Action import BaseAction
 
 
@@ -158,7 +158,7 @@ class RemoteEnv(Process):
                     data = self.env.action_space.from_vect(data)
                 obs, reward, done, info = self.env.step(data)
                 obs_v = obs.to_vect()
-                if done or np.any(~np.isfinite(obs_v)):
+                if done or (~np.isfinite(obs_v)).any():
                     # if done do a reset
                     res_obs = self.get_obs_ifnotconv()
                 elif self._obs_to_vect:

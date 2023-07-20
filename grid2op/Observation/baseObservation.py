@@ -992,10 +992,10 @@ class BaseObservation(GridObjects):
                     )
                 )
 
-            beg_ = int(np.sum(self.sub_info[:substation_id]))
+            beg_ = int(self.sub_info[:substation_id].sum())
             end_ = int(beg_ + self.sub_info[substation_id])
             topo_sub = self.topo_vect[beg_:end_]
-            if np.any(topo_sub > 0):
+            if (topo_sub > 0).any():
                 nb_bus = (
                     np.max(topo_sub[topo_sub > 0]) - np.min(topo_sub[topo_sub > 0]) + 1
                 )
@@ -1400,7 +1400,7 @@ class BaseObservation(GridObjects):
                 # first special case: there can be Nan there
                 me_finite = np.isfinite(attr_me)
                 oth_finite = np.isfinite(attr_other)
-                if np.any(me_finite != oth_finite):
+                if (me_finite != oth_finite).any():
                     return False
                 # special case of floating points, otherwise vector are never equal
                 if not np.all(
@@ -1538,7 +1538,7 @@ class BaseObservation(GridObjects):
         for attr_nm in self._attr_eq:
             array_ = getattr(diff_, attr_nm)
             if array_.dtype == dt_bool:
-                if np.any(~array_):
+                if (~array_).any():
                     res.append(attr_nm)
             else:
                 if (array_.shape[0] > 0) and np.max(np.abs(array_)):
@@ -2024,13 +2024,13 @@ class BaseObservation(GridObjects):
             if self.shunts_data_available:
                 sh_vect = self._shunt_q
 
-        nb_lor = np.sum(lor_conn)
-        nb_lex = np.sum(lex_conn)
+        nb_lor = lor_conn.sum()
+        nb_lex = lex_conn.sum()
         data = np.zeros(nb_bus + nb_lor + nb_lex, dtype=dt_float)
 
         # if two generators / loads / storage unit are connected at the same bus
         # this is why i go with matrix product and sparse matrices
-        nb_prod = np.sum(prod_conn)
+        nb_prod = prod_conn.sum()
         if nb_prod:
             bus_prod = np.arange(prod_bus[prod_conn].max() + 1)
             map_mat = csr_matrix(
@@ -2041,7 +2041,7 @@ class BaseObservation(GridObjects):
             data[bus_prod] += map_mat.dot(prod_vect[prod_conn])
 
         # handle load
-        nb_load = np.sum(load_conn)
+        nb_load = load_conn.sum()
         if nb_load:
             bus_load = np.arange(load_bus[load_conn].max() + 1)
             map_mat = csr_matrix(
@@ -2052,7 +2052,7 @@ class BaseObservation(GridObjects):
             data[bus_load] -= map_mat.dot(load_vect[load_conn])
 
         # handle storage
-        nb_stor = np.sum(stor_conn)
+        nb_stor = stor_conn.sum()
         if nb_stor:
             bus_stor = np.arange(stor_bus[stor_conn].max() + 1)
             map_mat = csr_matrix(
@@ -2064,7 +2064,7 @@ class BaseObservation(GridObjects):
 
         if self.shunts_data_available:
             # handle shunts
-            nb_shunt = np.sum(sh_conn)
+            nb_shunt = sh_conn.sum()
             if nb_shunt:
                 bus_shunt = np.arange(sh_bus[sh_conn].max() + 1)
                 map_mat = csr_matrix(
@@ -3632,7 +3632,7 @@ class BaseObservation(GridObjects):
                 & (line_ex_set_bus <= 0)
                 & (res.topo_vect[self.line_ex_pos_topo_vect] == -1)
             )
-            if np.any(tmp):
+            if tmp.any():
                 id_issue_ex = np.where(tmp)[0]
                 if issue_warn:
                     warnings.warn(error_no_bus_set.format(id_issue_ex))
@@ -3644,7 +3644,7 @@ class BaseObservation(GridObjects):
                 & (line_or_set_bus <= 0)
                 & (res.topo_vect[self.line_or_pos_topo_vect] == -1)
             )
-            if np.any(tmp):
+            if tmp.any():
                 id_issue_or = np.where(tmp)[0]
                 if issue_warn:
                     warnings.warn(error_no_bus_set.format(id_issue_or))
@@ -3702,7 +3702,7 @@ class BaseObservation(GridObjects):
             res.line_status[disco_line] = False
 
             # handle reconnected powerlines
-            if np.any(reco_line):
+            if reco_line.any():
                 if "set_bus" in act.authorized_keys:
                     line_ex_set_bus = 1 * act.line_ex_set_bus
                     line_or_set_bus = 1 * act.line_or_set_bus
@@ -3711,8 +3711,8 @@ class BaseObservation(GridObjects):
                     line_or_set_bus = np.zeros(res.n_line, dtype=dt_int)
 
                 if issue_warn and (
-                    np.any(line_or_set_bus[reco_line] == 0)
-                    or np.any(line_ex_set_bus[reco_line] == 0)
+                    (line_or_set_bus[reco_line] == 0).any()
+                    or (line_ex_set_bus[reco_line] == 0).any()
                 ):
                     warnings.warn(
                         'A powerline has been reconnected with a "change_status" action without '
@@ -3734,7 +3734,7 @@ class BaseObservation(GridObjects):
 
         if "redispatch" in act.authorized_keys:
             redisp = act.redispatch
-            if np.any(redisp != 0) and issue_warn:
+            if (redisp != 0).any() and issue_warn:
                 warnings.warn(
                     "You did redispatching on this action. Redispatching is heavily transformed "
                     "by the environment (consult the documentation about the modeling of the "
@@ -3743,7 +3743,7 @@ class BaseObservation(GridObjects):
 
         if "set_storage" in act.authorized_keys:
             storage_p = act.storage_p
-            if np.any(storage_p != 0) and issue_warn:
+            if (storage_p != 0).any() and issue_warn:
                 warnings.warn(
                     "You did action on storage units in this action. This implies performing some "
                     "redispatching which is heavily transformed "

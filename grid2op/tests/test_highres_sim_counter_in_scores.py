@@ -14,7 +14,7 @@ import grid2op
 from grid2op.Action import ActionSpace, BaseAction
 from grid2op.utils import ScoreL2RPN2023, ScoreL2RPN2022, ScoreICAPS2021, ScoreL2RPN2020
 from grid2op.Observation import BaseObservation
-from grid2op.Agent.doNothing import DoNothingAgent, BaseAgent
+from grid2op.Agent import DoNothingAgent, BaseAgent
 from grid2op.Chronics import FromHandlers
 from grid2op.Chronics.handlers import CSVHandler, PerfectForecastHandler, DoNothingHandler
 

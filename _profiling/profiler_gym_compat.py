@@ -12,6 +12,8 @@ This file aims at profiling a case where the "simulate" function is heavily used
 """
 
 import grid2op
+from grid2op.gym_compat import GymEnv
+
 import warnings
 try:
     from lightsim2grid import LightSimBackend
@@ -43,47 +45,37 @@ def make_env(env_name=ENV_NAME):
     env = grid2op.make(env_name, backend=bk_cls(), param=param)
     env.seed(0)
     env.reset()
-    return env
+    gym_env = GymEnv(env)
+    return gym_env, env
 
 
-def run_env(env, cp_env, cp_simu):
+def run_env(gym_env, cp_gym_env, env, cp_env):
     done = False
+    while not done:
+        act = {}
+        cp_gym_env.enable()
+        obs, reward, done, truncated, info = gym_env.step(act)
+        cp_gym_env.disable()
+        
+    done = False 
     while not done:
         act = env.action_space()
         cp_env.enable()
         obs, reward, done, info = env.step(act)
         cp_env.disable()
-        if not done:
-            simulate(obs, env.action_space, NB_SIMULATE, cp_simu)
-
-
-def simulate(obs, action_space, nb_simu=NB_SIMULATE, cp=None):
-    acts = [action_space.sample() for _ in range(nb_simu)]
-    # acts = [action_space() for _ in range(nb_simu)]
-    tmp = sum(acts, start = action_space())
-    try:
-        if cp is not None:
-            cp.enable()
-        for i in range(nb_simu):
-            simobs, rim_r, sim_d, sim_info = obs.simulate(acts[i])
-            prev_act = acts[i]
-        if cp is not None:
-            cp.disable()
-    except RuntimeError as exc_:
-        raise exc_
 
 
 if __name__ == "__main__":
-    env = make_env()
-    cp_simu = cProfile.Profile()
+    gym_env, env = make_env()
+    cp_gym = cProfile.Profile()
     cp_env = cProfile.Profile()
-    run_env(env, cp_env, cp_simu)
+    run_env(gym_env, cp_gym, env, cp_env)
     nm_f, ext = os.path.splitext(__file__)
-    nm_out_simu = f"{nm_f}_{nm_bk_used}_{ENV_NAME}_{NB_SIMULATE}_simu.prof"
-    nm_out_env = f"{nm_f}_{nm_bk_used}_{ENV_NAME}_{NB_SIMULATE}_env.prof"
-    cp_simu.dump_stats(nm_out_simu)
+    nm_out_gym = f"gym_{nm_f}_{nm_bk_used}_{ENV_NAME}_gymenv.prof"
+    nm_out_env = f"gym_{nm_f}_{nm_bk_used}_{ENV_NAME}_env.prof"
+    cp_gym.dump_stats(nm_out_gym)
     cp_env.dump_stats(nm_out_env)
-    print("You can view profiling results with:\n\tsnakeviz {}".format(nm_out_env))
-    print("You can view profiling results with:\n\tsnakeviz {}".format(nm_out_simu))
+    print("You can view profiling grid2op raw results with:\n\tsnakeviz {}".format(nm_out_env))
+    print("You can view profiling gym results with:\n\tsnakeviz {}".format(nm_out_gym))
 # base: 66.7 s
 # sans copy dans simulate: 65.2

@@ -11,7 +11,7 @@ import numpy as np
 from grid2op.dtypes import dt_int
 from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
-from grid2op.Environment.BaseMultiProcessEnv import BaseMultiProcessEnvironment
+from grid2op.Environment.baseMultiProcessEnv import BaseMultiProcessEnvironment
 from grid2op.Action import BaseAction
 
 
@@ -67,14 +67,14 @@ class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
                 'convert it to such with error "{}"'.format(exc_)
             )
 
-        if np.any(nb_envs < 0):
+        if (nb_envs < 0).any():
             raise MultiEnvException(
                 'You ask to perform "{}" copy of an environment. This is a negative '
                 'integer. I cannot do that. Please make sure "nb_envs" argument '
                 "is all made of strictly positive integers and not {}."
                 "".format(np.min(nb_envs), nb_envs)
             )
-        if np.any(nb_envs == 0):
+        if (nb_envs == 0).any():
             raise MultiEnvException(
                 "You ask to perform 0 copy of an environment. This is not supported at "
                 'the moment. Please make sure "nb_envs" argument '

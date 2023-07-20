@@ -39,5 +39,5 @@ class L2RPNWCCI2022ScoreFun(L2RPNSandBoxScore):
         
     def _get_storage_cost(self, env, p_t):
         """storage cost is a flat 10 € / MWh instead of depending on the marginal cost"""
-        c_storage = np.sum(np.abs(env._storage_power)) * self.storage_cost * env.delta_time_seconds / 3600.0
+        c_storage = np.abs(env._storage_power).sum() * self.storage_cost * env.delta_time_seconds / 3600.0
         return c_storage    

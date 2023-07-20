@@ -42,6 +42,32 @@ class DoNothingSimulatorAgent(DoNothingAgent):
         sim_obs_1, *_ = obs.simulate(act, time_step=1)
         return super().act(obs, reward, done)
 
+
+class TestJustGameOver(unittest.TestCase):
+    def setUp(self) -> None:
+        env_name = "l2rpn_case14_sandbox"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(env_name,
+                                    reward_class=_NewRenewableSourcesUsageScore,
+                                    test=True
+                                )
+            self.env.set_max_iter(20)
+            self.env.parameters.NO_OVERFLOW_DISCONNECTION = True
+        self.nres_id = np.arange(self.env.n_gen)[self.env.gen_renewable]
+        
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_when_no_step(self):
+        obs = self.env.reset()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"loads_id": [(0, -1)]}}))
+            assert done
+            assert reward == 1., f"{reward:.2f} vs 1."
+    
 class TestNewRenewableSourcesUsageScore(unittest.TestCase):
     
     def setUp(self) -> None:

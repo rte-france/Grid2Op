@@ -12,7 +12,7 @@ import numpy as np
 import re
 
 import grid2op
-from grid2op.Opponent.OpponentSpace import OpponentSpace
+from grid2op.Opponent import OpponentSpace
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Action import (
     ActionSpace,
@@ -28,7 +28,7 @@ from grid2op.Rules import RulesChecker, AlwaysLegal, BaseRules
 from grid2op.Backend import Backend
 from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
-from grid2op.Environment.BaseEnv import BaseEnv
+from grid2op.Environment.baseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 
@@ -512,7 +512,7 @@ class Environment(BaseEnv):
 
                 # deals with the "sub_pos" vector
                 for sub_id in range(cls_bk.n_sub):
-                    if np.any(cls_bk.storage_to_subid == sub_id):
+                    if (cls_bk.storage_to_subid == sub_id).any():
                         stor_ids = np.where(cls_bk.storage_to_subid == sub_id)[0]
                         stor_locs = cls_bk.storage_to_sub_pos[stor_ids]
                         for stor_loc in sorted(stor_locs, reverse=True):
@@ -534,7 +534,7 @@ class Environment(BaseEnv):
 
                 # remove storage from the number of element in the substation
                 for sub_id in range(cls_bk.n_sub):
-                    cls_bk.sub_info[sub_id] -= np.sum(cls_bk.storage_to_subid == sub_id)
+                    cls_bk.sub_info[sub_id] -= (cls_bk.storage_to_subid == sub_id).sum()
                 # remove storage from the total number of element
                 cls_bk.dim_topo -= cls_bk.n_storage
 

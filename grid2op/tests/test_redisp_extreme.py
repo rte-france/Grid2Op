@@ -10,7 +10,7 @@ import warnings
 import os
 import numpy as np
 import grid2op
-from grid2op.Action.PlayableAction import PlayableAction
+from grid2op.Action.playableAction import PlayableAction
 from grid2op.tests.helper_path_test import *
 import unittest
 

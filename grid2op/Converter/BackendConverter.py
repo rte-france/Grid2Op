@@ -487,7 +487,7 @@ class BackendConverter(Backend):
             assert np.all(sorted(self._topo_sr2tg[self._topo_tg2sr]) == np.arange(self.dim_topo))
             
             topo_sr2tg_without_storage = self._topo_sr2tg[self._topo_sr2tg >= 0]
-            assert np.sum(self._topo_sr2tg == -1) == tg_cls.n_storage
+            assert (self._topo_sr2tg == -1).sum() == tg_cls.n_storage
             assert np.all(self._topo_tg2sr[topo_sr2tg_without_storage] >= 0)
             target_without_storage = np.array([i for i in range(tg_cls.dim_topo) 
                                                if not i in tg_cls.storage_pos_topo_vect])

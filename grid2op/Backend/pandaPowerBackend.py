@@ -18,7 +18,7 @@ import pandapower as pp
 import scipy
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Backend.Backend import Backend
+from grid2op.Backend.backend import Backend
 from grid2op.Action import BaseAction
 from grid2op.Exceptions import *
 
@@ -276,7 +276,7 @@ class PandaPowerBackend(Backend):
         res: :class:`int`
             The total number of active buses.
         """
-        return np.sum(self._grid.bus["in_service"])
+        return self._grid.bus["in_service"].sum()
 
     @staticmethod
     def _load_grid_load_p_mw(grid):
@@ -641,7 +641,7 @@ class PandaPowerBackend(Backend):
 
                 self._what_object_where[sub_id].append(("storage", "bus", i))
 
-        self.dim_topo = np.sum(self.sub_info)
+        self.dim_topo = self.sub_info.sum()
         self._compute_pos_big_topo()
 
         # utilities for imeplementing apply_action
@@ -823,11 +823,11 @@ class PandaPowerBackend(Backend):
             bus_is[i + self.__nb_bus_before] = bus2_status
             
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
-        if np.any(prod_p.changed):
+        if (prod_p.changed).any():
             tmp_prod_p.iloc[prod_p.changed] = prod_p.values[prod_p.changed]
 
         tmp_prod_v = self._get_vector_inj["prod_v"](self._grid)
-        if np.any(prod_v.changed):
+        if (prod_v.changed).any():
             tmp_prod_v.iloc[prod_v.changed] = (
                 prod_v.values[prod_v.changed] / self.prod_pu_to_kv[prod_v.changed]
             )
@@ -837,17 +837,17 @@ class PandaPowerBackend(Backend):
             self._grid["ext_grid"]["vm_pu"] = 1.0 * tmp_prod_v[self._id_bus_added]
 
         tmp_load_p = self._get_vector_inj["load_p"](self._grid)
-        if np.any(load_p.changed):
+        if (load_p.changed).any():
             tmp_load_p.iloc[load_p.changed] = load_p.values[load_p.changed]
 
         tmp_load_q = self._get_vector_inj["load_q"](self._grid)
-        if np.any(load_q.changed):
+        if (load_q.changed).any():
             tmp_load_q.iloc[load_q.changed] = load_q.values[load_q.changed]
 
         if self.n_storage > 0:
             # active setpoint
             tmp_stor_p = self._grid.storage["p_mw"]
-            if np.any(storage.changed):
+            if (storage.changed).any():
                 tmp_stor_p.iloc[storage.changed] = storage.values[storage.changed]
 
             # topology of the storage
@@ -870,15 +870,15 @@ class PandaPowerBackend(Backend):
         if type(backendAction).shunts_data_available:
             shunt_p, shunt_q, shunt_bus = shunts__
 
-            if np.any(shunt_p.changed):
+            if (shunt_p.changed).any():
                 self._grid.shunt["p_mw"].iloc[shunt_p.changed] = shunt_p.values[
                     shunt_p.changed
                 ]
-            if np.any(shunt_q.changed):
+            if (shunt_q.changed).any():
                 self._grid.shunt["q_mvar"].iloc[shunt_q.changed] = shunt_q.values[
                     shunt_q.changed
                 ]
-            if np.any(shunt_bus.changed):
+            if (shunt_bus.changed).any():
                 sh_service = shunt_bus.values[shunt_bus.changed] != -1
                 self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service           
                 chg_and_in_service = sh_service & shunt_bus.changed
@@ -1010,14 +1010,14 @@ class PandaPowerBackend(Backend):
                 else:
                     self._pf_init = "auto"
 
-                if np.any(~self._grid.load["in_service"]):
+                if (~self._grid.load["in_service"]).any():
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
                                                             " disconnected load. If you want to disconnect one, say it"
                                                             " consumes 0. instead. Please check loads: "
                                                             f"{np.where(~self._grid.load['in_service'])[0]}"
                                                             )
-                if np.any(~self._grid.gen["in_service"]):
+                if (~self._grid.gen["in_service"]).any():
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
                                                             " disconnected generators. If you want to disconnect one, say it"
@@ -1131,7 +1131,7 @@ class PandaPowerBackend(Backend):
                 self.storage_theta[:],
             ) = self._storages_info()
             deact_storage = ~np.isfinite(self.storage_v)
-            if np.any(np.abs(self.storage_p[deact_storage]) > self.tol):
+            if (np.abs(self.storage_p[deact_storage]) > self.tol).any():
                 raise pp.powerflow.LoadflowNotConverged(
                     "Isolated storage set to absorb / produce something"
                 )
