@@ -106,10 +106,6 @@ class AlertReward(BaseReward):
         self.total_time_steps = env.max_episode_duration()
         self.time_window = env.parameters.ALERT_TIME_WINDOW
         self._nrows_array = self.time_window + 2
-        
-        # TODO simulate env stuff !
-        
-        # TODO vectors proper size
         self._ts_attack = np.full((self._nrows_array, type(env).dim_alerts), False, dtype=dt_bool)
         self._alert_launched = np.full((self._nrows_array, type(env).dim_alerts), False, dtype=dt_bool)
         self._current_id = 0
@@ -123,7 +119,6 @@ class AlertReward(BaseReward):
         self._alert_launched[:,:] = False
         self._current_id = 0
         self._lines_currently_attacked[:] = False
-        
         self._i_am_simulate = self.is_simulated_env(env)
         return super().reset(env)      
     

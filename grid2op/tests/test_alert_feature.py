@@ -260,7 +260,6 @@ class TestObservation(unittest.TestCase):
         assert (obs1.time_since_last_alert == np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1])).all()
 
         obs2, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
-
         assert (obs2.time_since_last_alert == np.array([0, -1, -1, -1, -1, -1, -1, -1, -1, -1])).all()
 
         obs2bis, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
@@ -272,15 +271,18 @@ class TestObservation(unittest.TestCase):
     def test_reset_reward(self) -> None :
         obs1 : BaseObservation = self.env.reset()
         assert self.env._reward_helper.template_reward._current_id == 0
+        
         obs2, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [0]}))
-
         assert self.env._reward_helper.template_reward._current_id == 1
+        assert self.env._reward_helper.template_reward._alert_launched.sum() == 1
 
         obs, reward, done, info = self.env.step(self.env.action_space({"raise_alert": [1]}))
         assert self.env._reward_helper.template_reward._current_id == 2
+        assert self.env._reward_helper.template_reward._alert_launched.sum() == 2
 
         obs3 : BaseObservation = self.env.reset()
         assert self.env._reward_helper.template_reward._current_id == 0
+        assert self.env._reward_helper.template_reward._alert_launched.sum() == 0
     
     def _aux_alert_0(self, obs):
         assert obs.active_alert[0]
