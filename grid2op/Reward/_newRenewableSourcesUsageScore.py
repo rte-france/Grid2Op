@@ -56,7 +56,12 @@ class _NewRenewableSourcesUsageScore(BaseReward):
             self.gen_res_p_before_curtail_list[env.nb_time_step] = gen_nres_p_before_curtail
             return dt_float(0.)
         else:
-            ratio_nres_usage = 100 * self.gen_res_p_curtailed_list[1:].sum() / self.gen_res_p_before_curtail_list[1:].sum()
+            total_sum = self.gen_res_p_before_curtail_list[1:].sum()
+            if abs(total_sum) <= 1e-6:
+                # no nres in the scenario agent cannot possibly make any curtailment
+                # it uses all the available renewable energy
+                return self._surlinear_func_curtailment(100.)
+            ratio_nres_usage = 100 * self.gen_res_p_curtailed_list[1:].sum() / total_sum
             return self._surlinear_func_curtailment(ratio_nres_usage)
             
     @staticmethod
@@ -74,7 +79,6 @@ class _NewRenewableSourcesUsageScore(BaseReward):
         f_surlinear = lambda x: x * np.log(x)
         f_centralized = lambda x : f_surlinear(x) - f_surlinear(center)
         f_standardizer= lambda x : np.ones_like(x) * f_centralized(100) * (x >= center) - np.ones_like(x) * f_centralized(50) * (x < center)
-                
         return f_centralized(x) / f_standardizer(x)
     
 
