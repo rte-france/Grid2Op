@@ -33,21 +33,13 @@ Change Log
 
 [1.9.2] - 2023-07-xx
 ---------------------
-- [BREAKING] rename with filename starting with lowercase all the files in the "`Backend`", "`Action`" and 
-  "`Environment`" modules. This is both consistent with python practice but allows also to make the 
-  difference between the files in the 
-  module and the class imported. This should have little to no impact on all codes but to "upgrade"
-  instead of `from grid2op.Action.BaseAction import BaseAction` (which you should not have done in the first place) 
-  just do `from grid2op.Action import BaseAction`. Expect other changes like this for other grid2op modules
-  in the near future.
 - [FIXED] broken environ "l2rpn_idf_2023" (with test=True) due to the presence of a `__pycache__` folder
 - [FIXED] time series `MultiFolder` will now ignore folder `__pycache__`
 - [FIXED] an issue with compatibility with previous versions (due to alert)
-- [FIXED] an issue with the `_ObsEnv` when using reward that could not be used in forecast (`self.is_simulated_env()`
+- [FIXED] an issue with the `_ObsEnv` when using reward that could not be used in forecast (self.is_simulated_env()
   was not working as expected due to a wrong init of the reward in `_ObsEnv`)
 - [FIXED] an issue when disconnecting loads / generators / storage units and changing their values in the same
-  action: the behaviour could depend on the backend. As of 1.9.2 the "disconnections" have the priority  (if 
-  an action disconnect an element, it will not change its sepoint at the same time). 
+  action: the behaviour could depend on the backend. As of 1.9.2 the "disconnections" has the priority and 
 - [IMPROVED] overall performances by calling `arr.sum()` or `arr.any()` instead of `np.sum(arr)` or
   `np.any(arr)` see https://numpy.org/neps/nep-0018-array-function-protocol.html#performance
 - [IMPROVED] overall performance of `obs.simulate` function by improving speed of copy of `_BackendAction`

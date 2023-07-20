@@ -12,11 +12,9 @@ __all__ = [
     "NoisyObservation",
     "BaseObservation",
     "ObservationSpace",
-    "HighResSimCounter",
 ]
 
 from grid2op.Observation.completeObservation import CompleteObservation
 from grid2op.Observation.noisyObservation import NoisyObservation
 from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Observation.observationSpace import ObservationSpace
-from grid2op.Observation.highresSimCounter import HighResSimCounter

@@ -5,23 +5,16 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+from grid2op.Action.BaseAction import BaseAction
 
-from grid2op.Action.playableAction import PlayableAction
 
-
-class PowerlineChangeAction(PlayableAction):
+class CompleteAction(BaseAction):
     """
-    This type of :class:`PlayableAction` only implements the modifications
-    of the grid through "change_line_status".
+    Class representing the possibility to play everything.
 
-    Nothing else is supported and any attempt to use something else
-    will have no impact.
+    It cannot (and should not) be used by an Agent. Indeed, Agent actions are limited to :class:`PlayableAction`. This
+    class is used by the chronics, the environment the opponent or the voltage controler for example.
     """
-
-    authorized_keys = {"change_line_status"}
-
-    attr_list_vect = ["_switch_line_status"]
-    attr_list_set = set(attr_list_vect)
 
     def __init__(self):
-        super().__init__()
+        BaseAction.__init__(self)

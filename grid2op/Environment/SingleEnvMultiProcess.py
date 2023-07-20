@@ -8,7 +8,7 @@
 
 import numpy as np
 
-from grid2op.Environment.baseMultiProcessEnv import BaseMultiProcessEnvironment
+from grid2op.Environment.BaseMultiProcessEnv import BaseMultiProcessEnvironment
 
 
 class SingleEnvMultiProcess(BaseMultiProcessEnvironment):

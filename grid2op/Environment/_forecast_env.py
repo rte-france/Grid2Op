@@ -9,7 +9,7 @@
 from typing import Tuple
 from grid2op.Action import BaseAction
 from grid2op.Observation import BaseObservation
-from grid2op.Environment.environment import Environment
+from grid2op.Environment.Environment import Environment
 
 
 class _ForecastEnv(Environment):

@@ -6,18 +6,21 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from grid2op.Action.playableAction import PlayableAction
+from grid2op.Action.PlayableAction import PlayableAction
 
 
-class PowerlineChangeDispatchAndStorageAction(PlayableAction):
+class PowerlineChangeAction(PlayableAction):
     """
-    TODO storage doc
+    This type of :class:`PlayableAction` only implements the modifications
+    of the grid through "change_line_status".
+
+    Nothing else is supported and any attempt to use something else
+    will have no impact.
     """
 
-    authorized_keys = {"change_line_status", "redispatch", "set_storage"}
+    authorized_keys = {"change_line_status"}
 
-    attr_list_vect = ["_switch_line_status", "_redispatch", "_storage_power"]
-
+    attr_list_vect = ["_switch_line_status"]
     attr_list_set = set(attr_list_vect)
 
     def __init__(self):

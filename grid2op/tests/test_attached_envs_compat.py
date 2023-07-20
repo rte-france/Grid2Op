@@ -13,10 +13,10 @@ import grid2op
 import numpy as np
 
 from grid2op.Space import GridObjects
-from grid2op.Action.powerlineSetAction import PowerlineSetAction
+from grid2op.Action.PowerlineSetAction import PowerlineSetAction
 from grid2op.Action.PlayableAction import PlayableAction
 from grid2op.Observation.completeObservation import CompleteObservation
-from grid2op.Action.dontAct import DontAct
+from grid2op.Action.DontAct import DontAct
 
 import pdb
 

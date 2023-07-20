@@ -9,8 +9,8 @@
 import warnings
 import copy
 
-from grid2op.Action.baseAction import BaseAction
-from grid2op.Action.serializableActionSpace import SerializableActionSpace
+from grid2op.Action.BaseAction import BaseAction
+from grid2op.Action.SerializableActionSpace import SerializableActionSpace
 
 
 class ActionSpace(SerializableActionSpace):

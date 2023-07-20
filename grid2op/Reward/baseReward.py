@@ -120,7 +120,7 @@ class BaseReward(ABC):
     
     def is_simulated_env(self, env):
         # to prevent cyclical import
-        from grid2op.Environment._obsEnv import _ObsEnv
+        from grid2op.Environment._ObsEnv import _ObsEnv
         from grid2op.Environment._forecast_env import _ForecastEnv
         return isinstance(env, (_ObsEnv, _ForecastEnv))
             

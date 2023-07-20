@@ -12,7 +12,7 @@ import numpy as np
 import re
 
 import grid2op
-from grid2op.Opponent import OpponentSpace
+from grid2op.Opponent.OpponentSpace import OpponentSpace
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Action import (
     ActionSpace,
@@ -28,7 +28,7 @@ from grid2op.Rules import RulesChecker, AlwaysLegal, BaseRules
 from grid2op.Backend import Backend
 from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
-from grid2op.Environment.baseEnv import BaseEnv
+from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 

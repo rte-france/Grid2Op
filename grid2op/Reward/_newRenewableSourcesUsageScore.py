@@ -38,7 +38,7 @@ class _NewRenewableSourcesUsageScore(BaseReward):
         self.reset(env)
         
     def reset(self, env):
-        self._is_simul_env = self.is_simulated_env(env)
+        self._is_simul_env = is_simulated_env(env)
         if self._is_simul_env:
             return
         
@@ -76,4 +76,15 @@ class _NewRenewableSourcesUsageScore(BaseReward):
         f_standardizer= lambda x : np.ones_like(x) * f_centralized(100) * (x >= center) - np.ones_like(x) * f_centralized(50) * (x < center)
                 
         return f_centralized(x) / f_standardizer(x)
+    
+
+#to wait before PR Laure 
+def is_simulated_env(env):
+
+    # to prevent cyclical import
+    from grid2op.Environment._ObsEnv import _ObsEnv
+    from grid2op.Environment._forecast_env import _ForecastEnv
+
+    # This reward is not compatible with simulations
+    return isinstance(env, (_ObsEnv, _ForecastEnv))
 

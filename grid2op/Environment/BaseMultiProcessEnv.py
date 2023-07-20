@@ -14,7 +14,7 @@ from grid2op.Exceptions import EnvError
 from grid2op.dtypes import dt_int
 from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
-from grid2op.Environment.environment import Environment
+from grid2op.Environment import Environment
 from grid2op.Action import BaseAction
 
 

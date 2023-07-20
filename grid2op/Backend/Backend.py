@@ -1744,7 +1744,7 @@ class Backend(GridObjects, ABC):
         """
         # lazy loading
         from grid2op.Action import CompleteAction
-        from grid2op.Action._backendAction import _BackendAction
+        from grid2op.Action._BackendAction import _BackendAction
 
         orig_type = type(self)
         if orig_type.my_bk_act_class is None:
