@@ -14,7 +14,7 @@ from typing import Dict, List
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import AmbiguousAction, Grid2OpException
 from grid2op.Space import SerializableSpace
-from grid2op.Action.BaseAction import BaseAction
+from grid2op.Action.baseAction import BaseAction
 
 
 class SerializableActionSpace(SerializableSpace):

@@ -5,20 +5,16 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+from grid2op.Action.baseAction import BaseAction
 
-from grid2op.Action.PlayableAction import PlayableAction
 
-
-class PowerlineChangeDispatchAndStorageAction(PlayableAction):
+class CompleteAction(BaseAction):
     """
-    TODO storage doc
+    Class representing the possibility to play everything.
+
+    It cannot (and should not) be used by an Agent. Indeed, Agent actions are limited to :class:`PlayableAction`. This
+    class is used by the chronics, the environment the opponent or the voltage controler for example.
     """
-
-    authorized_keys = {"change_line_status", "redispatch", "set_storage"}
-
-    attr_list_vect = ["_switch_line_status", "_redispatch", "_storage_power"]
-
-    attr_list_set = set(attr_list_vect)
 
     def __init__(self):
-        super().__init__()
+        BaseAction.__init__(self)

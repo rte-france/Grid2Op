@@ -13,8 +13,7 @@ import pdb
 
 import grid2op
 from grid2op.Runner import Runner
-from grid2op.Observation import CompleteObservation
-from grid2op.Observation import NoisyObservation
+from grid2op.Observation import (CompleteObservation, NoisyObservation)
 
 
 class TestNoisy(unittest.TestCase):

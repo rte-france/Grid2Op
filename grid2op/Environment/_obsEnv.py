@@ -12,7 +12,7 @@ import warnings
 from grid2op.Exceptions.EnvExceptions import EnvError
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Environment.BaseEnv import BaseEnv
+from grid2op.Environment.baseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import RulesChecker
 from grid2op.operator_attention import LinearAttentionBudget

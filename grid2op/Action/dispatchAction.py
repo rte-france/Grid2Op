@@ -6,21 +6,20 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from grid2op.Action.PlayableAction import PlayableAction
+from grid2op.Action.playableAction import PlayableAction
 
 
-class PowerlineSetAction(PlayableAction):
+class DispatchAction(PlayableAction):
     """
-    This type of :class:`PlayableAction` only implements the modifications
-    of the grid through "set_line_status" keyword.
+    This type of :class:`PlayableAction` only implements the modifications of the grid through "redispatch" keyword.
 
-    Nothing else is supported and any attempt to use something
-    else will have no impact.
+    Nothing else is supported and any attempt to use something else will have not impact.
 
     """
 
-    authorized_keys = {"set_line_status"}
-    attr_list_vect = ["_set_line_status"]
+    authorized_keys = {"redispatch"}
+
+    attr_list_vect = ["_redispatch"]
     attr_list_set = set(attr_list_vect)
 
     def __init__(self):

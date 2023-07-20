@@ -9,7 +9,7 @@
 import warnings
 
 from grid2op.Exceptions import AmbiguousAction
-from grid2op.Action.BaseAction import BaseAction
+from grid2op.Action.baseAction import BaseAction
 
 
 class PlayableAction(BaseAction):
