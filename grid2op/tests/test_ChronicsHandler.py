@@ -23,12 +23,12 @@ from grid2op.Chronics import (
     GridStateFromFileWithForecasts,
     Multifolder,
     GridValue,
+    MultifolderWithCache,
+    GridStateFromFileWithForecastsWithoutMaintenance
 )
-from grid2op.Chronics import MultifolderWithCache
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Rules import AlwaysLegal
-from grid2op.Chronics import GridStateFromFileWithForecastsWithoutMaintenance
 from grid2op.Runner import Runner
 
 import warnings

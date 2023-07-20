@@ -9,7 +9,7 @@
 # TODO test the json part but... https://github.com/openai/gym-http-api/issues/62 or https://github.com/openai/gym/issues/1841
 import tempfile
 import json
-from grid2op.gym_compat.discrete_gym_actspace import DiscreteActSpace
+from grid2op.gym_compat import (DiscreteActSpace, GymActionSpace, GymObservationSpace, GymEnv, ContinuousToDiscreteConverter)
 from grid2op.tests.helper_path_test import *
 from grid2op.Action import PlayableAction
 
@@ -17,10 +17,6 @@ from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.tests.helper_path_test import *
 from grid2op.MakeEnv import make
 from grid2op.Converter import IdToAct, ToVect
-from grid2op.gym_compat import GymActionSpace, GymObservationSpace
-from grid2op.gym_compat import GymEnv
-from grid2op.gym_compat import ContinuousToDiscreteConverter
-
 import pdb
 
 import warnings
