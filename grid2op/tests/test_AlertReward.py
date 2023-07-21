@@ -19,11 +19,13 @@ from grid2op.Reward import AlertReward
 from grid2op.Parameters import Parameters
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Runner import Runner  # TODO
-from grid2op.Opponent import BaseOpponent, GeometricOpponent
 from grid2op.Action import BaseAction, PlayableAction
 from grid2op.Agent import BaseAgent
 from grid2op.Episode import EpisodeData
 
+from _aux_opponent_for_test_alerts import (_get_steps_attack,
+                                           TestOpponent,
+                                           TestOpponentMultiLines)
 
 ALL_ATTACKABLE_LINES= [
             "62_58_180",
@@ -45,72 +47,6 @@ DEFAULT_ALERT_REWARD_PARAMS = dict(reward_min_no_blackout=-1.0,
                                    reward_max_no_blackout=1.0,
                                    reward_max_blackout=2.0,
                                    reward_end_episode_bonus=42.0)
-
-def _get_steps_attack(kwargs_opponent, multi=False):
-    """computes the steps for which there will be attacks"""
-    ts_attack = np.array(kwargs_opponent["steps_attack"])
-    res = []
-    for i, ts in enumerate(ts_attack):
-        if not multi:
-            res.append(ts + np.arange(kwargs_opponent["duration"]))
-        else:
-            res.append(ts + np.arange(kwargs_opponent["duration"][i]))
-    return np.unique(np.concatenate(res).flatten())
-
-    
-class TestOpponent(BaseOpponent): 
-    """An opponent that can select the line attack, the time and duration of the attack."""
-    
-    def __init__(self, action_space):
-        super().__init__(action_space)
-        self.custom_attack = None
-        self.duration = None
-        self.steps_attack = None
-
-    def init(self, partial_env,  lines_attacked=[ATTACKED_LINE], duration=10, steps_attack=[0,1]):
-        attacked_line = lines_attacked[0]
-        self.custom_attack = self.action_space({"set_line_status" : [(l, -1) for l in lines_attacked]})
-        self.duration = duration
-        self.steps_attack = steps_attack
-        self.env = partial_env
-
-    def attack(self, observation, agent_action, env_action, budget, previous_fails): 
-        if observation is None:
-            return None, None
-        current_step = self.env.nb_time_step
-        if current_step not in self.steps_attack: 
-            return None, None
-        
-        return self.custom_attack, self.duration
-
-
-class TestOpponentMultiLines(BaseOpponent): 
-    """An opponent that can select the line attack, the time and duration of the attack."""
-    
-    def __init__(self, action_space):
-        super().__init__(action_space)
-        self.custom_attack = None
-        self.duration = None
-        self.steps_attack = None
-
-    def init(self, partial_env,  lines_attacked=[ATTACKED_LINE], duration=[10,10], steps_attack=[0,1]):
-        attacked_line = lines_attacked[0]
-        self.custom_attack = [ self.action_space({"set_line_status" : [(l, -1)]}) for l in lines_attacked]
-        self.duration = duration
-        self.steps_attack = steps_attack
-        self.env = partial_env
-        
-    def attack(self, observation, agent_action, env_action, budget, previous_fails): 
-        if observation is None:
-            return None, None
-
-        current_step = self.env.nb_time_step
-        if current_step not in self.steps_attack: 
-            return None, None
-        
-        index = self.steps_attack.index(current_step)
-
-        return self.custom_attack[index], self.duration[index]
 
 
 # Test alert blackout / tets alert no blackout
@@ -327,8 +263,8 @@ class TestAlertNoBlackout(unittest.TestCase):
 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
-                                   duration=3, 
-                                   steps_attack=[2])
+                               duration=3, 
+                               steps_attack=[2])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -375,8 +311,8 @@ class TestAlertNoBlackout(unittest.TestCase):
         """
 
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
-                                   duration=3, 
-                                   steps_attack=[1])
+                               duration=3, 
+                               steps_attack=[1])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -462,8 +398,8 @@ class TestAlertNoBlackout(unittest.TestCase):
             until the end of the episode where we have a bonus (here artificially 42)
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
-                                   duration=3, 
-                                   steps_attack=[2])
+                               duration=3, 
+                               steps_attack=[2])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -604,8 +540,8 @@ class TestAlertNoBlackout(unittest.TestCase):
         """
 
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
-                                   duration=[1,1], 
-                                   steps_attack=[2, 3])
+                               duration=[1,1], 
+                               steps_attack=[2, 3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -651,8 +587,8 @@ class TestAlertNoBlackout(unittest.TestCase):
             until the end of the episode where we have a bonus (here artificially 42)
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
-                                   duration=[1,1], 
-                                   steps_attack=[2, 3])
+                               duration=[1,1], 
+                               steps_attack=[2, 3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -884,8 +820,8 @@ class TestAlertBlackout(unittest.TestCase):
         """
         # return -10
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
-                                   duration=3, 
-                                   steps_attack=[3])
+                               duration=3, 
+                               steps_attack=[3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
@@ -987,8 +923,8 @@ class TestAlertBlackout(unittest.TestCase):
         we expect a reward of -4 when the blackout occur at step 4 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
-                                   duration=3, 
-                                   steps_attack=[3, 3])
+                               duration=3, 
+                               steps_attack=[3, 3])
         with make(self.env_nm,
                   test=True,
                   difficulty="1", 
