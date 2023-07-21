@@ -10,21 +10,15 @@ import warnings
 import numpy as np
 import unittest
 import os
-import copy
-import tempfile
 from grid2op.Observation import BaseObservation
 from grid2op.tests.helper_path_test import *
 
 from grid2op import make
 from grid2op.Reward import AlertReward
-from grid2op.Parameters import Parameters
-from grid2op.Exceptions import Grid2OpException
 from grid2op.Runner import Runner  # TODO
-from grid2op.Opponent import BaseOpponent, GeometricOpponent
-from grid2op.Action import BaseAction, PlayableAction
-from grid2op.Agent import BaseAgent
-from grid2op.Episode import EpisodeData
+from grid2op.Action import PlayableAction
 
+from _aux_opponent_for_test_alerts import OpponentForTestAlert
 
 ALL_ATTACKABLE_LINES = [
             "62_58_180",
@@ -38,62 +32,6 @@ ALL_ATTACKABLE_LINES = [
             "34_35_110",
             "54_58_154",
         ] 
-
-
-def _get_steps_attack(kwargs_opponent, multi=False):
-    """computes the steps for which there will be attacks"""
-    ts_attack = np.array(kwargs_opponent["steps_attack"])
-    res = []
-    for i, ts in enumerate(ts_attack):
-        if not multi:
-            res.append(ts + np.arange(kwargs_opponent["duration"]))
-        else:
-            res.append(ts + np.arange(kwargs_opponent["duration"][i]))
-    return np.unique(np.concatenate(res).flatten())
-
-
-class OpponentForTestAlert(BaseOpponent): 
-    """An opponent that can select the line attack, the time and duration of the attack."""
-    
-    def __init__(self, action_space):
-        super().__init__(action_space)
-        self.env = None  
-        self.lines_attacked = None  
-        self.custom_attack = None  
-        self.attack_duration = None  
-        self.attack_steps = None  
-        self.attack_id = None  
-
-    def _custom_deepcopy_for_copy(self, new_obj, dict_=None):
-        new_obj.env = dict_["partial_env"]    
-        new_obj.lines_attacked = copy.deepcopy(self.lines_attacked)
-        new_obj.custom_attack = [act.copy() for act in self.custom_attack]
-        new_obj.attack_duration = copy.deepcopy(self.attack_duration)
-        new_obj.attack_steps = copy.deepcopy(self.attack_steps)
-        new_obj.attack_id = copy.deepcopy(self.attack_id)
-        return super()._custom_deepcopy_for_copy(new_obj, dict_)
-    
-    def init(self,
-             partial_env,
-             lines_attacked=ALL_ATTACKABLE_LINES,
-             attack_duration=[],
-             attack_steps=[],
-             attack_id=[]):
-        self.lines_attacked = lines_attacked
-        self.custom_attack = [ self.action_space({"set_line_status" : [(l, -1)]}) for l in attack_id]
-        self.attack_duration = attack_duration
-        self.attack_steps = attack_steps
-        self.attack_id = attack_id
-        self.env = partial_env
-        
-    def attack(self, observation, agent_action, env_action, budget, previous_fails): 
-        if observation is None:
-            return None, None
-        current_step = self.env.nb_time_step
-        if current_step not in self.attack_steps: 
-            return None, None
-        index = self.attack_steps.index(current_step)
-        return self.custom_attack[index], self.attack_duration[index]
 
 
 # Test alert blackout / tets alert no blackout
