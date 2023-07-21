@@ -49,6 +49,7 @@ Change Log
   action: the behaviour could depend on the backend. As of 1.9.2 the "disconnections" have the priority  (if 
   an action disconnect an element, it will not change its sepoint at the same time). 
 - [FIXED] a bug in `AlertReward` due to `reset` not being called.
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/494
 - [IMPROVED] overall performances by calling `arr.sum()` or `arr.any()` instead of `np.sum(arr)` or
   `np.any(arr)` see https://numpy.org/neps/nep-0018-array-function-protocol.html#performance
 - [IMPROVED] overall performance of `obs.simulate` function by improving speed of copy of `_BackendAction`
