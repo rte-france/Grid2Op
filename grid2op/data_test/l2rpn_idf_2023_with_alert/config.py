@@ -9,6 +9,8 @@ from grid2op.Opponent import GeometricOpponent, BaseActionBudget
 try:
     from grid2op.l2rpn_utils import ActionIDF2023, ObservationIDF2023
 except ImportError:
+    from grid2op.Observation import CompleteObservation
+    import warnings
     warnings.warn("The grid2op version you are trying to use is too old for this environment. Please upgrade it.")
     ActionIDF2023 = PlayableAction
     ObservationIDF2023 = CompleteObservation
