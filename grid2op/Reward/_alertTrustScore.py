@@ -96,8 +96,8 @@ class _AlertTrustScore(AlertReward):
         res = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
         self.cumulated_reward += res
 
-        lines_attacked = env._time_since_last_attack == 0
-        self.total_nb_attacks += lines_attacked.sum()
+        is_attack = (env._time_since_last_attack == 0).any()#even if there are simultaneous attacks, we consider this as a single attack event
+        self.total_nb_attacks += is_attack
 
         # TODO
         #lines_alerted_beforeattack = np.equal(env._time_since_last_alert, env._time_since_last_attack + 1) and lines_attacked
@@ -114,7 +114,7 @@ class _AlertTrustScore(AlertReward):
             return score_ep
             
         else:
-            self.nb_last_attacks=np.sum(self._ts_attack)
+            self.nb_last_attacks=np.sum(np.any(self._ts_attack,axis=1))
             cm_reward_min_ep, cm_reward_max_ep = self._compute_min_max_reward(self.total_nb_attacks,self.nb_last_attacks)
             score_ep = self._normalisation_fun(self.cumulated_reward, cm_reward_min_ep, cm_reward_max_ep,self.min_score,self.max_score,self.blackout_encountered)
 

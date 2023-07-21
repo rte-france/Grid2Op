@@ -24,6 +24,10 @@ from grid2op.Action import BaseAction, PlayableAction
 from grid2op.Agent import BaseAgent
 from grid2op.Episode import EpisodeData
 
+from _aux_opponent_for_test_alerts import (_get_steps_attack,
+                                           TestOpponent,
+                                           TestOpponentMultiLines)
+
 
 ALL_ATTACKABLE_LINES= [
             "62_58_180",
@@ -46,75 +50,6 @@ DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
                                  reward_max_blackout=0.0,
                                  reward_end_episode_bonus=0.0,
                                  min_score=-3.0)
-
-def _get_steps_attack(kwargs_opponent, multi=False):
-    """computes the steps for which there will be attacks"""
-    ts_attack = np.array(kwargs_opponent["steps_attack"])
-    res = []
-    for i, ts in enumerate(ts_attack):
-        if not multi:
-            res.append(ts + np.arange(kwargs_opponent["duration"]))
-        else:
-            res.append(ts + np.arange(kwargs_opponent["duration"][i]))
-    return np.unique(np.concatenate(res).flatten())
-
-    
-class TestOpponent(GeometricOpponent): 
-    """An opponent that can select the line attack, the time and duration of the attack."""
-    
-    def __init__(self, action_space):
-        super().__init__(action_space)
-        self.custom_attack = None
-        self.duration = None
-        self.steps_attack = None
-
-    def init(self, partial_env,  lines_attacked=[ATTACKED_LINE], duration=10, steps_attack=[0,1]):
-        super().init(partial_env, lines_attacked, )
-        attacked_line = lines_attacked[0]
-        self.custom_attack = self.action_space({"set_line_status" : [(l, -1) for l in lines_attacked]})
-        self.duration = duration
-        self.steps_attack = steps_attack
-        self.env = partial_env
-
-    def attack(self, observation, agent_action, env_action, budget, previous_fails): 
-        if observation is None:
-            return None, None
-        current_step = self.env.nb_time_step
-        if current_step not in self.steps_attack: 
-            return None, None
-        
-        return self.custom_attack, self.duration
-
-
-class TestOpponentMultiLines(GeometricOpponentMultiArea): 
-    """An opponent that can select the line attack, the time and duration of the attack."""
-    
-    def __init__(self, action_space):
-        super().__init__(action_space)
-        self.custom_attack = None
-        self.duration = None
-        self.steps_attack = None
-
-    def init(self, partial_env,  lines_attacked=[ATTACKED_LINE], duration=[10,10], steps_attack=[0,1]):
-        super().init(partial_env, [[l] for l in lines_attacked])
-        attacked_line = lines_attacked[0]
-        self.custom_attack = [ self.action_space({"set_line_status" : [(l, -1)]}) for l in lines_attacked]
-        self.duration = duration
-        self.steps_attack = steps_attack
-        self.env = partial_env
-        
-    def attack(self, observation, agent_action, env_action, budget, previous_fails): 
-        if observation is None:
-            return None, None
-
-        current_step = self.env.nb_time_step
-        if current_step not in self.steps_attack: 
-            return None, None
-        
-        index = self.steps_attack.index(current_step)
-
-        return self.custom_attack[index], self.duration[index]
-
 
 # Test alert blackout / tets alert no blackout
 class TestAlertTrustScoreNoBlackout(unittest.TestCase):
@@ -473,7 +408,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
                     assert nb_last_attacks == 0
-                    assert total_nb_attacks == 2
+                    assert total_nb_attacks == 1 #1 because to simultaneaous attacks is considered as a signgle attack event
 
                     cm_reward=env._reward_helper.template_reward.cumulated_reward
                     assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] +\
@@ -537,11 +472,11 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
                     assert nb_last_attacks == 0
-                    assert total_nb_attacks == 2
+                    assert total_nb_attacks == 1 #1 because to simultaneaous attacks is considered as a signgle attack event
 
                     cm_reward=env._reward_helper.template_reward.cumulated_reward
-                    assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] + \
-                           DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"] + DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]
+                    assert env._reward_helper.template_reward.cumulated_reward==(DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"] + \
+                           DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"])/2 + DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]
 
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
@@ -603,11 +538,11 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
                     assert nb_last_attacks == 0
-                    assert total_nb_attacks == 2
+                    assert total_nb_attacks == 1 #1 because to simultaneaous attacks is considered as a signgle attack event
 
                     cm_reward=env._reward_helper.template_reward.cumulated_reward
-                    assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] +\
-                            DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]*total_nb_attacks
+                    assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] + \
+                           (DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]*total_nb_attacks)/total_nb_attacks
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"] * total_nb_attacks
@@ -1197,12 +1132,12 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 2
-                    assert total_nb_attacks == 2
+                    assert nb_last_attacks == 1
+                    assert total_nb_attacks == 1 #1 because to simultaneaous attacks is considered as a signgle attack event
 
                     assert env._reward_helper.template_reward.cumulated_reward == (DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_max_blackout']+DEFAULT_PARAMS_TRUSTSCORE[
-                        'reward_max_blackout'])/total_nb_attacks
+                        'reward_max_blackout'])/2#2 here because there are two attacks at the same time, so we take the mean of the individual alert scores
 
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
@@ -1261,18 +1196,16 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert info["opponent_attack_line"]  is None, f"an attack is detected at step {step}"
                 
                 if done: 
-                    #assert score == -4
-
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 2
-                    assert total_nb_attacks == 2
+                    assert nb_last_attacks == 1
+                    assert total_nb_attacks == 1 #1 because to simultaneaous attacks is considered as a signgle attack event
 
                     cm_reward=env._reward_helper.template_reward.cumulated_reward
                     assert cm_reward == (DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_max_blackout']+DEFAULT_PARAMS_TRUSTSCORE[
-                        'reward_min_blackout'])/total_nb_attacks
+                        'reward_min_blackout'])/2 #2 here because there are two attacks at the same time, so we take the mean of the individual alert scores
 
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
