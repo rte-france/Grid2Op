@@ -8,6 +8,9 @@
 
 import numpy as np
 from itertools import chain
+import warnings
+import copy
+
 from grid2op.Rules.BaseRules import BaseRules
 from grid2op.Rules.LookParam import LookParam
 from grid2op.Rules.PreventReconnection import PreventReconnection
@@ -15,6 +18,7 @@ from grid2op.Rules.PreventDiscoStorageModif import PreventDiscoStorageModif
 from grid2op.Exceptions import (
     IllegalAction, Grid2OpException
 )
+
 
 class RulesByArea(BaseRules):
     """
@@ -51,12 +55,25 @@ class RulesByArea(BaseRules):
         ----------
         areas_list : list of areas, each placeholder containing the ids of substations of each defined area
         """
-        self.substations_id_by_area = {i : sorted(k) for i,k in enumerate(areas_list)}
+        if isinstance(areas_list, list):
+            self.substations_id_by_area = {i : sorted(k) for i, k in enumerate(areas_list)}
+        elif isinstance(areas_list, dict):
+            self.substations_id_by_area = {i : copy.deepcopy(k) for i, k in areas_list.items()}
+        else:
+            raise Grid2OpException("Impossible to create a rules when area_list is neither a list nor a dict")
+        needs_cleaning = False
+        for area_nm, area_subs in self.substations_id_by_area.items():
+            if not np.array_equal(np.unique(area_subs), area_subs):
+                warnings.warn(f"There are duplicate substation for area {area_nm}")
+                needs_cleaning = True
         
-        
+        if needs_cleaning:
+            self.substations_id_by_area = {i : np.unique(k) for i, k in self.substations_id_by_area.items()}
+
     def initialize(self, env):
         """
-        This function is used to inform the class instance about the environment specification and check no substation of the grid are left ouside an area. 
+        This function is used to inform the class instance about the environment 
+        specification and check no substation of the grid are left ouside an area. 
         Parameters
         ----------
         env: :class:`grid2op.Environment.Environment`
@@ -66,7 +83,8 @@ class RulesByArea(BaseRules):
         n_sub = env.n_sub
         n_sub_rule = np.sum([len(set(list_ids)) for list_ids in self.substations_id_by_area.values()])
         if n_sub_rule != n_sub: 
-            raise Grid2OpException("The number of listed ids of substations in rule initialization does not match the number of substations of the chosen environement. Look for missing ids or doublon")
+            raise Grid2OpException("The number of listed ids of substations in rule initialization does not match the number of "
+                                   "substations of the chosen environement. Look for missing ids or doublon")
         else:
             self.lines_id_by_area = {key : sorted(list(chain(*[[item for item in np.where(env.line_or_to_subid == subid)[0]
                                     ] for subid in subid_list]))) for key,subid_list in self.substations_id_by_area.items()}
