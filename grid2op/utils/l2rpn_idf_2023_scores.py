@@ -82,15 +82,21 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             verbose=0,
             max_step=-1,
             nb_process_stats=1,
+            scores_func={
+                "grid_operational_cost": L2RPNSandBoxScore,
+                "assistant_confidence": _AlertTrustScore,
+                "new_renewable_sources_usage": _NewRenewableSourcesUsageScore,
+            },
+            score_names=["grid_operational_cost_scores",
+                         "assistant_confidence_scores",
+                         "new_renewable_sources_usage_scores"],
+            add_nb_highres_sim=False,
             scale_assistant_score=100.0,
             scale_nres_score=100.,
             weight_op_score=0.6,
             weight_assistant_score=0.25,
             weight_nres_score=0.15,
-            # weight_confidence_assistant_score=0.7,
             min_nres_score=-100,
-            min_assistant_cost_score=-100,
-            add_nb_highres_sim=False,
     ):
         ScoreL2RPN2020.__init__(
             self,
@@ -102,16 +108,8 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             verbose=verbose,
             max_step=max_step,
             nb_process_stats=nb_process_stats,
-            scores_func={
-                "grid_operational_cost": L2RPNSandBoxScore,
-                "assistant_confidence": _AlertTrustScore,
-                # "assistant_cost": _AlertCostScore,
-                "new_renewable_sources_usage": _NewRenewableSourcesUsageScore,
-            },
-            score_names=["grid_operational_cost_scores",
-                         "assistant_confidence_scores",
-                         # "assistant_cost_scores",
-                         "new_renewable_sources_usage_scores"],
+            scores_func=scores_func,
+            score_names=score_names,
             add_nb_highres_sim=add_nb_highres_sim,
         )
 
@@ -120,16 +118,13 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             raise Grid2OpException(
                 'The weights of each component of the score shall sum to 1'
             )
-        # assert(all([weight_confidence_assistant_score>=0., weight_confidence_assistant_score<=1.]))
 
         self.scale_assistant_score = scale_assistant_score
         self.scale_nres_score = scale_nres_score
         self.weight_op_score = weight_op_score
         self.weight_assistant_score = weight_assistant_score
         self.weight_nres_score = weight_nres_score
-        # self.weight_confidence_assistant_score = weight_confidence_assistant_score
         self.min_nres_score = min_nres_score
-        # self.min_assistant_cost_score = min_assistant_cost_score
 
     def _compute_episode_score(
             self,
@@ -171,23 +166,12 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
         nres_score = max(nres_score, self.min_nres_score / self.scale_nres_score)
         nres_score = self.scale_nres_score * nres_score
 
-        # assistant_confidence_score
+        # assistant_score
         assistant_confidence_score_nm = "assistant_confidence_scores"
         real_nm = EpisodeStatistics._nm_score_from_attr_name(assistant_confidence_score_nm)
         key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
         assistant_confidence_score = float(other_rewards[-1][key_score_file])
         assistant_score = self.scale_assistant_score * assistant_confidence_score
-
-        # assistant_cost_score
-        # assistant_cost_score_nm = "assistant_cost_scores"
-        # real_nm = EpisodeStatistics._nm_score_from_attr_name(assistant_cost_score_nm)
-        # key_score_file = f"{EpisodeStatistics.KEY_SCORE}_{real_nm}"
-        # assistant_cost_score = float(other_rewards[-1][key_score_file])
-        # assistant_cost_score = max(assistant_cost_score, self.min_assistant_cost_score / self.scale_assistant_score)
-        # assistant_cost_score  = self.scale_assistant_score * assistant_cost_score
-
-        # assistant_score = self.weight_confidence_assistant_score * assistant_confidence_score +\
-        #      (1. - self.weight_confidence_assistant_score) * assistant_cost_score
 
         ep_score = (
                 self.weight_op_score * op_score + self.weight_nres_score * nres_score + self.weight_assistant_score * assistant_score
