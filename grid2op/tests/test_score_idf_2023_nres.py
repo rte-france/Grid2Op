@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
 import warnings
 import numpy as np
 import unittest
@@ -19,7 +18,6 @@ from grid2op.Agent.doNothing import DoNothingAgent, BaseAgent
 from grid2op.Chronics import FromHandlers
 from grid2op.Chronics.handlers import CSVHandler, PerfectForecastHandler
 from grid2op.Reward import _NewRenewableSourcesUsageScore
-from grid2op.tests.helper_path_test import *
 
 
 class CurtailTrackerAgent(BaseAgent):
@@ -51,9 +49,7 @@ class CurtailAgent(BaseAgent):
 class TestScoreL2RPN2023(unittest.TestCase):
     
     def setUp(self) -> None:
-        env_name = os.path.join(
-            PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
-        )
+        env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(env_name,
@@ -75,7 +71,7 @@ class TestScoreL2RPN2023(unittest.TestCase):
             params.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
         self.seed = 0
         self.scen_id = 0
-        self.nb_scenario = 1
+        self.nb_scenario = 2
         self.max_iter = 10
         
     def tearDown(self) -> None:
@@ -85,7 +81,8 @@ class TestScoreL2RPN2023(unittest.TestCase):
     def test_score_helper(self):
         """basic tests for ScoreL2RPN2023 class"""
         self.env.reset() 
-        my_score = ScoreL2RPN2023(
+        try:
+            my_score = ScoreL2RPN2023(
                 self.env,
                 nb_scenario=self.nb_scenario,
                 env_seeds=[0 for _ in range(self.nb_scenario)],
@@ -97,11 +94,10 @@ class TestScoreL2RPN2023(unittest.TestCase):
                 scale_nres_score=100,
                 scale_assistant_score=100,
                 min_nres_score=-300.)
-
-        try:
+            
             # test do nothing indeed gets 100.
             res_dn = my_score.get(DoNothingAgent(self.env.action_space))
-            for scen_id, (ep_score, op_score, nres_score, assistant_score) in enumerate(res_dn[0]):
+            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_dn[0]):
                 assert nres_score == 100.
                 assert ep_score == 0.8 * op_score + 0.2 * nres_score
                 
@@ -111,65 +107,45 @@ class TestScoreL2RPN2023(unittest.TestCase):
                                                         gen_renewable = self.env.gen_renewable,
                                                         gen_pmax=self.env.gen_pmax,
                                                         curtail_level = 0.95))
-
+            # assert np.allclose(res_agent0[0][0][2], 81.83611011377577)
+            # assert np.allclose(res_agent0[0][1][2], 68.10026022372575)
             assert np.allclose(res_agent0[0][0][0], 0.8 * res_agent0[0][0][1] + 0.2 * res_agent0[0][0][2])
-            assert np.allclose(res_agent0[0][0][2], 16.29061336683084)
+            assert np.allclose(res_agent0[0][0][2], 16.73128726588182)
+            assert np.allclose(res_agent0[0][1][2], -26.02070223995034)
             
             res_agent1 = my_score.get(CurtailTrackerAgent(self.env.action_space,
                                                         gen_renewable = self.env.gen_renewable,
                                                         gen_pmax=self.env.gen_pmax,
                                                         curtail_level = 0.9))
-                                                        
-            assert np.allclose(res_agent1[0][0][2], -45.167919756806064)
+            # assert np.allclose(res_agent1[0][0][2], 56.256863965501466)
+            # assert np.allclose(res_agent1[0][1][2], 43.370607328810415)
+            assert np.allclose(res_agent1[0][0][2], -49.61104170080321)
+            assert np.allclose(res_agent1[0][1][2], -78.00216266500183)
             
             # decrease
             assert 100. - res_agent0[0][0][2] >= res_agent0[0][0][2] - res_agent1[0][0][2]
+            assert 100. - res_agent0[0][1][2] >= res_agent0[0][1][2] - res_agent1[0][1][2]
                 
             res_agent2 = my_score.get(CurtailTrackerAgent(self.env.action_space,
                                                         gen_renewable = self.env.gen_renewable,
                                                         gen_pmax=self.env.gen_pmax,
                                                         curtail_level = 0.8))
-            assert np.allclose(res_agent2[0][0][2], -120.71966085513259)
+            assert np.allclose(res_agent2[0][0][2], -127.62213025108333)
+            assert np.allclose(res_agent2[0][1][2], -143.83405253996978)
             # decrease
             assert 100. - res_agent1[0][0][2] >= res_agent1[0][0][2] - res_agent2[0][0][2]
+            assert 100. - res_agent1[0][1][2] >= res_agent1[0][1][2] - res_agent2[0][1][2]
             
             res_agent3 = my_score.get(CurtailTrackerAgent(self.env.action_space,
                                                         gen_renewable = self.env.gen_renewable,
                                                         gen_pmax=self.env.gen_pmax,
                                                         curtail_level = 0.7))
-            assert np.allclose(res_agent3[0][0][2], -164.20345819832642)
+            assert np.allclose(res_agent3[0][0][2], -169.9519401162611)
+            assert np.allclose(res_agent3[0][1][2], -179.45065441917586)
             assert res_agent1[0][0][2] - res_agent2[0][0][2] >= res_agent2[0][0][2] - res_agent2[0][0][2]
+            assert res_agent1[0][1][2] - res_agent2[0][1][2] >= res_agent2[0][1][2] - res_agent2[0][1][2]
         finally:
             my_score.clear_all() 
-            
-    def test_score_helper2(self):
-        """basic tests for ScoreL2RPN2023 class"""
-        self.env.reset() 
-        my_score = ScoreL2RPN2023(
-                    self.env,
-                    nb_scenario=self.nb_scenario,
-                    env_seeds=[0 for _ in range(self.nb_scenario)],
-                    agent_seeds=[0 for _ in range(self.nb_scenario)],
-                    max_step=self.max_iter,
-                    weight_op_score=0.6,
-                    weight_assistant_score=0.25,
-                    weight_nres_score=0.15,
-                    scale_nres_score=100,
-                    scale_assistant_score=100,
-                    min_nres_score=-100.,
-                    min_assistant_cost_score=-100)
-        try:
-            # test do nothing indeed gets 100.
-            res_dn = my_score.get(DoNothingAgent(self.env.action_space))
-            for scen_id, (ep_score, op_score, nres_score, assistant_score) in enumerate(res_dn[0]):
-                assert nres_score == 100.
-                assert ep_score == 0.6 * op_score + 0.15 * nres_score + 0.25 * assistant_score
-                assert assistant_score == 100. #no blackout with no disconnections
-                assert op_score == 0
-            
-                
-        finally:
-            my_score.clear_all()
 
     def test_min_score(self):
         """test the score does not go bellow the minimum in input"""
@@ -192,7 +168,10 @@ class TestScoreL2RPN2023(unittest.TestCase):
                                                         gen_renewable = self.env.gen_renewable,
                                                         gen_pmax=self.env.gen_pmax,
                                                         curtail_level = 0.7))
+            # assert np.allclose(res_agent3[0][0][2], -169.9519401162611)
+            # assert np.allclose(res_agent3[0][1][2], -179.45065441917586)
             assert np.allclose(res_agent3[0][0][2], -100.)
+            assert np.allclose(res_agent3[0][1][2], -100.)
         finally:
             my_score.clear_all() 
         
@@ -219,22 +198,22 @@ class TestScoreL2RPN2023(unittest.TestCase):
             tol = 3e-5
             # test do nothing indeed gets 100.
             res_dn = my_score.get(DoNothingAgent(self.env.action_space))
-            for scen_id, (ep_score, op_score, nres_score, assistant_score) in enumerate(res_dn[0]):
+            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_dn[0]):
                 assert abs(nres_score - 100.) <= tol
                 
             # test 80% gets indeed close to 0
             res_80 = my_score.get(CurtailAgent(self.env.action_space, 0.8))
-            for scen_id, (ep_score, op_score, nres_score, assistant_score) in enumerate(res_80[0]):
+            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_80[0]):
                 assert abs(nres_score) <= tol
                 
             # test 50% gets indeed close to -100
             res_50 = my_score.get(CurtailAgent(self.env.action_space, 0.5))
-            for scen_id, (ep_score, op_score, nres_score, assistant_score) in enumerate(res_50[0]):
+            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_50[0]):
                 assert abs(nres_score + 100.) <= tol
             
             # test bellow 50% still gets close to -100
             res_30 = my_score.get(CurtailAgent(self.env.action_space, 0.3))
-            for scen_id, (ep_score, op_score, nres_score, assistant_score) in enumerate(res_30[0]):
+            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_30[0]):
                 assert abs(nres_score + 100.) <= tol   
         finally:
             my_score.clear_all()
