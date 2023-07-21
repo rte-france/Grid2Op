@@ -40,14 +40,6 @@ ALL_ATTACKABLE_LINES= [
 
 ATTACKED_LINE = "48_50_136"
 
-
-#DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
-#                                 reward_min_blackout=-10.0,
-#                                 reward_max_no_blackout=1.0,
-#                                 reward_max_blackout=2.0,
-#                                 reward_end_episode_bonus=42.0,
-#                                 min_score=-1.0)
-
 DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
                                  reward_min_blackout=-50.0,
                                  reward_max_no_blackout=0.0,
@@ -134,8 +126,8 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         )
 
     def test_assistant_trust_score_no_blackout_no_attack_no_alert(self) -> None : 
-        """ When no blackout and no attack occur, and no alert is raised we expect a reward of 0
-            until the end of the episode where we have a bonus (here artificially 42)
+        """ When no blackout and no attack occur, and no alert is raised we expect a maximum score
+            until the end of the episode where we have a bonus
 
         Raises:
             Grid2OpException: raise an exception if an attack occur
@@ -165,10 +157,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                         assert cm_reward_min_ep == 0.
                         assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]
 
-                        if (DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] == 0):
-                            assert score == 0.0
-                        else:
-                            assert score == env._reward_helper.template_reward.max_score
+                        assert score == env._reward_helper.template_reward.max_score
                     else : 
                         assert score == 0
                 else : 
@@ -177,7 +166,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
             assert done
     
     def test_assistant_trust_score_no_blackout_no_attack_alert(self) -> None : 
-        """ When an alert is raised while no attack / nor blackout occur, we expect a score of 0
+        """ When an alert is raised while no attack / nor blackout occur, we expect a maximum score
             until the end of the episode where we have a 42s
 
         Raises:
@@ -215,10 +204,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                         assert cm_reward_min_ep == 0.
                         assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]
 
-                        if (DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] == 0):
-                            assert score == 0.0
-                        else:
-                            assert score == env._reward_helper.template_reward.max_score
+                        assert score == env._reward_helper.template_reward.max_score
                     else : 
                         assert score == 0
                 else : 

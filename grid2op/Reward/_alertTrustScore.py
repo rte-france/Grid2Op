@@ -116,7 +116,7 @@ class _AlertTrustScore(AlertReward):
         else:
             self.nb_last_attacks=np.sum(self._ts_attack)
             cm_reward_min_ep, cm_reward_max_ep = self._compute_min_max_reward(self.total_nb_attacks,self.nb_last_attacks)
-            score_ep = self._normalisation_fun(self.cumulated_reward, cm_reward_min_ep, cm_reward_max_ep,self.min_score,self.max_score)
+            score_ep = self._normalisation_fun(self.cumulated_reward, cm_reward_min_ep, cm_reward_max_ep,self.min_score,self.max_score,self.blackout_encountered)
 
             # TODO
             #if self.blackout_encountered:
@@ -133,11 +133,14 @@ class _AlertTrustScore(AlertReward):
             return score_ep
         
     @staticmethod
-    def _normalisation_fun(cm_reward, cm_reward_min_ep, cm_reward_max_ep,min_score,max_score,tol=1e-5):
+    def _normalisation_fun(cm_reward, cm_reward_min_ep, cm_reward_max_ep,min_score,max_score,is_blackout,tol=1e-5):
         standardized_score = np.round((cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep +tol),4)
-        #in case cm_reward_min_ep=cm_reward_max_ep=0, score is 0.0
+        #in case cm_reward_min_ep=cm_reward_max_ep=0, score is maximum
         if(cm_reward_min_ep==cm_reward_max_ep):
-            score_ep = 0.
+            if (is_blackout):
+                score_ep = 0.0
+            else:
+                score_ep = max_score
         else:
             score_ep = min_score + (max_score - min_score) * standardized_score
         return score_ep
