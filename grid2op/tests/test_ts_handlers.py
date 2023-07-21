@@ -15,8 +15,7 @@ from grid2op.tests.helper_path_test import *
 
 import grid2op
 from grid2op.Exceptions import NoForecastAvailable
-from grid2op.Chronics import GridStateFromFileWithForecasts, GridStateFromFile, GridStateFromFileWithForecastsWithoutMaintenance
-from grid2op.Chronics.time_series_from_handlers import FromHandlers
+from grid2op.Chronics import GridStateFromFileWithForecasts, GridStateFromFile, GridStateFromFileWithForecastsWithoutMaintenance, FromHandlers
 from grid2op.Chronics.handlers import (CSVHandler,
                                        DoNothingHandler,
                                        CSVForecastHandler,

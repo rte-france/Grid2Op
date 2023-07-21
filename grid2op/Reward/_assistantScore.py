@@ -28,14 +28,11 @@ class _AssistantConfidenceScore(BaseReward):
     def __init__(self, logger=None):
         BaseReward.__init__(self, logger=logger)
         
-    def __initialize__(self, env):
+    def initialize(self, env):
         self.reset(env)
         
-    def reset(self):
-        pass
-        
     def __call__(self, env, obs, is_done):
-        pass
+        return 0.
         
 class _AssistantCostScore(BaseReward):
     """
@@ -55,11 +52,8 @@ class _AssistantCostScore(BaseReward):
     def __init__(self, logger=None):
         BaseReward.__init__(self, logger=logger)
         
-    def __initialize__(self, env):
+    def initialize(self, env):
         self.reset(env)
         
-    def reset(self):
-        pass
-        
     def __call__(self, env, obs, is_done):
-        pass
+        return 0.

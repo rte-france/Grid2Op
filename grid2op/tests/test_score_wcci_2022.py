@@ -11,8 +11,7 @@ import warnings
 import numpy as np
 
 import grid2op
-from grid2op.Agent.baseAgent import BaseAgent
-from grid2op.Agent.doNothing import DoNothingAgent
+from grid2op.Agent import (BaseAgent, DoNothingAgent)
 from grid2op.Reward import L2RPNWCCI2022ScoreFun
 from grid2op.utils import ScoreL2RPN2022
 

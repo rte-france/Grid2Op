@@ -439,7 +439,28 @@ class GridObjects:
     alarms_lines_area = {}  # for each lines of the grid, gives on which area(s) it is  # TODO
     alarms_area_lines = []  # for each area in the grid, gives which powerlines it contains # TODO
 
-    # TODO specify the unit of redispatching data MWh, $/MW etc.
+    dim_alerts: `int`
+        The dimension of the "alert space" (number of powerline on which the agent can sent an alert)
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+    
+        .. versionadded:: 1.9.1
+        
+    alertable_line_names: `np.ndarray`
+        Name (in order) of each powerline on which the agent can send an alarm. It has the size corresponding to :attr:`GridObjects.dim_alerts`
+        and contain names of powerlines (string).
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+    alertable_line_ids: `np.ndarray`
+        Id (in order) of each powerline on which the agent can send an alarm. It has the size corresponding to :attr:`GridObjects.dim_alerts`
+        and contain ids of powerlines (integer).
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+
+        .. versionadded:: 1.9.1
     """
 
     BEFORE_COMPAT_VERSION = "neurips_2020_compat"
@@ -591,6 +612,7 @@ class GridObjects:
     alertable_line_ids = []
     
     def __init__(self):
+        """nothing to do when an object of this class is created, the information is held by the class attributes"""
         pass
 
     @classmethod
@@ -1123,8 +1145,8 @@ class GridObjects:
             # if np.any(~np.isfinite(tmp)) and default_nan:
             #     raise NonFiniteElement("None finite number in from_vect detected")
 
-            if attr_nm not in type(self).attr_nan_list_set and np.any(
-                ~np.isfinite(tmp)
+            if attr_nm not in type(self).attr_nan_list_set and (
+                (~np.isfinite(tmp)).any()
             ):
                 raise NonFiniteElement("None finite number in from_vect detected")
 
@@ -1190,7 +1212,7 @@ class GridObjects:
             print("The size of the action space is {}".format(env.action_space.size()))
 
         """
-        res = np.sum(self.shape()).astype(dt_int)
+        res = self.shape().sum(dtype=dt_int)
         return res
 
     @classmethod
@@ -1213,7 +1235,7 @@ class GridObjects:
         """
         res = np.zeros(shape=vect_to_subid.shape, dtype=dt_int)
         for i, (sub_id, my_pos) in enumerate(zip(vect_to_subid, vect_to_sub_pos)):
-            obj_before = np.sum(cls.sub_info[:sub_id])
+            obj_before = cls.sub_info[:sub_id].sum()
             res[i] = obj_before + my_pos
         return res
 
@@ -1869,7 +1891,7 @@ class GridObjects:
             )
         )
         try:
-            if np.any(~np.isfinite(tmp)):
+            if (~np.isfinite(tmp)).any():
                 raise EnvError(
                     "The grid could not be loaded properly."
                     "One of the vector is made of non finite elements, check the sub_info, *_to_subid, "
@@ -1890,7 +1912,7 @@ class GridObjects:
                 "and  self.n_sub ({})".format(len(cls.sub_info), cls.n_sub)
             )
         if (
-            np.sum(cls.sub_info)
+            cls.sub_info.sum()
             != cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage
         ):
             err_msg = "The number of elements of elements is not consistent between self.sub_info where there are "
@@ -1899,7 +1921,7 @@ class GridObjects:
                 "the _grid ({})."
             )
             err_msg = err_msg.format(
-                np.sum(cls.sub_info),
+                cls.sub_info.sum(),
                 cls.n_load + cls.n_gen + 2 * cls.n_line + cls.n_storage,
             )
             raise IncorrectNumberOfElements(err_msg)
@@ -2003,7 +2025,7 @@ class GridObjects:
                 cls.storage_pos_topo_vect.flatten(),
             )
         )
-        if len(np.unique(concat_topo)) != np.sum(cls.sub_info):
+        if len(np.unique(concat_topo)) !=cls.sub_info.sum():
             raise EnvError(
                 "2 different objects would have the same id in the topology vector, or there would be"
                 "an empty component in this vector."
@@ -2048,7 +2070,7 @@ class GridObjects:
             )
 
         # no empty bus: at least one element should be present on each bus
-        if np.any(cls.sub_info < 1):
+        if (cls.sub_info < 1).any():
             if not grid2op.Space.space_utils._WARNING_ISSUED_FOR_SUB_NO_ELEM:
                 warnings.warn(
                     f"There are {np.sum(cls.sub_info < 1)} substations where  no 'controlable' elements "
@@ -2243,76 +2265,76 @@ class GridObjects:
                 "self.storage_charging_efficiency.shape[0] != self.n_storage"
             )
 
-        if np.any(~np.isfinite(cls.storage_Emax)):
+        if (~np.isfinite(cls.storage_Emax)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_Emax))")
-        if np.any(~np.isfinite(cls.storage_Emin)):
+        if (~np.isfinite(cls.storage_Emin)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_Emin))")
-        if np.any(~np.isfinite(cls.storage_max_p_prod)):
+        if (~np.isfinite(cls.storage_max_p_prod)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_max_p_prod))")
-        if np.any(~np.isfinite(cls.storage_max_p_absorb)):
+        if (~np.isfinite(cls.storage_max_p_absorb)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_max_p_absorb))")
-        if np.any(~np.isfinite(cls.storage_marginal_cost)):
+        if (~np.isfinite(cls.storage_marginal_cost)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_marginal_cost))")
-        if np.any(~np.isfinite(cls.storage_loss)):
+        if (~np.isfinite(cls.storage_loss)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_loss))")
-        if np.any(~np.isfinite(cls.storage_charging_efficiency)):
+        if (~np.isfinite(cls.storage_charging_efficiency)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_charging_efficiency))")
-        if np.any(~np.isfinite(cls.storage_discharging_efficiency)):
+        if (~np.isfinite(cls.storage_discharging_efficiency)).any():
             raise BackendError(
                 "np.any(~np.isfinite(self.storage_discharging_efficiency))"
             )
 
-        if np.any(cls.storage_Emax < cls.storage_Emin):
+        if (cls.storage_Emax < cls.storage_Emin).any():
             tmp = np.where(cls.storage_Emax < cls.storage_Emin)[0]
             raise BackendError(
                 f"storage_Emax < storage_Emin for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_Emax < 0.0):
+        if (cls.storage_Emax < 0.0).any():
             tmp = np.where(cls.storage_Emax < 0.0)[0]
             raise BackendError(
                 f"self.storage_Emax < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_Emin < 0.0):
+        if (cls.storage_Emin < 0.0).any():
             tmp = np.where(cls.storage_Emin < 0.0)[0]
             raise BackendError(
                 f"self.storage_Emin < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_max_p_prod < 0.0):
+        if (cls.storage_max_p_prod < 0.0).any():
             tmp = np.where(cls.storage_max_p_prod < 0.0)[0]
             raise BackendError(
                 f"self.storage_max_p_prod < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_max_p_absorb < 0.0):
+        if (cls.storage_max_p_absorb < 0.0).any():
             tmp = np.where(cls.storage_max_p_absorb < 0.0)[0]
             raise BackendError(
                 f"self.storage_max_p_absorb < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_loss < 0.0):
+        if (cls.storage_loss < 0.0).any():
             tmp = np.where(cls.storage_loss < 0.0)[0]
             raise BackendError(
                 f"self.storage_loss < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_discharging_efficiency <= 0.0):
+        if (cls.storage_discharging_efficiency <= 0.0).any():
             tmp = np.where(cls.storage_discharging_efficiency <= 0.0)[0]
             raise BackendError(
                 f"self.storage_discharging_efficiency <= 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_discharging_efficiency > 1.0):
+        if (cls.storage_discharging_efficiency > 1.0).any():
             tmp = np.where(cls.storage_discharging_efficiency > 1.0)[0]
             raise BackendError(
                 f"self.storage_discharging_efficiency > 1. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_charging_efficiency < 0.0):
+        if (cls.storage_charging_efficiency < 0.0).any():
             tmp = np.where(cls.storage_charging_efficiency < 0.0)[0]
             raise BackendError(
                 f"self.storage_charging_efficiency < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_charging_efficiency > 1.0):
+        if (cls.storage_charging_efficiency > 1.0).any():
             tmp = np.where(cls.storage_charging_efficiency > 1.0)[0]
             raise BackendError(
                 f"self.storage_charging_efficiency > 1. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_loss > cls.storage_max_p_absorb):
+        if (cls.storage_loss > cls.storage_max_p_absorb).any():
             tmp = np.where(cls.storage_loss > cls.storage_max_p_absorb)[0]
             raise BackendError(
                 f"Some storage units are such that their loss (self.storage_loss) is higher "
@@ -2501,11 +2523,11 @@ class GridObjects:
                 "(gen_renewable) when redispatching is supposed to be available."
             )
 
-        if np.any(cls.gen_min_uptime < 0):
+        if (cls.gen_min_uptime < 0).any():
             raise InvalidRedispatching(
                 "Minimum uptime of generator (gen_min_uptime) cannot be negative"
             )
-        if np.any(cls.gen_min_downtime < 0):
+        if (cls.gen_min_downtime < 0).any():
             raise InvalidRedispatching(
                 "Minimum downtime of generator (gen_min_downtime) cannot be negative"
             )
@@ -2514,23 +2536,23 @@ class GridObjects:
             if not el in ["solar", "wind", "hydro", "thermal", "nuclear"]:
                 raise InvalidRedispatching("Unknown generator type : {}".format(el))
 
-        if np.any(cls.gen_pmin < 0.0):
+        if (cls.gen_pmin < 0.0).any():
             raise InvalidRedispatching("One of the Pmin (gen_pmin) is negative")
-        if np.any(cls.gen_pmax < 0.0):
+        if (cls.gen_pmax < 0.0).any():
             raise InvalidRedispatching("One of the Pmax (gen_pmax) is negative")
-        if np.any(cls.gen_max_ramp_down < 0.0):
+        if (cls.gen_max_ramp_down < 0.0).any():
             raise InvalidRedispatching(
                 "One of the ramp up (gen_max_ramp_down) is negative"
             )
-        if np.any(cls.gen_max_ramp_up < 0.0):
+        if (cls.gen_max_ramp_up < 0.0).any():
             raise InvalidRedispatching(
                 "One of the ramp down (gen_max_ramp_up) is negative"
             )
-        if np.any(cls.gen_startup_cost < 0.0):
+        if (cls.gen_startup_cost < 0.0).any():
             raise InvalidRedispatching(
                 "One of the start up cost (gen_startup_cost) is negative"
             )
-        if np.any(cls.gen_shutdown_cost < 0.0):
+        if (cls.gen_shutdown_cost < 0.0).any():
             raise InvalidRedispatching(
                 "One of the start up cost (gen_shutdown_cost) is negative"
             )
@@ -2581,10 +2603,10 @@ class GridObjects:
                         "{} should be convertible data should be convertible to "
                         '{} with error: \n"{}"'.format(el, type_, exc_)
                     )
-        if np.any(
+        if (
             cls.gen_max_ramp_up[cls.gen_redispatchable]
             > cls.gen_pmax[cls.gen_redispatchable]
-        ):
+        ).any():
             raise InvalidRedispatching(
                 "Invalid maximum ramp for some generator (above pmax)"
             )
@@ -2706,9 +2728,12 @@ class GridObjects:
             # this feature did not exist before.
             cls.dim_alarms = 0
             cls.assistant_warning_type = None
+            
         if cls.glop_version < "1.9.1":
             # this feature did not exists before
             cls.dim_alerts = 0 
+            cls.alertable_line_names = []
+            cls.alertable_line_ids = []
 
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
@@ -3579,7 +3604,7 @@ class GridObjects:
         cls.n_load = len(cls.name_load)
         cls.n_line = len(cls.name_line)
         cls.n_sub = len(cls.name_sub)
-        cls.dim_topo = np.sum(cls.sub_info)
+        cls.dim_topo = cls.sub_info.sum()
 
         if dict_["gen_type"] is None:
             cls.redispatching_unit_commitment_availble = False
@@ -3705,12 +3730,17 @@ class GridObjects:
         if "dim_alerts" in dict_: 
             # NB by default the constructor do as if there were no alert so that's great !
             cls.dim_alerts = dict_["dim_alerts"]
-            cls.alertable_line_names = extract_from_dict(
-                dict_, "alertable_line_names", lambda x: np.array(x).astype(str)
-                )
-            cls.alertable_line_ids = extract_from_dict(
-                dict_, "alertable_line_ids", lambda x: np.array(x).astype(dt_int)
-                )
+            if cls.dim_alerts > 0:
+                cls.alertable_line_names = extract_from_dict(
+                    dict_, "alertable_line_names", lambda x: np.array(x).astype(str)
+                    )
+                cls.alertable_line_ids = extract_from_dict(
+                    dict_, "alertable_line_ids", lambda x: np.array(x).astype(dt_int)
+                    )
+            else:
+                cls.alertable_line_names = []
+                cls.alertable_line_ids = []
+                
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo_cls()

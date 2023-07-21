@@ -18,7 +18,7 @@ import numpy as np
 
 import pdb
 
-class L2RPNIDF2023Tester(unittest.TestCase):
+class TestL2RPNIDF2023Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

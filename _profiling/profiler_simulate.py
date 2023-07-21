@@ -29,37 +29,61 @@ import cProfile
 import pdb
 
 
-def make_env():
-    env_name = "l2rpn_icaps_2021"
+NB_SIMULATE = 10
+ENV_NAME = "l2rpn_icaps_2021_small"
+ENV_NAME = "l2rpn_idf_2023"
+
+
+def make_env(env_name=ENV_NAME):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         fake_env = grid2op.make(env_name, test=True)
     param = fake_env.parameters
     param.NO_OVERFLOW_DISCONNECTION = True
-    env = grid2op.make(env_name+"_small", backend=LightSimBackend(), param=param)
+    env = grid2op.make(env_name, backend=bk_cls(), param=param)
+    env.seed(0)
+    env.reset()
     return env
 
 
-def run_env(env):
+def run_env(env, cp_env, cp_simu):
     done = False
     while not done:
         act = env.action_space()
+        cp_env.enable()
         obs, reward, done, info = env.step(act)
+        cp_env.disable()
         if not done:
-            simulate(obs, env.action_space())
+            simulate(obs, env.action_space, NB_SIMULATE, cp_simu)
 
 
-def simulate(obs, act):
-    simobs, rim_r, sim_d, sim_info = obs.simulate(act)
+def simulate(obs, action_space, nb_simu=NB_SIMULATE, cp=None):
+    acts = [action_space.sample() for _ in range(nb_simu)]
+    # acts = [action_space() for _ in range(nb_simu)]
+    tmp = sum(acts, start = action_space())
+    try:
+        if cp is not None:
+            cp.enable()
+        for i in range(nb_simu):
+            simobs, rim_r, sim_d, sim_info = obs.simulate(acts[i])
+            prev_act = acts[i]
+        if cp is not None:
+            cp.disable()
+    except RuntimeError as exc_:
+        raise exc_
 
 
 if __name__ == "__main__":
     env = make_env()
-    cp = cProfile.Profile()
-    cp.enable()
-    run_env(env)
-    cp.disable()
+    cp_simu = cProfile.Profile()
+    cp_env = cProfile.Profile()
+    run_env(env, cp_env, cp_simu)
     nm_f, ext = os.path.splitext(__file__)
-    nm_out = f"{nm_f}_{nm_bk_used}.prof"
-    cp.dump_stats(nm_out)
-    print("You can view profiling results with:\n\tsnakeviz {}".format(nm_out))
+    nm_out_simu = f"{nm_f}_{nm_bk_used}_{ENV_NAME}_{NB_SIMULATE}_simu.prof"
+    nm_out_env = f"{nm_f}_{nm_bk_used}_{ENV_NAME}_{NB_SIMULATE}_env.prof"
+    cp_simu.dump_stats(nm_out_simu)
+    cp_env.dump_stats(nm_out_env)
+    print("You can view profiling results with:\n\tsnakeviz {}".format(nm_out_env))
+    print("You can view profiling results with:\n\tsnakeviz {}".format(nm_out_simu))
+# base: 66.7 s
+# sans copy dans simulate: 65.2

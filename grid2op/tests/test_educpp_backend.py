@@ -13,7 +13,7 @@ import warnings
 import unittest
 
 import grid2op
-from grid2op.Backend.EducPandaPowerBackend import EducPandaPowerBackend
+from grid2op.Backend.educPandaPowerBackend import EducPandaPowerBackend
 import pdb
 
 class EducPPTester(unittest.TestCase):
