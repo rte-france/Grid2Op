@@ -58,10 +58,12 @@ class PlotPlotly(BasePlot):
         gen_radius=12,
         show_gen_txt=False,
         show_load_txt=False,
+        show_storage_txt=False,
     ):
         super().__init__(observation_space, width, height, scale, grid_layout)
         self.show_gen_txt = show_gen_txt
         self.show_load_txt = show_load_txt
+        self.show_storage_txt = show_storage_txt
         self._responsive = responsive
         self._sub_radius = sub_radius
         self._sub_fill_color = "PaleTurquoise"
@@ -80,6 +82,12 @@ class PlotPlotly(BasePlot):
         self._gen_line_color = "black"
         self._gen_line_width = 1
         self._gen_prefix = "b"
+
+        self._storage_radius = 12
+        self._storage_fill_color = "Purple"
+        self._storage_line_color = "black"
+        self._storage_line_width = 1
+        self._storage_prefix = "d"
 
         self._line_prefix = "a"
         self.line_color_scheme = (
@@ -643,7 +651,102 @@ class PlotPlotly(BasePlot):
     def draw_legend(self, figure, observation):
         figure.update_layout(showlegend=False)
 
+
+    def _draw_storage_txt(self, name, pos_x, pos_y, text, text_pos):
+        return go.Scatter(
+            x=[pos_x],
+            y=[pos_y],
+            text=[text],
+            name=name,
+            mode="text",
+            hoverinfo="skip",
+            textposition=text_pos,
+            showlegend=False,
+        )
+
+    def _draw_storage_circle(self, pos_x, pos_y, name, text):
+        marker_dict = dict(
+            size=self._storage_radius,
+            color=self._storage_fill_color,
+            showscale=False,
+            line=dict(width=self._storage_line_width, color=self._storage_line_color),
+        )
+        return go.Scatter(
+            x=[pos_x],
+            y=[pos_y],
+            mode="markers",
+            text=[text],
+            name=self._storage_prefix + name,
+            marker=marker_dict,
+            showlegend=False,
+        )
+
+    def _draw_storage_line(self, pos_x, pos_y, sub_x, sub_y):
+        style_line = dict(color="black", width=self._storage_line_width)
+
+        line_trace = go.Scatter(
+            x=[pos_x, sub_x],
+            y=[pos_y, sub_y],
+            hoverinfo="skip",
+            line=style_line,
+            showlegend=False,
+        )
+        return line_trace
+
+    def _draw_storage_bus(self, pos_x, pos_y, dir_x, dir_y, bus, storage_name):
+        bus = bus if bus > 0 else 0
+        marker_dict = dict(
+            size=self._line_bus_radius,
+            color=self._line_bus_colors[bus],
+            showscale=False,
+        )
+        center_x = pos_x + dir_x * (self._sub_radius - self._line_bus_radius)
+        center_y = pos_y + dir_y * (self._sub_radius - self._line_bus_radius)
+        trace_name = self._storage_prefix + self._bus_prefix + storage_name
+        return go.Scatter(
+            x=[center_x],
+            y=[center_y],
+            marker=marker_dict,
+            name=trace_name,
+            hoverinfo="skip",
+            showlegend=False,
+        )
+
     def draw_storage(
+        self,
+        figure,
+        observation,
+        storage_id,
+        storage_name,
+        storage_bus,
+        storage_value,
+        storage_unit,
+        pos_x,
+        pos_y,
+        sub_x,
+        sub_y,
+    ):
+        # TODO storage doc
+        dir_x, dir_y = pltu.norm_from_points(sub_x, sub_y, pos_x, pos_y)
+        nd_x, nd_y = pltu.norm_from_points(sub_x, sub_y, pos_x, pos_y)
+        storage_text = ""
+        if storage_value is not None:
+            txt_x = pos_x + nd_x * (self._storage_radius / 2)
+            txt_y = pos_y + nd_y * (self._storage_radius / 2)
+            text_pos = self._textpos_from_dir(dir_x, dir_y)
+            storage_text = storage_name + "<br>"
+            storage_text += pltu.format_value_unit(storage_value, storage_unit)
+            if self.show_storage_txt:
+                trace1 = self._draw_storage_txt(storage_name, txt_x, txt_y, storage_text, text_pos)
+                figure.add_trace(trace1)
+        trace2 = self._draw_storage_line(pos_x, pos_y, sub_x, sub_y)
+        figure.add_trace(trace2)
+        trace3 = self._draw_storage_circle(pos_x, pos_y, storage_name, storage_text)
+        figure.add_trace(trace3)
+        trace4 = self._draw_storage_bus(sub_x, sub_y, dir_x, dir_y, storage_bus, storage_name)
+        figure.add_trace(trace4)
+
+    def update_storage(
         self,
         figure,
         observation,
@@ -657,7 +760,15 @@ class PlotPlotly(BasePlot):
         sub_x,
         sub_y,
     ):
-        # TODO storage doc
-        # TODO storage plot
-        # TODO update the plotly with storage units
-        pass
+
+        storage_text = ""
+        if storage_value is not None:
+            storage_text = storage_name + "<br>"
+            storage_text += pltu.format_value_unit(storage_value, storage_unit)
+            figure.update_traces(text=storage_text, selector=dict(name=storage_name))
+            circle_name = self._storage_prefix + storage_name
+            if self.show_storage_txt:
+                figure.update_traces(text=storage_text, selector=dict(name=circle_name))
+        storage_marker = dict(color=self._line_bus_colors[storage_bus])
+        storage_select_name = self._storage_prefix + self._bus_prefix + storage_name
+        figure.update_traces(marker=storage_marker, selector=dict(name=storage_select_name))
