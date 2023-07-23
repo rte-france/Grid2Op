@@ -21,64 +21,17 @@ from grid2op.Episode import EpisodeData
 from grid2op.Parameters import Parameters
 from grid2op.Opponent import BaseOpponent, GeometricOpponent
 from grid2op.Action import BaseAction, PlayableAction
-
-
-ALL_ATTACKABLE_LINES= [
-            "62_58_180",
-            "62_63_160",
-            "48_50_136",
-            "48_53_141",
-            "41_48_131",
-            "39_41_121",
-            "43_44_125",
-            "44_45_126",
-            "34_35_110",
-            "54_58_154",
-        ] 
+from _aux_opponent_for_test_alerts import (_get_steps_attack,
+                                           TestOpponent
+                                           )
 
 ATTACKED_LINE = "48_50_136"
-
-def _get_steps_attack(kwargs_opponent, multi=False):
-    """computes the steps for which there will be attacks"""
-    ts_attack = np.array(kwargs_opponent["steps_attack"])
-    res = []
-    for i, ts in enumerate(ts_attack):
-        if not multi:
-            res.append(ts + np.arange(kwargs_opponent["duration"]))
-        else:
-            res.append(ts + np.arange(kwargs_opponent["duration"][i]))
-    return np.unique(np.concatenate(res).flatten())
 
 class AlertAgent(BaseAgent):
     def act(self, observation: BaseObservation, reward: float, done: bool = False) -> BaseAction:
         if observation.current_step == 2:
             return self.action_space({"raise_alert": [0]})
         return super().act(observation, reward, done)
-    
-class TestOpponent(BaseOpponent): 
-    """An opponent that can select the line attack, the time and duration of the attack."""
-    
-    def __init__(self, action_space):
-        super().__init__(action_space)
-        self.custom_attack = None
-        self.duration = None
-        self.steps_attack = None
-
-    def init(self, partial_env,  lines_attacked=[ATTACKED_LINE], duration=10, steps_attack=[0,1]):
-        attacked_line = lines_attacked[0]
-        self.custom_attack = self.action_space({"set_line_status" : [(l, -1) for l in lines_attacked]})
-        self.duration = duration
-        self.steps_attack = steps_attack
-        self.env = partial_env
-
-    def attack(self, observation, agent_action, env_action, budget, previous_fails): 
-        if observation is None:
-            return None, None
-        current_step = self.env.nb_time_step
-        if current_step not in self.steps_attack: 
-            return None, None
-        
-        return self.custom_attack, self.duration
 
 
 class TestAlertCostScore(unittest.TestCase):
@@ -303,7 +256,7 @@ class TestAlertTrustScore(unittest.TestCase):
                 
                 if step == 4: 
                     # When the blackout occurs, reward is -1 because we didn't raise an attack so min
-                    assert reward == -1, f"error for step {step}: {reward} vs -1"
+                    assert reward == env._reward_helper.template_reward.min_score, f"error for step {step}: {reward} vs -1"
                     assert done
                     break
                 else : 
