@@ -19,7 +19,6 @@ from grid2op.Reward import _AlertTrustScore
 from grid2op.Parameters import Parameters
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Runner import Runner  # TODO
-from grid2op.Opponent import BaseOpponent, GeometricOpponent, GeometricOpponentMultiArea
 from grid2op.Action import BaseAction, PlayableAction
 from grid2op.Agent import BaseAgent
 from grid2op.Episode import EpisodeData
@@ -27,20 +26,6 @@ from grid2op.Episode import EpisodeData
 from _aux_opponent_for_test_alerts import (_get_steps_attack,
                                            TestOpponent,
                                            TestOpponentMultiLines)
-
-
-ALL_ATTACKABLE_LINES= [
-            "62_58_180",
-            "62_63_160",
-            "48_50_136",
-            "48_53_141",
-            "41_48_131",
-            "39_41_121",
-            "43_44_125",
-            "44_45_126",
-            "34_35_110",
-            "54_58_154",
-        ] 
 
 ATTACKED_LINE = "48_50_136"
 
@@ -51,9 +36,19 @@ DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
                                  reward_end_episode_bonus=0.0,
                                  min_score=-3.0)
 
-# Test alert blackout / tets alert no blackout
+#a near copy of _normalisation_fun function when for to a given trustscore parametrization it is not easy to guess the score before hand
+# especially when reward_end_episode_bonus is non null for some non blackout cases
+def manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,max_score):
+
+    manual_standardized_score= np.round((cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
+    manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
+                                max_score - DEFAULT_PARAMS_TRUSTSCORE[
+                            "min_score"]) * manual_standardized_score
+    return manual_score
+
+# Test alertTrustScore when no blackout and when blackout
 class TestAlertTrustScoreNoBlackout(unittest.TestCase):
-    """test the basic bahavior of the assistant alert feature when no attack occur """
+    """test the basic behavior of the assistant alert feature when no blackout occur """
 
     def setUp(self) -> None:
         self.env_nm = os.path.join(
@@ -62,7 +57,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
 
     def test_assistant_trust_score_no_blackout_no_attack_no_alert(self) -> None : 
         """ When no blackout and no attack occur, and no alert is raised we expect a maximum score
-            until the end of the episode where we have a bonus
+            at the end of the episode and cumulated reward equal to the end of episode bonus
 
         Raises:
             Grid2OpException: raise an exception if an attack occur
@@ -102,7 +97,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
     
     def test_assistant_trust_score_no_blackout_no_attack_alert(self) -> None : 
         """ When an alert is raised while no attack / nor blackout occur, we expect a maximum score
-            until the end of the episode where we have a 42s
+            at the end of the episode and cumulated reward equal to the end of episode bonus
 
         Raises:
             Grid2OpException: raise an exception if an attack occur
@@ -149,8 +144,9 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
 # If attack 
     def test_assistant_trust_score_no_blackout_attack_no_alert(self) -> None :
         """ When we don't raise an alert for an attack (at step 1)
-            but no blackout occur, we expect a final score of 43
-            otherwise 0 at other time steps
+            and no blackout occur, we expect a maximum score
+            at the end of the episode, a cumulated reward equal to reward_max_no_blackout + end of episode bonus.
+            score is otherwise 0 at other time steps
 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
@@ -197,8 +193,10 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert score == 0
 
     def test_assistant_trust_score_no_blackout_attack_alert(self) -> None :
-        """When an attack occur at step 2, we raise an alert at step 1
-            We expect a score of 41
+        """When we raise an alert for an attack (at step 1)
+            and no blackout occur, we expect a minimum score
+            at the end of the episode if end of episode bonus is null (or above otherwise), a cumulated reward equal to reward_min_no_blackout + end of episode bonus.
+            score is otherwise 0 at other time steps
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
@@ -249,20 +247,18 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     if (DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] == 0):
                         assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
                     else:
-                        manual_standardized_score = np.round(
-                            (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                        manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
-                                env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
-                            "min_score"]) * manual_standardized_score
-
-                        assert score == manual_score
+                        assert score > DEFAULT_PARAMS_TRUSTSCORE["min_score"]
+                        assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
 
                 else : 
                     assert score == 0
 
     def test_assistant_trust_score_no_blackout_attack_alert_too_late(self) -> None :
         """ When we raise an alert too late for an attack (at step 2) but no blackout occur, 
-            we expect a score of 43
+            we expect a maximum score at the end of the episode,
+            a cumulated reward equal to reward_max_no_blackout + end of episode bonus.
+            score is otherwise 0 at other time steps
+
 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
@@ -315,7 +311,10 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
 
     def test_assistant_trust_score_no_blackout_attack_alert_too_early(self)-> None :
         """ When we raise an alert too early for an attack (at step 2)
-            but no blackout occur, we expect a score of 43
+            we expect a maximum score at the end of the episode,
+            a cumulated reward equal to reward_max_no_blackout + end of episode bonus.
+            score is otherwise 0 at other time steps
+
 
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
@@ -371,8 +370,11 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
 
     # 2 ligne attaquées 
     def test_assistant_trust_score_no_blackout_2_attack_same_time_no_alert(self) -> None :
-        """ When we don't raise an alert for 2 attacks at the same time (step 1)
-            but no blackout occur, we expect a score of 44
+        """ When we don't raise an alert for 2 attacks at the same time (step 1) (considered as a single attack event)
+            but no blackout occur, we expect a maximum score
+            at the end of the episode, a cumulated reward equal to reward_max_no_blackout + end of episode bonus.
+            score is otherwise 0 at other time steps
+
         """
 
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
@@ -410,7 +412,6 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert nb_last_attacks == 0
                     assert total_nb_attacks == 1 #1 because to simultaneaous attacks is considered as a signgle attack event
 
-                    cm_reward=env._reward_helper.template_reward.cumulated_reward
                     assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] +\
                             DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"]*total_nb_attacks
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
@@ -419,22 +420,16 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] + \
                            DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"]*total_nb_attacks
 
-                    if(DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]==0):
-                        assert score == env._reward_helper.template_reward.max_score
-                    else:
-                        manual_standardized_score = np.round(
-                            (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                        manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
-                                    env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
-                                "min_score"]) * manual_standardized_score
-
-                        assert score == manual_score
+                    assert score == env._reward_helper.template_reward.max_score
                 else : 
                     assert score == 0
     
     def test_assistant_trust_score_no_blackout_2_attack_same_time_1_alert(self) -> None :
-        """ When we raise only 1 alert for 2 attacks at the same time (step 2)
-            but no blackout occur, we expect a score of 42
+        """ When we raise only 1 alert for 2 attacks at the same time (step 2) (considered as a single attack event)
+            but no blackout occur, we expect a mean score
+            at the end of the episode if no end of episode bonus,
+            a cumulated reward equal to (reward_max_no_blackout + reward_min_no_blackout)/2 end of episode bonus.
+            score is otherwise 0 at other time steps
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=3, 
@@ -484,22 +479,22 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] + \
                            DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"] * total_nb_attacks
 
+                    max_score=env._reward_helper.template_reward.max_score
+                    mean_score=(max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
                     if(DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]==0):
-                        assert score == (env._reward_helper.template_reward.max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
+                        assert score == mean_score
                     else:
-                        manual_standardized_score = np.round(
-                            (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                        manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
-                                    env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
-                                "min_score"]) * manual_standardized_score
-
-                        assert score == manual_score
+                        assert score > mean_score #assuming reward_end_episode_bonus is always positive of course
+                        assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,max_score)
                 else : 
                     assert score == 0
 
     def test_assistant_trust_score_no_blackout_2_attack_same_time_2_alert(self) -> None :
-        """ When we raise 2 alerts for 2 attacks at the same time (step 2)
-            but no blackout occur, we expect a score of 41
+        """ When we raise 2 alerts for 2 attacks at the same time (step 2) (considered as a single attack event)
+            but no blackout occur, we expect a minimum score
+            at the end of the episode if no end of episode bonus,
+            a cumulated reward equal to reward_min_no_blackout + end of episode bonus.
+            score is otherwise 0 at other time steps
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=3, 
@@ -542,7 +537,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
 
                     cm_reward=env._reward_helper.template_reward.cumulated_reward
                     assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] + \
-                           (DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]*total_nb_attacks)/total_nb_attacks
+                           DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"] * total_nb_attacks
@@ -552,20 +547,17 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     if(DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]==0):
                         assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
                     else:
-                        manual_standardized_score = np.round(
-                            (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                        manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
-                                    env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
-                                "min_score"]) * manual_standardized_score
-
-                        assert score == manual_score
+                        assert score > DEFAULT_PARAMS_TRUSTSCORE["min_score"]
+                        assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
                 else : 
                     assert score == 0
 
 
     def test_assistant_trust_score_no_blackout_2_attack_diff_time_no_alert(self) -> None :
-        """ When we don't raise an alert for 2 attacks at two times resp. (steps 1 and 2)
-            but no blackout occur, we expect a score of 44
+        """ When we raise 2 alerts for 2 attacks at the same time (step 2)
+            but no blackout occur, we expect a maximum score at the end of the episode,
+            a cumulated reward equal to 2*reward_max_no_blackout + end of episode bonus.
+            score is otherwise 0 at other time steps
         """
 
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
@@ -616,8 +608,10 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert score == 0
         
     def test_assistant_trust_score_no_blackout_2_attack_diff_time_2_alert(self) -> None :
-        """ When we raise 2 alert for 2 attacks at two times (step 2 and 3)  
-            but no blackout occur, we expect a reward of 40
+        """ When we raise 2 alerts for 2 attacks at the same time (step 2)
+            but no blackout occur, we expect a minimum score at the end of the episode if no bonus,
+            a cumulated reward equal to 2*reward_min_no_blackout + end of episode bonus.
+            score is otherwise 0 at other time steps
         """
 
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
@@ -673,19 +667,16 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     if(DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]==0):
                         assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
                     else:
-                        manual_standardized_score = np.round(
-                            (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                        manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
-                                    env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
-                                "min_score"]) * manual_standardized_score
-
-                        assert score == manual_score
+                        assert score > DEFAULT_PARAMS_TRUSTSCORE["min_score"]
+                        assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
                 else : 
                     assert score == 0
 
     def test_assistant_trust_score_no_blackout_2_attack_diff_time_alert_first_attack(self) -> None :
-        """ When we raise 1 alert on the first attack while we have 2 attacks at two times (steps 2 and 3)
-            but no blackout occur, we expect a score of 42
+        """ When we raise 2 alerts for 2 attacks at the same time (step 2)
+            but no blackout occur, we expect a mean score at the end of the episode if no bonus,
+            a cumulated reward equal to reward_max_no_blackout + reward_min_no_blackout + end of episode bonus.
+            score is otherwise 0 at other time steps
         """
 
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
@@ -737,23 +728,22 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] + \
                            DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"] * total_nb_attacks
 
+                    max_score=env._reward_helper.template_reward.max_score
+                    mean_score=(max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
                     if(DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]==0):
-                        assert score == (env._reward_helper.template_reward.max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
+                        assert score == mean_score
                     else:
-                        manual_standardized_score = np.round(
-                            (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                        manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
-                                    env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
-                                "min_score"]) * manual_standardized_score
-
-                        assert score == manual_score
+                        assert score > mean_score #assuming reward_end_episode_bonus is always positive of course
+                        assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,max_score)
                 else : 
                     assert score == 0
 
 
     def test_assistant_trust_score_no_blackout_2_attack_diff_time_alert_second_attack(self) -> None :
         """ When we raise 1 alert on the second attack while we have 2 attacks at two times (steps 2 and 3)
-            but no blackout occur, we expect a score of 42
+            but no blackout occur, we expect a mean score at the end of the episode if no bonus,
+            a cumulated reward equal to reward_max_no_blackout + reward_min_no_blackout + end of episode bonus.
+            score is otherwise 0 at other time steps
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=[1,1], 
@@ -804,15 +794,14 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] + \
                            DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"] * total_nb_attacks
 
+                    max_score=env._reward_helper.template_reward.max_score
+                    mean_score=(max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
+
                     if(DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]==0):
-                        assert score == (env._reward_helper.template_reward.max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
+                        assert score == mean_score
                     else:
-                        manual_standardized_score = np.round(
-                            (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                        manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
-                                    env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
-                                "min_score"]) * manual_standardized_score
-                        assert score == manual_score
+                        assert score > mean_score
+                        assert score == manual_score(cm_reward,cm_reward_min_ep,cm_reward_max_ep,max_score)
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
 
@@ -896,8 +885,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
 # return 2
     def test_assistant_trust_score_blackout_attack_raise_good_alert(self) -> None :
         """When 1 line is attacked at step 3 and we raise a good alert
-        and a blackout occur at step 4
-        we expect a score of 2
+        and a blackout occur at step 4, we expect a maximum score,
+        a cumulated reward equal to reward_max_blackout
+        score is otherwise 0 at other time steps
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
@@ -960,7 +950,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
     def test_assistant_trust_score_blackout_attack_raise_alert_just_before_blackout(self) -> None :
         """
         When 1 line is attacked at step 3 and we raise 1 alert  too late
-        we expect a score of -10 
+        and a blackout occur at step 4, we expect a minimum score,
+        a cumulated reward equal to reward_min_blackout
+        score is otherwise 0 at other time steps
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
@@ -1022,7 +1014,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
     def test_assistant_trust_score_blackout_attack_raise_alert_too_early(self) -> None :
         """
         When 1 line is attacked at step 3 and we raise 1 alert  too early
-        we expect a score of -10
+        and a blackout occur at step 4, we expect a minimum score,
+        a cumulated reward equal to reward_min_blackout
+        score is otherwise 0 at other time steps
         """
         # return -10
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
@@ -1086,7 +1080,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
     def  test_assistant_trust_score_blackout_2_lines_same_step_in_window_good_alerts(self) -> None :
         """
         When 2 lines are attacked simustaneously at step 2 and we raise 2 alert 
-        we expect a score of 2 after the blackout
+        and a blackout occur at step 4, we expect a maximum score,
+        a cumulated reward equal to reward_max_blackout
+        score is otherwise 0 at other time steps
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=3, 
@@ -1152,8 +1148,10 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
 # return -4
     def test_assistant_trust_score_blackout_2_lines_attacked_simulaneous_only_1_alert(self) -> None:
         """
-        When 2 lines are attacked simustaneously at step 2 and we raise only 1 alert 
-        we expect a score of -4
+        When 2 lines are attacked simustaneously (considered as a single attack event) at step 2 and we raise only 1 alert
+        and a blackout occur at step 4, we expect a mean score,
+        a cumulated reward equal to (reward_max_blackout + reward_min_blackout)/2
+        score is otherwise 0 at other time steps
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=3, 
@@ -1213,11 +1211,11 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
 
-                    manual_standardized_score = np.round(
-                        (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                    manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE["min_score"]) * manual_standardized_score
-
-                    assert score == manual_score
+                    max_score=env._reward_helper.template_reward.max_score
+                    mean_score=(DEFAULT_PARAMS_TRUSTSCORE['min_score']+max_score)/2
+                    #assert score > DEFAULT_PARAMS_TRUSTSCORE['min_score']
+                    assert score == mean_score
+                    #assert score == manual_score(cm_reward,cm_reward_min_ep,cm_reward_max_ep,max_score)
                     break
                 else : 
                     assert score == 0
@@ -1226,7 +1224,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
     def  test_assistant_trust_score_blackout_2_lines_different_step_in_window_good_alerts(self) -> None : 
         """
         When 2 lines are attacked at different steps 3 and 4 and we raise 2  alert 
-        we expect a score of 2
+        and a blackout occur at step 4, we expect a maximum score,
+        a cumulated reward equal to (2*reward_max_blackout)/2
+        score is otherwise 0 at other time step
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
@@ -1286,13 +1286,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_max_blackout']  # +DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
 
-                    manual_standardized_score = np.round(
-                        (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                    manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
-                                env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
-                            "min_score"]) * manual_standardized_score
-
-                    assert score == manual_score
+                    max_score=env._reward_helper.template_reward.max_score
+                    assert score == max_score
                     break
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
@@ -1300,7 +1295,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
     def test_assistant_trust_score_blackout_2_lines_attacked_different_step_in_window_only_1_alert_on_first_attacked_line(self) -> None:
         """
         When 2 lines are attacked at different steps 3 and 4 and we raise 1 alert on the first attack
-        we expect a score of -4 on blackout at step 4 
+        and a blackout occur at step 4, we expect a mean score,
+        a cumulated reward equal to (reward_max_blackout + reward_min_blackout)/2
+        score is otherwise 0 at other time step
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
@@ -1353,12 +1350,10 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
 
-                    manual_standardized_score = np.round(
-                        (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                    manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
-                                env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
-                            "min_score"]) * manual_standardized_score
-                    assert score == manual_score
+                    mean_score=(DEFAULT_PARAMS_TRUSTSCORE['min_score']+env._reward_helper.template_reward.max_score)/2
+                    #assert score > DEFAULT_PARAMS_TRUSTSCORE['min_score']
+                    assert score == mean_score
+                    #assert score == manual_score(cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
 
                     break
                 else : 
@@ -1368,7 +1363,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
     def test_assistant_trust_score_blackout_2_lines_attacked_different_step_in_window_only_1_alert_on_second_attacked_line(self) -> None:
         """
         When 2 lines are attacked at different steps 2 and 3 and we raise 1 alert on the second attack
-        we expect a score of -4 
+        and a blackout occur at step 4, we expect a mean score,
+        a cumulated reward equal to (reward_max_blackout + reward_min_blackout)/2
+        score is otherwise 0 at other time step
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
@@ -1421,13 +1418,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
 
-
-                    manual_standardized_score = np.round(
-                        (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep + 1e-5), 4)
-                    manual_score = DEFAULT_PARAMS_TRUSTSCORE["min_score"] + (
-                                env._reward_helper.template_reward.max_score - DEFAULT_PARAMS_TRUSTSCORE[
-                            "min_score"]) * manual_standardized_score
-                    assert score == manual_score
+                    mean_score=(DEFAULT_PARAMS_TRUSTSCORE['min_score']+env._reward_helper.template_reward.max_score)/2
+                    assert score == mean_score
                     break
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
@@ -1435,8 +1427,10 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
 # return 2 
     def test_assistant_trust_score_blackout_2_lines_attacked_different_1_in_window_1_good_alert(self) -> None:
         """
-        When 2 lines are attacked at different steps 3 and 6 and we raise 1 alert on the second attack
-        we expect score of 3
+        When 2 lines are attacked at different steps 3 and 6 and we raise 1 alert at step 5 on the second attack
+        and a blackout occur at step 6, we expect a maximum score,
+        a cumulated reward equal to reward_max_blackout + reward_max_no_blackout
+        score is otherwise 0 at other time step
         """
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1, 1], 
@@ -1499,7 +1493,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
     def test_assistant_trust_score_blackout_no_attack_alert(self) -> None :
 
         """Even if there is a blackout, an we raise an alert
-           we expect a score of 0 because there is no attack"""
+           we expect a score of 0 because there is no attack and we don't finish the scenario"""
         with make(
             self.env_nm,
             test=True,
@@ -1545,7 +1539,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
 # return 0 
     def test_assistant_trust_score_blackout_no_attack_no_alert(self) -> None :
         """Even if there is a blackout, an we don't raise an alert
-           we expect a score of 0 because there is no attack"""
+           we expect a score of 0 because there is no attack and we don't finish the scenario"""
         with make(
             self.env_nm,
             test=True,
@@ -1589,7 +1583,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
 # return 0 
     def test_assistant_trust_score_blackout_no_attack_before_window_alert(self) -> None :
         """Even if there is a blackout, an we raise an alert too early
-           we expect a score of 0 because there is no attack"""
+           we expect a score of 0 because there is no attack and we don't finish the scenario"""
         with make(
             self.env_nm,
             test=True,
@@ -1635,7 +1629,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
 # return 0 
     def test_assistant_trust_score_blackout_no_attack_before_window_no_alert(self) -> None :
         """Even if there is a blackout, an we raise an alert too late
-           we expect a score of 0 because there is no attack"""
+           we expect a score of 0 because there is no attack and we don't finish the scenario"""
         with make(
             self.env_nm,
             test=True,
