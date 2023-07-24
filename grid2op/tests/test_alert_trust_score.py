@@ -51,6 +51,9 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
     """test the basic behavior of the assistant alert feature when no blackout occur """
 
     def setUp(self) -> None:
+        """ WARNING: Parameter ALERT_TIME_WINDOW should be set to 2 in these test for the environment used
+            Max Iter should be set to 10
+        """
         self.env_nm = os.path.join(
             PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
         )
@@ -811,9 +814,12 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
     """test the basic bahavior of the assistant alert feature when a blackout occur"""
 
     def setUp(self) -> None:
+        """ WARNING: Parameter ALERT_TIME_WINDOW should be set to 2 in these test for the environment used
+            Max Iter should be set to 10"""
         self.env_nm = os.path.join(
             PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
         )
+
     
     def get_dn(self, env):
         return env.action_space({})
