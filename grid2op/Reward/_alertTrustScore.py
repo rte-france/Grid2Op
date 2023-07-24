@@ -47,6 +47,7 @@ class _AlertTrustScore(AlertReward):
         
         self.min_score = dt_float(min_score)
         self.max_score = dt_float(1.0)
+        self.blackout_encountered = False
         
     def initialize(self, env):
         self._is_simul_env = self.is_simulated_env(env)
@@ -135,8 +136,8 @@ class _AlertTrustScore(AlertReward):
     def _normalisation_fun(cm_reward, cm_reward_min_ep, cm_reward_max_ep,min_score,max_score,is_blackout):
 
         #in case cm_reward_min_ep=cm_reward_max_ep=0, score can be maximum or 0
-        if(cm_reward_min_ep==cm_reward_max_ep):
-            if (is_blackout):
+        if cm_reward_min_ep == cm_reward_max_ep:
+            if is_blackout:
                 score_ep = 0.0
             else:
                 score_ep = max_score
@@ -147,14 +148,11 @@ class _AlertTrustScore(AlertReward):
     
     def _compute_min_max_reward(self, nb_attacks,nb_last_attacks):
 
-        if (nb_attacks==0 and self.blackout_encountered):
-            cm_reward_min_ep = 0.
-            cm_reward_max_ep= 0.
-        elif(self.blackout_encountered):
-            if(nb_last_attacks==0):
+        if self.blackout_encountered:
+            if nb_last_attacks == 0:
                 cm_reward_min_ep = self.reward_min_no_blackout * nb_attacks
                 cm_reward_max_ep = self.reward_max_no_blackout * nb_attacks
-            elif(nb_last_attacks>=1):
+            elif nb_last_attacks >= 1:
                 cm_reward_min_ep = self.reward_min_no_blackout * (nb_attacks - nb_last_attacks) + self.reward_min_blackout
                 cm_reward_max_ep = self.reward_max_no_blackout * (nb_attacks - nb_last_attacks) + self.reward_max_blackout
         else:
