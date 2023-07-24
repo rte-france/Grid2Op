@@ -36,7 +36,8 @@ DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
                                  reward_end_episode_bonus=0.0,
                                  min_score=-3.0)
 
-#a near copy of _normalisation_fun function when, for to a given trustscore parametrization, it is not easy to guess the score before hand, for a given scenario
+#a near copy of _normalisation_fun function from alertTrusScore. Use when, for to a given trustscore parametrization,
+# it is not easy to guess the score before hand, for a given scenario.
 # especially when reward_end_episode_bonus is non null for some non blackout cases
 def manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,max_score):
 
@@ -470,7 +471,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
                     assert nb_last_attacks == 0
-                    assert total_nb_attacks == 1 #1 because to simultaneaous attacks is considered as a signgle attack event
+                    assert total_nb_attacks == 1 #1 because two simultaneaous attacks is considered as a signgle attack event
 
                     cm_reward=env._reward_helper.template_reward.cumulated_reward
                     assert env._reward_helper.template_reward.cumulated_reward==(DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"] + \
@@ -1144,8 +1145,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
                     #attention, attaque dans une même fenêtre avant blackout ne compte que pour une seule attaque pondérée...
-                    assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
-                    assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
+                    assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']
+                    assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']
 
                     break
                 else : 
@@ -1214,14 +1215,12 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
                     #attention, attaque dans une même fenêtre avant blackout ne compte que pour une seule attaque pondérée...
-                    assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
-                    assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
+                    assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']
+                    assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']
 
                     max_score=env._reward_helper.template_reward.max_score
                     mean_score=(DEFAULT_PARAMS_TRUSTSCORE['min_score']+max_score)/2
-                    #assert score > DEFAULT_PARAMS_TRUSTSCORE['min_score']
                     assert score == mean_score
-                    #assert score == manual_score(cm_reward,cm_reward_min_ep,cm_reward_max_ep,max_score)
                     break
                 else : 
                     assert score == 0
@@ -1288,9 +1287,9 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                         total_nb_attacks,nb_last_attacks)
                     # attention, attaque dans une même fenêtre avant blackout ne compte que pour une seule attaque pondérée...
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE[
-                        'reward_min_blackout']  # +DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
+                        'reward_min_blackout']
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE[
-                        'reward_max_blackout']  # +DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
+                        'reward_max_blackout']
 
                     max_score=env._reward_helper.template_reward.max_score
                     assert score == max_score
@@ -1353,19 +1352,16 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
                     #attention, attaque dans une même fenêtre avant blackout ne compte que pour une seule attaque pondérée...
-                    assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
-                    assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
+                    assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']
+                    assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']
 
                     mean_score=(DEFAULT_PARAMS_TRUSTSCORE['min_score']+env._reward_helper.template_reward.max_score)/2
-                    #assert score > DEFAULT_PARAMS_TRUSTSCORE['min_score']
                     assert score == mean_score
-                    #assert score == manual_score(cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
 
                     break
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
 
-# return -4
     def test_assistant_trust_score_blackout_2_lines_attacked_different_step_in_window_only_1_alert_on_second_attacked_line(self) -> None:
         """
         When 2 lines are attacked at different steps 2 and 3 and we raise 1 alert on the second attack
@@ -1421,8 +1417,8 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     cm_reward_min_ep, cm_reward_max_ep = env._reward_helper.template_reward._compute_min_max_reward(
                         total_nb_attacks,nb_last_attacks)
                     #attention, attaque dans une même fenêtre avant blackout ne compte que pour une seule attaque pondérée...
-                    assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
-                    assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
+                    assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']
+                    assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']
 
                     mean_score=(DEFAULT_PARAMS_TRUSTSCORE['min_score']+env._reward_helper.template_reward.max_score)/2
                     assert score == mean_score
@@ -1490,7 +1486,7 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                         total_nb_attacks,nb_last_attacks)
 
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']+DEFAULT_PARAMS_TRUSTSCORE['reward_min_no_blackout']
-                    assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']#+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
+                    assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']+DEFAULT_PARAMS_TRUSTSCORE['reward_max_no_blackout']
                     break
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
