@@ -21,7 +21,8 @@ class _AlertCostScore(BaseReward):
     """
 
     INTERNAL
-
+    .. danger:: This function is not used and not tested
+    
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             It **must not** serve as a reward. This scored needs to be **MAXIMIZED**,
             as it is a negative! Also, this "reward" is not scaled or anything. Use it as your
