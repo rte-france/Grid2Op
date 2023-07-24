@@ -50,7 +50,6 @@ class _AlertTrustScore(AlertReward):
         
     def initialize(self, env):
         self._is_simul_env = self.is_simulated_env(env)
-        #SURVIVOR_TIMESTEPS=env._al
             
         self.cumulated_reward = 0
         #KPIs
@@ -133,15 +132,16 @@ class _AlertTrustScore(AlertReward):
             return score_ep
         
     @staticmethod
-    def _normalisation_fun(cm_reward, cm_reward_min_ep, cm_reward_max_ep,min_score,max_score,is_blackout,tol=1e-5):
-        standardized_score = np.round((cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep +tol),4)
-        #in case cm_reward_min_ep=cm_reward_max_ep=0, score is maximum
+    def _normalisation_fun(cm_reward, cm_reward_min_ep, cm_reward_max_ep,min_score,max_score,is_blackout):
+
+        #in case cm_reward_min_ep=cm_reward_max_ep=0, score can be maximum or 0
         if(cm_reward_min_ep==cm_reward_max_ep):
             if (is_blackout):
                 score_ep = 0.0
             else:
                 score_ep = max_score
         else:
+            standardized_score = (cm_reward - cm_reward_min_ep) / (cm_reward_max_ep - cm_reward_min_ep)#denominator cannot be 0 given first if condition
             score_ep = min_score + (max_score - min_score) * standardized_score
         return score_ep
     
