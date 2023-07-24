@@ -18,7 +18,7 @@ from grid2op import make
 from grid2op.Reward import _AlertTrustScore
 from grid2op.Parameters import Parameters
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Runner import Runner  # TODO
+from grid2op.Runner import Runner
 from grid2op.Action import BaseAction, PlayableAction
 from grid2op.Agent import BaseAgent
 from grid2op.Episode import EpisodeData
@@ -36,7 +36,7 @@ DEFAULT_PARAMS_TRUSTSCORE = dict(reward_min_no_blackout=-1.0,
                                  reward_end_episode_bonus=0.0,
                                  min_score=-3.0)
 
-#a near copy of _normalisation_fun function when for to a given trustscore parametrization it is not easy to guess the score before hand
+#a near copy of _normalisation_fun function when, for to a given trustscore parametrization, it is not easy to guess the score before hand, for a given scenario
 # especially when reward_end_episode_bonus is non null for some non blackout cases
 def manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,max_score):
 
@@ -1680,6 +1680,61 @@ class TestAlertTrustScoreBlackout(unittest.TestCase):
                     break
             
             assert done
+
+
+class TestRunnerAlertTrust(unittest.TestCase):
+    def setUp(self) -> None:
+        self.env_nm = os.path.join(
+            PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
+        )
+        self.env = make(self.env_nm, test=True, difficulty="1",
+                                reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE))
+        self.env.seed(0)
+        return super().setUp()
+
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+
+    def test_dn_agent(self):
+        obs = self.env.reset()
+        runner = Runner(**self.env.get_params_for_runner())
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
+        assert np.round(res[0][2], 3) == 1.  # it got to the end
+
+    def test_simagent(self):
+        # simulate blackout but act donothing
+        obs = self.env.reset()
+
+        class SimAgent(BaseAgent):
+            def act(self, observation: BaseObservation, reward: float, done: bool = False) -> BaseAction:
+                go_act = self.action_space({"set_bus": {"generators_id": [(0, -1)]}})
+                simO, simr, simd, simi = obs.simulate(go_act)
+                simO, simr, simd, simi = obs.simulate(self.action_space())
+                return super().act(observation, reward, done)
+
+        runner = Runner(**self.env.get_params_for_runner(),
+                        agentClass=SimAgent)
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0])
+        assert np.round(res[0][2], 3) == 1.
+
+    def test_episodeData(self):
+        obs = self.env.reset()
+        runner = Runner(**self.env.get_params_for_runner())
+        res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0], add_detailed_output=True)
+        assert np.round(res[0][2], 3) == 1.
+        assert np.round(res[0][5].rewards[8]) == 1.
+
+    def test_with_save(self):
+        obs = self.env.reset()
+        runner = Runner(**self.env.get_params_for_runner())
+        with tempfile.TemporaryDirectory() as f:
+            res = runner.run(nb_episode=1, episode_id=[0], max_iter=10, env_seeds=[0],
+                             path_save=f)
+            assert np.round(res[0][2], 3) == 1.
+            ep0, *_ = EpisodeData.list_episode(f)
+            ep = EpisodeData.from_disk(*ep0)
+            assert np.round(ep.rewards[8]) == 1.
 
 
 if __name__ == "__main__":
