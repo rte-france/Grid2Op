@@ -11,7 +11,12 @@ from grid2op.Reward.baseReward import BaseReward
 from grid2op.Reward._newRenewableSourcesUsageScore import _NewRenewableSourcesUsageScore
 from grid2op.dtypes import dt_float
 from grid2op.Exceptions import Grid2OpException
-        
+import warnings
+
+#TODO
+# Test this class comprehensively if usage is revived.
+# Was originally thought for use in L2RPN 2023 Competition, but eventually not selected for use.
+# Tests were disregarded at some stage of these developments.
 class _AlertCostScore(BaseReward):
     """
 
@@ -36,6 +41,8 @@ class _AlertCostScore(BaseReward):
         self._is_simul_env = False
         self.total_nb_alertes_possible = None
         self.total_nb_alerts = None
+
+        warnings.warn("This class is not tested, use it with care")
         
     def initialize(self, env):
 
