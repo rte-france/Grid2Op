@@ -71,7 +71,7 @@ class TestScoreL2RPN2023(unittest.TestCase):
             scale_nres_score=100,
             scale_assistant_score=100,
             min_nres_score=-100.,
-            min_assistant_cost_score=-300)
+            min_assistant_score=-300)
         try:
             # test do nothing indeed gets 100.
             res_dn = my_score.get(DoNothingAgent(self.env.action_space))
