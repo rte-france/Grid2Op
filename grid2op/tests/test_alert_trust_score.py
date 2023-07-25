@@ -153,11 +153,10 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert cm_reward_min_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_min_no_blackout"]
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]+DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"]
 
-                    if (DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] == 0):
-                        assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
-                    else:
-                        assert score > DEFAULT_PARAMS_TRUSTSCORE["min_score"]
-                        assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
+                    assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]  # because reward_end_episode_bonus == 0
+                    #  Can Be used if reward_end_episode_bonus!=0
+                    #  assert score > DEFAULT_PARAMS_TRUSTSCORE["min_score"]
+                    #  assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
 
                 else : 
                     assert score == 0
@@ -223,11 +222,10 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
 
                     max_score = env._reward_helper.template_reward.max_score
                     mean_score = (max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
-                    if (DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] == 0):
-                        assert score == mean_score
-                    else:
-                        assert score > mean_score  # assuming reward_end_episode_bonus is always positive of course
-                        assert score == manual_score(cm_reward, cm_reward_min_ep, cm_reward_max_ep, max_score)
+                    assert score == mean_score # because reward_end_episode_bonus == 0
+                    #  Can Be used if reward_end_episode_bonus!=0
+                    #  assert score > mean_score
+                    #  assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
                 else:
                     assert score == 0
 
@@ -558,11 +556,10 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] + \
                            DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"] * total_nb_attacks
 
-                    if(DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]==0):
-                        assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
-                    else:
-                        assert score > DEFAULT_PARAMS_TRUSTSCORE["min_score"]
-                        assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
+                    assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"] # because reward_end_episode_bonus == 0
+                    #  Can Be used if reward_end_episode_bonus!=0
+                    #  assert score > DEFAULT_PARAMS_TRUSTSCORE["min_score"]
+                    #  assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
                 else : 
                     assert score == 0
 
@@ -678,11 +675,10 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     assert cm_reward_max_ep == DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"] + \
                            DEFAULT_PARAMS_TRUSTSCORE["reward_max_no_blackout"] * total_nb_attacks
 
-                    if(DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]==0):
-                        assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"]
-                    else:
-                        assert score > DEFAULT_PARAMS_TRUSTSCORE["min_score"]
-                        assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
+                    assert score == DEFAULT_PARAMS_TRUSTSCORE["min_score"] # because reward_end_episode_bonus == 0
+                    #  Can Be used if reward_end_episode_bonus!=0
+                    #  assert score > DEFAULT_PARAMS_TRUSTSCORE["min_score"]
+                    #  assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
                 else : 
                     assert score == 0
 
@@ -744,11 +740,12 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
 
                     max_score=env._reward_helper.template_reward.max_score
                     mean_score=(max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
-                    if(DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]==0):
-                        assert score == mean_score
-                    else:
-                        assert score > mean_score #assuming reward_end_episode_bonus is always positive of course
-                        assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,max_score)
+
+                    assert score == mean_score # because reward_end_episode_bonus == 0
+                    #  Can Be used if reward_end_episode_bonus!=0
+                    #  assert score > mean_score
+                    #  assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
+
                 else : 
                     assert score == 0
 
@@ -811,11 +808,10 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
                     max_score=env._reward_helper.template_reward.max_score
                     mean_score=(max_score + DEFAULT_PARAMS_TRUSTSCORE["min_score"]) / 2
 
-                    if(DEFAULT_PARAMS_TRUSTSCORE["reward_end_episode_bonus"]==0):
-                        assert score == mean_score
-                    else:
-                        assert score > mean_score
-                        assert score == manual_score(cm_reward,cm_reward_min_ep,cm_reward_max_ep,max_score)
+                    assert score == mean_score # because reward_end_episode_bonus == 0
+                    #  Can Be used if reward_end_episode_bonus!=0
+                    #  assert score > mean_score
+                    #  assert score == manual_score (cm_reward,cm_reward_min_ep,cm_reward_max_ep,env._reward_helper.template_reward.max_score)
                 else : 
                     assert score == 0, f"error for step {step}: {score} vs 0"
 
