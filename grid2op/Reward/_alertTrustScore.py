@@ -149,10 +149,10 @@ class _AlertTrustScore(AlertReward):
     def _compute_min_max_reward(self, nb_attacks,nb_last_attacks):
 
         if self.blackout_encountered:
-            if nb_last_attacks == 0:
+            if nb_last_attacks == 0: #in the case the blackout is not tied to a recent attack
                 cm_reward_min_ep = self.reward_min_no_blackout * nb_attacks
                 cm_reward_max_ep = self.reward_max_no_blackout * nb_attacks
-            elif nb_last_attacks >= 1:
+            elif nb_last_attacks >= 1:#in the case one or several recent attacks can be tied to the blackout 
                 cm_reward_min_ep = self.reward_min_no_blackout * (nb_attacks - nb_last_attacks) + self.reward_min_blackout
                 cm_reward_max_ep = self.reward_max_no_blackout * (nb_attacks - nb_last_attacks) + self.reward_max_blackout
         else:
