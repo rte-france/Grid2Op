@@ -11,13 +11,8 @@ import numpy as np
 import unittest
 
 import grid2op
-from grid2op.Action import ActionSpace, BaseAction
 from grid2op.utils import ScoreL2RPN2023
-from grid2op.Observation import BaseObservation
-from grid2op.Agent.doNothing import DoNothingAgent, BaseAgent
-from grid2op.Chronics import FromHandlers
-from grid2op.Chronics.handlers import CSVHandler, PerfectForecastHandler
-from grid2op.Reward import _NewRenewableSourcesUsageScore
+from grid2op.Agent.doNothing import DoNothingAgent
 
 class TestScoreL2RPN2023(unittest.TestCase):
 
@@ -26,23 +21,8 @@ class TestScoreL2RPN2023(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(env_name,
-                                    test=True,
-                                    #data_feeding_kwargs={"gridvalueClass": FromHandlers,
-                                    #                     "gen_p_handler": CSVHandler("prod_p"),
-                                    #                     "load_p_handler": CSVHandler("load_p"),
-                                    #                     "gen_v_handler": CSVHandler("prod_v"),
-                                    #                     "load_q_handler": CSVHandler("load_q"),
-                                    #                     "h_forecast": (5,),
-                                    #                     "gen_p_for_handler": PerfectForecastHandler(
-                                    #                         "prod_p_forecasted", quiet_warnings=True),
-                                    #                     "gen_v_for_handler": PerfectForecastHandler(
-                                    #                         "prod_v_forecasted", quiet_warnings=True),
-                                    #                     "load_p_for_handler": PerfectForecastHandler(
-                                    #                         "load_p_forecasted", quiet_warnings=True),
-                                    #                     "load_q_for_handler": PerfectForecastHandler(
-                                    #                         "load_q_forecasted", quiet_warnings=True),
-                                    #                     },
-                                                         )
+                                    test=True)
+
             self.env.set_max_iter(20)
             params = self.env.parameters
             params.NO_OVERFLOW_DISCONNECTION = True
