@@ -829,7 +829,7 @@ class TestAlertTrustScoreBlackout_NoAttackCause(unittest.TestCase):
         return env.action_space({})
 
     def get_blackout(self, env):
-        return _get_blackout(env)
+        return _get_blackout(env.action_space)
 
     # this is the test case a blackout occur but not because of an attack and you get a maximum score
     def test_assistant_trust_score_blackout_attack_nocause_blackout_no_alert(self) -> None:
@@ -1162,7 +1162,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         return env.action_space({})
 
     def get_blackout(self, env):
-        return _get_blackout(env)
+        return _get_blackout(env.action_space)
 
     # this is the test case blakcout with attack where it reaches maximum score
     def test_assistant_trust_score_blackout_attack_raise_good_alert(self) -> None :
