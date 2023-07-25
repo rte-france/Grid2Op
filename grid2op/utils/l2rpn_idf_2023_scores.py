@@ -6,8 +6,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import numpy as np
 from grid2op.utils.l2rpn_2020_scores import ScoreL2RPN2020
-from grid2op.Reward import L2RPNSandBoxScore, _NewRenewableSourcesUsageScore, _AlertTrustScore  # , _AlertCostScore
+from grid2op.Reward import L2RPNSandBoxScore, _NewRenewableSourcesUsageScore, _AlertTrustScore
 from grid2op.utils.underlying_statistics import EpisodeStatistics
 from grid2op.Exceptions import Grid2OpException
 
@@ -113,11 +114,15 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             score_names=score_names,
             add_nb_highres_sim=add_nb_highres_sim,
         )
-
-        test_weights = weight_op_score + weight_assistant_score + weight_nres_score
+        weights=np.array([weight_op_score,weight_assistant_score,weight_nres_score])
+        test_weights = weights.sum()
         if test_weights != 1.0:
             raise Grid2OpException(
                 'The weights of each component of the score shall sum to 1'
+            )
+        if np.any(test_weights <0):
+            raise Grid2OpException(
+                'All weights should be positive'
             )
 
         self.scale_assistant_score = scale_assistant_score
