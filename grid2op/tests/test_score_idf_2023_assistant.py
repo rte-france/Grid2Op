@@ -17,7 +17,7 @@ from grid2op.Observation import BaseObservation
 from grid2op.Action import BaseAction
 from grid2op.Chronics import FromHandlers
 from grid2op.Chronics.handlers import CSVHandler, PerfectForecastHandler
-from _aux_opponent_for_test_alerts import TestOpponent
+from _aux_opponent_for_test_alerts import TestOpponent, _get_blackout
 
 class Alert_Blackout_Agent(BaseAgent):
     def __init__(self, action_space,do_Alerts=False,blackout_step=None):
@@ -32,17 +32,11 @@ class Alert_Blackout_Agent(BaseAgent):
             act+=self.action_space({"raise_alert": [i for i in range(len(observation.alertable_line_ids))]})#we don't know which line will get attacked, so we raise all alerts to be sure to raise an alert for the line attacked
 
         if((self.blackout_step is not None) and (observation.current_step == self.blackout_step)):
-            blackout_action = self.action_space({})
-            blackout_action.gen_set_bus = [(0, -1)]
-            act+=blackout_action
+            #blackout_action = self.action_space({})
+            #blackout_action.gen_set_bus = [(0, -1)]
+            act+=_get_blackout(self.action_space)
 
         return act
-
-
-def get_blackout(self, env):
-    blackout_action = env.action_space({})
-    blackout_action.gen_set_bus = [(0, -1)]
-    return blackout_action
 
 class TestScoreL2RPN2023Assist(unittest.TestCase):
     """test the "assistant" part of the l2rpn_idf_2023"""
@@ -53,27 +47,9 @@ class TestScoreL2RPN2023Assist(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
 
-            kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE],
-                                   duration=3,
-                                   steps_attack=[2])
-            opponent_class = TestOpponent,
-            #kwargs_opponent = kwargs_opponent,
-
             self.env = grid2op.make(env_name,
-                                    test=True,
-                                    #Error currently at doing make with kwargs below
-                                    #data_feeding_kwargs={"gridvalueClass": FromHandlers,
-                                    #                      "gen_p_handler": CSVHandler("prod_p"),
-                                    #                      "load_p_handler": CSVHandler("load_p"),
-                                    #                      "gen_v_handler": CSVHandler("prod_v"),
-                                    #                      "load_q_handler": CSVHandler("load_q"),
-                                    #                      "h_forecast": (5,),
-                                    #                      "gen_p_for_handler": PerfectForecastHandler("prod_p_forecasted", quiet_warnings=True),
-                                    #                      "gen_v_for_handler": PerfectForecastHandler("prod_v_forecasted", quiet_warnings=True),
-                                    #                      "load_p_for_handler": PerfectForecastHandler("load_p_forecasted", quiet_warnings=True),
-                                    #                      "load_q_for_handler": PerfectForecastHandler("load_q_forecasted", quiet_warnings=True),
-                                    #                    },
-                                    )
+                                    test=True)
+
             self.env.set_max_iter(30)
             params = self.env.parameters
             params.NO_OVERFLOW_DISCONNECTION = True

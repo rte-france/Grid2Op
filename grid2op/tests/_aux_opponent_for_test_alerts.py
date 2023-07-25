@@ -22,6 +22,11 @@ def _get_steps_attack(kwargs_opponent, multi=False):
             res.append(ts + np.arange(kwargs_opponent["duration"][i]))
     return np.unique(np.concatenate(res).flatten())
 
+def _get_blackout(action_space):
+    blackout_action = action_space({})
+    blackout_action.gen_set_bus = [(0, -1)]
+    return blackout_action
+
 
 class OpponentForTestAlert(BaseOpponent): 
     """An opponent that can select the line attack, the time and duration of the attack."""
