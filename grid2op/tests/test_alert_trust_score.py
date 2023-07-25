@@ -25,7 +25,8 @@ from grid2op.Episode import EpisodeData
 
 from _aux_opponent_for_test_alerts import (_get_steps_attack,
                                            TestOpponent,
-                                           TestOpponentMultiLines)
+                                           TestOpponentMultiLines,
+                                           _get_blackout)
 
 ATTACKED_LINE = "48_50_136"
 
@@ -828,9 +829,7 @@ class TestAlertTrustScoreBlackout_NoAttackCause(unittest.TestCase):
         return env.action_space({})
 
     def get_blackout(self, env):
-        blackout_action = env.action_space({})
-        blackout_action.gen_set_bus = [(0, -1)]
-        return blackout_action
+        return _get_blackout(env)
 
     # this is the test case a blackout occur but not because of an attack and you get a maximum score
     def test_assistant_trust_score_blackout_attack_nocause_blackout_no_alert(self) -> None:
@@ -880,7 +879,7 @@ class TestAlertTrustScoreBlackout_NoAttackCause(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 0
+                    assert nb_last_attacks == 0 # because no attack caused the blackout
                     assert total_nb_attacks == 1
 
                     assert env._reward_helper.template_reward.cumulated_reward == DEFAULT_PARAMS_TRUSTSCORE[
@@ -946,7 +945,7 @@ class TestAlertTrustScoreBlackout_NoAttackCause(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 0
+                    assert nb_last_attacks == 0 # because no attack caused the blackout
                     assert total_nb_attacks == 1
 
                     assert env._reward_helper.template_reward.cumulated_reward == DEFAULT_PARAMS_TRUSTSCORE[
@@ -1163,9 +1162,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         return env.action_space({})
 
     def get_blackout(self, env):
-        blackout_action = env.action_space({})
-        blackout_action.gen_set_bus = [(0, -1)]
-        return blackout_action
+        return _get_blackout(env)
 
     # this is the test case blakcout with attack where it reaches maximum score
     def test_assistant_trust_score_blackout_attack_raise_good_alert(self) -> None :
@@ -1218,7 +1215,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 1
+                    assert nb_last_attacks == 1 # because blackout caused by attack
                     assert total_nb_attacks == 1
 
                     assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE['reward_max_blackout']
@@ -1283,7 +1280,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 1
+                    assert nb_last_attacks == 1 # because blackout caused by attack
                     assert total_nb_attacks == 1
 
                     assert env._reward_helper.template_reward.cumulated_reward==DEFAULT_PARAMS_TRUSTSCORE['reward_min_blackout']
@@ -1348,8 +1345,8 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 1
-                    assert total_nb_attacks == 1  # 1 because to simultaneaous attacks is considered as a signgle attack event
+                    assert nb_last_attacks == 1 # because blackout caused by attack
+                    assert total_nb_attacks == 1  # 1 because two simultaneaous attacks is considered as a signgle attack event
 
                     cm_reward = env._reward_helper.template_reward.cumulated_reward
                     assert cm_reward == (DEFAULT_PARAMS_TRUSTSCORE[
@@ -1417,7 +1414,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 1
+                    assert nb_last_attacks == 1 # because blackout caused by attack
                     assert total_nb_attacks == 1
                     assert env._reward_helper.template_reward.cumulated_reward == DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_min_blackout']  # -10
@@ -1480,7 +1477,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 1
+                    assert nb_last_attacks == 1 # because blackout caused by attack
                     assert total_nb_attacks == 1
 
                     assert env._reward_helper.template_reward.cumulated_reward == DEFAULT_PARAMS_TRUSTSCORE[
@@ -1546,8 +1543,8 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 1
-                    assert total_nb_attacks == 1 #1 because to simultaneaous attacks is considered as a signgle attack event
+                    assert nb_last_attacks == 1 # because blackout caused by attack
+                    assert total_nb_attacks == 1 #1 because two simultaneaous attacks is considered as a signgle attack event
 
                     assert env._reward_helper.template_reward.cumulated_reward == (DEFAULT_PARAMS_TRUSTSCORE[
                         'reward_max_blackout']+DEFAULT_PARAMS_TRUSTSCORE[
@@ -1613,7 +1610,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 2
+                    assert nb_last_attacks == 2 # because blackout caused by attacks
                     assert total_nb_attacks == 2
 
                     cm_reward = env._reward_helper.template_reward.cumulated_reward
@@ -1678,7 +1675,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 2
+                    assert nb_last_attacks == 2 # because blackout caused by attacks
                     assert total_nb_attacks == 2
 
                     cm_reward = env._reward_helper.template_reward.cumulated_reward
@@ -1743,7 +1740,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 2
+                    assert nb_last_attacks == 2 # because blackout caused by attacks
                     assert total_nb_attacks == 2
 
                     cm_reward = env._reward_helper.template_reward.cumulated_reward
@@ -1811,7 +1808,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
                     total_nb_attacks = env._reward_helper.template_reward.total_nb_attacks
                     nb_last_attacks = env._reward_helper.template_reward.nb_last_attacks
 
-                    assert nb_last_attacks == 1
+                    assert nb_last_attacks == 1 # because blackout caused by attack
                     assert total_nb_attacks == 2
 
                     assert env._reward_helper.template_reward.cumulated_reward == (DEFAULT_PARAMS_TRUSTSCORE[
