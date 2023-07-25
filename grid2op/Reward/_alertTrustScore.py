@@ -68,6 +68,7 @@ class _AlertTrustScore(AlertReward):
             
     def reset(self, env):
         super().reset(env)
+        self.blackout_encountered = False
         self.cumulated_reward = 0
         #KPIs
         self.total_nb_attacks = 0
@@ -88,10 +89,6 @@ class _AlertTrustScore(AlertReward):
             return score_ep
 
         self.blackout_encountered = self.is_in_blackout(has_error, is_done)
-        
-        score_ep = 0.
-        if self._is_simul_env:
-            return score_ep
             
         res = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
         self.cumulated_reward += res
@@ -103,33 +100,37 @@ class _AlertTrustScore(AlertReward):
         #lines_alerted_beforeattack = np.equal(env._time_since_last_alert, env._time_since_last_attack + 1) and lines_attacked
         #self.total_nb_alerts += np.sum(lines_alerted_beforeattack)
             
-        if not is_done:
+        if is_done:
+            indexes_to_look = (np.arange(-self.time_window, 1) + self._current_id) % self._nrows_array  # include current step (hence the np.arange(..., **1**))
+            ts_attack_in_order = self._ts_attack[indexes_to_look, :]
+            self.nb_last_attacks = ts_attack_in_order.any(axis=1).sum()
+
+            cm_reward_min_ep, cm_reward_max_ep = self._compute_min_max_reward(self.total_nb_attacks,
+                                                                              self.nb_last_attacks)
+            score_ep = self._normalisation_fun(self.cumulated_reward, cm_reward_min_ep, cm_reward_max_ep,
+                                               self.min_score, self.max_score, self.blackout_encountered)
 
             # TODO
-            #lines_attacked_no_blackout = env._time_since_last_attack == SURVIVOR_TIMESTEPS
-#
-            #self.alert_attack_no_blackout += np.sum(lines_alerted_beforeattack[lines_attacked_no_blackout])
-            #self.no_alert_attack_no_blackout += np.sum(~lines_alerted_beforeattack[lines_attacked_no_blackout])
-            
-            return score_ep
-            
-        else:
-            self.nb_last_attacks=np.sum(np.any(self._ts_attack,axis=1))
-            cm_reward_min_ep, cm_reward_max_ep = self._compute_min_max_reward(self.total_nb_attacks,self.nb_last_attacks)
-            score_ep = self._normalisation_fun(self.cumulated_reward, cm_reward_min_ep, cm_reward_max_ep,self.min_score,self.max_score,self.blackout_encountered)
-
-            # TODO
-            #if self.blackout_encountered:
+            # if self.blackout_encountered:
             #    lines_attacked_dangerzone = (env._time_since_last_attack >= 0) * (env._time_since_last_attack < SURVIVOR_TIMESTEPS)
             #
             #    self.alert_attack_blackout += 1. * any(lines_alerted_beforeattack[lines_attacked_dangerzone])
             #    self.no_alert_attack_blackout += 1. * any(~lines_alerted_beforeattack[lines_attacked_dangerzone])
-            #else :
+            # else :
             #    lines_attacked_no_blackout = env._time_since_last_attack > 0
             #
             #    self.alert_attack_no_blackout += np.sum(lines_alerted_beforeattack[lines_attacked_no_blackout])
             #    self.no_alert_attack_no_blackout += np.sum(~lines_alerted_beforeattack[lines_attacked_no_blackout])
+
+            return score_ep
             
+        else:
+            # TODO
+            # lines_attacked_no_blackout = env._time_since_last_attack == SURVIVOR_TIMESTEPS
+            #
+            # self.alert_attack_no_blackout += np.sum(lines_alerted_beforeattack[lines_attacked_no_blackout])
+            # self.no_alert_attack_no_blackout += np.sum(~lines_alerted_beforeattack[lines_attacked_no_blackout])
+
             return score_ep
         
     @staticmethod
@@ -152,7 +153,7 @@ class _AlertTrustScore(AlertReward):
             if nb_last_attacks == 0: #in the case the blackout is not tied to a recent attack
                 cm_reward_min_ep = self.reward_min_no_blackout * nb_attacks
                 cm_reward_max_ep = self.reward_max_no_blackout * nb_attacks
-            elif nb_last_attacks >= 1:#in the case one or several recent attacks can be tied to the blackout 
+            elif nb_last_attacks >= 1:#in the case the blackout can be tied to one or several recent attacks 
                 cm_reward_min_ep = self.reward_min_no_blackout * (nb_attacks - nb_last_attacks) + self.reward_min_blackout
                 cm_reward_max_ep = self.reward_max_no_blackout * (nb_attacks - nb_last_attacks) + self.reward_max_blackout
         else:
