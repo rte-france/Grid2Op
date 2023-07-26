@@ -57,7 +57,7 @@ jobs:
           # auditwheel repair dist/*.whl  # only for compiled code !
 
       - name: Install wheel
-        run: pip3 install wheelhouse/*.whl --user
+        run: pip3 install dist/*.whl --user
 
       - name: Check package can be imported
         run: |
