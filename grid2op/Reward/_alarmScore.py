@@ -65,14 +65,7 @@ class _AlarmScore(AlarmReward):
 
         self.disc_lines_all_before_cascade = []
         self.n_line = None
-
-        # This class remembers the past state of the grid, this does not make sense for the "simulate" env
-        # so i deactivate it in this case.
-        from grid2op.Environment._ObsEnv import (
-            _ObsEnv,
-        )  # to avoid circular dependencies
-
-        self._deactivate_reward_cls = (_ObsEnv,)
+        self._i_am_simulate = True
 
     def initialize(self, env):
         if not env._has_attention_budget:
@@ -88,6 +81,7 @@ class _AlarmScore(AlarmReward):
         super().reset(env)
         self.window_disconnection = max(self.best_time - self.window_size, 4)
         self.disc_lines_all_before_cascade = []
+        self._i_am_simulate = self.is_simulated_env(env)
 
     def _lines_disconnected_first(self, disc_lines_at_cascading_time):
         """
@@ -107,17 +101,17 @@ class _AlarmScore(AlarmReward):
                 self.disc_lines_all_before_cascade[step] >= 0
             ] = True
 
-        if np.sum(disc_lines_to_consider_for_score) == 0:
+        if disc_lines_to_consider_for_score.sum() == 0:
             disc_lines_to_consider_for_score = disc_lines_at_cascading_time == 0
 
         # if we are there, it is because we have identified before that the failure is due to disconnected powerlines
-        assert np.any(disc_lines_to_consider_for_score)
+        assert (disc_lines_to_consider_for_score).any()
 
         # we transform the vector so that disconnected lines have a zero, to be coherent with env._disc_lines
         return 1 - disc_lines_to_consider_for_score
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        if self.is_simulated_env(env):
+        if self._i_am_simulate:
             return self.reward_no_game_over
 
         disc_lines_now = env._disc_lines

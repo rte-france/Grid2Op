@@ -55,7 +55,7 @@ class L2RPNReward(BaseReward):
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if not is_done and not has_error:
             line_cap = self.__get_lines_capacity_usage(env)
-            res = np.sum(line_cap)
+            res = line_cap.sum()
         else:
             # no more data to consider, no powerflow has been run, reward is what it is
             res = self.reward_min

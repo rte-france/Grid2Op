@@ -11,9 +11,6 @@ import numpy as np
 from grid2op.dtypes import dt_int
 from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 
-# from gym.spaces import Box, MultiDiscrete
-# from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
-
 
 class __AuxContinuousToDiscreteConverter:
     """
@@ -134,7 +131,7 @@ class __AuxContinuousToDiscreteConverter:
     def g2op_to_gym(self, g2op_object):
         mask = self._bins_size >= g2op_object
         mask = 1 - mask
-        res = np.sum(mask, axis=0)
+        res = mask.sum(axis=0)
         res[self._ignored] = 0
         return res
 

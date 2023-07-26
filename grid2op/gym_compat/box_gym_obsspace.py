@@ -632,10 +632,7 @@ class __AuxBoxGymObsSpace:
         # initialize the base container
         type(self)._BoxType.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
         
-        # convert data in `_add` and `_multiply` to the right type
-            
-        # self._subtract = {k: v.astype(self.dtype) for k, v in self._subtract.items()}
-        # self._divide = {k: v.astype(self.dtype) for k, v in self._divide.items()}
+        # convert data in `_subtract` and `_divide` to the right type
         self._fix_value_sub_div(self._subtract, functs)
         self._fix_value_sub_div(self._divide, functs)
 
@@ -713,7 +710,7 @@ class __AuxBoxGymObsSpace:
                 elif isinstance(high_, float):
                     high_ = np.full(shape_, fill_value=high_, dtype=dtype_)
 
-                if np.any((tmp < low_) | (tmp > high_)):
+                if ((tmp < low_) | (tmp > high_)).any():
                     raise RuntimeError(
                         f"Wrong value for low / high in the functs argument for key {el}. Please"
                         f"fix the low_ / high_ in the tuple ( callable_, low_, high_, shape_, dtype_)."
@@ -861,7 +858,7 @@ class __AuxBoxGymObsSpace:
                 both_finite = finite_high & finite_low
                 both_finite &= curr_high > curr_low
 
-                if np.any(~both_finite):
+                if (~both_finite).any():
                     warnings.warn(f"The normalization of attribute \"{both_finite}\" cannot be performed entirely as "
                                   f"there are some non finite value, or `high == `low` "
                                   f"for some components.")

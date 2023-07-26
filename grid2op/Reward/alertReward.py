@@ -8,6 +8,7 @@
 
 import numpy as np
 
+from typing import Optional
 from grid2op.Reward.baseReward import BaseReward
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 
@@ -80,34 +81,31 @@ class AlertReward(BaseReward):
                  reward_end_episode_bonus=1.0):
         BaseReward.__init__(self, logger=logger)
         
-        self.reward_min_no_blackout = dt_float(reward_min_no_blackout)
-        self.reward_min_blackout = dt_float(reward_min_blackout)
-        self.reward_max_no_blackout = dt_float(reward_max_no_blackout)
-        self.reward_max_blackout = dt_float(reward_max_blackout)
-        self.reward_end_episode_bonus = dt_float(reward_end_episode_bonus)
-        self.reward_no_game_over = dt_float(0.0)
+        self.reward_min_no_blackout : float = dt_float(reward_min_no_blackout)
+        self.reward_min_blackout : float = dt_float(reward_min_blackout)
+        self.reward_max_no_blackout : float = dt_float(reward_max_no_blackout)
+        self.reward_max_blackout : float = dt_float(reward_max_blackout)
+        self.reward_end_episode_bonus : float = dt_float(reward_end_episode_bonus)
+        self.reward_no_game_over : float = dt_float(0.0)
         
-        self._reward_range_blackout = (self.reward_max_blackout - self.reward_min_blackout)
+        self._reward_range_blackout : float = (self.reward_max_blackout - self.reward_min_blackout)
 
-        self.total_time_steps = dt_int(0.0)
-        self.time_window = None
+        self.total_time_steps : Optional[int] = dt_int(0)
+        self.time_window : Optional[int] = None
         
-        self._ts_attack : np.ndarray = None
+        self._ts_attack : Optional[np.ndarray] = None
         self._current_id : int = 0
-        self._lines_currently_attacked : np.ndarray = None
-        self._alert_launched : np.ndarray = None
-        self._nrows_array : int = None
+        self._lines_currently_attacked : Optional[np.ndarray] = None
+        self._alert_launched : Optional[np.ndarray] = None
+        self._nrows_array : Optional[int] = None
         
         self._i_am_simulate : bool = False
 
+    
     def initialize(self, env: "grid2op.Environment.BaseEnv"):
         self.total_time_steps = env.max_episode_duration()
         self.time_window = env.parameters.ALERT_TIME_WINDOW
         self._nrows_array = self.time_window + 2
-        
-        # TODO simulate env stuff !
-        
-        # TODO vectors proper size
         self._ts_attack = np.full((self._nrows_array, type(env).dim_alerts), False, dtype=dt_bool)
         self._alert_launched = np.full((self._nrows_array, type(env).dim_alerts), False, dtype=dt_bool)
         self._current_id = 0
@@ -115,6 +113,14 @@ class AlertReward(BaseReward):
         
         self._i_am_simulate = self.is_simulated_env(env)
         return super().initialize(env)      
+
+    def reset(self, env):
+        self._ts_attack[:,:] = False
+        self._alert_launched[:,:] = False
+        self._current_id = 0
+        self._lines_currently_attacked[:] = False
+        self._i_am_simulate = self.is_simulated_env(env)
+        return super().reset(env)      
     
     def _update_attack(self, env):
         if env.infos["opponent_attack_line"] is None:
@@ -181,7 +187,7 @@ class AlertReward(BaseReward):
             # if there is no attack, I do nothing
             indexes_to_look = (np.arange(-self.time_window, 1) + self._current_id) % self._nrows_array  # include current step (hence the np.arange(..., **1**))
             ts_attack_in_order = self._ts_attack[indexes_to_look, :]
-            has_attack = np.any(ts_attack_in_order)
+            has_attack = (ts_attack_in_order).any()
             if has_attack:
                 # I need to check the alarm for the attacked lines
                 res = self._compute_score_attack_blackout(env, ts_attack_in_order, indexes_to_look)
@@ -189,7 +195,7 @@ class AlertReward(BaseReward):
             # no blackout: i check the first step in the window before me to see if there is an attack,
             index_window = (self._current_id - self.time_window) % self._nrows_array
             lines_attack = self._ts_attack[index_window, :]
-            if np.any(lines_attack):
+            if lines_attack.any():
                 # prev_ind = (index_window - 1) % self._nrows_array
                 # I don't need the "-1" because the action is already BEFORE the observation in the reward.
                 prev_ind = index_window

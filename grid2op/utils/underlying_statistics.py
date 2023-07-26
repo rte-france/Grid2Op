@@ -104,7 +104,7 @@ class EpisodeStatistics(object):
     SCENARIO_IDS = "scenario_ids.npz"
     SCORES = "scores.npz"
     SCORES_CLEAN = re.sub("\\.npz", "", SCORES)
-    KEY_SCORE = "__scores"
+    KEY_SCORE = "_scores"
     SCORE_FOOTPRINT = ".has_score"
     STATISTICS_FOLDER = "_statistics"
     STATISTICS_FOOTPRINT = ".statistics"
@@ -538,6 +538,7 @@ class EpisodeStatistics(object):
         agent_seeds,
         pbar,
         nb_process,
+        add_nb_highres_sim=False,
     ):
 
         if scores_func is not None:
@@ -567,7 +568,7 @@ class EpisodeStatistics(object):
                     "be a dictionary"
                 )
         runner = Runner(**dict_kwg, agentClass=None, agentInstance=agent)
-        runner.run(
+        res_runner = runner.run(
             path_save=path_save,
             nb_episode=nb_scenario,
             max_iter=max_step,
@@ -575,7 +576,13 @@ class EpisodeStatistics(object):
             agent_seeds=agent_seeds,
             pbar=pbar,
             nb_process=nb_process,
+            add_detailed_output=False,  # check the return value if you change this
+            add_nb_highres_sim=add_nb_highres_sim
         )
+        if add_nb_highres_sim:
+            res = [el[-1] for el in res_runner]
+            return res
+        return None
 
     def get_metadata(self):
         """return the metadata as a dictionary"""

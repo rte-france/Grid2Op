@@ -291,7 +291,7 @@ class Simulator(object):
     def _adjust_controlable_gen(
         self, new_gen_p: np.ndarray, target_dispatch: np.ndarray, sum_target: float
     ) -> Optional[float]:
-        nb_dispatchable = np.sum(self.current_obs.gen_redispatchable)
+        nb_dispatchable = self.current_obs.gen_redispatchable.sum()
 
         # which generators needs to be "optimized" -> the one where
         # the target function matter
@@ -319,7 +319,7 @@ class Simulator(object):
         weights = np.ones(nb_dispatchable) * coeffs[self.current_obs.gen_redispatchable]
         weights /= weights.sum()
 
-        scale_objective = max(0.5 * np.sum(np.abs(target_dispatch_redisp)) ** 2, 1.0)
+        scale_objective = max(0.5 * np.abs(target_dispatch_redisp).sum() ** 2, 1.0)
         scale_objective = np.round(scale_objective, decimals=4)
 
         tmp_zeros = np.zeros((1, nb_dispatchable), dtype=float)
@@ -338,7 +338,7 @@ class Simulator(object):
             coeffs_quads = weights[gen_in_target] * quad_
             coeffs_quads_const = coeffs_quads.sum()
             coeffs_quads_const /= scale_objective  # scaling the function
-            coeffs_quads_const += 1e-2 * np.sum(actual_dispatchable**2 * weights)
+            coeffs_quads_const += 1e-2 * (actual_dispatchable**2 * weights).sum()
             return coeffs_quads_const
 
         def jac(actual_dispatchable):
@@ -383,9 +383,9 @@ class Simulator(object):
         # desired solution (split the (sum of the) dispatch to the available generators)
         x0 = 1.0 * target_dispatch_redisp
         can_adjust = x0 == 0.0
-        if np.any(can_adjust):
-            init_sum = np.sum(x0)
-            denom_adjust = np.sum(1.0 / weights[can_adjust])
+        if (can_adjust).any():
+            init_sum = x0.sum()
+            denom_adjust = (1.0 / weights[can_adjust]).sum()
             if denom_adjust <= 1e-2:
                 # i don't want to divide by something too cloose to 0.
                 denom_adjust = 1.0
@@ -405,14 +405,14 @@ class Simulator(object):
         limit_curtail = curt_vect * act.gen_pmax
         curtailed = np.maximum(new_gen_p - limit_curtail, 0.0)
         curtailed[~act.gen_renewable] = 0.0
-        amount_curtail = np.sum(curtailed)
+        amount_curtail = curtailed.sum()
         new_gen_p_after_curtail = 1.0 * new_gen_p
         new_gen_p_after_curtail -= curtailed
         return new_gen_p_after_curtail, amount_curtail
 
     def _amount_storage(self, act: BaseAction) -> Tuple[float, np.ndarray]:
         storage_act = 1.0 * act.storage_p
-        res = np.sum(self.current_obs.storage_power_target)
+        res = self.current_obs.storage_power_target.sum()
         current_charge = 1.0 * self.current_obs.storage_charge
         storage_power = np.zeros(act.n_storage)
         if np.all(np.abs(storage_act) <= self._tol_redisp):
@@ -438,7 +438,7 @@ class Simulator(object):
         storage_power = storage_act_E / coeff_p_to_E
         storage_power[do_charge] *= act.storage_charging_efficiency[do_charge]
         storage_power[do_discharge] /= act.storage_discharging_efficiency[do_discharge]
-        res += np.sum(storage_power)
+        res += storage_power.sum()
         return -res, storage_power, current_charge
 
     def _fix_redisp_curtailment_storage(
@@ -466,7 +466,7 @@ class Simulator(object):
             new_vect_redisp
         ]
 
-        if abs(np.sum(target_dispatch) - sum_target) >= self._tol_redisp:
+        if abs(target_dispatch.sum() - sum_target) >= self._tol_redisp:
             adjust = self._adjust_controlable_gen(
                 new_gen_p_after_curtail, target_dispatch, sum_target
             )

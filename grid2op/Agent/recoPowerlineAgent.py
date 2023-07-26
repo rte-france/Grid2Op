@@ -25,7 +25,7 @@ class RecoPowerlineAgent(GreedyAgent):
         line_stat_s = observation.line_status
         cooldown = observation.time_before_cooldown_line
         can_be_reco = ~line_stat_s & (cooldown == 0)
-        if np.any(can_be_reco):
+        if can_be_reco.any():
             res = [
                 self.action_space({"set_line_status": [(id_, +1)]})
                 for id_ in np.where(can_be_reco)[0]

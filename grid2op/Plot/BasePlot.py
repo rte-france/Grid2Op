@@ -631,7 +631,7 @@ class BasePlot(GridObjects):
         theta_z = [cmath.phase((el - z_sub)) for el in buses_z]
 
         # try to have nodes "in opposition" to one another
-        NN = np.array(nb_co) / np.sum(nb_co)
+        NN = np.array(nb_co) / nb_co.sum()
         diff_theta = theta_z[0] - theta_z[1]
         # alpha = cmath.pi + diff_theta
         alpha = -cmath.pi + diff_theta

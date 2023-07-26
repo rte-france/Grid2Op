@@ -111,7 +111,7 @@ class RedispReward(BaseReward):
             # on linux it's fine, i can create new classes for each meta parameters
             nm_res = f"RedispReward_{alpha_redisph:.2f}_{min_load_ratio:.2f}_{worst_losses_ratio:.2f}"
             nm_res += f"_{min_reward:.2f}_{least_losses_ratio:.2f}_{reward_illegal_ambiguous:.2f}"
-            nm_res = re.sub("\\.", "@", nm_res)
+            nm_res = nm_res.replace(".", "@")
             cls_attr_as_dict = {
                 "_alpha_redisp": dt_float(alpha_redisph),
                 "_min_load_ratio": dt_float(min_load_ratio),
@@ -148,10 +148,10 @@ class RedispReward(BaseReward):
         cls_ = type(self)
 
         worst_marginal_cost = np.max(env.gen_cost_per_MW)
-        worst_load = dt_float(np.sum(env.gen_pmax))
+        worst_load = env.gen_pmax.sum(dtype=dt_float)
         # it's not the worst, but definitely an upper bound
         worst_losses = dt_float(cls_._worst_losses_ratio) * worst_load
-        worst_redisp = cls_._alpha_redisp * np.sum(env.gen_pmax)  # not realistic, but an upper bound
+        worst_redisp = cls_._alpha_redisp * env.gen_pmax.sum()  # not realistic, but an upper bound
         self.max_regret = (worst_losses + worst_redisp) * worst_marginal_cost * env.delta_time_seconds / 3600.0
         self.reward_min = dt_float(cls_._min_reward)
 
@@ -181,7 +181,7 @@ class RedispReward(BaseReward):
             gen_p, *_ = env.backend.generators_info()
             load_p, *_ = env.backend.loads_info()
             # don't forget to convert MW to MWh !
-            losses = (np.sum(gen_p) - np.sum(load_p)) * env.delta_time_seconds / 3600.0
+            losses = (gen_p.sum() - load_p.sum()) * env.delta_time_seconds / 3600.0
 
             # compute the marginal cost
             gen_activeprod_t = env._gen_activeprod_t
@@ -190,14 +190,14 @@ class RedispReward(BaseReward):
             # redispatching amount
             actual_dispatch = env._actual_dispatch
             redisp_cost = (
-                self._alpha_redisp * np.sum(np.abs(actual_dispatch)) * marginal_cost * env.delta_time_seconds / 3600.0
+                self._alpha_redisp * np.abs(actual_dispatch).sum() * marginal_cost * env.delta_time_seconds / 3600.0
             )
 
             # cost of losses
             losses_cost = losses * marginal_cost
 
             # cost of storage
-            c_storage = np.sum(np.abs(env._storage_power)) * marginal_cost * env.delta_time_seconds / 3600.0
+            c_storage = np.abs(env._storage_power).sum() * marginal_cost * env.delta_time_seconds / 3600.0
             
             # total "regret"
             regret = losses_cost + redisp_cost + c_storage
@@ -206,6 +206,6 @@ class RedispReward(BaseReward):
             reward = self.max_regret - regret
 
             # divide it by load, to be less sensitive to load variation
-            res = dt_float(reward / np.sum(load_p))
+            res = dt_float(reward / load_p.sum())
 
         return res

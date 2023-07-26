@@ -14,7 +14,7 @@ import numpy as np
 import warnings
 
 import grid2op
-from grid2op.Backend.EducPandaPowerBackend import EducPandaPowerBackend
+from grid2op.Backend.educPandaPowerBackend import EducPandaPowerBackend
 from grid2op.Exceptions import EnvError
 
 

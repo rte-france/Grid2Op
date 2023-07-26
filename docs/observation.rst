@@ -86,7 +86,7 @@ how well the past action
 performed. The second main input received from the environment is the :class:`BaseObservation`. This is gives the BaseAgent
 partial, noisy, or complete information about the current state of the environment. This module implement a generic
 :class:`BaseObservation`  class and an example of a complete observation in the case of the Learning
-To Run a Power Network (`l2RPN <https://l2rpn.chalearn.org/>`_ ) competition.
+To Run a Power Network (`L2RPN <https://l2rpn.chalearn.org/>`_ ) competition.
 
 Compared to other Reinforcement Learning problems the L2PRN competition allows another flexibility. Today, when
 operating a powergrid, operators have "forecasts" at their disposal. We wanted to make them available in the
