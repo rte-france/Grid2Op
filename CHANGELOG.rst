@@ -31,6 +31,13 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.3] - 2023-07-xx
+---------------------
+- [BREAKING] the "chronix2grid" dependency now points to chronix2grid and not to the right branch
+  this might cause an issue if you install `grid2op[chronix2grid]` for the short thermal
+- [ADDED] a CI to test package can be installed and loaded correctly on windows, macos and line_ex_to_sub_pos
+  for python 3.8, 3.9, 3.10 and 3.11
+
 [1.9.2] - 2023-07-26
 ---------------------
 - [BREAKING] rename with filename starting with lowercase all the files in the "`Backend`", "`Action`" and 
