@@ -54,7 +54,7 @@ jobs:
       - name: Build wheel
         run: |
           python3 setup.py bdist_wheel
-          auditwheel repair dist/*.whl
+          # auditwheel repair dist/*.whl  # only for compiled code !
 
       - name: Install wheel
         run: pip3 install wheelhouse/*.whl --user
@@ -63,6 +63,12 @@ jobs:
         run: |
           python3 -c "import grid2op"
           python3 -c "from grid2op import *"
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v2
+        with:
+          name: lightsim2grid-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
+          path: dist/*.whl
 
   macos_windows_build:
     name: Build ${{ matrix.config.name }} ${{ matrix.python.name }} wheel
@@ -124,6 +130,24 @@ jobs:
         run: |
           python3 -c "import grid2op"
           python3 -c "from grid2op import *"
+          python3 -c "from grid2op.Action._backendAction import _BackendAction"
+
+      - name: Build source archive
+        if: matrix.config.name == 'darwin' && matrix.python.name == 'cp39'
+        run: python setup.py sdist
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v2
+        with:
+          name: lightsim2grid-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
+          path: dist/*.whl
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v2
+        if: matrix.config.name == 'darwin' && matrix.python.name == 'cp39'
+        with:
+          name: lightsim2grid-sources
+          path: dist/*.tar.gz
 
   package:
     name: Test install
