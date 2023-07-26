@@ -16,11 +16,6 @@ jobs:
       matrix:
         python:
           - {
-            name: cp37,
-            abi: cp37m,
-            version: '3.7',
-          }
-          - {
             name: cp38,
             abi: cp38,
             version: '3.8',
@@ -84,10 +79,6 @@ jobs:
             os: windows-2019,
           }
         python:
-          - {
-            name: cp37,
-            version: '3.7',
-          }
           - {
             name: cp38,
             version: '3.8',
