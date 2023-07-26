@@ -63,11 +63,12 @@ jobs:
         run: |
           python3 -c "import grid2op"
           python3 -c "from grid2op import *"
+          python3 -c "from grid2op.Action._backendAction import _BackendAction"
 
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
-          name: lightsim2grid-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
+          name: grid2op-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
           path: dist/*.whl
 
   macos_windows_build:
@@ -139,14 +140,14 @@ jobs:
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
-          name: lightsim2grid-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
+          name: grid2op-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
           path: dist/*.whl
 
       - name: Upload source archive
         uses: actions/upload-artifact@v2
         if: matrix.config.name == 'darwin' && matrix.python.name == 'cp39'
         with:
-          name: lightsim2grid-sources
+          name: grid2op-sources
           path: dist/*.tar.gz
 
   package:
@@ -163,7 +164,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
-          name: lightsim2grid-wheels
+          name: grid2op-wheels
           path: |
             download/**/*.whl
             download/**/*.tar.gz
