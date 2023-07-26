@@ -46,8 +46,8 @@ class CurtailAgent(BaseAgent):
         act = self.action_space({"curtail": curtail})
         return act
     
-class TestScoreL2RPN2023(unittest.TestCase):
-    
+class TestScoreL2RPN2023NRES(unittest.TestCase):
+    """test the "nres" part of the l2rpn_idf_2023"""
     def setUp(self) -> None:
         env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
@@ -97,7 +97,7 @@ class TestScoreL2RPN2023(unittest.TestCase):
             
             # test do nothing indeed gets 100.
             res_dn = my_score.get(DoNothingAgent(self.env.action_space))
-            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_dn[0]):
+            for scen_id, (ep_score, op_score, nres_score,  assistant_score) in enumerate(res_dn[0]):
                 assert nres_score == 100.
                 assert ep_score == 0.8 * op_score + 0.2 * nres_score
                 
@@ -198,22 +198,22 @@ class TestScoreL2RPN2023(unittest.TestCase):
             tol = 3e-5
             # test do nothing indeed gets 100.
             res_dn = my_score.get(DoNothingAgent(self.env.action_space))
-            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_dn[0]):
+            for scen_id, (ep_score, op_score, nres_score,  assistant_score) in enumerate(res_dn[0]):
                 assert abs(nres_score - 100.) <= tol
                 
             # test 80% gets indeed close to 0
             res_80 = my_score.get(CurtailAgent(self.env.action_space, 0.8))
-            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_80[0]):
+            for scen_id, (ep_score, op_score, nres_score,  assistant_score) in enumerate(res_80[0]):
                 assert abs(nres_score) <= tol
                 
             # test 50% gets indeed close to -100
             res_50 = my_score.get(CurtailAgent(self.env.action_space, 0.5))
-            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_50[0]):
+            for scen_id, (ep_score, op_score, nres_score,  assistant_score) in enumerate(res_50[0]):
                 assert abs(nres_score + 100.) <= tol
             
             # test bellow 50% still gets close to -100
             res_30 = my_score.get(CurtailAgent(self.env.action_space, 0.3))
-            for scen_id, (ep_score, op_score, nres_score, assistant_confidence_score, assistant_cost_score) in enumerate(res_30[0]):
+            for scen_id, (ep_score, op_score, nres_score,  assistant_score) in enumerate(res_30[0]):
                 assert abs(nres_score + 100.) <= tol   
         finally:
             my_score.clear_all()

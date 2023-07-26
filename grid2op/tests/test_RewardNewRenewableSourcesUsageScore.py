@@ -174,6 +174,22 @@ class TestNewRenewableSourcesUsageScore(unittest.TestCase):
                 break
             
         return reward == 1.
+    
+    def test_simulate_blackout_ignored(self):
+        obs = self.env.reset()
+        obs, reward, done, _ = self.env.step(self.env.action_space())
+        go_act = self.env.action_space({"set_bus": {"generators_id": [(0, -1)]}})
+        simO, simr, simd, simi = obs.simulate(go_act)
+        assert simr == 0., f"{simr} vs 0."
+        assert simd
+    
+    def test_simulated_env(self):
+        obs = self.env.reset()
+        f_env = obs.get_forecast_env()
+        forD = False
+        while not forD:
+            forO, forR, forD, forI = f_env.step(self.env.action_space())
+            assert forR == 0.
             
     
 if __name__ == "__main__":
