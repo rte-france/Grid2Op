@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.9.2] - 2023-07-xx
+[1.9.2] - 2023-07-26
 ---------------------
 - [BREAKING] rename with filename starting with lowercase all the files in the "`Backend`", "`Action`" and 
   "`Environment`" modules. This is both consistent with python practice but allows also to make the 
@@ -50,6 +50,7 @@ Change Log
   an action disconnect an element, it will not change its sepoint at the same time). 
 - [FIXED] a bug in `AlertReward` due to `reset` not being called.
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/494
+- [ADDED] the score function used for the L2RPN 2023 competition (Paris Area)
 - [IMPROVED] overall performances by calling `arr.sum()` or `arr.any()` instead of `np.sum(arr)` or
   `np.any(arr)` see https://numpy.org/neps/nep-0018-array-function-protocol.html#performance
 - [IMPROVED] overall performance of `obs.simulate` function by improving speed of copy of `_BackendAction`
