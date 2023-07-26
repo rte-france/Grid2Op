@@ -74,7 +74,7 @@ pkgs = {
                  "gymnasium"
                  ],
         "chronix2grid": [
-            "ChroniX2Grid
+            "ChroniX2Grid"
             ]
     }
 }
