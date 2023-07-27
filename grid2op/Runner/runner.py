@@ -10,7 +10,7 @@ import os
 import warnings
 import copy
 from multiprocessing import Pool
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Union
 
 from grid2op.Environment import BaseEnv
 from grid2op.Action import BaseAction, TopologyAction, DontAct
@@ -41,7 +41,10 @@ from grid2op.Episode import EpisodeData
 # so i force the usage of the "starmap" stuff even if there is one process on windows
 from grid2op._glop_platform_info import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
 
-runner_returned_type = Tuple[str, str, float, int, int, Optional[EpisodeData], Optional[int]]
+runner_returned_type = Union[Tuple[str, str, float, int, int],
+                             Tuple[str, str, float, int, int, EpisodeData],
+                             Tuple[str, str, float, int, int, EpisodeData, int]]
+
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it!
 # (especially for Neural Net based agents)

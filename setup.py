@@ -74,7 +74,7 @@ pkgs = {
                  "gymnasium"
                  ],
         "chronix2grid": [
-            "ChroniX2Grid"
+            "ChroniX2Grid>=1.2.0.post1"
             ]
     }
 }
