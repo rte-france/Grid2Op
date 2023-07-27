@@ -74,7 +74,7 @@ pkgs = {
                  "gymnasium"
                  ],
         "chronix2grid": [
-            "ChroniX2Grid@https://github.com/BDonnot/ChroniX2Grid/tarball/ramp_forecast"
+            "ChroniX2Grid>=1.2.0.post1"
             ]
     }
 }
