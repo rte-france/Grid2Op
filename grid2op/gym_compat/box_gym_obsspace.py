@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import Tuple
 import copy
 import warnings
 import numpy as np
@@ -813,6 +814,54 @@ class __AuxBoxGymObsSpace:
     def close(self):
         pass
 
+    def get_indexes(self, key: str) -> Tuple[int, int]:
+        """Allows to retrieve the indexes of the gym action that
+        are concerned by the attribute name `key` given in input.
+
+        .. versionadded:: 1.9.3
+        
+        .. warning::
+            Copy paste from box_gym_act_space, need refacto !
+            
+        Parameters
+        ----------
+        key : str
+            the attribute name (*eg* "set_storage" or "redispatch")
+
+        Returns
+        -------
+        Tuple[int, int]
+            _description_
+
+        Examples
+        --------
+        
+        You can use it like:
+        
+        .. code-block:: python
+        
+            gym_env = ... # an environment with a BoxActSpace
+            
+            act = np.zeros(gym_env.action_space.shape)
+            key = "redispatch"  # "redispatch", "curtail", "set_storage"
+            start_, end_ = gym_env.action_space.get_indexes(key)
+            act[start_:end_] = np.random.uniform(high=1, low=-1, size=env.gen_redispatchable.sum())
+            # act only modifies the redispatch with the input given (here a uniform redispatching between -1 and 1)
+            
+        """
+        error_msg =(f"Impossible to use the grid2op action property \"{key}\""
+                    f"with this action space.")
+        if key not in self._attr_to_keep:
+            raise Grid2OpException(error_msg)
+        prev = 0
+        for attr_nm, where_to_put in zip(
+            self._attr_to_keep, self._dims
+        ):
+            if attr_nm == key:
+                return prev, where_to_put
+            prev = where_to_put
+        raise Grid2OpException(error_msg)
+    
     def normalize_attr(self, attr_nm: str):
         """
         This function normalizes the part of the space

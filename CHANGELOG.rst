@@ -42,6 +42,8 @@ Change Log
 - [ADDED] possibility to change the "soft_overflow_threshold" in the parameters (like
   the "hard_overflow_threshold" but for delayed protections). 
   See `param.SOFT_OVERFLOW_THRESHOLD`
+- [ADDED] the `gym_env.observation_space.get_index(attr_nm)` for `BoxGymObsSpace` that allows to retrieve which index
+  of the observation represents which attribute.
 
 [1.9.2] - 2023-07-26
 ---------------------
