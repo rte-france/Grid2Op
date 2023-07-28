@@ -31,6 +31,22 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.3] - 2023-07-28
+---------------------
+- [BREAKING] the "chronix2grid" dependency now points to chronix2grid and not to the right branch
+  this might cause an issue if you install `grid2op[chronix2grid]` for the short term
+- [BREAKING] force key-word arguments in `grid2op.make` except for the first one (env name), see
+  [rte-france#503](https://github.com/rte-france/Grid2Op/issues/503)
+- [FIXED] a bug preventing to use storage units in "sim2real" environment (when the 
+  grid for forecast is not the same as the grid for the environment)
+- [ADDED] a CI to test package can be installed and loaded correctly on windows, macos and line_ex_to_sub_pos
+  for python 3.8, 3.9, 3.10 and 3.11
+- [ADDED] possibility to change the "soft_overflow_threshold" in the parameters (like
+  the "hard_overflow_threshold" but for delayed protections). 
+  See `param.SOFT_OVERFLOW_THRESHOLD`
+- [ADDED] the `gym_env.observation_space.get_index(attr_nm)` for `BoxGymObsSpace` that allows to retrieve which index
+  of the observation represents which attribute.
+
 [1.9.2] - 2023-07-26
 ---------------------
 - [BREAKING] rename with filename starting with lowercase all the files in the "`Backend`", "`Action`" and 

@@ -929,7 +929,7 @@ class Backend(GridObjects, ABC):
         while True:
             # simulate the cascading failure
             lines_flows = 1.0 * self.get_line_flow()
-            thermal_limits = self.get_thermal_limit()
+            thermal_limits = self.get_thermal_limit() * env._parameters.SOFT_OVERFLOW_THRESHOLD  # SOFT_OVERFLOW_THRESHOLD new in grid2op 1.9.3
             lines_status = self.get_line_status()
 
             # a) disconnect lines on hard overflow (that are still connected)

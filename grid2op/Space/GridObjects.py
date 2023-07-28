@@ -611,6 +611,9 @@ class GridObjects:
     alertable_line_names = []  # name of each line to produce an alert on # TODO
     alertable_line_ids = []
     
+    # test
+    _IS_INIT = False
+    
     def __init__(self):
         """nothing to do when an object of this class is created, the information is held by the class attributes"""
         pass
@@ -663,7 +666,7 @@ class GridObjects:
         cls.attr_nan_list_set = set()
 
         # class been init
-        # __is_init = False
+        cls._IS_INIT = False
 
         # name of the objects
         cls.env_name = "unknown"
@@ -1255,8 +1258,9 @@ class GridObjects:
             setattr(cls, attr_nm, attr)
 
     def _compute_pos_big_topo(self):
-        # TODO move the object attribute as class attribute !
-        self._init_class_attr()
+        # move the object attribute as class attribute !
+        if not type(self)._IS_INIT:
+            self._init_class_attr()
         cls = type(self)
         cls._compute_pos_big_topo_cls()
 
@@ -2702,7 +2706,9 @@ class GridObjects:
         else:
             # i am the original class from grid2op
             res_cls._INIT_GRID_CLS = cls
-
+        
+        res_cls._IS_INIT = True
+        
         res_cls._compute_pos_big_topo_cls()
         res_cls.process_shunt_satic_data()
         if res_cls.glop_version != grid2op.__version__:
