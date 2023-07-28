@@ -31,10 +31,10 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.9.3] - 2023-07-xx
+[1.9.3] - 2023-07-28
 ---------------------
 - [BREAKING] the "chronix2grid" dependency now points to chronix2grid and not to the right branch
-  this might cause an issue if you install `grid2op[chronix2grid]` for the short thermal
+  this might cause an issue if you install `grid2op[chronix2grid]` for the short term
 - [BREAKING] force key-word arguments in `grid2op.make` except for the first one (env name), see
   [rte-france#503](https://github.com/rte-france/Grid2Op/issues/503)
 - [FIXED] a bug preventing to use storage units in "sim2real" environment (when the 
