@@ -90,7 +90,7 @@ if sys.version_info.minor <= 7:
     # importlib provided importlib.metadata as of python 3.8
     pkgs["required"].append("importlib_metadata")
 
-setup(description='An gym compatible environment to model sequential decision making  for powersystems',
+setup(description='An gymnasium compatible environment to model sequential decision making  for powersystems',
       long_description=long_description,
       long_description_content_type="text/markdown",
       author='Benjamin DONNOT',

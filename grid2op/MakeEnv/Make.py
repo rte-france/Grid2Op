@@ -11,6 +11,8 @@ import requests
 import os
 import warnings
 import pkg_resources
+from typing import Union, Optional
+import logging
 
 from grid2op.Environment import Environment
 from grid2op.MakeEnv.MakeFromPath import make_from_dataset_path, ERR_MSG_KWARGS
@@ -265,26 +267,30 @@ def _aux_make_multimix(
 
 
 def make(
-    dataset=None,
-    test=False,
-    logger=None,
-    experimental_read_from_local_dir=False,
-    _add_to_name="",
-    _compat_glop_version=None,
+    dataset : Union[str, os.PathLike]=None,
+    *,
+    test : bool=False,
+    logger: Optional[logging.Logger]=None,
+    experimental_read_from_local_dir : bool=False,
+    _add_to_name : str="",
+    _compat_glop_version : Optional[str]=None,
     **kwargs
 ) -> Environment:
     """
-    This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
+    This function is a shortcut to rapidly create some (pre defined) environments within the grid2op framework.
 
     Other environments, with different powergrids will be made available in the future and will be easily downloadable
     using this function.
 
     It mimic the `gym.make` function.
 
+    .. versionchanged:: 1.9.3
+        Remove the possibility to use this function with arguments (force kwargs)
+        
     Parameters
     ----------
 
-    dataset: ``str``
+    dataset: ``str`` or path
         Name of the environment you want to create
 
     test: ``bool``
@@ -334,7 +340,6 @@ def make(
     downloaded from the internet, sizes vary per dataset.
 
     """
-
     if _force_test_dataset():
         if not test:
             warnings.warn(f"The environment variable \"{_VAR_FORCE_TEST}\" is defined so grid2op will be forced in \"test\" mode. "

@@ -41,14 +41,15 @@ __all__ = [
     "change_local_dir",
     "list_available_test_env",
     "update_env",
-    "make"
-,]
+    "make",
+]
 
-from grid2op.MakeEnv import make_old, make, make_from_dataset_path
-from grid2op.MakeEnv import update_env
-from grid2op.MakeEnv import (
-    list_available_remote_env,
-    list_available_local_env,
-    get_current_local_dir,
-)
-from grid2op.MakeEnv import change_local_dir, list_available_test_env
+
+from grid2op.MakeEnv import  (make,
+                              update_env,
+                              list_available_remote_env,
+                              list_available_local_env,
+                              get_current_local_dir,
+                              change_local_dir,
+                              list_available_test_env
+                             )

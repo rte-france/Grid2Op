@@ -26,7 +26,7 @@ class TestChangeParamFromObs(unittest.TestCase):
     def test_change_param_simulate(self):
         l_id = 3
         params = self.env.parameters
-        params.HARD_OVERFLOW_THRESHOLD = 1.
+        params.HARD_OVERFLOW_THRESHOLD = 1.001
         th_lim = self.env.get_thermal_limit()
         th_lim[l_id] = 170
         self.env.set_thermal_limit(th_lim)
