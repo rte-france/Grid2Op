@@ -207,7 +207,7 @@ class ObservationSpace(SerializableObservationSpace):
     def _aux_create_backend(self, env, observation_bk_class, observation_bk_kwargs, path_grid_for):
         if observation_bk_kwargs is None:
             observation_bk_kwargs = env.backend._my_kwargs
-        observation_bk_class_used = observation_bk_class.init_grid(env.backend)
+        observation_bk_class_used = observation_bk_class.init_grid(type(env.backend))
         self._backend_obs = observation_bk_class_used(**observation_bk_kwargs)   
         self._backend_obs.set_env_name(env.name)
         self._backend_obs.load_grid(path_grid_for)

@@ -37,6 +37,8 @@ Change Log
   this might cause an issue if you install `grid2op[chronix2grid]` for the short thermal
 - [BREAKING] force key-word arguments in `grid2op.make` except for the first one (env name), see
   [rte-france#503](https://github.com/rte-france/Grid2Op/issues/503)
+- [FIXED] a bug preventing to use storage units in "sim2real" environment (when the 
+  grid for forecast is not the same as the grid for the environment)
 - [ADDED] a CI to test package can be installed and loaded correctly on windows, macos and line_ex_to_sub_pos
   for python 3.8, 3.9, 3.10 and 3.11
 - [ADDED] possibility to change the "soft_overflow_threshold" in the parameters (like
