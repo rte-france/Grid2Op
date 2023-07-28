@@ -59,6 +59,13 @@ class Parameters:
         HARD_OVERFLOW_THRESHOLD is 2.0, then if the flow on the powerline reaches 2 * 150 = 300.0 the powerline
         the powerline is automatically disconnected.
 
+    SOFT_OVERFLOW_THRESHOLD: ``float``
+        .. versionadded:: 1.9.3
+        
+        Threshold above which delayed protection are triggered. A line with its current bellow `SOFT_OVERFLOW_THRESHOLD * thermal_limit`
+        then nothing happens. If it's above the delay start. And if it's above `SOFT_OVERFLOW_THRESHOLD * thermal_limit`
+        for more than :attr:`NB_TIMESTEP_OVERFLOW_ALLOWED` consecutive steps.
+    
     ENV_DC: ``bool``
         Whether or not making the simulations of the environment in the "direct current" approximation. This can be
         usefull for early training of agent, as this mode is much faster to compute than the corresponding
@@ -171,6 +178,8 @@ class Parameters:
         # for example setting "HARD_OVERFLOW_THRESHOLD = 2" is equivalent, if a powerline has a thermal limit of
         # 243 A, to disconnect it instantly if it has a powerflow higher than 2 * 243 = 486 A
         self.HARD_OVERFLOW_THRESHOLD = dt_float(2.0)
+        
+        self.SOFT_OVERFLOW_THRESHOLD = dt_float(1.0)
 
         # are the powerflow performed by the environment in DC mode (dc powerflow) or AC (ac powerflow)
         self.ENV_DC = False
@@ -296,6 +305,9 @@ class Parameters:
 
         if "HARD_OVERFLOW_THRESHOLD" in dict_:
             self.HARD_OVERFLOW_THRESHOLD = dt_float(dict_["HARD_OVERFLOW_THRESHOLD"])
+            
+        if "SOFT_OVERFLOW_THRESHOLD" in dict_:
+            self.SOFT_OVERFLOW_THRESHOLD = dt_float(dict_["SOFT_OVERFLOW_THRESHOLD"])
 
         if "ENV_DC" in dict_:
             self.ENV_DC = Parameters._isok_txt(dict_["ENV_DC"])
@@ -390,6 +402,7 @@ class Parameters:
         res["NB_TIMESTEP_OVERFLOW_ALLOWED"] = int(self.NB_TIMESTEP_OVERFLOW_ALLOWED)
         res["NB_TIMESTEP_RECONNECTION"] = int(self.NB_TIMESTEP_RECONNECTION)
         res["HARD_OVERFLOW_THRESHOLD"] = float(self.HARD_OVERFLOW_THRESHOLD)
+        res["SOFT_OVERFLOW_THRESHOLD"] = float(self.SOFT_OVERFLOW_THRESHOLD)
         res["ENV_DC"] = bool(self.ENV_DC)
         res["FORECAST_DC"] = bool(self.FORECAST_DC)
         res["MAX_SUB_CHANGED"] = int(self.MAX_SUB_CHANGED)
@@ -529,6 +542,27 @@ class Parameters:
                 "HARD_OVERFLOW_THRESHOLD < 1., this should be >= 1. (use env.set_thermal_limit "
                 "to modify the thermal limit)"
             )
+            
+        try:
+            self.SOFT_OVERFLOW_THRESHOLD = float(
+                self.SOFT_OVERFLOW_THRESHOLD
+            )  # to raise if numpy array
+            self.SOFT_OVERFLOW_THRESHOLD = dt_float(self.SOFT_OVERFLOW_THRESHOLD)
+        except Exception as exc_:
+            raise RuntimeError(
+                f'Impossible to convert SOFT_OVERFLOW_THRESHOLD to float with error \n:"{exc_}"'
+            )
+        if self.SOFT_OVERFLOW_THRESHOLD < 1.0:
+            raise RuntimeError(
+                "SOFT_OVERFLOW_THRESHOLD < 1., this should be >= 1. (use env.set_thermal_limit "
+                "to modify the thermal limit)"
+            )
+        if self.SOFT_OVERFLOW_THRESHOLD >= self.HARD_OVERFLOW_THRESHOLD:
+            raise RuntimeError(
+                "self.SOFT_OVERFLOW_THRESHOLD >= self.HARD_OVERFLOW_THRESHOLD this would that the"
+                "soft overflow would be deactivated. It's not possible at the moment."
+            )
+            
         try:
             if not isinstance(self.ENV_DC, (bool, dt_bool)):
                 raise RuntimeError("NO_OVERFLOW_DISCONNECTION should be a boolean")

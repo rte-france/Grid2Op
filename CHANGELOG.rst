@@ -39,6 +39,9 @@ Change Log
   [rte-france#503](https://github.com/rte-france/Grid2Op/issues/503)
 - [ADDED] a CI to test package can be installed and loaded correctly on windows, macos and line_ex_to_sub_pos
   for python 3.8, 3.9, 3.10 and 3.11
+- [ADDED] possibility to change the "soft_overflow_threshold" in the parameters (like
+  the "hard_overflow_threshold" but for delayed protections). 
+  See `param.SOFT_OVERFLOW_THRESHOLD`
 
 [1.9.2] - 2023-07-26
 ---------------------
