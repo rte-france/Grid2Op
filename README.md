@@ -87,8 +87,8 @@ docker pull bdonnot/grid2op:latest
 
 # Main features of Grid2Op
 ## Core functionalities
-Built with modulartiy in mind, Grid2Op as a library used for the "Learning To Run Power Network" [L2RPN](https://l2rpn.chalearn.org/)
-competitions serie. It can also
+Built with modulartiy in mind, Grid2Op is a library used for the "Learning To Run Power Network" [L2RPN](https://l2rpn.chalearn.org/)
+competitions series. It can also
 
 Its main features are:
 * emulates the behavior of a powergrid of any size at any format (provided that a *backend* is properly implemented)
