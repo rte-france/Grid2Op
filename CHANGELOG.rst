@@ -31,6 +31,12 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.4] - 2023-xx-yy
+---------------------
+- [FIXED] read-the-docs template is not compatible with latest sphinx version (7.0.0)
+  see https://github.com/readthedocs/sphinx_rtd_theme/issues/1463
+
+
 [1.9.3] - 2023-07-28
 ---------------------
 - [BREAKING] the "chronix2grid" dependency now points to chronix2grid and not to the right branch
