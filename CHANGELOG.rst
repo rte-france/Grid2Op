@@ -35,7 +35,11 @@ Change Log
 ---------------------
 - [FIXED] read-the-docs template is not compatible with latest sphinx version (7.0.0)
   see https://github.com/readthedocs/sphinx_rtd_theme/issues/1463
-
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/511
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/508
+- [ADDED] some classes that can be used to reproduce exactly what happened in a previously run environment
+  see `grid2op.Chronics.FromOneEpisodeData` and `grid2op.Opponent.FromEpisodeDataOpponent`
+- [IMPROVED] doc of `obs.to_dict` and `obs.to_json` (see https://github.com/rte-france/Grid2Op/issues/509)
 
 [1.9.3] - 2023-07-28
 ---------------------

@@ -119,7 +119,7 @@ def _aux_run_one_episode(
     # handle max_iter
     if max_iter is not None:
         env.chronics_handler.set_max_iter(max_iter)
-
+        
     # reset it
     obs = env.reset()
     # reset the number of calls to high resolution simulator
@@ -263,7 +263,7 @@ def _aux_run_one_episode(
                                             obs, info, time_step,
                                             opp_attack)
                 pbar_.update(1)
-
+        episode.set_game_over(time_step)
         end_ = time.perf_counter()
     episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
     li_text = [

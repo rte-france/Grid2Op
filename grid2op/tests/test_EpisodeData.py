@@ -23,7 +23,7 @@ from grid2op.Agent import BaseAgent
 from grid2op.Action import TopologyAction
 from grid2op.Parameters import Parameters
 from grid2op.MakeEnv import make
-from grid2op.Opponent.BaseActionBudget import BaseActionBudget
+from grid2op.Opponent.baseActionBudget import BaseActionBudget
 from grid2op.Opponent import RandomLineOpponent
 
 
@@ -31,10 +31,6 @@ DEBUG = True
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
     os.path.join(PATH_CHRONICS, "test_multi_chronics")
 )
-
-import warnings
-
-warnings.simplefilter("error")
 
 
 class TestEpisodeData(unittest.TestCase):

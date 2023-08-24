@@ -15,7 +15,7 @@ from grid2op.Opponent import (
 )
 from grid2op.Action import TopologyAction
 from grid2op.MakeEnv import make
-from grid2op.Opponent.BaseActionBudget import BaseActionBudget
+from grid2op.Opponent.baseActionBudget import BaseActionBudget
 from grid2op.dtypes import dt_int
 from grid2op.Parameters import Parameters
 from grid2op.Runner import Runner
