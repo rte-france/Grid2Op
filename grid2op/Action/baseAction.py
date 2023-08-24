@@ -3231,8 +3231,9 @@ class BaseAction(GridObjects):
                     sub_id = "{}".format(substation_id)
                     if not sub_id in res["change_bus_vect"]:
                         res["change_bus_vect"][sub_id] = {}
-                    res["change_bus_vect"][sub_id]["{}".format(obj_id)] = {
-                        "type": objt_type
+                    res["change_bus_vect"][sub_id]["{}_{}".format(objt_type, obj_id)] = {
+                        "type": objt_type,
+                        "id": obj_id,
                     }
                     all_subs.add(sub_id)
 
@@ -3252,8 +3253,9 @@ class BaseAction(GridObjects):
                     sub_id = "{}".format(substation_id)
                     if not sub_id in res["set_bus_vect"]:
                         res["set_bus_vect"][sub_id] = {}
-                    res["set_bus_vect"][sub_id]["{}".format(obj_id)] = {
+                    res["set_bus_vect"][sub_id]["{}_{}".format(objt_type, obj_id)] = {
                         "type": objt_type,
+                        "id": obj_id,
                         "new_bus": k,
                     }
                     all_subs.add(sub_id)
