@@ -39,6 +39,7 @@ Change Log
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/508
 - [ADDED] some classes that can be used to reproduce exactly what happened in a previously run environment
   see `grid2op.Chronics.FromOneEpisodeData` and `grid2op.Opponent.FromEpisodeDataOpponent`
+- [ADDED] An helper function to get the kwargs to disable the opponent (see `grid2op.Opponent.get_kwargs_no_opponent()`)
 - [IMPROVED] doc of `obs.to_dict` and `obs.to_json` (see https://github.com/rte-france/Grid2Op/issues/509)
 
 [1.9.3] - 2023-07-28
