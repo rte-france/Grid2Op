@@ -68,7 +68,7 @@ class ConnectivityConverter(Converter):
         import numpy as np
         from grid2op.Converter import ConnectivityConverter
 
-        env = grid2op.make("rte_case14_realistic", test=True)
+        env = grid2op.make("l2rpn_case14_sandbox", test=True)
         converter = ConnectivityConverter(env.action_space)
         # it's a good practice to seed the element that can be, for reproducibility
         converter.seed(0)

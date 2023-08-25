@@ -82,7 +82,7 @@ class FromEpisodeDataOpponent(BaseOpponent):
         
     def reset(self, initial_budget):
         self._attacks = copy.deepcopy(self._ptr_env.chronics_handler.real_data._episode_data.attacks)
-        if self._ptr_env._oppSpace.attack_cooldown != 1:
+        if self._ptr_env._oppSpace.attack_cooldown > 1:
             if not self._warning_cooldown_issued:
                 self._warning_cooldown_issued = True
                 warnings.warn('When using FromEpisodeDataOpponent, make sure that your '

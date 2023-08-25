@@ -1478,7 +1478,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             import grid2op
             from grid2op.Chronics import GridStateFromFile
             # tell grid2op not to read the "forecast"
-            env = grid2op.make("rte_case14_realistic", data_feeding_kwargs={"gridvalueClass": GridStateFromFile})
+            env = grid2op.make("l2rpn_case14_sandbox", data_feeding_kwargs={"gridvalueClass": GridStateFromFile})
 
             do_nothing_action = env.action_space()
 
@@ -1523,7 +1523,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             import grid2op
             from grid2op.Chronics import GridStateFromFile
             # tell grid2op not to read the "forecast"
-            env = grid2op.make("rte_case14_realistic", data_feeding_kwargs={"gridvalueClass": GridStateFromFile})
+            env = grid2op.make("l2rpn_case14_sandbox", data_feeding_kwargs={"gridvalueClass": GridStateFromFile})
 
             do_nothing_action = env.action_space()
 

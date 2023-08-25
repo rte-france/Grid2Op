@@ -13,18 +13,13 @@ import copy
 import tempfile
 
 import grid2op
-from grid2op.Action import BaseAction, DontAct, TopologyAction, PowerlineSetAction
-from grid2op.Backend import PandaPowerBackend
-from grid2op.Environment import BaseEnv, Environment
-from grid2op.Observation import BaseObservation, CompleteObservation
-from grid2op.Opponent import BaseOpponent, NeverAttackBudget
-from grid2op.Opponent.opponentSpace import OpponentSpace
-from grid2op.Reward import FlatReward
-from grid2op.Rules import AlwaysLegal
+from grid2op.Action import BaseAction, DontAct, PowerlineSetAction
+from grid2op.Environment import BaseEnv
+from grid2op.Observation import BaseObservation
 from grid2op.Runner import Runner
-from grid2op.Chronics import FromOneEpisodeData, Multifolder, GridStateFromFileWithForecasts, GridStateFromFile, ChronicsHandler
-from grid2op.Agent import BaseAgent, DoNothingAgent
-from grid2op.Exceptions import Grid2OpException
+from grid2op.Chronics import FromOneEpisodeData, Multifolder, ChronicsHandler
+from grid2op.Agent import BaseAgent
+from grid2op.Exceptions import Grid2OpException, ChronicsError
 from grid2op.Agent import RecoPowerlineAgent
 from grid2op.Episode import EpisodeData
 from grid2op.Opponent import (FromEpisodeDataOpponent,
@@ -32,9 +27,6 @@ from grid2op.Opponent import (FromEpisodeDataOpponent,
                               BaseActionBudget)
 
 import pdb
-
-from grid2op.VoltageControler import ControlVoltageFromFile
-from grid2op.operator_attention import LinearAttentionBudget
 
 
 class GameOverTestAgent(BaseAgent):
@@ -84,12 +76,18 @@ class SpecialRunnerAddMaintenance(Runner):
         return res
 
 
-class TestTSFromEpisode(unittest.TestCase):
+class TestTSFromEpisodeMaintenance(unittest.TestCase):
     def setUp(self) -> None:
-        self.env_name = "l2rpn_idf_2023"  # with maintenance and attacks !
+        self.env_name = "l2rpn_idf_2023"  # with maintenance but without attacks (attacks are tested elsewhere)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make(self.env_name, test=True)
+            self.env = grid2op.make(self.env_name,
+                                    test=True,
+                                    opponent_attack_cooldown=99999999,
+                                    opponent_attack_duration=0,
+                                    opponent_budget_per_ts=0.,
+                                    opponent_init_budget=0.,
+                                    opponent_action_class=DontAct,)
         self.env.set_id(0)
         self.env.seed(0)
         self.max_iter = 10
@@ -115,10 +113,17 @@ class TestTSFromEpisode(unittest.TestCase):
         )
         res = runner.run(nb_episode=1, max_iter=self.max_iter, add_detailed_output=True)
         ep_data = res[0][-1]
-        env = grid2op.make(self.env_name,
-                           test=True,
-                           chronics_class=FromOneEpisodeData,
-                           data_feeding_kwargs={"ep_data": ep_data})
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               test=True,
+                               chronics_class=FromOneEpisodeData,
+                               data_feeding_kwargs={"ep_data": ep_data},
+                               opponent_attack_cooldown=99999999,
+                               opponent_attack_duration=0,
+                               opponent_budget_per_ts=0.,
+                               opponent_init_budget=0.,
+                               opponent_action_class=DontAct)
         obs = env.reset()
         self._aux_obs_equal(obs,  ep_data.observations[0])
         for i in range(10):
@@ -135,7 +140,86 @@ class TestTSFromEpisode(unittest.TestCase):
             obs, reward, done, info = env.step(env.action_space())
             self._aux_obs_equal(obs,  ep_data.observations[i+1], f"at it. {i} (after reset)")
         assert done
-    
+        
+    def test_fast_forward(self):
+        """test the correct behaviour of env.fast_forward_chronics"""
+        obs = self.env.reset()
+        runner = Runner(
+            **self.env.get_params_for_runner()
+        )
+        res = runner.run(nb_episode=1, max_iter=self.max_iter, add_detailed_output=True)
+        ep_data = res[0][-1]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               test=True,
+                               chronics_class=FromOneEpisodeData,
+                               data_feeding_kwargs={"ep_data": ep_data},
+                               opponent_attack_cooldown=99999999,
+                               opponent_attack_duration=0,
+                               opponent_budget_per_ts=0.,
+                               opponent_init_budget=0.,
+                               opponent_action_class=DontAct)
+        obs = env.reset()
+        env.fast_forward_chronics(2)
+        obs = env.get_obs()
+        self._aux_obs_equal(obs,  ep_data.observations[2])
+        for i in range(8):
+            obs, reward, done, info = env.step(env.action_space())
+            self._aux_obs_equal(obs,  ep_data.observations[i+3], f"at it. {i} (after reset)")
+
+    def test_forecasts(self):
+        """test the forecasts property"""
+        obs = self.env.reset()
+        runner = Runner(
+            **self.env.get_params_for_runner()
+        )
+        res = runner.run(nb_episode=1, max_iter=self.max_iter, add_detailed_output=True)
+        ep_data = res[0][-1]
+        with self.assertRaises(ChronicsError):
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")    
+                env = grid2op.make(self.env_name,
+                                   test=True,
+                                   chronics_class=FromOneEpisodeData,
+                                   data_feeding_kwargs={"ep_data": ep_data,
+                                                        "list_perfect_forecasts": [1]},
+                                   opponent_attack_cooldown=99999999,
+                                   opponent_attack_duration=0,
+                                   opponent_budget_per_ts=0.,
+                                   opponent_init_budget=0.,
+                                   opponent_action_class=DontAct,)
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")    
+            env = grid2op.make(self.env_name,
+                               test=True,
+                               chronics_class=FromOneEpisodeData,
+                               data_feeding_kwargs={"ep_data": ep_data,
+                                                    "list_perfect_forecasts": [5]},
+                               opponent_attack_cooldown=99999999,
+                               opponent_attack_duration=0,
+                               opponent_budget_per_ts=0.,
+                               opponent_init_budget=0.,
+                               opponent_action_class=DontAct,)
+            
+        obs = env.reset()
+        self._aux_obs_equal(obs,  ep_data.observations[0])
+        for i in range(8):
+            obs, reward, done, info = env.step(env.action_space())
+            self._aux_obs_equal(obs,  ep_data.observations[i+1], f"at it. {i} test_forecasts")
+            sim_o, *_ = obs.simulate(env.action_space())
+            self._aux_obs_equal(sim_o,  ep_data.observations[i+2], f"at it. {i} test_forecasts / forecasts")
+        
+        # test final observation (the one just before the game over)
+        obs, reward, done, info = env.step(env.action_space())
+        self._aux_obs_equal(obs,  ep_data.observations[9], f"final test_forecasts")
+        sim_o, *_ = obs.simulate(env.action_space())
+        self._aux_obs_equal(sim_o,  ep_data.observations[9], f"final test_forecasts forecast / forecasts")
+        
+        obs, reward, done, info = env.step(env.action_space())
+        assert done
+                
     def test_when_game_over(self):
         """test I can load from a runner that used an agent that games over"""
         obs = self.env.reset()
@@ -143,12 +227,21 @@ class TestTSFromEpisode(unittest.TestCase):
             **self.env.get_params_for_runner(),
             agentClass=GameOverTestAgent
         )
-        res = runner.run(nb_episode=1, max_iter=self.max_iter, add_detailed_output=True)
+        res = runner.run(nb_episode=1, max_iter=self.max_iter,
+                         env_seeds=[0], add_detailed_output=True)
         ep_data = res[0][-1]
-        env = grid2op.make(self.env_name,
-                           test=True,
-                           chronics_class=FromOneEpisodeData,
-                           data_feeding_kwargs={"ep_data": ep_data})
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               test=True,
+                               chronics_class=FromOneEpisodeData,
+                               data_feeding_kwargs={"ep_data": ep_data},
+                               opponent_attack_cooldown=99999999,
+                               opponent_attack_duration=0,
+                               opponent_budget_per_ts=0.,
+                               opponent_init_budget=0.,
+                               opponent_action_class=DontAct)
         obs = env.reset()
         self._aux_obs_equal(obs,  ep_data.observations[0])
         for i in range(6):
@@ -177,15 +270,24 @@ class TestTSFromEpisode(unittest.TestCase):
             **env_dict_params
         )
         # now run as usual
-        res = runner.run(nb_episode=1, max_iter=self.max_iter, add_detailed_output=True)
+        res = runner.run(nb_episode=1, max_iter=self.max_iter,
+                         add_detailed_output=True, env_seeds=[0])
         ep_data = res[0][-1]
         assert len(ep_data) == self.max_iter, f"{len(ep_data)} vs {self.max_iter}"
         assert ep_data.observations[2].time_next_maintenance[2] == 0  # check right maintenance is applied
         assert ep_data.observations[2].duration_next_maintenance[2] == 5  # check right maintenance is applied
-        env = grid2op.make(self.env_name,
-                           test=True,
-                           chronics_class=FromOneEpisodeData,
-                           data_feeding_kwargs={"ep_data": ep_data})
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               test=True,
+                               chronics_class=FromOneEpisodeData,
+                               data_feeding_kwargs={"ep_data": ep_data},
+                               opponent_attack_cooldown=99999999,
+                               opponent_attack_duration=0,
+                               opponent_budget_per_ts=0.,
+                               opponent_init_budget=0.,
+                               opponent_action_class=DontAct)
         obs = env.reset()
         self._aux_obs_equal(obs,  ep_data.observations[0], f"after reset")
         for i in range(10):
@@ -199,15 +301,24 @@ class TestTSFromEpisode(unittest.TestCase):
             agentClass=GameOverTestAgent
         )
         # now run as usual
-        res2 = runner2.run(nb_episode=1, max_iter=self.max_iter, add_detailed_output=True)
+        res2 = runner2.run(nb_episode=1, max_iter=self.max_iter,
+                           add_detailed_output=True, env_seeds=[0])
         ep_data2 = res2[0][-1]
         assert len(ep_data2) == 7, f"{len(ep_data2)} vs 7"
         assert ep_data2.observations[2].time_next_maintenance[2] == 0  # check right maintenance is applied
         assert ep_data2.observations[2].duration_next_maintenance[2] == 5  # check right maintenance is applied
-        env = grid2op.make(self.env_name,
-                           test=True,
-                           chronics_class=FromOneEpisodeData,
-                           data_feeding_kwargs={"ep_data": ep_data2})
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               test=True,
+                               chronics_class=FromOneEpisodeData,
+                               data_feeding_kwargs={"ep_data": ep_data2},
+                               opponent_attack_cooldown=99999999,
+                               opponent_attack_duration=0,
+                               opponent_budget_per_ts=0.,
+                               opponent_init_budget=0.,
+                               opponent_action_class=DontAct)
         obs = env.reset()
         self._aux_obs_equal(obs,  ep_data2.observations[0], f"after reset (after game over)")
         for i in range(6):
@@ -239,22 +350,25 @@ class TestExamples(unittest.TestCase):
             # load
             li_episode = EpisodeData.list_episode(f)
             ep_data = li_episode[0]
-            env2 = grid2op.make(env_name,
-                                test=True,
-                                chronics_class=FromOneEpisodeData,
-                                data_feeding_kwargs={"ep_data": ep_data},
-                                opponent_class=FromEpisodeDataOpponent,
-                                )
+            
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                env2 = grid2op.make(env_name,
+                                    test=True,
+                                    chronics_class=FromOneEpisodeData,
+                                    data_feeding_kwargs={"ep_data": ep_data},
+                                    opponent_class=FromEpisodeDataOpponent,
+                                    )
             ep_data2 = EpisodeData.from_disk(*ep_data)
             obs = env2.reset()
             
         for i in range(10):
             obs, reward, done, info = env2.step(env.action_space())
-            TestTSFromEpisode._aux_obs_equal(obs,  ep_data2.observations[i+1], f"at it. {i} (TestExamples)")
+            TestTSFromEpisodeMaintenance._aux_obs_equal(obs,  ep_data2.observations[i+1], f"at it. {i} (TestExamples)")
             
         env.close()
         env2.close()
-            
+                  
 
 class TestWithOpp(unittest.TestCase):
     def test_load_with_opp(self):
@@ -264,14 +378,14 @@ class TestWithOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(env_name,
                                test=True,
-                            opponent_attack_cooldown=12*24,
-                            opponent_attack_duration=7,
-                            opponent_budget_per_ts=0.5,
-                            opponent_init_budget=100000.,
-                            opponent_action_class=PowerlineSetAction,
-                            opponent_class=RandomLineOpponent,
-                            opponent_budget_class=BaseActionBudget,
-                            kwargs_opponent={"lines_attacked":
+                               opponent_attack_cooldown=12*24,
+                               opponent_attack_duration=7,
+                               opponent_budget_per_ts=0.5,
+                               opponent_init_budget=100000.,
+                               opponent_action_class=PowerlineSetAction,
+                               opponent_class=RandomLineOpponent,
+                               opponent_budget_class=BaseActionBudget,
+                               kwargs_opponent={"lines_attacked":
                                                 ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]})
         runner = Runner(
             **env.get_params_for_runner(), agentClass=RecoPowerlineAgent
@@ -284,24 +398,27 @@ class TestWithOpp(unittest.TestCase):
         ep_data = res[0][-1]  
         assert ep_data.attacks[0].set_line_status[4] == -1   # assert I got an attack 
         assert ep_data.attacks[1].set_line_status[4] == -1   # assert I got an attack 
-        env2 = grid2op.make(env_name,
-                            test=True,
-                            chronics_class=FromOneEpisodeData,
-                            data_feeding_kwargs={"ep_data": ep_data},
-                            opponent_class=FromEpisodeDataOpponent,
-                            opponent_attack_cooldown=1,
-                            opponent_attack_duration=7,
-                            opponent_budget_per_ts=0.5,
-                            opponent_init_budget=100000.,
-                            opponent_action_class=PowerlineSetAction,
-                            opponent_budget_class=BaseActionBudget,
-                            )
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env2 = grid2op.make(env_name,
+                                test=True,
+                                chronics_class=FromOneEpisodeData,
+                                data_feeding_kwargs={"ep_data": ep_data},
+                                opponent_class=FromEpisodeDataOpponent,
+                                opponent_attack_cooldown=1,
+                                opponent_attack_duration=7,
+                                opponent_budget_per_ts=0.5,
+                                opponent_init_budget=100000.,
+                                opponent_action_class=PowerlineSetAction,
+                                opponent_budget_class=BaseActionBudget,
+                                )
         obs = env2.reset()
         agent = RecoPowerlineAgent(env2.action_space)
         for i in range(10):
             act = agent.act(obs, None)
             obs, reward, done, info = env2.step(act)
-            TestTSFromEpisode._aux_obs_equal(obs,  ep_data.observations[i+1], f"at it. {i} (TestWithOpp)")
+            TestTSFromEpisodeMaintenance._aux_obs_equal(obs,  ep_data.observations[i+1], f"at it. {i} (TestWithOpp)")
             
     def test_assert_warnings(self):
         env_name = "l2rpn_case14_sandbox"
@@ -310,15 +427,16 @@ class TestWithOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make(env_name,
                                test=True,
-                            opponent_attack_cooldown=12*24,
-                            opponent_attack_duration=7,
-                            opponent_budget_per_ts=0.5,
-                            opponent_init_budget=100000.,
-                            opponent_action_class=PowerlineSetAction,
-                            opponent_class=RandomLineOpponent,
-                            opponent_budget_class=BaseActionBudget,
-                            kwargs_opponent={"lines_attacked":
-                                                ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]})
+                               opponent_attack_cooldown=12*24,
+                               opponent_attack_duration=7,
+                               opponent_budget_per_ts=0.5,
+                               opponent_init_budget=100000.,
+                               opponent_action_class=PowerlineSetAction,
+                               opponent_class=RandomLineOpponent,
+                               opponent_budget_class=BaseActionBudget,
+                               kwargs_opponent={"lines_attacked":
+                                                ["1_3_3", "1_4_4", "3_6_15",
+                                                 "9_10_12", "11_12_13", "12_13_14"]})
         runner = Runner(
             **env.get_params_for_runner(), agentClass=RecoPowerlineAgent
         )    
@@ -357,9 +475,9 @@ class TestWithOpp(unittest.TestCase):
                                 opponent_budget_class=BaseActionBudget,
                                 )
      
-# TODO test with forecasts
+
 # TODO test the FromMultiEpisodeData
 # TODO test the get_id of FromMultiEpisodeData     
-# TODO test fast_forward of FromMultiEpisodeData and of FromOneEpisodeData                                   
+# TODO test fast_forward of FromMultiEpisodeData                                   
 if __name__ == "__main__":
     unittest.main()

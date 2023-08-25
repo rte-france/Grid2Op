@@ -192,7 +192,27 @@ class FromOneEpisodeData(GridValue):
             raise ChronicsError("FromOneEpisodeData can only read data either directly from an EpisodeData, "
                                 "from a path pointing to one, or from a tuple")
         self.current_inj = None
-            
+        
+        if list_perfect_forecasts is not None:
+            self.list_perfect_forecasts = list_perfect_forecasts
+        else:
+            self.list_perfect_forecasts = []
+        self._check_list_perfect_forecasts()
+    
+    def _check_list_perfect_forecasts(self):
+        if not self.list_perfect_forecasts:
+            return
+        self.list_perfect_forecasts = [int(el) for el in self.list_perfect_forecasts]
+        for horizon in self.list_perfect_forecasts:
+            tmp = horizon * 60. / self.time_interval.total_seconds()
+            if tmp - int(tmp) != 0:
+                raise ChronicsError(f"All forecast horizons should be multiple of self.time_interval (and given in minutes), found {horizon}")
+
+        for h_id, horizon in enumerate(self.list_perfect_forecasts):
+            if horizon * 60 != (h_id + 1) * (self.time_interval.total_seconds()):
+                raise ChronicsError("For now all horizons should be consecutive, you cannot 'skip' a forecast: (5, 10, 15) " 
+                                    "is ok but (5, 15, 30) is NOT.")
+        
     def initialize(
         self,
         order_backend_loads,
@@ -286,25 +306,33 @@ class FromOneEpisodeData(GridValue):
                 dict_[key] = dt_float(1.0) * tmp_
         
     def forecasts(self):
-        res = []
-        return res
-        # TODO
-        if not self._forcast_handlers:
-            # nothing to handle forecast in this class
-            return res
+        """Retrieve PERFECT forecast from this time series generator.
         
-        handlers = (self.load_p_handler, self.load_q_handler, self.gen_p_handler, self.gen_v_handler)
-        for h_id, h in enumerate(self._forcast_handlers[0].get_available_horizons()):
-            dict_ = {}
-            self._aux_forecasts(h_id, dict_, "load_p", self.load_p_for_handler, self.load_p_handler, handlers)
-            self._aux_forecasts(h_id, dict_, "load_q", self.load_q_for_handler, self.load_q_handler, handlers)
-            self._aux_forecasts(h_id, dict_, "prod_p", self.gen_p_for_handler, self.gen_p_handler, handlers)
-            self._aux_forecasts(h_id, dict_, "prod_v", self.gen_v_for_handler, self.gen_v_handler, handlers)
+        .. alert::
+            These are perfect forecast and not the original forecasts.
             
-            res_d = {}
-            if dict_:
-                res_d["injection"] = dict_
+        Notes
+        -----
+        As in grid2op the forecast information is not stored by the runner, 
+        it is NOT POSSIBLE to retrieve the forecast informations used by the 
+        "original" env (the one that generated the EpisodeData).
+        
+        This class however, thanks to the `list_perfect_forecasts` kwarg you
+        can set at building time, can generate perfect forecasts: the agent will
+        see into the future if using these forecasts.
 
+        """
+        if not self.list_perfect_forecasts:
+            return []
+        
+        res = []
+        for h_id, h in enumerate(self.list_perfect_forecasts):
+            res_d = {}
+            obs = self._episode_data.observations[min(self.curr_iter + h_id, len(self._episode_data) - 1)]
+            # load the injection
+            dict_inj, prod_v = self._load_injection(obs)
+            dict_inj["prod_v"] = prod_v
+            res_d["injection"] = dict_inj
             forecast_datetime = self.current_datetime + timedelta(minutes=h)
             res.append((forecast_datetime, res_d))
         return res
@@ -355,7 +383,7 @@ class FromOneEpisodeData(GridValue):
             
         return dict_, prod_v
         
-    def _init_date_time(self):  # in csv handler
+    def _init_date_time(self):  # from csv handler
         if os.path.exists(os.path.join(self.path, "start_datetime.info")):
             with open(os.path.join(self.path, "start_datetime.info"), "r") as f:
                 a = f.read().rstrip().lstrip()
