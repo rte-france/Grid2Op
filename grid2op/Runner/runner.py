@@ -16,7 +16,7 @@ from grid2op.Environment import BaseEnv
 from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import Grid2OpException, EnvError
 from grid2op.Observation import CompleteObservation, BaseObservation
-from grid2op.Opponent.OpponentSpace import OpponentSpace
+from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.Reward import FlatReward, BaseReward
 from grid2op.Rules import AlwaysLegal, BaseRules
 from grid2op.Environment import Environment

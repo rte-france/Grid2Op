@@ -27,7 +27,7 @@ class RedispReward(BaseReward):
     ---------
     You can use this reward in any environment with:
 
-    .. code-block:
+    .. code-block:: python
 
         import grid2op
         from grid2op.Reward import RedispReward

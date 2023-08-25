@@ -898,8 +898,21 @@ class GridObjects:
     def to_json(self, convert=True):
         """
         Convert this instance of GridObjects to a dictionary that can be json serialized.
+        
+        .. note::
+            This function is different to the :func:`grid2op.Observation.BaseObservation.to_dict`.
+            Indeed the dictionnary resulting from this function will count as keys all the attributes
+            in :attr:`GridObjects.attr_list_vect` and :attr:`GridObjects.attr_list_json`.
+            
+            Concretely, if `obs` is an observation (:class:`grid2op.Observation.BaseObservation`)
+            then `obs.to_dict()` will have the keys `type(obs).attr_list_vect` and the values will
+            be numpy arrays whereas `obs.to_json()` will have the keys
+            `type(obs).attr_list_vect` and `type(obs).attr_list_json` and the values will be
+            lists (serializable)
 
-        convert: do you convert the numpy types to standard python list (might take lots of time)
+        .. warning::
+            convert: do you convert the numpy types to standard python list (might take lots of time)
+        
         TODO doc and example
         """
 
@@ -909,11 +922,12 @@ class GridObjects:
         # or even storing the things in [id, value] for these types of attributes (time_before_cooldown_line,
         # time_before_cooldown_sub, time_next_maintenance, duration_next_maintenance etc.)
 
+        cls = type(self)
         res = {}
-        for attr_nm in self.attr_list_vect + self.attr_list_json:
+        for attr_nm in cls.attr_list_vect + cls.attr_list_json:
             res[attr_nm] = self._get_array_from_attr_name(attr_nm)
         if convert:
-            self._convert_to_json(res)  # TODO !
+            cls._convert_to_json(res)
         return res
 
     def from_json(self, dict_):
@@ -945,8 +959,9 @@ class GridObjects:
                 type_ = type(my_attr)
                 setattr(self, key, type_(array_[0]))
 
-    def _convert_to_json(self, dict_):
-        for attr_nm in self.attr_list_vect + self.attr_list_json:
+    @classmethod
+    def _convert_to_json(cls, dict_):
+        for attr_nm in cls.attr_list_vect + cls.attr_list_json:
             tmp = dict_[attr_nm]
             dtype = tmp.dtype
             if dtype == dt_float:
@@ -954,6 +969,12 @@ class GridObjects:
             elif dtype == dt_int:
                 dict_[attr_nm] = [int(el) for el in tmp]
             elif dtype == dt_bool:
+                dict_[attr_nm] = [bool(el) for el in tmp]
+            elif dtype == float:
+                dict_[attr_nm] = [float(el) for el in tmp]
+            elif dtype == int:
+                dict_[attr_nm] = [int(el) for el in tmp]
+            elif dtype == bool:
                 dict_[attr_nm] = [bool(el) for el in tmp]
 
     def shape(self):

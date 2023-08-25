@@ -14,7 +14,7 @@ import warnings
 
 from grid2op.Environment import Environment
 from grid2op.Backend import Backend, PandaPowerBackend
-from grid2op.Opponent.OpponentSpace import OpponentSpace
+from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, ChangeNothing, FromNPY, FromChronix2grid
 from grid2op.Chronics import GridStateFromFile, GridValue

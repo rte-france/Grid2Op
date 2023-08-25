@@ -616,7 +616,7 @@ class BaseMultiProcessEnvironment(GridObjects):
 
         You can use this feature like:
 
-        .. code-block::
+        .. code-block:: python
 
             import grid2op
             from grid2op.Environment import BaseMultiProcessEnvironment

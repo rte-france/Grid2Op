@@ -7,15 +7,18 @@ __all__ = [
     "WeightedRandomOpponent",
     "NeverAttackBudget",
     "GeometricOpponent",
-    "GeometricOpponentMultiArea"
+    "GeometricOpponentMultiArea",
+    "FromEpisodeDataOpponent"
 ]
 
-from grid2op.Opponent.OpponentSpace import OpponentSpace
-from grid2op.Opponent.BaseActionBudget import BaseActionBudget
-from grid2op.Opponent.BaseOpponent import BaseOpponent
-from grid2op.Opponent.UnlimitedBudget import UnlimitedBudget
-from grid2op.Opponent.RandomLineOpponent import RandomLineOpponent
-from grid2op.Opponent.WeightedRandomOpponent import WeightedRandomOpponent
-from grid2op.Opponent.NeverAttackBudget import NeverAttackBudget
-from grid2op.Opponent.GeometricOpponent import GeometricOpponent
+from grid2op.Opponent.opponentSpace import OpponentSpace
+from grid2op.Opponent.baseActionBudget import BaseActionBudget
+from grid2op.Opponent.baseOpponent import BaseOpponent
+from grid2op.Opponent.unlimitedBudget import UnlimitedBudget
+from grid2op.Opponent.randomLineOpponent import RandomLineOpponent
+from grid2op.Opponent.weightedRandomOpponent import WeightedRandomOpponent
+from grid2op.Opponent.neverAttackBudget import NeverAttackBudget
+from grid2op.Opponent.geometricOpponent import GeometricOpponent
 from grid2op.Opponent.geometricOpponentMultiArea import GeometricOpponentMultiArea
+from grid2op.Opponent.fromEpisodeDataOpponent import FromEpisodeDataOpponent
+from grid2op.Opponent.utils import get_kwargs_no_opponent

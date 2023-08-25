@@ -1753,9 +1753,10 @@ class Backend(GridObjects, ABC):
             self._init_class_attr()
 
             # hack due to changing class of imported module in the module itself
-            self.__class__ = type(self).init_grid(
+            future_cls = orig_type.init_grid(
                 type(self), force_module=type(self).__module__
             )
+            self.__class__ = future_cls
             setattr(
                 sys.modules[type(self).__module__],
                 self.__class__.__name__,

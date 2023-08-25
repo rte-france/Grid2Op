@@ -18,13 +18,13 @@ class FlatReward(BaseReward):
     ---------
     You can use this reward in any environment with:
 
-    .. code-block:
+    .. code-block:: python
 
         import grid2op
         from grid2op.Reward import FlatReward
 
         # then you create your environment with it:
-        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        NAME_OF_THE_ENVIRONMENT = "l2rpn_case14_sandbox"
         env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=FlatReward)
         # and do a step with a "do nothing" action
         obs = env.reset()

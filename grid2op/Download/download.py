@@ -53,7 +53,7 @@ def download_cli():
     )
     parser.add_argument(
         "--name",
-        default="rte_case14_redisp",
+        default="l2rpn_case14_sandbox",
         type=str,
         help="The name of the dataset (one of {} )." "".format(",".join(LI_VALID_ENV)),
     )

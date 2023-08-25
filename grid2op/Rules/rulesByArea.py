@@ -36,7 +36,8 @@ class RulesByArea(BaseRules):
     ---------
     If you want the environment to take into account the rules by area, you can achieve it with:
 
-    .. code-block:
+    .. code-block:: python
+    
         import grid2op
         from grid2op.Rules.rulesByArea import RulesByArea
         
