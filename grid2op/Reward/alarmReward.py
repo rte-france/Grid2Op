@@ -35,7 +35,7 @@ class AlarmReward(BaseReward):
         from grid2op.Reward import AlarmReward
 
         # then you create your environment with it:
-        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        NAME_OF_THE_ENVIRONMENT = "l2rpn_case14_sandbox"
         env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=AlarmReward)
         # and do a step with a "do nothing" action
         obs = env.reset()
