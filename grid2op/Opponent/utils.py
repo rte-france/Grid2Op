@@ -20,7 +20,7 @@ def get_kwargs_no_opponent() -> Dict:
     
     You can use it like
     
-    .. code-block::
+    .. code-block:: python
 
         import grid2op
         env_name = "l2rpn_case14_sandbox"  # or any other name

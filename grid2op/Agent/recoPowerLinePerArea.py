@@ -26,7 +26,7 @@ class RecoPowerlinePerArea(BaseAgent):
 
     You can use it like:
     
-    .. code-block::
+    .. code-block:: python
     
         import grid2op
         from grid2op.Agent import RecoPowerlinePerArea

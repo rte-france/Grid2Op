@@ -10,7 +10,7 @@ import copy
 import warnings
 
 from grid2op.Opponent.baseOpponent import BaseOpponent
-from grid2op.Chronics import FromOneEpisodeData
+from grid2op.Chronics import FromOneEpisodeData, FromMultiEpisodeData
 from grid2op.Exceptions import OpponentError
 
 
@@ -75,7 +75,7 @@ class FromEpisodeDataOpponent(BaseOpponent):
         self._warning_cooldown_issued = False
         
     def init(self, partial_env, **kwargs):
-        if not isinstance(partial_env.chronics_handler.real_data, FromOneEpisodeData):
+        if not isinstance(partial_env.chronics_handler.real_data, (FromOneEpisodeData, FromMultiEpisodeData)):
             raise OpponentError("FromEpisodeDataOpponent can only be used with FromOneEpisodeData time series !")
         self._ptr_env = partial_env
         self._attacks = copy.deepcopy(self._ptr_env.chronics_handler.real_data._episode_data.attacks)

@@ -17,7 +17,7 @@ from grid2op.Action import BaseAction, DontAct, PowerlineSetAction
 from grid2op.Environment import BaseEnv
 from grid2op.Observation import BaseObservation
 from grid2op.Runner import Runner
-from grid2op.Chronics import FromOneEpisodeData, Multifolder, ChronicsHandler
+from grid2op.Chronics import FromOneEpisodeData, Multifolder, ChronicsHandler, FromMultiEpisodeData
 from grid2op.Agent import BaseAgent
 from grid2op.Exceptions import Grid2OpException, ChronicsError
 from grid2op.Agent import RecoPowerlineAgent
@@ -329,7 +329,7 @@ class TestTSFromEpisodeMaintenance(unittest.TestCase):
 
 class TestExamples(unittest.TestCase):
     """test the example given in the doc"""
-    def test_given_example(self):
+    def test_given_example_oneepdata(self):
         env_name = "l2rpn_case14_sandbox"  # or any other name
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -368,7 +368,45 @@ class TestExamples(unittest.TestCase):
             
         env.close()
         env2.close()
-                  
+        
+    def test_given_example_multiepdata(self):
+        env_name = "l2rpn_case14_sandbox"  # or any other name
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(env_name, test=True)
+        
+        param = env.parameters
+        param.NO_OVERFLOW_DISCONNECTION = True
+        env.change_parameters(param)
+        env.reset()
+        
+        with tempfile.TemporaryDirectory() as path_agent:
+        
+            runner = Runner(**env.get_params_for_runner(),
+                            agentClass=RecoPowerlineAgent)
+            runner.run(nb_episode=2,
+                       path_save=path_agent,
+                       max_iter=10)
+        
+            # path_agent is the path where data coming from a grid2op runner are stored
+            # NB it should come from a do nothing agent, or at least
+            # an agent that does not modify the injections (no redispatching, curtailment, storage)
+            li_episode = EpisodeData.list_episode(path_agent)
+            
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                env2 = grid2op.make(env_name,
+                                    test=True,
+                                    chronics_class=FromMultiEpisodeData,
+                                    data_feeding_kwargs={"li_ep_data": li_episode},
+                                    opponent_class=FromEpisodeDataOpponent,
+                                    opponent_attack_cooldown=1,
+                                    )
+            # li_ep_data in this case is a list of anything that is accepted by `FromOneEpisodeData`
+
+            obs = env.reset()
+        env.reset()
+        env2.reset()
 
 class TestWithOpp(unittest.TestCase):
     def test_load_with_opp(self):
@@ -476,8 +514,81 @@ class TestWithOpp(unittest.TestCase):
                                 )
      
 
-# TODO test the FromMultiEpisodeData
-# TODO test the get_id of FromMultiEpisodeData     
-# TODO test fast_forward of FromMultiEpisodeData                                   
+class TestTSFromMultieEpisode(unittest.TestCase):
+    def setUp(self) -> None:
+        self.env_name = "l2rpn_case14_sandbox"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.env_name,
+                                    test=True,
+                                    opponent_attack_cooldown=99999999,
+                                    opponent_attack_duration=0,
+                                    opponent_budget_per_ts=0.,
+                                    opponent_init_budget=0.,
+                                    opponent_action_class=DontAct,)
+        self.env.set_id(0)
+        self.env.seed(0)
+        self.max_iter = 10
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+        
+    def test_basic(self):
+        """test injection, without opponent nor maintenance"""
+        obs = self.env.reset()
+        runner = Runner(
+            **self.env.get_params_for_runner()
+        )
+        res = runner.run(nb_episode=2, max_iter=self.max_iter, add_detailed_output=True)
+        ep_data = [el[-1] for el in res]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(self.env_name,
+                               test=True,
+                               chronics_class=FromMultiEpisodeData,
+                               data_feeding_kwargs={"li_ep_data": ep_data},
+                               opponent_attack_cooldown=99999999,
+                               opponent_attack_duration=0,
+                               opponent_budget_per_ts=0.,
+                               opponent_init_budget=0.,
+                               opponent_action_class=DontAct)
+        # test init data
+        obs = env.reset()
+        TestTSFromEpisodeMaintenance._aux_obs_equal(obs,  ep_data[0].observations[0])
+        for i in range(10):
+            obs, reward, done, info = env.step(env.action_space())
+            TestTSFromEpisodeMaintenance._aux_obs_equal(obs,  ep_data[0].observations[i+1], f"at it. {i}")
+        assert done
+        with self.assertRaises(Grid2OpException):
+            obs, reward, done, info = env.step(env.action_space())
+        assert env.chronics_handler.get_id() == "0"
+        
+        # test when reset, that it moves to next data
+        obs = env.reset()
+        TestTSFromEpisodeMaintenance._aux_obs_equal(obs,  ep_data[1].observations[0])
+        for i in range(10):
+            obs, reward, done, info = env.step(env.action_space())
+            TestTSFromEpisodeMaintenance._aux_obs_equal(obs,  ep_data[1].observations[i+1], f"at it. {i}")
+        assert done
+        with self.assertRaises(Grid2OpException):
+            obs, reward, done, info = env.step(env.action_space())
+        assert env.chronics_handler.get_id() == "1"
+        
+        # test the set_id
+        env.set_id("1")
+        obs = env.reset()
+        assert env.chronics_handler.get_id() == "1"
+        TestTSFromEpisodeMaintenance._aux_obs_equal(obs,  ep_data[1].observations[0])
+        for i in range(10):
+            obs, reward, done, info = env.step(env.action_space())
+            TestTSFromEpisodeMaintenance._aux_obs_equal(obs,  ep_data[1].observations[i+1], f"at it. {i}")
+        assert done
+        with self.assertRaises(Grid2OpException):
+            obs, reward, done, info = env.step(env.action_space())
+        assert env.chronics_handler.get_id() == "1"
+        
+                                     
 if __name__ == "__main__":
     unittest.main()

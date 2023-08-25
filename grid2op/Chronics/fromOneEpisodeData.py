@@ -62,6 +62,9 @@ class FromOneEpisodeData(GridValue):
         you to build this class with a complete episode (and not using an agent that games over after a 
         few steps), for example by using the "RecoPowerlineAgent" and the `NO_OVERFLOW_DISCONNECTION` 
         parameters (see example below)
+    
+    .. seealso::
+        :class:`grid2op.Chronics.FromMultiEpisodeData`if you want to use multiple episode data
         
     Examples
     ---------
@@ -128,7 +131,7 @@ class FromOneEpisodeData(GridValue):
     If you want to include perfect forecast (unfortunately you cannot retrieve the original forecasts)
     you can do:
     
-    .. code-block::
+    .. code-block:: python
     
         # same as above
         

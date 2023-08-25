@@ -41,7 +41,7 @@ class BaseReward(ABC):
     If you want the environment to compute a reward that is the sum of the flow (this is not a good reward, but
     we use it as an example on how to do it) you can achieve it with:
 
-    .. code-block:
+    .. code-block:: python
 
         import grid2op
         from grid2op.Reward import BaseReward
