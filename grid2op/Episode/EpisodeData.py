@@ -415,7 +415,10 @@ class EpisodeData:
         return self.observations.collection
 
     def __len__(self):
-        return int(self.meta["chronics_max_timestep"])
+        tmp = int(self.meta["chronics_max_timestep"])
+        if tmp > 0:
+            return min(tmp, len(self.observations))
+        return len(self.observations)
 
     @classmethod
     def from_disk(cls, agent_path, name="1"):
@@ -816,6 +819,12 @@ class EpisodeData:
                 if "version" in dict_:
                     version = dict_["version"]
         return version
+    
+    def set_game_over(self, game_over_step: int):
+        self.observations.set_game_over(game_over_step + 1)
+        self.actions.set_game_over(game_over_step)
+        self.attacks.set_game_over(game_over_step)
+        self.env_actions.set_game_over(game_over_step)
 
 
 class CollectionWrapper:
@@ -906,7 +915,10 @@ class CollectionWrapper:
             except EnvError as exc_:
                 self._game_over = i
                 break
-
+            
+    def set_game_over(self, game_over_step: int):
+        self._game_over = game_over_step
+        
     def __len__(self):
         if self._game_over is None:
             return self.collection.shape[0]

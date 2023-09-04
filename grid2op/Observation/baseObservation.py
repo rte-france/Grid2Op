@@ -3404,6 +3404,17 @@ class BaseObservation(GridObjects):
         -------
         The returned dictionary is not necessarily json serializable. To have a grid2op observation that you can
         serialize in a json fashion, please use the :func:`grid2op.Space.GridObjects.to_json` function.
+        
+        .. note:: 
+            This function is different to the :func:`grid2op.Space.GridObjects.to_dict`.
+            Indeed the dictionnary resulting from this function will count as keys all the attributes
+            in :attr:`GridObjects.attr_list_vect` only.
+            
+            Concretely, if `obs` is an observation (:class:`grid2op.Observation.BaseObservation`)
+            then `obs.to_dict()` will have the keys `type(obs).attr_list_vect` and the values will
+            be numpy arrays whereas `obs.to_json()` will have the keys
+            `type(obs).attr_list_vect` and `type(obs).attr_list_json` and the values will be
+            lists (serializable).
 
         """
         if self._dictionnarized is None:

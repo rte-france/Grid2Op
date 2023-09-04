@@ -10,18 +10,19 @@ import warnings
 import unittest
 
 import grid2op
-from grid2op.Parameters import Parameters
 from grid2op.tests.helper_path_test import *
+from grid2op.Backend import PandaPowerBackend
 from lightsim2grid import LightSimBackend
 
 
-class TestSim2realStorage(unittest.TestCase):    
+class _AuxTestSim2realStorage:    
     def setUp(self) -> None:
+        print(f"\n\n\nfor {type(self.get_backend())}")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "educ_case14_storage_diffgrid"),
                                     test=True,
-                                    backend=LightSimBackend())
+                                    backend=self.get_backend())
         self.env.seed(0)
         self.env.set_id(0)
     
@@ -29,8 +30,20 @@ class TestSim2realStorage(unittest.TestCase):
         self.env.close()
         return super().tearDown()
     
-    def test_only_kwargs(self):
+    def test_reset(self):
         obs = self.env.reset()
+        assert obs.n_storage == 2
 
+
+class TestSim2realStorageLS(_AuxTestSim2realStorage, unittest.TestCase):  
+    def get_backend(self):
+        return LightSimBackend()
+    
+    
+class TestSim2realStoragePP(_AuxTestSim2realStorage, unittest.TestCase):  
+    def get_backend(self):
+        return PandaPowerBackend()
+    
+    
 if __name__ == '__main__':
     unittest.main()

@@ -697,7 +697,7 @@ class Environment(BaseEnv):
             from grid2op import make
             from grid2op.BaseAgent import DoNothingAgent
 
-            env = make("rte_case14_realistic")  # create an environment
+            env = make("l2rpn_case14_sandbox")  # create an environment
             agent = DoNothingAgent(env.action_space)  # create an BaseAgent
 
             for i in range(10):
@@ -717,7 +717,7 @@ class Environment(BaseEnv):
             from grid2op import make
             from grid2op.BaseAgent import DoNothingAgent
 
-            env = make("rte_case14_realistic")  # create an environment
+            env = make("l2rpn_case14_sandbox")  # create an environment
             agent = DoNothingAgent(env.action_space)  # create an BaseAgent
             scenario_order = [1,2,3,4,5,10,8,6,5,7,78, 8]
             for id_ in scenario_order:

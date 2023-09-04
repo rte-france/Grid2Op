@@ -41,7 +41,7 @@ class BaseReward(ABC):
     If you want the environment to compute a reward that is the sum of the flow (this is not a good reward, but
     we use it as an example on how to do it) you can achieve it with:
 
-    .. code-block:
+    .. code-block:: python
 
         import grid2op
         from grid2op.Reward import BaseReward
@@ -72,7 +72,7 @@ class BaseReward(ABC):
                 return res
 
         # then you create your environment with it:
-        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        NAME_OF_THE_ENVIRONMENT = "l2rpn_case14_sandbox"
         env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=SumOfFlowReward)
         # and do a step with a "do nothing" action
         obs = env.reset()

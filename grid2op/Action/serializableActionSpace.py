@@ -145,7 +145,7 @@ class SerializableActionSpace(SerializableSpace):
             import grid2op
             from grid2op.Converter import ConnectivityConverter
 
-            env = grid2op.make("rte_case14_realistic", test=True)
+            env = grid2op.make("l2rpn_case14_sandbox", test=True)
             can_i_use_set_bus = env.action_space.supports_type("set_bus") # this is True
 
             env2 = grid2op.make("educ_case14_storage", test=True)

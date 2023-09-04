@@ -9,7 +9,7 @@ import warnings
 import numpy as np
 import copy
 
-from grid2op.Opponent import BaseOpponent
+from grid2op.Opponent.baseOpponent  import BaseOpponent
 from grid2op.Exceptions import OpponentError
 
 

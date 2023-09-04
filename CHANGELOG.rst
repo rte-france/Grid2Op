@@ -31,6 +31,23 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.5] - 2023-xx-yy
+---------------------
+- XXX 
+
+
+[1.9.4] - 2023-09-04
+---------------------
+- [FIXED] read-the-docs template is not compatible with latest sphinx version (7.0.0)
+  see https://github.com/readthedocs/sphinx_rtd_theme/issues/1463
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/511
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/508
+- [ADDED] some classes that can be used to reproduce exactly what happened in a previously run environment
+  see `grid2op.Chronics.FromOneEpisodeData` and `grid2op.Opponent.FromEpisodeDataOpponent` 
+  and `grid2op.Chronics.FromMultiEpisodeData`
+- [ADDED] An helper function to get the kwargs to disable the opponent (see `grid2op.Opponent.get_kwargs_no_opponent()`)
+- [IMPROVED] doc of `obs.to_dict` and `obs.to_json` (see https://github.com/rte-france/Grid2Op/issues/509)
+
 [1.9.3] - 2023-07-28
 ---------------------
 - [BREAKING] the "chronix2grid" dependency now points to chronix2grid and not to the right branch
