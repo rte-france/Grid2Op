@@ -19,21 +19,26 @@ class Issue446Tester(unittest.TestCase):
         env = grid2op.make("l2rpn_case14_sandbox", test=True)
 
         divide = {"hour_of_day": np.ones(1)}
+        subtract = {"hour_of_day": np.zeros(1)}
 
         gym_observation_space_1 =  BoxGymObsSpace(env.observation_space,
                                                 attr_to_keep=["curtailment_mw", "hour_of_day"],
-                                                divide = divide
+                                                divide = divide,
+                                                subtract = subtract
                                                 )
 
         gym_observation_space_2 =  BoxGymObsSpace(env.observation_space.copy(),
                                                 attr_to_keep=["curtailment_mw", "hour_of_day"],
-                                                divide = divide
+                                                divide = divide,
+                                                subtract = subtract
                                                 )
         
         gym_observation_space_1.normalize_attr("curtailment_mw")
             
         assert "curtailment_mw" in gym_observation_space_1._divide
         assert "curtailment_mw" not in gym_observation_space_2._divide
+        assert "curtailment_mw" in gym_observation_space_1._subtract
+        assert "curtailment_mw" not in gym_observation_space_2._subtract
         
         
 if __name__ == "__main__":
