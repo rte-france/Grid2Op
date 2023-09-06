@@ -618,10 +618,10 @@ class __AuxBoxGymObsSpace:
 
         if subtract is None:
             subtract = {}
-        self._subtract = subtract
+        self._subtract = subtract.copy()
         if divide is None:
             divide = {}
-        self._divide = divide
+        self._divide = divide.copy()
 
         # handle the "functional" part
         self._template_obs = ob_sp._template_obj.copy()
