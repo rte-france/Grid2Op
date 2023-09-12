@@ -152,9 +152,9 @@ class ProfileAgent(AgentWithConverter):
         self.action_space.all_actions = all_actions
 
         # add the action "reset everything to bus 1"
-        self.action_space.all_actions.append(action_space({"set_bus": np.ones(action_space.dim_topo, dtype=np.int),
+        self.action_space.all_actions.append(action_space({"set_bus": np.ones(action_space.dim_topo, dtype=int),
                                                            "set_line_status": np.ones(action_space.n_line,
-                                                                                      dtype=np.int)}))
+                                                                                      dtype=int)}))
 
 
 def print_res(env_klu, env_pp,

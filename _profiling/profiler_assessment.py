@@ -28,7 +28,7 @@ import cProfile
 from utils_benchmark import run_env, str2bool, ProfileAgent
 
 try:
-    from lightsim2grid.LightSimBackend import LightSimBackend
+    from lightsim2grid import LightSimBackend
     light_sim_avail = True
 except ImportError:
     light_sim_avail = False
