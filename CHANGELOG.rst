@@ -33,8 +33,8 @@ Change Log
 
 [1.9.5] - 2023-xx-yy
 ---------------------
-- XXX 
-
+- [FIXED] issue  https://github.com/rte-france/Grid2Op/issues/518
+- [FIXED] issue  https://github.com/rte-france/Grid2Op/issues/446
 
 [1.9.4] - 2023-09-04
 ---------------------
