@@ -529,6 +529,17 @@ class _BackendAction(GridObjects):
         tmp_ = self.get_loads_bus()
         return self._aux_to_global(tmp_, self.load_to_subid)
     
+    def get_loads_bus_switches(self):
+        tmp_ = self.get_loads_bus()
+        res = np.zeros(2*tmp.shape[0], dtype=bool)
+        # TODO !
+        
+        # returns an iterable: for each load you have: load_index, (pos_switch1, pos_switch_2, ..., pos_switchn)
+        # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
+        # n switch connecting the load to one busbar
+        # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
+        return res
+        
     def get_gens_bus(self):
         if self._gens_bus is None:
             self._gens_bus = ValueStore(self.n_gen, dtype=dt_int)
