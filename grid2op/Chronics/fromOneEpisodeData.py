@@ -64,7 +64,7 @@ class FromOneEpisodeData(GridValue):
         parameters (see example below)
     
     .. seealso::
-        :class:`grid2op.Chronics.FromMultiEpisodeData`if you want to use multiple episode data
+        :class:`grid2op.Chronics.FromMultiEpisodeData` if you want to use multiple episode data
         
     Examples
     ---------

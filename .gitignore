@@ -386,6 +386,11 @@ test_malte.py
 example_gym_act.py
 test_to_fix.txt
 doc_raise_alert.py
+_profiling/profile.html
+_profiling/profile.json
+actspace_converter.py
+grid2op/data_test/input_data_local/
+test_sim2real_battery.py
 
 # profiling files
 **.prof
