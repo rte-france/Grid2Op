@@ -31,7 +31,12 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.9.4] - 2023-xx-yy
+[1.9.5] - 2023-xx-yy
+---------------------
+- XXX 
+
+
+[1.9.4] - 2023-09-04
 ---------------------
 - [FIXED] read-the-docs template is not compatible with latest sphinx version (7.0.0)
   see https://github.com/readthedocs/sphinx_rtd_theme/issues/1463
