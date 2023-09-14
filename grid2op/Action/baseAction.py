@@ -578,7 +578,7 @@ class BaseAction(GridObjects):
             tmp_ = [(int(id_), int(val)) for id_, val in enumerate(getattr(self, attr_nm)) if val != 0.]
             if tmp_:
                 res[dict_key] = tmp_
-                
+    
     def as_serializable_dict(self) -> dict:
         """
         This method returns an action as a dictionnary, that can be serialized using the "json" module.
@@ -6150,3 +6150,9 @@ class BaseAction(GridObjects):
         if self._modif_curtailment:
             self._aux_decompose_as_unary_actions_curtail(cls, group_curtail, res)
         return res
+
+    @classmethod
+    def from_switches(cls, obs, switches_list):
+        # TODO detailed topo
+        pass
+    

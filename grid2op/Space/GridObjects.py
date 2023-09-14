@@ -25,6 +25,7 @@ import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
+from grid2op.Space.detailed_topo_description import DetailedTopoDescription
 
 # TODO tests of these methods and this class in general
 
@@ -611,6 +612,8 @@ class GridObjects:
     alertable_line_names = []  # name of each line to produce an alert on # TODO
     alertable_line_ids = []
     
+    detailed_topo_desc = None
+    
     # test
     _IS_INIT = False
     
@@ -793,6 +796,9 @@ class GridObjects:
         cls.dim_alerts = 0
         cls.alertable_line_names = []
         cls.alertable_line_ids = []
+        
+        # detailed topology
+        cls.detailed_topo_desc = None
 
     @classmethod
     def _update_value_set(cls):
@@ -1277,6 +1283,8 @@ class GridObjects:
         GridObjects._make_cls_dict_extended(obj, cls_as_dict, as_list=False)
         for attr_nm, attr in cls_as_dict.items():
             setattr(cls, attr_nm, attr)
+        if cls.detailed_topo_desc is not None:
+            cls.detailed_topo_desc = DetailedTopoDescription.from_dict(cls.detailed_topo_desc)
 
     def _compute_pos_big_topo(self):
         # move the object attribute as class attribute !
@@ -2120,6 +2128,9 @@ class GridObjects:
 
         # alert data
         cls._check_validity_alert_data()
+        
+        # detailed topo
+        cls._check_validity_detailed_topo()
 
     @classmethod
     def _check_validity_alarm_data(cls):
@@ -2195,6 +2206,11 @@ class GridObjects:
                         f'The powerline "{l_nm}" is not in cls.alarms_lines_area'
                     )
 
+    @classmethod
+    def _check_validity_detailed_topo(cls):
+        if cls.detailed_topo_desc is not None:
+            cls.detailed_topo_desc.check_validity()
+            
     @classmethod
     def _check_validity_alert_data(cls):
         # TODO remove assert and raise Grid2opExcpetion instead
@@ -2721,6 +2737,8 @@ class GridObjects:
         cls_attr_as_dict = {}
         GridObjects._make_cls_dict_extended(gridobj, cls_attr_as_dict, as_list=False)
         res_cls = type(name_res, (cls,), cls_attr_as_dict)
+        res_cls.detailed_topo_desc = DetailedTopoDescription.from_dict(res_cls.detailed_topo_desc)
+        
         if hasattr(cls, "_INIT_GRID_CLS") and cls._INIT_GRID_CLS is not None:
             # original class is already from an initialized environment, i keep track of it
             res_cls._INIT_GRID_CLS = cls._INIT_GRID_CLS
@@ -2761,6 +2779,9 @@ class GridObjects:
             cls.dim_alerts = 0 
             cls.alertable_line_names = []
             cls.alertable_line_ids = []
+            
+        if cls.glop_version < "1.9.5":
+            cls.detailed_topo_desc = None
 
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
@@ -3485,6 +3506,10 @@ class GridObjects:
         save_to_dict(
             res, cls, "alertable_line_ids", (lambda li: [int(el) for el in li])  if as_list else None, copy_
         )
+        
+        if cls.detailed_topo_desc is not None:
+            res["detailed_topo_desc"] = {}
+            cls.detailed_topo_desc.save_to_dict(res["detailed_topo_desc"], as_list=as_list, copy_=copy_)
         return res
 
     @staticmethod
@@ -3767,7 +3792,10 @@ class GridObjects:
             else:
                 cls.alertable_line_names = []
                 cls.alertable_line_ids = []
-                
+        
+        if "detailed_topo_desc" in dict_:
+            cls.detailed_topo_desc = DetailedTopoDescription.from_dict(dict_["detailed_topo_desc"])
+            
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo_cls()
@@ -4245,6 +4273,15 @@ class GridObjects:
         tmp_tmp_ = ",".join([f"{el}" for el in cls.alertable_line_ids])
         tmp_ = f"[{tmp_tmp_}]"
         alertable_line_ids_str = '[]' if cls.dim_alerts == 0 else tmp_
+        
+        detailed_topo_desc_str = "None" # TODO detailed topo
+        if cls.detailed_topo_desc_str is not None:
+            import json
+            tmp_dtds = {}
+            cls.detailed_topo_desc_str.save_to_dict(tmp_dtds)
+            tmp_dtds_str = json.dumps(tmp_dtds, separators=(',', ':'))
+            detailed_topo_desc_str = f"DetailedTopoDescription.from_dict({tmp_dtds_str})"
+        
         res = f"""# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
@@ -4259,6 +4296,7 @@ import numpy as np
 
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
+from grid2op.Space.detailed_topo_description import DetailedTopoDescription
 from {cls._INIT_GRID_CLS.__module__} import {cls._INIT_GRID_CLS.__name__}
 
 
@@ -4382,6 +4420,9 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     dim_alert = {cls.dim_alerts}
     alertable_line_names = {alertable_line_names_str}
     alertable_line_ids = {alertable_line_ids_str}
+    
+    # detailed topology of substations
+    detailed_topo_desc = {detailed_topo_desc_str}
 
 """
         return res

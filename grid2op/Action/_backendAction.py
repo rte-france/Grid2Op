@@ -11,7 +11,7 @@ import numpy as np
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Space import GridObjects
-
+from grid2op.Exceptions import Grid2OpException
 
 # TODO see if it can be done in c++ easily
 class ValueStore:
@@ -529,15 +529,25 @@ class _BackendAction(GridObjects):
         tmp_ = self.get_loads_bus()
         return self._aux_to_global(tmp_, self.load_to_subid)
     
+    def _aux_get_bus_detailed_topo(self,
+                                   xxx_to_busbar_id,
+                                   el_id,
+                                   new_bus):
+        res = tuple([new_bus == (i-1) for i in range(len(xxx_to_busbar_id[el_id]))])
+        return res
+    
     def get_loads_bus_switches(self):
         tmp_ = self.get_loads_bus()
-        res = np.zeros(2*tmp.shape[0], dtype=bool)
-        # TODO !
-        
+        # TODO detailed topo
+        if type(self).detailed_topo_desc is None:
+            raise Grid2OpException("Cannot retrieve switches configuration if the grid does not have "
+                                   "switches information. Have you set them when loading the grid ?")
+        detailed_topo_desc = type(self).detailed_topo_desc
         # returns an iterable: for each load you have: load_index, (pos_switch1, pos_switch_2, ..., pos_switchn)
         # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
         # n switch connecting the load to one busbar
         # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
+        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.load_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
         return res
         
     def get_gens_bus(self):
