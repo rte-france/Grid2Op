@@ -267,7 +267,7 @@ def _aux_make_multimix(
 
 
 def make(
-    dataset : Union[str, os.PathLike]=None,
+    dataset : Union[str, os.PathLike]="rte_case14_realistic",
     *,
     test : bool=False,
     logger: Optional[logging.Logger]=None,
