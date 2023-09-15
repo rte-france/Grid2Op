@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -6,24 +6,26 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+print("Beginning to import here")
 import shutil
 import copy
 import os
 import unittest
 import time
 import warnings
-from grid2op.tests.helper_path_test import *
+import pdb
 
 try:
-
-    import pdb
     import nbformat
     from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
-
     CAN_COMPUTE = None
 except ImportError as exc_:
     CAN_COMPUTE = exc_
-    print(exc_)
+    print(f"Import error : {exc_}")
+print("End of the regulart import here")
+    
+from grid2op.tests.helper_path_test import PATH_DATA_TEST
+print("End of all imports here")
 
 NOTEBOOK_PATHS = os.path.abspath(os.path.join(PATH_DATA_TEST, "../../getting_started"))
 VERBOSE_TIMER = True
@@ -178,7 +180,6 @@ class TestNotebook(unittest.TestCase):
     def test_notebook5(self):
         if CAN_COMPUTE is not None:
             self.skipTest(f"{CAN_COMPUTE}")
-        return
         timer = RAII_Timer("test_notebook5")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "05_StudyYourAgent.ipynb")
         self._aux_funct_notebook(notebook_filename)
@@ -186,7 +187,6 @@ class TestNotebook(unittest.TestCase):
     def test_notebook6(self):
         if CAN_COMPUTE is not None:
             self.skipTest(f"{CAN_COMPUTE}")
-        return
         timer = RAII_Timer("test_notebook6")
         notebook_filename = os.path.join(
             NOTEBOOK_PATHS, "06_Redispatching_Curtailment.ipynb"
@@ -196,7 +196,6 @@ class TestNotebook(unittest.TestCase):
     def test_notebook7(self):
         if CAN_COMPUTE is not None:
             self.skipTest(f"{CAN_COMPUTE}")
-        return
         self._check_for_baselines()
         raii_ = RAII_tf_log()
         timer = RAII_Timer("test_notebook7")
@@ -228,7 +227,6 @@ class TestNotebook(unittest.TestCase):
     def test_notebook10(self):
         if CAN_COMPUTE is not None:
             self.skipTest(f"{CAN_COMPUTE}")
-        return
         timer = RAII_Timer("test_notebook10")
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "10_StorageUnits.ipynb")
         self._aux_funct_notebook(notebook_filename)
