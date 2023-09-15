@@ -391,6 +391,7 @@ _profiling/profile.json
 actspace_converter.py
 grid2op/data_test/input_data_local/
 test_sim2real_battery.py
+grid2op/tests/list_test_debug
 
 # profiling files
 **.prof
