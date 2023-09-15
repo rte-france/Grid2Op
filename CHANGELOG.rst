@@ -33,8 +33,11 @@ Change Log
 
 [1.9.5] - 2023-xx-yy
 ---------------------
-- [FIXED] issue  https://github.com/rte-france/Grid2Op/issues/518
-- [FIXED] issue  https://github.com/rte-france/Grid2Op/issues/446
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/518
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/446
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/523 by having a "_BackendAction" folder instead of a file
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/522 and adding back certain notebooks to the CI
+- [FIXED] and issue when disconnecting loads / generators on msot recent pandas version
 
 [1.9.4] - 2023-09-04
 ---------------------
