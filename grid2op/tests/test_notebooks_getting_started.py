@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-print("Beginning to import here")
 import shutil
 import copy
 import os
@@ -24,7 +23,7 @@ try:
     # `JUPYTER_PLATFORM_DIRS=1` and then run `jupyter --paths`.
     # The use of platformdirs will be the default in `jupyter_core` v6
     os.environ["JUPYTER_PLATFORM_DIRS"] = "1"
-    subprocess.call([f"{sys.executable}", "-m", "jupyter", "--paths"])
+    subprocess.run([f"{sys.executable}", "-m", "jupyter", "--paths"], capture_output=True, env=os.environ)
     # the above 2 lines are to fix the above error
     
     import nbformat
@@ -33,13 +32,11 @@ try:
 except Exception as exc_:
     CAN_COMPUTE = exc_
     print(f"Import error : {exc_}")
-print("End of the regulart import here")
     
 from grid2op.tests.helper_path_test import PATH_DATA_TEST
 
 NOTEBOOK_PATHS = os.path.abspath(os.path.join(PATH_DATA_TEST, "../../getting_started"))
 VERBOSE_TIMER = True
-print("End of all imports here")
 
 
 def delete_all(folder):
