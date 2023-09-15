@@ -3,7 +3,7 @@ version: 2.1
 executors:
     grid2op-executor:
         docker:
-            - image: bdonnot/grid2op:test
+            - image: python:3.10-buster
         working_directory: /Grid2Op
 
     python37:
