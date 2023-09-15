@@ -71,7 +71,10 @@ pkgs = {
         "test": ["lightsim2grid",
                  "numba",
                  "gym>=0.26",
-                 "gymnasium"
+                 "gymnasium",
+                 "stable-baselines3>=2.0",
+                 "nbconvert",
+                 "jinja2"
                  ],
         "chronix2grid": [
             "ChroniX2Grid>=1.2.0.post1"
