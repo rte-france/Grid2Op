@@ -902,7 +902,7 @@ class PandaPowerBackend(Backend):
             self._grid.load["in_service"].iat[id_el_backend] = True
         else:
             self._grid.load["in_service"].iat[id_el_backend] = False
-            self._grid.load["bus"].iat[id_el_backend] = -1
+            # self._grid.load["bus"].iat[id_el_backend] = -1  # not needed and cause bugs with certain pandas version
 
     def _apply_gen_bus(self, new_bus, id_el_backend, id_topo):
         new_bus_backend = type(self).local_bus_to_global_int(
@@ -919,7 +919,7 @@ class PandaPowerBackend(Backend):
                 self._grid.ext_grid["bus"].iat[0] = new_bus_backend
         else:
             self._grid.gen["in_service"].iat[id_el_backend] = False
-            self._grid.gen["bus"].iat[id_el_backend] = -1
+            # self._grid.gen["bus"].iat[id_el_backend] = -1  # not needed and cause bugs with certain pandas version
             # in this case the slack bus cannot be disconnected
 
     def _apply_lor_bus(self, new_bus, id_el_backend, id_topo):
