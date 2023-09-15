@@ -13,6 +13,8 @@ from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Space import GridObjects
 from grid2op.Exceptions import Grid2OpException
 
+ERR_MSG_SWITCH = ("Cannot retrieve switches configuration if the grid does not have "
+                  "switches information. Have you set them when loading the grid ?")
 # TODO see if it can be done in c++ easily
 class ValueStore:
     """
@@ -251,6 +253,7 @@ class _BackendAction(GridObjects):
         self._lines_or_bus = None
         self._lines_ex_bus = None
         self._storage_bus = None
+        self._shunt_bus = None
 
     def __deepcopy__(self, memodict={}):
         res = type(self)()
@@ -404,9 +407,9 @@ class _BackendAction(GridObjects):
             self.storage_power.set_val(storage_power)
 
         # II shunts
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             shunts = {}
-            if other.shunts_data_available:
+            if type(other).shunts_data_available:
                 shunts["shunt_p"] = other.shunt_p
                 shunts["shunt_q"] = other.shunt_q
                 shunts["shunt_bus"] = other.shunt_bus
@@ -524,7 +527,19 @@ class _BackendAction(GridObjects):
         value_store = copy.deepcopy(value_store)
         value_store.values = type(self).local_bus_to_global(value_store.values, to_subid)
         return value_store
-        
+    
+    def get_all_switches(self):
+        # TODO detailed topo
+        if type(self).detailed_topo_desc is None:
+            raise Grid2OpException(ERR_MSG_SWITCH)
+        detailed_topo_desc = type(self).detailed_topo_desc
+        if type(self).shunts_data_available:
+            shunt_bus = self.shunt_bus.values
+        else:
+            shunt_bus = None
+        res = detailed_topo_desc.compute_switches_position(self.current_topo.values, shunt_bus)
+        return res
+    
     def get_loads_bus_global(self):
         tmp_ = self.get_loads_bus()
         return self._aux_to_global(tmp_, self.load_to_subid)
@@ -533,15 +548,17 @@ class _BackendAction(GridObjects):
                                    xxx_to_busbar_id,
                                    el_id,
                                    new_bus):
-        res = tuple([new_bus == (i-1) for i in range(len(xxx_to_busbar_id[el_id]))])
+        res = tuple([new_bus == (i+1) for i in range(len(xxx_to_busbar_id[el_id]))])
         return res
     
     def get_loads_bus_switches(self):
         tmp_ = self.get_loads_bus()
         # TODO detailed topo
+        # for now this is working because of the super simple representation of subtation
+        # but in reality i need to come up with a routine to find the topology (and raise the BackendError "impossible topology" 
+        # if not possible)
         if type(self).detailed_topo_desc is None:
-            raise Grid2OpException("Cannot retrieve switches configuration if the grid does not have "
-                                   "switches information. Have you set them when loading the grid ?")
+            raise Grid2OpException(ERR_MSG_SWITCH)
         detailed_topo_desc = type(self).detailed_topo_desc
         # returns an iterable: for each load you have: load_index, (pos_switch1, pos_switch_2, ..., pos_switchn)
         # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
@@ -560,6 +577,22 @@ class _BackendAction(GridObjects):
         tmp_ = copy.deepcopy(self.get_gens_bus())
         return self._aux_to_global(tmp_, self.gen_to_subid)
     
+    def get_gens_bus_switches(self):
+        tmp_ = self.get_gens_bus()
+        # TODO detailed topo
+        # for now this is working because of the super simple representation of subtation
+        # but in reality i need to come up with a routine to find the topology (and raise the BackendError "impossible topology" 
+        # if not possible)
+        if type(self).detailed_topo_desc is None:
+            raise Grid2OpException(ERR_MSG_SWITCH)
+        detailed_topo_desc = type(self).detailed_topo_desc
+        # returns an iterable: for each load you have: load_index, (pos_switch1, pos_switch_2, ..., pos_switchn)
+        # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
+        # n switch connecting the load to one busbar
+        # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
+        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.gen_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
+        return res
+    
     def get_lines_or_bus(self):
         if self._lines_or_bus is None:
             self._lines_or_bus = ValueStore(self.n_line, dtype=dt_int)
@@ -571,6 +604,22 @@ class _BackendAction(GridObjects):
     def get_lines_or_bus_global(self):
         tmp_ = self.get_lines_or_bus()
         return self._aux_to_global(tmp_, self.line_or_to_subid)
+    
+    def get_lines_or_bus_switches(self):
+        tmp_ = self.get_lines_or_bus()
+        # TODO detailed topo
+        # for now this is working because of the super simple representation of subtation
+        # but in reality i need to come up with a routine to find the topology (and raise the BackendError "impossible topology" 
+        # if not possible)
+        if type(self).detailed_topo_desc is None:
+            raise Grid2OpException(ERR_MSG_SWITCH)
+        detailed_topo_desc = type(self).detailed_topo_desc
+        # returns an iterable: for each load you have: load_index, (pos_switch1, pos_switch_2, ..., pos_switchn)
+        # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
+        # n switch connecting the load to one busbar
+        # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
+        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.line_or_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
+        return res
 
     def get_lines_ex_bus(self):
         if self._lines_ex_bus is None:
@@ -583,6 +632,22 @@ class _BackendAction(GridObjects):
     def get_lines_ex_bus_global(self):
         tmp_ = self.get_lines_ex_bus()
         return self._aux_to_global(tmp_, self.line_ex_to_subid)
+    
+    def get_lines_ex_bus_switches(self):
+        tmp_ = self.get_lines_ex_bus()
+        # TODO detailed topo
+        # for now this is working because of the super simple representation of subtation
+        # but in reality i need to come up with a routine to find the topology (and raise the BackendError "impossible topology" 
+        # if not possible)
+        if type(self).detailed_topo_desc is None:
+            raise Grid2OpException(ERR_MSG_SWITCH)
+        detailed_topo_desc = type(self).detailed_topo_desc
+        # returns an iterable: for each load you have: load_index, (pos_switch1, pos_switch_2, ..., pos_switchn)
+        # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
+        # n switch connecting the load to one busbar
+        # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
+        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.line_ex_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
+        return res
 
     def get_storages_bus(self):
         if self._storage_bus is None:
@@ -593,6 +658,41 @@ class _BackendAction(GridObjects):
     def get_storages_bus_global(self):
         tmp_ = self.get_storages_bus()
         return self._aux_to_global(tmp_, self.storage_to_subid)
+    
+    def get_storages_bus_switches(self):
+        tmp_ = self.get_storages_bus()
+        # TODO detailed topo
+        # for now this is working because of the super simple representation of subtation
+        # but in reality i need to come up with a routine to find the topology (and raise the BackendError "impossible topology" 
+        # if not possible)
+        if type(self).detailed_topo_desc is None:
+            raise Grid2OpException(ERR_MSG_SWITCH)
+        detailed_topo_desc = type(self).detailed_topo_desc
+        # returns an iterable: for each load you have: load_index, (pos_switch1, pos_switch_2, ..., pos_switchn)
+        # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
+        # n switch connecting the load to one busbar
+        # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
+        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.storage_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
+        return res
+    
+    def get_shunts_bus_switches(self):
+        if self._shunt_bus is None:
+            self._shunt_bus = ValueStore(self.n_shunt, dtype=dt_int)
+        self._shunt_bus.copy_from_index(self.shunt_bus, np.arange(self.n_shunt))
+        
+        # TODO detailed topo
+        # for now this is working because of the super simple representation of subtation
+        # but in reality i need to come up with a routine to find the topology (and raise the BackendError "impossible topology" 
+        # if not possible)
+        if type(self).detailed_topo_desc is None:
+            raise Grid2OpException(ERR_MSG_SWITCH)
+        detailed_topo_desc = type(self).detailed_topo_desc
+        # returns an iterable: for each load you have: load_index, (pos_switch1, pos_switch_2, ..., pos_switchn)
+        # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
+        # n switch connecting the load to one busbar
+        # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
+        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.shunt_to_busbar_id, l_id, new_bus)) for l_id, new_bus in self._shunt_bus]
+        return res
 
     def _get_active_bus(self):
         self.activated_bus[:, :] = False

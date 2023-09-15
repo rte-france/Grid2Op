@@ -524,7 +524,7 @@ class BaseAction(GridObjects):
             "_raise_alert",
         ]
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             attr_vect += ["shunt_p", "shunt_q", "shunt_bus"]
 
         for attr_nm in attr_simple:
@@ -1393,7 +1393,7 @@ class BaseAction(GridObjects):
         self._subs_impacted = None
 
         # shunts
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self.shunt_p[:] = np.NaN
             self.shunt_q[:] = np.NaN
             self.shunt_bus[:] = 0
@@ -1701,7 +1701,7 @@ class BaseAction(GridObjects):
         storage_power = self._storage_power
         # remark: curtailment is handled by an algorithm in the environment, so don't need to be returned here
         shunts = {}
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             shunts["shunt_p"] = self.shunt_p
             shunts["shunt_q"] = self.shunt_q
             shunts["shunt_bus"] = self.shunt_bus
@@ -1718,7 +1718,7 @@ class BaseAction(GridObjects):
         )
 
     def _digest_shunt(self, dict_):
-        if not self.shunts_data_available:
+        if not type(self).shunts_data_available:
             return
 
         if "shunt" in dict_:
