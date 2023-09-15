@@ -14,21 +14,32 @@ import unittest
 import time
 import warnings
 import pdb
+import subprocess
+import sys
 
 try:
+    # Import error : Jupyter is migrating its paths to use standard platformdirs
+    # given by the platformdirs library.  To remove this warning and
+    # see the appropriate new directories, set the environment variable
+    # `JUPYTER_PLATFORM_DIRS=1` and then run `jupyter --paths`.
+    # The use of platformdirs will be the default in `jupyter_core` v6
+    os.environ["JUPYTER_PLATFORM_DIRS"] = "1"
+    subprocess.call([f"{sys.executable}", "-m", "jupyter", "--paths"])
+    # the above 2 lines are to fix the above error
+    
     import nbformat
     from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
     CAN_COMPUTE = None
-except ImportError as exc_:
+except Exception as exc_:
     CAN_COMPUTE = exc_
     print(f"Import error : {exc_}")
 print("End of the regulart import here")
     
 from grid2op.tests.helper_path_test import PATH_DATA_TEST
-print("End of all imports here")
 
 NOTEBOOK_PATHS = os.path.abspath(os.path.join(PATH_DATA_TEST, "../../getting_started"))
 VERBOSE_TIMER = True
+print("End of all imports here")
 
 
 def delete_all(folder):
@@ -114,7 +125,7 @@ class RAII_Timer:
             )
 
 
-class TestNotebook(unittest.TestCase):
+class TestNotebooks(unittest.TestCase):
     def _aux_funct_notebook(self, notebook_filename):
         assert os.path.exists(notebook_filename), f"{notebook_filename} do not exists!"
         with open(notebook_filename) as f:
