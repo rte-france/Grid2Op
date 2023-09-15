@@ -29,6 +29,7 @@ jobs:
         parallelism: 4
         steps:
             - checkout
+            - run: apt-get update -y
             - run: apt-get install -y coinor-cbc
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
