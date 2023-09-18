@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.9.5] - 2023-xx-yy
+[1.9.5] - 2023-09-18
 ---------------------
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/518
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/446
