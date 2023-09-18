@@ -4278,10 +4278,10 @@ class GridObjects:
         alertable_line_ids_str = '[]' if cls.dim_alerts == 0 else tmp_
         
         detailed_topo_desc_str = "None" # TODO detailed topo
-        if cls.detailed_topo_desc_str is not None:
+        if cls.detailed_topo_desc is not None:
             import json
             tmp_dtds = {}
-            cls.detailed_topo_desc_str.save_to_dict(tmp_dtds)
+            cls.detailed_topo_desc.save_to_dict(tmp_dtds)
             tmp_dtds_str = json.dumps(tmp_dtds, separators=(',', ':'))
             detailed_topo_desc_str = f"DetailedTopoDescription.from_dict({tmp_dtds_str})"
         

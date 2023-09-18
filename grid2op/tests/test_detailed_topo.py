@@ -279,6 +279,7 @@ class DetailedTopoTester(unittest.TestCase):
         
  # TODO test no shunt too
  # TODO implement and test compute_switches_position !!!
+ # TODO test "_get_full_cls_str"(experimental_read_from_local_dir)
  
 if __name__ == "__main__":
     unittest.main()
