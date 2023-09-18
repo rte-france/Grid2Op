@@ -317,7 +317,7 @@ class TestActionSerialDict(unittest.TestCase):
                 ]
             }
         )
-        act += self.helper_action({"change_line_status": [l_id for l_id in [2, 4, 5]]})
+        act += self.helper_action({"change_line_status": [l_id for l_id in [6, 7, 8]]})
         act += self.helper_action(
             {
                 "set_bus": [
