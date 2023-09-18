@@ -192,8 +192,8 @@ class _ObsEnv(BaseEnv):
 
         from grid2op.Observation import ObservationSpace
         from grid2op.Reward import FlatReward
-        ob_sp_cls = ObservationSpace.init_grid(backend)
-        self._observation_space = ob_sp_cls(backend,
+        ob_sp_cls = ObservationSpace.init_grid(type(backend))
+        self._observation_space = ob_sp_cls(type(backend),
                                             env=self,
                                             with_forecast=False,
                                             rewardClass=FlatReward,

@@ -8,48 +8,37 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import grid2op
-from grid2op.Parameters import Parameters
 import warnings
 import unittest
+import pdb
 
-class Issue511Tester(unittest.TestCase):
+
+class Issue527Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-            "l2rpn_idf_2023",
+            "l2rpn_case14_sandbox",
             test=True
         )
+        self.env.seed(0)
         return super().setUp()
     
     def tearDown(self):
         self.env.close()
-
-    def test_issue_set_bus(self):
-        act = {
-            "set_bus": {
-                "lines_or_id": [(0, 2)],
-                "loads_id": [(0, 2)],
-            },
-        }
-
-        topo_action = self.env.action_space(act)
-        as_dict =  topo_action.as_dict()
-        print(as_dict)
-        assert len(as_dict['set_bus_vect']['0']) == 2  # two objects modified
-
-    def test_issue_change_bus(self):
-        act = {
-            "change_bus": {
-                "lines_or_id": [0],
-                "loads_id": [0],
-            },
-        }
-
-        topo_action = self.env.action_space(act)
-        as_dict =  topo_action.as_dict()
-        assert len(as_dict['change_bus_vect']['0']) == 2  # two objects modified
         
+    def test_action_space_sampling(self) -> None:
+        obs = self.env.reset()
+        for ind in range(1000):
+            act = self.env.action_space.sample()
+            act_dict = act.as_serializable_dict()
+            self.env.action_space(act_dict)       
+        
+    def test_do_nothing_act_weird(self) -> None:
+        obs = self.env.reset()
+        self.env.action_space({"change_bus": {}})       
+        self.env.action_space({"set_bus": {}})       
+
 
 if __name__ == '__main__':
     unittest.main()
