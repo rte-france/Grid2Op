@@ -10,7 +10,7 @@ import copy
 import numpy as np
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
-from grid2op.Space import GridObjects
+from grid2op.Space import GridObjects, DetailedTopoDescription
 from grid2op.Exceptions import Grid2OpException
 
 ERR_MSG_SWITCH = ("Cannot retrieve switches configuration if the grid does not have "
@@ -254,6 +254,7 @@ class _BackendAction(GridObjects):
         self._lines_ex_bus = None
         self._storage_bus = None
         self._shunt_bus = None
+        self._detailed_topo = None  # tuple: busbar_connector_state, switches_state
 
     def __deepcopy__(self, memodict={}):
         res = type(self)()
@@ -283,6 +284,8 @@ class _BackendAction(GridObjects):
         res._lines_ex_bus = copy.deepcopy(self._lines_ex_bus)
         res._storage_bus = copy.deepcopy(self._storage_bus)
         
+        res._detailed_topo = copy.deepcopy(self._detailed_topo)
+        
         return res
 
     def __copy__(self):
@@ -311,6 +314,9 @@ class _BackendAction(GridObjects):
             self.shunt_p.reorder(no_shunt)
             self.shunt_q.reorder(no_shunt)
             self.shunt_bus.reorder(no_shunt)
+        
+        # force to reset the detailed topo
+        self._detailed_topo = None
 
     def reset(self):
         # last topo
@@ -334,6 +340,16 @@ class _BackendAction(GridObjects):
             self.shunt_p.reset()
             self.shunt_q.reset()
             self.shunt_bus.reset()
+            
+        self._loads_bus = None
+        self._gens_bus = None
+        self._lines_or_bus = None
+        self._lines_ex_bus = None
+        self._storage_bus = None
+        self._shunt_bus = None
+        
+        # force to reset the detailed topo
+        self._detailed_topo = None
 
     def all_changed(self):
         # last topo
@@ -420,6 +436,9 @@ class _BackendAction(GridObjects):
             self.shunt_q.set_val(arr_)
             arr_ = shunts["shunt_bus"]
             self.shunt_bus.set_val(arr_)
+            if (arr_ != 0).any():
+                # trigger the recompute of _detailed_topo if needed
+                self._detailed_topo = None
 
         # III line status
         # this need to be done BEFORE the topology, as a connected powerline will be connected to their old bus.
@@ -431,6 +450,8 @@ class _BackendAction(GridObjects):
                 self.line_ex_pos_topo_vect,
                 self.last_topo_registered,
             )
+            self._detailed_topo = None
+            
         if other._modif_set_status:
             self.current_topo.set_status(
                 set_status,
@@ -438,6 +459,7 @@ class _BackendAction(GridObjects):
                 self.line_ex_pos_topo_vect,
                 self.last_topo_registered,
             )
+            self._detailed_topo = None
 
         # if other._modif_change_status or other._modif_set_status:
         (
@@ -450,8 +472,11 @@ class _BackendAction(GridObjects):
         # IV topo
         if other._modif_change_bus:
             self.current_topo.change_val(switcth_topo_vect)
+            self._detailed_topo = None
+            
         if other._modif_set_bus:
             self.current_topo.set_val(set_topo_vect)
+            self._detailed_topo = None
 
         # V Force disconnected status
         # of disconnected powerlines extremities
@@ -537,18 +562,22 @@ class _BackendAction(GridObjects):
             shunt_bus = self.shunt_bus.values
         else:
             shunt_bus = None
-        res = detailed_topo_desc.compute_switches_position(self.current_topo.values, shunt_bus)
-        return res
+        if self._detailed_topo is None:
+            self._detailed_topo = detailed_topo_desc.compute_switches_position(self.current_topo.values, shunt_bus)
+        return self._detailed_topo
     
     def get_loads_bus_global(self):
         tmp_ = self.get_loads_bus()
         return self._aux_to_global(tmp_, self.load_to_subid)
     
     def _aux_get_bus_detailed_topo(self,
-                                   xxx_to_busbar_id,
-                                   el_id,
-                                   new_bus):
-        res = tuple([new_bus == (i+1) for i in range(len(xxx_to_busbar_id[el_id]))])
+                                   switches_state : np.ndarray,
+                                   detailed_topo_desc : DetailedTopoDescription,
+                                   el_type_as_int,
+                                   el_id):
+        OBJ_TYPE_COL = type(detailed_topo_desc).OBJ_TYPE_COL
+        OBJ_ID_COL = type(detailed_topo_desc).OBJ_ID_COL
+        res = tuple(switches_state[(detailed_topo_desc.switches[:,OBJ_TYPE_COL] == el_type_as_int) & (detailed_topo_desc.switches[:,OBJ_ID_COL] == el_id)].tolist())
         return res
     
     def get_loads_bus_switches(self):
@@ -564,9 +593,15 @@ class _BackendAction(GridObjects):
         # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
         # n switch connecting the load to one busbar
         # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
-        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.load_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
-        return res
+        # res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.load_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
         
+        if self._detailed_topo is None:
+            self.get_all_switches()
+        busbar_connectors_state, switches_state = self._detailed_topo
+        LOAD_TYPE = type(detailed_topo_desc).LOAD_ID
+        res = [(el_id, self._aux_get_bus_detailed_topo(switches_state, detailed_topo_desc, LOAD_TYPE, el_id)) for el_id, new_bus in tmp_]
+        return res
+    
     def get_gens_bus(self):
         if self._gens_bus is None:
             self._gens_bus = ValueStore(self.n_gen, dtype=dt_int)
@@ -590,7 +625,11 @@ class _BackendAction(GridObjects):
         # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
         # n switch connecting the load to one busbar
         # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
-        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.gen_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
+        if self._detailed_topo is None:
+            self.get_all_switches()
+        busbar_connectors_state, switches_state = self._detailed_topo
+        GEN_TYPE = type(detailed_topo_desc).GEN_ID
+        res = [(el_id, self._aux_get_bus_detailed_topo(switches_state, detailed_topo_desc, GEN_TYPE, el_id)) for el_id, new_bus in tmp_]
         return res
     
     def get_lines_or_bus(self):
@@ -618,7 +657,11 @@ class _BackendAction(GridObjects):
         # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
         # n switch connecting the load to one busbar
         # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
-        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.line_or_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
+        if self._detailed_topo is None:
+            self.get_all_switches()
+        busbar_connectors_state, switches_state = self._detailed_topo
+        LINE_OR_ID = type(detailed_topo_desc).LINE_OR_ID
+        res = [(el_id, self._aux_get_bus_detailed_topo(switches_state, detailed_topo_desc, LINE_OR_ID, el_id)) for el_id, new_bus in tmp_]
         return res
 
     def get_lines_ex_bus(self):
@@ -646,7 +689,11 @@ class _BackendAction(GridObjects):
         # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
         # n switch connecting the load to one busbar
         # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
-        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.line_ex_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
+        if self._detailed_topo is None:
+            self.get_all_switches()
+        busbar_connectors_state, switches_state = self._detailed_topo
+        LINE_EX_ID = type(detailed_topo_desc).LINE_EX_ID
+        res = [(el_id, self._aux_get_bus_detailed_topo(switches_state, detailed_topo_desc, LINE_EX_ID, el_id)) for el_id, new_bus in tmp_]
         return res
 
     def get_storages_bus(self):
@@ -672,7 +719,11 @@ class _BackendAction(GridObjects):
         # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
         # n switch connecting the load to one busbar
         # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
-        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.storage_to_busbar_id, l_id, new_bus)) for l_id, new_bus in tmp_]
+        if self._detailed_topo is None:
+            self.get_all_switches()
+        busbar_connectors_state, switches_state = self._detailed_topo
+        STORAGE_ID = type(detailed_topo_desc).STORAGE_ID
+        res = [(el_id, self._aux_get_bus_detailed_topo(switches_state, detailed_topo_desc, STORAGE_ID, el_id)) for el_id, new_bus in tmp_]
         return res
     
     def get_shunts_bus_switches(self):
@@ -681,9 +732,6 @@ class _BackendAction(GridObjects):
         self._shunt_bus.copy_from_index(self.shunt_bus, np.arange(self.n_shunt))
         
         # TODO detailed topo
-        # for now this is working because of the super simple representation of subtation
-        # but in reality i need to come up with a routine to find the topology (and raise the BackendError "impossible topology" 
-        # if not possible)
         if type(self).detailed_topo_desc is None:
             raise Grid2OpException(ERR_MSG_SWITCH)
         detailed_topo_desc = type(self).detailed_topo_desc
@@ -691,7 +739,11 @@ class _BackendAction(GridObjects):
         # with (pos_switch1, pos_switch_2, ..., pos_switchn) the position of the 
         # n switch connecting the load to one busbar
         # only one of pos_switch1, pos_switch_2, ..., pos_switchn is True !
-        res = [(l_id, self._aux_get_bus_detailed_topo(detailed_topo_desc.shunt_to_busbar_id, l_id, new_bus)) for l_id, new_bus in self._shunt_bus]
+        if self._detailed_topo is None:
+            self.get_all_switches()
+        busbar_connectors_state, switches_state = self._detailed_topo
+        SHUNT_ID = type(detailed_topo_desc).SHUNT_ID
+        res = [(el_id, self._aux_get_bus_detailed_topo(switches_state, detailed_topo_desc, SHUNT_ID, el_id)) for el_id, new_bus in self._shunt_bus]
         return res
 
     def _get_active_bus(self):

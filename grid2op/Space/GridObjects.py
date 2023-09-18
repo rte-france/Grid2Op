@@ -20,6 +20,7 @@ to manipulate.
 import warnings
 import copy
 import numpy as np
+from typing import Optional
 
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -464,9 +465,9 @@ class GridObjects:
         .. versionadded:: 1.9.1
     """
 
-    BEFORE_COMPAT_VERSION = "neurips_2020_compat"
-    glop_version = grid2op.__version__
-    _PATH_ENV = None  # especially do not modify that
+    BEFORE_COMPAT_VERSION : str= "neurips_2020_compat"
+    glop_version : str= grid2op.__version__
+    _PATH_ENV : Optional[str] = None  # especially do not modify that
 
     SUB_COL = 0
     LOA_COL = 1
@@ -481,7 +482,7 @@ class GridObjects:
     attr_nan_list_set = set()
 
     # name of the objects
-    env_name = "unknown"
+    env_name : str = "unknown"
     name_load = None
     name_gen = None
     name_line = None
@@ -612,7 +613,7 @@ class GridObjects:
     alertable_line_names = []  # name of each line to produce an alert on # TODO
     alertable_line_ids = []
     
-    detailed_topo_desc = None
+    detailed_topo_desc : Optional[DetailedTopoDescription] = None
     
     # test
     _IS_INIT = False

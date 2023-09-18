@@ -9,7 +9,7 @@
 
 import numpy as np
 
-from grid2op.dtypes import dt_int
+from grid2op.dtypes import dt_int, dt_bool
 
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
@@ -44,9 +44,18 @@ class DetailedTopoDescription(object):
         self.busbar_connectors = None  # for each element that connects busbars, tells which busbars its connect (by id)
     
         self.switches = None  # a matrix of 'n_switches' rows and 4 columns
-        # col 0 give the substation id
-        # col 1 give the object type it connects (0 = LOAD, etc.)
-    
+        # col 0 gives the substation id
+        # col 1 gives the object type it connects (0 = LOAD, etc.)
+        # col 2 gives the ID of the object it connects (number between 0 and n_load-1 if previous column is 0 for example)
+        # col 3 gives the busbar id that this switch connects its element to
+        
+        # for each switches says which element in the "topo_vect" it concerns [-1 for shunt]
+        self.switches_to_topovect_id = None
+        self.switches_to_shunt_id = None
+        
+        # whether the switches connects an element represented in the topo_vect vector  (unused atm)
+        self.in_topo_vect = None
+        
         self.load_to_busbar_id = None  # for each loads, you have a tuple of busbars to which it can be connected
         self.gen_to_busbar_id = None
         self.line_or_to_busbar_id = None
@@ -85,24 +94,46 @@ class DetailedTopoDescription(object):
                 sub_info[sub_id] += 1
         # now fill the switches: 2 switches per element, everything stored in the res.switches matrix
         res.switches[:, cls.SUB_COL] = np.repeat(np.arange(n_sub), 2 * sub_info)
-        ars = [init_grid.load_to_subid,
-               init_grid.gen_to_subid,
-               init_grid.line_or_to_subid,
-               init_grid.line_ex_to_subid,
-               init_grid.storage_to_subid,
+        res.switches_to_topovect_id = np.zeros(np.sum(sub_info) * 2, dtype=dt_int) - 1
+        if init_grid.shunts_data_available:
+            res.switches_to_shunt_id = np.zeros(np.sum(sub_info) * 2, dtype=dt_int) - 1
+        # res.in_topo_vect = np.zeros(np.sum(sub_info), dtype=dt_int)
+        
+        arrs_subid = [init_grid.load_to_subid,
+                      init_grid.gen_to_subid,
+                      init_grid.line_or_to_subid,
+                      init_grid.line_ex_to_subid,
+                      init_grid.storage_to_subid,
+                      ]
+        ars2 = [init_grid.load_pos_topo_vect,
+               init_grid.gen_pos_topo_vect,
+               init_grid.line_or_pos_topo_vect,
+               init_grid.line_ex_pos_topo_vect,
+               init_grid.storage_pos_topo_vect,
                ]
         ids = [cls.LOAD_ID, cls.GEN_ID, cls.LINE_OR_ID, cls.LINE_EX_ID, cls.STORAGE_ID]
         if init_grid.shunts_data_available:
-            ars.append(init_grid.shunt_to_subid)
+            arrs_subid.append(init_grid.shunt_to_subid)
+            ars2.append(np.array([-1] * init_grid.n_shunt))
             ids.append(cls.SHUNT_ID)
         prev_el = 0
+        # prev_el1 = 0
         for sub_id in range(n_sub):    
-            for arr, obj_col in zip(ars, ids):
-                nb_el = (arr == sub_id).sum()
+            for arr_subid, pos_topo_vect, obj_col in zip(arrs_subid, ars2, ids):
+                nb_el = (arr_subid == sub_id).sum()
+                where_el = np.where(arr_subid == sub_id)[0]
                 res.switches[prev_el : (prev_el + 2 * nb_el), cls.OBJ_TYPE_COL] = obj_col
-                res.switches[prev_el : (prev_el + 2 * nb_el), cls.OBJ_ID_COL] = np.repeat(np.where(arr == sub_id)[0], 2)
+                res.switches[prev_el : (prev_el + 2 * nb_el), cls.OBJ_ID_COL] = np.repeat(where_el, 2)
                 res.switches[prev_el : (prev_el + 2 * nb_el), cls.BUSBAR_ID_COL] = np.tile(np.array([1, 2]), nb_el)
+                res.switches_to_topovect_id[prev_el : (prev_el + 2 * nb_el)] = np.repeat(pos_topo_vect[arr_subid == sub_id], 2)
+                if init_grid.shunts_data_available and obj_col == cls.SHUNT_ID:
+                    res.switches_to_shunt_id[prev_el : (prev_el + 2 * nb_el)] = np.repeat(where_el, 2)
+                    
+                # if obj_col != cls.SHUNT_ID:
+                #     # object is modeled in topo_vect
+                #     res.in_topo_vect[prev_el1 : (prev_el1 + nb_el)] = 1
                 prev_el += 2 * nb_el
+                # prev_el1 += nb_el
         
         # and also fill some extra information
         res.load_to_busbar_id = [(load_sub, load_sub + n_sub) for load_id, load_sub in enumerate(init_grid.load_to_subid)]
@@ -119,10 +150,45 @@ class DetailedTopoDescription(object):
         # TODO in reality, for more complex environment, this requires a routine to compute it
         # but for now in grid2op as only ficitive grid are modeled then 
         # this is not a problem
-        switches_state = np.zeros(self.switches.shape[0], dtype=bool)
-        busbar_connectors_state = np.zeros(self.busbar_connectors.shape[0], dtype=bool)
+        switches_state = np.zeros(self.switches.shape[0], dtype=dt_bool)
+        busbar_connectors_state = np.zeros(self.busbar_connectors.shape[0], dtype=dt_bool)  # we can always say they are opened 
         
-        return switches_state
+        # compute the position for the switches of the "topo_vect" elements 
+        # only work for current grid2op modelling !
+        
+        # TODO detailed topo vectorize this ! (or cython maybe ?)
+        for el_id, bus_id in enumerate(topo_vect):
+            mask_el = self.switches_to_topovect_id == el_id
+            if mask_el.any():
+                # it's a regular element
+                if bus_id == 1:
+                    mask_el[np.where(mask_el)[0][1]] = False  # I open the switch to busbar 2 in this case
+                    switches_state[mask_el] = True
+                elif bus_id == 2:
+                    mask_el[np.where(mask_el)[0][0]] = False  # I open the switch to busbar 1 in this case
+                    switches_state[mask_el] = True
+                    
+        if self.switches_to_shunt_id is not None:
+            # read the switches associated with the shunts
+            for el_id, bus_id in enumerate(shunt_bus):
+                # it's an element not in the topo_vect (for now only switches)
+                mask_el = self.switches_to_shunt_id == el_id
+                if mask_el.any():
+                    # it's a shunt
+                    if bus_id == 1:
+                        mask_el[np.where(mask_el)[0][1]] = False  # I open the switch to busbar 2 in this case
+                        switches_state[mask_el] = True
+                    elif bus_id == 2:
+                        mask_el[np.where(mask_el)[0][0]] = False  # I open the switch to busbar 1 in this case
+                        switches_state[mask_el] = True
+        return busbar_connectors_state, switches_state
+    
+    def from_switches_position(self):
+        # TODO detailed topo
+        # opposite of `compute_switches_position`
+        topo_vect = None
+        shunt_bus = None
+        return topo_vect, shunt_bus
         
     def check_validity(self):
         # TODO detailed topo
@@ -158,6 +224,21 @@ class DetailedTopoDescription(object):
             (lambda arr: [int(el) for el in arr]) if as_list else lambda arr: arr.flatten(),
             copy_,
         )
+        save_to_dict(
+            res,
+            self,
+            "switches_to_topovect_id",
+            (lambda arr: [int(el) for el in arr]) if as_list else lambda arr: arr.flatten(),
+            copy_,
+        )
+        if self.switches_to_topovect_id is not None:
+            save_to_dict(
+                res,
+                self,
+                "switches_to_shunt_id",
+                (lambda arr: [int(el) for el in arr]) if as_list else lambda arr: arr.flatten(),
+                copy_,
+            )
         
         # for the switches per element
         save_to_dict(
@@ -233,6 +314,17 @@ class DetailedTopoDescription(object):
         )
         res.switches = res.switches.reshape((-1, 4))
         
+        res.switches_to_topovect_id = extract_from_dict(
+            dict_, "switches_to_topovect_id", lambda x: np.array(x).astype(dt_int)
+        )
+        
+        if "switches_to_shunt_id" in dict_:
+            res.switches_to_shunt_id = extract_from_dict(
+                dict_, "switches_to_shunt_id", lambda x: np.array(x).astype(dt_int)
+            )
+        else:
+            # shunts are not supported
+            res.switches_to_shunt_id = None
         
         res.load_to_busbar_id = extract_from_dict(
             dict_, "load_to_busbar_id", lambda x: x
