@@ -78,7 +78,7 @@ class DetailedTopoTester(unittest.TestCase):
             test=True,
             backend=_PPBkForTestDetTopo(),
             action_class=CompleteAction,
-            _add_to_name="_BaseTestNames",
+            _add_to_name="DetailedTopoTester",
         )
         return super().setUp()
     

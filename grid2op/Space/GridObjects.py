@@ -1284,6 +1284,7 @@ class GridObjects:
         GridObjects._make_cls_dict_extended(obj, cls_as_dict, as_list=False)
         for attr_nm, attr in cls_as_dict.items():
             setattr(cls, attr_nm, attr)
+            
         if cls.detailed_topo_desc is not None:
             cls.detailed_topo_desc = DetailedTopoDescription.from_dict(cls.detailed_topo_desc)
 
@@ -2738,7 +2739,8 @@ class GridObjects:
         cls_attr_as_dict = {}
         GridObjects._make_cls_dict_extended(gridobj, cls_attr_as_dict, as_list=False)
         res_cls = type(name_res, (cls,), cls_attr_as_dict)
-        res_cls.detailed_topo_desc = DetailedTopoDescription.from_dict(res_cls.detailed_topo_desc)
+        if "detailed_topo_desc" in cls_attr_as_dict:
+            res_cls.detailed_topo_desc = DetailedTopoDescription.from_dict(res_cls.detailed_topo_desc)
         
         if hasattr(cls, "_INIT_GRID_CLS") and cls._INIT_GRID_CLS is not None:
             # original class is already from an initialized environment, i keep track of it
