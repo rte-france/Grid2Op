@@ -37,7 +37,10 @@ Change Log
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/446
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/523 by having a "_BackendAction" folder instead of a file
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/522 and adding back certain notebooks to the CI
-- [FIXED] and issue when disconnecting loads / generators on msot recent pandas version
+- [FIXED] an issue when disconnecting loads / generators on msot recent pandas version
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/527 : now do nothing action are detected in 
+  `act.as_serializable_dict()` AND weird do nothing action can be made through the action space
+  (`env.action_space({"change_bus": {}})` is not ambiguous, though might not be super efficient...)
 
 [1.9.4] - 2023-09-04
 ---------------------
