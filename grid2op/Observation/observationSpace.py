@@ -121,7 +121,7 @@ class ObservationSpace(SerializableObservationSpace):
         self._ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
         setattr(sys.modules[_ObsEnv.__module__], self._ObsEnv_class.__name__, self._ObsEnv_class)
         if _with_obs_env:
-            self._create_obs_env(env)
+            self._create_obs_env(env, observationClass)
             self.reward_helper.initialize(self.obs_env)
             for k, v in self.obs_env.other_rewards.items():
                 v.reset(self.obs_env)
@@ -174,7 +174,7 @@ class ObservationSpace(SerializableObservationSpace):
         if "observation_bk_kwargs" in self._real_env_kwargs:
             del self._real_env_kwargs["observation_bk_kwargs"]
         
-    def _create_obs_env(self, env):
+    def _create_obs_env(self, env, observationClass):
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
         self.obs_env = self._ObsEnv_class(
             init_env_path=None,  # don't leak the path of the real grid to the observation space
