@@ -1,0 +1,219 @@
+{
+    "_PATH_ENV": null,
+    "_init_subtype": "grid2op.Action.completeAction.CompleteAction",
+    "alarms_area_lines": [],
+    "alarms_area_names": [],
+    "alarms_lines_area": {},
+    "alertable_line_ids": [],
+    "alertable_line_names": [],
+    "assistant_warning_type": null,
+    "dim_alarms": 0,
+    "dim_alerts": 0,
+    "env_name": "rte_case5_example",
+    "gen_cost_per_MW": [
+        0.0,
+        70.0
+    ],
+    "gen_max_ramp_down": [
+        0.0,
+        10.0
+    ],
+    "gen_max_ramp_up": [
+        0.0,
+        10.0
+    ],
+    "gen_min_downtime": [
+        0,
+        4
+    ],
+    "gen_min_uptime": [
+        0,
+        4
+    ],
+    "gen_pmax": [
+        10.0,
+        30.0
+    ],
+    "gen_pmin": [
+        0.0,
+        0.0
+    ],
+    "gen_pos_topo_vect": [
+        4,
+        8
+    ],
+    "gen_redispatchable": [
+        false,
+        true
+    ],
+    "gen_renewable": [
+        true,
+        false
+    ],
+    "gen_shutdown_cost": [
+        0.0,
+        1.0
+    ],
+    "gen_startup_cost": [
+        0.0,
+        2.0
+    ],
+    "gen_to_sub_pos": [
+        4,
+        2
+    ],
+    "gen_to_subid": [
+        0,
+        1
+    ],
+    "gen_type": [
+        "wind",
+        "thermal"
+    ],
+    "glop_version": "1.9.5",
+    "grid_layout": {
+        "sub_0": [
+            0.0,
+            0.0
+        ],
+        "sub_1": [
+            0.0,
+            400.0
+        ],
+        "sub_2": [
+            200.0,
+            400.0
+        ],
+        "sub_3": [
+            400.0,
+            400.0
+        ],
+        "sub_4": [
+            400.0,
+            0.0
+        ]
+    },
+    "line_ex_pos_topo_vect": [
+        6,
+        9,
+        13,
+        18,
+        10,
+        14,
+        15,
+        19
+    ],
+    "line_ex_to_sub_pos": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        1
+    ],
+    "line_ex_to_subid": [
+        1,
+        2,
+        3,
+        4,
+        2,
+        3,
+        3,
+        4
+    ],
+    "line_or_pos_topo_vect": [
+        0,
+        1,
+        2,
+        3,
+        7,
+        11,
+        12,
+        16
+    ],
+    "line_or_to_sub_pos": [
+        0,
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        3
+    ],
+    "line_or_to_subid": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        2,
+        3
+    ],
+    "load_pos_topo_vect": [
+        5,
+        17,
+        20
+    ],
+    "load_to_sub_pos": [
+        5,
+        4,
+        2
+    ],
+    "load_to_subid": [
+        0,
+        3,
+        4
+    ],
+    "name_gen": [
+        "gen_0_0",
+        "gen_1_1"
+    ],
+    "name_line": [
+        "0_1_0",
+        "0_2_1",
+        "0_3_2",
+        "0_4_3",
+        "1_2_4",
+        "2_3_5",
+        "2_3_6",
+        "3_4_7"
+    ],
+    "name_load": [
+        "load_0_0",
+        "load_3_1",
+        "load_4_2"
+    ],
+    "name_shunt": [],
+    "name_storage": [],
+    "name_sub": [
+        "sub_0",
+        "sub_1",
+        "sub_2",
+        "sub_3",
+        "sub_4"
+    ],
+    "shunt_to_subid": [],
+    "storage_Emax": [],
+    "storage_Emin": [],
+    "storage_charging_efficiency": [],
+    "storage_discharging_efficiency": [],
+    "storage_loss": [],
+    "storage_marginal_cost": [],
+    "storage_max_p_absorb": [],
+    "storage_max_p_prod": [],
+    "storage_pos_topo_vect": [],
+    "storage_to_sub_pos": [],
+    "storage_to_subid": [],
+    "storage_type": [],
+    "sub_info": [
+        6,
+        3,
+        4,
+        5,
+        3
+    ]
+}

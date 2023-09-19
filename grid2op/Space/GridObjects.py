@@ -2709,7 +2709,7 @@ class GridObjects:
             # with shunt and without shunt, then
             # there might be issues
             name_res += "_noshunt"
-            
+        
         if name_res in globals():
             if not force:
                 # no need to recreate the class, it already exists

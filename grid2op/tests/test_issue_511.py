@@ -21,6 +21,9 @@ class Issue511Tester(unittest.TestCase):
             test=True
         )
         return super().setUp()
+    
+    def tearDown(self):
+        self.env.close()
 
     def test_issue_set_bus(self):
         act = {

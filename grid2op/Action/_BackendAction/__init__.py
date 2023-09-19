@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 """
-This file is here to maintain compatibility with lightsim2grid (but will disappear "soon")
+This folder / file is here to maintain compatibility with lightsim2grid (but is likely to disappear "soon")
 """
 
-from grid2op.Action._backendAction import _BackendAction
+from .._backendAction import _BackendAction

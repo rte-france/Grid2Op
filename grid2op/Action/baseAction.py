@@ -612,10 +612,16 @@ class BaseAction(GridObjects):
             res["raise_alert"] = [
                 int(id_) for id_, val in enumerate(self._raise_alert) if val
             ]
+            if not res["raise_alert"]:
+                del res["raise_alert"]
+                
         if self._modif_alarm:
             res["raise_alarm"] = [
                 int(id_) for id_, val in enumerate(self._raise_alarm) if val
             ]
+            if not res["raise_alarm"]:
+                del res["raise_alarm"]
+                
         if self._modif_change_bus:
             res["change_bus"] = {}
             self._aux_serialize_add_key_change("load_change_bus", "loads_id", res["change_bus"])
@@ -623,11 +629,15 @@ class BaseAction(GridObjects):
             self._aux_serialize_add_key_change("line_or_change_bus", "lines_or_id", res["change_bus"])
             self._aux_serialize_add_key_change("line_ex_change_bus", "lines_ex_id", res["change_bus"])
             self._aux_serialize_add_key_change("storage_change_bus", "storages_id", res["change_bus"])
+            if not res["change_bus"]:
+                del res["change_bus"]
             
         if self._modif_change_status:
             res["change_line_status"] = [
                 int(id_) for id_, val in enumerate(self._switch_line_status) if val
             ]
+            if not res["change_line_status"]:
+                del res["change_line_status"]
             
         # int elements
         if self._modif_set_bus:
@@ -637,6 +647,8 @@ class BaseAction(GridObjects):
             self._aux_serialize_add_key_set("line_or_set_bus", "lines_or_id", res["set_bus"])
             self._aux_serialize_add_key_set("line_ex_set_bus", "lines_ex_id", res["set_bus"])
             self._aux_serialize_add_key_set("storage_set_bus", "storages_id", res["set_bus"])
+            if not res["set_bus"]:
+                del res["set_bus"]
             
         if self._modif_set_status:
             res["set_line_status"] = [
@@ -644,6 +656,8 @@ class BaseAction(GridObjects):
                 for id_, val in enumerate(self._set_line_status)
                 if val != 0
             ]
+            if not res["set_line_status"]:
+                del res["set_line_status"]
             
         # float elements
         if self._modif_redispatch:
@@ -652,18 +666,26 @@ class BaseAction(GridObjects):
                 for id_, val in enumerate(self._redispatch)
                 if val != 0.0
             ]
+            if not res["redispatch"]:
+                del res["redispatch"]
+                
         if self._modif_storage:
             res["set_storage"] = [
                 (int(id_), float(val))
                 for id_, val in enumerate(self._storage_power)
                 if val != 0.0
             ]
+            if not res["set_storage"]:
+                del res["set_storage"]
+                
         if self._modif_curtailment:
             res["curtail"] = [
                 (int(id_), float(val))
                 for id_, val in enumerate(self._curtail)
                 if val != -1
             ]
+            if not res["curtail"]:
+                del res["curtail"]
 
         # more advanced options
         if self._modif_inj:
@@ -1787,7 +1809,7 @@ class BaseAction(GridObjects):
             if dict_["set_bus"] is None:
                 # no real action has been made
                 return
-
+            
             if isinstance(dict_["set_bus"], dict):
                 ddict_ = dict_["set_bus"]
                 handled = False
@@ -1809,6 +1831,9 @@ class BaseAction(GridObjects):
                 if "substations_id" in ddict_:
                     self.sub_set_bus = ddict_["substations_id"]
                     handled = True
+                if ddict_ == {}:
+                    handled = True
+                    # weird way to do nothing but hey, how am I to judge ?
                 if not handled:
                     msg = 'Invalid way to set the topology. When dict_["set_bus"] is a dictionary it should have'
                     msg += (
@@ -1849,6 +1874,9 @@ class BaseAction(GridObjects):
                 if "substations_id" in ddict_:
                     self.sub_change_bus = ddict_["substations_id"]
                     handled = True
+                if ddict_ == {}:
+                    handled = True
+                    # weird way to do nothing but hey, how am I to judge ?
                 if not handled:
                     msg = 'Invalid way to change the topology. When dict_["set_bus"] is a dictionary it should have'
                     msg += (
