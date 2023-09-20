@@ -297,7 +297,7 @@ class PandaPowerBackend(Backend):
 
     def reset(self,
               path : Union[os.PathLike, str],
-              filename : Optional[Union[os.PathLike, str]]=None) -> None:
+              grid_filename : Optional[Union[os.PathLike, str]]=None) -> None:
         """
         INTERNAL
 

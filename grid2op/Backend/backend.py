@@ -456,7 +456,7 @@ class Backend(GridObjects, ABC):
 
     def reset(self,
               path : Union[os.PathLike, str],
-              filename : Optional[Union[os.PathLike, str]]=None) -> None:
+              grid_filename : Optional[Union[os.PathLike, str]]=None) -> None:
         """
         INTERNAL
 
@@ -469,7 +469,7 @@ class Backend(GridObjects, ABC):
         But it is encouraged to overload it in the subclasses.
         """
         self.comp_time = 0.0
-        self.load_grid(path, filename=filename)
+        self.load_grid(path, filename=grid_filename)
 
     def copy(self) -> Self:
         """
