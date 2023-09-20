@@ -215,7 +215,7 @@ class Backend(GridObjects, ABC):
         pass
 
     @abstractmethod
-    def apply_action(self, Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
+    def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
         """
         INTERNAL
 
@@ -279,12 +279,16 @@ class Backend(GridObjects, ABC):
             Prefer using :attr:`grid2op.Observation.BaseObservation.topo_vect`
 
         Get the topology vector from the :attr:`Backend._grid`.
+        
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+        
         The topology vector defines, for each object, on which bus it is connected.
         It returns -1 if the object is not connected.
 
-        It is a vector with as much elements (productions, loads and lines extremity) as there are in the powergrid.
+        It is a vector with as much elements (productions, loads and lines extremity, storage) as there are in the powergrid.
 
-        For each elements, it gives on which bus it is connected in its substation.
+        For each elements, it gives on which bus it is connected in its substation (after the solver has ran)
 
         For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the
         load of id 1 is connected to the second bus of its substation.
@@ -316,6 +320,9 @@ class Backend(GridObjects, ABC):
             :attr:`grid2op.Observation.BaseObservation.gen_q` and
             :attr:`grid2op.Observation.BaseObservation.gen_v` instead.
 
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+            
         This method is used to retrieve information about the generators (active, reactive production
         and voltage magnitude of the bus to which it is connected).
         
@@ -345,6 +352,9 @@ class Backend(GridObjects, ABC):
             :attr:`grid2op.Observation.BaseObservation.load_q` and
             :attr:`grid2op.Observation.BaseObservation.load_v` instead.
 
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+            
         This method is used to retrieve information about the loads (active, reactive consumption
         and voltage magnitude of the bus to which it is connected).
 
@@ -375,6 +385,9 @@ class Backend(GridObjects, ABC):
             :attr:`grid2op.Observation.BaseObservation.a_or` and,
             :attr:`grid2op.Observation.BaseObservation.v_or` instead
 
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+            
         It returns the information extracted from the _grid at the origin end of each powerline.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
@@ -405,6 +418,9 @@ class Backend(GridObjects, ABC):
             :attr:`grid2op.Observation.BaseObservation.a_ex` and,
             :attr:`grid2op.Observation.BaseObservation.v_ex` instead
 
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+            
         It returns the information extracted from the _grid at the extremity end of each powerline.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
@@ -453,7 +469,7 @@ class Backend(GridObjects, ABC):
         But it is encouraged to overload it in the subclasses.
         """
         self.comp_time = 0.0
-        self.load_grid(grid_path, filename=grid_filename)
+        self.load_grid(path, filename=filename)
 
     def copy(self) -> Self:
         """
@@ -526,6 +542,9 @@ class Backend(GridObjects, ABC):
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.line_status` instead
 
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+            
         Return the status of each lines (connected : True / disconnected: False )
 
         It is assume that the order of the powerline is fixed: if the status of powerline "l1" is put at the 42nd element
@@ -555,6 +574,9 @@ class Backend(GridObjects, ABC):
 
         Return the current flow in each lines of the powergrid. Only one value per powerline is returned.
 
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+            
         If the AC mod is used, this shall return the current flow on the end of the powerline where there is a protection.
         For example, if there is a protection on "origin end" of powerline "l2" then this method shall return the current
         flow of at the "origin end" of powerline l2.
@@ -711,6 +733,9 @@ class Backend(GridObjects, ABC):
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.rho`
 
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+            
         This method return the relative flows, *eg.* the current flow divided by the thermal limits. It has a pretty
         straightforward default implementation, but it can be overriden for example for transformer if the limits are
         on the lower voltage side or on the upper voltage level.
@@ -736,6 +761,9 @@ class Backend(GridObjects, ABC):
             :attr:`grid2op.Observation.BaseObservation.timestep_overflow` and check the
             non zero index.
 
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+            
         Prefer using the attribute of the :class:`grid2op.Observation.BaseObservation`
 
         faster accessor to the line that are on overflow.
@@ -756,6 +784,9 @@ class Backend(GridObjects, ABC):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+            
         This method is optional. If implemented, it should return the proper information about the shunt in the
         powergrid.
 
@@ -782,7 +813,9 @@ class Backend(GridObjects, ABC):
 
     def get_theta(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
-
+        .. note::
+            It is called after the solver has been ran, only in case of success (convergence).
+            
         Notes
         -----
         Don't forget to set the flag :attr:`Backend.can_output_theta` to ``True`` in the
