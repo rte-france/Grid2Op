@@ -195,7 +195,6 @@ class Environment(BaseEnv):
 
         Create a proper and valid environment.
         """
-
         if isinstance(rewardClass, type):
             if not issubclass(rewardClass, BaseReward):
                 raise Grid2OpException(
@@ -234,7 +233,6 @@ class Environment(BaseEnv):
             if self._read_from_local_dir:
                 # test to support pickle conveniently
                 self.backend._PATH_ENV = self.get_path_env()
-
             # all the above should be done in this exact order, otherwise some weird behaviour might occur
             # this is due to the class attribute
             self.backend.set_env_name(self.name)

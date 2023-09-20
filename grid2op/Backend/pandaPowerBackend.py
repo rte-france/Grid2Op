@@ -13,6 +13,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from typing import Optional, Union, Tuple
 
 import pandapower as pp
 import scipy
@@ -109,12 +110,12 @@ class PandaPowerBackend(Backend):
 
     def __init__(
         self,
-        detailed_infos_for_cascading_failures=False,
-        lightsim2grid=False,  # use lightsim2grid as pandapower powerflow solver
-        dist_slack=False,
-        max_iter=10,
-        can_be_copied=True,
-        with_numba=NUMBA_,
+        detailed_infos_for_cascading_failures : bool=False,
+        lightsim2grid : bool=False,  # use lightsim2grid as pandapower powerflow solver
+        dist_slack : bool=False,
+        max_iter : int=10,
+        can_be_copied: bool=True,
+        with_numba: bool=NUMBA_,
     ):
         Backend.__init__(
             self,
@@ -125,44 +126,44 @@ class PandaPowerBackend(Backend):
             max_iter=max_iter,
             with_numba=with_numba
         )
-        self.with_numba = with_numba
-        self.prod_pu_to_kv = None
-        self.load_pu_to_kv = None
-        self.lines_or_pu_to_kv = None
-        self.lines_ex_pu_to_kv = None
-        self.storage_pu_to_kv = None
+        self.with_numba : bool = with_numba
+        self.prod_pu_to_kv : Optional[np.ndarray] = None
+        self.load_pu_to_kv : Optional[np.ndarray]  = None
+        self.lines_or_pu_to_kv : Optional[np.ndarray]  = None
+        self.lines_ex_pu_to_kv : Optional[np.ndarray]  = None
+        self.storage_pu_to_kv : Optional[np.ndarray]  = None
 
-        self.p_or = None
-        self.q_or = None
-        self.v_or = None
-        self.a_or = None
-        self.p_ex = None
-        self.q_ex = None
-        self.v_ex = None
-        self.a_ex = None
+        self.p_or : Optional[np.ndarray]  = None
+        self.q_or : Optional[np.ndarray]  = None
+        self.v_or : Optional[np.ndarray]  = None
+        self.a_or : Optional[np.ndarray]  = None
+        self.p_ex : Optional[np.ndarray]  = None
+        self.q_ex : Optional[np.ndarray]  = None
+        self.v_ex : Optional[np.ndarray]  = None
+        self.a_ex : Optional[np.ndarray]  = None
 
-        self.load_p = None
-        self.load_q = None
-        self.load_v = None
+        self.load_p : Optional[np.ndarray]  = None
+        self.load_q : Optional[np.ndarray]  = None
+        self.load_v : Optional[np.ndarray]  = None
 
-        self.storage_p = None
-        self.storage_q = None
-        self.storage_v = None
+        self.storage_p : Optional[np.ndarray]  = None
+        self.storage_q : Optional[np.ndarray]  = None
+        self.storage_v : Optional[np.ndarray]  = None
 
-        self.prod_p = None
-        self.prod_q = None
-        self.prod_v = None
-        self.line_status = None
+        self.prod_p : Optional[np.ndarray]  = None
+        self.prod_q : Optional[np.ndarray]  = None
+        self.prod_v : Optional[np.ndarray]  = None
+        self.line_status : Optional[np.ndarray]  = None
 
-        self._pf_init = "flat"
-        self._pf_init = "results"
-        self._nb_bus_before = None  # number of active bus at the preceeding step
+        self._pf_init : str = "flat"
+        self._pf_init : str = "results"
+        self._nb_bus_before : Optional[int] = None  # number of active bus at the preceeding step
 
-        self.thermal_limit_a = None
+        self.thermal_limit_a : Optional[np.ndarray]  = None
 
-        self._iref_slack = None
-        self._id_bus_added = None
-        self._fact_mult_gen = -1
+        self._iref_slack : Optional[int] = None
+        self._id_bus_added : Optional[int] = None
+        self._fact_mult_gen : int = -1
         self._what_object_where = None
         self._number_true_line = -1
         self._corresp_name_fun = {}
@@ -203,15 +204,15 @@ class PandaPowerBackend(Backend):
 
         # TODO storage doc (in grid2op rst) of the backend
         self.can_output_theta = True  # I support the voltage angle
-        self.theta_or = None
-        self.theta_ex = None
-        self.load_theta = None
-        self.gen_theta = None
-        self.storage_theta = None
+        self.theta_or  : Optional[np.ndarray] = None
+        self.theta_ex  : Optional[np.ndarray] = None
+        self.load_theta  : Optional[np.ndarray] = None
+        self.gen_theta  : Optional[np.ndarray] = None
+        self.storage_theta  : Optional[np.ndarray] = None
 
-        self._lightsim2grid = lightsim2grid
-        self._dist_slack = dist_slack
-        self._max_iter = max_iter
+        self._lightsim2grid : bool = lightsim2grid
+        self._dist_slack : bool = dist_slack
+        self._max_iter : bool = max_iter
 
     def _check_for_non_modeled_elements(self):
         """This function check for elements in the pandapower grid that will have no impact on grid2op.
@@ -238,7 +239,7 @@ class PandaPowerBackend(Backend):
                         f"work, but you won't be able to modify them)."
                     )
 
-    def get_theta(self):
+    def get_theta(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         TODO doc
 
@@ -263,7 +264,7 @@ class PandaPowerBackend(Backend):
             self.cst_1 * self.storage_theta,
         )
     
-    def get_nb_active_bus(self):
+    def get_nb_active_bus(self) -> int:
         """
         INTERNAL
 
@@ -279,22 +280,24 @@ class PandaPowerBackend(Backend):
         return self._grid.bus["in_service"].sum()
 
     @staticmethod
-    def _load_grid_load_p_mw(grid):
+    def _load_grid_load_p_mw(grid) -> pd.Series:
         return grid.load["p_mw"]
 
     @staticmethod
-    def _load_grid_load_q_mvar(grid):
+    def _load_grid_load_q_mvar(grid) -> pd.Series:
         return grid.load["q_mvar"]
 
     @staticmethod
-    def _load_grid_gen_p_mw(grid):
+    def _load_grid_gen_p_mw(grid) -> pd.Series:
         return grid.gen["p_mw"]
 
     @staticmethod
-    def _load_grid_gen_vm_pu(grid):
+    def _load_grid_gen_vm_pu(grid) -> pd.Series:
         return grid.gen["vm_pu"]
 
-    def reset(self, path=None, grid_filename=None):
+    def reset(self,
+              path : Union[os.PathLike, str],
+              filename : Optional[Union[os.PathLike, str]]=None) -> None:
         """
         INTERNAL
 
@@ -312,7 +315,9 @@ class PandaPowerBackend(Backend):
         self._topo_vect[:] = self._get_topo_vect()
         self.comp_time = 0.0
 
-    def load_grid(self, path=None, filename=None):
+    def load_grid(self,
+                  path : Union[os.PathLike, str],
+                  filename : Optional[Union[os.PathLike, str]]=None) -> None:
         """
         INTERNAL
 
@@ -558,7 +563,7 @@ class PandaPowerBackend(Backend):
 
         self._init_private_attrs()
 
-    def _init_private_attrs(self):
+    def _init_private_attrs(self) -> None:
         #  number of elements per substation
         self.sub_info = np.zeros(self.n_sub, dtype=dt_int)
 
@@ -780,7 +785,7 @@ class PandaPowerBackend(Backend):
                 self._grid
             )  # will be initialized in the "assert_grid_correct"
 
-    def storage_deact_for_backward_comaptibility(self):
+    def storage_deact_for_backward_comaptibility(self) -> None:
         self._init_private_attrs()
 
     def _convert_id_topo(self, id_big_topo):
@@ -797,7 +802,7 @@ class PandaPowerBackend(Backend):
         """
         return self._big_topo_to_obj[id_big_topo]
 
-    def apply_action(self, backendAction=None):
+    def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
         """
         INTERNAL
 
@@ -807,6 +812,7 @@ class PandaPowerBackend(Backend):
         """
         if backendAction is None:
             return
+        
         cls = type(self)
         
         (
@@ -983,7 +989,7 @@ class PandaPowerBackend(Backend):
         )
         return res
 
-    def runpf(self, is_dc=False):
+    def runpf(self, is_dc : bool=False) -> Tuple[bool, Union[Exception, None]]:
         """
         INTERNAL
 
@@ -1149,7 +1155,7 @@ class PandaPowerBackend(Backend):
             msg = exc_.__str__()
             return False, DivergingPowerFlow(f'powerflow diverged with error :"{msg}"')
 
-    def assert_grid_correct(self):
+    def assert_grid_correct(self) -> None:
         """
         INTERNAL
 
@@ -1159,7 +1165,7 @@ class PandaPowerBackend(Backend):
         """
         super().assert_grid_correct()
 
-    def _reset_all_nan(self):
+    def _reset_all_nan(self) -> None:
         self.p_or[:] = np.NaN
         self.q_or[:] = np.NaN
         self.v_or[:] = np.NaN
@@ -1185,14 +1191,13 @@ class PandaPowerBackend(Backend):
         self.gen_theta[:] = np.NaN
         self.storage_theta[:] = np.NaN
 
-    def copy(self):
+    def copy(self) -> "PandaPowerBackend":
         """
         INTERNAL
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Performs a deep copy of the power :attr:`_grid`.
-        As pandapower is pure python, the deep copy operator is perfectly suited for the task.
+        This should return a deep copy of the Backend itself and not just the `self._grid`
         """
         # res = copy.deepcopy(self)  # this was really slow...
         res = type(self)(**self._my_kwargs)
@@ -1287,7 +1292,7 @@ class PandaPowerBackend(Backend):
 
         return res
 
-    def close(self):
+    def close(self) -> None:
         """
         INTERNAL
 
@@ -1301,7 +1306,7 @@ class PandaPowerBackend(Backend):
         del self.__pp_backend_initial_grid
         self.__pp_backend_initial_grid = None
 
-    def save_file(self, full_path):
+    def save_file(self, full_path: Union[os.PathLike, str]) -> None:
         """
         INTERNAL
 
@@ -1315,7 +1320,7 @@ class PandaPowerBackend(Backend):
         """
         pp.to_json(self._grid, full_path)
 
-    def get_line_status(self):
+    def get_line_status(self) -> np.ndarray:
         """
         INTERNAL
 
@@ -1334,7 +1339,7 @@ class PandaPowerBackend(Backend):
             )
         ).astype(dt_bool)
 
-    def get_line_flow(self):
+    def get_line_flow(self) -> np.ndarray:
         return self.a_or
 
     def _disconnect_line(self, id_):
@@ -1353,7 +1358,7 @@ class PandaPowerBackend(Backend):
             self._grid.trafo["in_service"].iloc[id_ - self._number_true_line] = True
         self.line_status[id_] = True
 
-    def get_topo_vect(self):
+    def get_topo_vect(self) -> np.ndarray:
         return self._topo_vect
 
     def _get_topo_vect(self):
@@ -1461,21 +1466,21 @@ class PandaPowerBackend(Backend):
         ].values.astype(dt_float)
         return load_p, load_q, load_v, load_theta
 
-    def generators_info(self):
+    def generators_info(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return (
             self.cst_1 * self.prod_p,
             self.cst_1 * self.prod_q,
             self.cst_1 * self.prod_v,
         )
 
-    def loads_info(self):
+    def loads_info(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return (
             self.cst_1 * self.load_p,
             self.cst_1 * self.load_q,
             self.cst_1 * self.load_v,
         )
 
-    def lines_or_info(self):
+    def lines_or_info(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         return (
             self.cst_1 * self.p_or,
             self.cst_1 * self.q_or,
@@ -1483,7 +1488,7 @@ class PandaPowerBackend(Backend):
             self.cst_1 * self.a_or,
         )
 
-    def lines_ex_info(self):
+    def lines_ex_info(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         return (
             self.cst_1 * self.p_ex,
             self.cst_1 * self.q_ex,
@@ -1491,7 +1496,7 @@ class PandaPowerBackend(Backend):
             self.cst_1 * self.a_ex,
         )
 
-    def shunt_info(self):
+    def shunt_info(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         shunt_p = self.cst_1 * self._grid.res_shunt["p_mw"].values.astype(dt_float)
         shunt_q = self.cst_1 * self._grid.res_shunt["q_mvar"].values.astype(dt_float)
         shunt_v = (
@@ -1513,7 +1518,7 @@ class PandaPowerBackend(Backend):
         shunt_bus[alone] = -1
         return shunt_p, shunt_q, shunt_v, shunt_bus
 
-    def storages_info(self):
+    def storages_info(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return (
             self.cst_1 * self.storage_p,
             self.cst_1 * self.storage_q,
@@ -1545,7 +1550,7 @@ class PandaPowerBackend(Backend):
             theta_storage = np.zeros(shape=0, dtype=dt_float)
         return p_storage, q_storage, v_storage, theta_storage
 
-    def sub_from_bus_id(self, bus_id):
+    def sub_from_bus_id(self, bus_id : int) -> int:
         if bus_id >= self._number_true_line:
             return bus_id - self._number_true_line
         return bus_id

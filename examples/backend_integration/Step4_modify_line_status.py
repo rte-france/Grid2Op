@@ -18,18 +18,19 @@ NB: the "runpf" is taken from CustomBackend_Step2
 
 """
 import numpy as np
+from typing import Optional, Tuple, Union
 
 from Step3_modify_gen import CustomBackend_Step3
 
 
 class CustomBackend_Step4(CustomBackend_Step3):
-    def apply_action(self, action):
+    def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
         # the following few lines are highly recommended
-        if action is None:
+        if backendAction is None:
             return
         
         # loads and generators are modified in the previous script
-        super().apply_action(action)
+        super().apply_action(backendAction)
         
         # disconnected powerlines are indicated because they are
         # connected to bus "-1" in the `get_lines_or_bus()` and
@@ -46,7 +47,7 @@ class CustomBackend_Step4(CustomBackend_Step3):
         n_line_pp = self._grid.line.shape[0]
         
         # handle the disconnection on "or" side
-        lines_or_bus = action.get_lines_or_bus()
+        lines_or_bus = backendAction.get_lines_or_bus()
         for line_id, new_bus in lines_or_bus:
             if line_id < n_line_pp:
                 # a pandapower powerline has bee disconnected in grid2op
@@ -64,7 +65,7 @@ class CustomBackend_Step4(CustomBackend_Step3):
                 # element was connected
                 dt["in_service"].iloc[line_id_db] = True
 
-        lines_ex_bus = action.get_lines_ex_bus()
+        lines_ex_bus = backendAction.get_lines_ex_bus()
         for line_id, new_bus in lines_ex_bus:
             if line_id < n_line_pp:
                 # a pandapower powerline has bee disconnected in grid2op
@@ -95,7 +96,7 @@ class CustomBackend_Step4(CustomBackend_Step3):
         )
         return res
 
-    def lines_or_info(self):
+    def lines_or_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Main method to retrieve the information at the "origin" side of the powerlines and transformers.
 
@@ -134,7 +135,7 @@ class CustomBackend_Step4(CustomBackend_Step3):
         v_or[~status] = 0.
         return p_or, q_or, v_or, a_or
 
-    def lines_ex_info(self):
+    def lines_ex_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Main method to retrieve the information at the "extremity" side of the powerlines and transformers.
 

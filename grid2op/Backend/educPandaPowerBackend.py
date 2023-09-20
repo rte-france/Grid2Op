@@ -13,6 +13,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from typing import Optional, Tuple, Union
 
 import pandapower as pp
 import scipy
@@ -63,8 +64,8 @@ class EducPandaPowerBackend(Backend):
     """
 
     def __init__(self,
-                 detailed_infos_for_cascading_failures=False,
-                 can_be_copied=True):
+                 detailed_infos_for_cascading_failures : Optional[bool]=False,
+                 can_be_copied : Optional[bool]=True):
         """
         Nothing much to do here except initializing what you would need (a tensorflow session, link to some
         external dependencies etc.)
@@ -89,13 +90,15 @@ class EducPandaPowerBackend(Backend):
             "This backend is used for demonstration purpose only, you should not use it under any "
             "circumstances. Please use grid2op.Backend.PandaPowerBackend instead"
         )
-        self._nb_real_line_pandapower = None
+        self._nb_real_line_pandapower : int = None
 
         # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
         # neither shunt nor storage unit.
 
     ####### load the grid
-    def load_grid(self, path=None, filename=None):
+    def load_grid(self,
+                  path : Union[os.PathLike, str],
+                  filename : Optional[Union[os.PathLike, str]]=None) -> None:
         """
         Demonstration on how you can load a powergrid and then initialize the proper grid2op attributes.
 
@@ -222,7 +225,7 @@ class EducPandaPowerBackend(Backend):
         type(self).set_no_storage()
 
     ###### modify the grid
-    def apply_action(self, backendAction=None):
+    def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
         """
         Here the implementation of the "modify the grid" function.
 
@@ -321,7 +324,7 @@ class EducPandaPowerBackend(Backend):
             bus_is[i + self.n_sub] = bus2_status
 
     ###### computes powerflow
-    def runpf(self, is_dc=False):
+    def runpf(self, is_dc : bool=False) -> Tuple[bool, Union[Exception, None]]:
         """
         Now we just perform a powerflow with pandapower which can be done with either `rundcpp` for dc powerflow
         or with `runpp` for AC powerflow.
@@ -347,7 +350,7 @@ class EducPandaPowerBackend(Backend):
             return False, exc_
 
     ###### getters
-    def get_topo_vect(self):
+    def get_topo_vect(self) -> np.ndarray:
         """
         Retrieve the bus to which the objects are connected based on the information stored on the grid.
 
@@ -407,7 +410,7 @@ class EducPandaPowerBackend(Backend):
             i += 1
         return res
 
-    def generators_info(self):
+    def generators_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         We chose to keep the same order in grid2op and in pandapower. So we just return the correct values.
         """
@@ -420,7 +423,7 @@ class EducPandaPowerBackend(Backend):
         )  # in kV
         return prod_p, prod_q, prod_v
 
-    def loads_info(self):
+    def loads_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         We chose to keep the same order in grid2op and in pandapower. So we just return the correct values.
         """
@@ -439,7 +442,7 @@ class EducPandaPowerBackend(Backend):
         )  # in kV
         return load_p, load_q, load_v
 
-    def _aux_get_line_info(self, colname_powerline, colname_trafo):
+    def _aux_get_line_info(self, colname_powerline, colname_trafo) -> np.ndarray:
         """
         concatenate the information of powerlines and trafo using the convention that "powerlines go first"
         """
@@ -451,7 +454,7 @@ class EducPandaPowerBackend(Backend):
         )
         return res
 
-    def lines_or_info(self):
+    def lines_or_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Main method to retrieve the information at the "origin" side of the powerlines and transformers.
 
@@ -470,7 +473,7 @@ class EducPandaPowerBackend(Backend):
         a_or = self._aux_get_line_info("i_from_ka", "i_hv_ka") * 1000
         return p_or, q_or, v_or, a_or
 
-    def lines_ex_info(self):
+    def lines_ex_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Main method to retrieve the information at the "extremity" side of the powerlines and transformers.
 
@@ -490,7 +493,7 @@ class EducPandaPowerBackend(Backend):
         return p_ex, q_ex, v_ex, a_ex
 
     # other less important method that you will need to implement
-    def get_line_status(self):
+    def get_line_status(self) -> np.ndarray:
         """
         you might consider implementing it
 
@@ -504,7 +507,7 @@ class EducPandaPowerBackend(Backend):
             )
         ).astype(dt_bool)
 
-    def _disconnect_line(self, id_):
+    def _disconnect_line(self, id_ : int) -> None:
         """
         you might consider implementing it
 
@@ -518,7 +521,7 @@ class EducPandaPowerBackend(Backend):
                 id_ - self._nb_real_line_pandapower
             ] = False
 
-    def copy(self):
+    def copy(self) -> "EducPandaPowerBackend":
         """
         you might consider implementing it
 
@@ -533,7 +536,9 @@ class EducPandaPowerBackend(Backend):
         res = copy.deepcopy(self)
         return res
 
-    def reset(self, path=None, grid_filename=None):
+    def reset(self,
+              path : Union[os.PathLike, str],
+              filename : Optional[Union[os.PathLike, str]]=None) -> None:
         """
         you might consider implementing it
 
@@ -570,7 +575,7 @@ class EducPandaPowerBackend(Backend):
         self._grid.bus["in_service"].iloc[: self.n_sub] = True
         self._grid.bus["in_service"].iloc[self.n_sub :] = False
 
-    def close(self):
+    def close(self) -> None:
         """
         you might consider implementing it
 

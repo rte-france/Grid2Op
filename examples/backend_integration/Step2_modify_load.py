@@ -15,13 +15,15 @@ It get back the loading function from Step1, implements the "apply_action" relev
 """
 import numpy as np
 import pandapower as pp
+from typing import Optional, Tuple, Union
+
 from Step1_loading import CustomBackend_Step1
 
 
 class CustomBackend_Step2(CustomBackend_Step1):
-    def apply_action(self, action):
+    def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
         # the following few lines are highly recommended
-        if action is None:
+        if backendAction is None:
             return
         
         (
@@ -29,7 +31,7 @@ class CustomBackend_Step2(CustomBackend_Step1):
             (prod_p, prod_v, load_p, load_q, storage),
             _,
             shunts__,
-        ) = action()
+        ) = backendAction()
         
         # change the active values of the loads
         for load_id, new_p in load_p:
@@ -38,7 +40,7 @@ class CustomBackend_Step2(CustomBackend_Step1):
         for load_id, new_q in load_q:
             self._grid.load["q_mvar"].iloc[load_id] = new_q
             
-    def runpf(self, is_dc=False):
+    def runpf(self, is_dc : bool=False) -> Tuple[bool, Union[Exception, None]]:
         # possible implementation of the runpf function
         try:
             if is_dc:
@@ -50,7 +52,7 @@ class CustomBackend_Step2(CustomBackend_Step1):
             # of the powerflow has not converged, results are Nan
             return False, exc_
     
-    def loads_info(self):
+    def loads_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         # carefull with copy / deep copy
         load_p = self._grid.res_load["p_mw"].values  # in MW
         load_q = self._grid.res_load["q_mvar"].values  # in MVAr
