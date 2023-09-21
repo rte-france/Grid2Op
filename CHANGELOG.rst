@@ -31,6 +31,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.9.6] - 2023-xx-yy
+----------------------
+- [ADDED] now depends on the `typing_extensions` package
+- [IMPROVED] type hints for Backend and PandapowerBackend
+
 [1.9.5] - 2023-09-18
 ---------------------
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/518

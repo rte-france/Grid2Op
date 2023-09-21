@@ -22,6 +22,7 @@ NB: the "runpf" is taken from CustomBackend_Step2
 import copy
 import pandas as pd
 import numpy as np
+from typing import Optional, Tuple, Union
 
 from Step4_modify_line_status import CustomBackend_Step4
 
@@ -55,17 +56,17 @@ class CustomBackend_Minimal(CustomBackend_Step4):
     # grid2op built-in "***_global()" functions that allows to retrieve the global id
     # (from 0 to n_total_bus-1) directly (instead of manipulating local bus id that
     # are either 1 or 2)
-    def apply_action(self, action):
+    def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
         # the following few lines are highly recommended
         if action is None:
             return
         
         # loads and generators are modified in the previous script
-        super().apply_action(action)
+        super().apply_action(backendAction)
                 
         # handle the load (see the comment above the definition of this
         # function as to why it's possible to use the get_loads_bus_global)
-        loads_bus = action.get_loads_bus_global()
+        loads_bus = backendAction.get_loads_bus_global()
         for load_id, new_bus in loads_bus:
             self._aux_change_bus_or_disconnect(new_bus,
                                                self._grid.load,
@@ -74,7 +75,7 @@ class CustomBackend_Minimal(CustomBackend_Step4):
         
         # handle the generators (see the comment above the definition of this
         # function as to why it's possible to use the get_loads_bus_global)
-        gens_bus = action.get_gens_bus_global()
+        gens_bus = backendAction.get_gens_bus_global()
         for gen_id, new_bus in gens_bus:
             self._aux_change_bus_or_disconnect(new_bus,
                                                self._grid.gen,
@@ -85,7 +86,7 @@ class CustomBackend_Minimal(CustomBackend_Step4):
         # function as to why it's possible to use the get_lines_or_bus_global)
         n_line_pp = self._grid.line.shape[0]
         
-        lines_or_bus = action.get_lines_or_bus_global()
+        lines_or_bus = backendAction.get_lines_or_bus_global()
         for line_id, new_bus in lines_or_bus:
             if line_id < n_line_pp:
                 dt = self._grid.line
@@ -101,7 +102,7 @@ class CustomBackend_Minimal(CustomBackend_Step4):
                                                key,
                                                line_id_pp)
         
-        lines_ex_bus = action.get_lines_ex_bus_global()
+        lines_ex_bus = backendAction.get_lines_ex_bus_global()
         for line_id, new_bus in lines_ex_bus:
             if line_id < n_line_pp:
                 dt = self._grid.line
@@ -126,7 +127,7 @@ class CustomBackend_Minimal(CustomBackend_Step4):
             (prod_p, prod_v, load_p, load_q, storage),
             _,
             shunts__,
-        ) = action()
+        ) = backendAction()
         bus_is = self._grid.bus["in_service"]
         for i, (bus1_status, bus2_status) in enumerate(active_bus):
             bus_is[i] = bus1_status
@@ -149,7 +150,7 @@ class CustomBackend_Minimal(CustomBackend_Step4):
             el_id += 1
         
     # it should return, in the correct order, on which bus each element is connected        
-    def get_topo_vect(self):
+    def get_topo_vect(self) -> np.ndarray:
         res = np.full(self.dim_topo, fill_value=-2, dtype=int)
         # read results for load
         self._aux_get_topo_vect(res, self._grid.load, "bus", self.load_pos_topo_vect)
