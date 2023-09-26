@@ -35,7 +35,17 @@ class TestIsolatedLoad(unittest.TestCase):
         self.tol = 3e-5
         return super().setUp()
     
-    def test_specific_action(self):
+    def test_specific_action_load(self):
+        act = self.env.action_space({'set_bus': {'loads_id': [(0, 1), (1, 2)],
+                                                 'generators_id': [(0, 2), (1, 1)],
+                                                 'lines_or_id': [(2, 2), (3, 1), (4, 2), (5, -1)],
+                                                 'lines_ex_id': [(0, 1), (2, 1), (5, -1)]}}
+                                    )
+        obs, reward, done, info = self.env.step(act)
+        assert done
+        assert info["exception"]
+        
+    def test_specific_action_gen(self):
         act = self.env.action_space({'set_bus': {'loads_id': [(0, 1), (1, 2)],
                                                  'generators_id': [(0, 2), (1, 1)],
                                                  'lines_or_id': [(2, 2), (3, 1), (4, 2), (5, -1)],
