@@ -33,6 +33,8 @@ Change Log
 
 [1.9.6] - 2023-xx-yy
 ----------------------
+- [FIXED] a bug in PandaPowerBackend (DC mode) where isolated load did not raised 
+  exception (they should lead to a divergence)
 - [ADDED] now depends on the `typing_extensions` package
 - [IMPROVED] type hints for Backend and PandapowerBackend
 

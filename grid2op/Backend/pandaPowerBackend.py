@@ -1033,9 +1033,8 @@ class PandaPowerBackend(Backend):
                     
                 if is_dc:
                     pp.rundcpp(self._grid, check_connectivity=False, init="flat")
-                    self._nb_bus_before = (
-                        None  # if dc i start normally next time i call an ac powerflow
-                    )
+                    # if dc i start normally next time i call an ac powerflow
+                    self._nb_bus_before = None
                 else:
                     pp.runpp(
                         self._grid,
@@ -1069,11 +1068,13 @@ class PandaPowerBackend(Backend):
                 self.load_theta[:],
             ) = self._loads_info()
             if not is_dc:
-                if not np.all(np.isfinite(self.load_v)):
+                if not np.isfinite(self.load_v).all():
                     # TODO see if there is a better way here
                     # some loads are disconnected: it's a game over case!
                     raise pp.powerflow.LoadflowNotConverged("Isolated load")
             else:
+                if self._grid.res_bus.loc[self._grid.bus["in_service"]]["va_degree"].isnull().any():
+                    raise pp.powerflow.LoadflowNotConverged("Isolated bus (dc mode)")
                 # fix voltages magnitude that are always "nan" for dc case
                 # self._grid.res_bus["vm_pu"] is always nan when computed in DC
                 self.load_v[:] = self.load_pu_to_kv  # TODO
