@@ -588,6 +588,9 @@ class BaseAction(GridObjects):
 
         Once you have these dictionnary, you can use them to build back the action from the action space.
 
+        .. warning::
+            This function does not work correctly with version of grid2op lower (or equal to) 1.9.5 
+            
         Examples
         ---------
 
@@ -628,7 +631,8 @@ class BaseAction(GridObjects):
             self._aux_serialize_add_key_change("gen_change_bus", "generators_id", res["change_bus"])
             self._aux_serialize_add_key_change("line_or_change_bus", "lines_or_id", res["change_bus"])
             self._aux_serialize_add_key_change("line_ex_change_bus", "lines_ex_id", res["change_bus"])
-            self._aux_serialize_add_key_change("storage_change_bus", "storages_id", res["change_bus"])
+            if hasattr(type(self), "n_storage") and type(self).n_storage:
+                self._aux_serialize_add_key_change("storage_change_bus", "storages_id", res["change_bus"])
             if not res["change_bus"]:
                 del res["change_bus"]
             
@@ -646,7 +650,8 @@ class BaseAction(GridObjects):
             self._aux_serialize_add_key_set("gen_set_bus", "generators_id", res["set_bus"])
             self._aux_serialize_add_key_set("line_or_set_bus", "lines_or_id", res["set_bus"])
             self._aux_serialize_add_key_set("line_ex_set_bus", "lines_ex_id", res["set_bus"])
-            self._aux_serialize_add_key_set("storage_set_bus", "storages_id", res["set_bus"])
+            if hasattr(type(self), "n_storage") and type(self).n_storage:
+                self._aux_serialize_add_key_set("storage_set_bus", "storages_id", res["set_bus"])
             if not res["set_bus"]:
                 del res["set_bus"]
             

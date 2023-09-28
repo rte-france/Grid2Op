@@ -8,12 +8,9 @@
 
 import grid2op
 import numpy as np
-from superposition_theorem import State
 import unittest
 import itertools
 import warnings
-
-# from lightsim2grid import LightSimBackend
 
 
 class TestIsolatedLoad(unittest.TestCase):
@@ -55,3 +52,5 @@ class TestIsolatedLoad(unittest.TestCase):
         assert done
         assert info["exception"]
     
+if __name__ == "__main__":
+    unittest.main()
