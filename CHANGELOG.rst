@@ -33,6 +33,8 @@ Change Log
 
 [1.9.6] - 2023-xx-yy
 ----------------------
+- [BREAKING] when a shunt is alone on a bus, the powerflow will diverge even in DC mode 
+  (previously it only converges which was wrong behaviour: grid2op should not disconnect shunt)
 - [FIXED] a bug in PandaPowerBackend (DC mode) where isolated load did not raised 
   exception (they should lead to a divergence)
 - [ADDED] now depends on the `typing_extensions` package

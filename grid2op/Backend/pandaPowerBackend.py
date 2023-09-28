@@ -1054,7 +1054,11 @@ class PandaPowerBackend(Backend):
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     # sometimes pandapower does not detect divergence and put Nan.
                     raise pp.powerflow.LoadflowNotConverged("Divergence due to Nan values in res_gen table.")
-
+                
+            # if a connected bus has a no voltage, it's a divergence (grid was not connected)
+            if self._grid.res_bus.loc[self._grid.bus["in_service"]]["va_degree"].isnull().any():
+                raise pp.powerflow.LoadflowNotConverged("Isolated bus")
+                        
             (
                 self.prod_p[:],
                 self.prod_q[:],
@@ -1067,14 +1071,13 @@ class PandaPowerBackend(Backend):
                 self.load_v[:],
                 self.load_theta[:],
             ) = self._loads_info()
+            
             if not is_dc:
                 if not np.isfinite(self.load_v).all():
                     # TODO see if there is a better way here
                     # some loads are disconnected: it's a game over case!
                     raise pp.powerflow.LoadflowNotConverged("Isolated load")
             else:
-                if self._grid.res_bus.loc[self._grid.bus["in_service"]]["va_degree"].isnull().any():
-                    raise pp.powerflow.LoadflowNotConverged("Isolated bus (dc mode)")
                 # fix voltages magnitude that are always "nan" for dc case
                 # self._grid.res_bus["vm_pu"] is always nan when computed in DC
                 self.load_v[:] = self.load_pu_to_kv  # TODO
@@ -1513,10 +1516,6 @@ class PandaPowerBackend(Backend):
         shunt_bus = type(self).global_bus_to_local(self._grid.shunt["bus"].values, self.shunt_to_subid)
         shunt_v[~self._grid.shunt["in_service"].values] = 0
         shunt_bus[~self._grid.shunt["in_service"].values] = -1
-        # handle shunt alone on a bus (in this case it should probably diverge...)
-        alone = ~np.isfinite(shunt_v)
-        shunt_v[alone] = 0
-        shunt_bus[alone] = -1
         return shunt_p, shunt_q, shunt_v, shunt_bus
 
     def storages_info(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
