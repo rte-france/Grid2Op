@@ -256,7 +256,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                 do_nothing
             )  # should load the first time stamp
             i += 1
-        assert i == 287
+        assert i == 287, f"env stopped at {i} instead of 287"
 
     def test_reward(self):
         done = False

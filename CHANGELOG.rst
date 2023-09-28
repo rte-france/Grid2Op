@@ -33,8 +33,17 @@ Change Log
 
 [1.9.6] - 2023-xx-yy
 ----------------------
+- [BREAKING] when a storage is connected alone on a bus, even if it produces / absorbs 0.0 MW it 
+  will raise a diverging powerflow error (previously the storage was automatically disconnected by 
+  `PandaPowerBackend`, but probably not by other backends)
+- [BREAKING] when a shunt is alone on a bus, the powerflow will diverge even in DC mode 
+  (previously it only converges which was wrong behaviour: grid2op should not disconnect shunt)
+- [FIXED] a bug in PandaPowerBackend (DC mode) where isolated load did not raised 
+  exception (they should lead to a divergence)
+- [FIXED] some wrong behaviour in the `remove_line_status_from_topo` when no observation where provided
+  and `check_cooldown` is `False`
 - [ADDED] now depends on the `typing_extensions` package
-- [IMPROVED] type hints for Backend and PandapowerBackend
+- [IMPROVED] type hints for `Backend` and `PandapowerBackend`
 
 [1.9.5] - 2023-09-18
 ---------------------
