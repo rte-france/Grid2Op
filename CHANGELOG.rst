@@ -33,6 +33,9 @@ Change Log
 
 [1.9.6] - 2023-xx-yy
 ----------------------
+- [BREAKING] when a storage is connected alone on a bus, even if it produces / absorbs 0.0 MW it 
+  will raise a diverging powerflow error (previously the storage was automatically disconnected by 
+  `PandaPowerBackend`, but probably not by other backends)
 - [BREAKING] when a shunt is alone on a bus, the powerflow will diverge even in DC mode 
   (previously it only converges which was wrong behaviour: grid2op should not disconnect shunt)
 - [FIXED] a bug in PandaPowerBackend (DC mode) where isolated load did not raised 
