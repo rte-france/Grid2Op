@@ -37,8 +37,10 @@ Change Log
   (previously it only converges which was wrong behaviour: grid2op should not disconnect shunt)
 - [FIXED] a bug in PandaPowerBackend (DC mode) where isolated load did not raised 
   exception (they should lead to a divergence)
+- [FIXED] some wrong behaviour in the `remove_line_status_from_topo` when no observation where provided
+  and `check_cooldown` is `False`
 - [ADDED] now depends on the `typing_extensions` package
-- [IMPROVED] type hints for Backend and PandapowerBackend
+- [IMPROVED] type hints for `Backend` and `PandapowerBackend`
 
 [1.9.5] - 2023-09-18
 ---------------------

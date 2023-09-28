@@ -96,9 +96,12 @@ class RemoveLineStatusFromTopoTester(unittest.TestCase):
         
         # action should not be modified because there is a cooldown
         act_sub4_clean = self.env.action_space({"set_bus": {"substations_id": [(4, [2, 2, 2, 1, 1])]}})
+        act_sub4_clean += self.env.action_space({"set_line_status": [(4, -1)]})
         assert act_sub4_clean._set_topo_vect[20] == 2
-        act_sub4_clean.remove_line_status_from_topo(obs, check_cooldown=False)       
+        act_sub4_clean.remove_line_status_from_topo(obs, check_cooldown=False)    
+        assert act_sub4_clean._set_topo_vect[19] == 2   
         assert act_sub4_clean._set_topo_vect[20] == 0
+        assert act_sub4_clean._set_topo_vect[21] == 2
             
     def test_limit_withoutobs(self):
         """test that it limit the action correctly when no obs is provided"""
@@ -108,12 +111,17 @@ class RemoveLineStatusFromTopoTester(unittest.TestCase):
         # limit reco when  set
         act_sub4_clean = self.env.action_space({"set_bus": {"substations_id": [(4, [2, 2, 2, 1, 1])]}})
         act_sub4_clean += disco
+        assert act_sub4_clean._set_topo_vect[19] == 2
         assert act_sub4_clean._set_topo_vect[20] == 2
+        assert act_sub4_clean._set_topo_vect[21] == 2
         assert act_sub4_clean._set_line_status[4] == -1
         with self.assertRaises(AmbiguousAction):
             act_sub4_clean._check_for_ambiguity()
-        act_sub4_clean.remove_line_status_from_topo(check_cooldown=False)       
-        assert act_sub4_clean._set_topo_vect[20] == 0
+            
+        act_sub4_clean.remove_line_status_from_topo(check_cooldown=False)     
+        assert act_sub4_clean._set_topo_vect[19] == 2  # it should not affect this !
+        assert act_sub4_clean._set_topo_vect[20] == 0, f"{act_sub4_clean._set_topo_vect[20]} vs 0"
+        assert act_sub4_clean._set_topo_vect[21] == 2
         assert act_sub4_clean._set_line_status[4] == -1
         act_sub4_clean._check_for_ambiguity()  # does not raise
         
@@ -125,23 +133,41 @@ class RemoveLineStatusFromTopoTester(unittest.TestCase):
         with self.assertRaises(AmbiguousAction):
             act_sub4_clean._check_for_ambiguity()
         act_sub4_clean.remove_line_status_from_topo(check_cooldown=False)
+        assert act_sub4_clean._change_bus_vect[19] # it should not affect this !
         assert not act_sub4_clean._change_bus_vect[20]
+        assert act_sub4_clean._change_bus_vect[21] # it should not affect this !
         assert act_sub4_clean._set_line_status[4] == -1
         act_sub4_clean._check_for_ambiguity()  # does not raise        
         
         # limit disco when  set
         act_sub4_clean = self.env.action_space({"set_bus": {"substations_id": [(4, [2, -1, 2, 1, 1])]}})
         act_sub4_clean += reco
+        assert act_sub4_clean._set_topo_vect[19] == 2  # it should not affect this !
         assert act_sub4_clean._set_topo_vect[20] == -1
+        assert act_sub4_clean._set_topo_vect[21] == 2
         assert act_sub4_clean._set_line_status[4] == 1
         with self.assertRaises(AmbiguousAction):
             act_sub4_clean._check_for_ambiguity()
+            
         act_sub4_clean.remove_line_status_from_topo(check_cooldown=False)       
+        assert act_sub4_clean._set_topo_vect[19] == 2  # it should not affect this !
         assert act_sub4_clean._set_topo_vect[20] == 0
+        assert act_sub4_clean._set_topo_vect[21] == 2
         assert act_sub4_clean._set_line_status[4] == 1
         act_sub4_clean._check_for_ambiguity()  # does not raise
         
-    
-    
+    def test_more_complex_action(self):
+        """this caused an error: all lines actions were removed"""
+        act_sub4_clean = self.env.action_space({"set_bus": {"lines_or_id": [(2, 2), (3, 1), (4, 2)],
+                                                            "lines_ex_id": [(0, 1)],
+                                                            "generators_id": [(0, 2)],
+                                                            "loads_id": [(0, 1)]}})
+        disco = self.env.action_space({"set_bus": (0, -1)})
+        act = act_sub4_clean + disco
+        assert (act.set_bus[3:9] == [1, 2, 1, 2, 2, 1]).all()
+        act.remove_line_status_from_topo(check_cooldown=False)
+        assert (act.set_bus[3:9] == [0, 2, 1, 2, 2, 1]).all()
+        
+
 if __name__ == "__main__":
     unittest.main()

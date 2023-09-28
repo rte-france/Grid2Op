@@ -1244,10 +1244,10 @@ class BaseAction(GridObjects):
         
           - if a powerline is affected to a certain bus at one of its end with `set_bus` (for example 
             `set_bus` to 1 or 2) and at the same time disconnected (`set_line_status` is -1) then
-            the `set_bus` part is ignore to avoid `AmbiguousAction`
+            the `set_bus` part is ignored to avoid `AmbiguousAction`
           - if a powerline is disconnect from its bus at one of its end with `set_bus` (for example 
             `set_bus` to -1) and at the same time reconnected (`set_line_status` is 1) then
-            the `set_bus` part is ignore to avoid `AmbiguousAction`
+            the `set_bus` part is ignored to avoid `AmbiguousAction`
           - if a powerline is affected to a certain bus at one of its end with `change_bus` (`change_bus` is 
             ``True``) and at the same time disconnected (`set_line_status` is -1) then
             the `change_bus` part is ignore to avoid `AmbiguousAction`
@@ -1261,6 +1261,10 @@ class BaseAction(GridObjects):
         
         .. note::
             As from version 1.9.0 you are no longer forced to provide an observation if `check_cooldown=False`
+        
+        .. warning::
+            For grid2op equal or lower to 1.9.5 this function was bugged in some corner cases. We highly recommend
+            upgrading if you use this function with these grid2op versions.
             
         Examples
         ---------
@@ -1335,44 +1339,75 @@ class BaseAction(GridObjects):
         
         # remove the "set" part that would cause a reconnection
         mask_reco = np.full(cls.dim_topo, fill_value=False)
-        reco_or_ = np.full(cls.n_line, fill_value=False)
-        reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & 
-                 disconnected & line_under_cooldown] = True
-        mask_reco[cls.line_or_pos_topo_vect] = reco_or_
+        if check_cooldown:
+            reco_or_ = np.full(cls.n_line, fill_value=False)
+            reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & 
+                    disconnected & line_under_cooldown] = True
+            mask_reco[cls.line_or_pos_topo_vect] = reco_or_
+            
+            reco_ex_ = np.full(cls.n_line, fill_value=False)
+            reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & 
+                    disconnected & line_under_cooldown] = True
+            mask_reco[cls.line_ex_pos_topo_vect] = reco_ex_
         
-        reco_ex_ = np.full(cls.n_line, fill_value=False)
-        reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & 
-                 disconnected & line_under_cooldown] = True
-        mask_reco[cls.line_ex_pos_topo_vect] = reco_ex_
-        
+        # do not reconnect powerline that will be disconnected
+        reco_or_and_disco_ = np.full(cls.n_line, fill_value=False)
+        reco_or_and_disco_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & (self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0)] = True
+        reco_or_and_disco_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & (self._set_line_status < 0)] = True
+        mask_reco[cls.line_or_pos_topo_vect] |= reco_or_and_disco_
+
+        reco_ex_and_disco_ = np.full(cls.n_line, fill_value=False)
+        reco_ex_and_disco_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & (self._set_topo_vect[cls.line_or_pos_topo_vect] < 0)] = True
+        reco_ex_and_disco_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & (self._set_line_status < 0)] = True
+        mask_reco[cls.line_ex_pos_topo_vect] |= reco_ex_and_disco_
+        # and now remove the change from the set_bus
         self._set_topo_vect[mask_reco] = 0
+
         
         # remove the "set" that would cause a disconnection
         mask_disco = np.full(cls.dim_topo, fill_value=False)
-        reco_or_ = np.full(cls.n_line, fill_value=False)
-        reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] < 0) & 
-                 connected & line_under_cooldown] = True
-        mask_disco[cls.line_or_pos_topo_vect] = reco_or_
-        
-        reco_ex_ = np.full(cls.n_line, fill_value=False)
-        reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0) & 
-                 connected & line_under_cooldown] = True
-        mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
-        
+        if check_cooldown:
+            disco_or_ = np.full(cls.n_line, fill_value=False)
+            disco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] < 0) & 
+                    connected & line_under_cooldown] = True
+            mask_disco[cls.line_or_pos_topo_vect] = disco_or_
+            
+            disco_ex_ = np.full(cls.n_line, fill_value=False)
+            disco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0) & 
+                    connected & line_under_cooldown] = True
+            mask_disco[cls.line_ex_pos_topo_vect] = disco_ex_
+            
+        disco_or_and_reco_ = np.full(cls.n_line, fill_value=False)
+        disco_or_and_reco_[(self._set_topo_vect[cls.line_or_pos_topo_vect] < 0) & (self._set_line_status > 0)] = True
+        mask_disco[cls.line_or_pos_topo_vect] |= disco_or_and_reco_
+
+        disco_ex_and_reco_ = np.full(cls.n_line, fill_value=False)
+        disco_ex_and_reco_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0) & (self._set_line_status > 0)] = True
+        mask_disco[cls.line_ex_pos_topo_vect] |= disco_ex_and_reco_
         self._set_topo_vect[mask_disco] = 0
         
         # remove the "change" part when powerlines is disconnected
         mask_disco = np.full(cls.dim_topo, fill_value=False)
-        reco_or_ = np.full(cls.n_line, fill_value=False)
-        reco_or_[self._change_bus_vect[cls.line_or_pos_topo_vect] & 
-                 disconnected & line_under_cooldown] = True
-        mask_disco[cls.line_or_pos_topo_vect] = reco_or_
-        
-        reco_ex_ = np.full(cls.n_line, fill_value=False)
-        reco_ex_[self._change_bus_vect[cls.line_ex_pos_topo_vect] & 
-                 disconnected & line_under_cooldown] = True
-        mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
-        
+        if check_cooldown:
+            reco_or_ = np.full(cls.n_line, fill_value=False)
+            reco_or_[self._change_bus_vect[cls.line_or_pos_topo_vect] & 
+                    disconnected & line_under_cooldown] = True
+            mask_disco[cls.line_or_pos_topo_vect] = reco_or_
+            
+            reco_ex_ = np.full(cls.n_line, fill_value=False)
+            reco_ex_[self._change_bus_vect[cls.line_ex_pos_topo_vect] & 
+                    disconnected & line_under_cooldown] = True
+            mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
+            
+        # do not change bus of powerline that will be disconnected
+        reco_or_and_disco_ = np.full(cls.n_line, fill_value=False)
+        reco_or_and_disco_[(self._change_bus_vect[cls.line_or_pos_topo_vect]) & (self._set_line_status < 0)] = True
+        mask_disco[cls.line_or_pos_topo_vect] |= reco_or_and_disco_
+        reco_ex_and_disco_ = np.full(cls.n_line, fill_value=False)
+        reco_ex_and_disco_[(self._change_bus_vect[cls.line_ex_pos_topo_vect]) & (self._set_line_status < 0)] = True
+        mask_disco[cls.line_ex_pos_topo_vect] |= reco_ex_and_disco_
+
+        # "erase" the change_bus for concerned powerlines
         self._change_bus_vect[mask_disco] = False
         
         return self
