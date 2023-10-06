@@ -17,6 +17,11 @@ import copy
 from abc import ABC, abstractmethod
 import inspect
 
+from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
+PATH_DATA_TEST_INIT = PATH_DATA_TEST
+PATH_DATA_TEST = PATH_DATA_TEST_PP
+from grid2op.tests.helper_path_test import HelperTests
+
 from grid2op.Action import CompleteAction
 
 try:
@@ -62,7 +67,7 @@ from grid2op.Action._backendAction import _BackendAction
 import pdb
 
 
-class MakeBackend(ABC):
+class MakeBackend(ABC, HelperTests):
     @abstractmethod
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         pass
@@ -85,6 +90,9 @@ class MakeBackend(ABC):
 
 
 class BaseTestNames(MakeBackend):
+    def get_path(self):
+        return PATH_DATA_TEST_INIT
+    
     def test_properNames(self):
         self.skip_if_needed()
         backend = self.make_backend()
@@ -103,6 +111,12 @@ class BaseTestNames(MakeBackend):
 
 
 class BaseTestLoadingCase(MakeBackend):
+    def get_path(self):
+        return PATH_DATA_TEST
+
+    def get_casefile(self):
+        return "test_case14.json"
+    
     def test_load_file(self):
         backend = self.make_backend()
         path_matpower = self.get_path()
@@ -212,6 +226,12 @@ class BaseTestLoadingCase(MakeBackend):
 
 
 class BaseTestLoadingBackendFunc(MakeBackend):
+    def get_path(self):
+        return PATH_DATA_TEST
+
+    def get_casefile(self):
+        return "test_case14.json"
+    
     def setUp(self):
         self.backend = self.make_backend()
         self.path_matpower = self.get_path()
@@ -230,9 +250,10 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         self.bkact_class = _BackendAction.init_grid(self.backend)
         self.backend.runpf()
         self.backend.assert_grid_correct_after_powerflow()
+        super().setUp()
 
     def tearDown(self):
-        pass
+        super().tearDown()
 
     def test_theta_ok(self):
         self.skip_if_needed()
@@ -801,6 +822,17 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
 
 class BaseTestTopoAction(MakeBackend):
+    def make_backend(self, detailed_infos_for_cascading_failures=False):
+        return PandaPowerBackend(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
+
+    def get_path(self):
+        return PATH_DATA_TEST
+
+    def get_casefile(self):
+        return "test_case14.json"
+    
     def setUp(self):
         self.backend = self.make_backend()
         self.path_matpower = self.get_path()
@@ -817,9 +849,10 @@ class BaseTestTopoAction(MakeBackend):
             gridobj=self.backend, legal_action=self.game_rules.legal_action
         )
         self.bkact_class = _BackendAction.init_grid(self.backend)
+        super().setUp()
 
     def tearDown(self):
-        pass
+        super().tearDown()
 
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred - true)) <= self.tolvect
@@ -1540,6 +1573,12 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
     Test the "next_grid_state" method of the back-end
     """
 
+    def get_casefile(self):
+        return "test_case14.json"
+
+    def get_path(self):
+        return PATH_DATA_TEST
+
     def setUp(self):
         self.backend = self.make_backend(detailed_infos_for_cascading_failures=True)
         type(self.backend)._clear_class_attribute()
@@ -1587,9 +1626,10 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         self.chronics_handler = ChronicsHandler()
         self.id_first_line_disco = 8  # due to hard overflow
         self.id_2nd_line_disco = 11  # due to soft overflow
+        super().setUp()
 
     def tearDown(self):
-        pass
+        super().tearDown()
 
     def next_grid_state_no_overflow(self):
         # first i test that, when there is no overflow, i dont do a cascading failure
@@ -2152,10 +2192,12 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
             self.env2 = make("rte_case5_example", test=True, backend=backend2)
             self.backend2 = self.env2.backend
         np.random.seed(69)
+        super().setUp()
 
     def tearDown(self):
         self.env1.close()
         self.env2.close()
+        super().tearDown()
 
     def test_reset_equals_reset(self):
         self.skip_if_needed()

@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.tests.helper_path_test import *
+import unittest
 
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
     os.path.join(PATH_CHRONICS, "test_multi_chronics")
@@ -22,10 +23,8 @@ from grid2op.Parameters import Parameters
 
 import warnings
 
-warnings.simplefilter("error")
 
-
-class TestEpisodeStatistics(HelperTests):
+class TestEpisodeStatistics(HelperTests, unittest.TestCase):
     """test teh grid2op.utils.EpisodeStatistics"""
 
     def test_read(self):
@@ -128,7 +127,7 @@ class TestEpisodeStatistics(HelperTests):
                 )
 
 
-class TestL2RPNSCORE(HelperTests):
+class TestL2RPNSCORE(HelperTests, unittest.TestCase):
     """test teh grid2op.utils.EpisodeStatistics"""
 
     def test_can_compute(self):
@@ -452,7 +451,7 @@ class TestL2RPNSCORE(HelperTests):
                 )
 
 
-class TestICAPSSCORE(HelperTests):
+class TestICAPSSCORE(HelperTests, unittest.TestCase):
     """test teh grid2op.utils.EpisodeStatistics"""
 
     def test_can_compute(self):

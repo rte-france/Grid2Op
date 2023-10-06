@@ -9,6 +9,7 @@
 import time
 import warnings
 import pandapower as pp
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
@@ -34,7 +35,7 @@ if DEBUG:
     print("pandapower version : {}".format(pp.__version__))
 
 
-class TestAgent(HelperTests):
+class TestAgent(HelperTests, unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
@@ -145,7 +146,7 @@ class TestAgent(HelperTests):
         ), f"The reward has not been properly computed {cum_reward} instead of {expected_reward}"
 
 
-class TestMake2Agents(HelperTests):
+class TestMake2Agents(HelperTests, unittest.TestCase):
     def test_2random(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -166,7 +167,7 @@ class TestMake2Agents(HelperTests):
         env2.close()
 
 
-class TestSeeding(HelperTests):
+class TestSeeding(HelperTests, unittest.TestCase):
     def test_random(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -193,7 +194,7 @@ class TestSeeding(HelperTests):
                 assert np.any(res != res3)
 
 
-class TestRecoPowerlineAgent(HelperTests):
+class TestRecoPowerlineAgent(HelperTests, unittest.TestCase):
     def test_reco_simple(self):
         param = Parameters()
         param.NO_OVERFLOW_DISCONNECTION = True
@@ -280,7 +281,7 @@ class TestRecoPowerlineAgent(HelperTests):
                 assert ddict4["set_line_status"]["connected_id"][0] == 2
 
 
-class TestFromList(HelperTests):
+class TestFromList(HelperTests, unittest.TestCase):
     def test_agentfromlist_empty(self):
         param = Parameters()
         param.NO_OVERFLOW_DISCONNECTION = True

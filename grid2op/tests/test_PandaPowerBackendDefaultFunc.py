@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import unittest
 import warnings
+import unittest
 
 import numpy as np
 
@@ -132,7 +133,7 @@ class PandaPowerBackendDefault(PandaPowerBackend):
         return res
 
 
-class TestNames(HelperTests, BaseTestNames):
+class TestNames(HelperTests, BaseTestNames, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
@@ -142,7 +143,7 @@ class TestNames(HelperTests, BaseTestNames):
         return PATH_DATA_TEST_INIT
 
 
-class TestLoadingCase(HelperTests, BaseTestLoadingCase):
+class TestLoadingCase(HelperTests, BaseTestLoadingCase, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
@@ -155,7 +156,7 @@ class TestLoadingCase(HelperTests, BaseTestLoadingCase):
         return "test_case14.json"
 
 
-class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc):
+class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestLoadingBackendFunc.setUp(self)
@@ -176,7 +177,7 @@ class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc):
         return "test_case14.json"
 
 
-class TestTopoAction(HelperTests, BaseTestTopoAction):
+class TestTopoAction(HelperTests, BaseTestTopoAction, unittest.TestCase):
     def setUp(self):
         BaseTestTopoAction.setUp(self)
 
@@ -197,7 +198,7 @@ class TestTopoAction(HelperTests, BaseTestTopoAction):
 
 
 class TestEnvPerformsCorrectCascadingFailures(
-    HelperTests, BaseTestEnvPerformsCorrectCascadingFailures
+    HelperTests, BaseTestEnvPerformsCorrectCascadingFailures, unittest.TestCase
 ):
     def setUp(self):
         BaseTestEnvPerformsCorrectCascadingFailures.setUp(self)
@@ -218,21 +219,21 @@ class TestEnvPerformsCorrectCascadingFailures(
         return PATH_DATA_TEST
 
 
-class TestChangeBusAffectRightBus(HelperTests, BaseTestChangeBusAffectRightBus):
+class TestChangeBusAffectRightBus(HelperTests, BaseTestChangeBusAffectRightBus, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestShuntAction(HelperTests, BaseTestShuntAction):
+class TestShuntAction(HelperTests, BaseTestShuntAction, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
+class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid, unittest.TestCase):
     def setUp(self):
         BaseTestResetEqualsLoadGrid.setUp(self)
 
@@ -242,28 +243,28 @@ class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
         )
 
 
-class TestVoltageOWhenDisco(HelperTests, BaseTestVoltageOWhenDisco):
+class TestVoltageOWhenDisco(HelperTests, BaseTestVoltageOWhenDisco, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack):
+class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestIssuesTest(HelperTests, BaseIssuesTest):
+class TestIssuesTest(HelperTests, BaseIssuesTest, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestStatusAction(HelperTests, BaseStatusActions):
+class TestStatusAction(HelperTests, BaseStatusActions, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures

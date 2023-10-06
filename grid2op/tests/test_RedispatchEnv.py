@@ -30,7 +30,7 @@ import warnings
 warnings.simplefilter("error")
 
 
-class TestRedispatch(HelperTests, BaseTestRedispatch):
+class TestRedispatch(HelperTests, BaseTestRedispatch, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestRedispatch.setUp(self)
@@ -52,7 +52,7 @@ class TestRedispatch(HelperTests, BaseTestRedispatch):
 
 
 class TestRedispatchChangeNothingEnvironment(
-    HelperTests, BaseTestRedispatchChangeNothingEnvironment
+    HelperTests, BaseTestRedispatchChangeNothingEnvironment, unittest.TestCase
 ):
     def setUp(self):
         # TODO find something more elegant
@@ -74,7 +74,7 @@ class TestRedispatchChangeNothingEnvironment(
         return "test_case14.json"
 
 
-class TestRedispTooLowHigh(HelperTests, BaseTestRedispTooLowHigh):
+class TestRedispTooLowHigh(HelperTests, BaseTestRedispTooLowHigh, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestRedispTooLowHigh.setUp(self)
@@ -89,7 +89,7 @@ class TestRedispTooLowHigh(HelperTests, BaseTestRedispTooLowHigh):
         )
 
 
-class TestDispatchRampingIllegalETC(HelperTests, BaseTestDispatchRampingIllegalETC):
+class TestDispatchRampingIllegalETC(HelperTests, BaseTestDispatchRampingIllegalETC, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestDispatchRampingIllegalETC.setUp(self)
@@ -105,7 +105,7 @@ class TestDispatchRampingIllegalETC(HelperTests, BaseTestDispatchRampingIllegalE
 
 
 class TestLoadingAcceptAlmostZeroSumRedisp(
-    HelperTests, BaseTestLoadingAcceptAlmostZeroSumRedisp
+    HelperTests, BaseTestLoadingAcceptAlmostZeroSumRedisp, unittest.TestCase
 ):
     def setUp(self):
         # TODO find something more elegant

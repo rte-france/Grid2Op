@@ -11,6 +11,7 @@ import warnings
 import pandas as pd
 import tempfile
 import re
+import unittest
 from grid2op.tests.helper_path_test import *
 
 import grid2op
@@ -36,7 +37,7 @@ import warnings
 warnings.simplefilter("error")
 
 
-class TestProperHandlingHazardsMaintenance(HelperTests):
+class TestProperHandlingHazardsMaintenance(HelperTests, unittest.TestCase):
     def setUp(self):
         self.path_hazard = os.path.join(PATH_CHRONICS, "chronics_with_hazards")
         self.path_maintenance = os.path.join(PATH_CHRONICS, "chronics_with_maintenance")
@@ -314,7 +315,7 @@ class TestProperHandlingHazardsMaintenance(HelperTests):
         ), "incorrect time for next maintenance on powerline 19 at finish"
 
 
-class TestLoadingChronicsHandler(HelperTests):
+class TestLoadingChronicsHandler(HelperTests, unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(PATH_CHRONICS, "chronics")
 
@@ -529,7 +530,7 @@ class TestLoadingChronicsHandler(HelperTests):
             pass
 
 
-class TestLoadingChronicsHandlerWithForecast(HelperTests):
+class TestLoadingChronicsHandlerWithForecast(HelperTests, unittest.TestCase):
     # Cette méthode sera appelée avant chaque test.
     def setUp(self):
         self.path = os.path.join(PATH_CHRONICS, "chronics_with_forecast")
@@ -621,7 +622,7 @@ class TestLoadingChronicsHandlerWithForecast(HelperTests):
         chron_handl.check_validity(backend)
 
 
-class TestLoadingChronicsHandlerPP(HelperTests):
+class TestLoadingChronicsHandlerPP(HelperTests, unittest.TestCase):
     # Cette méthode sera appelée avant chaque test.
     def setUp(self):
         self.pathfake = os.path.join(PATH_CHRONICS, "chronics")
@@ -934,7 +935,7 @@ class TestLoadingChronicsHandlerPP(HelperTests):
             pass
 
 
-class TestLoadingMultiFolder(HelperTests):
+class TestLoadingMultiFolder(HelperTests, unittest.TestCase):
     def setUp(self):
         self.path = os.path.join(PATH_CHRONICS, "test_multi_chronics")
 
@@ -1119,7 +1120,7 @@ class TestLoadingMultiFolder(HelperTests):
             pass
 
 
-class TestEnvChunk(HelperTests):
+class TestEnvChunk(HelperTests, unittest.TestCase):
     def setUp(self):
         self.max_iter = 10
         with warnings.catch_warnings():
@@ -1151,7 +1152,7 @@ class TestEnvChunk(HelperTests):
         assert i == self.max_iter  # I used 1 data to intialize the environment
 
 
-class TestMissingData(HelperTests):
+class TestMissingData(HelperTests, unittest.TestCase):
     def test_load_error(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1212,7 +1213,7 @@ class TestMissingData(HelperTests):
                 pass
 
 
-class TestCFFWFWM(HelperTests):
+class TestCFFWFWM(HelperTests, unittest.TestCase):
     def test_load(self):
         param = Parameters()
         param.NO_OVERFLOW_DISCONNECTION = True
@@ -1583,7 +1584,7 @@ class TestCFFWFWM(HelperTests):
                 assert np.all(maint == maint2)
 
 
-class TestWithCache(HelperTests):
+class TestWithCache(HelperTests, unittest.TestCase):
     def test_load(self):
         param = Parameters()
         param.NO_OVERFLOW_DISCONNECTION = True
@@ -1612,7 +1613,7 @@ class TestWithCache(HelperTests):
                 assert env.chronics_handler.real_data.data.curr_iter == 1
 
 
-class TestMaintenanceBehavingNormally(HelperTests):
+class TestMaintenanceBehavingNormally(HelperTests, unittest.TestCase):
     def test_withrealistic(self):
         param = Parameters()
         param.NO_OVERFLOW_DISCONNECTION = True
@@ -1827,7 +1828,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
                 )
 
 
-class TestMultiFolder(HelperTests):
+class TestMultiFolder(HelperTests, unittest.TestCase):
     def get_multifolder_class(self):
         self.res_th = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0]
         return Multifolder
@@ -2109,7 +2110,7 @@ class TestMultiFolderWithCache(TestMultiFolder):
         chronics_handler.reset()
 
 
-class TestDeactivateMaintenance(HelperTests):
+class TestDeactivateMaintenance(HelperTests, unittest.TestCase):
     def test_maintenance_deactivated(self):
         param = Parameters()
         param.NO_OVERFLOW_DISCONNECTION = True
@@ -2137,7 +2138,7 @@ class TestDeactivateMaintenance(HelperTests):
                 assert np.all(obs.time_next_maintenance == -1)
 
 
-class TestMaxIter(HelperTests):
+class TestMaxIter(HelperTests, unittest.TestCase):
     def test_max_iter(self):
         nb_episode = 2
         max_iter = 288*2

@@ -9,6 +9,7 @@
 import warnings
 import os
 import json
+import unittest
 from grid2op.Action import BaseAction, PlayableAction
 from grid2op.tests.helper_path_test import *
 
@@ -20,10 +21,8 @@ import pdb
 
 import warnings
 
-warnings.simplefilter("error")
 
-
-class TestConnectivityConverter(HelperTests):
+class TestConnectivityConverter(HelperTests, unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
@@ -361,7 +360,7 @@ class TestConnectivityConverter(HelperTests):
         assert abs(disag3 - 4.0 / size_) <= self.tol_one
 
 
-class TestIdToAct(HelperTests):
+class TestIdToAct(HelperTests, unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.

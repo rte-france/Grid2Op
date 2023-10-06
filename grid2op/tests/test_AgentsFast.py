@@ -9,16 +9,15 @@
 import time
 import warnings
 import pandapower as pp
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
-import grid2op
 from grid2op.Exceptions import *
 from grid2op.MakeEnv import make
 from grid2op.Agent import DoNothingAgent, BaseAgent
 from grid2op.Parameters import Parameters
 from grid2op.dtypes import dt_float
-from grid2op.Agent import RandomAgent
 
 import pdb
 
@@ -37,7 +36,7 @@ class RandomTestAgent(BaseAgent):
         return self.action_space.sample()
 
 
-class TestAgent(HelperTests):
+class TestAgent(HelperTests, unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.

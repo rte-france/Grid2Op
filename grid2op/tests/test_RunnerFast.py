@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
@@ -23,7 +24,7 @@ from grid2op.dtypes import dt_float
 warnings.simplefilter("error")
 
 
-class TestRunner(HelperTests):
+class TestRunner(HelperTests, unittest.TestCase):
     def setUp(self):
         self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
         self.path_chron = PATH_ADN_CHRONICS_FOLDER

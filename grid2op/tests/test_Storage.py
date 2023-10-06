@@ -10,6 +10,7 @@ import copy
 import pdb
 import time
 import warnings
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
@@ -23,7 +24,7 @@ import warnings
 # TODO check when there is also redispatching
 
 
-class TestStorageEnv(HelperTests):
+class TestStorageEnv(HelperTests, unittest.TestCase):
     """test the env part of the storage functionality"""
 
     def setUp(self) -> None:

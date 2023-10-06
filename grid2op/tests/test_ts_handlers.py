@@ -6,10 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import copy
-import pdb
-import time
 import warnings
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
@@ -45,7 +43,7 @@ def _load_next_chunk_in_memory_hack(self):
     self.current_index = 0
    
      
-class TestCSVHandlerEnv(HelperTests):
+class TestCSVHandlerEnv(HelperTests, unittest.TestCase):
     """test the env part of the storage functionality"""
     def _aux_assert_right_type_chronics(self):
         assert isinstance(self.env1.chronics_handler.real_data.data, GridStateFromFile)

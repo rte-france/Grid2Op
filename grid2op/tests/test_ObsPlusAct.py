@@ -9,6 +9,7 @@
 import warnings
 from grid2op.tests.helper_path_test import *
 
+import unittest
 import grid2op
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -614,77 +615,77 @@ class BaseHelper:
                 )
 
 
-class TestCompleteAction(BaseHelper, HelperTests):
+class TestCompleteAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return CompleteAction
 
 
-class TestDispatchAction(BaseHelper, HelperTests):
+class TestDispatchAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return DispatchAction
 
 
-class TestDontAct(BaseHelper, HelperTests):
+class TestDontAct(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return DontAct
 
 
-class TestPlayableAction(BaseHelper, HelperTests):
+class TestPlayableAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return PlayableAction
 
 
-class TestPowerlineChangeAction(BaseHelper, HelperTests):
+class TestPowerlineChangeAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return PowerlineChangeAction
 
 
-class TestPowerlineChangeAndDispatchAction(BaseHelper, HelperTests):
+class TestPowerlineChangeAndDispatchAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return PowerlineChangeAndDispatchAction
 
 
-class TestPowerlineChangeDispatchAndStorageAction(BaseHelper, HelperTests):
+class TestPowerlineChangeDispatchAndStorageAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return PowerlineChangeDispatchAndStorageAction
 
 
-class TestPowerlineSetAction(BaseHelper, HelperTests):
+class TestPowerlineSetAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return PowerlineSetAction
 
 
-class TestPowerlineSetAndDispatchAction(BaseHelper, HelperTests):
+class TestPowerlineSetAndDispatchAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return PowerlineSetAndDispatchAction
 
 
-class TestTopologyAction(BaseHelper, HelperTests):
+class TestTopologyAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return TopologyAction
 
 
-class TestTopologyAndDispatchAction(BaseHelper, HelperTests):
+class TestTopologyAndDispatchAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return TopologyAndDispatchAction
 
 
-class TestTopologyChangeAction(BaseHelper, HelperTests):
+class TestTopologyChangeAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return TopologyChangeAction
 
 
-class TestTopologyChangeAndDispatchAction(BaseHelper, HelperTests):
+class TestTopologyChangeAndDispatchAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return TopologyChangeAndDispatchAction
 
 
-class TestTopologySetAction(BaseHelper, HelperTests):
+class TestTopologySetAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return TopologySetAction
 
 
-class TestTopologySetAndDispatchAction(BaseHelper, HelperTests):
+class TestTopologySetAndDispatchAction(BaseHelper, HelperTests, unittest.TestCase):
     def get_act_cls(self):
         return TopologySetAndDispatchAction
 

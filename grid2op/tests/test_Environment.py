@@ -11,6 +11,7 @@ import pdb
 import time
 import warnings
 
+import unittest
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
@@ -30,7 +31,7 @@ if PROFILE_CODE:
     import cProfile
 
 
-class TestLoadingBackendPandaPower(unittest.TestCase):
+class BaseTestLoadingBackendPandaPower:
     def get_backend(self, detailed_infos_for_cascading_failures=True):
         return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
 
@@ -108,9 +109,11 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                 names_chronics_to_backend=self.names_chronics_to_backend,
                 name="test_env_env1",
             )
+        super().setUp()
 
     def tearDown(self):
         self.env.close()
+        super().tearDown()
 
     def compare_vect(self, pred, true):
         return dt_float(np.max(np.abs(pred - true))) <= self.tolvect
@@ -315,6 +318,10 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         ), "Wrong reward"
 
 
+class TestLoadingBackendPandaPower(BaseTestLoadingBackendPandaPower, unittest.TestCase):
+    pass
+
+
 class TestIllegalAmbiguous(unittest.TestCase):
     """
     This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
@@ -432,7 +439,7 @@ class TestOtherReward(unittest.TestCase):
         assert obs_after.minute_of_hour == 0
 
 
-class TestResetOk(unittest.TestCase):
+class BaseTestResetOk(unittest.TestCase):
     """
     This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
     or illegal
@@ -457,9 +464,11 @@ class TestResetOk(unittest.TestCase):
                 backend=self.make_backend(),
                 other_rewards={"test": L2RPNReward},
             )
+        super().setUp()
 
     def tearDown(self):
         self.env.close()
+        super().tearDown()
 
     def test_reset_after_blackout(self):
         # make the grid in bad shape
@@ -571,6 +580,10 @@ class TestAttachLayout(unittest.TestCase):
                 }
 
 
+class TestResetOk(BaseTestResetOk, unittest.TestCase):
+    pass
+
+
 class TestLineChangeLastBus(unittest.TestCase):
     """
     This function test that the behaviour of "step": it updates the action with the last known bus when reconnecting
@@ -645,7 +658,7 @@ class TestLineChangeLastBus(unittest.TestCase):
         assert obs.topo_vect[line_ex_topo] == 2, "Line ex should be on bus 2"
 
 
-class TestResetAfterCascadingFailure(unittest.TestCase):
+class BaseTestResetAfterCascadingFailure(unittest.TestCase):
     """
     Fake a cascading failure, do a reset of an env, check that it can be loaded
 
@@ -691,7 +704,11 @@ class TestResetAfterCascadingFailure(unittest.TestCase):
             assert d is False
 
 
-class TestCascadingFailure(unittest.TestCase):
+class TestResetAfterCascadingFailure(BaseTestResetAfterCascadingFailure, unittest.TestCase):
+    pass
+
+
+class BaseTestCascadingFailure(unittest.TestCase):
     """
     There has been a bug preventing to reload an environment if the previous one ended with a cascading failure.
     It check that here.
@@ -760,6 +777,10 @@ class TestCascadingFailure(unittest.TestCase):
         obs_new = self.env.reset()
         obs1, reward, done, info = self.env.step(self.env.action_space())
         assert not done
+
+
+class TestCascadingFailure(BaseTestCascadingFailure, unittest.TestCase):
+    pass
 
 
 class TestLoading2envDontCrash(unittest.TestCase):

@@ -12,7 +12,6 @@
 # Grid2Op/tests subdirectory
 import sys
 import os
-import unittest
 import numpy as np
 from pathlib import Path
 
@@ -39,11 +38,11 @@ EXAMPLE_CASEFILE = os.path.abspath(
 PATH_DATA_MULTIMIX = os.path.abspath(os.path.join(data_test_dir, "multimix"))
 
 
-class HelperTests(unittest.TestCase):
-    def __init__(self, methodName="runTest"):
-        unittest.TestCase.__init__(self, methodName=methodName)
+class HelperTests:
+    def setUp(self):
         self.tolvect = dt_float(1e-2)
         self.tol_one = dt_float(1e-5)
+        super().setUp()
 
     def compare_vect(self, pred, true):
         res = dt_float(np.max(np.abs(pred - true))) <= self.tolvect
