@@ -328,26 +328,13 @@ class PandaPowerBackend(Backend):
         are set as "out of service" unless a topological action acts on these specific substations.
 
         """
-
-        if path is None and filename is None:
-            raise RuntimeError(
-                "You must provide at least one of path or file to load a powergrid."
-            )
-        if path is None:
-            full_path = filename
-        elif filename is None:
-            full_path = path
-        else:
-            full_path = os.path.join(path, filename)
-        if not os.path.exists(full_path):
-            raise RuntimeError('There is no powergrid at "{}"'.format(full_path))
+        full_path = self.make_complete_path(path, filename)
 
         with warnings.catch_warnings():
             # remove deprecationg warnings for old version of pandapower
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             warnings.filterwarnings("ignore", category=FutureWarning)
             self._grid = pp.from_json(full_path)
-
         self._check_for_non_modeled_elements()
 
         # add the slack bus that is often not modeled as a generator, but i need it for this backend to work
