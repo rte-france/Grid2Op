@@ -174,7 +174,7 @@ class Backend(GridObjects, ABC):
         
     def make_complete_path(self,
                            path : Union[os.PathLike, str],
-                           filename : Optional[Union[os.PathLike, str]]=None) -> str
+                           filename : Optional[Union[os.PathLike, str]]=None) -> str:
         """Auxiliary function to retrieve the full path of the grid.
         
         It is best used at the beginning of the `load_grid` function of a backend.
