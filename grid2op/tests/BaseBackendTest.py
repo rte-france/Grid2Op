@@ -17,7 +17,7 @@ import copy
 from abc import ABC, abstractmethod
 import inspect
 
-from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
+from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST, PATH_DATA
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 from grid2op.tests.helper_path_test import HelperTests
@@ -63,32 +63,341 @@ from grid2op.Rules import RulesChecker
 from grid2op.MakeEnv import make
 from grid2op.Rules import AlwaysLegal
 from grid2op.Action._backendAction import _BackendAction
+from grid2op.Backend import Backend, PandaPowerBackend
 
 import pdb
 
 
 class MakeBackend(ABC, HelperTests):
     @abstractmethod
-    def make_backend(self, detailed_infos_for_cascading_failures=False):
+    def make_backend(self, detailed_infos_for_cascading_failures=False) -> Backend:
         pass
 
-    def get_path(self):
+    def get_path(self) -> str:
         raise NotImplementedError(
             "This function should be implemented for the test suit you are developping"
         )
 
-    def get_casefile(self):
+    def get_casefile(self) -> str:
         raise NotImplementedError(
             "This function should be implemented for the test suit you are developping"
         )
 
-    def skip_if_needed(self):
+    def skip_if_needed(self) -> None:
         if hasattr(self, "tests_skipped"):
             nm_ = inspect.currentframe().f_back.f_code.co_name
             if nm_ in self.tests_skipped:
                 self.skipTest('the test "{}" is skipped'.format(nm_))
 
+import unittest  # TODO REMOVE
+class AAATestBackendAPI(HelperTests, unittest.TestCase):
+    def make_backend(self, detailed_infos_for_cascading_failures=False):
+        return PandaPowerBackend()  # TODO REMOVE
+    
+    def get_path(self):
+        return os.path.join(PATH_DATA, "educ_case14_storage")
+    
+    def get_casefile(self):
+        return "grid.json"
+    
+    def aux_get_env_name(self):
+        """do not run nor modify ! (used for this test class only)"""
+        return "BasicTest_load_grid_" + type(self).__name__
 
+    def aux_make_backend(self):
+        """do not run nor modify ! (used for this test class only)"""
+        backend = self.make_backend()
+        backend.load_grid(self.get_path(), self.get_casefile())
+        backend.load_redispacthing_data(self.get_path())
+        backend.load_storage_data(self.get_path())
+        env_name = self.aux_get_env_name()
+        backend.env_name = env_name
+        backend.assert_grid_correct()  
+        return backend
+    
+    def test_00create_backend(self):
+        """test the backend can be created (not integrated in a grid2op environment yet)"""
+        backend = self.make_backend()
+    
+    def test_01load_grid(self):
+        """test the grid can be loaded (supposes that your backend can read the grid.json in educ_case14_storage)"""
+        backend = self.make_backend()
+        backend.load_grid(self.get_path(), self.get_casefile())  # both argument filled
+        backend.load_redispacthing_data(self.get_path())
+        backend.load_storage_data(self.get_path())
+        env_name = "BasicTest_load_grid0_" + type(self).__name__
+        backend.env_name = env_name
+        backend.assert_grid_correct() 
+        cls = type(backend)
+        assert cls.n_line == 20, f"there should be 20 lines / trafos on the grid, found {cls.n_line} (remember trafo are conted grid2op side as powerline)"
+        assert cls.n_gen == 6, f"there should be 6 generators on the grid found {cls.n_gen} (remember a generator is added to the slack if none are present)"
+        assert cls.n_load == 11, f"there should be 11 loads on the grid, found {cls.n_load}"
+        assert cls.n_sub == 14, f"there should be 14 substations on this grid, found {cls.n_sub}"
+        if cls.shunts_data_available:
+            assert cls.n_shunt == 1, f"there should be 1 shunt on the grid, found {cls.n_shunt}"
+        if cls.n_storage > 0:
+            assert cls.n_storage == 2, f"there should be 2 storage units on this grid, found {cls.n_storage}"
+        assert env_name in cls.env_name, f"you probably should not have overidden the assert_grid_correct function !"
+        backend.close()
+        
+        backend = self.make_backend()
+        backend.load_grid(os.path.join(self.get_path(), self.get_casefile()))  # first argument filled, second None
+        backend.load_redispacthing_data(self.get_path())
+        backend.load_storage_data(self.get_path())
+        backend.env_name = "BasicTest_load_grid2_" + type(self).__name__
+        backend.assert_grid_correct() 
+        backend.close()
+        
+        backend = self.make_backend()
+        with self.assertRaises(Exception):
+            backend.load_grid()  # should raise if nothing is loaded 
+
+    def test_02modify_load(self):
+        """test the loads can be modified        
+        
+        NB it does not check whether or not the modification is
+        consistent with the input. This will be done in a later test"""
+        backend = self.aux_make_backend()
+        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
+        init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
+        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
+        init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
+        
+        # try to modify load_p
+        action = type(backend)._complete_action_class()
+        action.update({"injection": {"load_p": 1.01 * init_load_p}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # modification of load_p only
+        
+        # try to modify load_q
+        action = type(backend)._complete_action_class()
+        action.update({"injection": {"load_q": 1.01 * init_load_q}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # modification of load_q only
+        
+    def test_03modify_gen(self):
+        """test the generators (including slack !) can be modified 
+        
+        NB it does not check whether or not the modification is
+        consistent with the input. This will be done in a later test"""
+        backend = self.aux_make_backend()
+        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
+        init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
+        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
+        init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
+        
+        # try to modify gen_p
+        action = type(backend)._complete_action_class()
+        action.update({"injection": {"prod_p": 1.01 * init_gen_p}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # modification of prod_p / gen_p only
+        
+        # try to modify prod_v only
+        action = type(backend)._complete_action_class()
+        action.update({"injection": {"prod_v": 1.01 * init_gen_v}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # modification of prod_v / gen_v only
+        
+    def test_04disco_reco_lines(self):
+        """test the powerlines can be disconnected and connected
+        
+        NB it does not check whether or not the modification is
+        consistent with the input. This will be done in a later test"""
+        backend = self.aux_make_backend()
+        
+        line_id = 0
+        # try to disconnect line 0
+        action = type(backend)._complete_action_class()
+        action.update({"set_line_status": [(line_id, -1)]})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # disconnection of line 0 only
+        
+        # try to reconnect line 0
+        action = type(backend)._complete_action_class()
+        action.update({"set_line_status": [(line_id, +1)]})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # reconnection of line 0 only
+    
+    def test_05change_topology(self):
+        """try to change the topology of 2 different substations : connect their elements to different busbars
+        
+        NB it does not check whether or not the modification is
+        consistent with the input. This will be done in a later test"""
+        backend = self.aux_make_backend()
+        
+        sub_id = 0
+        # everything on busbar 2 at sub 0 (should have no impact)
+        action = type(backend)._complete_action_class()
+        action.update({"set_bus": {"substations_id": [(sub_id, [2 for _ in range(type(backend).sub_info[sub_id])])]}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # everything on busbar 2 at sub 0
+        
+        sub_id = 1
+        # mix of bus 1 and 2 on substation 1
+        action = type(backend)._complete_action_class()
+        action.update({"set_bus": {"substations_id": [(sub_id, [i % 2 + 1 for i in range(type(backend).sub_info[sub_id])])]}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
+        
+    def test_06modify_shunt(self):
+        """test the shunt can be modified (p, q and topology)
+        
+        NB it does not check whether or not the modification is
+        consistent with the input. This will be done in a later test"""
+        backend = self.aux_make_backend()
+        cls = type(backend)
+        if not cls.shunts_data_available:
+            self.skipTest("Your backend does not support shunts")
+        
+        init_shunt_p = np.array([0.0])
+        init_shunt_q = np.array([-19.])
+        init_shunt_bus = np.array([1])
+        
+        # try to modify shunt_p
+        action = type(backend)._complete_action_class()
+        action.update({"shunt": {"shunt_p": init_shunt_p + 0.01}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # modification of shunt_p only
+        
+        # try to modify shunt_q only
+        action = type(backend)._complete_action_class()
+        action.update({"shunt": {"shunt_q": init_shunt_q * 1.01}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # modification of shunt_q only
+        
+        # try to modify shunt_bus only
+        action = type(backend)._complete_action_class()
+        action.update({"shunt": {"shunt_bus": init_shunt_bus + 1}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # modification of shunt_bus only
+
+    def test_07modify_storage(self):
+        """test the modification of storage unit (active power)
+        
+        NB it does not check whether or not the modification is
+        consistent with the input. This will be done in a later test"""
+        backend = self.aux_make_backend()
+        cls = type(backend)
+        if cls.n_storage == 0:
+            self.skipTest("Your backend does not support storage units")
+        
+        storage_power = np.array([-0.5, +0.5])
+        # try to modify storage active power only
+        action = type(backend)._complete_action_class()
+        action.update({"set_storage": storage_power})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # try to modify storage active power only     
+        
+    def test_08run_ac_pf(self):
+        """test the runpf method (AC) without modification"""
+        backend = self.aux_make_backend()
+        
+        res = backend.runpf(is_dc=False)
+        assert len(res) == 2, "runpf should return tuple of size 2"
+        converged, exc_ = res
+        if converged:
+            assert exc_ is None, "when a powerflow converges, we expect exc_ (2nd returned value) to be None"
+        else:
+            warnings.warn("It is surprising that your backend diverges without any modification (AC)")
+            assert isinstance(exc_, Exception), "when a powerflow diverges, we expect exc_ (2nd returned value) to be an exception"
+            
+    def test_09run_dc_pf(self):
+        """test the runpf method (DC) without modification"""
+        backend = self.aux_make_backend()
+        
+        res = backend.runpf(is_dc=True)
+        assert len(res) == 2, "runpf should return tuple of size 2"
+        converged, exc_ = res
+        if converged:
+            assert exc_ is None, "when a powerflow converges, we expect exc_ (2nd returned value) to be None"
+        else:
+            warnings.warn("It is surprising that your backend diverges without any modification (DC)")
+            assert isinstance(exc_, Exception), "when a powerflow diverges, we expect exc_ (2nd returned value) to be an exception"
+    
+    def test_10_ac_forced_divergence(self):
+        """increase the load / generation until the powerflow diverges, and check the flags are properly returned"""
+        backend = self.aux_make_backend()
+        
+        res = backend.runpf(is_dc=False)
+        assert len(res) == 2, "runpf should return tuple of size 2"
+        
+        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
+        init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
+        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
+        init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
+        
+        gen_p = 1. * init_gen_p
+        load_p = 1. * init_load_p
+        nb_iter = 0
+        while True:
+            gen_p *= 1.5
+            load_p *= 1.5
+            action = type(backend)._complete_action_class()
+            action.update({"injection": {"prod_p": gen_p,
+                                         "load_p": load_p}})
+            bk_act = type(backend).my_bk_act_class()
+            bk_act += action
+            backend.apply_action(bk_act)
+            res = backend.runpf(is_dc=False)
+            converged, exc_ = res
+            if converged:
+                assert exc_ is None, "when a powerflow converges, we expect exc_ (2nd returned value) to be None"
+            else:
+                assert isinstance(exc_, Exception), "when a powerflow diverges, we expect exc_ (2nd returned value) to be an exception"
+                break
+            nb_iter += 1
+            if nb_iter >= 10:
+                raise RuntimeError("It is surprising that your backend still converges when the load / generation are multiplied by "
+                                   "something like 50 (1.5**10). I suppose it's an error. "
+                                   "It should stop in approx 3 iteration (so when multiplied by 1.5**3)")
+                
+    def test_11_modify_load_pf_getter(self):
+        """test that the modification has an impact on the backend (by reading back the states)"""
+        backend = self.aux_make_backend()
+        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
+        init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
+        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
+        init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
+        
+        res = backend.runpf(is_dc=False)
+        tmp = backend.loads_info()
+        assert len(tmp) == 3, "loads_info() should return 3 elements: load_p, load_q, load_v (see doc)"
+        load_p_init, load_q_init, load_v_init = tmp 
+        
+        # try to modify load_p
+        action = type(backend)._complete_action_class()
+        action.update({"injection": {"load_p": 1.01 * init_load_p,
+                                     "gen_p": 1.01 * init_gen_p,
+                                     "load_q": 1.01 * init_load_q}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # modification of load_p, load_q and gen_p        
+        
+        res2 = backend.runpf(is_dc=False)
+        tmp2 = backend.loads_info()
+        assert len(tmp) == 3, "loads_info() should return 3 elements: load_p, load_q, load_v (see doc)"
+        load_p_after, load_q_after, load_v_after = tmp2 
+        assert not np.allclose(load_p_after, load_p_init), f"load_p does not seemed to be modified by apply_action when loads are impacted (active value)"
+        assert not np.allclose(load_q_after, load_q_init), f"load_p does not seemed to be modified by apply_action when loads are impacted (reactive value)"
+        import pdb
+        pdb.set_trace()
+        
+   # TODO accessor after modification
+   # TODO kirchoff law's
+   # TODO divergence (AC and DC) when an element: generator, load, shunt, storage is alone
+    
 class BaseTestNames(MakeBackend):
     def get_path(self):
         return PATH_DATA_TEST_INIT
@@ -103,7 +412,7 @@ class BaseTestNames(MakeBackend):
             with make(
                 os.path.join(path, "5bus_example_diff_name"),
                 backend=backend,
-                _add_to_name="_BaseTestNames",
+                _add_to_name=type(self).__name__
             ) as env:
                 obs = env.reset()
                 assert np.all(type(obs).name_load == ["tutu", "toto", "tata"])
@@ -243,11 +552,11 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
-        self.action_env_class = ActionSpace.init_grid(self.backend)
+        self.action_env_class = ActionSpace.init_grid(self.backend, extra_name=type(self).__name__)
         self.action_env = self.action_env_class(
             gridobj=self.backend, legal_action=self.game_rules.legal_action
         )
-        self.bkact_class = _BackendAction.init_grid(self.backend)
+        self.bkact_class = _BackendAction.init_grid(self.backend, extra_name=type(self).__name__)
         self.backend.runpf()
         self.backend.assert_grid_correct_after_powerflow()
         super().setUp()
@@ -844,11 +1153,11 @@ class BaseTestTopoAction(MakeBackend):
         type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
-        as_class = ActionSpace.init_grid(self.backend)
+        as_class = ActionSpace.init_grid(self.backend, extra_name=type(self).__name__)
         self.helper_action = as_class(
             gridobj=self.backend, legal_action=self.game_rules.legal_action
         )
-        self.bkact_class = _BackendAction.init_grid(self.backend)
+        self.bkact_class = _BackendAction.init_grid(self.backend, extra_name=type(self).__name__)
         super().setUp()
 
     def tearDown(self):
@@ -1444,13 +1753,13 @@ class BaseTestTopoAction(MakeBackend):
                 "educ_case14_storage",
                 test=True,
                 backend=self.make_backend(),
-                _add_to_name="test_gats_storage",
+                _add_to_name=type(self).__name__
             )
             env2 = make(
                 "educ_case14_storage",
                 test=True,
                 backend=self.make_backend(),
-                _add_to_name="test_gats_storage",
+                _add_to_name=type(self).__name__
             )
         obs, *_ = env.step(env.action_space({"set_storage": [-1.0, 1.0]}))
         act = env.backend.get_action_to_set()
@@ -1475,7 +1784,7 @@ class BaseTestTopoAction(MakeBackend):
                 "rte_case14_realistic",
                 test=True,
                 backend=self.make_backend(),
-                _add_to_name="test_update_from_obs",
+                _add_to_name=type(self).__name__
             )
 
         self.backend.close()
@@ -1642,7 +1951,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 init_env_path=os.path.join(self.path_matpower, self.case_file),
                 chronics_handler=self.chronics_handler,
                 parameters=self.env_params,
-                name="test_pp_env1",
+                name="test_pp_env1" + type(self).__name__,
+                
             )
 
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
@@ -1663,7 +1973,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 backend=self.backend,
                 chronics_handler=self.chronics_handler,
                 parameters=env_params,
-                name="test_pp_env2",
+                name="test_pp_env2" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1698,7 +2008,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 init_env_path=os.path.join(self.path_matpower, case_file),
                 chronics_handler=self.chronics_handler,
                 parameters=self.env_params,
-                name="test_pp_env3",
+                name="test_pp_env3" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1742,7 +2052,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 init_env_path=os.path.join(self.path_matpower, case_file),
                 chronics_handler=self.chronics_handler,
                 parameters=env_params,
-                name="test_pp_env4",
+                name="test_pp_env4" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1787,7 +2097,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 chronics_handler=self.chronics_handler,
                 init_env_path=os.path.join(self.path_matpower, case_file),
                 parameters=env_params,
-                name="test_pp_env5",
+                name="test_pp_env5" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1829,7 +2139,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 chronics_handler=self.chronics_handler,
                 init_env_path=os.path.join(self.path_matpower, case_file),
                 parameters=env_params,
-                name="test_pp_env6",
+                name="test_pp_env6" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1872,7 +2182,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 chronics_handler=self.chronics_handler,
                 init_env_path=os.path.join(self.path_matpower, case_file),
                 parameters=env_params,
-                name="test_pp_env7",
+                name="test_pp_env7" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1909,7 +2219,8 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend,
+                       _add_to_name=type(self).__name__)
         env.reset()
         action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
         obs, reward, done, info = env.step(action)
@@ -1924,7 +2235,8 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend,
+                       _add_to_name=type(self).__name__)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -1938,7 +2250,8 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend,
+                       _add_to_name=type(self).__name__)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -1959,7 +2272,8 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend,
+                       _add_to_name=type(self).__name__)
         act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
         obs, reward, done, info = env.step(act)
         assert done, "an isolated load has not lead to a game over"
@@ -1976,6 +2290,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
                 test=True,
                 gamerules_class=AlwaysLegal,
                 backend=backend,
+                _add_to_name=type(self).__name__
             )
         obs = env_case1.reset()  # reset is good
         act = env_case1.action_space.disconnect_powerline(
@@ -2002,6 +2317,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
                 test=True,
                 gamerules_class=AlwaysLegal,
                 backend=backend,
+                _add_to_name=type(self).__name__
             )
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(
@@ -2028,6 +2344,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
                 test=True,
                 gamerules_class=AlwaysLegal,
                 backend=backend,
+                _add_to_name=type(self).__name__
             )
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(
@@ -2052,6 +2369,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
                 test=True,
                 gamerules_class=AlwaysLegal,
                 backend=backend,
+                _add_to_name=type(self).__name__
             )
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(
@@ -2076,6 +2394,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
                 test=True,
                 gamerules_class=AlwaysLegal,
                 backend=backend,
+                _add_to_name=type(self).__name__
             )
         obs = env_case2.reset()  # reset is good
         act_case2 = env_case2.action_space(
@@ -2099,6 +2418,7 @@ class BaseTestShuntAction(MakeBackend):
                 gamerules_class=AlwaysLegal,
                 action_class=CompleteAction,
                 backend=backend,
+                _add_to_name=type(self).__name__
             ) as env_case2:
                 with self.assertRaises(AmbiguousAction):
                     act = env_case2.action_space({"shunt": {"set_bus": [(0, 2)]}})
@@ -2116,7 +2436,7 @@ class BaseTestShuntAction(MakeBackend):
                 gamerules_class=AlwaysLegal,
                 action_class=CompleteAction,
                 backend=backend1,
-                _add_to_name="BaseTestShuntAction",
+                _add_to_name=type(self).__name__
             )
             env_change_q = make(
                 "rte_case14_realistic",
@@ -2124,7 +2444,7 @@ class BaseTestShuntAction(MakeBackend):
                 gamerules_class=AlwaysLegal,
                 action_class=CompleteAction,
                 backend=backend2,
-                _add_to_name="BaseTestShuntAction",
+                _add_to_name=type(self).__name__
             )
             param = env_ref.parameters
             param.NO_OVERFLOW_DISCONNECTION = True
@@ -2187,9 +2507,9 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         type(backend1)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = make("rte_case5_example", test=True, backend=backend1)
+            self.env1 = make("rte_case5_example", test=True, backend=backend1, _add_to_name=type(self).__name__)
             self.backend1 = self.env1.backend
-            self.env2 = make("rte_case5_example", test=True, backend=backend2)
+            self.env2 = make("rte_case5_example", test=True, backend=backend2, _add_to_name=type(self).__name__)
             self.backend2 = self.env2.backend
         np.random.seed(69)
         super().setUp()
@@ -2324,7 +2644,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, backend=backend, param=params
+                "rte_case14_realistic", test=True, backend=backend, param=params, _add_to_name=type(self).__name__
             )
 
         # Find N valid iadd combination of R change actions
@@ -2392,7 +2712,7 @@ class BaseTestVoltageOWhenDisco(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_realistic", test=True, backend=backend) as env:
+            with make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__) as env:
                 line_id = 1
                 act = env.action_space({"set_line_status": [(line_id, -1)]})
                 obs, *_ = env.step(act)
@@ -2408,7 +2728,7 @@ class BaseTestChangeBusSlack(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True, backend=backend)
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__)
         action = env.action_space(
             {
                 "set_bus": {
@@ -2455,7 +2775,7 @@ class BaseTestStorageAction(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend)
+            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend, _add_to_name=type(self).__name__)
         assert self.env.n_storage == 2
 
     def test_storage_action_mw(self):
@@ -2465,7 +2785,7 @@ class BaseTestStorageAction(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend)
+            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend, _add_to_name=type(self).__name__)
 
         array_modif = np.array([-1.5, -10.0], dtype=dt_float)
         act = self.env.action_space({"set_storage": array_modif})
@@ -2542,6 +2862,7 @@ class BaseTestStorageAction(MakeBackend):
                 backend=backend,
                 param=param,
                 action_class=CompleteAction,
+                _add_to_name=type(self).__name__
             )
 
         # test i can do a reset
@@ -2684,7 +3005,7 @@ class BaseIssuesTest(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True, backend=backend)
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__)
         action = env.action_space({"set_bus": {"loads_id": [(1, -1)]}})
         obs, reward, am_i_done, info = env.step(action)
         assert info["is_illegal"] is False
@@ -2712,7 +3033,8 @@ class BaseIssuesTest(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, backend=backend, param=param
+                "rte_case14_realistic", test=True, backend=backend, param=param,
+                _add_to_name=type(self).__name__
             )
         obs_init = env.get_obs()
         LINE_ID = 2
@@ -2790,7 +3112,8 @@ class BaseIssuesTest(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, backend=backend, param=param
+                "rte_case14_realistic", test=True, backend=backend, param=param,
+                _add_to_name=type(self).__name__
             )
         LINE_ID = 2
 
@@ -2818,7 +3141,8 @@ class BaseIssuesTest(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, backend=backend, param=param
+                "rte_case14_realistic", test=True, backend=backend, param=param,
+                _add_to_name=type(self).__name__
             )
         LINE_ID = 2
 
@@ -2953,7 +3277,7 @@ class BaseIssuesTest(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env1 = grid2op.make("rte_case14_realistic", test=True, backend=backend)
+            env1 = grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__)
         env2 = env1.copy()
         obs1 = env1.reset()
         obs2 = env2.get_obs()
@@ -2971,7 +3295,8 @@ class BaseStatusActions(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, backend=backend, param=param
+                "rte_case14_realistic", test=True, backend=backend, param=param,
+                _add_to_name=type(self).__name__
             )
         return env
 

@@ -30,7 +30,7 @@ import warnings
 warnings.simplefilter("error")
 
 
-class TestRedispatch(HelperTests, BaseTestRedispatch, unittest.TestCase):
+class TestRedispatch(BaseTestRedispatch, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestRedispatch.setUp(self)
@@ -44,15 +44,9 @@ class TestRedispatch(HelperTests, BaseTestRedispatch, unittest.TestCase):
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
-    def get_path(self):
-        return PATH_DATA_TEST_PP
-
-    def get_casefile(self):
-        return "test_case14.json"
-
 
 class TestRedispatchChangeNothingEnvironment(
-    HelperTests, BaseTestRedispatchChangeNothingEnvironment, unittest.TestCase
+    BaseTestRedispatchChangeNothingEnvironment, unittest.TestCase
 ):
     def setUp(self):
         # TODO find something more elegant
@@ -67,14 +61,8 @@ class TestRedispatchChangeNothingEnvironment(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
-    def get_path(self):
-        return PATH_DATA_TEST_PP
 
-    def get_casefile(self):
-        return "test_case14.json"
-
-
-class TestRedispTooLowHigh(HelperTests, BaseTestRedispTooLowHigh, unittest.TestCase):
+class TestRedispTooLowHigh(BaseTestRedispTooLowHigh, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestRedispTooLowHigh.setUp(self)
@@ -89,7 +77,7 @@ class TestRedispTooLowHigh(HelperTests, BaseTestRedispTooLowHigh, unittest.TestC
         )
 
 
-class TestDispatchRampingIllegalETC(HelperTests, BaseTestDispatchRampingIllegalETC, unittest.TestCase):
+class TestDispatchRampingIllegalETC(BaseTestDispatchRampingIllegalETC, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestDispatchRampingIllegalETC.setUp(self)
@@ -105,7 +93,7 @@ class TestDispatchRampingIllegalETC(HelperTests, BaseTestDispatchRampingIllegalE
 
 
 class TestLoadingAcceptAlmostZeroSumRedisp(
-    HelperTests, BaseTestLoadingAcceptAlmostZeroSumRedisp, unittest.TestCase
+    BaseTestLoadingAcceptAlmostZeroSumRedisp, unittest.TestCase
 ):
     def setUp(self):
         # TODO find something more elegant
