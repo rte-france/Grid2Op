@@ -23,10 +23,10 @@ class _AuxTestSim2realStorage:
         # print(f"\n\n\nfor {type(self.get_backend())}")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            # self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "educ_case14_storage_diffgrid"),
             self.env = grid2op.make(os.path.join(PATH_DATA_TEST, self.get_name()),
                                     test=True,
-                                    backend=self.get_backend())
+                                    backend=self.get_backend(),
+                                    _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.env.set_id(0)
     

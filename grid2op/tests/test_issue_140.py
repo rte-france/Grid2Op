@@ -52,6 +52,7 @@ class Issue140Tester(unittest.TestCase):
             env = grid2op.make(
                 env_name,
                 param=param,
+                _add_to_name=type(self).__name__,
             )
         ts_per_chronics = 2016
 

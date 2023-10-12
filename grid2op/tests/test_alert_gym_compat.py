@@ -56,7 +56,7 @@ class TestGymAlertCompat(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-                self.env_nm, test=True, _add_to_name="TestGymAlertCompat"
+                self.env_nm, test=True, _add_to_name=type(self).__name__
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -246,7 +246,7 @@ class TestGymAlertCompat(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "l2rpn_idf_2023", test=True, _add_to_name="TestGymCompatModule"
+                "l2rpn_idf_2023", test=True, _add_to_name=type(self).__name__
             )
         env.seed(0)
         env.reset()  # seed part !
@@ -304,7 +304,8 @@ class TestBoxGymObsSpaceWithAlert(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
                 "l2rpn_idf_2023",
-                test=True
+                test=True,
+                _add_to_name=type(self).__name__
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -349,7 +350,7 @@ class TestAllGymActSpaceWithAlert(unittest.TestCase):
                 os.path.join(PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"),
                 test=True,
                 action_class=PlayableAction,
-                _add_to_name="TestAllGymActSpaceWithAlert",
+                _add_to_name=type(self).__name__
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -431,7 +432,7 @@ class ObsAlertAttr(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make("l2rpn_idf_2023", test=True,
                                action_class=PlayableAction,
-                               _add_to_name="ObsAlertAttr")
+                               _add_to_name=type(self).__name__)
         gym_env = GymEnv(env)
         obs, info = gym_env.reset()
         alert_attrs = [

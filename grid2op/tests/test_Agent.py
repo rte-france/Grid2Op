@@ -15,7 +15,6 @@ from grid2op.tests.helper_path_test import *
 
 import grid2op
 from grid2op.Exceptions import *
-from grid2op.MakeEnv import make
 from grid2op.Agent import (
     PowerLineSwitch,
     TopologyGreedy,
@@ -46,7 +45,7 @@ class TestAgent(HelperTests, unittest.TestCase):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_redisp", test=True, param=param)
+            self.env = grid2op.make("rte_case14_redisp", test=True, param=param, _add_to_name=type(self).__name__)
 
     def tearDown(self):
         self.env.close()
@@ -152,8 +151,8 @@ class TestMake2Agents(HelperTests, unittest.TestCase):
     def test_2random(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case5_example", test=True)
-            env2 = grid2op.make("rte_case14_realistic", test=True)
+            env = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
+            env2 = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
         agent = RandomAgent(env.action_space)
         agent2 = RandomAgent(env2.action_space)
         # test i can reset the env
@@ -173,7 +172,7 @@ class TestSeeding(HelperTests, unittest.TestCase):
     def test_random(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 obs = env.reset()
                 my_agent = RandomAgent(env.action_space)
                 my_agent.seed(0)
@@ -203,7 +202,7 @@ class TestRecoPowerlineAgent(HelperTests, unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_LINE = 1
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("rte_case5_example", test=True, param=param) as env:
+            with grid2op.make("rte_case5_example", test=True, param=param, _add_to_name=type(self).__name__) as env:
                 my_agent = RecoPowerlineAgent(env.action_space)
                 obs = env.reset()
                 assert np.sum(obs.time_before_cooldown_line) == 0
@@ -231,7 +230,7 @@ class TestRecoPowerlineAgent(HelperTests, unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_LINE = 3
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("rte_case5_example", test=True, param=param) as env:
+            with grid2op.make("rte_case5_example", test=True, param=param, _add_to_name=type(self).__name__) as env:
                 my_agent = RecoPowerlineAgent(env.action_space)
                 obs = env.reset()
                 obs, reward, done, info = env.step(
@@ -290,7 +289,7 @@ class TestFromList(HelperTests, unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_LINE = 3
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("rte_case5_example", test=True, param=param) as env:
+            with grid2op.make("rte_case5_example", test=True, param=param, _add_to_name=type(self).__name__) as env:
                 agent = FromActionsListAgent(env.action_space, action_list=[])
                 obs = env.reset()
 
@@ -309,7 +308,7 @@ class TestFromList(HelperTests, unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_LINE = 3
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("rte_case5_example", test=True, param=param) as env:
+            with grid2op.make("rte_case5_example", test=True, param=param, _add_to_name=type(self).__name__) as env:
                 agent = FromActionsListAgent(
                     env.action_space,
                     action_list=[env.action_space({"set_line_status": [(0, +1)]})],
@@ -331,7 +330,7 @@ class TestFromList(HelperTests, unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_LINE = 3
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("rte_case5_example", test=True, param=param) as env:
+            with grid2op.make("rte_case5_example", test=True, param=param, _add_to_name=type(self).__name__) as env:
                 with self.assertRaises(AgentError):
                     # action_list should be an iterable
                     agent = FromActionsListAgent(env.action_space, action_list=1)
@@ -340,7 +339,8 @@ class TestFromList(HelperTests, unittest.TestCase):
                     agent = FromActionsListAgent(env.action_space, action_list=[1])
 
                 with grid2op.make(
-                    "l2rpn_case14_sandbox", test=True, param=param
+                    "l2rpn_case14_sandbox", test=True, param=param,
+                    _add_to_name=type(self).__name__
                 ) as env2:
                     with self.assertRaises(AgentError):
                         # action_list should contain only actions from a compatible environment

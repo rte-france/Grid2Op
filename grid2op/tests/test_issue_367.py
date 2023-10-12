@@ -18,8 +18,7 @@ class Issue367Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "test_issue_367"), test=True)
-            # self.env = grid2op.make("l2rpn_wcci_2022", test=True)
+            self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "test_issue_367"), test=True, _add_to_name=type(self).__name__)
         self.env.set_id(0) 
         self.env.seed(0)
         param = self.env.parameters

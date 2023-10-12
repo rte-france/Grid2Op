@@ -37,6 +37,7 @@ class HighreSimTester(unittest.TestCase):
             # this needs to be tested with pandapower backend
             env = grid2op.make("l2rpn_case14_sandbox",
                                test=True,
+                               _add_to_name=type(self).__name__,
                                data_feeding_kwargs={"gridvalueClass": FromHandlers,
                                    "gen_p_handler": CSVHandler("prod_p"),
                                    "load_p_handler": CSVHandler("load_p"),

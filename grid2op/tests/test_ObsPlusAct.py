@@ -41,6 +41,7 @@ class BaseHelper:
                 action_class=self.get_act_cls(),
                 param=param,
                 gamerules_class=AlwaysLegal,
+                _add_to_name=type(self).__name__,
             )
         self.reset_without_pp_futurewarnings()
         self.act = self.env.action_space()

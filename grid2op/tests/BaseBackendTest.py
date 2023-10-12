@@ -60,7 +60,6 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.Environment import Environment
 from grid2op.Exceptions import *
 from grid2op.Rules import RulesChecker
-from grid2op.MakeEnv import make
 from grid2op.Rules import AlwaysLegal
 from grid2op.Action._backendAction import _BackendAction
 from grid2op.Backend import Backend, PandaPowerBackend
@@ -101,7 +100,7 @@ class BaseTestNames(MakeBackend):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(path, "5bus_example_diff_name"),
                 backend=backend,
                 _add_to_name=type(self).__name__
@@ -1441,13 +1440,13 @@ class BaseTestTopoAction(MakeBackend):
     def test_get_action_to_set_storage(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
+            env = grid2op.make(
                 "educ_case14_storage",
                 test=True,
                 backend=self.make_backend(),
                 _add_to_name=type(self).__name__
             )
-            env2 = make(
+            env2 = grid2op.make(
                 "educ_case14_storage",
                 test=True,
                 backend=self.make_backend(),
@@ -1472,7 +1471,7 @@ class BaseTestTopoAction(MakeBackend):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
+            env = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 backend=self.make_backend(),
@@ -1911,7 +1910,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True, backend=backend,
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
                        _add_to_name=type(self).__name__)
         env.reset()
         action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
@@ -1927,7 +1926,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True, backend=backend,
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
                        _add_to_name=type(self).__name__)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
@@ -1942,7 +1941,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True, backend=backend,
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
                        _add_to_name=type(self).__name__)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
@@ -1964,7 +1963,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True, backend=backend,
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
                        _add_to_name=type(self).__name__)
         act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
         obs, reward, done, info = env.step(act)
@@ -1977,7 +1976,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case1 = make(
+            env_case1 = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
@@ -2004,7 +2003,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make(
+            env_case2 = gridop.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
@@ -2031,7 +2030,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make(
+            env_case2 = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
@@ -2056,7 +2055,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make(
+            env_case2 = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
@@ -2081,7 +2080,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make(
+            env_case2 = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
@@ -2104,7 +2103,7 @@ class BaseTestShuntAction(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
@@ -2122,7 +2121,7 @@ class BaseTestShuntAction(MakeBackend):
         type(backend1)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_ref = make(
+            env_ref = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 gamerules_class=AlwaysLegal,
@@ -2130,7 +2129,7 @@ class BaseTestShuntAction(MakeBackend):
                 backend=backend1,
                 _add_to_name=type(self).__name__
             )
-            env_change_q = make(
+            env_change_q = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 gamerules_class=AlwaysLegal,
@@ -2199,9 +2198,9 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         type(backend1)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = make("rte_case5_example", test=True, backend=backend1, _add_to_name=type(self).__name__)
+            self.env1 = grid2op.make("rte_case5_example", test=True, backend=backend1, _add_to_name=type(self).__name__)
             self.backend1 = self.env1.backend
-            self.env2 = make("rte_case5_example", test=True, backend=backend2, _add_to_name=type(self).__name__)
+            self.env2 = grid2op.make("rte_case5_example", test=True, backend=backend2, _add_to_name=type(self).__name__)
             self.backend2 = self.env2.backend
         np.random.seed(69)
         super().setUp()
@@ -2404,7 +2403,7 @@ class BaseTestVoltageOWhenDisco(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__) as env:
+            with grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__) as env:
                 line_id = 1
                 act = env.action_space({"set_line_status": [(line_id, -1)]})
                 obs, *_ = env.step(act)

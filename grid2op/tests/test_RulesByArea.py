@@ -10,10 +10,10 @@ from itertools import chain
 import unittest
 
 from grid2op.tests.helper_path_test import *
+import grid2op
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
 from grid2op.Rules.rulesByArea import *
-from grid2op.MakeEnv import make
 from grid2op.Agent import OneChangeThenNothing
 from grid2op.Runner import Runner
 
@@ -31,11 +31,12 @@ class TestDefaultRulesByArea(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             #noaction
-            self.env = make(
+            self.env = grid2op.make(
                     "l2rpn_case14_sandbox",
                     test=True,
                     param=params,
-                    gamerules_class = self.rules_1area
+                    gamerules_class = self.rules_1area,
+                    _add_to_name=type(self).__name__
                 )
             self.helper_action = self.env._helper_action_env
             self.env._parameters.MAX_SUB_CHANGED = 1
@@ -49,11 +50,12 @@ class TestDefaultRulesByArea(unittest.TestCase):
             
             #test allowance max action in all areas over the grid
             for rules in [self.rules_2areas, self.rules_3areas]:
-                self.env = make(
+                self.env = grid2op.make(
                         "l2rpn_case14_sandbox",
                         test=True,
                         param=params,
-                        gamerules_class = rules
+                        gamerules_class = rules,
+                        _add_to_name=type(self).__name__
                     )
                 self.helper_action = self.env._helper_action_env
                 lines_by_area = self.env._game_rules.legal_action.lines_id_by_area
@@ -103,11 +105,12 @@ class TestDefaultRulesByArea(unittest.TestCase):
         params = Parameters()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
+            self.env = grid2op.make(
                     "l2rpn_case14_sandbox",
                     test=True,
                     param=params,
-                    gamerules_class = self.rules_3areas
+                    gamerules_class = self.rules_3areas,
+                    _add_to_name=type(self).__name__
                     )
             self.env._parameters.MAX_SUB_CHANGED = 1
             self.env._parameters.MAX_LINE_STATUS_CHANGED = 1
@@ -150,11 +153,12 @@ class TestDefaultRulesByArea(unittest.TestCase):
         nn_episode = 1
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
+            self.env = grid2op.make(
                     "l2rpn_case14_sandbox",
                     test=True,
                     param=params,
-                    gamerules_class = self.rules_3areas
+                    gamerules_class = self.rules_3areas,
+                    _add_to_name=type(self).__name__
                     )
             lines_by_area = [list_ids for list_ids in self.env._game_rules.legal_action.lines_id_by_area.values()]
 

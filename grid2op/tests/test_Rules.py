@@ -12,6 +12,7 @@ import unittest
 
 from grid2op.tests.helper_path_test import *
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Environment import Environment
@@ -19,11 +20,6 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Rules import *
-from grid2op.MakeEnv import make
-
-import warnings
-
-warnings.simplefilter("error")
 
 
 class TestLoadingBackendFunc(unittest.TestCase):
@@ -532,11 +528,12 @@ class TestCooldown(unittest.TestCase):
         params.NB_TIMESTEP_COOLDOWN_SUB = 15
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
+            self.env = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=DefaultRules,
                 param=params,
+                _add_to_name=type(self).__name__
             )
 
     def tearDown(self):
@@ -577,7 +574,7 @@ class TestReconnectionsLegality(unittest.TestCase):
     def test_reconnect_already_connected(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make("rte_case5_example", test=True)
+            env_case2 = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(
             env_case2.action_space()
@@ -600,7 +597,7 @@ class TestReconnectionsLegality(unittest.TestCase):
             params = Parameters()
             params.MAX_SUB_CHANGED = 0
             params.NO_OVERFLOW_DISCONNECTION = True
-            env_case2 = make("rte_case5_example", test=True, param=params)
+            env_case2 = grid2op.make("rte_case5_example", test=True, param=params, _add_to_name=type(self).__name__)
         obs = env_case2.reset()  # reset is good
         line_id = 5
 
@@ -633,7 +630,7 @@ class TestReconnectionsLegality(unittest.TestCase):
             params.NB_TIMESTEP_COOLDOWN_LINE = 3
             params.NB_TIMESTEP_COOLDOWN_SUB = 3
             params.NO_OVERFLOW_DISCONNECTION = True
-            env = make("rte_case5_example", test=True, param=params)
+            env = grid2op.make("rte_case5_example", test=True, param=params, _add_to_name=type(self).__name__)
         l_id = 2
         # prepare the actions
         disco_act = env.action_space.disconnect_powerline(line_id=l_id)
@@ -686,7 +683,7 @@ class TestSubstationImpactLegality(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.params = Parameters()
-            self.env = make("rte_case5_example", test=True, param=self.params)
+            self.env = grid2op.make("rte_case5_example", test=True, param=self.params, _add_to_name=type(self).__name__)
 
     def tearDown(self):
         self.env.close()
@@ -793,7 +790,7 @@ class TestLoadingFromInstance(unittest.TestCase):
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = make("rte_case5_example", test=True, gamerules_class=rules)
+                env = grid2op.make("rte_case5_example", test=True, gamerules_class=rules, _add_to_name=type(self).__name__)
             assert hasattr(env._game_rules.legal_action, "TOTO")
             assert env._game_rules.legal_action.TOTO == 1
         finally:

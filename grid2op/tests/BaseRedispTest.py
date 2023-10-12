@@ -16,7 +16,6 @@ from grid2op.Exceptions import *
 from grid2op.Environment import Environment
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
-from grid2op.MakeEnv import make
 from grid2op.Action import BaseAction
 
 from grid2op.tests.BaseBackendTest import MakeBackend
@@ -479,7 +478,7 @@ class BaseTestRedispTooLowHigh(MakeBackend):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_redisp",
+            self.env = grid2op.make("rte_case14_redisp",
                             test=True,
                             backend=backend,
                             _add_to_name=type(self).__name__)
@@ -577,7 +576,7 @@ class BaseTestDispatchRampingIllegalETC(MakeBackend):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_test", test=True, backend=backend,
+            self.env = grid2op.make("rte_case14_test", test=True, backend=backend,
                             _add_to_name=type(self).__name__)
         self.tol_one = self.env._tol_poly
 
@@ -845,7 +844,7 @@ class BaseTestLoadingAcceptAlmostZeroSumRedisp(MakeBackend):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_test", test=True, backend=backend,
+            self.env = grid2op.make("rte_case14_test", test=True, backend=backend,
                             _add_to_name=type(self).__name__)
         self.tol_one = self.env._tol_poly
 

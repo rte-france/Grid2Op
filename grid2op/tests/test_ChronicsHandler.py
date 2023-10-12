@@ -16,7 +16,6 @@ from grid2op.tests.helper_path_test import *
 
 import grid2op
 from grid2op.dtypes import dt_int, dt_float
-from grid2op.MakeEnv import make
 from grid2op.Exceptions import *
 from grid2op.Chronics import (
     ChronicsHandler,
@@ -1122,7 +1121,7 @@ class TestEnvChunk(HelperTests, unittest.TestCase):
         self.max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_realistic", test=True)
+            self.env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
             self.env.chronics_handler.set_max_iter(self.max_iter)
 
     def tearDown(self):
@@ -1154,8 +1153,9 @@ class TestMissingData(HelperTests, unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with self.assertRaises(EnvError):
-                with make(
-                    "rte_case14_realistic", test=True, chronics_path="/answer/life/42"
+                with grid2op.make(
+                    "rte_case14_realistic", test=True, chronics_path="/answer/life/42",
+                    _add_to_name=type(self).__name__
                 ):
                     pass
 
@@ -1173,12 +1173,13 @@ class TestMissingData(HelperTests, unittest.TestCase):
         max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "rte_case5_example",
                 test=True,
                 chronics_path=os.path.join(
                     PATH_CHRONICS, "5bus_example_some_missing", "chronics"
                 ),
+                _add_to_name=type(self).__name__,
             ) as env:
                 # test a first time without chunks
                 env.set_id(0)
@@ -1216,10 +1217,11 @@ class TestCFFWFWM(HelperTests, unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
                 test=True,
                 param=param,
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(123456)  # for reproducible tests !
                 obs = env.reset()
@@ -1297,10 +1299,11 @@ class TestCFFWFWM(HelperTests, unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
                 test=True,
                 param=param,
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 envLines = env.name_line
@@ -1373,12 +1376,13 @@ class TestCFFWFWM(HelperTests, unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(
                     PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_2"
                 ),
                 test=True,
                 param=param,
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 # input data
@@ -1412,12 +1416,13 @@ class TestCFFWFWM(HelperTests, unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(
                     PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"
                 ),
                 test=True,
                 param=param,
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 # get input data, to check they were correctly applied in
@@ -1452,10 +1457,11 @@ class TestCFFWFWM(HelperTests, unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
                 test=True,
                 param=param,
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 env.set_id(0)
@@ -1510,12 +1516,13 @@ class TestCFFWFWM(HelperTests, unittest.TestCase):
                 assert np.all(maintenance_0_0 == maintenance_0_1)
 
                 # make sure i can reload the environment
-                env2 = make(
+                env2 = grid2op.make(
                     os.path.join(
                         PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"
                     ),
                     test=True,
                     param=param,
+                    _add_to_name=type(self).__name__,
                     data_feeding_kwargs={
                         "gridvalueClass": GridStateFromFileWithForecasts
                     },
@@ -1534,10 +1541,11 @@ class TestCFFWFWM(HelperTests, unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
                 test=True,
                 param=param,
+                _add_to_name=type(self).__name__,
             ) as env:
                 nb_scenario = 10
                 nb_maintenance = np.zeros((nb_scenario, env.n_line), dtype=dt_float)
@@ -1563,12 +1571,13 @@ class TestCFFWFWM(HelperTests, unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(
                     PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"
                 ),
                 test=True,
                 param=param,
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -1587,11 +1596,12 @@ class TestWithCache(HelperTests, unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"),
                 test=True,
                 param=param,
                 chronics_class=MultifolderWithCache,
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(123456)  # for reproducible tests !
                 env.chronics_handler.reset()
@@ -1616,10 +1626,11 @@ class TestMaintenanceBehavingNormally(HelperTests, unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                 test=True,
                 param=param,
+                _add_to_name=type(self).__name__,
             ) as env:
                 l_id = 11
                 obs = env.reset()
@@ -1724,11 +1735,12 @@ class TestMaintenanceBehavingNormally(HelperTests, unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                 test=True,
                 param=param,
                 gamerules_class=AlwaysLegal,
+                _add_to_name=type(self).__name__,
             ) as env:
                 l_id = 11
                 obs = env.reset()
@@ -1838,8 +1850,9 @@ class TestMultiFolder(HelperTests, unittest.TestCase):
         chronics_class = self.get_multifolder_class()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
-                "rte_case14_realistic", test=True, chronics_class=chronics_class
+            self.env = grid2op.make(
+                "rte_case14_realistic", test=True, chronics_class=chronics_class,
+                _add_to_name=type(self).__name__
             )
         root_path = self.env.chronics_handler.real_data.path
         self.chronics_paths = np.array(
@@ -1976,7 +1989,8 @@ class TestMultiFolder(HelperTests, unittest.TestCase):
         chronics_class = self.get_multifolder_class()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+            env = grid2op.make("rte_case5_example", test=True, chronics_class=chronics_class,
+                               _add_to_name=type(self).__name__)
         self._reset_chron_handl(env.chronics_handler)
         env.seed(0)
 
@@ -2017,7 +2031,8 @@ class TestMultiFolder(HelperTests, unittest.TestCase):
         chronics_class = self.get_multifolder_class()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+            env = grid2op.make("rte_case5_example", test=True, chronics_class=chronics_class,
+                               _add_to_name=type(self).__name__)
 
         if issubclass(chronics_class, MultifolderWithCache):
             env.chronics_handler.set_filter(
@@ -2046,7 +2061,8 @@ class TestMultiFolder(HelperTests, unittest.TestCase):
         chronics_class = self.get_multifolder_class()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+            env = grid2op.make("rte_case5_example", test=True, chronics_class=chronics_class,
+                               _add_to_name=type(self).__name__)
         if issubclass(chronics_class, MultifolderWithCache):
             env.chronics_handler.set_filter(
                 lambda x: re.match(".*(01|04|05).*", x) is not None
@@ -2071,7 +2087,8 @@ class TestMultiFolder(HelperTests, unittest.TestCase):
         chronics_class = self.get_multifolder_class()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+            env = grid2op.make("rte_case5_example", test=True, chronics_class=chronics_class,
+                               _add_to_name=type(self).__name__)
         if issubclass(chronics_class, MultifolderWithCache):
             env.chronics_handler.set_filter(
                 lambda x: re.match(".*(01|04|05).*", x) is not None
@@ -2114,22 +2131,24 @@ class TestDeactivateMaintenance(HelperTests, unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                 test=True,
                 param=param,
+                _add_to_name=type(self).__name__,
             ) as env:
                 obs = env.reset()
                 # there is a maintenance by default for some powerlines
                 assert np.any(obs.time_next_maintenance != -1)
 
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                 test=True,
                 param=param,
                 data_feeding_kwargs={
                     "gridvalueClass": GridStateFromFileWithForecastsWithoutMaintenance
                 },
+                _add_to_name=type(self).__name__,
             ) as env:
                 obs = env.reset()
                 # all maintenance are deactivated
@@ -2142,7 +2161,7 @@ class TestMaxIter(HelperTests, unittest.TestCase):
         max_iter = 288*2
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True)
+            env = grid2op.make("educ_case14_storage", test=True, _add_to_name=type(self).__name__)
             
         runner = Runner(**env.get_params_for_runner())
         res = runner.run(nb_episode=nb_episode,

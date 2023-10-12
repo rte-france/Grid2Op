@@ -25,7 +25,6 @@ from grid2op.Reward import (
     RedispReward,
     RewardHelper,
 )
-from grid2op.MakeEnv import make
 from grid2op.Action import CompleteAction, PlayableAction
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
@@ -51,7 +50,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_test", test=True)
+            self.env = grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__)
         self.dict_ = {
             "name_gen": ["gen_1_0", "gen_2_1", "gen_5_2", "gen_7_3", "gen_0_4"],
             "name_load": [
@@ -1810,7 +1809,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
     def aux_test_conn_mat3(self, as_csr=False):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True)
+            env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
         obs, reward, done, info = env.step(
             env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}})
         )
@@ -1853,7 +1852,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
     def aux_flow_bus_matrix(self, active_flow):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True)
+            env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
         obs, reward, done, info = env.step(
             env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}})
         )
@@ -1917,7 +1916,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("educ_case14_storage", test=True, action_class=CompleteAction)
+            env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction, _add_to_name=type(self).__name__)
         obs = env.reset()
         mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(
             active_flow=active_flow, as_csr_matrix=True
@@ -2333,13 +2332,13 @@ class TestUpdateEnvironement(unittest.TestCase):
         # Create env and obs in left hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.lenv = make("rte_case5_example", test=True)
+            self.lenv = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
             self.lobs = self.lenv.reset()
 
         # Create env and obs in right hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.renv = make("rte_case5_example", test=True)
+            self.renv = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
             # Step once to make it different
             self.robs, _, _, _ = self.renv.step(self.renv.action_space())
 
@@ -2462,7 +2461,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Create env
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_realistic", test=True)
+            self.env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
 
         self.obs = self._make_forecast_perfect(self.env)
         self.sim_obs = None
@@ -2969,8 +2968,9 @@ class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
         # Create env
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
-                "educ_case14_storage", test=True, action_class=PlayableAction
+            self.env = grid2op.make(
+                "educ_case14_storage", test=True, action_class=PlayableAction,
+                _add_to_name=type(self).__name__
             )
         self.obs = self._make_forecast_perfect(self.env)
         self.sim_obs = None

@@ -24,7 +24,7 @@ from grid2op.gym_compat import (
 with warnings.catch_warnings():
     # this needs to be imported in the main module for multiprocessing to work "approximately"
     warnings.filterwarnings("ignore")
-    _ = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name="for_mp_test")
+    _ = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__+"for_mp_test")
 
 
 class TestMultiProc(unittest.TestCase):
@@ -41,7 +41,7 @@ class TestMultiProc(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "l2rpn_case14_sandbox", test=True, _add_to_name="for_mp_test"
+                "l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__+"for_mp_test"
             )
         env_gym = GymEnv(env)
 

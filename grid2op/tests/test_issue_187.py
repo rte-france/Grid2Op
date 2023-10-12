@@ -34,7 +34,8 @@ class Issue187Tester(unittest.TestCase):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 with grid2op.make(
-                    env_name, test=True, reward_class=RedispReward
+                    env_name, test=True, reward_class=RedispReward,
+                    _add_to_name=type(self).__name__
                 ) as env:
                     obs = env.reset()
                     obs, reward, done, info = env.step(env.action_space())
@@ -61,7 +62,7 @@ class Issue187Tester(unittest.TestCase):
                 continue
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True, reward_class=reward_cls) as env:
+                with grid2op.make(env_name, test=True, reward_class=reward_cls, _add_to_name=type(self).__name__) as env:
                     obs = env.reset()
                     obs, reward, done, info = env.step(env.action_space())
                     # test that reward is in the correct range
@@ -124,7 +125,7 @@ class Issue187Tester(unittest.TestCase):
         env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make(env_name, test=True, reward_class=reward_cls) as env:
+            with grid2op.make(env_name, test=True, reward_class=reward_cls, _add_to_name=type(self).__name__) as env:
                 obs = env.reset()
                 runner = Runner(**env.get_params_for_runner())
                 res = runner.run(nb_episode=2, nb_process=2)

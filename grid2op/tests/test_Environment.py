@@ -14,13 +14,13 @@ import warnings
 import unittest
 from grid2op.tests.helper_path_test import *
 
+import grid2op
 from grid2op.Exceptions import *
 from grid2op.Environment import Environment
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
 from grid2op.Reward import L2RPNReward
-from grid2op.MakeEnv import make
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.dtypes import dt_float
 
@@ -335,7 +335,7 @@ class TestIllegalAmbiguous(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case5_example", test=True)
+            self.env = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
 
     def tearDown(self):
         self.env.close()
@@ -384,11 +384,12 @@ class TestOtherReward(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
+            self.env = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 reward_class=L2RPNReward,
                 other_rewards={"test": L2RPNReward},
+                _add_to_name=type(self).__name__,
             )
 
     def tearDown(self):
@@ -457,12 +458,13 @@ class BaseTestResetOk(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
+            self.env = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 reward_class=L2RPNReward,
                 backend=self.make_backend(),
                 other_rewards={"test": L2RPNReward},
+                _add_to_name=type(self).__name__
             )
         super().setUp()
 
@@ -504,12 +506,13 @@ class BaseTestResetOk(unittest.TestCase):
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = make(
+                env = grid2op.make(
                     "rte_case5_example",
                     test=True,
                     reward_class=L2RPNReward,
                     other_rewards={"test": L2RPNReward},
                     backend=backend,
+                    _add_to_name=type(self).__name__,
                 )
 
         # make the grid in bad shape
@@ -545,11 +548,12 @@ class TestAttachLayout(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "rte_case5_example",
                 test=True,
                 reward_class=L2RPNReward,
                 other_rewards={"test": L2RPNReward},
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.attach_layout(my_layout)
                 act = env.action_space()
@@ -599,11 +603,12 @@ class TestLineChangeLastBus(unittest.TestCase):
 
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env = make(
+                self.env = grid2op.make(
                     "rte_case14_test",
                     test=True,
                     chronics_class=ChangeNothing,
                     param=self.params,
+                    _add_to_name=type(self).__name__,
                 )
 
     def tearDown(self):
@@ -674,12 +679,13 @@ class BaseTestResetAfterCascadingFailure(unittest.TestCase):
             warnings.filterwarnings("ignore")
             params = Parameters()
             params.MAX_SUB_CHANGED = 2
-            self.env = make(
+            self.env = grid2op.make(
                 "rte_case14_test",
                 test=True,
                 chronics_class=ChangeNothing,
                 param=params,
                 backend=self.make_backend(),
+                _add_to_name=type(self).__name__
             )
 
     def tearDown(self):
@@ -727,13 +733,14 @@ class BaseTestCascadingFailure(unittest.TestCase):
             params.MAX_SUB_CHANGED = 0
             params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
             rules = DefaultRules
-            self.env = make(
+            self.env = grid2op.make(
                 "rte_case14_test",
                 test=True,
                 chronics_class=ChangeNothing,
                 param=params,
                 gamerules_class=rules,
                 backend=self.make_backend(),
+                _add_to_name=type(self).__name__
             )
 
     def tearDown(self):
@@ -787,8 +794,8 @@ class TestLoading2envDontCrash(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = make("rte_case14_test", test=True)
-            self.env2 = make("rte_case5_example", test=True)
+            self.env1 = grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__)
+            self.env2 = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
 
     def tearDown(self) -> None:
         self.env1.close()
@@ -813,7 +820,7 @@ class TestDeactivateForecast(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = make("rte_case14_test", test=True)
+            self.env1 = grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__)
 
     def tearDown(self) -> None:
         self.env1.close()
@@ -943,7 +950,7 @@ class TestMaxIter(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
 
     def tearDown(self) -> None:
         self.env.close()

@@ -33,7 +33,8 @@ class TestIsSimulatedEnv(unittest.TestCase):
         env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make(env_name, test=True, reward_class=SimEnvRewardTester)
+            self.env = grid2op.make(env_name, test=True, reward_class=SimEnvRewardTester,
+                                    _add_to_name=type(self).__name__)
         return super().setUp()
     
     def tearDown(self) -> None:

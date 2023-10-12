@@ -8,7 +8,7 @@
 
 
 import grid2op
-from grid2op.gym_compat import BoxGymActSpace, BoxGymObsSpace
+from grid2op.gym_compat import BoxGymObsSpace
 import numpy as np
 import unittest
 
@@ -16,7 +16,7 @@ import unittest
 class Issue446Tester(unittest.TestCase):
     def test_box_action_space(self):
         # We considers only redispatching actions
-        env = grid2op.make("l2rpn_case14_sandbox", test=True)
+        env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
 
         divide = {"hour_of_day": np.ones(1)}
         subtract = {"hour_of_day": np.zeros(1)}

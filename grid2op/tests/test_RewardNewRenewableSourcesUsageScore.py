@@ -50,7 +50,8 @@ class TestJustGameOver(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(env_name,
                                     reward_class=_NewRenewableSourcesUsageScore,
-                                    test=True
+                                    test=True,
+                                    _add_to_name=type(self).__name__
                                 )
             self.env.set_max_iter(20)
             self.env.parameters.NO_OVERFLOW_DISCONNECTION = True
@@ -76,7 +77,8 @@ class TestNewRenewableSourcesUsageScore(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(env_name,
                                     reward_class = _NewRenewableSourcesUsageScore,
-                                    test=True
+                                    test=True,
+                                    _add_to_name=type(self).__name__
                                 )
             self.env.set_max_iter(20)
             self.env.parameters.NO_OVERFLOW_DISCONNECTION = True

@@ -14,7 +14,6 @@ from grid2op.Opponent import (
     GeometricOpponent
 )
 from grid2op.Action import TopologyAction
-from grid2op.MakeEnv import make
 from grid2op.Opponent.baseActionBudget import BaseActionBudget
 from grid2op.dtypes import dt_int
 from grid2op.Parameters import Parameters
@@ -28,7 +27,7 @@ class TestMultiAreaOpponentBasic(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
         self.opponent = GeometricOpponentMultiArea(self.env.action_space)
         self.opponent.init(self.env,
                            lines_attacked=[LINES_ATTACKED[:3],LINES_ATTACKED[3:]],
@@ -58,9 +57,9 @@ class TestMultiAreaOpponent(unittest.TestCase):
         
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("l2rpn_case14_sandbox",
+            self.env = grid2op.make("l2rpn_case14_sandbox",
                             test=True,
-                            _add_to_name="multiarea",
+                            _add_to_name=type(self).__name__+"multiarea",
                             opponent_budget_per_ts=0.17*2,  # 0.17 per area
                             opponent_init_budget=1000,  # I don't really care much right now
                             opponent_attack_cooldown=0,  # otherwise it will not work

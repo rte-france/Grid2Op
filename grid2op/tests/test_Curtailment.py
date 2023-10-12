@@ -37,6 +37,7 @@ class TestCurtailmentEnv(HelperTests, unittest.TestCase):
                 test=True,
                 action_class=PlayableAction,
                 param=param,
+                _add_to_name=type(self).__name__
             )
             self.env2 = self.env1.copy()
 

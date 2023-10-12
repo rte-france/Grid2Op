@@ -15,7 +15,7 @@ PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
 PATH_PREVIOUS_RUNNER = os.path.join(data_test_dir, "runner_data")
 
 from grid2op.Reward import L2RPNSandBoxScore
-from grid2op.MakeEnv import make
+import grid2op
 from grid2op.dtypes import dt_float
 from grid2op.Agent import DoNothingAgent, RecoPowerlineAgent
 from grid2op.utils import EpisodeStatistics, ScoreL2RPN2020, ScoreICAPS2021
@@ -31,7 +31,7 @@ class TestEpisodeStatistics(HelperTests, unittest.TestCase):
         """test that i can read the data stored"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 obs = env.reset()
                 stats = EpisodeStatistics(env)
                 aor_, ids_ = stats.get("a_or")
@@ -59,7 +59,7 @@ class TestEpisodeStatistics(HelperTests, unittest.TestCase):
         """test that i can compute and erase the results afterwards"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 stats = EpisodeStatistics(env, "test")
                 stats.compute(nb_scenario=1, max_step=10, pbar=False)
                 # the file have been created
@@ -84,7 +84,7 @@ class TestEpisodeStatistics(HelperTests, unittest.TestCase):
         """test that i can compute and erase the results afterwards"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 stats = EpisodeStatistics(env, "test")
                 stats.compute(
                     nb_scenario=2,
@@ -110,7 +110,7 @@ class TestEpisodeStatistics(HelperTests, unittest.TestCase):
         """test that i can compute and erase the results afterwards"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 stats = EpisodeStatistics(env, "test")
                 stats.compute(nb_scenario=2, max_step=10, pbar=False)
                 # i can access it
@@ -134,7 +134,7 @@ class TestL2RPNSCORE(HelperTests, unittest.TestCase):
         """test that i can initialize the score and then delete the statistics"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 scores = ScoreL2RPN2020(env, nb_scenario=4, verbose=0, max_step=50)
 
                 # the statistics have been properly computed
@@ -176,7 +176,7 @@ class TestL2RPNSCORE(HelperTests, unittest.TestCase):
         """test that do nothing has a score of 0.00"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 scores = ScoreL2RPN2020(env, nb_scenario=4, verbose=0, max_step=20)
 
                 # the statistics have been properly computed
@@ -225,7 +225,7 @@ class TestL2RPNSCORE(HelperTests, unittest.TestCase):
         """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 scores = ScoreL2RPN2020(env, nb_scenario=2, verbose=0, max_step=15)
 
                 # the statistics have been properly computed
@@ -282,7 +282,7 @@ class TestL2RPNSCORE(HelperTests, unittest.TestCase):
         """test that i can modify the max step (and that if I increase it it does trigger a recomputation)"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 scores = ScoreL2RPN2020(env, nb_scenario=2, verbose=0, max_step=5)
 
                 # the statistics have been properly computed
@@ -337,7 +337,7 @@ class TestL2RPNSCORE(HelperTests, unittest.TestCase):
         """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 scores = ScoreL2RPN2020(env, nb_scenario=2, verbose=0, max_step=5)
 
                 # the statistics have been properly computed
@@ -393,7 +393,7 @@ class TestL2RPNSCORE(HelperTests, unittest.TestCase):
         """test that do nothing has a score of 80.0 if it is run with "no overflow disconnection" """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 # I cannot decrease the max step: it must be above the number of steps the do nothing does
                 scores = ScoreL2RPN2020(env, nb_scenario=2, verbose=0, max_step=130)
                 assert scores._recomputed_dn
@@ -423,7 +423,7 @@ class TestL2RPNSCORE(HelperTests, unittest.TestCase):
 
             param = Parameters()
             param.NO_OVERFLOW_DISCONNECTION = True
-            with make("rte_case5_example", test=True, param=param) as env:
+            with grid2op.make("rte_case5_example", test=True, param=param, _add_to_name=type(self).__name__) as env:
                 scores2 = ScoreL2RPN2020(env, nb_scenario=2, verbose=0, max_step=130)
                 assert not scores2._recomputed_dn
                 assert not scores2._recomputed_no_ov_rp
@@ -458,9 +458,10 @@ class TestICAPSSCORE(HelperTests, unittest.TestCase):
         """test that i can initialize the score and then delete the statistics"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"),
                 test=True,
+                _add_to_name=type(self).__name__
             ) as env:
                 scores = ScoreICAPS2021(
                     env,

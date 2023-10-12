@@ -11,7 +11,6 @@ import unittest
 import warnings
 
 from grid2op.Exceptions import *
-from grid2op.MakeEnv import make
 from grid2op.PlotGrid import *
 
 
@@ -19,7 +18,7 @@ class BaseTestPlot(ABC):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_redisp", test=True)
+            self.env = grid2op.make("rte_case14_redisp", test=True, _add_to_name=type(self).__name__)
         self.obs = self.env.current_obs
         self.plot = self._plotter(self.env.observation_space)
 

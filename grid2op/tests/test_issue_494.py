@@ -17,7 +17,7 @@ class Issue494Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_idf_2023", test=True)
+            self.env = grid2op.make("l2rpn_idf_2023", test=True, _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.env.set_id(0)
     

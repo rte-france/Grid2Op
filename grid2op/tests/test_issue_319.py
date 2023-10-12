@@ -20,7 +20,8 @@ class Issue319Tester(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
                 "rte_case14_realistic",
-                test=True
+                test=True,
+                _add_to_name=type(self).__name__
                 )
     def tearDown(self) -> None:
         self.env.close()

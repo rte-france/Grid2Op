@@ -19,6 +19,7 @@ class Issue533Tester(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make('l2rpn_neurips_2020_track1',
                                           test=True,
+                                          _add_to_name=type(self).__name__,
                                           )
         self.env.seed(0)
         return super().setUp()

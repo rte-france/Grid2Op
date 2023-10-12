@@ -67,7 +67,7 @@ class TestTimedOutEnvironment100(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True),
+            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__),
                                             time_out_ms=self.get_timeout_ms())
         params = self.env1.parameters
         params.NO_OVERFLOW_DISCONNECTION = True
@@ -158,7 +158,7 @@ class TestTOEnvRunner(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True),
+            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__),
                                             time_out_ms=self.get_timeout_ms())
         params = self.env1.parameters
         params.NO_OVERFLOW_DISCONNECTION = True
@@ -226,7 +226,7 @@ class TestTOEnvGym(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True),
+            self.env1 = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__),
                                             time_out_ms=self.get_timeout_ms())
 
     def tearDown(self) -> None:

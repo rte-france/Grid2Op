@@ -185,14 +185,14 @@ class TestXXXBus(unittest.TestCase):
                 "rte_case14_realistic",
                 test=True,
                 backend=TestSuitePandaPowerBackend(),
-                _add_to_name="test_get_xxx_bus_test",
+                _add_to_name=type(self).__name__+"test_get_xxx_bus_test",
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.envref = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
-                _add_to_name="test_get_xxx_bus_ref"
+                _add_to_name=type(self).__name__+"test_get_xxx_bus_ref"
             )
         seed = 0
         self.nb_test = 10

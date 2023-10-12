@@ -30,7 +30,8 @@ class Test_BackToOrig(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-                self.env_name, test=True, action_class=BaseAction, param=param
+                self.env_name, test=True, action_class=BaseAction, param=param,
+                _add_to_name=type(self).__name__
             )
 
     def tearDown(self) -> None:

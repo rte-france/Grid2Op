@@ -24,7 +24,8 @@ class Issu313Tester(unittest.TestCase):
                                 backend=LightSimBackend(),
                                 action_class=PlayableAction,
                                 param=param,
-                                test=True)
+                                test=True,
+                                _add_to_name=type(self).__name__)
         self.env.set_id(2)
         self.env.seed(0)
         self.env.reset()

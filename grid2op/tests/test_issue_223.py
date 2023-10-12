@@ -37,7 +37,7 @@ class Issue223Tester(unittest.TestCase):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 env_nm = os.path.join(PATH_DATA_TEST, "5bus_modif_grid")
-                self.env = grid2op.make(env_nm, test=True, chronics_class=ChangeNothing)
+                self.env = grid2op.make(env_nm, test=True, chronics_class=ChangeNothing, _add_to_name=type(self).__name__)
                 self.env.seed(0)
                 self.reset_without_pp_futurewarnings()
 

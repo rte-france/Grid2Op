@@ -14,7 +14,6 @@ import unittest
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.MakeEnv import make
 from grid2op.Agent import DoNothingAgent, BaseAgent
 from grid2op.Parameters import Parameters
 from grid2op.dtypes import dt_float
@@ -32,7 +31,7 @@ class RandomTestAgent(BaseAgent):
         return self.action_space.sample()
 
 
-class TestAgent(HelperTests, unittest.TestCase):
+class TestAgentFaster(HelperTests, unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
@@ -43,7 +42,7 @@ class TestAgent(HelperTests, unittest.TestCase):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_redisp", test=True, param=param)
+            self.env = grid2op.make("rte_case14_redisp", test=True, param=param, _add_to_name=type(self).__name__)
 
     def tearDown(self):
         super().tearDown()
