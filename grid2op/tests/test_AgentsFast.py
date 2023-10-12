@@ -26,10 +26,6 @@ DEBUG = False
 if DEBUG:
     print("pandapower version : {}".format(pp.__version__))
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class RandomTestAgent(BaseAgent):
     def act(self, observation, reward, done=False):
@@ -42,6 +38,7 @@ class TestAgent(HelperTests, unittest.TestCase):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
+        super().setUp()
         param = Parameters()
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
@@ -49,6 +46,7 @@ class TestAgent(HelperTests, unittest.TestCase):
             self.env = make("rte_case14_redisp", test=True, param=param)
 
     def tearDown(self):
+        super().tearDown()
         self.env.close()
 
     def _aux_test_agent(self, agent, i_max=30):

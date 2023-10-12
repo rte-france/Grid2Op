@@ -41,6 +41,7 @@ class TestAgent(HelperTests, unittest.TestCase):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
+        super.setUp()
         param = Parameters()
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
@@ -49,6 +50,7 @@ class TestAgent(HelperTests, unittest.TestCase):
 
     def tearDown(self):
         self.env.close()
+        super.tearDown()
 
     def _aux_test_agent(self, agent, i_max=30):
         done = False

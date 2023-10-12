@@ -42,7 +42,14 @@ Change Log
   exception (they should lead to a divergence)
 - [FIXED] some wrong behaviour in the `remove_line_status_from_topo` when no observation where provided
   and `check_cooldown` is `False`
+- [FIXED] a bug in PandaPowerBackend in AC powerflow: disconnected storage unit had no 0. as voltage
+- [FIXED] a bug in PandaPowerBackend in AC powerflow when a generator was alone a bus it made the powerflow
+  crash on some cases (*eg* without lightsim2grid, without numba)
+- [FIXED] a bug in PandaPowerBackend in DC (in some cases non connected grid were not spotted)
 - [ADDED] now depends on the `typing_extensions` package
+- [ADDED] a complete test suite to help people develop new backend using "Test Driven Programming" 
+  techniques
+- [IMPROVED] now easier than ever to run the grid2op test suite with a new backend (for relevant tests)
 - [IMPROVED] type hints for `Backend` and `PandapowerBackend`
 
 [1.9.5] - 2023-09-18

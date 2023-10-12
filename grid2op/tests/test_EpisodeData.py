@@ -9,9 +9,10 @@
 import tempfile
 import warnings
 import pdb
+import unittest
 
 import grid2op
-from grid2op.Agent import OneChangeThenNothing, RandomAgent
+from grid2op.Agent import OneChangeThenNothing
 from grid2op.tests.helper_path_test import *
 from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward

@@ -39,6 +39,7 @@ warnings.simplefilter("error")
 
 class TestProperHandlingHazardsMaintenance(HelperTests, unittest.TestCase):
     def setUp(self):
+        super().setUp()
         self.path_hazard = os.path.join(PATH_CHRONICS, "chronics_with_hazards")
         self.path_maintenance = os.path.join(PATH_CHRONICS, "chronics_with_maintenance")
 
@@ -317,6 +318,7 @@ class TestProperHandlingHazardsMaintenance(HelperTests, unittest.TestCase):
 
 class TestLoadingChronicsHandler(HelperTests, unittest.TestCase):
     def setUp(self):
+        super().setUp()
         self.path = os.path.join(PATH_CHRONICS, "chronics")
 
         self.n_gen = 5
@@ -381,10 +383,6 @@ class TestLoadingChronicsHandler(HelperTests, unittest.TestCase):
             "bus_13",
             "bus_14",
         ]
-
-    # Cette méthode sera appelée après chaque test.
-    def tearDown(self):
-        pass
 
     def test_check_validity(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
@@ -533,6 +531,7 @@ class TestLoadingChronicsHandler(HelperTests, unittest.TestCase):
 class TestLoadingChronicsHandlerWithForecast(HelperTests, unittest.TestCase):
     # Cette méthode sera appelée avant chaque test.
     def setUp(self):
+        super().setUp()
         self.path = os.path.join(PATH_CHRONICS, "chronics_with_forecast")
 
         self.n_gen = 5
@@ -598,10 +597,6 @@ class TestLoadingChronicsHandlerWithForecast(HelperTests, unittest.TestCase):
             "bus_14",
         ]
 
-    # Cette méthode sera appelée après chaque test.
-    def tearDown(self):
-        pass
-
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred - true)) <= self.tolvect
 
@@ -625,6 +620,7 @@ class TestLoadingChronicsHandlerWithForecast(HelperTests, unittest.TestCase):
 class TestLoadingChronicsHandlerPP(HelperTests, unittest.TestCase):
     # Cette méthode sera appelée avant chaque test.
     def setUp(self):
+        super().setUp()
         self.pathfake = os.path.join(PATH_CHRONICS, "chronics")
         self.path = os.path.join(PATH_CHRONICS, "chronics")
 
@@ -937,6 +933,7 @@ class TestLoadingChronicsHandlerPP(HelperTests, unittest.TestCase):
 
 class TestLoadingMultiFolder(HelperTests, unittest.TestCase):
     def setUp(self):
+        super().setUp()
         self.path = os.path.join(PATH_CHRONICS, "test_multi_chronics")
 
         self.n_gen = 5
@@ -1047,7 +1044,6 @@ class TestLoadingMultiFolder(HelperTests, unittest.TestCase):
                 "8_G40.43": "gen_7_3",
             },
         }
-
         self.max_iter = 10
 
     # Cette méthode sera appelée après chaque test.
@@ -1122,6 +1118,7 @@ class TestLoadingMultiFolder(HelperTests, unittest.TestCase):
 
 class TestEnvChunk(HelperTests, unittest.TestCase):
     def setUp(self):
+        super().setUp()
         self.max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1837,6 +1834,7 @@ class TestMultiFolder(HelperTests, unittest.TestCase):
         pass
 
     def setUp(self) -> None:
+        super().setUp()
         chronics_class = self.get_multifolder_class()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

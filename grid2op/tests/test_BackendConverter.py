@@ -35,10 +35,6 @@ PATH_DATA_TEST = PATH_DATA_TEST_PP
 BKclass1 = PandaPowerBackend
 BKclass2 = PandaPowerBackend
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestLoading(HelperTests, unittest.TestCase):
     def test_init(self):
@@ -52,7 +48,7 @@ class TestLoading(HelperTests, unittest.TestCase):
             env = make("rte_case14_realistic", test=True, backend=backend)
 
 
-class TestNames(HelperTests, BaseTestNames, unittest.TestCase):
+class TestNames(BaseTestNames, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -66,7 +62,7 @@ class TestNames(HelperTests, BaseTestNames, unittest.TestCase):
         return PATH_DATA_TEST_INIT
 
 
-class TestLoadingCase(HelperTests, BaseTestLoadingCase, unittest.TestCase):
+class TestLoadingCase(BaseTestLoadingCase, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -83,7 +79,7 @@ class TestLoadingCase(HelperTests, BaseTestLoadingCase, unittest.TestCase):
         return "test_case14.json"
 
 
-class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc, unittest.TestCase):
+class TestLoadingBackendFunc(BaseTestLoadingBackendFunc, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestLoadingBackendFunc.setUp(self)
@@ -108,7 +104,7 @@ class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc, unittest.T
         return "test_case14.json"
 
 
-class TestTopoAction(HelperTests, BaseTestTopoAction, unittest.TestCase):
+class TestTopoAction(BaseTestTopoAction, unittest.TestCase):
     def setUp(self):
         BaseTestTopoAction.setUp(self)
 
@@ -133,7 +129,7 @@ class TestTopoAction(HelperTests, BaseTestTopoAction, unittest.TestCase):
 
 
 class TestEnvPerformsCorrectCascadingFailures(
-    HelperTests, BaseTestEnvPerformsCorrectCascadingFailures, unittest.TestCase
+    BaseTestEnvPerformsCorrectCascadingFailures, unittest.TestCase
 ):
     def setUp(self):
         BaseTestEnvPerformsCorrectCascadingFailures.setUp(self)
@@ -158,7 +154,7 @@ class TestEnvPerformsCorrectCascadingFailures(
         return PATH_DATA_TEST
 
 
-class TestChangeBusAffectRightBus(HelperTests, BaseTestChangeBusAffectRightBus, unittest.TestCase):
+class TestChangeBusAffectRightBus(BaseTestChangeBusAffectRightBus, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -169,7 +165,7 @@ class TestChangeBusAffectRightBus(HelperTests, BaseTestChangeBusAffectRightBus, 
         return backend
 
 
-class TestShuntAction(HelperTests, BaseTestShuntAction, unittest.TestCase):
+class TestShuntAction(BaseTestShuntAction, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -180,7 +176,7 @@ class TestShuntAction(HelperTests, BaseTestShuntAction, unittest.TestCase):
         return backend
 
 
-class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid, unittest.TestCase):
+class TestResetEqualsLoadGrid(BaseTestResetEqualsLoadGrid, unittest.TestCase):
     def setUp(self):
         BaseTestResetEqualsLoadGrid.setUp(self)
 
@@ -194,7 +190,7 @@ class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid, unittest
         return backend
 
 
-class TestVoltageOWhenDisco(HelperTests, BaseTestVoltageOWhenDisco, unittest.TestCase):
+class TestVoltageOWhenDisco(BaseTestVoltageOWhenDisco, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -205,7 +201,7 @@ class TestVoltageOWhenDisco(HelperTests, BaseTestVoltageOWhenDisco, unittest.Tes
         return backend
 
 
-class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack, unittest.TestCase):
+class TestChangeBusSlack(BaseTestChangeBusSlack, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -216,7 +212,7 @@ class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack, unittest.TestCase)
         return backend
 
 
-class TestIssuesTest(HelperTests, BaseIssuesTest, unittest.TestCase):
+class TestIssuesTest(BaseIssuesTest, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -227,7 +223,7 @@ class TestIssuesTest(HelperTests, BaseIssuesTest, unittest.TestCase):
         return backend
 
 
-class TestStatusAction(HelperTests, BaseStatusActions, unittest.TestCase):
+class TestStatusAction(BaseStatusActions, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,

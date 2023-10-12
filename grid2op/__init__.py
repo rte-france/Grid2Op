@@ -53,3 +53,10 @@ from grid2op.MakeEnv import  (make,
                               change_local_dir,
                               list_available_test_env
                              )
+
+try:
+    from grid2op._create_test_suite import create_test_suite
+    __all__.append(create_test_suite)
+except ImportError as exc_:
+    # grid2op is most likely not installed in editable mode from source
+    pass

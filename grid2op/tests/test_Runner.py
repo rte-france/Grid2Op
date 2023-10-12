@@ -44,6 +44,7 @@ class AgentTestLegalAmbiguous(BaseAgent):
             
 class TestRunner(HelperTests, unittest.TestCase):
     def setUp(self):
+        super().setUp()
         self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
         self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None

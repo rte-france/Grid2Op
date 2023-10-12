@@ -28,6 +28,7 @@ class TestConnectivityConverter(HelperTests, unittest.TestCase):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
+        super().setUp()
         param = Parameters()
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
@@ -41,6 +42,7 @@ class TestConnectivityConverter(HelperTests, unittest.TestCase):
         np.random.seed(0)
 
     def tearDown(self):
+        super().tearDown()
         self.env.close()
 
     def test_ConnectivityConverter(self):
@@ -366,6 +368,7 @@ class TestIdToAct(HelperTests, unittest.TestCase):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
+        super().setUp()
         param = Parameters()
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
@@ -380,6 +383,7 @@ class TestIdToAct(HelperTests, unittest.TestCase):
         self.filenamedict = "test_action_json_educ_case14_storage.json"
 
     def tearDown(self):
+        super().tearDown()
         self.env.close()
 
     def test_save_reload(self):

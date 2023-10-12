@@ -7,14 +7,11 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import pdb
+import unittest
 import warnings
 from grid2op.tests.helper_path_test import *
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.MakeEnv import make
-
-import warnings
-
-warnings.simplefilter("error")
 
 
 class TestLoadingVoltageControl(unittest.TestCase):

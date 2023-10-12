@@ -8,6 +8,8 @@
 
 import pdb
 import warnings
+import unittest
+
 from grid2op.tests.helper_path_test import *
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float

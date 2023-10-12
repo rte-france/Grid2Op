@@ -99,12 +99,12 @@ class PandaPowerBackend(Backend):
 
     .. code-block:: python
 
-            import grid2op
-            from grid2op.Backend import PandaPowerBackend
-            backend = PandaPowerBackend()
+        import grid2op
+        from grid2op.Backend import PandaPowerBackend
+        backend = PandaPowerBackend()
 
-            env = grid2op.make(backend=backend)
-            # and use "env" as any open ai gym environment.
+        env = grid2op.make(backend=backend)
+        # and use "env" as "any open ai gym" environment.
 
     """
 
@@ -546,7 +546,9 @@ class PandaPowerBackend(Backend):
         add_topo = copy.deepcopy(self._grid.bus)
         add_topo.index += add_topo.shape[0]
         add_topo["in_service"] = False
-        self._grid.bus = pd.concat((self._grid.bus, add_topo))
+        # self._grid.bus = pd.concat((self._grid.bus, add_topo))
+        for ind, el in add_topo.iterrows():
+            pp.create_bus(self._grid, index=ind, **el)
 
         self._init_private_attrs()
 
@@ -1017,22 +1019,30 @@ class PandaPowerBackend(Backend):
                                                             " produces 0. instead. Please check generators: "
                                                             f"{np.where(~self._grid.gen['in_service'])[0]}"
                                                             )
-                    
-                if is_dc:
-                    pp.rundcpp(self._grid, check_connectivity=False, init="flat")
-                    # if dc i start normally next time i call an ac powerflow
-                    self._nb_bus_before = None
-                else:
-                    pp.runpp(
-                        self._grid,
-                        check_connectivity=False,
-                        init=self._pf_init,
-                        numba=self.with_numba,
-                        lightsim2grid=self._lightsim2grid,
-                        max_iteration=self._max_iter,
-                        distributed_slack=self._dist_slack,
-                    )
-                    
+                try:
+                    if is_dc:
+                        pp.rundcpp(self._grid, check_connectivity=True, init="flat")
+                        # if I put check_connectivity=False then the test AAATestBackendAPI.test_22_islanded_grid_make_divergence
+                        # does not pass
+                        
+                        # if dc i start normally next time i call an ac powerflow
+                        self._nb_bus_before = None
+                    else:
+                        pp.runpp(
+                            self._grid,
+                            check_connectivity=False,
+                            init=self._pf_init,
+                            numba=self.with_numba,
+                            lightsim2grid=self._lightsim2grid,
+                            max_iteration=self._max_iter,
+                            distributed_slack=self._dist_slack,
+                        )
+                except IndexError as exc_:
+                    raise pp.powerflow.LoadflowNotConverged(f"Surprising behaviour of pandapower when a bus is not connected to "
+                                                            f"anything but present on the bus (with check_connectivity=False). "
+                                                            f"Error was {exc_}"
+                                                            )
+                        
                 # stores the computation time
                 if "_ppc" in self._grid:
                     if "et" in self._grid["_ppc"]:
@@ -1040,7 +1050,8 @@ class PandaPowerBackend(Backend):
                 if self._grid.res_gen.isnull().values.any():
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     # sometimes pandapower does not detect divergence and put Nan.
-                    raise pp.powerflow.LoadflowNotConverged("Divergence due to Nan values in res_gen table.")
+                    raise pp.powerflow.LoadflowNotConverged("Divergence due to Nan values in res_gen table (most likely due to "
+                                                            "a non connected grid).")
                 
             # if a connected bus has a no voltage, it's a divergence (grid was not connected)
             if self._grid.res_bus.loc[self._grid.bus["in_service"]]["va_degree"].isnull().any():
@@ -1501,7 +1512,7 @@ class PandaPowerBackend(Backend):
             .values.astype(dt_float)
         )
         shunt_bus = type(self).global_bus_to_local(self._grid.shunt["bus"].values, self.shunt_to_subid)
-        shunt_v[~self._grid.shunt["in_service"].values] = 0
+        shunt_v[~self._grid.shunt["in_service"].values] = 0.
         shunt_bus[~self._grid.shunt["in_service"].values] = -1
         return shunt_p, shunt_q, shunt_v, shunt_bus
 
@@ -1530,6 +1541,7 @@ class PandaPowerBackend(Backend):
                 ].values.astype(dt_float)
                 * self.storage_pu_to_kv
             )
+            v_storage[~self._grid.storage["in_service"].values] = 0.
         else:
             p_storage = np.zeros(shape=0, dtype=dt_float)
             q_storage = np.zeros(shape=0, dtype=dt_float)

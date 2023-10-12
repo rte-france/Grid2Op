@@ -8,6 +8,8 @@
 
 import tempfile
 import warnings
+import unittest
+
 import grid2op
 from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.tests.helper_path_test import *
@@ -18,7 +20,6 @@ from grid2op.Opponent import (
     WeightedRandomOpponent,
     GeometricOpponent
 )
-from grid2op.Opponent.geometricOpponentMultiArea import GeometricOpponentMultiArea
 from grid2op.Action import TopologyAction
 from grid2op.MakeEnv import make
 from grid2op.Opponent.baseActionBudget import BaseActionBudget

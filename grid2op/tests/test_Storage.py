@@ -6,9 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import copy
-import pdb
-import time
 import warnings
 import unittest
 
@@ -19,8 +16,6 @@ from grid2op.Parameters import Parameters
 from grid2op.dtypes import dt_float
 from grid2op.Action import CompleteAction
 
-import warnings
-
 # TODO check when there is also redispatching
 
 
@@ -28,6 +23,7 @@ class TestStorageEnv(HelperTests, unittest.TestCase):
     """test the env part of the storage functionality"""
 
     def setUp(self) -> None:
+        super().setUp()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("educ_case14_storage", test=True)
