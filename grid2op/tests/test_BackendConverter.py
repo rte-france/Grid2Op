@@ -10,6 +10,7 @@ import warnings
 import unittest
 from grid2op.Converter import BackendConverter
 
+import grid2op
 from grid2op.tests.helper_path_test import *
 from grid2op import make
 from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST

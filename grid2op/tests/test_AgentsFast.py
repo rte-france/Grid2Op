@@ -13,6 +13,7 @@ import unittest
 
 from grid2op.tests.helper_path_test import *
 
+import grid2op
 from grid2op.Exceptions import *
 from grid2op.Agent import DoNothingAgent, BaseAgent
 from grid2op.Parameters import Parameters

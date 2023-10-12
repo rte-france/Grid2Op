@@ -12,7 +12,7 @@ import unittest
 
 import numpy as np
 
-from grid2op import make
+import grid2op
 
 from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
 from grid2op.Backend import PandaPowerBackend, Backend
@@ -281,7 +281,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make('rte_case14_realistic', test=True, backend=backend)
+            env = grid2op.make('rte_case14_realistic', test=True, backend=backend)
         env.reset()
         # action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
@@ -294,7 +294,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make('rte_case14_realistic', test=True, backend=backend)
+            env = grid2op.make('rte_case14_realistic', test=True, backend=backend)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -306,7 +306,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make('rte_case14_realistic', test=True, backend=backend)
+            env = grid2op.make('rte_case14_realistic', test=True, backend=backend)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)

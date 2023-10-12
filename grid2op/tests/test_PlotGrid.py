@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 import unittest
 import warnings
 
+import grid2op
 from grid2op.Exceptions import *
 from grid2op.PlotGrid import *
 

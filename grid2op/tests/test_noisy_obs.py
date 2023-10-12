@@ -113,7 +113,7 @@ class TestNoisy(unittest.TestCase):
 
     def test_simulate(self):
         sim_o, *_ = self.obs.simulate(self.env.action_space())
-        assert type(sim_o).env_name == "educ_case14_storage"
+        assert type(sim_o).env_name == "educ_case14_storage"+type(self).__name__
         assert isinstance(sim_o, CompleteObservation)
 
         # test that it is reproducible

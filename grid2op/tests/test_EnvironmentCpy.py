@@ -15,6 +15,7 @@ import warnings
 
 from grid2op.tests.helper_path_test import *
 
+import grid2op
 from grid2op.Reward import L2RPNReward
 from grid2op.tests.test_Environment import (
     TestLoadingBackendPandaPower as Aux_TestLoadingBackendPandaPower,

@@ -9,9 +9,9 @@
 import unittest
 
 from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
-from grid2op.Backend import PandaPowerBackend
 
-from grid2op.tests.helper_path_test import HelperTests
+import grid2op
+from grid2op.Backend import PandaPowerBackend
 from grid2op.tests.BaseRedispTest import (
     BaseTestRedispatch,
     BaseTestRedispatchChangeNothingEnvironment,

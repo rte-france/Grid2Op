@@ -9,6 +9,7 @@
 import unittest
 import numpy as np
 import warnings
+import grid2op
 from grid2op.Opponent import (
     GeometricOpponentMultiArea, 
     GeometricOpponent

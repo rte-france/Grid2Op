@@ -14,8 +14,8 @@ import unittest
 from grid2op.gym_compat import (DiscreteActSpace, GymActionSpace,
                                 GymObservationSpace, GymEnv, ContinuousToDiscreteConverter)
 from grid2op.tests.helper_path_test import *
-from grid2op.Action import PlayableAction
 import grid2op
+from grid2op.Action import PlayableAction
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Converter import IdToAct, ToVect
 import pdb
@@ -74,7 +74,7 @@ class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
                 )
             else:
                 env_path_or_name = self.get_env_name()
-            with make(env_path_or_name, test=True) as env:
+            with grid2op.make(env_path_or_name, test=True) as env:
                 # test i can create
                 obs_space = GymObservationSpace(env)
                 act_space = GymActionSpace(env)
@@ -82,7 +82,7 @@ class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
     def test_json(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(self.get_env_name(), test=True) as env:
+            with grid2op.make(self.get_env_name(), test=True) as env:
                 # test i can create
                 obs_space = GymObservationSpace(env)
                 act_space = GymActionSpace(env)
@@ -96,7 +96,7 @@ class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
     def test_to_from_gym_obs(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(self.get_env_name(), test=True) as env:
+            with grid2op.make(self.get_env_name(), test=True) as env:
                 obs_space = GymObservationSpace(env)
 
                 obs = env.reset()
@@ -139,7 +139,7 @@ class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
     def test_to_from_gym_act(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(self.get_env_name(), test=True) as env:
+            with grid2op.make(self.get_env_name(), test=True) as env:
                 act_space = GymActionSpace(env)
 
                 act = env.action_space()
@@ -166,7 +166,7 @@ class BaseTestConverter(BaseTestGymConverter):
     def test_creation(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("l2rpn_wcci_2020", test=True) as env:
+            with grid2op.make("l2rpn_wcci_2020", test=True) as env:
                 # test i can create
                 converter = self.init_converter(env)
                 act_space = GymActionSpace(env=env, converter=converter)
@@ -175,7 +175,7 @@ class BaseTestConverter(BaseTestGymConverter):
     def test_json(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("l2rpn_wcci_2020", test=True) as env:
+            with grid2op.make("l2rpn_wcci_2020", test=True) as env:
                 # test i can create
                 converter = self.init_converter(env)
                 act_space = GymActionSpace(env=env, converter=converter)
@@ -185,7 +185,7 @@ class BaseTestConverter(BaseTestGymConverter):
     def test_to_from_gym_act(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("l2rpn_wcci_2020", test=True) as env:
+            with grid2op.make("l2rpn_wcci_2020", test=True) as env:
                 converter = self.init_converter(env)
                 act_space = GymActionSpace(env=env, converter=converter)
                 act_space.seed(0)
@@ -234,7 +234,7 @@ class TestDropAttr(unittest.TestCase):
     def test_keep_only_attr(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("educ_case14_redisp", test=True)
+            env = grid2op.make("educ_case14_redisp", test=True)
             gym_env = GymEnv(env)
             attr_kept = sorted(
                 ("rho", "line_status", "actual_dispatch", "target_dispatch")
@@ -246,7 +246,7 @@ class TestDropAttr(unittest.TestCase):
     def test_ignore_attr(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("educ_case14_redisp", test=True)
+            env = grid2op.make("educ_case14_redisp", test=True)
             gym_env = GymEnv(env)
             attr_deleted = sorted(
                 ("rho", "line_status", "actual_dispatch", "target_dispatch")
@@ -266,7 +266,7 @@ class TestContinuousToDiscrete(unittest.TestCase):
     def test_split_in_3(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("educ_case14_redisp", test=True)
+            env = grid2op.make("educ_case14_redisp", test=True)
             gym_env = GymEnv(env)
             act_space = gym_env.action_space
             act_space = act_space.reencode_space(
@@ -316,7 +316,7 @@ class TestContinuousToDiscrete(unittest.TestCase):
     def test_split_in_5(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("educ_case14_redisp", test=True)
+            env = grid2op.make("educ_case14_redisp", test=True)
             gym_env = GymEnv(env)
             act_space = gym_env.action_space
             act_space = act_space.reencode_space(
@@ -395,7 +395,7 @@ class TestDiscreteActSpace(unittest.TestCase):
         self.filenamedict = "test_action_json_educ_case14_storage.json"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.glop_env = make(
+            self.glop_env = grid2op.make(
                 "educ_case14_storage", test=True, action_class=PlayableAction
             )
 

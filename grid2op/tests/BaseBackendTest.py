@@ -20,6 +20,8 @@ import inspect
 from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
+
+import grid2op
 from grid2op.tests.helper_path_test import HelperTests
 
 from grid2op.Action import CompleteAction
@@ -2003,7 +2005,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = gridop.make(
+            env_case2 = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
