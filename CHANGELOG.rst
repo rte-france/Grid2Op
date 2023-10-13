@@ -46,6 +46,8 @@ Change Log
 - [FIXED] a bug in PandaPowerBackend in AC powerflow when a generator was alone a bus it made the powerflow
   crash on some cases (*eg* without lightsim2grid, without numba)
 - [FIXED] a bug in PandaPowerBackend in DC (in some cases non connected grid were not spotted)
+- [FIXED] now the observations once reloaded have the correct `_is_done` flag (`obs._is_done = False`)
+  which allows to use the `obs.get_energy_graph()` for example. This fixes https://github.com/rte-france/Grid2Op/issues/538
 - [ADDED] now depends on the `typing_extensions` package
 - [ADDED] a complete test suite to help people develop new backend using "Test Driven Programming" 
   techniques
