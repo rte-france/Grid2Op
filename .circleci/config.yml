@@ -241,6 +241,7 @@ jobs:
                    python -m pip install -U .[test]
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
+
     install310:
         executor: python310
         resource_class: small
@@ -299,6 +300,7 @@ jobs:
                    python -m pip install -U .[test]
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
+
     install311:
         executor: python311
         resource_class: small
@@ -357,6 +359,11 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
+                   python -m pip install -U pip setuptools wheel
+                   python -m pip install -U numba
+            - run:
+               command: |
+                   source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.26,<1.27"
                    python -m pip install -U .[test]
                    export _GRID2OP_FORCE_TEST=1
@@ -373,3 +380,4 @@ workflows:
           - install39
           - install310
           - install311
+          - install312
