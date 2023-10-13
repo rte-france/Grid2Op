@@ -51,6 +51,8 @@ Change Log
   techniques
 - [IMPROVED] now easier than ever to run the grid2op test suite with a new backend (for relevant tests)
 - [IMPROVED] type hints for `Backend` and `PandapowerBackend`
+- [IMPROVED] distribute python 3.12 wheel
+- [IMPROVED] test for python 3.12 and numpy 1.26 when appropriate (*eg* when numpy version is released)
 
 [1.9.5] - 2023-09-18
 ---------------------
