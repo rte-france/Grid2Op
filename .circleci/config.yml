@@ -21,7 +21,7 @@ executors:
     python311:
         docker:
             - image: python:3.11-buster
-    python311:
+    python312:
         docker:
             - image: python:3.12-buster
 
