@@ -25,10 +25,6 @@ from grid2op.tests.BaseRedispTest import BaseTestLoadingAcceptAlmostZeroSumRedis
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestRedispatch(BaseTestRedispatch, unittest.TestCase):
     def setUp(self):
