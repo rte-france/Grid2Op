@@ -22,7 +22,9 @@ class TestSimulator(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox",
+                                    test=True,
+                                    _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.obs = self.env.reset()
 
@@ -158,7 +160,8 @@ class TestComplexActions(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-                "educ_case14_storage", test=True, action_class=PlayableAction
+                "educ_case14_storage", test=True, action_class=PlayableAction,
+                _add_to_name=type(self).__name__
             )
         self.env.seed(0)
         self.obs = self.env.reset()

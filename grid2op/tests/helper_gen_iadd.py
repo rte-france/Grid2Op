@@ -33,7 +33,8 @@ class Test_iadd_Base(ABC):
             cls.action_t = cls._action_setup()
             cls.env = grid2op.make("rte_case14_realistic",
                                    test=True,
-                                   action_class=cls.action_t)
+                                   action_class=cls.action_t,
+                                   _add_to_name=type(self).__name__)
     @classmethod        
     def tearDownClass(cls):
         cls.env.close()

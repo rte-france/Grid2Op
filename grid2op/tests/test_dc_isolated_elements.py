@@ -17,7 +17,7 @@ class TestIsolatedLoad(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_case14_sandbox", test=True) # , backend=LightSimBackend())
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
         param = self.env.parameters
         param.ENV_DC = True  # force the computation of the powerflow in DC mode
         param.MAX_LINE_STATUS_CHANGED = 99999

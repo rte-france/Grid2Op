@@ -8,6 +8,7 @@
 
 import copy
 import re
+import unittest
 
 from grid2op.tests.helper_path_test import *
 

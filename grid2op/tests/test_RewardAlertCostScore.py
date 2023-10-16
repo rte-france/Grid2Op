@@ -65,7 +65,8 @@ class TestAlertCostScore(unittest.TestCase):
             self.env_nm,
             test=True,
             difficulty="1",
-            reward_class=_AlertCostScore
+            reward_class=_AlertCostScore,
+            _add_to_name=type(self).__name__
         ) as env:
             env.seed(0)
             env.reset()
@@ -85,7 +86,8 @@ class TestSimulate(unittest.TestCase):
             PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
         )
         self.env = grid2op.make(self.env_nm, test=True, difficulty="1",
-                        reward_class=_AlertCostScore)
+                        reward_class=_AlertCostScore,
+                        _add_to_name=type(self).__name__)
         self.env.seed(0)
         return super().setUp()
     
@@ -126,7 +128,8 @@ class TestRunnerAlertCost(unittest.TestCase):
             PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
         )
         self.env = grid2op.make(self.env_nm, test=True, difficulty="1",
-                        reward_class=_AlertCostScore)
+                        reward_class=_AlertCostScore,
+                        _add_to_name=type(self).__name__)
         self.env.seed(0)
         return super().setUp()
     

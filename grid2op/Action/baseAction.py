@@ -1879,7 +1879,7 @@ class BaseAction(GridObjects):
                     msg += (
                         ' at least one of "loads_id", "generators_id", "lines_or_id", '
                     )
-                    msg += '"lines_ex_id" or "substations_id"'
+                    msg += '"lines_ex_id" or "substations_id" or "storages_id"'
                     msg += " as keys. None where found. Current used keys are: "
                     msg += "{}".format(sorted(ddict_.keys()))
                     raise AmbiguousAction(msg)
@@ -1922,7 +1922,7 @@ class BaseAction(GridObjects):
                     msg += (
                         ' at least one of "loads_id", "generators_id", "lines_or_id", '
                     )
-                    msg += '"lines_ex_id" or "substations_id"'
+                    msg += '"lines_ex_id" or "substations_id" or "storages_id"'
                     msg += " as keys. None where found. Current used keys are: "
                     msg += "{}".format(sorted(ddict_.keys()))
                     raise AmbiguousAction(msg)

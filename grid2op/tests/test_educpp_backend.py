@@ -38,7 +38,7 @@ class EducPPTester(unittest.TestCase):
                 env = grid2op.make(env_name,
                                    test=True,
                                    backend=EducPandaPowerBackend(),
-                                   _add_to_name="educppbk")
+                                   _add_to_name=type(self).__name__+"educppbk")
                 assert type(env).n_shunt is None, f"error for {env_name}"
                 assert not type(env).shunts_data_available, f"error for {env_name}"
             env.close()

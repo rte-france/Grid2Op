@@ -392,6 +392,11 @@ actspace_converter.py
 grid2op/data_test/input_data_local/
 test_sim2real_battery.py
 grid2op/tests/list_test_debug
+aux_test_make_backend_test_suite.py
+grid2op/tests/test_failing_simulator.txt
+old_pyproject.toml
+pp_bug_gen_alone.py
+test_dunder.py
 
 # profiling files
 **.prof

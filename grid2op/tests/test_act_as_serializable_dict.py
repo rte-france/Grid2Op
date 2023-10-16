@@ -382,11 +382,11 @@ class TestMultiGrid(unittest.TestCase):
             self.env1 = grid2op.make("l2rpn_case14_sandbox",
                                      test=True,
                                      action_class=PlayableAction,
-                                     _add_to_name="_TestMultiGrid")
+                                     _add_to_name=type(self).__name__+"env1")
             self.env2 = grid2op.make("educ_case14_storage",
                                      test=True,
                                      action_class=PlayableAction,
-                                     _add_to_name="_TestMultiGrid")
+                                     _add_to_name=type(self).__name__+"env2")
         return super().setUp()
     def tearDown(self) -> None:
         self.env1.close()

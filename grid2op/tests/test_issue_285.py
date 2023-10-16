@@ -20,7 +20,8 @@ class Issue285Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-                "rte_case5_example", test=True, chronics_class=MultifolderWithCache
+                "rte_case5_example", test=True, chronics_class=MultifolderWithCache,
+                _add_to_name=type(self).__name__
             )
         self.env.chronics_handler.real_data.set_filter(
             lambda x: re.match(".*0$", x) is not None

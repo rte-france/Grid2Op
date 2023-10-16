@@ -172,6 +172,39 @@ class Backend(GridObjects, ABC):
         for k, v in kwargs.items():
             self._my_kwargs[k] = v
         
+    def make_complete_path(self,
+                           path : Union[os.PathLike, str],
+                           filename : Optional[Union[os.PathLike, str]]=None) -> str:
+        """Auxiliary function to retrieve the full path of the grid.
+        
+        It is best used at the beginning of the `load_grid` function of a backend.
+
+        Returns
+        -------
+        _type_
+            _description_
+
+        Raises
+        ------
+        Grid2OpException
+            _description_
+        Grid2OpException
+            _description_
+        """
+        if path is None and filename is None:
+            raise Grid2OpException(
+                "You must provide at least one of path or file to load a powergrid."
+            )
+        if path is None:
+            full_path = filename
+        elif filename is None:
+            full_path = path
+        else:
+            full_path = os.path.join(path, filename)
+        if not os.path.exists(full_path):
+            raise Grid2OpException('There is no powergrid at "{}"'.format(full_path))
+        return full_path
+        
     @property
     def is_loaded(self) -> bool:
         """Return whether or not this backend has been loaded, that is if `load_grid` has been called or not with this instance."""

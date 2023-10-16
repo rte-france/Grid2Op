@@ -198,9 +198,25 @@ class Simulator(object):
         if not os.path.isfile(grid_path):
             raise SimulatorError(f'the supposed grid path "{grid_path}" if not a file')
 
-        tmp_backend = backend_type(**kwargs)
-        tmp_backend.load_grid(grid_path)
+        if backend_type._IS_INIT:
+            backend_type_init = backend_type
+        else:
+            backend_type_init= backend_type.init_grid(type(self.backend))
+            
+        tmp_backend = backend_type_init(**kwargs)
+        # load a forecasted grid if there are any
+        path_env, grid_name_with_ext = os.path.split(grid_path)
+        grid_name, ext = os.path.splitext(grid_name_with_ext)
+        grid_forecast_name = f"{grid_name}_forecast.{ext}"
+        if os.path.exists(os.path.join(path_env, grid_forecast_name)):
+            grid_path_loaded = os.path.join(path_env, grid_forecast_name)
+        else:
+            grid_path_loaded = grid_path 
+        tmp_backend.load_grid(grid_path_loaded)
         tmp_backend.assert_grid_correct()
+        tmp_backend.runpf()
+        tmp_backend.assert_grid_correct_after_powerflow()
+        tmp_backend.set_thermal_limit(self.backend.get_thermal_limit())
         self.backend.close()
         self.backend = tmp_backend
         self.set_state(obs=self.current_obs)

@@ -908,7 +908,8 @@ class CollectionWrapper:
             except IncorrectNumberOfElements as exc_:
                 # grid2op does not allow to load the object: there is a mismatch between what has been stored
                 # and what is currently used.
-                raise
+                raise Grid2OpException("grid2op does not allow to load the object: there is a mismatch "
+                                       "between what has been stored and what is currently used.") from exc_
             except NonFiniteElement:
                 self._game_over = i
                 break

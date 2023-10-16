@@ -8,11 +8,12 @@
 
 import warnings
 import os
+import unittest
 import numpy as np
+
+from grid2op.tests.helper_path_test import *
 import grid2op
 from grid2op.Action.playableAction import PlayableAction
-from grid2op.tests.helper_path_test import *
-import unittest
 
 import pdb
 
@@ -32,7 +33,8 @@ class TestExtremeCurtail(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
                 self.env_name,
-                test=True
+                test=True,
+                _add_to_name=type(self).__name__
             )
 
         # retrieve the reference values, without curtailment
@@ -557,8 +559,8 @@ class TestExtremeStorage(unittest.TestCase):
                 self.env_name,
                 test=True,
                 data_feeding_kwargs={"max_iter": 10},
-                _add_to_name="TestExtremeStorage",
                 action_class=PlayableAction,
+                _add_to_name=type(self).__name__+"TestExtremeStorage",
             )
         # increase the storage capacity
         increase_storage = np.array([15.0, 30.0])

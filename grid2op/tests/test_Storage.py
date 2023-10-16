@@ -6,10 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import copy
-import pdb
-import time
 import warnings
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
@@ -18,18 +16,17 @@ from grid2op.Parameters import Parameters
 from grid2op.dtypes import dt_float
 from grid2op.Action import CompleteAction
 
-import warnings
-
 # TODO check when there is also redispatching
 
 
-class TestStorageEnv(HelperTests):
+class TestStorageEnv(HelperTests, unittest.TestCase):
     """test the env part of the storage functionality"""
 
     def setUp(self) -> None:
+        super().setUp()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True)
+            self.env = grid2op.make("educ_case14_storage", test=True, _add_to_name=type(self).__name__)
 
     def tearDown(self) -> None:
         self.env.close()
@@ -53,7 +50,7 @@ class TestStorageEnv(HelperTests):
         param.INIT_STORAGE_CAPACITY = 0.0
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True, param=param)
+            env = grid2op.make("educ_case14_storage", test=True, param=param, _add_to_name=type(self).__name__)
         obs = env.reset()
         assert np.all(np.abs(obs.storage_charge) <= self.tol_one)
 
@@ -61,7 +58,7 @@ class TestStorageEnv(HelperTests):
         param.INIT_STORAGE_CAPACITY = 1.0
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True, param=param)
+            env = grid2op.make("educ_case14_storage", test=True, param=param, _add_to_name=type(self).__name__)
         obs = env.reset()
         assert np.all(np.abs(obs.storage_charge - obs.storage_Emax) <= self.tol_one)
 
@@ -251,7 +248,7 @@ class TestStorageEnv(HelperTests):
         param.ACTIVATE_STORAGE_LOSS = False
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True, param=param)
+            env = grid2op.make("educ_case14_storage", test=True, param=param, _add_to_name=type(self).__name__)
         obs = env.get_obs()
         assert np.all(
             np.abs(obs.storage_charge - 0.5 * obs.storage_Emax) <= self.tol_one
@@ -273,7 +270,7 @@ class TestStorageEnv(HelperTests):
         param.INIT_STORAGE_CAPACITY = init_coeff
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True, param=param)
+            env = grid2op.make("educ_case14_storage", test=True, param=param, _add_to_name=type(self).__name__)
         obs = env.get_obs()
         init_charge = init_coeff * obs.storage_Emax
         loss = 1.0 * env.storage_loss
@@ -374,7 +371,7 @@ class TestStorageEnv(HelperTests):
         param.INIT_STORAGE_CAPACITY = init_coeff
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True, param=param)
+            env = grid2op.make("educ_case14_storage", test=True, param=param, _add_to_name=type(self).__name__)
         self.env.close()
         self.env = env
 
@@ -451,7 +448,7 @@ class TestStorageEnv(HelperTests):
         param.INIT_STORAGE_CAPACITY = init_coeff
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True, param=param)
+            env = grid2op.make("educ_case14_storage", test=True, param=param, _add_to_name=type(self).__name__)
         self.env.close()
         self.env = env
 
@@ -552,7 +549,7 @@ class TestStorageEnv(HelperTests):
         param.INIT_STORAGE_CAPACITY = init_coeff
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True, param=param)
+            env = grid2op.make("educ_case14_storage", test=True, param=param, _add_to_name=type(self).__name__)
         self.env.close()
         self.env = env
 
@@ -629,7 +626,7 @@ class TestStorageEnv(HelperTests):
         param.INIT_STORAGE_CAPACITY = init_coeff
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True, param=param)
+            env = grid2op.make("educ_case14_storage", test=True, param=param, _add_to_name=type(self).__name__)
         self.env.close()
         self.env = env
 
@@ -826,6 +823,7 @@ class TestStorageEnv(HelperTests):
                 test=True,
                 action_class=CompleteAction,
                 param=param,
+                _add_to_name=type(self).__name__,
             )
         self.env.close()
         self.env = env

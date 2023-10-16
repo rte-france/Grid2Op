@@ -29,7 +29,8 @@ class Issue321Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(env_name, test=True,
-                               action_class=PlayableAction, param=param)
+                               action_class=PlayableAction, param=param,
+                               _add_to_name=type(self).__name__)
             
         env.seed(0)
         env.set_id(0)
@@ -49,7 +50,8 @@ class Issue321Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("l2rpn_wcci_2022_dev",
-                                    test=True)
+                                    test=True,
+                                    _add_to_name=type(self).__name__)
         param = env.parameters
         param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
         env.seed(seed_)
@@ -82,7 +84,8 @@ class Issue321Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("l2rpn_wcci_2022_dev",
-                                    test=True)
+                                    test=True,
+                                    _add_to_name=type(self).__name__)
         param = env.parameters
         param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
         env.seed(seed_)

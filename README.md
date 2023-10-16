@@ -296,11 +296,12 @@ The unit tests includes testing, on linux machines the correct integration of gr
 * python 3.9
 * python 3.10
 * python 3.11
+* python 3.12
 
-On all of these cases, we tested grid2op on all available numpy version >= 1.20 (**nb** available numpy versions depend
+On all of these cases, we tested grid2op on all available numpy versions >= 1.20 (**nb** available numpy versions depend
 on python version).
 
-The complete test suit is run on linux with the latest numpy version on python 3.8.
+The complete test suit is run on linux with the latest numpy version on python 3.10.
 
 ### Known issues
 

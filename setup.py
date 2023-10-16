@@ -93,6 +93,10 @@ if sys.version_info.minor <= 7:
     pkgs["required"][3] = "pandapower>=2.2.2,<2.12"
     # importlib provided importlib.metadata as of python 3.8
     pkgs["required"].append("importlib_metadata")
+    
+if sys.version_info.minor == 12:
+    # numba is not available for python 3.12 at the moment
+    pkgs["extras"]["test"] = [el for el in  pkgs["extras"]["test"] if not ("numba" in el)]
 
 setup(description='An gymnasium compatible environment to model sequential decision making  for powersystems',
       long_description=long_description,

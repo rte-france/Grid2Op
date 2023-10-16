@@ -133,18 +133,7 @@ class EducPandaPowerBackend(Backend):
         """
 
         # first, handles different kind of path:
-        if path is None and filename is None:
-            raise RuntimeError(
-                "You must provide at least one of path or file to load a powergrid."
-            )
-        if path is None:
-            full_path = filename
-        elif filename is None:
-            full_path = path
-        else:
-            full_path = os.path.join(path, filename)
-        if not os.path.exists(full_path):
-            raise RuntimeError('There is no powergrid at "{}"'.format(full_path))
+        full_path = self.make_complete_path(path, filename)
 
         # then load the grid located at the full path and store it in `self._grid`
         # raise an exception if it can't be loaded

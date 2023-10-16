@@ -18,7 +18,8 @@ class Issue511Tester(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
             "l2rpn_idf_2023",
-            test=True
+            test=True,
+            _add_to_name=type(self).__name__
         )
         return super().setUp()
     

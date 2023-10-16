@@ -34,7 +34,8 @@ class BaseTestPlot(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("l2rpn_case14_sandbox", test=True,
                                     observation_class=CustomTestObservation,
-                                    reward_class=CustomTestReward)
+                                    reward_class=CustomTestReward,
+                                    _add_to_name=type(self).__name__)
         CustomTestReward.nb_call = 0
 
     def tearDown(self):

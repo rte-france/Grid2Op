@@ -17,7 +17,7 @@ class Issue331Tester(unittest.TestCase):
     def test_seed(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
             
         with self.assertRaises(Grid2OpException):
             env.seed(2735729614)  # crashes !
