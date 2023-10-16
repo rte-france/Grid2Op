@@ -107,6 +107,10 @@ jobs:
             name: cp311,
             version: '3.11',
           }
+          - {
+            name: cp312,
+            version: '3.12',
+          }
 
     steps:
 
@@ -139,7 +143,7 @@ jobs:
           python3 -c "from grid2op.Action._backendAction import _BackendAction"
 
       - name: Build source archive
-        if: matrix.config.name == 'darwin' && matrix.python.name == 'cp39'
+        if: matrix.config.name == 'darwin' && matrix.python.name == 'cp310'
         run: python setup.py sdist
 
       - name: Upload wheel
