@@ -177,6 +177,10 @@ class Environment(BaseEnv):
         )
         self._actionClass_orig = actionClass
         self._observationClass_orig = observationClass
+
+        # initialize outage index
+        self.num_outages = self.n_line
+        self.outage_idx = 0
         
     def _init_backend(
         self,
@@ -929,8 +933,18 @@ class Environment(BaseEnv):
         
         if self._init_obs is not None:
             self._reset_to_orig_state(self._init_obs)
-        return self.get_obs()
 
+        # set initial outage
+
+        obs = self.get_obs()
+        line_id_to_set = [self.outage_idx]
+        act = self.action_space()
+        act.line_set_status = [[l_id, -1] for l_id in line_id_to_set]
+        obs, _, _, _ = self.step(act)
+
+        self.outage_idx = (self.outage_idx + 1) % self.num_outages
+        
+        return obs
     def render(self, mode="rgb_array"):
         """
         Render the state of the environment on the screen, using matplotlib

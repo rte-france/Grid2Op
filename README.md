@@ -60,9 +60,9 @@ source venv_grid2op/bin/activate
 pip3 install grid2op
 ```
 
-## Install from source
+## Install from source (Please install form source)
 ```commandline
-git clone https://github.com/rte-france/Grid2Op.git
+git clone https://github.com/ybiao-he/Grid2Op.git
 cd Grid2Op
 pip3 install -U .
 cd ..
