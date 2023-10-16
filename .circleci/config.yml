@@ -360,7 +360,7 @@ jobs:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U pip setuptools wheel
-                   python -m pip install -U numba
+                #    python -m pip install -U numba  # not on python 3.12 at the moment
             - run:
                command: |
                    source venv_test/bin/activate
