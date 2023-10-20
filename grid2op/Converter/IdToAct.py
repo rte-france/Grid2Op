@@ -144,7 +144,7 @@ class IdToAct(Converter):
 
             import grid2op
             from grid2op.Converter import IdToAct
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             converter = IdToAct(env.action_space)
 
             # the path were will save it
@@ -319,7 +319,7 @@ class IdToAct(Converter):
 
             import grid2op
             from grid2op.Converter import IdToAct
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             converter = IdToAct(env.action_space)
 
             # the path were will save it
@@ -435,7 +435,7 @@ class IdToAct(Converter):
         .. code-block:: python
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # create the converter
             converter = IdToAct(env.action_space)
@@ -477,7 +477,7 @@ class IdToAct(Converter):
         .. code-block:: python
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # create the converter
             converter = IdToAct(env.action_space)

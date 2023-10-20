@@ -42,8 +42,14 @@ class HelperTests:
     def setUp(self):
         self.tolvect = dt_float(1e-2)
         self.tol_one = dt_float(1e-5)
-        super().setUp()
-
+        if hasattr(type(super()), "setUp"):
+            # needed for backward compatibility
+            super().setUp()
+            
+    def tearDown(self):
+        # needed for backward compatibility
+        pass
+    
     def compare_vect(self, pred, true):
         res = dt_float(np.max(np.abs(pred - true))) <= self.tolvect
         res = res and dt_float(np.mean(np.abs(pred - true))) <= self.tolvect

@@ -38,7 +38,7 @@ This example is adapted from gym documentation available at
 
     import grid2op
     from grid2op.Agent import RandomAgent
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     agent = RandomAgent(env.action_space)
     env.seed(0)  # for reproducible experiments
     episode_count = 100  # i want to make 100 episodes
@@ -123,7 +123,7 @@ the call to "env.reset". This gives the following code:
 
     import grid2op
     from grid2op.Agent import RandomAgent
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     agent = RandomAgent(env.action_space)
     env.seed(0)  # for reproducible experiments
     episode_count = 100  # i want to make 100 episodes
@@ -174,7 +174,7 @@ that will do exactly that. You can use it like this:
     import numpy as np
     import grid2op
     from grid2op.Agent import RandomAgent
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     agent = RandomAgent(env.action_space)
     env.seed(0)  # for reproducible experiments
     episode_count = 10000  # i want to make lots of episode
@@ -224,7 +224,7 @@ chronics and should return ``True`` / ``False`` whether or not you want to keep 
     import re
     import grid2op
     from grid2op.Agent import RandomAgent
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     agent = RandomAgent(env.action_space)
     env.seed(0)  # for reproducible experiments
 
@@ -276,7 +276,7 @@ reason oversampling the 10 first chronics, and under sample the last 10:
     import re
     import grid2op
     from grid2op.Agent import RandomAgent
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     agent = RandomAgent(env.action_space)
     env.seed(0)  # for reproducible experiments
 
@@ -338,7 +338,7 @@ episode:
     import re
     import grid2op
     from grid2op.Agent import RandomAgent
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     agent = RandomAgent(env.action_space)
     env.seed(0)  # for reproducible experiments
 

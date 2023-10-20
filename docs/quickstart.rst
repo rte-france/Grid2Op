@@ -94,7 +94,7 @@ The most basic code, for those familiar with openAI gym (a well-known framework 
 
     import grid2op
     # create an environment
-    env_name = "rte_case14_realistic"  # for example, other environments might be usable
+    env_name = "l2rpn_case14_sandbox"  # for example, other environments might be usable
     env = grid2op.make(env_name)
 
     # create an agent

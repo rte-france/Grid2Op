@@ -871,7 +871,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # for an observation:
             obs = env.reset()
@@ -1008,7 +1008,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # for an observation:
             obs_space_shapes = env.observation_space.shape()
@@ -1052,7 +1052,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # for an observation:
             obs_space_types = env.observation_space.dtype()
@@ -1126,7 +1126,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # get the vector representation of an observation:
             obs = env.reset()
@@ -1221,7 +1221,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # get the vector representation of an observation:
             obs = env.reset()
@@ -1712,7 +1712,7 @@ class GridObjects:
         if cls.gen_to_sub_pos is None:
             if need_implement is False:
                 raise BackendError(
-                    'You chose to implement "load_to_sub_pos" but not "gen_to_sub_pos". We cannot '
+                    'You chose not to implement "gen_to_sub_pos" but not "load_to_sub_pos". We cannot '
                     "work with that. Please either use the automatic setting, or implement all of "
                     "*_to_sub_pos vectors"
                     ""
@@ -1721,7 +1721,7 @@ class GridObjects:
         if cls.line_or_to_sub_pos is None:
             if need_implement is False:
                 raise BackendError(
-                    'You chose to implement "line_or_to_sub_pos" but not "load_to_sub_pos"'
+                    'You chose not to implement "line_or_to_sub_pos" but "load_to_sub_pos"'
                     'or "gen_to_sub_pos". We cannot '
                     "work with that. Please either use the automatic setting, or implement all of "
                     "*_to_sub_pos vectors"
@@ -1731,7 +1731,7 @@ class GridObjects:
         if cls.line_ex_to_sub_pos is None:
             if need_implement is False:
                 raise BackendError(
-                    'You chose to implement "line_ex_to_sub_pos" but not "load_to_sub_pos"'
+                    'You chose not to implement "line_ex_to_sub_pos" but "load_to_sub_pos"'
                     'or "gen_to_sub_pos" or "line_or_to_sub_pos". We cannot '
                     "work with that. Please either use the automatic setting, or implement all of "
                     "*_to_sub_pos vectors"
@@ -1741,7 +1741,7 @@ class GridObjects:
         if cls.storage_to_sub_pos is None:
             if need_implement is False:
                 raise BackendError(
-                    'You chose to implement "storage_to_sub_pos" but not "load_to_sub_pos"'
+                    'You chose not to implement "storage_to_sub_pos" but "load_to_sub_pos"'
                     'or "gen_to_sub_pos" or "line_or_to_sub_pos" or "line_ex_to_sub_pos". '
                     "We cannot "
                     "work with that. Please either use the automatic setting, or implement all of "
@@ -2796,7 +2796,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # get the vector representation of an observation:
             sub_id = 1
@@ -2878,7 +2878,7 @@ class GridObjects:
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # get the vector representation of an observation:
             sub_id = 1
@@ -2984,7 +2984,7 @@ class GridObjects:
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             l_ids = env.get_lines_id(from_=0, to_=1)
             print("The powerlines connecting substation 0 to substation 1 have for ids: {}".format(l_ids))
@@ -3043,7 +3043,7 @@ class GridObjects:
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             g_ids = env.get_generators_id(sub_id=1)
             print("The generators connected to substation 1 have for ids: {}".format(g_ids))
@@ -3094,7 +3094,7 @@ class GridObjects:
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             c_ids = env.get_loads_id(sub_id=1)
             print("The loads connected to substation 1 have for ids: {}".format(c_ids))
@@ -3146,7 +3146,7 @@ class GridObjects:
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             sto_ids = env.get_storages_id(sub_id=1)
             print("The loads connected to substation 1 have for ids: {}".format(c_ids))

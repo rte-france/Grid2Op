@@ -42,8 +42,8 @@ class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
 
         import grid2op
         from grid2op.Environment import MultiEnvMultiProcess
-        env0 = grid2op.make()  # create an environment
-        env1 = grid2op.make()  # create a second environment, that can be similar, or not
+        env0 = grid2op.make("l2rpn_case14_sandbox")  # create an environment
+        env1 = grid2op.make("l2rpn_case14_sandbox")  # create a second environment, that can be similar, or not
         # it is recommended to filter or create the environment with different parameters, otherwise this class
         # is of little interest
         envs = [env0, env1]  # list of all environments created
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     nb_env = [2, 2, 1, 1, 2]  # change that to adapt to your system
     NB_STEP = 100  # number of step for each environment
 
-    env = make()
+    env = make("l2rpn_case14_sandbox")
     env.seed(42)
     envs = [env, env, env, env, env]
 

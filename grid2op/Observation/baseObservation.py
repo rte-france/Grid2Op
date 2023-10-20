@@ -1619,7 +1619,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             obs = env.reset()
 
             # retrieve the id of extremity of powerline 1:

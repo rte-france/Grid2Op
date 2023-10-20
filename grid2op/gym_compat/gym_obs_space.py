@@ -62,7 +62,7 @@ class __AuxGymObservationSpace:
 
         import grid2op
         from grid2op.Converter import GymObservationSpace
-        env = grid2op.make()
+        env = grid2op.make("l2rpn_case14_sandbox")
 
         gym_observation_space = GymObservationSpace(env.observation_space)
         # and now gym_observation_space is a `gym.spaces.Dict` representing the observation space

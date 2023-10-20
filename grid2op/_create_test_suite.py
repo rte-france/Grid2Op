@@ -28,10 +28,23 @@ from grid2op.tests.BaseRedispTest import (BaseTestRedispatch, BaseTestRedispatch
 
 # Issue131Tester
 
-def _make_and_add_cls(el, add_name_cls, this_make_backend, add_to_module, all_classes):
+def _make_and_add_cls(el,
+                      add_name_cls,
+                      this_make_backend,
+                      add_to_module,
+                      all_classes,
+                      get_paths,
+                      get_casefiles):
+        this_methods =  {"make_backend": this_make_backend}
+        if get_paths is not None:
+            if el.__name__ in get_paths:
+                this_methods["get_path"] = get_paths[el.__name__]
+        if get_casefiles is not None:
+            if el.__name__ in get_casefiles:
+                this_methods["get_casefile"] = get_casefiles[el.__name__]
         this_cls = type(f"{re.sub('Base', '', el.__name__)}_{add_name_cls}",
                         (el, unittest.TestCase),
-                        {"make_backend": this_make_backend})
+                        this_methods)
         if add_to_module is not None:
             # make the created class visible to the default module
             setattr(sys.modules[add_to_module],
@@ -47,6 +60,8 @@ def create_test_suite(make_backend_fun,
                       add_to_module=None,
                       extended_test=True,
                       tests_skipped=(),
+                      get_paths=None,
+                      get_casefiles=None,
                       **kwargs):    
     """This function helps you create a test suite to test the behaviour of your agent.
     
@@ -94,14 +109,54 @@ def create_test_suite(make_backend_fun,
                           
         if __name__ == "__main__":
             unittest.main()
-
-    And then run this script normally `python my_script.py` and observe the results
-    
+            
     .. warning::
         Do not forget to include the `self` as the first argument of the `this_make_backend` (or whatever 
         you decide to name it) even if you don't use it ! 
         
         Otherwise this script will NOT work !
+        
+    And then run this script normally `python my_script.py` and observe the results
+    
+    
+    You can also import it this way (a bit more verbose but might give you more control on which tests is launched)
+    
+    .. code-block:: python
+    
+        import unittest
+        from grid2op.tests.aaa_test_backend_interface import AAATestBackendAPI
+        
+        class TestBackendAPI_PyPoBk(AAATestBackendAPI, unittest.TestCase):
+            
+            def make_backend(self, detailed_infos_for_cascading_failures=False):
+                # replace this with the backend you want to test. It should return a backend !
+                return  LightSimBackend(loader_method="pypowsybl",
+                                        loader_kwargs=_aux_get_loader_kwargs(),
+                                        detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+                                        
+    It allows also to modify the grid format (for example) that your backend can read from:
+    
+
+    .. code-block:: python
+    
+        import unittest
+        from grid2op.tests.aaa_test_backend_interface import AAATestBackendAPI
+        
+        class TestBackendAPI_PyPoBk(AAATestBackendAPI, unittest.TestCase):
+            def get_path(self):
+                # if you want to change the path from which data will be read
+                return path_case_14_storage_iidm
+            
+            def get_casefile(self):
+                # if you want to change the grid file that will be read by the backend.
+                return "grid.xiidm"
+            
+            def make_backend(self, detailed_infos_for_cascading_failures=False):
+                # replace this with the backend you want to test. It should return a backend !
+                return  LightSimBackend(loader_method="pypowsybl",
+                                        loader_kwargs=_aux_get_loader_kwargs(),
+                                        detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        
         
     Parameters
     ----------
@@ -123,8 +178,13 @@ def create_test_suite(make_backend_fun,
                                 *args,
                                 detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
                                 **kwargs)
+    if get_paths is None:
+        get_paths = {}
+    if get_casefiles is None:
+        get_casefiles = {}
+        
     all_classes = []
-    _make_and_add_cls(AAATestBackendAPI, add_name_cls, this_make_backend, add_to_module, all_classes)
+    _make_and_add_cls(AAATestBackendAPI, add_name_cls, this_make_backend, add_to_module, all_classes, get_paths, get_casefiles)
     if not extended_test:
         return
     
@@ -151,6 +211,6 @@ def create_test_suite(make_backend_fun,
                BaseTestRedispTooLowHigh,
                BaseTestDispatchRampingIllegalETC,
                BaseTestLoadingAcceptAlmostZeroSumRedisp]:
-        _make_and_add_cls(el, add_name_cls, this_make_backend, add_to_module, all_classes)
+        _make_and_add_cls(el, add_name_cls, this_make_backend, add_to_module, all_classes, get_paths, get_casefiles)
     
     return all_classes

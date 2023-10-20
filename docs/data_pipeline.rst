@@ -72,7 +72,7 @@ footprint (less RAM taken).
     import re
     import grid2op
     from grid2op.Agent import RandomAgent
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     agent = RandomAgent(env.action_space)
     env.seed(0)  # for reproducible experiments
 

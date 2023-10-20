@@ -75,7 +75,7 @@ Constructing an action in grid2op is made in the following manner:
 .. code-block:: python
 
     import grid2op
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     dictionary_describing_the_action = {...}  # se bellow
     my_action = env.action_space(dictionary_describing_the_action)
     print(my_action)

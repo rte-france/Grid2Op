@@ -1389,7 +1389,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             env.seed(0)
             obs = env.reset()
 
@@ -1618,7 +1618,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             import grid2op
 
             # I create an environment
-            env = grid2op.make("rte_case5_example", test=True)
+            env = grid2op.make(""l2rpn_case14_sandbox"", test=True)
 
             # i set the thermal limit of each powerline to 20000 amps
             env.set_thermal_limit([20000 for _ in range(env.n_line)])
@@ -2311,7 +2311,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             import grid2op
 
             # I create an environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             obs = env.reset()
 
@@ -2351,7 +2351,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             import grid2op
 
             # I create an environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             thermal_limits = env.get_thermal_limit()
 
@@ -3038,6 +3038,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                       `detailed_infos_for_cascading_failures=True`) the list of the intermediate steps computed during
                       the simulation of the "cascading failures".
                     - "rewards": dictionary of all "other_rewards" provided when the env was built.
+                    - "time_series_id": id of the time series used (if any, similar to a call to `env.chronics_handler.get_id()`)
 
         Examples
         ---------
@@ -3050,7 +3051,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             from grid2op.Agent import RandomAgent
 
             # I create an environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # define an agent here, this is an example
             agent = RandomAgent(env.action_space)
@@ -3229,6 +3230,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_step += end_step - beg_step
         if conv_ is not None:
             except_.append(conv_)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            chron_id = self.chronics_handler.get_id()
+        if chron_id == "":
+            chron_id = None
         self.infos = {
             "disc_lines": self._disc_lines,
             "is_illegal": is_illegal,
@@ -3241,6 +3247,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "opponent_attack_sub": subs_attacked,
             "opponent_attack_duration": attack_duration,
             "exception": except_,
+            "time_series_id": chron_id
         }
 
         if self.backend.detailed_infos_for_cascading_failures:
@@ -3364,7 +3371,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             import grid2op
             import grid2op.BaseAgent
-            with grid2op.make() as env:
+            with grid2op.make("l2rpn_case14_sandbox") as env:
                 agent = grid2op.BaseAgent.DoNothingAgent(env.action_space)
                 act = env.action_space()
                 obs, r, done, info = env.step(act)
@@ -3575,7 +3582,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             import grid2op
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # assign coordinates (0., 0.) to all substations (this is a dummy thing to do here!)
             layout = {sub_name: (0., 0.) for sub_name in env.name_sub}
@@ -3649,7 +3656,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             import grid2op
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # skip the first 150 steps of the chronics
             env.fast_forward_chronics(150)
