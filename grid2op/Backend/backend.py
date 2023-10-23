@@ -148,7 +148,8 @@ class Backend(GridObjects, ABC):
         self.detailed_infos_for_cascading_failures :bool= (
             detailed_infos_for_cascading_failures
         )
-
+        self.supported_grid_format = ("json", )  # new in 1.9.6
+        
         # the power _grid manipulated. One powergrid per backend.
         self._grid : Any = None
 

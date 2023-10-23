@@ -135,7 +135,6 @@ def create_test_suite(make_backend_fun,
                                         detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
                                         
     It allows also to modify the grid format (for example) that your backend can read from:
-    
 
     .. code-block:: python
     
@@ -156,8 +155,25 @@ def create_test_suite(make_backend_fun,
                 return  LightSimBackend(loader_method="pypowsybl",
                                         loader_kwargs=_aux_get_loader_kwargs(),
                                         detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+    
+    Yet another use, if you want more customization:
+    
+    .. code-block:: python
+    
+        def get_path_test_api(self):
+            return path
         
+        def get_casefile(self):
+            return "grid.xiidm"
         
+        res = create_test_suite(make_backend_fun=this_make_backend,
+                                add_name_cls=add_name_cls,
+                                add_to_module=__name__,
+                                extended_test=False,  # for now keep `extended_test=False` until all problems are solved
+                                get_paths={"AAATestBackendAPI": get_path_test_api},
+                                get_casefiles={"AAATestBackendAPI": get_casefile}
+                                )         
+    
     Parameters
     ----------
     make_backend_fun : _type_

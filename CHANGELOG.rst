@@ -55,12 +55,14 @@ Change Log
   of `env.step(...)`
 - [ADDED] a test suite easy to set up to test the backend API (and only the backend for now, integration tests with
   runner and environment will follow)
+- [ADDED] an attribute of the backend to specify which file extension can be processed by it. Environment creation will
+  fail if none are found. See `backend.supported_grid_format`
 - [IMPROVED] now easier than ever to run the grid2op test suite with a new backend (for relevant tests)
 - [IMPROVED] type hints for `Backend` and `PandapowerBackend`
 - [IMPROVED] distribute python 3.12 wheel
 - [IMPROVED] test for python 3.12 and numpy 1.26 when appropriate (*eg* when numpy version is released)
 - [IMPROVED] handling of environments without shunts
-- [IMPROVED] error message when grid is not consistent 
+- [IMPROVED] error messages when grid is not consistent 
 - [IMPROVED] add the default `l2rpn_case14_sandbox` environment in all part of the docs (substituing `rte_case14_realistic` or nothing)
 
 [1.9.5] - 2023-09-18

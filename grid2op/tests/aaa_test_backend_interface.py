@@ -19,6 +19,13 @@ class AAATestBackendAPI(HelperTests):
     #     # from lightsim2grid import LightSimBackend
     #     # return LightSimBackend()  # TODO REMOVE
     
+    
+    # if same ordering as pandapower
+    # init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
+    # init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
+    # init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
+    # init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
+        
     def get_path(self):
         return os.path.join(PATH_DATA, "educ_case14_storage")
     
@@ -33,7 +40,7 @@ class AAATestBackendAPI(HelperTests):
         """do not run nor modify ! (used for this test class only)"""
         backend = self.make_backend()
         backend.load_grid(self.get_path(), self.get_casefile())
-        backend.load_redispacthing_data(self.get_path())
+        backend.load_redispacthing_data("tmp")  # pretend there is no generator
         backend.load_storage_data(self.get_path())
         env_name = self.aux_get_env_name()
         backend.env_name = env_name
@@ -93,21 +100,19 @@ class AAATestBackendAPI(HelperTests):
         NB: it does not check whether or not the modification is
         consistent with the input. This will be done in a later test"""
         backend = self.aux_make_backend()
-        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
-        init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
-        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
-        init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
+        random_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
+        random_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
         
         # try to modify load_p
         action = type(backend)._complete_action_class()
-        action.update({"injection": {"load_p": 1.01 * init_load_p}})
+        action.update({"injection": {"load_p": 1.01 * random_load_p}})
         bk_act = type(backend).my_bk_act_class()
         bk_act += action
         backend.apply_action(bk_act)  # modification of load_p only
         
         # try to modify load_q
         action = type(backend)._complete_action_class()
-        action.update({"injection": {"load_q": 1.01 * init_load_q}})
+        action.update({"injection": {"load_q": 1.01 * random_load_q}})
         bk_act = type(backend).my_bk_act_class()
         bk_act += action
         backend.apply_action(bk_act)  # modification of load_q only
@@ -123,21 +128,19 @@ class AAATestBackendAPI(HelperTests):
         NB: it does not check whether or not the modification is
         consistent with the input. This will be done in a later test"""
         backend = self.aux_make_backend()
-        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
-        init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
-        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
-        init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
+        random_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
+        random_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
         
         # try to modify gen_p
         action = type(backend)._complete_action_class()
-        action.update({"injection": {"prod_p": 1.01 * init_gen_p}})
+        action.update({"injection": {"prod_p": 1.01 * random_gen_p}})
         bk_act = type(backend).my_bk_act_class()
         bk_act += action
         backend.apply_action(bk_act)  # modification of prod_p / gen_p only
         
         # try to modify prod_v only
         action = type(backend)._complete_action_class()
-        action.update({"injection": {"prod_v": 1.01 * init_gen_v}})
+        action.update({"injection": {"prod_v": random_gen_v + 0.1}})
         bk_act = type(backend).my_bk_act_class()
         bk_act += action
         backend.apply_action(bk_act)  # modification of prod_v / gen_v only
@@ -314,16 +317,17 @@ class AAATestBackendAPI(HelperTests):
         - backend.load_grid(...) is implemented        
         - backend.runpf() (AC mode) is implemented
         - backend.apply_action() for generator and load is implemented
+        - backend.generators_info() is implemented
+        - backend.loads_info() is implemented
+        
         """
         backend = self.aux_make_backend()
         
         res = backend.runpf(is_dc=False)
         assert len(res) == 2, "runpf should return tuple of size 2"
         
-        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
-        init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
-        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
-        init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
+        init_gen_p, *_ = backend.generators_info() 
+        init_load_p, *_ = backend.loads_info()
         
         gen_p = 1. * init_gen_p
         load_p = 1. * init_load_p
@@ -359,35 +363,55 @@ class AAATestBackendAPI(HelperTests):
         - backend.runpf() (AC mode) is implemented
         - backend.apply_action() for generator and load is implemented
         - backend.loads_info() is implemented
+        - backend.generators_info() is implemented
         """
 
         backend = self.aux_make_backend()
-        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
-        init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
-        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
-        init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
         
         res = backend.runpf(is_dc=False)
         tmp = backend.loads_info()
         assert len(tmp) == 3, "loads_info() should return 3 elements: load_p, load_q, load_v (see doc)"
         load_p_init, load_q_init, load_v_init = tmp 
+        init_gen_p, *_ = backend.generators_info() 
         
         # try to modify load_p
         action = type(backend)._complete_action_class()
-        action.update({"injection": {"load_p": 1.01 * init_load_p,
+        action.update({"injection": {"load_p": 1.01 * load_p_init,
                                      "prod_p": 1.01 * init_gen_p,
-                                     "load_q": 1.01 * init_load_q}})
+                                     "load_q": 1.01 * load_q_init}})
         bk_act = type(backend).my_bk_act_class()
         bk_act += action
         backend.apply_action(bk_act)  # modification of load_p, load_q and gen_p        
         
         res2 = backend.runpf(is_dc=False)
+        assert res2[0], "backend should not have diverge after such a little perturbation"
         tmp2 = backend.loads_info()
         assert len(tmp) == 3, "loads_info() should return 3 elements: load_p, load_q, load_v (see doc)"
         load_p_after, load_q_after, load_v_after = tmp2 
         assert not np.allclose(load_p_after, load_p_init), f"load_p does not seemed to be modified by apply_action when loads are impacted (active value): check `apply_action` for load_p"
         assert not np.allclose(load_q_after, load_q_init), f"load_q does not seemed to be modified by apply_action when loads are impacted (reactive value): check `apply_action` for load_q"
-                
+        
+        # now a basic check for "one load at a time"
+        delta_mw = 1.
+        delta_mvar = 1.
+        for load_id in range(backend.n_load):
+            this_load_p = 1. * load_p_init
+            this_load_p[load_id] += delta_mw  # add 1 MW
+            this_load_q = 1. * load_q_init
+            this_load_q[load_id] += delta_mvar  # add 1 MVAr
+            action = type(backend)._complete_action_class()
+            action.update({"injection": {"load_p": this_load_p,
+                                         "prod_p": init_gen_p,
+                                         "load_q": this_load_q}})
+            bk_act = type(backend).my_bk_act_class()
+            bk_act += action
+            backend.apply_action(bk_act)  # modification of load_p, load_q and gen_p   
+            res_tmp = backend.runpf(is_dc=False)
+            assert res_tmp[0], "backend should not have diverge after such a little perturbation"
+            tmp = backend.loads_info() 
+            assert np.abs(tmp[0][load_id] - load_p_init[load_id]) >= delta_mw / 2., f"error when trying to modify load {load_id}: check the consistency between backend.loads_info() and backend.apply_action for load_p"
+            assert np.abs(tmp[1][load_id] - load_q_init[load_id]) >= delta_mvar / 2., f"error when trying to modify load {load_id}: check the consistency between backend.loads_info() and backend.apply_action for load_q"
+
     def test_12_modify_gen_pf_getter(self):
         """Tests that the modification of generators has an impact on the backend (by reading back the states)
         
@@ -397,33 +421,59 @@ class AAATestBackendAPI(HelperTests):
         - backend.runpf() (AC mode) is implemented
         - backend.apply_action() for generator and load is implemented
         - backend.generators_info() is implemented
-        """
-        backend = self.aux_make_backend()
-        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
-        init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
-        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
-        init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
+        - backend.loads_info() is implemented
         
+        """
+        backend = self.aux_make_backend()        
         res = backend.runpf(is_dc=False)
         tmp = backend.generators_info()
         assert len(tmp) == 3, "generators_info() should return 3 elements: gen_p, gen_q, gen_v (see doc)"
         gen_p_init, gen_q_init, gen_v_init = tmp 
+        load_p_init, *_ = backend.loads_info()
         
         # try to modify load_p
         action = type(backend)._complete_action_class()
-        action.update({"injection": {"load_p": 1.01 * init_load_p,
-                                     "prod_p": 1.01 * init_gen_p,
-                                     "prod_v": init_gen_v + 0.1}})
+        action.update({"injection": {"load_p": 1.01 * load_p_init,
+                                     "prod_p": 1.01 * gen_p_init,
+                                     "prod_v": gen_v_init + 0.1}})
         bk_act = type(backend).my_bk_act_class()
         bk_act += action
         backend.apply_action(bk_act)  # modification of load_p, load_q and gen_p        
         
         res2 = backend.runpf(is_dc=False)
+        assert res2[0], "backend should not have diverge after such a little perturbation"
         tmp2 = backend.generators_info()
         assert len(tmp) == 3, "generators_info() should return 3 elements: gen_p, gen_q, gen_v (see doc)"
         gen_p_after, gen_q_after, gen_v_after = tmp2 
         assert not np.allclose(gen_p_after, gen_p_init), f"gen_p does not seemed to be modified by apply_action when generators are impacted (active value): check `apply_action` for gen_p / prod_p"
-        assert not np.allclose(gen_v_after, gen_v_init), f"load_p does not seemed to be modified by apply_action when loads are impacted (reactive value): check `apply_action` for gen_v / prod_v"
+        assert not np.allclose(gen_v_after, gen_v_init), f"gen_v does not seemed to be modified by apply_action when generators are impacted (voltage setpoint value): check `apply_action` for gen_v / prod_v"
+
+        # now a basic check for "one gen at a time"
+        # NB this test cannot be done like this for "prod_v" / gen_v because two generators might be connected to the same
+        # bus, and changing only one would cause an issue !
+        delta_mw = 1.
+        nb_error = 0
+        prev_exc = None
+        for gen_id in range(backend.n_gen):
+            this_gen_p = 1. * gen_p_init
+            this_gen_p[gen_id] += delta_mw  # remove 1 MW
+            action = type(backend)._complete_action_class()
+            action.update({"injection": {"load_p": load_p_init,
+                                         "prod_p": this_gen_p}})
+            bk_act = type(backend).my_bk_act_class()
+            bk_act += action
+            backend.apply_action(bk_act)
+            res_tmp = backend.runpf(is_dc=False)
+            assert res_tmp[0], "backend should not have diverge after such a little perturbation"
+            tmp = backend.generators_info() 
+            if np.abs(tmp[0][gen_id] - gen_p_init[gen_id]) <= delta_mw / 2.:
+                # in case of non distributed slack, backend cannot control the generator acting as the slack.
+                # this is why this test is expected to fail at most once.
+                # if it fails twice, then there is a bug.
+                if prev_exc is None:
+                    prev_exc = AssertionError(f"error when trying to modify active generator of gen {gen_id}: check the consistency between backend.generators_info() and backend.apply_action for gen_p / prod_p")
+                else:
+                    raise AssertionError(f"error when trying to modify active generator of gen {gen_id}: check the consistency between backend.generators_info() and backend.apply_action for gen_p / prod_p") from prev_exc
 
     def test_13_disco_reco_lines_pf_getter(self):
         """Tests the powerlines can be disconnected and connected and that getter info are consistent
@@ -589,6 +639,8 @@ class AAATestBackendAPI(HelperTests):
         - backend.load_grid(...) is implemented        
         - backend.runpf() (AC mode) is implemented
         - backend.apply_action() for generator and load is implemented
+        - backend.loads_info() is implemented
+        - backend.generators_info() is implemented
         - backend.lines_or_info() is implemented
         """
         
@@ -599,8 +651,8 @@ class AAATestBackendAPI(HelperTests):
         assert len(res) == 2, "runpf should return tuple of size 2"
         
         # create a situation where the backend diverges
-        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
-        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
+        init_gen_p, *_ = backend.generators_info() 
+        init_load_p, *_ = backend.loads_info()
         gen_p = 1. * init_gen_p
         load_p = 1. * init_load_p
         nb_iter = 0
@@ -1028,6 +1080,8 @@ class AAATestBackendAPI(HelperTests):
         - backend.load_grid(...) is implemented
         - backend.runpf() (AC and DC mode) is implemented
         - backend.apply_action() for prod / gen modification
+        - backend.loads_info() are implemented
+        - backend.generators_info() are implemented
         - backend.lines_or_info() are implemented
         - backend.reset() is implemented
         
@@ -1042,9 +1096,10 @@ class AAATestBackendAPI(HelperTests):
         # backend can be copied
         backend_cpy = backend.copy()
         assert isinstance(backend_cpy, type(backend)), f"backend.copy() is supposed to return an object of the same type as your backend. Check backend.copy()"
+        backend.runpf(is_dc=False)
         # now modify original one
-        init_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
-        init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
+        init_gen_p, *_ = backend.generators_info() 
+        init_load_p, *_ = backend.loads_info()
         
         action = type(backend)._complete_action_class()
         action.update({"injection": {"prod_p": 1.1 * init_gen_p,
