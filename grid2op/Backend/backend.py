@@ -148,7 +148,8 @@ class Backend(GridObjects, ABC):
         self.detailed_infos_for_cascading_failures :bool= (
             detailed_infos_for_cascading_failures
         )
-
+        self.supported_grid_format = ("json", )  # new in 1.9.6
+        
         # the power _grid manipulated. One powergrid per backend.
         self._grid : Any = None
 
@@ -1285,7 +1286,7 @@ class Backend(GridObjects, ABC):
                     v_storage[i],
                 )
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             p_s, q_s, v_s, bus_s = self.shunt_info()
             for i in range(self.n_shunt):
                 # for substations
@@ -1734,7 +1735,7 @@ class Backend(GridObjects, ABC):
             },
         }
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             p_s, q_s, sh_v, bus_s = self.shunt_info()
             dict_["shunt"] = {"shunt_bus": bus_s}
             if (bus_s >= 1).sum():
@@ -1802,7 +1803,7 @@ class Backend(GridObjects, ABC):
             },
         }
 
-        if self.shunts_data_available and obs.shunts_data_available:
+        if type(self).shunts_data_available and type(obs).shunts_data_available:
             if "_shunt_bus" not in type(obs).attr_list_set:
                 raise BackendError(
                     "Impossible to set the backend to the state given by the observation: shunts data "

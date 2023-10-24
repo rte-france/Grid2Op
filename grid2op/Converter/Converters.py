@@ -104,7 +104,7 @@ class Converter(ActionSpace):
         .. code-block:: python
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # create the converter
             converter = IdToAct(env.action_space)
@@ -147,7 +147,7 @@ class Converter(ActionSpace):
         .. code-block:: python
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # create the converter
             converter = IdToAct(env.action_space)

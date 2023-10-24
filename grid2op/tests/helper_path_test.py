@@ -14,8 +14,10 @@ import sys
 import os
 import numpy as np
 from pathlib import Path
-
+from abc import ABC, abstractmethod
+import inspect
 from grid2op.dtypes import dt_float
+from grid2op.Backend import Backend
 
 test_dir = Path(__file__).parent.absolute()
 grid2op_dir = os.fspath(test_dir.parent.absolute())
@@ -42,9 +44,38 @@ class HelperTests:
     def setUp(self):
         self.tolvect = dt_float(1e-2)
         self.tol_one = dt_float(1e-5)
-        super().setUp()
-
+        if hasattr(type(super()), "setUp"):
+            # needed for backward compatibility
+            super().setUp()
+            
+    def tearDown(self):
+        # needed for backward compatibility
+        pass
+    
     def compare_vect(self, pred, true):
         res = dt_float(np.max(np.abs(pred - true))) <= self.tolvect
         res = res and dt_float(np.mean(np.abs(pred - true))) <= self.tolvect
         return res
+
+
+class MakeBackend(ABC, HelperTests):
+    @abstractmethod
+    def make_backend(self, detailed_infos_for_cascading_failures=False) -> Backend:
+        pass
+
+    def get_path(self) -> str:
+        raise NotImplementedError(
+            "This function should be implemented for the test suit you are developping"
+        )
+
+    def get_casefile(self) -> str:
+        raise NotImplementedError(
+            "This function should be implemented for the test suit you are developping"
+        )
+
+    def skip_if_needed(self) -> None:
+        if hasattr(self, "tests_skipped"):
+            nm_ = inspect.currentframe().f_back.f_code.co_name
+            if nm_ in self.tests_skipped:
+                self.skipTest('the test "{}" is skipped: it has been added to self.tests_skipped'.format(nm_))
+                

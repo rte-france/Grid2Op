@@ -10,8 +10,8 @@ import copy
 import pdb
 import time
 import warnings
-
 import unittest
+
 from grid2op.tests.helper_path_test import *
 
 import grid2op
@@ -36,6 +36,7 @@ class BaseTestLoadingBackendPandaPower:
         return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
 
     def setUp(self):
+        super().setUp()
         # powergrid
         self.backend = self.get_backend(True)
         self.path_matpower = PATH_DATA_TEST_PP
@@ -109,11 +110,10 @@ class BaseTestLoadingBackendPandaPower:
                 names_chronics_to_backend=self.names_chronics_to_backend,
                 name="test_env_env1",
             )
-        super().setUp()
 
     def tearDown(self):
-        self.env.close()
         super().tearDown()
+        self.env.close()
 
     def compare_vect(self, pred, true):
         return dt_float(np.max(np.abs(pred - true))) <= self.tolvect

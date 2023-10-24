@@ -267,7 +267,7 @@ def _aux_make_multimix(
 
 
 def make(
-    dataset : Union[str, os.PathLike]=None,
+    dataset : Union[str, os.PathLike],
     *,
     test : bool=False,
     logger: Optional[logging.Logger]=None,
@@ -327,12 +327,12 @@ def make(
     Examples
     --------
 
-    If you want to create the environment "rte_case14_realistic":
+    If you want to create the environment "l2rpn_case14_sandbox":
 
     .. code-block: python
 
         import grid2op
-        env_name = "rte_case14_realistic"  # or any other supported environment
+        env_name = "l2rpn_case14_sandbox"  # or any other supported environment
         env = grid2op.make(env_name)
         # env implements the openai gym interface (env.step, env.render, env.reset etc.)
 

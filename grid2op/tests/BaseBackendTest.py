@@ -17,12 +17,11 @@ import copy
 from abc import ABC, abstractmethod
 import inspect
 
-from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
+from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST, MakeBackend, HelperTests
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
 import grid2op
-from grid2op.tests.helper_path_test import HelperTests
 
 from grid2op.Action import CompleteAction
 
@@ -67,28 +66,6 @@ from grid2op.Action._backendAction import _BackendAction
 from grid2op.Backend import Backend, PandaPowerBackend
 
 import pdb
-
-
-class MakeBackend(ABC, HelperTests):
-    @abstractmethod
-    def make_backend(self, detailed_infos_for_cascading_failures=False) -> Backend:
-        pass
-
-    def get_path(self) -> str:
-        raise NotImplementedError(
-            "This function should be implemented for the test suit you are developping"
-        )
-
-    def get_casefile(self) -> str:
-        raise NotImplementedError(
-            "This function should be implemented for the test suit you are developping"
-        )
-
-    def skip_if_needed(self) -> None:
-        if hasattr(self, "tests_skipped"):
-            nm_ = inspect.currentframe().f_back.f_code.co_name
-            if nm_ in self.tests_skipped:
-                self.skipTest('the test "{}" is skipped'.format(nm_))
                     
     
 class BaseTestNames(MakeBackend):

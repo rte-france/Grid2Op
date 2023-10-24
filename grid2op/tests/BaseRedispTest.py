@@ -11,6 +11,7 @@ import pdb
 import warnings
 
 from grid2op.tests.helper_path_test import *
+from grid2op.tests.helper_path_test import MakeBackend
 import grid2op
 
 from grid2op.Exceptions import *
@@ -19,7 +20,6 @@ from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
 from grid2op.Action import BaseAction
 
-from grid2op.tests.BaseBackendTest import MakeBackend
 
 
 class BaseTestRedispatch(MakeBackend):
