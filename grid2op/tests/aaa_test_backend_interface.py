@@ -9,11 +9,11 @@
 import os
 import numpy as np
 import warnings
-from grid2op.tests.helper_path_test import HelperTests, PATH_DATA
+from grid2op.tests.helper_path_test import HelperTests, MakeBackend, PATH_DATA
 from grid2op.Exceptions import BackendError
 
 
-class AAATestBackendAPI(HelperTests):
+class AAATestBackendAPI(MakeBackend):
     # def make_backend(self, detailed_infos_for_cascading_failures=False):
     #     return PandaPowerBackend()  # TODO REMOVE
     #     # from lightsim2grid import LightSimBackend
@@ -25,7 +25,7 @@ class AAATestBackendAPI(HelperTests):
     # init_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
     # init_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
     # init_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
-        
+                        
     def get_path(self):
         return os.path.join(PATH_DATA, "educ_case14_storage")
     
@@ -49,6 +49,7 @@ class AAATestBackendAPI(HelperTests):
     
     def test_00create_backend(self):
         """Tests the backend can be created (not integrated in a grid2op environment yet)"""
+        self.skip_if_needed()
         backend = self.make_backend()
     
     def test_01load_grid(self):
@@ -57,7 +58,12 @@ class AAATestBackendAPI(HelperTests):
         This test supposes that :
         
         - backend.load_grid(...) is implemented
+        
+        .. danger::
+            This test will NOT pass if the grid is not the "educ_case14_storage" file.
+        
         """
+        self.skip_if_needed()
         backend = self.make_backend()
         backend.load_grid(self.get_path(), self.get_casefile())  # both argument filled
         backend.load_redispacthing_data(self.get_path())
@@ -66,14 +72,14 @@ class AAATestBackendAPI(HelperTests):
         backend.env_name = env_name
         backend.assert_grid_correct() 
         cls = type(backend)
-        assert cls.n_line == 20, f"there should be 20 lines / trafos on the grid, found {cls.n_line} (remember trafo are conted grid2op side as powerline)"
-        assert cls.n_gen == 6, f"there should be 6 generators on the grid found {cls.n_gen} (remember a generator is added to the slack if none are present)"
-        assert cls.n_load == 11, f"there should be 11 loads on the grid, found {cls.n_load}"
-        assert cls.n_sub == 14, f"there should be 14 substations on this grid, found {cls.n_sub}"
+        assert cls.n_line == 20, f"there should be 20 lines / trafos on the grid (if you used the pandapower default grid), found {cls.n_line} (remember trafo are conted grid2op side as powerline)"
+        assert cls.n_gen == 6, f"there should be 6 generators on the grid (if you used the pandapower default grid) found {cls.n_gen} (remember a generator is added to the slack if none are present)"
+        assert cls.n_load == 11, f"there should be 11 loads on the grid (if you used the pandapower default grid), found {cls.n_load}"
+        assert cls.n_sub == 14, f"there should be 14 substations on this grid (if you used the pandapower default grid), found {cls.n_sub}"
         if cls.shunts_data_available:
-            assert cls.n_shunt == 1, f"there should be 1 shunt on the grid, found {cls.n_shunt}"
+            assert cls.n_shunt == 1, f"there should be 1 shunt on the grid (if you used the pandapower default grid), found {cls.n_shunt}"
         if cls.n_storage > 0:
-            assert cls.n_storage == 2, f"there should be 2 storage units on this grid, found {cls.n_storage}"
+            assert cls.n_storage == 2, f"there should be 2 storage units on this grid (if you used the pandapower default grid), found {cls.n_storage}"
         assert env_name in cls.env_name, f"you probably should not have overidden the assert_grid_correct function !"
         backend.close()
         
@@ -99,9 +105,11 @@ class AAATestBackendAPI(HelperTests):
 
         NB: it does not check whether or not the modification is
         consistent with the input. This will be done in a later test"""
+        self.skip_if_needed()
         backend = self.aux_make_backend()
-        random_load_p = np.array([21.7, 94.2, 47.8,  7.6, 11.2, 29.5,  9. ,  3.5,  6.1, 13.5, 14.9])
-        random_load_q = np.array([12.7, 19. , -3.9,  1.6,  7.5, 16.6,  5.8,  1.8,  1.6,  5.8,  5. ])
+        np.random.seed(0)
+        random_load_p = np.random.uniform(0, 1, size=type(backend).n_load)
+        random_load_q = np.random.uniform(0, 1, size=type(backend).n_load)
         
         # try to modify load_p
         action = type(backend)._complete_action_class()
@@ -127,9 +135,11 @@ class AAATestBackendAPI(HelperTests):
                 
         NB: it does not check whether or not the modification is
         consistent with the input. This will be done in a later test"""
+        self.skip_if_needed()
         backend = self.aux_make_backend()
-        random_gen_p = np.array([  40.,    0.,    0.,    0.,    0., 219.])
-        random_gen_v = np.array([144.21, 139.38,  21.4 ,  21.4 ,  13.08, 146.28])
+        np.random.seed(0)
+        random_gen_p = np.random.uniform(0, 1, size=type(backend).n_gen)
+        random_gen_v = np.random.uniform(0, 1, size=type(backend).n_gen)
         
         # try to modify gen_p
         action = type(backend)._complete_action_class()
@@ -155,6 +165,7 @@ class AAATestBackendAPI(HelperTests):
                 
         NB: it does not check whether or not the modification is
         consistent with the input. This will be done in a later test"""
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         
         line_id = 0
@@ -182,6 +193,7 @@ class AAATestBackendAPI(HelperTests):
         
         NB: it does not check whether or not the modification is
         consistent with the input. This will be done in a later test"""
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         
         sub_id = 0
@@ -213,6 +225,7 @@ class AAATestBackendAPI(HelperTests):
         NB: it does not check whether or not the modification is
         consistent with the input. This will be done in a later test
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         if not cls.shunts_data_available:
@@ -257,6 +270,7 @@ class AAATestBackendAPI(HelperTests):
         NB: this test is skipped if your backend does not support (yet :-) ) storage units
                 
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         if cls.n_storage == 0:
@@ -279,6 +293,7 @@ class AAATestBackendAPI(HelperTests):
         - backend.runpf() (DC mode) is implemented
                 
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         
         res = backend.runpf(is_dc=False)
@@ -298,6 +313,7 @@ class AAATestBackendAPI(HelperTests):
         - backend.load_grid(...) is implemented        
         - backend.runpf() (DC mode) is implemented
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         
         res = backend.runpf(is_dc=True)
@@ -321,6 +337,7 @@ class AAATestBackendAPI(HelperTests):
         - backend.loads_info() is implemented
         
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         
         res = backend.runpf(is_dc=False)
@@ -365,7 +382,7 @@ class AAATestBackendAPI(HelperTests):
         - backend.loads_info() is implemented
         - backend.generators_info() is implemented
         """
-
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         
         res = backend.runpf(is_dc=False)
@@ -424,6 +441,7 @@ class AAATestBackendAPI(HelperTests):
         - backend.loads_info() is implemented
         
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()        
         res = backend.runpf(is_dc=False)
         tmp = backend.generators_info()
@@ -490,6 +508,7 @@ class AAATestBackendAPI(HelperTests):
         the grid (modeled by your powerflow) but that you did not yet coded the interface
         between said element and grid2op (the backend you are creating)
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         
@@ -575,6 +594,7 @@ class AAATestBackendAPI(HelperTests):
         the grid (modeled by your powerflow) but that you did not yet coded the interface
         between said element and grid2op (the backend you are creating)
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         
@@ -643,7 +663,7 @@ class AAATestBackendAPI(HelperTests):
         - backend.generators_info() is implemented
         - backend.lines_or_info() is implemented
         """
-        
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         backend2 = self.aux_make_backend()
@@ -700,6 +720,7 @@ class AAATestBackendAPI(HelperTests):
         - backend.apply_action() for topology modification
         - backend.reset() is implemented
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         
@@ -734,6 +755,7 @@ class AAATestBackendAPI(HelperTests):
         - backend.apply_action() for topology modification
         - backend.reset() is implemented
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         
@@ -770,11 +792,14 @@ class AAATestBackendAPI(HelperTests):
         
         NB: this test is skipped if your backend does not (yet :-) ) supports shunt
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         if not cls.shunts_data_available:
             self.skipTest("Your backend does not support shunts")
-            
+        if cls.n_shunt == 0:
+            self.skipTest("Your grid has no shunt in it")
+                        
         # make a shunt alone on a bus
         action = type(backend)._complete_action_class()
         action.update({"shunt": {"shunt_bus": [(0, 2)]}})
@@ -808,6 +833,7 @@ class AAATestBackendAPI(HelperTests):
         
         NB: this test is skipped if your backend does not (yet :-) ) supports storage units
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         if cls.n_storage == 0:
@@ -844,6 +870,7 @@ class AAATestBackendAPI(HelperTests):
         
         NB: this test is skipped if your backend does not (yet :-) ) supports storage units
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         
         # a load alone on a bus
@@ -879,6 +906,7 @@ class AAATestBackendAPI(HelperTests):
         
         NB: this test is skipped if your backend does not (yet :-) ) supports storage units
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         
         # a disconnected generator
@@ -918,6 +946,7 @@ class AAATestBackendAPI(HelperTests):
         
         NB: this test is skipped if your backend does not (yet :-) ) supports storage units
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         # a non connected grid
         action = type(backend)._complete_action_class()
@@ -954,6 +983,7 @@ class AAATestBackendAPI(HelperTests):
         - backend.shunt() and lines_ex_info() are implemented
         - backend.reset() is implemented
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         
         line_id = 0
@@ -1001,11 +1031,14 @@ class AAATestBackendAPI(HelperTests):
         
         NB: this test is skipped if your backend does not support shunt (yet :-) )
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         if not cls.shunts_data_available:
             self.skipTest("Your backend does not support shunts")
-        
+        if cls.n_shunt == 0:
+            self.skipTest("Your grid has no shunt in it")
+            
         shunt_id = 0
         # a disconnected shunt
         action = type(backend)._complete_action_class()
@@ -1043,6 +1076,7 @@ class AAATestBackendAPI(HelperTests):
         
         NB: this test is skipped if your backend does not support storage unit (yet :-) )
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         cls = type(backend)
         if cls.n_storage == 0:
@@ -1087,6 +1121,7 @@ class AAATestBackendAPI(HelperTests):
         
         NB: this test is skipped if the backend cannot be copied
         """
+        self.skip_if_needed()
         backend = self.aux_make_backend()
         if not backend._can_be_copied:
             with self.assertRaises(BackendError):

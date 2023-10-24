@@ -916,6 +916,13 @@ You need to:
    ii) the extension should be set in the `self.supported_grid_format`, for example if you want your backend to 
        be able to read `grid.xml` then the object you create in `def make_backend(...)` should have `xml` somewhere
        in its `supported_grid_format` attribute
+   iii) your grid should count at least 17 lines
+   iv) if your grid is not based on the `educ_case14_storage` (modification of the ieee case 14 with addition of 2 storage units and 2 generators), 
+       expect failure in the tests:
+       
+       i) the `test_01load_grid` 
+       ii) `test_22_islanded_grid_make_divergence`
+       
 3) Write a python script similar to this one:
 
 .. code-block:: python
