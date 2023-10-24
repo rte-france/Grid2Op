@@ -216,6 +216,7 @@ Basically the `load_grid` function would look something like:
         # the initial thermal limit
         self.thermal_limit_a = ...
 
+
 The grid2op attributes that need to be implemented in the :func:`grid2op.Backend.Backend.load_grid` function are
 given in the table bellow:
 
@@ -350,24 +351,6 @@ Nothing much to say here, you count each object and assign the right val to the 
 
 For example, `n_line` is 8 because there are 8 lines on the grid, labeled from 0 to 7.
 
-.. _sub-i:
-
-(optional) Substation information (sub_info, dim_topo)
-*******************************************************
-.. versionadded:: 1.3.2
-    This is now done automatically if the user do not set it.
-
-For these attributes too, there is nothing really surprising (we remember that these can be set automatically if
-you don't do it). We show how to set them mainly to explain grid2op "encoding" for these attributes that
-you might want to reuse somewhere else.
-
-For each component of `sub_info` you tell grid2op of the number of elements connected to it. And then you sum
-up each of these elements in the `dim_topo` attributes.
-
-|5subs_grid_5_sub_i|
-
-.. note:: Only the loads, line ends ("origin" or "extremity") and generators are counted as "elements".
-
 .. _subid:
 
 Substation id (\*_to_subid)
@@ -386,6 +369,24 @@ and load with id 2 is connected to substation with id 4.
 For the other attributes, you follow the same pattern:
 
 |5subs_grid_el_to_subid|
+
+.. _sub-i:
+
+(optional) Substation information (sub_info, dim_topo)
+*******************************************************
+.. versionadded:: 1.3.2
+    This is now done automatically if the user do not set it.
+
+For these attributes too, there is nothing really surprising (we remember that these can be set automatically if
+you don't do it). We show how to set them mainly to explain grid2op "encoding" for these attributes that
+you might want to reuse somewhere else.
+
+For each component of `sub_info` you tell grid2op of the number of elements connected to it. And then you sum
+up each of these elements in the `dim_topo` attributes.
+
+|5subs_grid_5_sub_i|
+
+.. note:: Only the loads, line ends ("origin" or "extremity") and generators are counted as "elements".
 
 .. _subpo:
 
@@ -476,13 +477,16 @@ Finally, you proceed in the same manner for all substation and you get:
 
 .. _subtv:
 
-Position in the topology vector (\*_pos_topo_vect)
-**************************************************
+(optional) Position in the topology vector (\*_pos_topo_vect)
+****************************************************************
 
 This information is redundant with the other vector. It can be initialized with
 a call to the function :func:`grid2op.Space.GridObjects._compute_pos_big_topo` that you will need to perform after
 having initialized all the other vectors as explained above (simply call `self._compute_pos_big_topo()` at the end
 of your implementation of `load_grid` function)
+
+.. note::
+    Shunts are not "part of" the topology vector.
 
 .. _backend-action-create-backend:
 
@@ -794,6 +798,151 @@ In this case, at substation 2 there are 2 connected busbars:
 - *busbar 2* connects extremity of powerline 1 and origin of powerline 6
 
 But there is no direct connection between busbar 1 and busbar 2.
+
+Automatic testing and "Test Driven Programming"
+--------------------------------------------------
+
+.. versionadded:: 1.9.6
+    Before this is was not specified in the code but only on some description what was expected from a backend.
+
+In grid2op was added some convenience class to "make sure" that a backend candidate was working as expected, following the
+grid2op "expectation" in terms of grid representation and all. This test suite has been made independant of the solver used, you can 
+use it directly if your backend can read pandapower "json" format but can also be used (thanks to some customization) even 
+if it's not the case.
+
+The only requirement is that you install grid2op FROM SOURCE and in "editable" mode. You can do that (using a python
+virtual environment is a good idea and is not covered here):
+
+.. code-block::
+
+    git clone https://github.com/rte-france/grid2op.git grid2op_dev
+    cd grid2op_dev
+    pip install -e .
+
+.. warning::
+    If it fails with some error like `AttributeError: module 'grid2op' has no attribute '__version__'` 
+    or equivalent, you can remove the "pyproject.toml" file:
+    
+    .. code-block::
+
+        cd grid2op_dev  # same repo as above
+        rm -rf pyproject.toml
+        pip install -e .
+
+
+Most simple way
+++++++++++++++++
+
+Write a script (say "test_basic_api.py") with this in your code:
+
+.. code-block:: python
+
+    from grid2op._create_test_suite import create_test_suite
+
+    def this_make_backend(self, detailed_infos_for_cascading_failures=False):
+        # the function that will create your backend
+        # do not put "PandaPowerBackend" of course, but the class you coded as a backend !
+        return PandaPowerBackend(
+                detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+            ) 
+    add_name_cls = "test_PandaPowerBackend"  # h
+
+    res = create_test_suite(make_backend_fun=this_make_backend,
+                            add_name_cls=add_name_cls,
+                            add_to_module=__name__,
+                            extended_test=False,  # for now keep `extended_test=False` until all problems are solved
+                            )
+
+    if __name__ == "__main__":
+        unittest.main()
+
+Then you can run your test with:
+
+.. code-block::
+
+    python -m unittest test_basic_api.py
+
+If all tests pass then you are done.
+
+
+More verbose, but easier to debug
+++++++++++++++++++++++++++++++++++++++++++++++++
+
+You can also do the equivalent script:
+
+.. code-block:: python
+
+    import unittest
+    from grid2op.tests.aaa_test_backend_interface import AAATestBackendAPI
+    
+    class TestBackendAPI_PandaPowerBackend(AAATestBackendAPI, unittest.TestCase):        
+        def make_backend(self, detailed_infos_for_cascading_failures=False):
+            # the function that will create your backend
+            # do not put "PandaPowerBackend" of course, but the class you coded as a backend !
+            return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+
+
+    if __name__ == "__main__":
+        unittest.main()
+
+
+Advantages: 
+
+1) you can tell to python which test you want to run exactly, for example with 
+   `python -m unittest test_basic_api.TestBackendAPI_PandaPowerBackend.test_01load_grid` which
+   makes it easier to debug (you can run only the failed test)
+2) it's more clear what is being done and the name of everything
+3) it's easier to customized
+
+Drawbacks:
+
+1) Only tests in `AAATestBackendAPI` will be performed. Some other tests (integration test, backend more in depth tests) 
+   will not be performed
+
+
+More customization
++++++++++++++++++++
+
+If you don't have a backend that reads pandapower file format (or if you want to test part of your backend 
+when initialized from another data format) it is also easy to customize it.
+
+You need to:
+
+1) make a repo somewhere on you machine (say `my_path_for_test` which would be located at `/home/user/Documents/my_path_for_test` or
+   `C:\\users\\Documents\\my_path_for_test` or anywhere else)
+2) put there a grid with your specific format, for example `grid.json` or `grid.xiidm` or `grid.xml`. Two things are important here
+   
+   i) the file name should be `grid` and nothing else. `Grid.json` or `my_grid.json` or `case14.xml` will NOT work
+   ii) the extension should be set in the `self.supported_grid_format`, for example if you want your backend to 
+       be able to read `grid.xml` then the object you create in `def make_backend(...)` should have `xml` somewhere
+       in its `supported_grid_format` attribute
+3) Write a python script similar to this one:
+
+.. code-block:: python
+
+    import unittest
+    from grid2op.tests.aaa_test_backend_interface import AAATestBackendAPI
+    FILE_FORMAT = "xiidm"  # for this example, put whatever here !
+
+    class TestBackendAPI_PandaPowerBackend(AAATestBackendAPI, unittest.TestCase):   
+        def get_path(self):
+            return "my_path_for_test"  # or /home/user/Documents/my_path_for_test
+        
+        def get_casefile(self):
+            return "grid.xiidm"   # or `grid.xml` or any other format
+
+        def make_backend(self, detailed_infos_for_cascading_failures=False):
+            # the function that will create your backend
+            # do not put "PandaPowerBackend" of course, but the class you coded as a backend !
+            backend = PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+            assert FILE_FORMAT in backend.supported_grid_format, f"your backend does not recognize the '{FILE_FORMAT}' extension, grid2op will not work"
+            return backend
+
+
+    if __name__ == "__main__":
+        unittest.main()
+
+TODO there are ways to use the `create_test_suite` but they have not been tested at the moment.
 
 Advanced usage and speed optimization
 --------------------------------------

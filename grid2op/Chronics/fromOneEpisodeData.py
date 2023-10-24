@@ -31,7 +31,7 @@ class FromOneEpisodeData(GridValue):
     
     It can be used if you want to loop indefinitely through one episode.
     
-    .. newinversion:: 1.9.4
+    .. versionadded:: 1.9.4
     
     TODO there will be "perfect" forecast, as original forecasts are not stored !
 
@@ -311,8 +311,8 @@ class FromOneEpisodeData(GridValue):
     def forecasts(self):
         """Retrieve PERFECT forecast from this time series generator.
         
-        .. alert::
-            These are perfect forecast and not the original forecasts.
+        .. danger::
+            These are **perfect forecast** and **NOT** the original forecasts.
             
         Notes
         -----
