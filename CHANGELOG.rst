@@ -56,7 +56,7 @@ Change Log
 - [ADDED] a test suite easy to set up to test the backend API (and only the backend for now, integration tests with
   runner and environment will follow)
 - [ADDED] an attribute of the backend to specify which file extension can be processed by it. Environment creation will
-  fail if none are found. See `backend.supported_grid_format`
+  fail if none are found. See `backend.supported_grid_format` see https://github.com/rte-france/Grid2Op/issues/429
 - [IMPROVED] now easier than ever to run the grid2op test suite with a new backend (for relevant tests)
 - [IMPROVED] type hints for `Backend` and `PandapowerBackend`
 - [IMPROVED] distribute python 3.12 wheel
