@@ -42,7 +42,7 @@ the agent pretty easily, and allows easy saving into gif format (see below for m
     path_agents = "agent_pseudo_random"
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        env = grid2op.make("rte_case14_realistic")
+        env = grid2op.make("l2rpn_case14_sandbox")
 
     class CustomRandom(RandomAgent):
         """
@@ -87,7 +87,7 @@ an action. This can be done with the provided environments following openAI gym 
     from grid2op.Agent import RandomAgent
     from grid2op.Episode import EpisodeReplay
 
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     agent = RandomAgent(env.action_space)
     nb_episode = 1
     for i in range(nb_episode):
@@ -117,7 +117,7 @@ class. Here is how you can do this:
 
     path_saved_data = "where_i_want_to_save_it"
     # create an environment and an agent
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     agent = RandomAgent(env.action_space)
 
     # create a runner
@@ -144,7 +144,7 @@ You can use them as follow:
     import grid2op
     from grid2op.PlotGrid import PlotMatplot
 
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     plot_helper = PlotMatplot(env.observation_space)
 
     obs = env.reset()
@@ -186,7 +186,7 @@ of the each powerline:
     import grid2op
     from grid2op.PlotGrid import PlotMatplot
 
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     plot_helper = PlotMatplot(env.observation_space)
 
     # plot the thermal limits of each powerlines
@@ -203,7 +203,7 @@ Of course you can also "project" on the grid all kind of variable and also for g
     import grid2op
     from grid2op.PlotGrid import PlotMatplot
 
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     plot_helper = PlotMatplot(env.observation_space)
 
     # plot the thermal limits of each powerlines and the voltages magnitude of each load

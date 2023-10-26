@@ -16,3 +16,30 @@ class BackendError(Grid2OpException):
     """
 
     pass
+
+
+class DivergingPowerflow(BackendError):
+    """Specific error that should be raised when the powerflow diverges
+    """
+    pass
+
+
+class IslandedGrid(BackendError):
+    """Specific error when then backend "fails" because of an islanded grid"""
+    pass
+
+
+class IsolatedElement(IslandedGrid):
+    """Specific error that should be raised when a element is alone on a bus (islanded grid when only one element is islanded)
+    """
+    pass
+
+
+class DisconnectedLoad(BackendError):
+    """Specific error raised by the backend when a load is disconnected"""
+    pass
+
+
+class DisconnectedGenerator(BackendError):
+    """Specific error raised by the backend when a generator is disconnected"""
+    pass

@@ -195,7 +195,6 @@ class Environment(BaseEnv):
 
         Create a proper and valid environment.
         """
-
         if isinstance(rewardClass, type):
             if not issubclass(rewardClass, BaseReward):
                 raise Grid2OpException(
@@ -234,7 +233,6 @@ class Environment(BaseEnv):
             if self._read_from_local_dir:
                 # test to support pickle conveniently
                 self.backend._PATH_ENV = self.get_path_env()
-
             # all the above should be done in this exact order, otherwise some weird behaviour might occur
             # this is due to the class attribute
             self.backend.set_env_name(self.name)
@@ -625,7 +623,7 @@ class Environment(BaseEnv):
             import grid2op
 
             # I create an environment
-            env = grid2op.make("rte_case5_example", test=True)
+            env = grid2op.make("l2rpn_case14_sandbox", test=True)
             env.set_chunk_size(100)
             env.reset()  # otherwise chunk size has no effect !
             # and now data will be read from the hard drive 100 time steps per 100 time steps
@@ -768,7 +766,7 @@ class Environment(BaseEnv):
             import grid2op
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             if False:
                 # if you want to change the default layout of the powergrid
@@ -883,7 +881,7 @@ class Environment(BaseEnv):
             import grid2op
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # and now you can "render" (plot) the state of the grid
             obs = env.reset()
@@ -945,7 +943,7 @@ class Environment(BaseEnv):
             import grid2op
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # if you want to use the renderer
             env.attach_renderer()
@@ -1013,7 +1011,7 @@ class Environment(BaseEnv):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             cpy_of_env = env.copy()
 
         """
@@ -1052,7 +1050,7 @@ class Environment(BaseEnv):
 
             import grid2op
             from grid2op.Environment import Environment
-            env = grid2op.make()  # create the environment of your choice
+            env = grid2op.make("l2rpn_case14_sandbox")  # create the environment of your choice
             copy_of_env = Environment(**env.get_kwargs())
             # And you can use this one as you would any other environment.
             # NB this is not a "proper" copy. for example it will not be at the same step, it will be possible
@@ -1654,7 +1652,7 @@ class Environment(BaseEnv):
             import grid2op
             from grid2op.Runner import Runner
             from grid2op.Agent import DoNothingAgent  # for example
-            env = grid2op.make()  # create the environment of your choice
+            env = grid2op.make("l2rpn_case14_sandbox")  # create the environment of your choice
 
             # create the proper runner
             runner = Runner(**env.get_params_for_runner(), agentClass=DoNothingAgent)

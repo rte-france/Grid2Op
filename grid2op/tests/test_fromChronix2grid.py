@@ -37,7 +37,8 @@ class TestFromChronix2Grid(unittest.TestCase):
                                                          "with_maintenance": True,
                                                          "max_iter": 10,
                                                          "with_loss": False
-                                                        }
+                                                        },
+                                    _add_to_name=type(self).__name__
                                     )
     
     
@@ -92,7 +93,7 @@ class TestFromChronix2Grid(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_nm,
                                     test=True,
-                                    # backend=LightSimBackend(),
+                                    _add_to_name=type(self).__name__,
                                     chronics_class=FromChronix2grid,
                                     data_feeding_kwargs={"env_path": os.path.join(DEV_DATA_FOLDER, self.env_nm),
                                                          "with_maintenance": True,

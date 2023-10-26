@@ -9,9 +9,9 @@
 import unittest
 
 from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
-from grid2op.Backend import PandaPowerBackend
 
-from grid2op.tests.helper_path_test import HelperTests
+import grid2op
+from grid2op.Backend import PandaPowerBackend
 from grid2op.tests.BaseRedispTest import (
     BaseTestRedispatch,
     BaseTestRedispatchChangeNothingEnvironment,
@@ -25,12 +25,8 @@ from grid2op.tests.BaseRedispTest import BaseTestLoadingAcceptAlmostZeroSumRedis
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
-import warnings
 
-warnings.simplefilter("error")
-
-
-class TestRedispatch(HelperTests, BaseTestRedispatch):
+class TestRedispatch(BaseTestRedispatch, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestRedispatch.setUp(self)
@@ -44,15 +40,9 @@ class TestRedispatch(HelperTests, BaseTestRedispatch):
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
-    def get_path(self):
-        return PATH_DATA_TEST_PP
-
-    def get_casefile(self):
-        return "test_case14.json"
-
 
 class TestRedispatchChangeNothingEnvironment(
-    HelperTests, BaseTestRedispatchChangeNothingEnvironment
+    BaseTestRedispatchChangeNothingEnvironment, unittest.TestCase
 ):
     def setUp(self):
         # TODO find something more elegant
@@ -67,14 +57,8 @@ class TestRedispatchChangeNothingEnvironment(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
-    def get_path(self):
-        return PATH_DATA_TEST_PP
 
-    def get_casefile(self):
-        return "test_case14.json"
-
-
-class TestRedispTooLowHigh(HelperTests, BaseTestRedispTooLowHigh):
+class TestRedispTooLowHigh(BaseTestRedispTooLowHigh, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestRedispTooLowHigh.setUp(self)
@@ -89,7 +73,7 @@ class TestRedispTooLowHigh(HelperTests, BaseTestRedispTooLowHigh):
         )
 
 
-class TestDispatchRampingIllegalETC(HelperTests, BaseTestDispatchRampingIllegalETC):
+class TestDispatchRampingIllegalETC(BaseTestDispatchRampingIllegalETC, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestDispatchRampingIllegalETC.setUp(self)
@@ -105,7 +89,7 @@ class TestDispatchRampingIllegalETC(HelperTests, BaseTestDispatchRampingIllegalE
 
 
 class TestLoadingAcceptAlmostZeroSumRedisp(
-    HelperTests, BaseTestLoadingAcceptAlmostZeroSumRedisp
+    BaseTestLoadingAcceptAlmostZeroSumRedisp, unittest.TestCase
 ):
     def setUp(self):
         # TODO find something more elegant

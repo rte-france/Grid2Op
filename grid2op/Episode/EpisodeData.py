@@ -98,7 +98,7 @@ class EpisodeData:
         from grid2op.Runner import Runner
 
         # I create an environment
-        env = grid2op.make("rte_case5_example", test=True)
+        env = grid2op.make("l2rpn_case14_sandbox", test=True)
 
         # I create the runner
         runner = Runner(**env.get_params_for_runner())
@@ -356,7 +356,7 @@ class EpisodeData:
             ################
             # INTRO
             # create a runner
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             # see the documentation of the Runner if you want to change the agent.
             # in this case it will be "do nothing"
             runner = Runner(**env.get_params_for_runner())
@@ -908,7 +908,8 @@ class CollectionWrapper:
             except IncorrectNumberOfElements as exc_:
                 # grid2op does not allow to load the object: there is a mismatch between what has been stored
                 # and what is currently used.
-                raise
+                raise Grid2OpException("grid2op does not allow to load the object: there is a mismatch "
+                                       "between what has been stored and what is currently used.") from exc_
             except NonFiniteElement:
                 self._game_over = i
                 break

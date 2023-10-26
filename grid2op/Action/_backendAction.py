@@ -238,10 +238,12 @@ class _BackendAction(GridObjects):
         )
 
         # shunts
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self.shunt_p = ValueStore(self.n_shunt, dtype=dt_float)
             self.shunt_q = ValueStore(self.n_shunt, dtype=dt_float)
             self.shunt_bus = ValueStore(self.n_shunt, dtype=dt_int)
+            self.current_shunt_bus = ValueStore(self.n_shunt, dtype=dt_int)
+            self.current_shunt_bus.values[:] = 1
 
         self._status_or_before = np.ones(self.n_line, dtype=dt_int)
         self._status_ex_before = np.ones(self.n_line, dtype=dt_int)
@@ -268,10 +270,11 @@ class _BackendAction(GridObjects):
         res.storage_power.copy(self.storage_power)
         res.activated_bus[:, :] = self.activated_bus
         # res.big_topo_to_subid[:] = self.big_topo_to_subid  # cste
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             res.shunt_p.copy(self.shunt_p)
             res.shunt_q.copy(self.shunt_q)
             res.shunt_bus.copy(self.shunt_bus)
+            res.current_shunt_bus.copy(self.current_shunt_bus)
 
         res._status_or_before[:] = self._status_or_before
         res._status_ex_before[:] = self._status_ex_before
@@ -310,10 +313,11 @@ class _BackendAction(GridObjects):
 
         self.storage_power.reorder(no_storage)
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self.shunt_p.reorder(no_shunt)
             self.shunt_q.reorder(no_shunt)
             self.shunt_bus.reorder(no_shunt)
+            self.current_shunt_bus.reorder(no_shunt)
         
         # force to reset the detailed topo
         self._detailed_topo = None
@@ -336,10 +340,11 @@ class _BackendAction(GridObjects):
         self.storage_power.values[:] = 0.0
 
         # shunts
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self.shunt_p.reset()
             self.shunt_q.reset()
             self.shunt_bus.reset()
+            self.current_shunt_bus.reset()
             
         self._loads_bus = None
         self._gens_bus = None
@@ -439,6 +444,7 @@ class _BackendAction(GridObjects):
             if (arr_ != 0).any():
                 # trigger the recompute of _detailed_topo if needed
                 self._detailed_topo = None
+            self.current_shunt_bus.values[self.shunt_bus.changed] = self.shunt_bus.values[self.shunt_bus.changed]
 
         # III line status
         # this need to be done BEFORE the topology, as a connected powerline will be connected to their old bus.
@@ -537,7 +543,7 @@ class _BackendAction(GridObjects):
         )
         topo = self.current_topo
         shunts = None
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             shunts = self.shunt_p, self.shunt_q, self.shunt_bus
         self._get_active_bus()
         return self.activated_bus, injections, topo, shunts
@@ -748,9 +754,13 @@ class _BackendAction(GridObjects):
 
     def _get_active_bus(self):
         self.activated_bus[:, :] = False
-        tmp = self.current_topo.values - 1
+        tmp = self.current_topo.values - 1  # TODO global to local !
         is_el_conn = tmp >= 0
         self.activated_bus[self.big_topo_to_subid[is_el_conn], tmp[is_el_conn]] = True
+        if type(self).shunts_data_available:
+            is_el_conn = self.current_shunt_bus.values >= 0
+            tmp = self.current_shunt_bus.values - 1
+            self.activated_bus[type(self).shunt_to_subid[is_el_conn], tmp[is_el_conn]] = True
 
     def update_state(self, powerline_disconnected):
         """

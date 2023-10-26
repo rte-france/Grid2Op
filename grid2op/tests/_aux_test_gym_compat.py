@@ -111,7 +111,7 @@ class _AuxTestGymCompatModule:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-                "l2rpn_case14_sandbox", test=True, _add_to_name="TestGymCompatModule"
+                "l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -123,7 +123,7 @@ class _AuxTestGymCompatModule:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-                "l2rpn_icaps_2021", test=True, _add_to_name="TestGymCompatModule"
+                "l2rpn_icaps_2021", test=True, _add_to_name=type(self).__name__
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -432,7 +432,7 @@ class _AuxTestGymCompatModule:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "educ_case14_storage", test=True, _add_to_name="TestGymCompatModule"
+                "educ_case14_storage", test=True, _add_to_name=type(self).__name__+"test_low_high_obs_space"
             )
         env.seed(0)
         env.reset()  # seed part !
@@ -791,7 +791,7 @@ class _AuxTestBoxGymObsSpace:
                 "educ_case14_storage",
                 test=True,
                 action_class=PlayableAction,
-                _add_to_name="TestBoxGymObsSpace",
+                _add_to_name=type(self).__name__
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -1083,7 +1083,7 @@ class _AuxTestBoxGymActSpace:
                 "educ_case14_storage",
                 test=True,
                 action_class=PlayableAction,
-                _add_to_name="TestBoxGymActSpace",
+                _add_to_name=type(self).__name__
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -1356,7 +1356,7 @@ class _AuxTestMultiDiscreteGymActSpace:
                 "educ_case14_storage",
                 test=True,
                 action_class=PlayableAction,
-                _add_to_name="TestMultiDiscreteGymActSpace",
+                _add_to_name=type(self).__name__
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -1574,7 +1574,7 @@ class _AuxTestDiscreteGymActSpace:
                 "educ_case14_storage",
                 test=True,
                 action_class=PlayableAction,
-                _add_to_name="TestMultiDiscreteGymActSpace",
+                _add_to_name=type(self).__name__,
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -1700,7 +1700,7 @@ class _AuxTestAllGymActSpaceWithAlarm:
                 os.path.join(PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"),
                 test=True,
                 action_class=PlayableAction,
-                _add_to_name="TestAllGymActSpaceWithAlarm",
+                _add_to_name=type(self).__name__,
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -1882,7 +1882,7 @@ class _AuxTestGOObsInRange:
                 "educ_case14_storage",
                 test=True,
                 action_class=PlayableAction,
-                _add_to_name="TestMultiDiscreteGymActSpace",
+                _add_to_name=type(self).__name__,
             )
         self.env.seed(0)
         self.env.reset()  # seed part !
@@ -1906,7 +1906,8 @@ class _AuxObsAllAttr:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("educ_case14_storage", test=True,
-                               action_class=PlayableAction)
+                               action_class=PlayableAction,
+                               _add_to_name=type(self).__name__)
         gym_env = self._aux_GymEnv_cls()(env)
         obs, info = gym_env.reset()
         all_attrs = ["year",

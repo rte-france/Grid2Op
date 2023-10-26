@@ -24,6 +24,7 @@ class Issue367Tester(unittest.TestCase):
             # Creation of the environment
             self.env = grid2op.make("l2rpn_wcci_2022_dev",
                                     chronics_class=MultifolderWithCache,
+                                    _add_to_name=type(self).__name__,
                                     test=True) # No bug wihout the MultifolderWithCache argument here
             self.env.chronics_handler.real_data.set_filter(lambda x: re.match(".*2050-02-14_0", x) is not None) # We test on a randomly chosen chronic for the example
             self.env.chronics_handler.reset()

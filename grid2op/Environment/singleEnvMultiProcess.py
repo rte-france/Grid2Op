@@ -42,7 +42,7 @@ class SingleEnvMultiProcess(BaseMultiProcessEnvironment):
         from grid2op.Environment import SingleEnvMultiProcess
 
         # create a simple environment
-        env = make()
+        env = make("l2rpn_case14_sandbox")
         # number of parrallel environment
         nb_env = 2  # change that to adapt to your system
         NB_STEP = 100  # number of step for each environment
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     nb_env = 8  # change that to adapt to your system
     NB_STEP = 100  # number of step for each environment
 
-    env = make()
+    env = make("l2rpn_case14_sandbox")
     env.seed(42)
 
     agent = DoNothingAgent(env.action_space)

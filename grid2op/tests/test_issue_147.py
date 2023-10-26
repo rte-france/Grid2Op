@@ -31,7 +31,7 @@ class Issue147Tester(unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_LINE = 3
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True, param=param)
+            env = grid2op.make("rte_case14_realistic", test=True, param=param, _add_to_name=type(self).__name__)
 
         action = env.action_space(
             {"set_bus": {"substations_id": [(1, [2, 2, 1, 1, 2, 2])]}}

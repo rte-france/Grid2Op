@@ -7,21 +7,19 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import pdb
+import unittest
 import warnings
+
 from grid2op.tests.helper_path_test import *
+import grid2op
 from grid2op.VoltageControler import ControlVoltageFromFile
-from grid2op.MakeEnv import make
-
-import warnings
-
-warnings.simplefilter("error")
 
 
 class TestLoadingVoltageControl(unittest.TestCase):
     def test_creation_ControlVoltage(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 volt_cont = ControlVoltageFromFile(
                     controler_backend=env.backend,
                     gridobj=env.backend,
@@ -31,7 +29,7 @@ class TestLoadingVoltageControl(unittest.TestCase):
     def test_copy(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 volt_cont = ControlVoltageFromFile(
                     controler_backend=env.backend,
                     gridobj=env.backend,

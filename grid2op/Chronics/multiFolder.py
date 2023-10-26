@@ -690,7 +690,7 @@ class Multifolder(GridValue):
 
             import grid2op
             import os
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             env.chronics_handler.real_data.split_and_save({"004": "2019-01-08 02:00",
                                                  "005": "2019-01-30 08:00",

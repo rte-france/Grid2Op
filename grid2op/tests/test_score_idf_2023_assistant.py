@@ -48,7 +48,8 @@ class TestScoreL2RPN2023Assist(unittest.TestCase):
             warnings.filterwarnings("ignore")
 
             self.env = grid2op.make(env_name,
-                                    test=True)
+                                    test=True,
+                                    _add_to_name=type(self).__name__)
 
             self.env.set_max_iter(30)
             params = self.env.parameters

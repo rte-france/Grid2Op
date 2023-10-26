@@ -68,7 +68,7 @@ class Runner(object):
         from grid2op.Agent import RandomAgent # for example...
         from grid2op.Runner import Runner
 
-        env = grid2op.make()
+        env = grid2op.make("l2rpn_case14_sandbox")
 
         ###############
         # the gym loops
@@ -1153,7 +1153,7 @@ class Runner(object):
             from gri2op.Runner import Runner
             from grid2op.Agent import RandomAgent
 
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
             res = runner.run(nb_episode=1)
 
@@ -1165,7 +1165,7 @@ class Runner(object):
             from gri2op.Runner import Runner
             from grid2op.Agent import RandomAgent
 
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             my_agent = RandomAgent(env.action_space)
             runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=my_agent)
             res = runner.run(nb_episode=1)
@@ -1181,7 +1181,7 @@ class Runner(object):
             from gri2op.Runner import Runner
             from grid2op.Agent import RandomAgent
 
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             my_agent = RandomAgent(env.action_space)
             runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=my_agent)
             res = runner.run(nb_episode=1, agent_seeds=[42], env_seeds=[0])

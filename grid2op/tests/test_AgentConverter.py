@@ -6,12 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import copy
-import json
-import re
 import warnings
-import pdb
-from abc import ABC, abstractmethod
+import unittest
 
 from grid2op.tests.helper_path_test import *
 from grid2op.Agent import AgentWithConverter, MLAgent
@@ -19,10 +15,6 @@ from grid2op.Converter import IdToAct
 from grid2op.Rules import AlwaysLegal
 from grid2op import make
 from grid2op.Parameters import Parameters
-
-import warnings
-
-warnings.simplefilter("error")
 
 
 class TestAgent(AgentWithConverter):

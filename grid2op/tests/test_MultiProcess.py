@@ -7,13 +7,13 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import unittest
 from grid2op.tests.helper_path_test import *
 
 import grid2op
 from grid2op.Environment import BaseMultiProcessEnvironment
 from grid2op.Environment import SingleEnvMultiProcess
 from grid2op.Environment import MultiEnvMultiProcess
-from grid2op.MakeEnv import make
 from grid2op.Observation import CompleteObservation
 import pdb
 
@@ -23,7 +23,7 @@ class TestBaseMultiProcessEnvironment(unittest.TestCase):
         nb_env = 2
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 envs = [env for _ in range(nb_env)]
                 multi_envs = BaseMultiProcessEnvironment(envs)
 
@@ -48,7 +48,7 @@ class TestBaseMultiProcessEnvironment(unittest.TestCase):
         nb_env = 2
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 envs = [env for _ in range(nb_env)]
                 env.seed(2)
                 multi_envs1 = BaseMultiProcessEnvironment(envs)
@@ -68,8 +68,8 @@ class TestBaseMultiProcessEnvironment(unittest.TestCase):
         env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env1 = grid2op.make(env_name, test=True)
-            env2 = grid2op.make(env_name, test=True)
+            env1 = grid2op.make(env_name, test=True, _add_to_name=type(self).__name__)
+            env2 = grid2op.make(env_name, test=True, _add_to_name=type(self).__name__)
 
         multi_env = BaseMultiProcessEnvironment([env1, env2])
         obss = multi_env.reset()
@@ -87,7 +87,7 @@ class TestSingleEnvMultiProcess(unittest.TestCase):
         nb_env = 2
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 multi_envs = SingleEnvMultiProcess(env=env, nb_env=nb_env)
 
                 obss, rewards, dones, infos = multi_envs.step(
@@ -111,7 +111,7 @@ class TestSingleEnvMultiProcess(unittest.TestCase):
         nb_env = 2
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 env.seed(2)
                 multi_envs1 = SingleEnvMultiProcess(env=env, nb_env=nb_env)
                 seeds_1 = multi_envs1.get_seeds()
@@ -132,7 +132,7 @@ class TestMultiEnvMultiProcess(unittest.TestCase):
         nb_envs = [1, 1]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 envs = [env for _ in range(len(nb_envs))]
                 multi_envs = MultiEnvMultiProcess(envs, nb_envs)
 
@@ -157,7 +157,7 @@ class TestMultiEnvMultiProcess(unittest.TestCase):
         nb_envs = [1, 1]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 envs = [env for _ in range(len(nb_envs))]
                 env.seed(2)
                 multi_envs1 = MultiEnvMultiProcess(envs, nb_envs)

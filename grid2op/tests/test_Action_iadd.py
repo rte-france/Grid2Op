@@ -28,7 +28,8 @@ class Test_iadd_Base(ABC):
             warnings.filterwarnings("ignore")
             cls.action_t = cls._action_setup()
             cls.env = grid2op.make(
-                "rte_case14_realistic", test=True, action_class=cls.action_t
+                "rte_case14_realistic", test=True, action_class=cls.action_t,
+                _add_to_name=cls.__name__
             )
 
     @classmethod

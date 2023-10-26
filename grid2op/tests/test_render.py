@@ -15,7 +15,7 @@ class BaseTestPlot(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
 
     def tearDown(self):
         self.env.close()

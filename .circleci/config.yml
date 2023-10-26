@@ -21,6 +21,9 @@ executors:
     python311:
         docker:
             - image: python:3.11-buster
+    python312:
+        docker:
+            - image: cimg/python:3.12.0
 
 jobs:
     test:
@@ -231,6 +234,14 @@ jobs:
                    python -m pip install -U .[test]
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -U "numpy>=1.26,<1.27"
+                   python -m pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
+                   grid2op.testinstall
+
     install310:
         executor: python310
         resource_class: small
@@ -282,6 +293,14 @@ jobs:
                    python -m pip install -U .[test]
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -U "numpy>=1.26,<1.27"
+                   python -m pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
+                   grid2op.testinstall
+
     install311:
         executor: python311
         resource_class: small
@@ -319,6 +338,36 @@ jobs:
                    python -m pip install -U .[test]
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -U "numpy>=1.26,<1.27"
+                   python -m pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
+                   grid2op.testinstall
+    install312:
+        executor: python312
+        resource_class: small
+        steps:
+            - checkout
+            - run: 
+                command: |
+                    sudo  apt-get update
+                    sudo  apt-get install -y coinor-cbc
+            - run: python -m pip install virtualenv
+            - run: python -m virtualenv venv_test
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -U pip setuptools wheel
+                #    python -m pip install -U numba  # not on python 3.12 at the moment
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -U "numpy>=1.26,<1.27"
+                   python -m pip install -U .[test]
+                   export _GRID2OP_FORCE_TEST=1
+                   grid2op.testinstall
 
 workflows:
     version: 2.1
@@ -331,3 +380,4 @@ workflows:
           - install39
           - install310
           - install311
+        #   - install312  # failing because of dependencies of numba, torch etc. Tired of it so ignoring it !

@@ -91,7 +91,7 @@ ERR_MSG_KWARGS = {
 }
 
 NAME_CHRONICS_FOLDER = "chronics"
-NAME_GRID_FILE = "grid.json"
+NAME_GRID_FILE = "grid"
 NAME_GRID_LAYOUT_FILE = "grid_layout.json"
 NAME_CONFIG_FILE = "config.py"
 
@@ -293,20 +293,6 @@ def make_from_dataset_path(
     except Exception as exc_:
         exc_chronics = exc_
 
-    # Compute and find backend/grid file
-    grid_path = _get_default_aux(
-        "grid_path",
-        kwargs,
-        defaultClassApp=str,
-        defaultinstance="",
-        msg_error=ERR_MSG_KWARGS["grid_path"],
-    )
-    if grid_path == "":
-        grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_FILE))
-    else:
-        grid_path_abs = os.path.abspath(grid_path)
-    _check_path(grid_path_abs, "Dataset power flow solver configuration")
-
     # Compute and find grid layout file
     grid_layout_path_abs = os.path.abspath(
         os.path.join(dataset_path_abs, NAME_GRID_LAYOUT_FILE)
@@ -386,6 +372,31 @@ def make_from_dataset_path(
         msg_error=ERR_MSG_KWARGS["backend"],
     )
 
+    # Compute and find backend/grid file
+    grid_path = _get_default_aux(
+        "grid_path",
+        kwargs,
+        defaultClassApp=str,
+        defaultinstance="",
+        msg_error=ERR_MSG_KWARGS["grid_path"],
+    )
+    if grid_path == "":
+        grid_path_abs = None
+        for ext in backend.supported_grid_format:
+            grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, f"{NAME_GRID_FILE}.{ext}"))
+            try:
+                _check_path(grid_path_abs, "Dataset power flow solver configuration")
+                break
+            except EnvError as exc_:
+                pass
+        if grid_path_abs is None:
+            raise EnvError(f"Impossible to find a grid file format supported by your backend. Your backend said it supports "
+                           f"the file with extension {backend.supported_grid_format}, "
+                           f"none of which are found in '{dataset_path_abs}'")
+    else:
+        grid_path_abs = os.path.abspath(grid_path)
+    _check_path(grid_path_abs, "Dataset power flow solver configuration")
+    
     # Get default observation class
     observation_class_cfg = CompleteObservation
     if (

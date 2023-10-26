@@ -17,7 +17,7 @@ class Issue433Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.env.set_id(0)
     

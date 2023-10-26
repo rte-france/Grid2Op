@@ -7,9 +7,9 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import unittest
 
 import grid2op
-from grid2op.Chronics import ChangeNothing
 from grid2op.tests.helper_path_test import *
 from grid2op.Action import PowerlineSetAction
 from grid2op.Opponent import WeightedRandomOpponent, BaseActionBudget
@@ -29,7 +29,7 @@ class Issue224Tester(unittest.TestCase):
             self.env = grid2op.make(
                 env_nm,
                 test=True,
-                # chronics_class=ChangeNothing,
+                _add_to_name=type(self).__name__,
                 opponent_attack_cooldown=opponent_attack_cooldown,
                 opponent_attack_duration=opponent_attack_duration,
                 opponent_budget_per_ts=opponent_budget_per_ts,

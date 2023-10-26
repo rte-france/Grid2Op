@@ -34,7 +34,7 @@ class OneChangeThenNothing(BaseAgent):
         acts_dict_ = [{}, {"set_line_status": [(0,-1)]}]  # list of dictionaries. Each dictionary
         # represents a valid action
 
-        env = grid2op.make()  # create an environment
+        env = grid2op.make("l2rpn_case14_sandbox")  # create an environment
         for act_as_dict in zip(acts_dict_):
             # generate the proper class that will perform the first action (encoded by {}) in acts_dict_
             agent_class = OneChangeThenNothing.gen_next(act_as_dict)
