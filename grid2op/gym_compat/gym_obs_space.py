@@ -155,7 +155,9 @@ class __AuxGymObservationSpace:
         if self.obs_attr_to_keep is not None:
             for obs_attr in self.obs_attr_to_keep:
                 if obs_attr not in dict_variables.keys() and obs_attr not in env.observation_space.attr_list_vect:
-                    raise ValueError(f"Attribute {obs_attr} is not in the observation space.")
+                    raise ValueError(f"Attribute {obs_attr} is not in the observation space.\
+                                     Valid attributes are {env.observation_space.attr_list_vect} \
+                                        and {list(dict_variables.keys())}")
                 
         self._fill_dict_obs_space(
             dict_, env.observation_space, env.parameters, env._oppSpace, dict_variables
@@ -221,7 +223,7 @@ class __AuxGymObservationSpace:
         self, dict_, observation_space, env_params, opponent_space, dict_variables={}
     ):
         for attr_nm in dict_variables:
-            if attr_nm not in self.obs_attr_to_keep:
+            if self.obs_attr_to_keep is not None and attr_nm not in self.obs_attr_to_keep:
                 continue
             # case where the user specified a dedicated encoding
             if dict_variables[attr_nm] is None:
