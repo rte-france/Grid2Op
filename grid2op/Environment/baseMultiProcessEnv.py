@@ -396,8 +396,8 @@ class BaseMultiProcessEnvironment(GridObjects):
 
             import grid2op
             from grid2op.Environment import BaseMultiProcessEnv
-            env1 = grid2op.make()  # create an environment of your choosing
-            env2 = grid2op.make()  # create another environment of your choosing
+            env1 = grid2op.make("l2rpn_case14_sandbox")  # create an environment of your choosing
+            env2 = grid2op.make("l2rpn_case14_sandbox")  # create another environment of your choosing
 
             multi_env = BaseMultiProcessEnv([env1, env2])
             obss = multi_env.reset()
@@ -793,7 +793,7 @@ if __name__ == "__main__":
     nb_env = 8  # change that to adapt to your system
     NB_STEP = 100  # number of step for each environment
 
-    env = make()
+    env = make("l2rpn_case14_sandbox")
     env.seed(42)
     envs = [env for _ in range(nb_env)]
 

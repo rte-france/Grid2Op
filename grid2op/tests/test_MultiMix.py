@@ -7,11 +7,11 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import tempfile
+import unittest
 
 from grid2op.tests.helper_path_test import *
 from grid2op.Environment import MultiMixEnvironment
 from grid2op.Environment import BaseEnv
-from grid2op.Observation import CompleteObservation
 from grid2op.Parameters import Parameters
 from grid2op.Reward import GameplayReward, L2RPNReward
 from grid2op.Exceptions import EnvError, NoForecastAvailable

@@ -38,6 +38,7 @@ class TestHighResSimCountInScore:
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self._env_name(),
                                     test=True,
+                                    _add_to_name=type(self).__name__,
                                     data_feeding_kwargs={"gridvalueClass": FromHandlers,
                                                           "gen_p_handler": CSVHandler("prod_p"),
                                                           "load_p_handler": CSVHandler("load_p"),

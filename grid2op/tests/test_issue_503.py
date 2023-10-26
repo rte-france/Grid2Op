@@ -17,11 +17,11 @@ class Issue503Tester(unittest.TestCase):
         params = Parameters()
         params.NO_OVERFLOW_DISCONNECTION = True
         with self.assertRaises(TypeError):
-            _ = grid2op.make("l2rpn_case14_sandbox", params)
+            _ = grid2op.make("l2rpn_case14_sandbox", params, test=True, _add_to_name=type(self).__name__)
             
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("l2rpn_case14_sandbox", test=True, param=params)
+            env = grid2op.make("l2rpn_case14_sandbox", test=True, param=params, _add_to_name=type(self).__name__)
         env.close()
 
 

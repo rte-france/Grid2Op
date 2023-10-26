@@ -8,6 +8,7 @@
 
 import warnings
 import pdb
+import unittest
 
 from grid2op.tests.helper_path_test import *
 

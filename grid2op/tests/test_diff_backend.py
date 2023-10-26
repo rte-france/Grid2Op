@@ -41,7 +41,7 @@ class Case14DiffGridTester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True, _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.env.set_id(0)
     
@@ -141,7 +141,7 @@ class Case14DiffGridCopyTester(Case14DiffGridTester):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.aux_env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True)
+            self.aux_env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True, _add_to_name=type(self).__name__)
             
         self.env = self.aux_env.copy()
         self.env.seed(0)
@@ -182,6 +182,7 @@ class DiffGridMakeTester(unittest.TestCase):
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
             env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True,
+                               _add_to_name=type(self).__name__,
                                observation_backend_kwargs={"max_iter": 15,
                                                            "lightsim2grid": True})
         self._aux_check_different_stuff(env, self._aux_check_bk_kwargs)
@@ -199,6 +200,7 @@ class DiffGridMakeTester(unittest.TestCase):
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
             env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True,
+                               _add_to_name=type(self).__name__,
                                observation_backend_class=ModifPPBackend)
         self._aux_check_different_stuff(env, self._aux_bk_class)
 

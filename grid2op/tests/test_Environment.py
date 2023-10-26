@@ -10,16 +10,17 @@ import copy
 import pdb
 import time
 import warnings
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
+import grid2op
 from grid2op.Exceptions import *
 from grid2op.Environment import Environment
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
 from grid2op.Reward import L2RPNReward
-from grid2op.MakeEnv import make
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.dtypes import dt_float
 
@@ -30,11 +31,12 @@ if PROFILE_CODE:
     import cProfile
 
 
-class TestLoadingBackendPandaPower(unittest.TestCase):
+class BaseTestLoadingBackendPandaPower:
     def get_backend(self, detailed_infos_for_cascading_failures=True):
         return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
 
     def setUp(self):
+        super().setUp()
         # powergrid
         self.backend = self.get_backend(True)
         self.path_matpower = PATH_DATA_TEST_PP
@@ -110,6 +112,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             )
 
     def tearDown(self):
+        super().tearDown()
         self.env.close()
 
     def compare_vect(self, pred, true):
@@ -256,7 +259,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                 do_nothing
             )  # should load the first time stamp
             i += 1
-        assert i == 287
+        assert i == 287, f"env stopped at {i} instead of 287"
 
     def test_reward(self):
         done = False
@@ -315,6 +318,10 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         ), "Wrong reward"
 
 
+class TestLoadingBackendPandaPower(BaseTestLoadingBackendPandaPower, unittest.TestCase):
+    pass
+
+
 class TestIllegalAmbiguous(unittest.TestCase):
     """
     This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
@@ -328,7 +335,7 @@ class TestIllegalAmbiguous(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case5_example", test=True)
+            self.env = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
 
     def tearDown(self):
         self.env.close()
@@ -377,11 +384,12 @@ class TestOtherReward(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
+            self.env = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 reward_class=L2RPNReward,
                 other_rewards={"test": L2RPNReward},
+                _add_to_name=type(self).__name__,
             )
 
     def tearDown(self):
@@ -432,7 +440,7 @@ class TestOtherReward(unittest.TestCase):
         assert obs_after.minute_of_hour == 0
 
 
-class TestResetOk(unittest.TestCase):
+class BaseTestResetOk:
     """
     This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
     or illegal
@@ -450,16 +458,19 @@ class TestResetOk(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
+            self.env = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 reward_class=L2RPNReward,
                 backend=self.make_backend(),
                 other_rewards={"test": L2RPNReward},
+                _add_to_name=type(self).__name__
             )
+        super().setUp()
 
     def tearDown(self):
         self.env.close()
+        super().tearDown()
 
     def test_reset_after_blackout(self):
         # make the grid in bad shape
@@ -481,7 +492,7 @@ class TestResetOk(unittest.TestCase):
         obs, reward, done, info = self.env.step(act)
         # at this stage there is a cascading failure
         assert len(info["exception"])
-        assert isinstance(info["exception"][0], DivergingPowerFlow)
+        assert isinstance(info["exception"][0], BackendError)
         # reset the grid
         obs = self.env.reset()
         assert np.all(obs.topo_vect == 1)
@@ -495,12 +506,13 @@ class TestResetOk(unittest.TestCase):
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = make(
+                env = grid2op.make(
                     "rte_case5_example",
                     test=True,
                     reward_class=L2RPNReward,
                     other_rewards={"test": L2RPNReward},
                     backend=backend,
+                    _add_to_name=type(self).__name__,
                 )
 
         # make the grid in bad shape
@@ -518,7 +530,7 @@ class TestResetOk(unittest.TestCase):
         obs, reward, done, info = env.step(env.action_space())
         # at this stage there is a cascading failure
         assert len(info["exception"])
-        assert isinstance(info["exception"][0], DivergingPowerFlow)
+        assert isinstance(info["exception"][0], BackendError)
         assert "detailed_infos_for_cascading_failures" in info
         assert len(info["detailed_infos_for_cascading_failures"])
         # reset the grid
@@ -536,11 +548,12 @@ class TestAttachLayout(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "rte_case5_example",
                 test=True,
                 reward_class=L2RPNReward,
                 other_rewards={"test": L2RPNReward},
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.attach_layout(my_layout)
                 act = env.action_space()
@@ -571,6 +584,10 @@ class TestAttachLayout(unittest.TestCase):
                 }
 
 
+class TestResetOk(BaseTestResetOk, unittest.TestCase):
+    pass
+
+
 class TestLineChangeLastBus(unittest.TestCase):
     """
     This function test that the behaviour of "step": it updates the action with the last known bus when reconnecting
@@ -586,11 +603,12 @@ class TestLineChangeLastBus(unittest.TestCase):
 
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env = make(
+                self.env = grid2op.make(
                     "rte_case14_test",
                     test=True,
                     chronics_class=ChangeNothing,
                     param=self.params,
+                    _add_to_name=type(self).__name__,
                 )
 
     def tearDown(self):
@@ -645,7 +663,7 @@ class TestLineChangeLastBus(unittest.TestCase):
         assert obs.topo_vect[line_ex_topo] == 2, "Line ex should be on bus 2"
 
 
-class TestResetAfterCascadingFailure(unittest.TestCase):
+class BaseTestResetAfterCascadingFailure:
     """
     Fake a cascading failure, do a reset of an env, check that it can be loaded
 
@@ -661,12 +679,13 @@ class TestResetAfterCascadingFailure(unittest.TestCase):
             warnings.filterwarnings("ignore")
             params = Parameters()
             params.MAX_SUB_CHANGED = 2
-            self.env = make(
+            self.env = grid2op.make(
                 "rte_case14_test",
                 test=True,
                 chronics_class=ChangeNothing,
                 param=params,
                 backend=self.make_backend(),
+                _add_to_name=type(self).__name__
             )
 
     def tearDown(self):
@@ -691,7 +710,11 @@ class TestResetAfterCascadingFailure(unittest.TestCase):
             assert d is False
 
 
-class TestCascadingFailure(unittest.TestCase):
+class TestResetAfterCascadingFailure(BaseTestResetAfterCascadingFailure, unittest.TestCase):
+    pass
+
+
+class BaseTestCascadingFailure:
     """
     There has been a bug preventing to reload an environment if the previous one ended with a cascading failure.
     It check that here.
@@ -710,13 +733,14 @@ class TestCascadingFailure(unittest.TestCase):
             params.MAX_SUB_CHANGED = 0
             params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
             rules = DefaultRules
-            self.env = make(
+            self.env = grid2op.make(
                 "rte_case14_test",
                 test=True,
                 chronics_class=ChangeNothing,
                 param=params,
                 gamerules_class=rules,
                 backend=self.make_backend(),
+                _add_to_name=type(self).__name__
             )
 
     def tearDown(self):
@@ -762,12 +786,16 @@ class TestCascadingFailure(unittest.TestCase):
         assert not done
 
 
+class TestCascadingFailure(BaseTestCascadingFailure, unittest.TestCase):
+    pass
+
+
 class TestLoading2envDontCrash(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = make("rte_case14_test", test=True)
-            self.env2 = make("rte_case5_example", test=True)
+            self.env1 = grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__)
+            self.env2 = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
 
     def tearDown(self) -> None:
         self.env1.close()
@@ -792,7 +820,7 @@ class TestDeactivateForecast(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = make("rte_case14_test", test=True)
+            self.env1 = grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__)
 
     def tearDown(self) -> None:
         self.env1.close()
@@ -922,7 +950,7 @@ class TestMaxIter(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
 
     def tearDown(self) -> None:
         self.env.close()

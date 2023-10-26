@@ -7,12 +7,12 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import unittest
 import warnings
+import unittest
 
 import numpy as np
 
 from grid2op import make
 
-from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
 from grid2op.Backend import PandaPowerBackend
 
 from grid2op.tests.helper_path_test import HelperTests
@@ -30,38 +30,26 @@ from grid2op.tests.BaseBackendTest import BaseIssuesTest
 from grid2op.tests.BaseBackendTest import BaseStatusActions
 from grid2op.tests.BaseBackendTest import BaseTestStorageAction
 
-PATH_DATA_TEST_INIT = PATH_DATA_TEST
-PATH_DATA_TEST = PATH_DATA_TEST_PP
-
 import warnings
 
 warnings.simplefilter("error")
 
 
-class TestNames(HelperTests, BaseTestNames):
+class TestNames(BaseTestNames, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
-    def get_path(self):
-        return PATH_DATA_TEST_INIT
 
-
-class TestLoadingCase(HelperTests, BaseTestLoadingCase):
+class TestLoadingCase(BaseTestLoadingCase, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
-    def get_path(self):
-        return PATH_DATA_TEST
 
-    def get_casefile(self):
-        return "test_case14.json"
-
-
-class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc):
+class TestLoadingBackendFunc(BaseTestLoadingBackendFunc, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestLoadingBackendFunc.setUp(self)
@@ -75,14 +63,8 @@ class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc):
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
-    def get_path(self):
-        return PATH_DATA_TEST
 
-    def get_casefile(self):
-        return "test_case14.json"
-
-
-class TestTopoAction(HelperTests, BaseTestTopoAction):
+class TestTopoAction(BaseTestTopoAction, unittest.TestCase):
     def setUp(self):
         BaseTestTopoAction.setUp(self)
 
@@ -90,20 +72,9 @@ class TestTopoAction(HelperTests, BaseTestTopoAction):
         # TODO find something more elegant
         BaseTestTopoAction.tearDown(self)
 
-    def make_backend(self, detailed_infos_for_cascading_failures=False):
-        return PandaPowerBackend(
-            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
-        )
-
-    def get_path(self):
-        return PATH_DATA_TEST
-
-    def get_casefile(self):
-        return "test_case14.json"
-
 
 class TestEnvPerformsCorrectCascadingFailures(
-    HelperTests, BaseTestEnvPerformsCorrectCascadingFailures
+    BaseTestEnvPerformsCorrectCascadingFailures, unittest.TestCase
 ):
     def setUp(self):
         BaseTestEnvPerformsCorrectCascadingFailures.setUp(self)
@@ -117,28 +88,22 @@ class TestEnvPerformsCorrectCascadingFailures(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
-    def get_casefile(self):
-        return "test_case14.json"
 
-    def get_path(self):
-        return PATH_DATA_TEST
-
-
-class TestChangeBusAffectRightBus(HelperTests, BaseTestChangeBusAffectRightBus):
+class TestChangeBusAffectRightBus(BaseTestChangeBusAffectRightBus, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestShuntAction(HelperTests, BaseTestShuntAction):
+class TestShuntAction(BaseTestShuntAction, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
+class TestResetEqualsLoadGrid(BaseTestResetEqualsLoadGrid, unittest.TestCase):
     def setUp(self):
         BaseTestResetEqualsLoadGrid.setUp(self)
 
@@ -148,35 +113,35 @@ class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
         )
 
 
-class TestVoltageOWhenDisco(HelperTests, BaseTestVoltageOWhenDisco):
+class TestVoltageOWhenDisco(BaseTestVoltageOWhenDisco, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack):
+class TestChangeBusSlack(BaseTestChangeBusSlack, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestIssuesTest(HelperTests, BaseIssuesTest):
+class TestIssuesTest(BaseIssuesTest, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestStatusAction(HelperTests, BaseStatusActions):
+class TestStatusAction(BaseStatusActions, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestStorageAction(HelperTests, BaseTestStorageAction):
+class TestStorageAction(BaseTestStorageAction, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures

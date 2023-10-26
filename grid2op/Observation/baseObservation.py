@@ -1619,7 +1619,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             obs = env.reset()
 
             # retrieve the id of extremity of powerline 1:
@@ -3390,6 +3390,7 @@ class BaseObservation(GridObjects):
         self._reset_matrices()
         # and ensure everything is reloaded properly
         super().from_vect(vect, check_legit=check_legit)
+        self._is_done = False
 
     def to_dict(self):
         """

@@ -11,19 +11,27 @@ import pdb
 import warnings
 
 from grid2op.tests.helper_path_test import *
+from grid2op.tests.helper_path_test import MakeBackend
+import grid2op
 
 from grid2op.Exceptions import *
 from grid2op.Environment import Environment
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
-from grid2op.MakeEnv import make
 from grid2op.Action import BaseAction
 
-from grid2op.tests.BaseBackendTest import MakeBackend
 
 
 class BaseTestRedispatch(MakeBackend):
+
+    def get_path(self):
+        return PATH_DATA_TEST_PP
+
+    def get_casefile(self):
+        return "test_case14.json"
+    
     def setUp(self):
+        super().setUp()
         # powergrid
         self.backend = self.make_backend()
         self.path_matpower = self.get_path()
@@ -104,6 +112,7 @@ class BaseTestRedispatch(MakeBackend):
 
     def tearDown(self):
         self.env.close()
+        super().tearDown()
 
     def test_negative_dispatch(self):
         self.skip_if_needed()
@@ -355,7 +364,15 @@ class BaseTestRedispatch(MakeBackend):
 
 
 class BaseTestRedispatchChangeNothingEnvironment(MakeBackend):
+
+    def get_path(self):
+        return PATH_DATA_TEST_PP
+
+    def get_casefile(self):
+        return "test_case14.json"
+    
     def setUp(self):
+        super().setUp()
         # powergrid
         self.backend = self.make_backend()
         self.path_matpower = self.get_path()
@@ -432,6 +449,7 @@ class BaseTestRedispatchChangeNothingEnvironment(MakeBackend):
 
     def tearDown(self):
         self.env.close()
+        super().tearDown()
 
     def test_redispatch_generator_off(self):
         """Redispatch a turned off generator is illegal"""
@@ -457,10 +475,14 @@ class BaseTestRedispatchChangeNothingEnvironment(MakeBackend):
 class BaseTestRedispTooLowHigh(MakeBackend):
     # test bug reported in issues https://github.com/rte-france/Grid2Op/issues/44
     def setUp(self) -> None:
+        super().setUp()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_redisp", test=True, backend=backend)
+            self.env = grid2op.make("rte_case14_redisp",
+                            test=True,
+                            backend=backend,
+                            _add_to_name=type(self).__name__)
 
         # i don't want to be bother by ramps in these test (note that is NOT recommended to change that)
         type(self.env).gen_max_ramp_down[:] = 5000
@@ -477,6 +499,7 @@ class BaseTestRedispTooLowHigh(MakeBackend):
 
     def tearDown(self):
         self.env.close()
+        super().tearDown()
 
     def test_redisp_toohigh_toolow(self):
         """
@@ -549,15 +572,18 @@ class BaseTestRedispTooLowHigh(MakeBackend):
 
 class BaseTestDispatchRampingIllegalETC(MakeBackend):
     def setUp(self):
+        super().setUp()
         # powergrid
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_test", test=True, backend=backend)
+            self.env = grid2op.make("rte_case14_test", test=True, backend=backend,
+                            _add_to_name=type(self).__name__)
         self.tol_one = self.env._tol_poly
 
     def tearDown(self):
         self.env.close()
+        super().tearDown()
 
     def test_invalid_dispatch(self):
         self.skip_if_needed()
@@ -814,15 +840,18 @@ class BaseTestDispatchRampingIllegalETC(MakeBackend):
 
 class BaseTestLoadingAcceptAlmostZeroSumRedisp(MakeBackend):
     def setUp(self):
+        super().setUp()
         # powergrid
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_test", test=True, backend=backend)
+            self.env = grid2op.make("rte_case14_test", test=True, backend=backend,
+                            _add_to_name=type(self).__name__)
         self.tol_one = self.env._tol_poly
 
     def tearDown(self):
         self.env.close()
+        super().tearDown()
 
     def test_accept_almost_zerozum_too_high(self):
         self.skip_if_needed()

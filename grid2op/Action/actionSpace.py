@@ -91,7 +91,7 @@ class ActionSpace(SerializableActionSpace):
 
             import grid2op
             # create a simple environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             act = env.action_space({})
             # act is now the "do nothing" action, that doesn't modify the grid.
 

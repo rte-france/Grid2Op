@@ -15,7 +15,6 @@ from abc import ABC, abstractmethod
 import grid2op
 from grid2op.tests.helper_path_test import *
 from grid2op.Reward import *
-from grid2op.MakeEnv import make
 from grid2op.Parameters import Parameters
 from grid2op.Runner import Runner
 from grid2op.Agent import BaseAgent
@@ -27,8 +26,9 @@ class TestLoadingReward(ABC):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
-                "rte_case5_example", test=True, reward_class=self._reward_type()
+            self.env = grid2op.make(
+                "rte_case5_example", test=True, reward_class=self._reward_type(),
+                _add_to_name=type(self).__name__
             )
 
         self.action = self.env.action_space()
@@ -193,8 +193,9 @@ class TestIncreaseFlatReward(unittest.TestCase):
     def test_ok(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
-                "l2rpn_case14_sandbox", reward_class=IncreasingFlatReward, test=True
+            env = grid2op.make(
+                "l2rpn_case14_sandbox", reward_class=IncreasingFlatReward, test=True,
+                _add_to_name=type(self).__name__
             )
 
         assert env.nb_time_step == 0
@@ -215,8 +216,9 @@ class TestEpisodeDurationReward(unittest.TestCase):
     def test_ok(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
-                "l2rpn_case14_sandbox", reward_class=EpisodeDurationReward, test=True
+            env = grid2op.make(
+                "l2rpn_case14_sandbox", reward_class=EpisodeDurationReward, test=True,
+                _add_to_name=type(self).__name__
             )
 
         assert env.nb_time_step == 0
@@ -253,8 +255,9 @@ class TestN1Reward(unittest.TestCase):
         L_ID = 2
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
-                "l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True
+            env = grid2op.make(
+                "l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True,
+                _add_to_name=type(self).__name__
             )
 
         obs = env.reset()
@@ -276,6 +279,7 @@ class TestN1Reward(unittest.TestCase):
                 "l2rpn_case14_sandbox",
                 other_rewards={f"line_{l_id}": N1Reward(l_id=l_id) for l_id in L_IDS},
                 test=True,
+                _add_to_name=type(self).__name__,
             )
         obs, reward, done, info = env.step(env.action_space())
         for l_id in L_IDS:
@@ -308,7 +312,8 @@ class TestEndOfEpisode(unittest.TestCase):
         param = Parameters()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, reward_class=TMPRewardForTest)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True,
+                                    reward_class=TMPRewardForTest, _add_to_name=type(self).__name__)
         return super().setUp()
     
     def tearDown(self) -> None:

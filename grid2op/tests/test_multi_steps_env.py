@@ -25,7 +25,8 @@ class ForecastEnvTester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"), test=True)
+            self.env = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"), test=True,
+                                    _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.env.set_id(0)
         self.dn = self.env.action_space()

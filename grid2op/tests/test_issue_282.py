@@ -20,7 +20,8 @@ class Issue282Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-                "educ_case14_storage", test=True, action_class=CompleteAction
+                "educ_case14_storage", test=True, action_class=CompleteAction,
+                _add_to_name=type(self).__name__
             )
         self.env_gym = GymEnv(self.env)
 

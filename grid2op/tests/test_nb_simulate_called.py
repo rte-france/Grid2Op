@@ -26,9 +26,9 @@ class TestSimulateCount(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             if param is not None:
-                env = grid2op.make("l2rpn_case14_sandbox", test=True, param=param)
+                env = grid2op.make("l2rpn_case14_sandbox", test=True, param=param, _add_to_name=type(self).__name__)
             else:
-                env = grid2op.make("l2rpn_case14_sandbox", test=True)
+                env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
         return env
 
     def test_simple_cases(self):

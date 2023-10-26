@@ -287,7 +287,7 @@ class SerializableActionSpace(SerializableSpace):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # and now you can sample from the action space
             random_action = env.action_space.sample()
@@ -300,7 +300,7 @@ class SerializableActionSpace(SerializableSpace):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # and now you can sample from the action space
             random_action = env.action_space()
@@ -380,7 +380,7 @@ class SerializableActionSpace(SerializableSpace):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # and now you can disconnect line 0
             disco_line_0 = env.action_space.disconnect_powerline(line_id=0)
@@ -475,7 +475,7 @@ class SerializableActionSpace(SerializableSpace):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # and now you can reconnect line 0
             reco_line_0 = env.action_space.reconnect_powerline(line_id=0, bus_or=1, bus_ex=0)
@@ -582,7 +582,7 @@ class SerializableActionSpace(SerializableSpace):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # change bus of element named 'gen_1_0'
             change_gen_0 = env.action_space.change_bus('gen_1_0', type_element="gen")
@@ -757,7 +757,7 @@ class SerializableActionSpace(SerializableSpace):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # set bus of element named 'gen_1_0' to bus 2
             setbus_gen_0 = env.action_space.set_bus('gen_1_0', new_bus=2, type_element="gen")
@@ -982,7 +982,7 @@ class SerializableActionSpace(SerializableSpace):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # all "change bus" action for all the substations
             all_change_actions = env.action_space.get_all_unitary_topologies_change(env.action_space)
@@ -1053,7 +1053,7 @@ class SerializableActionSpace(SerializableSpace):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # all "set_bus" actions
             all_change_actions = env.action_space.get_all_unitary_topologies_set(env.action_space)

@@ -87,7 +87,8 @@ class TestTSFromEpisodeMaintenance(unittest.TestCase):
                                     opponent_attack_duration=0,
                                     opponent_budget_per_ts=0.,
                                     opponent_init_budget=0.,
-                                    opponent_action_class=DontAct,)
+                                    opponent_action_class=DontAct,
+                                    _add_to_name=type(self).__name__)
         self.env.set_id(0)
         self.env.seed(0)
         self.max_iter = 10
@@ -118,6 +119,7 @@ class TestTSFromEpisodeMaintenance(unittest.TestCase):
             env = grid2op.make(self.env_name,
                                test=True,
                                chronics_class=FromOneEpisodeData,
+                               _add_to_name=type(self).__name__,
                                data_feeding_kwargs={"ep_data": ep_data},
                                opponent_attack_cooldown=99999999,
                                opponent_attack_duration=0,
@@ -154,6 +156,7 @@ class TestTSFromEpisodeMaintenance(unittest.TestCase):
             env = grid2op.make(self.env_name,
                                test=True,
                                chronics_class=FromOneEpisodeData,
+                               _add_to_name=type(self).__name__,
                                data_feeding_kwargs={"ep_data": ep_data},
                                opponent_attack_cooldown=99999999,
                                opponent_attack_duration=0,
@@ -182,6 +185,7 @@ class TestTSFromEpisodeMaintenance(unittest.TestCase):
                 env = grid2op.make(self.env_name,
                                    test=True,
                                    chronics_class=FromOneEpisodeData,
+                                   _add_to_name=type(self).__name__,
                                    data_feeding_kwargs={"ep_data": ep_data,
                                                         "list_perfect_forecasts": [1]},
                                    opponent_attack_cooldown=99999999,
@@ -195,6 +199,7 @@ class TestTSFromEpisodeMaintenance(unittest.TestCase):
             env = grid2op.make(self.env_name,
                                test=True,
                                chronics_class=FromOneEpisodeData,
+                               _add_to_name=type(self).__name__,
                                data_feeding_kwargs={"ep_data": ep_data,
                                                     "list_perfect_forecasts": [5]},
                                opponent_attack_cooldown=99999999,
@@ -236,6 +241,7 @@ class TestTSFromEpisodeMaintenance(unittest.TestCase):
             env = grid2op.make(self.env_name,
                                test=True,
                                chronics_class=FromOneEpisodeData,
+                               _add_to_name=type(self).__name__,
                                data_feeding_kwargs={"ep_data": ep_data},
                                opponent_attack_cooldown=99999999,
                                opponent_attack_duration=0,
@@ -282,6 +288,7 @@ class TestTSFromEpisodeMaintenance(unittest.TestCase):
             env = grid2op.make(self.env_name,
                                test=True,
                                chronics_class=FromOneEpisodeData,
+                               _add_to_name=type(self).__name__,
                                data_feeding_kwargs={"ep_data": ep_data},
                                opponent_attack_cooldown=99999999,
                                opponent_attack_duration=0,
@@ -313,6 +320,7 @@ class TestTSFromEpisodeMaintenance(unittest.TestCase):
             env = grid2op.make(self.env_name,
                                test=True,
                                chronics_class=FromOneEpisodeData,
+                               _add_to_name=type(self).__name__,
                                data_feeding_kwargs={"ep_data": ep_data2},
                                opponent_attack_cooldown=99999999,
                                opponent_attack_duration=0,
@@ -333,7 +341,7 @@ class TestExamples(unittest.TestCase):
         env_name = "l2rpn_case14_sandbox"  # or any other name
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make(env_name, test=True)
+            env = grid2op.make(env_name, test=True, _add_to_name=type(self).__name__)
         
         param = env.parameters
         param.NO_OVERFLOW_DISCONNECTION = True
@@ -358,6 +366,7 @@ class TestExamples(unittest.TestCase):
                                     chronics_class=FromOneEpisodeData,
                                     data_feeding_kwargs={"ep_data": ep_data},
                                     opponent_class=FromEpisodeDataOpponent,
+                                    _add_to_name=type(self).__name__,
                                     )
             ep_data2 = EpisodeData.from_disk(*ep_data)
             obs = env2.reset()
@@ -373,7 +382,7 @@ class TestExamples(unittest.TestCase):
         env_name = "l2rpn_case14_sandbox"  # or any other name
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make(env_name, test=True)
+            env = grid2op.make(env_name, test=True, _add_to_name=type(self).__name__)
         
         param = env.parameters
         param.NO_OVERFLOW_DISCONNECTION = True
@@ -401,6 +410,7 @@ class TestExamples(unittest.TestCase):
                                     data_feeding_kwargs={"li_ep_data": li_episode},
                                     opponent_class=FromEpisodeDataOpponent,
                                     opponent_attack_cooldown=1,
+                                    _add_to_name=type(self).__name__,
                                     )
             # li_ep_data in this case is a list of anything that is accepted by `FromOneEpisodeData`
 
@@ -424,7 +434,8 @@ class TestWithOpp(unittest.TestCase):
                                opponent_class=RandomLineOpponent,
                                opponent_budget_class=BaseActionBudget,
                                kwargs_opponent={"lines_attacked":
-                                                ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]})
+                                                ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]},
+                               _add_to_name=type(self).__name__)
         runner = Runner(
             **env.get_params_for_runner(), agentClass=RecoPowerlineAgent
         )    
@@ -450,6 +461,7 @@ class TestWithOpp(unittest.TestCase):
                                 opponent_init_budget=100000.,
                                 opponent_action_class=PowerlineSetAction,
                                 opponent_budget_class=BaseActionBudget,
+                                _add_to_name=type(self).__name__
                                 )
         obs = env2.reset()
         agent = RecoPowerlineAgent(env2.action_space)
@@ -474,7 +486,8 @@ class TestWithOpp(unittest.TestCase):
                                opponent_budget_class=BaseActionBudget,
                                kwargs_opponent={"lines_attacked":
                                                 ["1_3_3", "1_4_4", "3_6_15",
-                                                 "9_10_12", "11_12_13", "12_13_14"]})
+                                                 "9_10_12", "11_12_13", "12_13_14"]},
+                               _add_to_name=type(self).__name__)
         runner = Runner(
             **env.get_params_for_runner(), agentClass=RecoPowerlineAgent
         )    
@@ -498,6 +511,8 @@ class TestWithOpp(unittest.TestCase):
                                 opponent_init_budget=100000.,
                                 opponent_action_class=PowerlineSetAction,
                                 opponent_budget_class=BaseActionBudget,
+                                _add_to_name=type(self).__name__,
+                                
                                 )
         with self.assertWarns(UserWarning):
             env2 = grid2op.make(env_name,
@@ -511,6 +526,7 @@ class TestWithOpp(unittest.TestCase):
                                 opponent_init_budget=100000.,
                                 opponent_action_class=PowerlineSetAction,
                                 opponent_budget_class=BaseActionBudget,
+                                _add_to_name=type(self).__name__
                                 )
      
 
@@ -525,7 +541,8 @@ class TestTSFromMultieEpisode(unittest.TestCase):
                                     opponent_attack_duration=0,
                                     opponent_budget_per_ts=0.,
                                     opponent_init_budget=0.,
-                                    opponent_action_class=DontAct,)
+                                    opponent_action_class=DontAct,
+                                    _add_to_name=type(self).__name__)
         self.env.set_id(0)
         self.env.seed(0)
         self.max_iter = 10
@@ -553,7 +570,8 @@ class TestTSFromMultieEpisode(unittest.TestCase):
                                opponent_attack_duration=0,
                                opponent_budget_per_ts=0.,
                                opponent_init_budget=0.,
-                               opponent_action_class=DontAct)
+                               opponent_action_class=DontAct,
+                               _add_to_name=type(self).__name__)
         # test init data
         obs = env.reset()
         TestTSFromEpisodeMaintenance._aux_obs_equal(obs,  ep_data[0].observations[0])

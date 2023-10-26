@@ -16,7 +16,7 @@ class Issue274Tester(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_icaps_2021", test=True)
+            self.env = grid2op.make("l2rpn_icaps_2021", test=True, _add_to_name=type(self).__name__)
 
     def test_same_opponent_state(self):
         """test that the opponent state is correctly copied"""
