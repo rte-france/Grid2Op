@@ -1155,7 +1155,7 @@ class PandaPowerBackend(Backend):
             # of the powerflow has not converged, results are Nan
             self._reset_all_nan()
             msg = exc_.__str__()
-            return False, DivergingPowerFlow(f'powerflow diverged with error :"{msg}"')
+            return False, BackendError(f'powerflow diverged with error :"{msg}"')
 
     def assert_grid_correct(self) -> None:
         """
