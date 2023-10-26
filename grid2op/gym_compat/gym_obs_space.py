@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import List, Union
 import copy
 import warnings
 import numpy as np
@@ -86,7 +87,12 @@ class __AuxGymObservationSpace:
 
     """
 
-    def __init__(self, env, dict_variables=None):
+    def __init__(
+        self,
+        env,
+        dict_variables=None,
+        obs_attr_to_keep: Union[List[str],None] = None,
+    ):
         if not isinstance(
             env, (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)
         ):
@@ -144,6 +150,12 @@ class __AuxGymObservationSpace:
                         shape=(self._init_env.n_storage, ),
                         dtype=dt_float,
                     )
+        
+        self.obs_attr_to_keep = obs_attr_to_keep
+        if self.obs_attr_to_keep is not None:
+            for obs_attr in self.obs_attr_to_keep:
+                if obs_attr not in dict_variables.keys() and obs_attr not in env.observation_space.attr_list_vect:
+                    raise ValueError(f"Attribute {obs_attr} is not in the observation space.")
                 
         self._fill_dict_obs_space(
             dict_, env.observation_space, env.parameters, env._oppSpace, dict_variables
@@ -209,6 +221,8 @@ class __AuxGymObservationSpace:
         self, dict_, observation_space, env_params, opponent_space, dict_variables={}
     ):
         for attr_nm in dict_variables:
+            if attr_nm not in self.obs_attr_to_keep:
+                continue
             # case where the user specified a dedicated encoding
             if dict_variables[attr_nm] is None:
                 # none is by default to disable this feature
@@ -226,6 +240,8 @@ class __AuxGymObservationSpace:
             observation_space.shape,
             observation_space.dtype,
         ):
+            if self.obs_attr_to_keep is not None and attr_nm not in self.obs_attr_to_keep:
+                continue
             if sh == 0:
                 # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
                 continue

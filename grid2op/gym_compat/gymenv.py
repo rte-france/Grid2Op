@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import List
 import numpy as np
 
 from grid2op.dtypes import dt_int
@@ -95,11 +96,80 @@ class __AuxGymEnv:
     an action is represented through an OrderedDict (`from collection import OrderedDict`)
     """
 
-    def __init__(self, env_init, shuffle_chronics=True, render_mode="rgb_array"):
+    DEFAULT_ACTION_SPACE = [
+        "change_bus",
+        "change_line_status",
+        "curtail",
+        "redispatch",
+        "set_bus",
+        "set_line_status",
+    ]
+
+    DEFAULT_OBSERVATION_SPACE = [
+        "_shunt_bus",
+        "_shunt_p",
+        "_shunt_q",
+        "_shunt_v",
+        "a_ex",
+        "a_or",
+        "actual_dispatch",
+        "attention_budget",
+        "current_step",
+        "curtailment",
+        "curtailment_limit",
+        "curtailment_limit_effective",
+        "day",
+        "day_of_week",
+        "delta_time",
+        "duration_next_maintenance",
+        "gen_margin_down",
+        "gen_margin_up",
+        "gen_p",
+        "gen_p_before_curtail",
+        "gen_q",
+        "gen_theta",
+        "gen_v",
+        "hour_of_day",
+        "is_alarm_illegal",
+        "line_status",
+        "load_p",
+        "load_q",
+        "load_theta",
+        "load_v",
+        "max_step",
+        "minute_of_hour",
+        "month",
+        "p_ex",
+        "p_or",
+        "q_ex",
+        "q_or",
+        "rho",
+        "target_dispatch",
+        "thermal_limit",
+        "theta_ex",
+        "theta_or",
+        "time_before_cooldown_line",
+        "time_before_cooldown_sub",
+        "time_next_maintenance",
+        "time_since_last_alarm",
+        "timestep_overflow",
+        "topo_vect",
+        "v_ex",
+        "v_or",
+        "was_alarm_used_after_game_over",
+        "year",
+    ]
+
+    def __init__(self, 
+                    env_init, 
+                    shuffle_chronics=True, 
+                    render_mode="rgb_array", 
+                    action_attr_to_keep:List[str]=DEFAULT_ACTION_SPACE,
+                    obs_attr_to_keep:List[str]=DEFAULT_OBSERVATION_SPACE):
         check_gym_version(type(self)._gymnasium)
         self.init_env = env_init.copy()
-        self.action_space = type(self)._ActionSpaceType(self.init_env)
-        self.observation_space = type(self)._ObservationSpaceType(self.init_env)
+        self.action_space = type(self)._ActionSpaceType(self.init_env, action_attr_to_keep=action_attr_to_keep)
+        self.observation_space = type(self)._ObservationSpaceType(self.init_env, obs_attr_to_keep=obs_attr_to_keep)
         self.reward_range = self.init_env.reward_range
         self.metadata = self.init_env.metadata
         self.init_env.render_mode = render_mode
