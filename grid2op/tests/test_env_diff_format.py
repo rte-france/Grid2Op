@@ -29,11 +29,6 @@ class BackendDiffFormatTester(PandaPowerBackend):
                  with_numba: bool = False):
         super().__init__(detailed_infos_for_cascading_failures, lightsim2grid, dist_slack, max_iter, can_be_copied, with_numba)
         self.supported_grid_format = ("json_custom", )
-    
-    # def load_grid(self, path: Union[os.PathLike, str], filename: Union[os.PathLike, str, None] = None) -> None:
-    #     full_path = self.make_complete_path(path, filename)
-    #     full_path = full_path.rstrip("_custom")
-    #     return super().load_grid(full_path)
 
 
 class TestBackendAPI_BackendDiffFormatTester(AAATestBackendAPI, unittest.TestCase):   

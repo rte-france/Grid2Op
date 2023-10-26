@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.9.6] - 2023-xx-yy
+[1.9.6] - 2023-10-26
 ----------------------
 - [BREAKING] when a storage is connected alone on a bus, even if it produces / absorbs 0.0 MW it 
   will raise a diverging powerflow error (previously the storage was automatically disconnected by 
@@ -64,6 +64,8 @@ Change Log
 - [IMPROVED] handling of environments without shunts
 - [IMPROVED] error messages when grid is not consistent 
 - [IMPROVED] add the default `l2rpn_case14_sandbox` environment in all part of the docs (substituing `rte_case14_realistic` or nothing)
+- [IMPROVED] imports on the `Exceptions` module
+- [IMPROVED] pandapower backend raises `BackendError` when "diverging"
 
 [1.9.5] - 2023-09-18
 ---------------------

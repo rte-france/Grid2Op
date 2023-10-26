@@ -10,7 +10,7 @@ import os
 import numpy as np
 import warnings
 from grid2op.tests.helper_path_test import HelperTests, MakeBackend, PATH_DATA
-from grid2op.Exceptions import BackendError
+from grid2op.Exceptions import BackendError, Grid2OpException
 
 
 class AAATestBackendAPI(MakeBackend):
@@ -599,13 +599,16 @@ class AAATestBackendAPI(MakeBackend):
         cls = type(backend)
         
         res = backend.runpf(is_dc=False)
-        p_subs, q_subs, p_bus, q_bus, diff_v_bus = backend.check_kirchoff()
-        assert np.allclose(p_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): kirchoff laws are not met for p (creation or suppression of active). Check the handling of the slack bus(se) maybe ?"
-        assert np.allclose(q_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): kirchoff laws are not met for q (creation or suppression of reactive). Check the handling of the slack bus(se) maybe ?"
-        assert np.allclose(p_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): kirchoff laws are not met for p (creation or suppression of active). Check the handling of the slack bus(se) maybe ?"
-        assert np.allclose(q_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): kirchoff laws are not met for q (creation or suppression of reactive). Check the handling of the slack bus(se) maybe ?"
-        assert np.allclose(diff_v_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): some nodes have two different voltages. Check the accessor for voltage in all the `***_info()` (*eg* `loads_info()`)"
-        
+        if not cls.shunts_data_available:
+            warnings.warn(f"{type(self.__name__)} test_14change_topology: This test is not performed in depth as your backend does not support shunts")
+        else:
+            p_subs, q_subs, p_bus, q_bus, diff_v_bus = backend.check_kirchoff()
+            assert np.allclose(p_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): kirchoff laws are not met for p (creation or suppression of active). Check the handling of the slack bus(se) maybe ?"
+            assert np.allclose(q_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): kirchoff laws are not met for q (creation or suppression of reactive). Check the handling of the slack bus(se) maybe ?"
+            assert np.allclose(p_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): kirchoff laws are not met for p (creation or suppression of active). Check the handling of the slack bus(se) maybe ?"
+            assert np.allclose(q_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): kirchoff laws are not met for q (creation or suppression of reactive). Check the handling of the slack bus(se) maybe ?"
+            assert np.allclose(diff_v_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): some nodes have two different voltages. Check the accessor for voltage in all the `***_info()` (*eg* `loads_info()`)"
+            
         p_or, q_or, v_or, a_or = backend.lines_or_info()
         
         sub_id = 0
@@ -617,12 +620,17 @@ class AAATestBackendAPI(MakeBackend):
         backend.apply_action(bk_act)  # everything on busbar 2 at sub 0
         res = backend.runpf(is_dc=False)
         assert res[0], "Your powerflow has diverged after the loading of the file, which should not happen"
-        p_subs, q_subs, p_bus, q_bus, diff_v_bus = backend.check_kirchoff()
-        assert np.allclose(p_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with no impact): kirchoff laws are not met for p (creation or suppression of active)."
-        assert np.allclose(q_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with no impact): kirchoff laws are not met for q (creation or suppression of reactive)."
-        assert np.allclose(p_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with no impact): kirchoff laws are not met for p (creation or suppression of active)."
-        assert np.allclose(q_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with no impact): kirchoff laws are not met for q (creation or suppression of reactive)."
-        assert np.allclose(diff_v_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow: some nodes have two different voltages. Check the accessor for voltage in all the `***_info()` (*eg* `loads_info()`)"
+        
+        if not cls.shunts_data_available:
+            warnings.warn(f"{type(self.__name__)} test_14change_topology: This test is not performed in depth as your backend does not support shunts")
+        else:
+            p_subs, q_subs, p_bus, q_bus, diff_v_bus = backend.check_kirchoff()
+            assert np.allclose(p_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with no impact): kirchoff laws are not met for p (creation or suppression of active)."
+            assert np.allclose(q_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with no impact): kirchoff laws are not met for q (creation or suppression of reactive)."
+            assert np.allclose(p_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with no impact): kirchoff laws are not met for p (creation or suppression of active)."
+            assert np.allclose(q_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with no impact): kirchoff laws are not met for q (creation or suppression of reactive)."
+            assert np.allclose(diff_v_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow: some nodes have two different voltages. Check the accessor for voltage in all the `***_info()` (*eg* `loads_info()`)"
+        
         p_after_or, q_after_or, v_after_or, a_after_or = backend.lines_or_info()
         assert np.allclose(p_after_or, p_or), f"The p_or flow changed while the topology action is supposed to have no impact, check the `apply_action` for topology"
         assert np.allclose(q_after_or, q_or), f"The q_or flow changed while the topology action is supposed to do nothing, check the `apply_action` for topology"
@@ -639,12 +647,16 @@ class AAATestBackendAPI(MakeBackend):
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=False)
         assert res[0], "Your powerflow has diverged after a topology action (but should not). Check `apply_action` for topology"
-        p_subs, q_subs, p_bus, q_bus, diff_v_bus = backend.check_kirchoff()
-        assert np.allclose(p_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with a real impact): kirchoff laws are not met for p (creation or suppression of active)."
-        assert np.allclose(q_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with a real impact): kirchoff laws are not met for q (creation or suppression of reactive)."
-        assert np.allclose(p_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with a real impact): kirchoff laws are not met for p (creation or suppression of active)."
-        assert np.allclose(q_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with a real impact): kirchoff laws are not met for q (creation or suppression of reactive)."
-        assert np.allclose(diff_v_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow: some nodes have two different voltages. Check the accessor for voltage in all the `***_info()` (*eg* `loads_info()`)"
+        if not cls.shunts_data_available:
+            warnings.warn(f"{type(self.__name__)} test_14change_topology: This test is not performed in depth as your backend does not support shunts")
+        else:
+            p_subs, q_subs, p_bus, q_bus, diff_v_bus = backend.check_kirchoff()
+            assert np.allclose(p_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with a real impact): kirchoff laws are not met for p (creation or suppression of active)."
+            assert np.allclose(q_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with a real impact): kirchoff laws are not met for q (creation or suppression of reactive)."
+            assert np.allclose(p_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with a real impact): kirchoff laws are not met for p (creation or suppression of active)."
+            assert np.allclose(q_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with a real impact): kirchoff laws are not met for q (creation or suppression of reactive)."
+            assert np.allclose(diff_v_bus, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow: some nodes have two different voltages. Check the accessor for voltage in all the `***_info()` (*eg* `loads_info()`)"
+        
         p_after_or, q_after_or, v_after_or, a_after_or = backend.lines_or_info()
         assert not np.allclose(p_after_or, p_or), f"The p_or flow doesn't change while the topology action is supposed to have a real impact, check the `apply_action` for topology"
         assert not np.allclose(q_after_or, q_or), f"The q_or flow doesn't change while the topology action is supposed to have a real impact, check the `apply_action` for topology"
@@ -731,9 +743,13 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=False)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of isolated loads in AC."                 
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated loads in AC."                 
         assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
-        
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
+                    
         backend.reset(self.get_path(), self.get_casefile())
         # a load alone on a bus
         action = type(backend)._complete_action_class()
@@ -742,9 +758,13 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=True)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of isolated loads in DC."                 
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated loads in DC."                 
         assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
-    
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
+                
     def test_17_isolated_gen_make_divergence(self):
         """Tests that an isolated generator will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
         
@@ -766,9 +786,13 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=False)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of isolated gen."                 
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated gen."                 
         assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
-        
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
+                               
         backend.reset(self.get_path(), self.get_casefile())
         # disconnect a gen
         action = type(backend)._complete_action_class()
@@ -777,9 +801,13 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=True)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of isolated gen."                 
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated gen."                 
         assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
-    
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
+                           
     def test_18_isolated_shunt_make_divergence(self):
         """Tests test that an isolated shunt will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
         
@@ -807,9 +835,13 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=False)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of isolated shunt."                 
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated shunt."                 
         assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
-        
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
+                    
         backend.reset(self.get_path(), self.get_casefile())
         # make a shunt alone on a bus
         action = type(backend)._complete_action_class()
@@ -818,8 +850,12 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=True)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of isolated shunt."                 
-        assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated shunt in DC."                  
+        assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend returns `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
                        
     def test_19_isolated_storage_make_divergence(self):
         """Teststest that an isolated storage unit will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
@@ -845,9 +881,13 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=False)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of isolated storage unit."                 
-        assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
-        
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated storage units in AC."                  
+        assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to isolated storage units) should preferably inherit from BackendError")
+                
         backend.reset(self.get_path(), self.get_casefile())
         action = type(backend)._complete_action_class()
         action.update({"set_bus": {"storages_id": [(0, 2)]}})
@@ -855,9 +895,13 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=True)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of isolated storage unit."                 
-        assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
-
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated storage unit."                 
+        assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to isolated storage units) should preferably inherit from BackendError")
+                  
     def test_20_disconnected_load_make_divergence(self):
         """Tests that a disconnected load unit will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
         
@@ -880,8 +924,12 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=False)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of disconnected load in AC."                 
-        assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of disconnected load in AC."                  
+        assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to disconnected load) should preferably inherit from BackendError")
         
         backend.reset(self.get_path(), self.get_casefile())
         # a load alone on a bus
@@ -891,9 +939,13 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=True)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of disconnected load in DC."                 
-        assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
-                                
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of disconnected load in DC."                  
+        assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to disconnected load) should preferably inherit from BackendError")
+                                   
     def test_21_disconnected_gen_make_divergence(self):
         """Tests that a disconnected generator will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
         
@@ -916,8 +968,12 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=False)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of disconnected gen in AC."                 
-        assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of disconnected gen in AC."                 
+        assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to disconnected gen) should preferably inherit from BackendError")
         
         backend.reset(self.get_path(), self.get_casefile())
         # a disconnected generator
@@ -927,8 +983,12 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=True)  
-        assert not res[0], "It is expected (at time of writing) that your backend 'diverges' in case of disconnected gen in DC."                 
-        assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
+        assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of disconnected gen in DC."                 
+        assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to disconnected gen) should preferably inherit from BackendError")
 
     def test_22_islanded_grid_make_divergence(self):
         """Tests that when the grid is split in two different "sub_grid" it makes the runpf diverge both in AC and DC
@@ -956,8 +1016,11 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=False)  
-        assert not res[0], "It is expected that your backend 'diverges' in case of non connected grid in AC."                 
-        assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
+        assert not res[0], "It is expected that your backend return `False` in case of non connected grid in AC."                 
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to non connected grid) should preferably inherit from BackendError")
         backend.reset(self.get_path(), self.get_casefile())
         
         # a non connected grid
@@ -969,8 +1032,11 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=True)  
-        assert not res[0], "It is expected that your backend 'diverges' in case of non connected grid in DC."                 
-        assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
+        assert not res[0], "It is expected that your backend throws an exception inheriting from BackendError in case of non connected grid in DC."                 
+        error = res[1]
+        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        if not isinstance(error, BackendError):
+            warnings.warn("The error returned by your backend when it stopped (due to non connected grid) should preferably inherit from BackendError")
 
     def test_23_disco_line_v_null(self):
         """Tests that disconnected elements shunt have v = 0. (and not nan or something)
