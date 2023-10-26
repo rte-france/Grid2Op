@@ -440,7 +440,7 @@ class TestOtherReward(unittest.TestCase):
         assert obs_after.minute_of_hour == 0
 
 
-class BaseTestResetOk(unittest.TestCase):
+class BaseTestResetOk:
     """
     This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
     or illegal
@@ -492,7 +492,7 @@ class BaseTestResetOk(unittest.TestCase):
         obs, reward, done, info = self.env.step(act)
         # at this stage there is a cascading failure
         assert len(info["exception"])
-        assert isinstance(info["exception"][0], DivergingPowerFlow)
+        assert isinstance(info["exception"][0], BackendError)
         # reset the grid
         obs = self.env.reset()
         assert np.all(obs.topo_vect == 1)
@@ -663,7 +663,7 @@ class TestLineChangeLastBus(unittest.TestCase):
         assert obs.topo_vect[line_ex_topo] == 2, "Line ex should be on bus 2"
 
 
-class BaseTestResetAfterCascadingFailure(unittest.TestCase):
+class BaseTestResetAfterCascadingFailure:
     """
     Fake a cascading failure, do a reset of an env, check that it can be loaded
 
@@ -714,7 +714,7 @@ class TestResetAfterCascadingFailure(BaseTestResetAfterCascadingFailure, unittes
     pass
 
 
-class BaseTestCascadingFailure(unittest.TestCase):
+class BaseTestCascadingFailure:
     """
     There has been a bug preventing to reload an environment if the previous one ended with a cascading failure.
     It check that here.
