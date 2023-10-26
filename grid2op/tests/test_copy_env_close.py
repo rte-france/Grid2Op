@@ -53,7 +53,7 @@ class TestDanglingRef(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
         nb_env_before = (
             len(
                 [

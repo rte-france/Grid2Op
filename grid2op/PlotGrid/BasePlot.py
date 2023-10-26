@@ -925,7 +925,7 @@ class BasePlot(ABC):
 
             import grid2op
             from grid2op.PlotGrid import PlotMatplot
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             plot_helper = PlotMatplot(env.observation_space)
 
 
@@ -1045,7 +1045,7 @@ class BasePlot(ABC):
 
                     # rescaling to have range 0 - 1.0
                     tmp = observation.prod_p[np.isfinite(observation.prod_p)]
-                    if np.any(np.isfinite(observation.prod_p)):
+                    if (np.isfinite(observation.prod_p)).any():
                         observation.prod_p -= (
                             np.min(tmp) - 1e-1
                         )  # so the min is 1e-1 otherwise 0.0 is plotted as black

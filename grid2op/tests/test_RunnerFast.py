@@ -7,22 +7,23 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
     os.path.join(PATH_CHRONICS, "test_multi_chronics")
 )
-PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
+PATH_PREVIOUS_RUNNER = os.path.join(data_test_dir, "runner_data")
 
 import grid2op
-from grid2op.MakeEnv import make
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 
 
-class TestRunner(HelperTests):
+class TestRunner(HelperTests, unittest.TestCase):
     def setUp(self):
+        super().setUp()
         self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
         self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
@@ -47,13 +48,13 @@ class TestRunner(HelperTests):
         ]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
         self.runner = Runner(**self.env.get_params_for_runner())
 
     def test_one_episode(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            _, cum_reward, timestep, episode_data = self.runner.run_one_episode(
+            _, cum_reward, timestep, max_ts = self.runner.run_one_episode(
             max_iter=self.max_iter
         )
         assert int(timestep) == self.max_iter
@@ -62,7 +63,7 @@ class TestRunner(HelperTests):
     def test_one_episode_detailed(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            _, cum_reward, timestep, episode_data = self.runner.run_one_episode(
+            _, cum_reward, timestep, max_ts, episode_data = self.runner.run_one_episode(
             max_iter=self.max_iter, detailed_output=True
         )
         assert int(timestep) == self.max_iter
@@ -85,7 +86,7 @@ class TestRunner(HelperTests):
     def test_init_from_env(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
+            with grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__) as env:
                 runner = Runner(**env.get_params_for_runner())
                 res = runner.run(nb_episode=1, max_iter=self.max_iter)
         for i, _, cum_reward, timestep, total_ts in res:
@@ -94,7 +95,7 @@ class TestRunner(HelperTests):
     def test_seed_seq(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
+            with grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__) as env:
                 runner = Runner(**env.get_params_for_runner())
                 res = runner.run(
                     nb_episode=1, max_iter=self.max_iter, env_seeds=[1], agent_seeds=[2]
@@ -105,7 +106,7 @@ class TestRunner(HelperTests):
     def test_seed_par(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
+            with grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__) as env:
                 runner = Runner(**env.get_params_for_runner())
                 res = runner.run(
                     nb_episode=2,

@@ -40,7 +40,7 @@ class ChangeNothing(GridValue):
         import grid2op
         from grid2op.Chronics import ChangeNothing
 
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         # env = grid2op.make(env_name, data_feeding_kwargs={"gridvalueClass": ChangeNothing})
         env = grid2op.make(env_name, chronics_class=ChangeNothing)
 
@@ -57,14 +57,14 @@ class ChangeNothing(GridValue):
                            action_class=TopologyAndDispatchAction)
         
     """
-
+    MULTI_CHRONICS = False
     def __init__(
         self,
         time_interval=timedelta(minutes=5),
         max_iter=-1,
         start_datetime=datetime(year=2019, month=1, day=1),
         chunk_size=None,
-        **kargs
+        **kwargs
     ):
         GridValue.__init__(
             self,

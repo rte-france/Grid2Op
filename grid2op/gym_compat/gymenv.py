@@ -7,16 +7,13 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-import gym
 
 from grid2op.dtypes import dt_int
 from grid2op.Chronics import Multifolder
-from grid2op.Exceptions import Grid2OpException
-from grid2op.gym_compat.gym_obs_space import GymObservationSpace
-from grid2op.gym_compat.gym_act_space import GymActionSpace
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 from grid2op.gym_compat.utils import (check_gym_version, sample_seed)
-
-
+    
+    
 def conditional_decorator(condition):
     def decorator(func):
         if condition:
@@ -26,7 +23,7 @@ def conditional_decorator(condition):
     return decorator
 
 
-class _AuxGymEnv(gym.Env):
+class __AuxGymEnv:
     """
     fully implements the openAI gym API by using the :class:`GymActionSpace` and :class:`GymObservationSpace`
     for compliance with openAI gym.
@@ -41,11 +38,29 @@ class _AuxGymEnv(gym.Env):
         
         The main changes involve the functions `env.step` and `env.reset`
         
-    If you want to use the same version of the GymEnv regardless of the gym version installed you can use:
+    If you want to use the same version of the GymEnv regardless of the gym / gymnasium version installed you can use:
     
+    - :class:`GymnasiumEnv` if `gymnasium` is available
     - :class:`GymEnv_Legacy` for gym < 0.26
     - :class:`GymEnv_Modern` for gym >= 0.26
 
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`GymEnv` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`GymnasiumEnv`), otherwise it will
+          inherit from gym (and will be exactly :class:`GymEnv_Legacy` - gym < 0.26- 
+          or :class:`GymEnv_Modern` - for gym >= 0.26)
+        - :class:`GymnasiumEnv` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`GymEnv_Legacy` and :class:`GymEnv_Modern` will inherit from gym if it's 
+          available and never from from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+        
     Notes
     ------
     The environment passed as input is copied. It is not modified by this "gym environment"
@@ -59,23 +74,38 @@ class _AuxGymEnv(gym.Env):
         import grid2op
         from grid2op.gym_compat import GymEnv
 
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
         gym_env = GymEnv(env)  # is a gym environment properly inheriting from gym.Env !
 
+    There are a few difference between "raw" grid2op environment and gymnasium environments.
+    
+    One of the major difference is that, to our knowledge, gymnasium does not support the 
+    `simulate` feature (which allows an agent to test the impact of a given action 
+    on the grid without having to perform a `step` see :ref:`model_based_rl` for more information)
+    [NB if you know or better are developping some "model based RL library" let us know !]
+    
+    Another difference is in the way to do some actions. In grid2op, actions are a dedicated class
+    and can be made with an `action_space` and a dictionary, or  using the properties of the action
+    class.
+    
+    In gym, there are no specific representations of the action class. More precisely, for each action
+    type (:class:`MultiDiscreteActSpace`, :class:`DiscreteActSpace`, :class:`BoxGymActSpace` or 
+    :class:`GymActionSpace`) there is a way to encode it. For example, by default (:class:`GymActionSpace`)
+    an action is represented through an OrderedDict (`from collection import OrderedDict`)
     """
 
     def __init__(self, env_init, shuffle_chronics=True, render_mode="rgb_array"):
-        check_gym_version()
+        check_gym_version(type(self)._gymnasium)
         self.init_env = env_init.copy()
-        self.action_space = GymActionSpace(self.init_env)
-        self.observation_space = GymObservationSpace(self.init_env)
+        self.action_space = type(self)._ActionSpaceType(self.init_env)
+        self.observation_space = type(self)._ObservationSpaceType(self.init_env)
         self.reward_range = self.init_env.reward_range
         self.metadata = self.init_env.metadata
         self.init_env.render_mode = render_mode
         self._shuffle_chronics = shuffle_chronics
             
-        gym.Env.__init__(self)
+        super().__init__()  # super should reference either gym.Env or gymnasium.Env
         if not hasattr(self, "_np_random"):
             # for older version of gym it does not exist
             self._np_random = np.random.RandomState()
@@ -152,9 +182,11 @@ class _AuxGymEnv(gym.Env):
             self.init_env.close()
             del self.init_env
         self.init_env = None
+        
         if hasattr(self, "action_space") and self.action_space is not None:
             self.action_space.close()
         self.action_space = None
+        
         if hasattr(self, "observation_space") and self.observation_space is not None:
             self.observation_space.close()
         self.observation_space = None
@@ -187,27 +219,64 @@ class _AuxGymEnv(gym.Env):
         # delete possible dangling reference
         self.close()
 
+if GYM_AVAILABLE:
+    from gym import Env as LegacyGymEnv
+    from grid2op.gym_compat.gym_obs_space import LegacyGymObservationSpace
+    from grid2op.gym_compat.gym_act_space import LegacyGymActionSpace
+    _AuxGymEnv = type("_AuxGymEnv",
+                      (__AuxGymEnv, LegacyGymEnv),
+                      {"_gymnasium": False,
+                       "_ActionSpaceType": LegacyGymActionSpace,
+                       "_ObservationSpaceType": LegacyGymObservationSpace,
+                       "__module__": __name__})
+    _AuxGymEnv.__doc__ = __AuxGymEnv.__doc__
+    class GymEnv_Legacy(_AuxGymEnv):
+        # for old version of gym        
+        def reset(self, *args, **kwargs):
+            return self._aux_reset(*args, **kwargs)
 
-class GymEnv_Legacy(_AuxGymEnv):
-    # for old version of gym        
-    def reset(self, *args, **kwargs):
-        return self._aux_reset(*args, **kwargs)
+        def step(self, action):
+            return self._aux_step(action)
 
-    def step(self, action):
-        return self._aux_step(action)
-
-    def seed(self, seed):
-        # defined only on some cases
-        return self._aux_seed(seed)
+        def seed(self, seed):
+            # defined only on some cases
+            return self._aux_seed(seed)
 
 
-class GymEnv_Modern(_AuxGymEnv):
-    # for new version of gym
-    def reset(self,
-              *,
-              seed=None,
-              options=None,):
-        return self._aux_reset_new(seed, options)
+    class GymEnv_Modern(_AuxGymEnv):
+        # for new version of gym
+        def reset(self,
+                *,
+                seed=None,
+                options=None,):
+            return self._aux_reset_new(seed, options)
 
-    def step(self, action):
-        return self._aux_step_new(action)
+        def step(self, action):
+            return self._aux_step_new(action)
+    GymEnv_Legacy.__doc__ = __AuxGymEnv.__doc__
+    GymEnv_Modern.__doc__ = __AuxGymEnv.__doc__
+
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium import Env
+    from grid2op.gym_compat.gym_act_space import GymnasiumActionSpace
+    from grid2op.gym_compat.gym_obs_space import GymnasiumObservationSpace
+    _AuxGymnasiumEnv = type("_AuxGymnasiumEnv",
+                            (__AuxGymEnv, Env),
+                            {"_gymnasium": True,
+                             "_ActionSpaceType": GymnasiumActionSpace,
+                             "_ObservationSpaceType": GymnasiumObservationSpace,
+                             "__module__": __name__})
+    _AuxGymnasiumEnv.__doc__ = __AuxGymEnv.__doc__
+    
+    class GymnasiumEnv(_AuxGymnasiumEnv):
+        # for new version of gym
+        def reset(self,
+                *,
+                seed=None,
+                options=None,):
+            return self._aux_reset_new(seed, options)
+
+        def step(self, action):
+            return self._aux_step_new(action)
+    GymnasiumEnv.__doc__ = __AuxGymEnv.__doc__

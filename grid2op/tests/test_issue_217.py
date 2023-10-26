@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import unittest
 
 import grid2op
 from grid2op.Chronics import ChangeNothing
@@ -18,7 +19,7 @@ class Issue217Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_nm = os.path.join(PATH_DATA_TEST, "5bus_modif_grid")
-            self.env = grid2op.make(env_nm, test=True, chronics_class=ChangeNothing)
+            self.env = grid2op.make(env_nm, test=True, chronics_class=ChangeNothing, _add_to_name=type(self).__name__)
             self.env.seed(0)
             self.env.reset()
 

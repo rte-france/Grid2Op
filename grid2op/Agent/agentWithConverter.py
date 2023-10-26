@@ -66,7 +66,7 @@ class AgentWithConverter(BaseAgent):
         import grid2op
         import AwesomeNN # this does not exists!
         # create a simple environment
-        env = grid2op.make()
+        env = grid2op.make("l2rpn_case14_sandbox")
 
         # define the class above
         class AgentCustomObservation(AgentWithConverter):

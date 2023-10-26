@@ -43,6 +43,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
 
     """
 
+    MULTI_CHRONICS = False
     def __init__(
         self,
         path,
@@ -116,13 +117,17 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         )
 
     def _init_attrs(
-        self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None
+        self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None,
+        is_init=False
     ):
         super()._init_attrs(
-            load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=None
+            load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=None,
+            is_init=is_init
         )
-        # ignore the maitenance but keep hazards
-        self._sample_maintenance()
+        if is_init:
+            # ignore the maitenance but keep hazards
+            self._sample_maintenance()
+            # sampled only at the initialization of the episode, and not at each chunk !
 
     def _sample_maintenance(self):
         ########
@@ -176,7 +181,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         idx_line_maintenance = np.array(
             [el in line_to_maintenance for el in columnsNames]
         )
-        nb_line_maint = np.sum(idx_line_maintenance)
+        nb_line_maint = idx_line_maintenance.sum()
         if nb_line_maint == 0:
             # TODO log something there !
             return res
@@ -235,7 +240,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
                     size=n_lines_maintenance,
                 )
 
-                n_Generated_Maintenance = np.sum(are_lines_in_maintenance)
+                n_Generated_Maintenance = are_lines_in_maintenance.sum()
                 # check if the number of maintenance is not above the max allowed. otherwise randomly pick up the right
                 # number
                 if n_Generated_Maintenance > maxDailyMaintenance:

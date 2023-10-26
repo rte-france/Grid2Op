@@ -23,8 +23,8 @@ class ModifPPBackend(PandaPowerBackend):
         
 class RememberRX(BaseAgent):
     def act(self, observation, reward, done=False):
-        self._x = observation._obs_env.backend._grid.line["x_ohm_per_km"]
-        self._r = observation._obs_env.backend._grid.line["r_ohm_per_km"]
+        self._x = 1.0 * observation._obs_env.backend._grid.line["x_ohm_per_km"]
+        self._r = 1.0 * observation._obs_env.backend._grid.line["r_ohm_per_km"]
         self._detailed_infos_for_cascading_failures = observation._obs_env.backend.detailed_infos_for_cascading_failures
         self._lightsim2grid = observation._obs_env.backend._lightsim2grid
         self._max_iter = observation._obs_env.backend._max_iter
@@ -41,7 +41,7 @@ class Case14DiffGridTester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True, _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.env.set_id(0)
     
@@ -141,7 +141,7 @@ class Case14DiffGridCopyTester(Case14DiffGridTester):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.aux_env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True)
+            self.aux_env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True, _add_to_name=type(self).__name__)
             
         self.env = self.aux_env.copy()
         self.env.seed(0)
@@ -182,6 +182,7 @@ class DiffGridMakeTester(unittest.TestCase):
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
             env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True,
+                               _add_to_name=type(self).__name__,
                                observation_backend_kwargs={"max_iter": 15,
                                                            "lightsim2grid": True})
         self._aux_check_different_stuff(env, self._aux_check_bk_kwargs)
@@ -199,17 +200,10 @@ class DiffGridMakeTester(unittest.TestCase):
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
             env = grid2op.make("l2rpn_case14_sandbox_diff_grid", test=True,
+                               _add_to_name=type(self).__name__,
                                observation_backend_class=ModifPPBackend)
         self._aux_check_different_stuff(env, self._aux_bk_class)
-           
-# TODO
-# test with runner X
-# test thermal limits X
 
-# test with env copy X
-# test in config X (in the env already)
-# test with different kwargs X
-# test with diff bk class X
 
 if __name__ == "__main__":
     unittest.main()

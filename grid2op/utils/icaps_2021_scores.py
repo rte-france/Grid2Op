@@ -95,6 +95,7 @@ class ScoreICAPS2021(ScoreL2RPN2020):
         scale_alarm_score=100.0,
         weight_op_score=0.7,
         weight_alarm_score=0.3,
+        add_nb_highres_sim=False,
     ):
 
         ScoreL2RPN2020.__init__(
@@ -112,6 +113,7 @@ class ScoreICAPS2021(ScoreL2RPN2020):
                 "alarm_cost": _AlarmScore,
             },
             score_names=["grid_operational_cost_scores", "alarm_cost_scores"],
+            add_nb_highres_sim=add_nb_highres_sim,
         )
         self.scale_alarm_score = scale_alarm_score
         self.weight_op_score = weight_op_score
@@ -124,7 +126,7 @@ class ScoreICAPS2021(ScoreL2RPN2020):
         other_rewards,
         dn_metadata,
         no_ov_metadata,
-        score_file_to_use=None,
+        score_file_to_use="grid_operational_cost_scores",
     ):
         """
         Performs the rescaling of the score given the information stored in the "statistics" of this
@@ -144,7 +146,7 @@ class ScoreICAPS2021(ScoreL2RPN2020):
             # score_file_to_use should match the
             # L2RPNSandBoxScore key in
             # self.scores_func
-            score_file_to_use="grid_operational_cost_scores",
+            score_file_to_use=score_file_to_use
         )
         # should match underlying_statistics.run_env `dict_kwg["other_rewards"][XXX] = ...`
         # XXX is right now f"{EpisodeStatistics.KEY_SCORE}_{nm}" [this should match the XXX]
@@ -166,11 +168,7 @@ if __name__ == "__main__":
     from lightsim2grid import LightSimBackend
     from grid2op.Agent import RandomAgent, DoNothingAgent
 
-    env = grid2op.make(
-        "/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alert",
-        backend=LightSimBackend(),
-    )
-    # env = grid2op.make("l2rpn_case14_sandbox", backend=LightSimBackend())
+    env = grid2op.make("l2rpn_case14_sandbox", backend=LightSimBackend())
     nb_scenario = 2
     my_score = ScoreICAPS2021(
         env,

@@ -8,6 +8,7 @@
 
 import warnings
 
+import unittest
 from grid2op.tests.helper_path_test import *
 
 import grid2op
@@ -20,7 +21,7 @@ import warnings
 # TODO check when there is also redispatching
 
 
-class TestCurtailmentEnv(HelperTests):
+class TestCurtailmentEnv(HelperTests, unittest.TestCase):
     """test the env part of the storage functionality"""
 
     def setUp(self) -> None:
@@ -33,6 +34,7 @@ class TestCurtailmentEnv(HelperTests):
                 test=True,
                 action_class=PlayableAction,
                 param=param,
+                _add_to_name=type(self).__name__
             )
             self.env2 = self.env1.copy()
 

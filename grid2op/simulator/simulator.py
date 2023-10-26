@@ -17,6 +17,7 @@ from grid2op.Environment import BaseEnv
 from grid2op.Action import BaseAction
 from grid2op.Backend import Backend
 from grid2op.Observation.baseObservation import BaseObservation
+from grid2op.Observation.highresSimCounter import HighResSimCounter
 from grid2op.Exceptions import SimulatorError, InvalidRedispatching
 
 
@@ -36,7 +37,8 @@ class Simulator(object):
     
     """
     def __init__(
-        self, backend: Optional[Backend], env: Optional[BaseEnv] = None, tol_redisp=1e-6
+        self, backend: Optional[Backend], env: Optional[BaseEnv] = None, tol_redisp=1e-6,
+        _highres_sim_counter: Optional[HighResSimCounter] =None
     ):
         # backend should be initiliazed !
         if backend is not None:
@@ -78,6 +80,10 @@ class Simulator(object):
         self._error: Optional[Exception] = None
 
         self._tol_redisp: float = tol_redisp
+        if _highres_sim_counter is not None:
+            self._highres_sim_counter = _highres_sim_counter
+        else:
+            self._highres_sim_counter = HighResSimCounter()
 
     @property
     def converged(self) -> bool:
@@ -116,6 +122,8 @@ class Simulator(object):
         res = copy.copy(self)
         res.backend = res.backend.copy()
         res.current_obs = res.current_obs.copy()
+        # do not copy this !
+        res._highres_sim_counter = self._highres_sim_counter
         return res
 
     def change_backend(self, backend: Backend):
@@ -190,9 +198,25 @@ class Simulator(object):
         if not os.path.isfile(grid_path):
             raise SimulatorError(f'the supposed grid path "{grid_path}" if not a file')
 
-        tmp_backend = backend_type(**kwargs)
-        tmp_backend.load_grid(grid_path)
+        if backend_type._IS_INIT:
+            backend_type_init = backend_type
+        else:
+            backend_type_init= backend_type.init_grid(type(self.backend))
+            
+        tmp_backend = backend_type_init(**kwargs)
+        # load a forecasted grid if there are any
+        path_env, grid_name_with_ext = os.path.split(grid_path)
+        grid_name, ext = os.path.splitext(grid_name_with_ext)
+        grid_forecast_name = f"{grid_name}_forecast.{ext}"
+        if os.path.exists(os.path.join(path_env, grid_forecast_name)):
+            grid_path_loaded = os.path.join(path_env, grid_forecast_name)
+        else:
+            grid_path_loaded = grid_path 
+        tmp_backend.load_grid(grid_path_loaded)
         tmp_backend.assert_grid_correct()
+        tmp_backend.runpf()
+        tmp_backend.assert_grid_correct_after_powerflow()
+        tmp_backend.set_thermal_limit(self.backend.get_thermal_limit())
         self.backend.close()
         self.backend = tmp_backend
         self.set_state(obs=self.current_obs)
@@ -271,6 +295,7 @@ class Simulator(object):
             self._do_powerflow()
 
     def _do_powerflow(self):
+        self._highres_sim_counter.add_one()
         self._converged, self._error = self.backend.runpf()
 
     def _update_obs(self):
@@ -282,7 +307,7 @@ class Simulator(object):
     def _adjust_controlable_gen(
         self, new_gen_p: np.ndarray, target_dispatch: np.ndarray, sum_target: float
     ) -> Optional[float]:
-        nb_dispatchable = np.sum(self.current_obs.gen_redispatchable)
+        nb_dispatchable = self.current_obs.gen_redispatchable.sum()
 
         # which generators needs to be "optimized" -> the one where
         # the target function matter
@@ -310,7 +335,7 @@ class Simulator(object):
         weights = np.ones(nb_dispatchable) * coeffs[self.current_obs.gen_redispatchable]
         weights /= weights.sum()
 
-        scale_objective = max(0.5 * np.sum(np.abs(target_dispatch_redisp)) ** 2, 1.0)
+        scale_objective = max(0.5 * np.abs(target_dispatch_redisp).sum() ** 2, 1.0)
         scale_objective = np.round(scale_objective, decimals=4)
 
         tmp_zeros = np.zeros((1, nb_dispatchable), dtype=float)
@@ -329,7 +354,7 @@ class Simulator(object):
             coeffs_quads = weights[gen_in_target] * quad_
             coeffs_quads_const = coeffs_quads.sum()
             coeffs_quads_const /= scale_objective  # scaling the function
-            coeffs_quads_const += 1e-2 * np.sum(actual_dispatchable**2 * weights)
+            coeffs_quads_const += 1e-2 * (actual_dispatchable**2 * weights).sum()
             return coeffs_quads_const
 
         def jac(actual_dispatchable):
@@ -374,9 +399,9 @@ class Simulator(object):
         # desired solution (split the (sum of the) dispatch to the available generators)
         x0 = 1.0 * target_dispatch_redisp
         can_adjust = x0 == 0.0
-        if np.any(can_adjust):
-            init_sum = np.sum(x0)
-            denom_adjust = np.sum(1.0 / weights[can_adjust])
+        if (can_adjust).any():
+            init_sum = x0.sum()
+            denom_adjust = (1.0 / weights[can_adjust]).sum()
             if denom_adjust <= 1e-2:
                 # i don't want to divide by something too cloose to 0.
                 denom_adjust = 1.0
@@ -396,14 +421,14 @@ class Simulator(object):
         limit_curtail = curt_vect * act.gen_pmax
         curtailed = np.maximum(new_gen_p - limit_curtail, 0.0)
         curtailed[~act.gen_renewable] = 0.0
-        amount_curtail = np.sum(curtailed)
+        amount_curtail = curtailed.sum()
         new_gen_p_after_curtail = 1.0 * new_gen_p
         new_gen_p_after_curtail -= curtailed
         return new_gen_p_after_curtail, amount_curtail
 
     def _amount_storage(self, act: BaseAction) -> Tuple[float, np.ndarray]:
         storage_act = 1.0 * act.storage_p
-        res = np.sum(self.current_obs.storage_power_target)
+        res = self.current_obs.storage_power_target.sum()
         current_charge = 1.0 * self.current_obs.storage_charge
         storage_power = np.zeros(act.n_storage)
         if np.all(np.abs(storage_act) <= self._tol_redisp):
@@ -429,7 +454,7 @@ class Simulator(object):
         storage_power = storage_act_E / coeff_p_to_E
         storage_power[do_charge] *= act.storage_charging_efficiency[do_charge]
         storage_power[do_discharge] /= act.storage_discharging_efficiency[do_discharge]
-        res += np.sum(storage_power)
+        res += storage_power.sum()
         return -res, storage_power, current_charge
 
     def _fix_redisp_curtailment_storage(
@@ -457,7 +482,7 @@ class Simulator(object):
             new_vect_redisp
         ]
 
-        if abs(np.sum(target_dispatch) - sum_target) >= self._tol_redisp:
+        if abs(target_dispatch.sum() - sum_target) >= self._tol_redisp:
             adjust = self._adjust_controlable_gen(
                 new_gen_p_after_curtail, target_dispatch, sum_target
             )
@@ -508,7 +533,7 @@ class Simulator(object):
         .. code-block:: python
         
             import grid2op
-            env_name = ...  # any environment name available (eg. "l2rpn_case14_sandbox")
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()
@@ -551,6 +576,7 @@ class Simulator(object):
             new_gen_v=new_gen_v,
             new_load_p=new_load_p,
             new_load_q=new_load_q,
+            do_powerflow=False,
         )
 
         # "fix" the action for the redispatching / curtailment / storage part

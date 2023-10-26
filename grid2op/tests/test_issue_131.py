@@ -16,7 +16,7 @@ class Issue131Tester(unittest.TestCase):
     def test_issue_131(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True)
+            env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
 
         # Get forecast after a simulate works
         obs = env.reset()

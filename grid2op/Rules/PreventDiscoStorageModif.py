@@ -37,7 +37,7 @@ class PreventDiscoStorageModif(BaseRules):
         )
         not_set_status = storage_set_bus[storage_disco] <= 0
         not_change_status = ~storage_change_bus[storage_disco]
-        if np.any(power_modif_disco & not_set_status & not_change_status):
+        if (power_modif_disco & not_set_status & not_change_status).any():
             tmp_ = power_modif_disco & not_set_status & not_change_status
             return False, IllegalAction(
                 f"Attempt to modify the power produced / absorbed by a storage unit "

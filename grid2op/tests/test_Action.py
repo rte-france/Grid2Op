@@ -331,7 +331,11 @@ def _get_action_grid_class():
         "alarms_area_names": [],
         "alarms_lines_area": {},
         "alarms_area_lines": [],
+        "dim_alerts": 0,
+        "alertable_line_names": [],
+        "alertable_line_ids": [],
         "_PATH_ENV": None,
+        "assistant_warning_type": None
     }
     GridObjects.shunts_data_available = False
     my_cls = GridObjects.init_grid(GridObjects, force=True)
@@ -422,7 +426,7 @@ class TestActionBase(ABC):
         act = self.helper_action.sample()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_ref = grid2op.make("rte_case5_example", test=True)
+            env_ref = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
             act_ref = env_ref.action_space()
         assert not (act == act_ref)
 
@@ -1355,7 +1359,25 @@ class TestActionBase(ABC):
 
     def test_to_dict(self):
         dict_ = self.helper_action.cls_to_dict()
-        self.assertDictEqual(dict_, self.res)
+        for el in dict_:
+            assert el in self.res, f"missing key {el} in self.res"
+        for el in self.res:
+            assert el in dict_, f"missing key {el} in dict_"
+            
+        for el in self.res:
+            val = dict_[el]
+            val_res = self.res[el]
+            if val is None and val_res is not None:
+                raise AssertionError(f"val is None and val_res is not None: val_res: {val_res}")
+            if val is not None and val_res is None:
+                raise AssertionError(f"val is not None and val_res is None: val {val}")
+            if val is None and val_res is None:
+                continue
+            
+            ok_ = np.array_equal(val, val_res)
+            assert ok_, (f"values different for {el}: "
+                         f"{dict_[el]}"
+                         f"{self.res[el]}")
 
     def test_from_dict(self):
         res = ActionSpace.from_dict(self.res)
@@ -2249,7 +2271,7 @@ class TestDeepCopy(unittest.TestCase):
     def test_alarm(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("l2rpn_icaps_2021", test=True) as env:
+            with grid2op.make("l2rpn_icaps_2021", test=True, _add_to_name=type(self).__name__) as env:
                 act = env.action_space()
                 act.raise_alarm = [0]
 
@@ -2260,7 +2282,7 @@ class TestDeepCopy(unittest.TestCase):
     def test_redisp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("l2rpn_icaps_2021", test=True) as env:
+            with grid2op.make("l2rpn_icaps_2021", test=True, _add_to_name=type(self).__name__) as env:
                 act = env.action_space()
                 act.redispatch = [(0, -1.0)]
 
@@ -2271,7 +2293,7 @@ class TestDeepCopy(unittest.TestCase):
     def test_storage(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("educ_case14_storage", test=True) as env:
+            with grid2op.make("educ_case14_storage", test=True, _add_to_name=type(self).__name__) as env:
                 act = env.action_space()
                 act.storage_p = [(0, -1.0)]
 
@@ -2282,7 +2304,7 @@ class TestDeepCopy(unittest.TestCase):
     def test_topo(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("l2rpn_case14_sandbox", test=True) as env:
+            with grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__) as env:
                 # set line status
                 act = env.action_space()
                 act.set_line_status = [(0, -1)]

@@ -32,6 +32,7 @@ class Issue148Tester(unittest.TestCase):
                 os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                 test=True,
                 param=param,
+                _add_to_name=type(self).__name__
             )
 
         ID_MAINT = 11  # in maintenance at the second time step

@@ -360,7 +360,7 @@ class SerializableSpace(GridObjects, RandomObject):
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # get the vector representation of an observation:
             obs = env.reset()
@@ -415,7 +415,7 @@ class SerializableSpace(GridObjects, RandomObject):
             ################
             # INTRO
             # create a runner
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             # see the documentation of the Runner if you want to change the agent.
             # in this case it will be "do nothing"
             runner = Runner(**env.get_params_for_runner())

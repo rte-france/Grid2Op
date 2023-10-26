@@ -18,24 +18,26 @@ NB: the "runpf" is taken from CustomBackend_Step2
 
 """
 import numpy as np
+from typing import Optional, Tuple, Union
+
 from Step2_modify_load import CustomBackend_Step2
 
 
 class CustomBackend_Step3(CustomBackend_Step2):
-    def apply_action(self, action):
+    def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
         # the following few lines are highly recommended
-        if action is None:
+        if backendAction is None:
             return
         
         # loads are modified in the previous script
-        super().apply_action(action)
+        super().apply_action(backendAction)
         
         (
             active_bus,
             (prod_p, prod_v, load_p, load_q, storage),
             _,
             shunts__,
-        ) = action()
+        ) = backendAction()
         
         # change the active value of generators
         for gen_id, new_p in prod_p:
@@ -49,7 +51,7 @@ class CustomBackend_Step3(CustomBackend_Step2):
                 self.gen_to_subid[gen_id]
             ]  # now it is :-)
     
-    def generators_info(self):
+    def generators_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         prod_p = self._grid.res_gen["p_mw"].values  # in MW
         prod_q = self._grid.res_gen["q_mvar"].values  # in MVAr
         

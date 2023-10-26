@@ -70,6 +70,7 @@ class FromChronix2grid(GridValue):
     REQUIRED_FILES = ["loads_charac.csv", "params.json", "params_load.json",
                       "params_loss.json", "params_opf.json", "params_res.json", 
                       "prods_charac.csv", "scenario_params.json"]
+    MULTI_CHRONICS = False
     def __init__(self,
                  env_path: os.PathLike,
                  with_maintenance: bool,
@@ -79,19 +80,7 @@ class FromChronix2grid(GridValue):
                  start_datetime: datetime = datetime(year=2019, month=1, day=1),
                  chunk_size: Optional[int] = None,
                  **kwargs):
-        
-        # here to prevent circular import
-        try:
-            from chronix2grid.grid2op_utils import generate_one_episode
-        except ImportError as exc_:
-            raise ChronicsError(
-                f"Chronix2grid package is not installed. Install it with `pip install grid2op[chronix2grid]`"
-                f"Please visit https://github.com/bdonnot/chronix2grid#installation "
-                f"for further install instructions."
-            ) from exc_
-
-        self._generate_one_episode = generate_one_episode
-        
+                
         for el in type(self).REQUIRED_FILES:
             tmp_ = os.path.join(env_path, el)
             if not (os.path.exists(tmp_) and os.path.isfile(tmp_)):
@@ -167,7 +156,20 @@ class FromChronix2grid(GridValue):
         self._reuse_seed = False
         
         self._with_loss = with_loss
-        
+    
+    def _generate_one_episode(self, *args, **kwargs):
+        # here to prevent circular import
+        try:
+            from chronix2grid.grid2op_utils import generate_one_episode
+        except ImportError as exc_:
+            raise ChronicsError(
+                f"Chronix2grid package is not installed. Install it with `pip install grid2op[chronix2grid]`"
+                f"Please visit https://github.com/bdonnot/chronix2grid#installation "
+                f"for further install instructions."
+            ) from exc_
+
+        return generate_one_episode(*args, **kwargs)
+    
     def check_validity(
         self, backend: Optional["grid2op.Backend.backend.Backend"]
     ) -> None:
@@ -222,7 +224,7 @@ class FromChronix2grid(GridValue):
         )
     
     def max_timestep(self):
-        return self.max_iter
+        return self._max_iter
     
     def forecasts(self):
         """
@@ -261,8 +263,8 @@ class FromChronix2grid(GridValue):
         res = False
         if self.current_index >= self._load_p.shape[0]:
             res = True
-        elif self.max_iter > 0:
-            if self.curr_iter > self.max_iter:
+        elif self._max_iter > 0:
+            if self.curr_iter > self._max_iter:
                 res = True
         return res
     
@@ -279,7 +281,7 @@ class FromChronix2grid(GridValue):
         res_gen = self._generate_one_episode(self.env, self.dict_ref, self.dt, self._init_datetime,
                                              seed=self._seed_used_for_chronix2grid,
                                              with_loss=self._with_loss,
-                                             nb_steps=self.max_iter)
+                                             nb_steps=self._max_iter)
         
         self._load_p = res_gen[0].values
         self._load_p_forecasted = res_gen[1].values

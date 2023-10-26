@@ -9,11 +9,10 @@
 import json
 import os
 import warnings
-
+import copy
 import numpy as np
 
 import grid2op
-from grid2op.Space import GridObjects
 from grid2op.Exceptions import (
     Grid2OpException,
     EnvError,
@@ -99,7 +98,7 @@ class EpisodeData:
         from grid2op.Runner import Runner
 
         # I create an environment
-        env = grid2op.make("rte_case5_example", test=True)
+        env = grid2op.make("l2rpn_case14_sandbox", test=True)
 
         # I create the runner
         runner = Runner(**env.get_params_for_runner())
@@ -140,6 +139,7 @@ class EpisodeData:
     TIMES = "episode_times.json"
     OTHER_REWARDS = "other_rewards.json"
     AG_EXEC_TIMES = "agent_exec_times.npz"
+    LEGAL_AMBIGUOUS = "legal_ambiguous.npz"
     ACTIONS_FILE = "actions.npz"
     ENV_ACTIONS_FILE = "env_modifications.npz"
     OBSERVATIONS_FILE = "observations.npz"
@@ -186,6 +186,9 @@ class EpisodeData:
         get_dataframes=None,
         force_detail=False,
         other_rewards=[],
+        legal=None,
+        ambiguous=None,
+        has_legal_ambiguous=False,
         _init_collections=False,
     ):
         self.parameters = None
@@ -270,6 +273,10 @@ class EpisodeData:
         self.name_sub = action_space.name_sub
         self.force_detail = force_detail
 
+        self.has_legal_ambiguous = has_legal_ambiguous
+        self.legal = copy.deepcopy(legal)
+        self.ambiguous = copy.deepcopy(ambiguous)
+        
         if path_save is not None:
             self.agent_path = os.path.abspath(path_save)
             self.episode_path = os.path.join(self.agent_path, name)
@@ -349,7 +356,7 @@ class EpisodeData:
             ################
             # INTRO
             # create a runner
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             # see the documentation of the Runner if you want to change the agent.
             # in this case it will be "do nothing"
             runner = Runner(**env.get_params_for_runner())
@@ -408,7 +415,10 @@ class EpisodeData:
         return self.observations.collection
 
     def __len__(self):
-        return int(self.meta["chronics_max_timestep"])
+        tmp = int(self.meta["chronics_max_timestep"])
+        if tmp > 0:
+            return min(tmp, len(self.observations))
+        return len(self.observations)
 
     @classmethod
     def from_disk(cls, agent_path, name="1"):
@@ -433,7 +443,7 @@ class EpisodeData:
         if agent_path is None:
             raise Grid2OpException(
                 'A path to an episode should be provided, please call "from_disk" with '
-                '"agent_path other" than None'
+                '"agent_path" other than None'
             )
         episode_path = os.path.abspath(os.path.join(agent_path, name))
 
@@ -463,6 +473,17 @@ class EpisodeData:
             attack = np.load(os.path.join(episode_path, EpisodeData.ATTACK))["data"]
             rewards = np.load(os.path.join(episode_path, EpisodeData.REWARDS))["data"]
 
+            path_legal_ambiguous = os.path.join(episode_path, EpisodeData.LEGAL_AMBIGUOUS)
+            has_legal_ambiguous = False
+            if os.path.exists(path_legal_ambiguous):
+                legal_ambiguous = np.load(path_legal_ambiguous)["data"]
+                legal = copy.deepcopy(legal_ambiguous[:, 0])
+                ambiguous = copy.deepcopy(legal_ambiguous[:, 1])
+                has_legal_ambiguous = True
+            else:
+                legal = None
+                ambiguous = None
+            
         except FileNotFoundError as ex:
             raise Grid2OpException(f"EpisodeData file not found \n {str(ex)}")
 
@@ -505,6 +526,9 @@ class EpisodeData:
             name=name,
             get_dataframes=True,
             other_rewards=other_rewards,
+            legal=legal,
+            ambiguous=ambiguous,
+            has_legal_ambiguous=has_legal_ambiguous,
             _init_collections=True,
         )
 
@@ -606,58 +630,69 @@ class EpisodeData:
 
         """
 
-        if self.force_detail or self.serialize:
-            self.actions.update(time_step, act, efficient_storing)
-            self.env_actions.update(time_step, env_act, efficient_storing)
-            # deactive the possibility to do "forecast" in this serialized instance
-            tmp_obs_env = obs._obs_env
-            tmp_inj = obs._forecasted_inj
-            obs._obs_env = None
-            obs._forecasted_inj = []
-            self.observations.update(time_step + 1, obs, efficient_storing)
-            obs._obs_env = tmp_obs_env
-            obs._forecasted_inj = tmp_inj
+        if not (self.force_detail or self.serialize):
+            return
+        
+        self.actions.update(time_step, act, efficient_storing)
+        self.env_actions.update(time_step, env_act, efficient_storing)
+        # deactive the possibility to do "forecast" in this serialized instance
+        tmp_obs_env = obs._obs_env
+        tmp_inj = obs._forecasted_inj
+        obs._obs_env = None
+        obs._forecasted_inj = []
+        self.observations.update(time_step + 1, obs, efficient_storing)
+        obs._obs_env = tmp_obs_env
+        obs._forecasted_inj = tmp_inj
 
-            if opp_attack is not None:
-                self.attacks.update(time_step, opp_attack, efficient_storing)
-            else:
-                if efficient_storing:
-                    self.attacks.collection[time_step - 1, :] = 0.0
-                else:
-                    # might not work !
-                    self.attacks = np.concatenate((self.attacks, self.attack_templ))
-
+        if opp_attack is not None:
+            self.attacks.update(time_step, opp_attack, efficient_storing)
+        else:
             if efficient_storing:
-                # efficient way of writing
-                self.times[time_step - 1] = time_step_duration
-                self.rewards[time_step - 1] = reward
-                if "disc_lines" in info:
-                    arr = info["disc_lines"]
-                    if arr is not None:
-                        self.disc_lines[time_step - 1, :] = arr
-                    else:
-                        self.disc_lines[time_step - 1, :] = self.disc_lines_templ
+                self.attacks.collection[time_step - 1, :] = 0.0
             else:
                 # might not work !
-                # completely inefficient way of writing
-                self.times = np.concatenate((self.times, (time_step_duration,)))
-                self.rewards = np.concatenate((self.rewards, (reward,)))
-                if "disc_lines" in info:
-                    arr = info["disc_lines"]
-                    if arr is not None:
-                        self.disc_lines = np.concatenate(
-                            (self.disc_lines, arr.reshape(1, -1))
-                        )
-                    else:
-                        self.disc_lines = np.concatenate(
-                            (self.disc_lines, self.disc_lines_templ)
-                        )
+                self.attacks = np.concatenate((self.attacks, self.attack_templ))
 
-            if "rewards" in info:
-                self.other_rewards.append(
-                    {k: self._convert_to_float(v) for k, v in info["rewards"].items()}
-                )
-            # TODO add is_illegal and is_ambiguous flags!
+        if efficient_storing:
+            # efficient way of writing
+            self.times[time_step - 1] = time_step_duration
+            self.rewards[time_step - 1] = reward
+            if "disc_lines" in info:
+                arr = info["disc_lines"]
+                if arr is not None:
+                    self.disc_lines[time_step - 1, :] = arr
+                else:
+                    self.disc_lines[time_step - 1, :] = self.disc_lines_templ
+        else:
+            # might not work !
+            # completely inefficient way of writing
+            self.times = np.concatenate((self.times, (time_step_duration,)))
+            self.rewards = np.concatenate((self.rewards, (reward,)))
+            if "disc_lines" in info:
+                arr = info["disc_lines"]
+                if arr is not None:
+                    self.disc_lines = np.concatenate(
+                        (self.disc_lines, arr.reshape(1, -1))
+                    )
+                else:
+                    self.disc_lines = np.concatenate(
+                        (self.disc_lines, self.disc_lines_templ)
+                    )
+
+        if "rewards" in info:
+            self.other_rewards.append(
+                {k: self._convert_to_float(v) for k, v in info["rewards"].items()}
+            )
+                
+        # TODO add is_illegal and is_ambiguous flags!
+        if self.has_legal_ambiguous:
+            # I need to create everything
+            if efficient_storing:
+                self.legal[time_step - 1] = not info["is_illegal"]
+                self.ambiguous[time_step - 1] = info["is_ambiguous"]
+            else:
+                self.legal = np.concatenate((self.legal, (not info["is_illegal"],)))
+                self.ambiguous = np.concatenate((self.ambiguous, (info["is_ambiguous"],)))
 
     def _convert_to_float(self, el):
         try:
@@ -784,6 +819,12 @@ class EpisodeData:
                 if "version" in dict_:
                     version = dict_["version"]
         return version
+    
+    def set_game_over(self, game_over_step: int):
+        self.observations.set_game_over(game_over_step + 1)
+        self.actions.set_game_over(game_over_step)
+        self.attacks.set_game_over(game_over_step)
+        self.env_actions.set_game_over(game_over_step)
 
 
 class CollectionWrapper:
@@ -867,14 +908,18 @@ class CollectionWrapper:
             except IncorrectNumberOfElements as exc_:
                 # grid2op does not allow to load the object: there is a mismatch between what has been stored
                 # and what is currently used.
-                raise
+                raise Grid2OpException("grid2op does not allow to load the object: there is a mismatch "
+                                       "between what has been stored and what is currently used.") from exc_
             except NonFiniteElement:
                 self._game_over = i
                 break
             except EnvError as exc_:
                 self._game_over = i
                 break
-
+            
+    def set_game_over(self, game_over_step: int):
+        self._game_over = game_over_step
+        
     def __len__(self):
         if self._game_over is None:
             return self.collection.shape[0]

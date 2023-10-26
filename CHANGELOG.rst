@@ -31,8 +31,166 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.8.2] - 2023-xx-yy
+[1.9.6] - 2023-10-26
+----------------------
+- [BREAKING] when a storage is connected alone on a bus, even if it produces / absorbs 0.0 MW it 
+  will raise a diverging powerflow error (previously the storage was automatically disconnected by 
+  `PandaPowerBackend`, but probably not by other backends)
+- [BREAKING] when a shunt is alone on a bus, the powerflow will diverge even in DC mode 
+  (previously it only converges which was wrong behaviour: grid2op should not disconnect shunt)
+- [FIXED] a bug in PandaPowerBackend (DC mode) where isolated load did not raised 
+  exception (they should lead to a divergence)
+- [FIXED] some wrong behaviour in the `remove_line_status_from_topo` when no observation where provided
+  and `check_cooldown` is `False`
+- [FIXED] a bug in PandaPowerBackend in AC powerflow: disconnected storage unit had no 0. as voltage
+- [FIXED] a bug in PandaPowerBackend in AC powerflow when a generator was alone a bus it made the powerflow
+  crash on some cases (*eg* without lightsim2grid, without numba)
+- [FIXED] a bug in PandaPowerBackend in DC (in some cases non connected grid were not spotted)
+- [FIXED] now the observations once reloaded have the correct `_is_done` flag (`obs._is_done = False`)
+  which allows to use the `obs.get_energy_graph()` for example. This fixes https://github.com/rte-france/Grid2Op/issues/538
+- [ADDED] now depends on the `typing_extensions` package
+- [ADDED] a complete test suite to help people develop new backend using "Test Driven Programming" 
+  techniques
+- [ADDED] the information on which time series data has been used by the environment in the `info`return value
+  of `env.step(...)`
+- [ADDED] a test suite easy to set up to test the backend API (and only the backend for now, integration tests with
+  runner and environment will follow)
+- [ADDED] an attribute of the backend to specify which file extension can be processed by it. Environment creation will
+  fail if none are found. See `backend.supported_grid_format` see https://github.com/rte-france/Grid2Op/issues/429
+- [IMPROVED] now easier than ever to run the grid2op test suite with a new backend (for relevant tests)
+- [IMPROVED] type hints for `Backend` and `PandapowerBackend`
+- [IMPROVED] distribute python 3.12 wheel
+- [IMPROVED] test for python 3.12 and numpy 1.26 when appropriate (*eg* when numpy version is released)
+- [IMPROVED] handling of environments without shunts
+- [IMPROVED] error messages when grid is not consistent 
+- [IMPROVED] add the default `l2rpn_case14_sandbox` environment in all part of the docs (substituing `rte_case14_realistic` or nothing)
+- [IMPROVED] imports on the `Exceptions` module
+- [IMPROVED] pandapower backend raises `BackendError` when "diverging"
+
+[1.9.5] - 2023-09-18
+---------------------
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/518
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/446
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/523 by having a "_BackendAction" folder instead of a file
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/522 and adding back certain notebooks to the CI
+- [FIXED] an issue when disconnecting loads / generators on msot recent pandas version
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/527 : now do nothing action are detected in 
+  `act.as_serializable_dict()` AND weird do nothing action can be made through the action space
+  (`env.action_space({"change_bus": {}})` is not ambiguous, though might not be super efficient...)
+
+[1.9.4] - 2023-09-04
+---------------------
+- [FIXED] read-the-docs template is not compatible with latest sphinx version (7.0.0)
+  see https://github.com/readthedocs/sphinx_rtd_theme/issues/1463
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/511
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/508
+- [ADDED] some classes that can be used to reproduce exactly what happened in a previously run environment
+  see `grid2op.Chronics.FromOneEpisodeData` and `grid2op.Opponent.FromEpisodeDataOpponent` 
+  and `grid2op.Chronics.FromMultiEpisodeData`
+- [ADDED] An helper function to get the kwargs to disable the opponent (see `grid2op.Opponent.get_kwargs_no_opponent()`)
+- [IMPROVED] doc of `obs.to_dict` and `obs.to_json` (see https://github.com/rte-france/Grid2Op/issues/509)
+
+[1.9.3] - 2023-07-28
+---------------------
+- [BREAKING] the "chronix2grid" dependency now points to chronix2grid and not to the right branch
+  this might cause an issue if you install `grid2op[chronix2grid]` for the short term
+- [BREAKING] force key-word arguments in `grid2op.make` except for the first one (env name), see
+  [rte-france#503](https://github.com/rte-france/Grid2Op/issues/503)
+- [FIXED] a bug preventing to use storage units in "sim2real" environment (when the 
+  grid for forecast is not the same as the grid for the environment)
+- [ADDED] a CI to test package can be installed and loaded correctly on windows, macos and line_ex_to_sub_pos
+  for python 3.8, 3.9, 3.10 and 3.11
+- [ADDED] possibility to change the "soft_overflow_threshold" in the parameters (like
+  the "hard_overflow_threshold" but for delayed protections). 
+  See `param.SOFT_OVERFLOW_THRESHOLD`
+- [ADDED] the `gym_env.observation_space.get_index(attr_nm)` for `BoxGymObsSpace` that allows to retrieve which index
+  of the observation represents which attribute.
+
+[1.9.2] - 2023-07-26
+---------------------
+- [BREAKING] rename with filename starting with lowercase all the files in the "`Backend`", "`Action`" and 
+  "`Environment`" modules. This is both consistent with python practice but allows also to make the 
+  difference between the files in the 
+  module and the class imported. This should have little to no impact on all codes but to "upgrade"
+  instead of `from grid2op.Action.BaseAction import BaseAction` (which you should not have done in the first place) 
+  just do `from grid2op.Action import BaseAction`. Expect other changes like this for other grid2op modules
+  in the near future.
+- [FIXED] broken environ "l2rpn_idf_2023" (with test=True) due to the presence of a `__pycache__` folder
+- [FIXED] time series `MultiFolder` will now ignore folder `__pycache__`
+- [FIXED] an issue with compatibility with previous versions (due to alert)
+- [FIXED] an issue with the `_ObsEnv` when using reward that could not be used in forecast (`self.is_simulated_env()`
+  was not working as expected due to a wrong init of the reward in `_ObsEnv`)
+- [FIXED] an issue when disconnecting loads / generators / storage units and changing their values in the same
+  action: the behaviour could depend on the backend. As of 1.9.2 the "disconnections" have the priority  (if 
+  an action disconnect an element, it will not change its sepoint at the same time). 
+- [FIXED] a bug in `AlertReward` due to `reset` not being called.
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/494
+- [ADDED] the score function used for the L2RPN 2023 competition (Paris Area)
+- [IMPROVED] overall performances by calling `arr.sum()` or `arr.any()` instead of `np.sum(arr)` or
+  `np.any(arr)` see https://numpy.org/neps/nep-0018-array-function-protocol.html#performance
+- [IMPROVED] overall performance of `obs.simulate` function by improving speed of copy of `_BackendAction`
+- [IMPROVED] overall performance of `env.step` / `obs.simulate` by preventing unnecessary observation deep copy
+- [IMPROVED] overall performance of `env.step` / `obs.simulate` by switching to `copy.deepcopy(obs)` instead of
+  `obs.copy()`
+  
+[1.9.1] - 2023-07-06
 --------------------
+- [BREAKING] (slightly): default `gym_compat` module now inherit from `gymnasium` (if 
+  gymnasium is installed) instead of `gym`. If you want legacy behaviour, 
+  do not install `gymnasium`. If you want compatibility with sota softwares using `gymnasium`,
+  install it and continue using grid2op transparently. See doc of `gym_compat` module for more
+  information.
+- [BREAKING] remove the support of the "raise_alarm" kwargs in the DiscreteActSpace
+- [BREAKING] remove support for python 3.7 that has reached end of life on 2023-06-27 on
+  pypi and on CI
+- [BREAKING] to avoid misleading behaviour, by default the `BoxGymActSpace` no longer uses
+  the "discrete" attributes ("set_line_status", "change_line_status", "set_bus", "change_bus"). You can
+  still use them in the "attr_to_keep" kwargs if you want.
+- [BREAKING] rename with filename starting with lowercase all the files in the "Reward" module. This is 
+  both consistent with python practice but allows also to make the difference between the file in the 
+  module and the class imported. This should have little to no impact on all codes but to "upgrade"
+  instead of `from grid2op.Reward.BaseReward import BaseReward` just do 
+  `from grid2op.Reward import BaseReward`.
+- [FIXED] an error when an environment with alarm was created before an environment 
+  without alert. This lead to a crash when creating the second environment. This is now fixed.
+- [FIXED] an issue with non renewable generators in `GymActionSpace` (some curtailment was made
+  at 100% of their capacity instead of "no curtailment")
+- [FIXED] a bug in computing the datatype of `BoxGymActSpace` and `BoxGymObsSpace` leading to
+  using "bool" as dtype when it should be int.
+- [FIXED] the behaviour of `BoxGymActSpace` when `subtract` / `divide` were provided (the dtype was 
+  not propagated correctly)
+- [ADDED] support for the "alert" feature (see main doc page) with new observation attributes
+  (`obs.active_alert`, `obs.time_since_last_alert`, `obs.alert_duration`, `obs.total_number_of_alert,` 
+  `obs.time_since_last_attack`, `obs.was_alert_used_after_attack` and `obs.attack_under_alert`) 
+  a new type of action: `act.raise_alert` and a new reward class `AlertReward` (among others)
+- [ADDED] the environment "l2rpn_idf_2023" (accessible via `grid2op.make("l2rpn_idf_2023", test=True)`)
+- [ADDED] the `RecoPowerlinePerArea` that is able to reconnect multiple lines in different area in
+  the same action
+- [ADDED] the kwargs "with_numba" in `PandaPowerBackend` to offer more control on whether or not you want
+  to use numba (default behaviour did not change: "if numba is availble, use it" but now you can disable it 
+  if numba is available but you don't want it)
+- [ADDED] the method `act.decompose_as_unary_actions(...)` to automatically
+  decompose a "complex" action on its unary counterpart. 
+- [ADDED] the env attribute `env._reward_to_obs` that allows to pass information to the observation directly
+  from the reward (this can only be used by regular environment and not by `obs.simulate` nor by `ForecastEnv`)
+- [ADDED] the whole "alert" concept in grid2op with a grid2op environment supporting it (`l2rpn_idf_2023`)
+- [ADDED] the `gym_env.action_space.get_index(attr_nm)` for `BoxGymActSpace` that allows to retrieve which index
+  of the action represents which attribute.
+- [ADDED] the argument `quiet_warnings` in the handlers to prevent the issue of too many warnings when using 
+  `ForecastHandler`
+- [IMPROVED] the method `act.as_serializable_dict()` to work better when exporting / importing actions on different 
+  grids (the output dictionary for `set_bus` and `change_bus` now split the keys between all elements types 
+  instead of relying on the "topo_vect" order (which might vary))
+- [IMPROVED] consistency between how to perform action on storage units between "raw" grid2op, 
+  `GymActionSpace`, `BoxGymActSpace`, `DiscreteActSpace` and `MultiDiscreteActSpace` (
+    used to be a mix of `set_storage` and `storage_power` now it's consistent and is `set_storage` everywhere)
+- [IMPROVED] error message when the "stat.clear_all()" function has been called on a statistic and this same
+  statistic is reused.
+- [IMPROVED] possibility to set "other_rewards" in the config file of the env
+
+[1.9.0] - 2023-06-06
+--------------------
+- [BREAKING] (because prone to bug): force the environment name in the `grid2op.make` function.
 - [BREAKING] because bugged... The default behaviour for `env.render()` is now "rgb_array". The mode
   "human" has been removed because it needs some fixes. This should not impact lots of code.
 - [BREAKING] the "maintenance_forecast" file is deprecated and is no longer used (this should not
@@ -43,6 +201,9 @@ Change Log
   description has been adapted.
 - [BREAKING] In `PandaPowerBackend` the kwargs argument "ligthsim2grid" was misspelled and is now properly
   renamed `lightsim2grid`
+- [BREAKING] you can no longer use the `env.reactivate_forecast()` in the middle of an episode.
+- [BREAKING] the method `runner.run_one_episode()` (that should not use !) now 
+  returns also the total number of steps of the environment.
 - [FIXED] a bug in `PandapowerBackend` when running in dc mode (voltages were not read correctly
   from the generators)
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/389 which was caused by 2 independant things: 
@@ -65,6 +226,15 @@ Change Log
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/396
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/403
 - [FIXED] a bug in `PandaPowerBackend` when it was copied (the kwargs used to build it were not propagated)
+- [FIXED] a bug in the `Runner` when the time series class used is not `MultiFolder` (*eg* `GridStateFromFile`): we could 
+  not run twice the same environment. 
+- [FIXED] a bug n the `GridStateFromFile`, `GridStateFromFileWithForecasts` and 
+  `GridStateFromFileWithForecastsWithoutMaintenance` classes that caused the maintenance file to be 
+  ignored when "chunk_size" was set.
+- [FIXED] a bug when shunts were alone in `backend.check_kirchoff()`
+- [FIXED] an issue with "max_iter" in the runner when `MultifolderWithCache`
+  (see issue https://github.com/rte-france/Grid2Op/issues/447)
+- [FIXED] a bug in `MultifolderWithCache` when seeding was applied
 - [ADDED] the function `obs.get_forecast_env()` that is able to generate a grid2op environment from the
   forecasts data in the observation. This is especially useful in model based RL.
 - [ADDED] an example on how to write a backend.
@@ -75,7 +245,24 @@ Change Log
 - [ADDED] a function to get the "elements graph" from the grid2op observation (represented as a networkx graph)
   as well as its description on the documentation.
 - [ADDED] a method to retrieve the "elements graph" (see doc) fom an observation `obs.get_elements_graph()`
+- [ADDED] a whole new way to deal with input time series data (see the module `grid2op.Chronics.handlers` 
+  for more information)
+- [ADDED] possibility to change the parameters used for the `obs.simulate(...)`
+  directly from the grid2op action, see `obs.change_forecast_parameters()`
+- [ADDED] possibility to retrieve a "forecast environment" with custom forecasts, see 
+  `obs.get_env_from_external_forecasts(...)`
+- [ADDED] now requires "importlib-metadata" package at install
+- [ADDED] adding the `TimedOutEnvironment` that takes "do nothing" actions when the agent
+  takes too much time to compute. This involves quite some changes in the runner too.
+- [ADDED] Runner is now able to store if an action is legal or ambiguous
+- [ADDED] experimental support to count the number of "high resolution simulator" (`obs.simulate`, 
+  `obs.get_simulator` and `obs.get_forecast_env`) in the environment (see 
+  https://github.com/rte-france/Grid2Op/issues/417). It might not work properly in distributed settings
+  (if the agents uses parrallel processing or if MultiProcessEnv is used), in MultiMixEnv, etc.
+- [ADDED] it now possible to check the some rules based on the definition of
+  areas on the grid.
 - [IMPROVED] possibility to "chain" the call to simulate when multiple forecast
+- [IMPROVED] possibility to "chain" the call to simulate when multiple forecasts
   horizon are available.
 - [IMPROVED] the `GridStateFromFileWithForecasts` is now able to read forecast from multiple steps
   ahead (provided that it knows the horizons in its constructor)
@@ -108,6 +295,15 @@ Change Log
 - [IMPROVED] the doc of the `obs.get_energy_graph` (previously `obs.as_networkx()`)
 - [IMPROVED] it is now possible to use a different backend, a different grid or different kwargs between the
   env backend and the obs backend.
+- [IMPROVED] the environment now called the "chronics_handler.forecast" function at most once per step.
+- [IMPROVED] make it easier to create an environment without `MultiFolder` or `MultifolderWithCache`
+- [IMPROVED] add the possibility to forward kwargs to chronix2grid function when calling `env.generate_data`
+- [IMPROVED] when calling `env.generate_data` an extra file (json) will be read to set default values 
+  passed to `chronix2grid.add_data`
+- [IMPROVED] it is no more reasonably possible to misuse the `MultifolderWithCache` (for example by
+  forgetting to `reset()` the cache): an error will be raised in case the proper function has not been called.
+- [IMPROVED] possibility to pass game rules by instance of object and not by class.
+- [IMPROVED] it should be faster to use the "Simulator" (an useless powerflow was run)
 
 [1.8.1] - 2023-01-11
 ---------------------
@@ -1128,7 +1324,7 @@ Change Log
   `5bus_example` and the `CASE_14_L2RPN2019`.
 - [FIXED] Runner skipped half the episode in some cases (sequential, even number of scenarios). Now fixed.
 - [FIXED] Some typos on the notebook "getting_started\4-StudyYourAgent.ipynb".
-- [FIXED] Error in the conversion of observation to dictionnary. Twice the same keys were used
+- [FIXED] Error in the conversion of observation to dictionary. Twice the same keys were used
   ('time_next_maintenance') for both `time_next_maintenance` and `duration_next_maintenance`.
 - [UPDATED] The first chronics that is processed by a runner is not the "first" one on the hardrive
   (if sorted in alphabetical order)
@@ -1171,7 +1367,7 @@ Change Log
 
 [0.4.2] - 2020-01-08
 --------------------
-- [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionnary) are no more compatible
+- [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionary) are no more compatible
 - [BREAKING] renaming of attributes describing the powergrid across classes for better consistency:
 
 =============================    =======================  =======================

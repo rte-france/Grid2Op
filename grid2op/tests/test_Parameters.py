@@ -87,7 +87,7 @@ class TestParameters(unittest.TestCase):
         setattr(param, attr_name, 1)
         param.check_valid()
 
-    def _aux_check_attr_float(self, param, attr_name):
+    def _aux_check_attr_float(self, param, attr_name, test_bool=True):
         tmp = getattr(param, attr_name)
         # don't work with string
         setattr(param, attr_name, "toto")
@@ -102,8 +102,9 @@ class TestParameters(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             param.check_valid()
         # work with bool
-        setattr(param, attr_name, True)
-        param.check_valid()
+        if test_bool:
+            setattr(param, attr_name, True)
+            param.check_valid()
         # work with int value
         setattr(param, attr_name, int(tmp))
         param.check_valid()
@@ -153,9 +154,11 @@ class TestParameters(unittest.TestCase):
             except Exception as exc_:
                 raise RuntimeError(f'Exception "{exc_}" for attribute "{attr_nm}"')
         # float types
-        for attr_nm in ["HARD_OVERFLOW_THRESHOLD", "INIT_STORAGE_CAPACITY"]:
+        for attr_nm in ["HARD_OVERFLOW_THRESHOLD",
+                        "SOFT_OVERFLOW_THRESHOLD",
+                        "INIT_STORAGE_CAPACITY"]:
             try:
-                self._aux_check_attr_float(p, attr_nm)
+                self._aux_check_attr_float(p, attr_nm, test_bool=(attr_nm!="HARD_OVERFLOW_THRESHOLD"))
             except Exception as exc_:
                 raise RuntimeError(f'Exception "{exc_}" for attribute "{attr_nm}"')
 

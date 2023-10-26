@@ -439,7 +439,28 @@ class GridObjects:
     alarms_lines_area = {}  # for each lines of the grid, gives on which area(s) it is  # TODO
     alarms_area_lines = []  # for each area in the grid, gives which powerlines it contains # TODO
 
-    # TODO specify the unit of redispatching data MWh, $/MW etc.
+    dim_alerts: `int`
+        The dimension of the "alert space" (number of powerline on which the agent can sent an alert)
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+    
+        .. versionadded:: 1.9.1
+        
+    alertable_line_names: `np.ndarray`
+        Name (in order) of each powerline on which the agent can send an alarm. It has the size corresponding to :attr:`GridObjects.dim_alerts`
+        and contain names of powerlines (string).
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+    alertable_line_ids: `np.ndarray`
+        Id (in order) of each powerline on which the agent can send an alarm. It has the size corresponding to :attr:`GridObjects.dim_alerts`
+        and contain ids of powerlines (integer).
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+
+        .. versionadded:: 1.9.1
     """
 
     BEFORE_COMPAT_VERSION = "neurips_2020_compat"
@@ -571,6 +592,9 @@ class GridObjects:
     name_shunt = None
     shunt_to_subid = None
 
+    # alarm / alert
+    assistant_warning_type = None
+    
     # alarm feature
     # dimension of the alarm "space" (number of alarm that can be raised at each step)
     dim_alarms = 0  # TODO
@@ -582,7 +606,17 @@ class GridObjects:
         []
     )  # for each area in the grid, gives which powerlines it contains # TODO
 
+    # alert feature 
+    # dimension of the alert "space" (number of alerts that can be raised at each step)
+    dim_alerts = 0  # TODO
+    alertable_line_names = []  # name of each line to produce an alert on # TODO
+    alertable_line_ids = []
+    
+    # test
+    _IS_INIT = False
+    
     def __init__(self):
+        """nothing to do when an object of this class is created, the information is held by the class attributes"""
         pass
 
     @classmethod
@@ -593,7 +627,27 @@ class GridObjects:
                 "You will change the number of dimensions of the alarm. This might cause trouble "
                 "if you environment is read back. We strongly recommend NOT to do this."
             )
+        if dim_alarms and cls.assistant_warning_type == "by_line":
+            raise Grid2OpException("Impossible to set both alarm and alert for the same environment.")
+        
         cls.dim_alarms = dim_alarms
+        if dim_alarms:
+            cls.assistant_warning_type = "zonal"
+
+    @classmethod
+    def tell_dim_alert(cls, dim_alerts):
+        if cls.dim_alerts != 0:
+            # number of alerts has already been set, i issue a warning
+            warnings.warn(
+                "You will change the number of dimensions of the alert. This might cause trouble "
+                "if you environment is read back. We strongly recommend NOT to do this."
+            )
+        if dim_alerts and cls.assistant_warning_type == "zonal":
+            raise Grid2OpException("Impossible to set both alarm and alert for the same environment.")
+        
+        cls.dim_alerts = dim_alerts
+        if dim_alerts:
+            cls.assistant_warning_type = "by_line"
 
     @classmethod
     def _clear_class_attribute_gridobjects(cls):
@@ -613,7 +667,7 @@ class GridObjects:
         cls.attr_nan_list_set = set()
 
         # class been init
-        # __is_init = False
+        cls._IS_INIT = False
 
         # name of the objects
         cls.env_name = "unknown"
@@ -727,11 +781,19 @@ class GridObjects:
         cls.name_shunt = None
         cls.shunt_to_subid = None
 
+        # alarm / alert
+        cls.assistant_warning_type = None
+        
         # alarms
         cls.dim_alarms = 0
         cls.alarms_area_names = []
         cls.alarms_lines_area = {}
         cls.alarms_area_lines = []
+
+        # alerts
+        cls.dim_alerts = 0
+        cls.alertable_line_names = []
+        cls.alertable_line_ids = []
 
     @classmethod
     def _clear_class_attribute(cls):
@@ -814,7 +876,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # for an observation:
             obs = env.reset()
@@ -841,8 +903,21 @@ class GridObjects:
     def to_json(self, convert=True):
         """
         Convert this instance of GridObjects to a dictionary that can be json serialized.
+        
+        .. note::
+            This function is different to the :func:`grid2op.Observation.BaseObservation.to_dict`.
+            Indeed the dictionnary resulting from this function will count as keys all the attributes
+            in :attr:`GridObjects.attr_list_vect` and :attr:`GridObjects.attr_list_json`.
+            
+            Concretely, if `obs` is an observation (:class:`grid2op.Observation.BaseObservation`)
+            then `obs.to_dict()` will have the keys `type(obs).attr_list_vect` and the values will
+            be numpy arrays whereas `obs.to_json()` will have the keys
+            `type(obs).attr_list_vect` and `type(obs).attr_list_json` and the values will be
+            lists (serializable)
 
-        convert: do you convert the numpy types to standard python list (might take lots of time)
+        .. warning::
+            convert: do you convert the numpy types to standard python list (might take lots of time)
+        
         TODO doc and example
         """
 
@@ -852,11 +927,12 @@ class GridObjects:
         # or even storing the things in [id, value] for these types of attributes (time_before_cooldown_line,
         # time_before_cooldown_sub, time_next_maintenance, duration_next_maintenance etc.)
 
+        cls = type(self)
         res = {}
-        for attr_nm in self.attr_list_vect + self.attr_list_json:
+        for attr_nm in cls.attr_list_vect + cls.attr_list_json:
             res[attr_nm] = self._get_array_from_attr_name(attr_nm)
         if convert:
-            self._convert_to_json(res)  # TODO !
+            cls._convert_to_json(res)
         return res
 
     def from_json(self, dict_):
@@ -888,8 +964,9 @@ class GridObjects:
                 type_ = type(my_attr)
                 setattr(self, key, type_(array_[0]))
 
-    def _convert_to_json(self, dict_):
-        for attr_nm in self.attr_list_vect + self.attr_list_json:
+    @classmethod
+    def _convert_to_json(cls, dict_):
+        for attr_nm in cls.attr_list_vect + cls.attr_list_json:
             tmp = dict_[attr_nm]
             dtype = tmp.dtype
             if dtype == dt_float:
@@ -897,6 +974,12 @@ class GridObjects:
             elif dtype == dt_int:
                 dict_[attr_nm] = [int(el) for el in tmp]
             elif dtype == dt_bool:
+                dict_[attr_nm] = [bool(el) for el in tmp]
+            elif dtype == float:
+                dict_[attr_nm] = [float(el) for el in tmp]
+            elif dtype == int:
+                dict_[attr_nm] = [int(el) for el in tmp]
+            elif dtype == bool:
                 dict_[attr_nm] = [bool(el) for el in tmp]
 
     def shape(self):
@@ -930,7 +1013,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # for an observation:
             obs_space_shapes = env.observation_space.shape()
@@ -974,7 +1057,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # for an observation:
             obs_space_types = env.observation_space.dtype()
@@ -1048,7 +1131,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # get the vector representation of an observation:
             obs = env.reset()
@@ -1091,8 +1174,8 @@ class GridObjects:
             # if np.any(~np.isfinite(tmp)) and default_nan:
             #     raise NonFiniteElement("None finite number in from_vect detected")
 
-            if attr_nm not in type(self).attr_nan_list_set and np.any(
-                ~np.isfinite(tmp)
+            if attr_nm not in type(self).attr_nan_list_set and (
+                (~np.isfinite(tmp)).any()
             ):
                 raise NonFiniteElement("None finite number in from_vect detected")
 
@@ -1143,7 +1226,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # get the vector representation of an observation:
             obs = env.reset()
@@ -1158,7 +1241,7 @@ class GridObjects:
             print("The size of the action space is {}".format(env.action_space.size()))
 
         """
-        res = np.sum(self.shape()).astype(dt_int)
+        res = self.shape().sum(dtype=dt_int)
         return res
 
     @classmethod
@@ -1181,7 +1264,7 @@ class GridObjects:
         """
         res = np.zeros(shape=vect_to_subid.shape, dtype=dt_int)
         for i, (sub_id, my_pos) in enumerate(zip(vect_to_subid, vect_to_sub_pos)):
-            obj_before = np.sum(cls.sub_info[:sub_id])
+            obj_before = cls.sub_info[:sub_id].sum()
             res[i] = obj_before + my_pos
         return res
 
@@ -1201,8 +1284,9 @@ class GridObjects:
             setattr(cls, attr_nm, attr)
 
     def _compute_pos_big_topo(self):
-        # TODO move the object attribute as class attribute !
-        self._init_class_attr()
+        # move the object attribute as class attribute !
+        if not type(self)._IS_INIT:
+            self._init_class_attr()
         cls = type(self)
         cls._compute_pos_big_topo_cls()
 
@@ -1679,7 +1763,7 @@ class GridObjects:
         if cls.gen_to_sub_pos is None:
             if need_implement is False:
                 raise BackendError(
-                    'You chose to implement "load_to_sub_pos" but not "gen_to_sub_pos". We cannot '
+                    'You chose not to implement "gen_to_sub_pos" but not "load_to_sub_pos". We cannot '
                     "work with that. Please either use the automatic setting, or implement all of "
                     "*_to_sub_pos vectors"
                     ""
@@ -1688,7 +1772,7 @@ class GridObjects:
         if cls.line_or_to_sub_pos is None:
             if need_implement is False:
                 raise BackendError(
-                    'You chose to implement "line_or_to_sub_pos" but not "load_to_sub_pos"'
+                    'You chose not to implement "line_or_to_sub_pos" but "load_to_sub_pos"'
                     'or "gen_to_sub_pos". We cannot '
                     "work with that. Please either use the automatic setting, or implement all of "
                     "*_to_sub_pos vectors"
@@ -1698,7 +1782,7 @@ class GridObjects:
         if cls.line_ex_to_sub_pos is None:
             if need_implement is False:
                 raise BackendError(
-                    'You chose to implement "line_ex_to_sub_pos" but not "load_to_sub_pos"'
+                    'You chose not to implement "line_ex_to_sub_pos" but "load_to_sub_pos"'
                     'or "gen_to_sub_pos" or "line_or_to_sub_pos". We cannot '
                     "work with that. Please either use the automatic setting, or implement all of "
                     "*_to_sub_pos vectors"
@@ -1708,7 +1792,7 @@ class GridObjects:
         if cls.storage_to_sub_pos is None:
             if need_implement is False:
                 raise BackendError(
-                    'You chose to implement "storage_to_sub_pos" but not "load_to_sub_pos"'
+                    'You chose not to implement "storage_to_sub_pos" but "load_to_sub_pos"'
                     'or "gen_to_sub_pos" or "line_or_to_sub_pos" or "line_ex_to_sub_pos". '
                     "We cannot "
                     "work with that. Please either use the automatic setting, or implement all of "
@@ -1938,7 +2022,7 @@ class GridObjects:
             )
         )
         try:
-            if np.any(~np.isfinite(tmp)):
+            if (~np.isfinite(tmp)).any():
                 raise EnvError(
                     "The grid could not be loaded properly."
                     "One of the vector is made of non finite elements, check the sub_info, *_to_subid, "
@@ -1959,7 +2043,7 @@ class GridObjects:
                 "and  self.n_sub ({})".format(len(cls.sub_info), cls.n_sub)
             )
         if (
-            np.sum(cls.sub_info)
+            cls.sub_info.sum()
             != cls._compute_nb_element()
         ):
             err_msg = "The number of elements is not consistent between self.sub_info where there are "
@@ -2099,7 +2183,7 @@ class GridObjects:
             )
 
         # no empty bus: at least one element should be present on each bus
-        if np.any(cls.sub_info < 1):
+        if (cls.sub_info < 1).any():
             if not grid2op.Space.space_utils._WARNING_ISSUED_FOR_SUB_NO_ELEM:
                 warnings.warn(
                     f"There are {np.sum(cls.sub_info < 1)} substations where  no 'controlable' elements "
@@ -2124,12 +2208,16 @@ class GridObjects:
         
         # other type of data
         cls._assert_grid_correct_other_elements()
+
+        # alert data
+        cls._check_validity_alert_data()
         
     @classmethod
     def _assert_grid_correct_other_elements(cls):
         # kind of post processing for assert_grid_correct when you add other elements
         pass
     
+
     @classmethod
     def _check_validity_alarm_data(cls):
         if cls.dim_alarms == 0:
@@ -2148,6 +2236,8 @@ class GridObjects:
                 f"The number of areas for the alarm feature should be >= 0. It currently is {cls.dim_alarms}"
             )
         else:
+            assert cls.assistant_warning_type == "zonal"
+            
             # the "alarm" feature is supported
             assert isinstance(
                 cls.alarms_area_names, list
@@ -2202,6 +2292,37 @@ class GridObjects:
                         f'The powerline "{l_nm}" is not in cls.alarms_lines_area'
                     )
 
+    @classmethod
+    def _check_validity_alert_data(cls):
+        # TODO remove assert and raise Grid2opExcpetion instead
+        if cls.dim_alerts == 0:
+            # no alert data
+            assert (
+                cls.alertable_line_names == []
+            ), "No alert data is provided, yet cls.alertable_line_names != []"
+            assert (
+               len(cls.alertable_line_ids) == 0
+            ), "No alert data is provided, yet len(cls.alertable_line_ids) != 0"
+        elif cls.dim_alerts < 0:
+            raise EnvError(
+                f"The number of lines for the alert feature should be >= 0. It currently is {cls.dim_alerts}"
+            )
+        else:
+            assert cls.assistant_warning_type == "by_line"
+            # the "alert" feature is supported
+            assert isinstance(
+                cls.alertable_line_names, list
+            ), "cls.alertable_line_names should be a list"
+            assert (
+                len(cls.alertable_line_names) == cls.dim_alerts
+            ), "len(cls.alertable_line_names) != cls.dim_alerts"
+            
+            try:
+                cls.alertable_line_ids = np.array(cls.alertable_line_ids).astype(dt_int)
+            except Exception as exc_:
+                raise EnvError(f"Impossible to convert alertable_line_ids "
+                               f"to an array of int with error {exc_}")
+            
     @classmethod
     def _check_validity_storage_data(cls):
         if cls.storage_type is None:
@@ -2266,76 +2387,76 @@ class GridObjects:
                 "self.storage_charging_efficiency.shape[0] != self.n_storage"
             )
 
-        if np.any(~np.isfinite(cls.storage_Emax)):
+        if (~np.isfinite(cls.storage_Emax)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_Emax))")
-        if np.any(~np.isfinite(cls.storage_Emin)):
+        if (~np.isfinite(cls.storage_Emin)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_Emin))")
-        if np.any(~np.isfinite(cls.storage_max_p_prod)):
+        if (~np.isfinite(cls.storage_max_p_prod)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_max_p_prod))")
-        if np.any(~np.isfinite(cls.storage_max_p_absorb)):
+        if (~np.isfinite(cls.storage_max_p_absorb)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_max_p_absorb))")
-        if np.any(~np.isfinite(cls.storage_marginal_cost)):
+        if (~np.isfinite(cls.storage_marginal_cost)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_marginal_cost))")
-        if np.any(~np.isfinite(cls.storage_loss)):
+        if (~np.isfinite(cls.storage_loss)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_loss))")
-        if np.any(~np.isfinite(cls.storage_charging_efficiency)):
+        if (~np.isfinite(cls.storage_charging_efficiency)).any():
             raise BackendError("np.any(~np.isfinite(self.storage_charging_efficiency))")
-        if np.any(~np.isfinite(cls.storage_discharging_efficiency)):
+        if (~np.isfinite(cls.storage_discharging_efficiency)).any():
             raise BackendError(
                 "np.any(~np.isfinite(self.storage_discharging_efficiency))"
             )
 
-        if np.any(cls.storage_Emax < cls.storage_Emin):
+        if (cls.storage_Emax < cls.storage_Emin).any():
             tmp = np.where(cls.storage_Emax < cls.storage_Emin)[0]
             raise BackendError(
                 f"storage_Emax < storage_Emin for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_Emax < 0.0):
+        if (cls.storage_Emax < 0.0).any():
             tmp = np.where(cls.storage_Emax < 0.0)[0]
             raise BackendError(
                 f"self.storage_Emax < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_Emin < 0.0):
+        if (cls.storage_Emin < 0.0).any():
             tmp = np.where(cls.storage_Emin < 0.0)[0]
             raise BackendError(
                 f"self.storage_Emin < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_max_p_prod < 0.0):
+        if (cls.storage_max_p_prod < 0.0).any():
             tmp = np.where(cls.storage_max_p_prod < 0.0)[0]
             raise BackendError(
                 f"self.storage_max_p_prod < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_max_p_absorb < 0.0):
+        if (cls.storage_max_p_absorb < 0.0).any():
             tmp = np.where(cls.storage_max_p_absorb < 0.0)[0]
             raise BackendError(
                 f"self.storage_max_p_absorb < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_loss < 0.0):
+        if (cls.storage_loss < 0.0).any():
             tmp = np.where(cls.storage_loss < 0.0)[0]
             raise BackendError(
                 f"self.storage_loss < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_discharging_efficiency <= 0.0):
+        if (cls.storage_discharging_efficiency <= 0.0).any():
             tmp = np.where(cls.storage_discharging_efficiency <= 0.0)[0]
             raise BackendError(
                 f"self.storage_discharging_efficiency <= 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_discharging_efficiency > 1.0):
+        if (cls.storage_discharging_efficiency > 1.0).any():
             tmp = np.where(cls.storage_discharging_efficiency > 1.0)[0]
             raise BackendError(
                 f"self.storage_discharging_efficiency > 1. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_charging_efficiency < 0.0):
+        if (cls.storage_charging_efficiency < 0.0).any():
             tmp = np.where(cls.storage_charging_efficiency < 0.0)[0]
             raise BackendError(
                 f"self.storage_charging_efficiency < 0. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_charging_efficiency > 1.0):
+        if (cls.storage_charging_efficiency > 1.0).any():
             tmp = np.where(cls.storage_charging_efficiency > 1.0)[0]
             raise BackendError(
                 f"self.storage_charging_efficiency > 1. for storage units with ids: {tmp}"
             )
-        if np.any(cls.storage_loss > cls.storage_max_p_absorb):
+        if (cls.storage_loss > cls.storage_max_p_absorb).any():
             tmp = np.where(cls.storage_loss > cls.storage_max_p_absorb)[0]
             raise BackendError(
                 f"Some storage units are such that their loss (self.storage_loss) is higher "
@@ -2524,11 +2645,11 @@ class GridObjects:
                 "(gen_renewable) when redispatching is supposed to be available."
             )
 
-        if np.any(cls.gen_min_uptime < 0):
+        if (cls.gen_min_uptime < 0).any():
             raise InvalidRedispatching(
                 "Minimum uptime of generator (gen_min_uptime) cannot be negative"
             )
-        if np.any(cls.gen_min_downtime < 0):
+        if (cls.gen_min_downtime < 0).any():
             raise InvalidRedispatching(
                 "Minimum downtime of generator (gen_min_downtime) cannot be negative"
             )
@@ -2537,23 +2658,23 @@ class GridObjects:
             if not el in ["solar", "wind", "hydro", "thermal", "nuclear"]:
                 raise InvalidRedispatching("Unknown generator type : {}".format(el))
 
-        if np.any(cls.gen_pmin < 0.0):
+        if (cls.gen_pmin < 0.0).any():
             raise InvalidRedispatching("One of the Pmin (gen_pmin) is negative")
-        if np.any(cls.gen_pmax < 0.0):
+        if (cls.gen_pmax < 0.0).any():
             raise InvalidRedispatching("One of the Pmax (gen_pmax) is negative")
-        if np.any(cls.gen_max_ramp_down < 0.0):
+        if (cls.gen_max_ramp_down < 0.0).any():
             raise InvalidRedispatching(
                 "One of the ramp up (gen_max_ramp_down) is negative"
             )
-        if np.any(cls.gen_max_ramp_up < 0.0):
+        if (cls.gen_max_ramp_up < 0.0).any():
             raise InvalidRedispatching(
                 "One of the ramp down (gen_max_ramp_up) is negative"
             )
-        if np.any(cls.gen_startup_cost < 0.0):
+        if (cls.gen_startup_cost < 0.0).any():
             raise InvalidRedispatching(
                 "One of the start up cost (gen_startup_cost) is negative"
             )
-        if np.any(cls.gen_shutdown_cost < 0.0):
+        if (cls.gen_shutdown_cost < 0.0).any():
             raise InvalidRedispatching(
                 "One of the start up cost (gen_shutdown_cost) is negative"
             )
@@ -2604,10 +2725,10 @@ class GridObjects:
                         "{} should be convertible data should be convertible to "
                         '{} with error: \n"{}"'.format(el, type_, exc_)
                     )
-        if np.any(
+        if (
             cls.gen_max_ramp_up[cls.gen_redispatchable]
             > cls.gen_pmax[cls.gen_redispatchable]
-        ):
+        ).any():
             raise InvalidRedispatching(
                 "Invalid maximum ramp for some generator (above pmax)"
             )
@@ -2693,7 +2814,7 @@ class GridObjects:
             # with shunt and without shunt, then
             # there might be issues
             name_res += "_noshunt"
-            
+        
         if name_res in globals():
             if not force:
                 # no need to recreate the class, it already exists
@@ -2711,7 +2832,9 @@ class GridObjects:
         else:
             # i am the original class from grid2op
             res_cls._INIT_GRID_CLS = cls
-
+        
+        res_cls._IS_INIT = True
+        
         res_cls._compute_pos_big_topo_cls()
         res_cls.process_shunt_satic_data()
         if res_cls.glop_version != grid2op.__version__:
@@ -2736,7 +2859,14 @@ class GridObjects:
         if cls.glop_version < "1.6.0":
             # this feature did not exist before.
             cls.dim_alarms = 0
-        
+            cls.assistant_warning_type = None
+            
+        if cls.glop_version < "1.9.1":
+            # this feature did not exists before
+            cls.dim_alerts = 0 
+            cls.alertable_line_names = []
+            cls.alertable_line_ids = []
+
     @classmethod
     def _get_obj_connect_to_gridobjects(cls, _sentinel=None, substation_id=None):
         if _sentinel is not None:
@@ -2798,7 +2928,7 @@ class GridObjects:
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # get the vector representation of an observation:
             sub_id = 1
@@ -2893,7 +3023,7 @@ class GridObjects:
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # get the vector representation of an observation:
             sub_id = 1
@@ -2966,7 +3096,7 @@ class GridObjects:
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             l_ids = env.get_lines_id(from_=0, to_=1)
             print("The powerlines connecting substation 0 to substation 1 have for ids: {}".format(l_ids))
@@ -3025,7 +3155,7 @@ class GridObjects:
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             g_ids = env.get_generators_id(sub_id=1)
             print("The generators connected to substation 1 have for ids: {}".format(g_ids))
@@ -3076,7 +3206,7 @@ class GridObjects:
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             c_ids = env.get_loads_id(sub_id=1)
             print("The loads connected to substation 1 have for ids: {}".format(c_ids))
@@ -3128,7 +3258,7 @@ class GridObjects:
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             sto_ids = env.get_storages_id(sub_id=1)
             print("The loads connected to substation 1 have for ids: {}".format(c_ids))
@@ -3425,8 +3555,16 @@ class GridObjects:
             copy_,
         )
 
+        # alert or alarm
+        if cls.assistant_warning_type is not None:
+            res["assistant_warning_type"] = str(cls.assistant_warning_type)
+        else:
+            res["assistant_warning_type"] = None
+        
         # area for the alarm feature
         res["dim_alarms"] = cls.dim_alarms
+    
+
         save_to_dict(
             res, cls, "alarms_area_names", (lambda li: [str(el) for el in li]), copy_
         )
@@ -3448,6 +3586,16 @@ class GridObjects:
             "alarms_area_lines",
             (lambda lili: [[str(l_nm) for l_nm in lines] for lines in lili]),
             copy_,
+        )
+        
+        # number of line alert for the alert feature
+        res['dim_alerts'] = cls.dim_alerts 
+        # save alert line names to dict
+        save_to_dict(
+            res, cls, "alertable_line_names", (lambda li: [str(el) for el in li]) if as_list else None, copy_
+        )
+        save_to_dict(
+            res, cls, "alertable_line_ids", (lambda li: [int(el) for el in li])  if as_list else None, copy_
         )
         return res
 
@@ -3595,7 +3743,7 @@ class GridObjects:
         cls.n_load = len(cls.name_load)
         cls.n_line = len(cls.name_line)
         cls.n_sub = len(cls.name_sub)
-        cls.dim_topo = np.sum(cls.sub_info)
+        cls.dim_topo = cls.sub_info.sum()
 
         if dict_["gen_type"] is None:
             cls.redispatching_unit_commitment_availble = False
@@ -3704,6 +3852,11 @@ class GridObjects:
             # and now post process the class attributes for that
             cls.process_grid2op_compat()
 
+        if "assistant_warning_type" in dict_:
+            cls.assistant_warning_type = dict_["assistant_warning_type"]
+        else:
+            cls.assistant_warning_type = None
+        
         # alarm information
         if "dim_alarms" in dict_:
             # NB by default the constructor do as if there were no alarm so that's great !
@@ -3712,6 +3865,21 @@ class GridObjects:
             cls.alarms_lines_area = copy.deepcopy(dict_["alarms_lines_area"])
             cls.alarms_area_lines = copy.deepcopy(dict_["alarms_area_lines"])
 
+        # alert information 
+        if "dim_alerts" in dict_: 
+            # NB by default the constructor do as if there were no alert so that's great !
+            cls.dim_alerts = dict_["dim_alerts"]
+            if cls.dim_alerts > 0:
+                cls.alertable_line_names = extract_from_dict(
+                    dict_, "alertable_line_names", lambda x: np.array(x).astype(str)
+                    )
+                cls.alertable_line_ids = extract_from_dict(
+                    dict_, "alertable_line_ids", lambda x: np.array(x).astype(dt_int)
+                    )
+            else:
+                cls.alertable_line_names = []
+                cls.alertable_line_ids = []
+                
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo_cls()
@@ -3910,7 +4078,7 @@ class GridObjects:
             [on_bus_1]
             Local and global bus id represents the same thing. The difference comes down to convention.
         """
-        global_bus = 1 * local_bus  # make a copy
+        global_bus = (1 * local_bus).astype(dt_int)  # make a copy
         on_bus_1 = global_bus == 1
         on_bus_2 = global_bus == 2
         global_bus[on_bus_1] = to_sub_id[on_bus_1]
@@ -3964,7 +4132,7 @@ class GridObjects:
             
             Local and global bus id represents the same thing. The difference comes down to convention.
         """
-        res = 1 * global_bus
+        res = (1 * global_bus).astype(dt_int)  # make a copy
         res[global_bus < cls.n_sub] = 1
         res[global_bus >= cls.n_sub] = 2
         res[global_bus == -1] = -1
@@ -3989,6 +4157,8 @@ class GridObjects:
             
             Local and global bus id represents the same thing. The difference comes down to convention.
         """
+        if global_bus == -1:
+            return -1
         if global_bus < cls.n_sub:
             return 1
         if global_bus >= cls.n_sub:
@@ -4162,6 +4332,8 @@ class GridObjects:
         name_shunt_str = ",".join([f'"{el}"' for el in cls.name_shunt])
         shunt_to_subid_str = GridObjects._format_int_vect_to_cls_str(cls.shunt_to_subid)
 
+        assistant_warning_type_str = (None if cls.assistant_warning_type is None 
+                                      else f'"{cls.assistant_warning_type}"')
         alarms_area_names_str = (
             "[]"
             if cls.dim_alarms == 0
@@ -4177,7 +4349,15 @@ class GridObjects:
         tmp_tmp_ = ",".join([f"[{format_el(el)}]" for el in cls.alarms_area_lines])
         tmp_ = f"[{tmp_tmp_}]"
         alarms_area_lines_str = "[]" if cls.dim_alarms == 0 else tmp_
-        res = f"""# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+
+        tmp_tmp_ = ",".join([f"\"{el}\"" for el in cls.alertable_line_names])
+        tmp_ = f"[{tmp_tmp_}]"
+        alertable_line_names_str = '[]' if cls.dim_alerts == 0 else tmp_
+        
+        tmp_tmp_ = ",".join([f"{el}" for el in cls.alertable_line_ids])
+        tmp_ = f"[{tmp_tmp_}]"
+        alertable_line_ids_str = '[]' if cls.dim_alerts == 0 else tmp_
+        res = f"""# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -4300,12 +4480,20 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     name_shunt = np.array([{name_shunt_str}])
     shunt_to_subid = {shunt_to_subid_str}
 
+    # alarm / alert
+    assistant_warning_type = {assistant_warning_type_str}
+    
     # alarm feature
     # dimension of the alarm "space" (number of alarm that can be raised at each step)
     dim_alarms = {cls.dim_alarms}
     alarms_area_names = {alarms_area_names_str}
     alarms_lines_area = {alarms_lines_area_str}
     alarms_area_lines = {alarms_area_lines_str}
+
+    # alert feature
+    dim_alert = {cls.dim_alerts}
+    alertable_line_names = {alertable_line_names_str}
+    alertable_line_ids = {alertable_line_ids_str}
 
 """
         return res

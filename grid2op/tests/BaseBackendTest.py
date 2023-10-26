@@ -17,6 +17,12 @@ import copy
 from abc import ABC, abstractmethod
 import inspect
 
+from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST, MakeBackend, HelperTests
+PATH_DATA_TEST_INIT = PATH_DATA_TEST
+PATH_DATA_TEST = PATH_DATA_TEST_PP
+
+import grid2op
+
 from grid2op.Action import CompleteAction
 
 try:
@@ -55,36 +61,17 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.Environment import Environment
 from grid2op.Exceptions import *
 from grid2op.Rules import RulesChecker
-from grid2op.MakeEnv import make
 from grid2op.Rules import AlwaysLegal
-from grid2op.Action._BackendAction import _BackendAction
+from grid2op.Action._backendAction import _BackendAction
+from grid2op.Backend import Backend, PandaPowerBackend
 
 import pdb
-
-
-class MakeBackend(ABC):
-    @abstractmethod
-    def make_backend(self, detailed_infos_for_cascading_failures=False):
-        pass
-
-    def get_path(self):
-        raise NotImplementedError(
-            "This function should be implemented for the test suit you are developping"
-        )
-
-    def get_casefile(self):
-        raise NotImplementedError(
-            "This function should be implemented for the test suit you are developping"
-        )
-
-    def skip_if_needed(self):
-        if hasattr(self, "tests_skipped"):
-            nm_ = inspect.currentframe().f_back.f_code.co_name
-            if nm_ in self.tests_skipped:
-                self.skipTest('the test "{}" is skipped'.format(nm_))
-
-
+                    
+    
 class BaseTestNames(MakeBackend):
+    def get_path(self):
+        return PATH_DATA_TEST_INIT
+    
     def test_properNames(self):
         self.skip_if_needed()
         backend = self.make_backend()
@@ -92,10 +79,10 @@ class BaseTestNames(MakeBackend):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 os.path.join(path, "5bus_example_diff_name"),
                 backend=backend,
-                _add_to_name="_BaseTestNames",
+                _add_to_name=type(self).__name__
             ) as env:
                 obs = env.reset()
                 assert np.all(type(obs).name_load == ["tutu", "toto", "tata"])
@@ -103,6 +90,12 @@ class BaseTestNames(MakeBackend):
 
 
 class BaseTestLoadingCase(MakeBackend):
+    def get_path(self):
+        return PATH_DATA_TEST
+
+    def get_casefile(self):
+        return "test_case14.json"
+    
     def test_load_file(self):
         backend = self.make_backend()
         path_matpower = self.get_path()
@@ -212,6 +205,12 @@ class BaseTestLoadingCase(MakeBackend):
 
 
 class BaseTestLoadingBackendFunc(MakeBackend):
+    def get_path(self):
+        return PATH_DATA_TEST
+
+    def get_casefile(self):
+        return "test_case14.json"
+    
     def setUp(self):
         self.backend = self.make_backend()
         self.path_matpower = self.get_path()
@@ -223,16 +222,17 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
-        self.action_env_class = ActionSpace.init_grid(self.backend)
+        self.action_env_class = ActionSpace.init_grid(self.backend, extra_name=type(self).__name__)
         self.action_env = self.action_env_class(
             gridobj=self.backend, legal_action=self.game_rules.legal_action
         )
-        self.bkact_class = _BackendAction.init_grid(self.backend)
+        self.bkact_class = _BackendAction.init_grid(self.backend, extra_name=type(self).__name__)
         self.backend.runpf()
         self.backend.assert_grid_correct_after_powerflow()
+        super().setUp()
 
     def tearDown(self):
-        pass
+        super().tearDown()
 
     def test_theta_ok(self):
         self.skip_if_needed()
@@ -801,6 +801,17 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
 
 class BaseTestTopoAction(MakeBackend):
+    def make_backend(self, detailed_infos_for_cascading_failures=False):
+        return PandaPowerBackend(
+            detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
+        )
+
+    def get_path(self):
+        return PATH_DATA_TEST
+
+    def get_casefile(self):
+        return "test_case14.json"
+    
     def setUp(self):
         self.backend = self.make_backend()
         self.path_matpower = self.get_path()
@@ -812,14 +823,15 @@ class BaseTestTopoAction(MakeBackend):
         type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
-        as_class = ActionSpace.init_grid(self.backend)
+        as_class = ActionSpace.init_grid(self.backend, extra_name=type(self).__name__)
         self.helper_action = as_class(
             gridobj=self.backend, legal_action=self.game_rules.legal_action
         )
-        self.bkact_class = _BackendAction.init_grid(self.backend)
+        self.bkact_class = _BackendAction.init_grid(self.backend, extra_name=type(self).__name__)
+        super().setUp()
 
     def tearDown(self):
-        pass
+        super().tearDown()
 
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred - true)) <= self.tolvect
@@ -1407,17 +1419,17 @@ class BaseTestTopoAction(MakeBackend):
     def test_get_action_to_set_storage(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
+            env = grid2op.make(
                 "educ_case14_storage",
                 test=True,
                 backend=self.make_backend(),
-                _add_to_name="test_gats_storage",
+                _add_to_name=type(self).__name__
             )
-            env2 = make(
+            env2 = grid2op.make(
                 "educ_case14_storage",
                 test=True,
                 backend=self.make_backend(),
-                _add_to_name="test_gats_storage",
+                _add_to_name=type(self).__name__
             )
         obs, *_ = env.step(env.action_space({"set_storage": [-1.0, 1.0]}))
         act = env.backend.get_action_to_set()
@@ -1438,10 +1450,11 @@ class BaseTestTopoAction(MakeBackend):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
+            env = grid2op.make(
+                "rte_case14_realistic",
                 test=True,
                 backend=self.make_backend(),
-                _add_to_name="test_update_from_obs",
+                _add_to_name=type(self).__name__
             )
 
         self.backend.close()
@@ -1539,6 +1552,12 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
     Test the "next_grid_state" method of the back-end
     """
 
+    def get_casefile(self):
+        return "test_case14.json"
+
+    def get_path(self):
+        return PATH_DATA_TEST
+
     def setUp(self):
         self.backend = self.make_backend(detailed_infos_for_cascading_failures=True)
         type(self.backend)._clear_class_attribute()
@@ -1586,9 +1605,10 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         self.chronics_handler = ChronicsHandler()
         self.id_first_line_disco = 8  # due to hard overflow
         self.id_2nd_line_disco = 11  # due to soft overflow
+        super().setUp()
 
     def tearDown(self):
-        pass
+        super().tearDown()
 
     def next_grid_state_no_overflow(self):
         # first i test that, when there is no overflow, i dont do a cascading failure
@@ -1601,7 +1621,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 init_env_path=os.path.join(self.path_matpower, self.case_file),
                 chronics_handler=self.chronics_handler,
                 parameters=self.env_params,
-                name="test_pp_env1",
+                name="test_pp_env1" + type(self).__name__,
+                
             )
 
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
@@ -1622,7 +1643,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 backend=self.backend,
                 chronics_handler=self.chronics_handler,
                 parameters=env_params,
-                name="test_pp_env2",
+                name="test_pp_env2" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1657,7 +1678,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 init_env_path=os.path.join(self.path_matpower, case_file),
                 chronics_handler=self.chronics_handler,
                 parameters=self.env_params,
-                name="test_pp_env3",
+                name="test_pp_env3" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1701,7 +1722,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 init_env_path=os.path.join(self.path_matpower, case_file),
                 chronics_handler=self.chronics_handler,
                 parameters=env_params,
-                name="test_pp_env4",
+                name="test_pp_env4" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1746,7 +1767,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 chronics_handler=self.chronics_handler,
                 init_env_path=os.path.join(self.path_matpower, case_file),
                 parameters=env_params,
-                name="test_pp_env5",
+                name="test_pp_env5" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1788,7 +1809,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 chronics_handler=self.chronics_handler,
                 init_env_path=os.path.join(self.path_matpower, case_file),
                 parameters=env_params,
-                name="test_pp_env6",
+                name="test_pp_env6" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1831,7 +1852,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                 chronics_handler=self.chronics_handler,
                 init_env_path=os.path.join(self.path_matpower, case_file),
                 parameters=env_params,
-                name="test_pp_env7",
+                name="test_pp_env7" + type(self).__name__,
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1868,7 +1889,8 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
+                       _add_to_name=type(self).__name__)
         env.reset()
         action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
         obs, reward, done, info = env.step(action)
@@ -1883,7 +1905,8 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
+                       _add_to_name=type(self).__name__)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -1897,7 +1920,8 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
+                       _add_to_name=type(self).__name__)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -1918,7 +1942,8 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
+                       _add_to_name=type(self).__name__)
         act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
         obs, reward, done, info = env.step(act)
         assert done, "an isolated load has not lead to a game over"
@@ -1930,11 +1955,12 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case1 = make(
+            env_case1 = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
                 backend=backend,
+                _add_to_name=type(self).__name__
             )
         obs = env_case1.reset()  # reset is good
         act = env_case1.action_space.disconnect_powerline(
@@ -1956,11 +1982,12 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make(
+            env_case2 = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
                 backend=backend,
+                _add_to_name=type(self).__name__
             )
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(
@@ -1982,11 +2009,12 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make(
+            env_case2 = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
                 backend=backend,
+                _add_to_name=type(self).__name__
             )
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(
@@ -2006,11 +2034,12 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make(
+            env_case2 = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
                 backend=backend,
+                _add_to_name=type(self).__name__
             )
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(
@@ -2030,11 +2059,12 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make(
+            env_case2 = grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
                 backend=backend,
+                _add_to_name=type(self).__name__
             )
         obs = env_case2.reset()  # reset is good
         act_case2 = env_case2.action_space(
@@ -2052,12 +2082,13 @@ class BaseTestShuntAction(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "rte_case5_example",
                 test=True,
                 gamerules_class=AlwaysLegal,
                 action_class=CompleteAction,
                 backend=backend,
+                _add_to_name=type(self).__name__
             ) as env_case2:
                 with self.assertRaises(AmbiguousAction):
                     act = env_case2.action_space({"shunt": {"set_bus": [(0, 2)]}})
@@ -2069,21 +2100,21 @@ class BaseTestShuntAction(MakeBackend):
         type(backend1)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_ref = make(
+            env_ref = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 gamerules_class=AlwaysLegal,
                 action_class=CompleteAction,
                 backend=backend1,
-                _add_to_name="BaseTestShuntAction",
+                _add_to_name=type(self).__name__
             )
-            env_change_q = make(
+            env_change_q = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 gamerules_class=AlwaysLegal,
                 action_class=CompleteAction,
                 backend=backend2,
-                _add_to_name="BaseTestShuntAction",
+                _add_to_name=type(self).__name__
             )
             param = env_ref.parameters
             param.NO_OVERFLOW_DISCONNECTION = True
@@ -2146,15 +2177,17 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         type(backend1)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = make("rte_case5_example", test=True, backend=backend1)
+            self.env1 = grid2op.make("rte_case5_example", test=True, backend=backend1, _add_to_name=type(self).__name__)
             self.backend1 = self.env1.backend
-            self.env2 = make("rte_case5_example", test=True, backend=backend2)
+            self.env2 = grid2op.make("rte_case5_example", test=True, backend=backend2, _add_to_name=type(self).__name__)
             self.backend2 = self.env2.backend
         np.random.seed(69)
+        super().setUp()
 
     def tearDown(self):
         self.env1.close()
         self.env2.close()
+        super().tearDown()
 
     def test_reset_equals_reset(self):
         self.skip_if_needed()
@@ -2281,7 +2314,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, backend=backend, param=params
+                "rte_case14_realistic", test=True, backend=backend, param=params, _add_to_name=type(self).__name__
             )
 
         # Find N valid iadd combination of R change actions
@@ -2349,7 +2382,7 @@ class BaseTestVoltageOWhenDisco(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_realistic", test=True, backend=backend) as env:
+            with grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__) as env:
                 line_id = 1
                 act = env.action_space({"set_line_status": [(line_id, -1)]})
                 obs, *_ = env.step(act)
@@ -2365,7 +2398,7 @@ class BaseTestChangeBusSlack(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True, backend=backend)
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__)
         action = env.action_space(
             {
                 "set_bus": {
@@ -2412,7 +2445,7 @@ class BaseTestStorageAction(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend)
+            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend, _add_to_name=type(self).__name__)
         assert self.env.n_storage == 2
 
     def test_storage_action_mw(self):
@@ -2422,7 +2455,7 @@ class BaseTestStorageAction(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend)
+            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend, _add_to_name=type(self).__name__)
 
         array_modif = np.array([-1.5, -10.0], dtype=dt_float)
         act = self.env.action_space({"set_storage": array_modif})
@@ -2499,6 +2532,7 @@ class BaseTestStorageAction(MakeBackend):
                 backend=backend,
                 param=param,
                 action_class=CompleteAction,
+                _add_to_name=type(self).__name__
             )
 
         # test i can do a reset
@@ -2571,60 +2605,66 @@ class BaseTestStorageAction(MakeBackend):
             }
         )
         obs, reward, done, info = self.env.step(act)
-        assert not info[
-            "exception"
-        ], "error when storage is disconnected with 0 production, throw an error, but should not"
-        assert not done
-        storage_p, storage_q, storage_v = self.env.backend.storages_info()
-        assert np.all(
-            np.abs(storage_p - [0.0, array_modif[1]]) <= self.tol_one
-        ), "storage is not disconnected, yet alone on its busbar"
-        assert obs.storage_bus[0] == -1, "storage should be disconnected"
-        assert storage_v[0] == 0.0, "storage 0 should be disconnected"
-        assert obs.line_or_bus[8] == 1
-        assert obs.gen_bus[3] == 1
-        self._aux_test_kirchoff()
+        assert done  # as of grid2op 1.9.6
+        assert info["exception"]  # as of grid2op 1.9.6
+        
+        # LEGACY BEHAVIOUR: storage was automatically disconnected in this case
+        # which was NOT normal !
+        
+        # assert not info[
+        #     "exception"
+        # ], "error when storage is disconnected with 0 production, throw an error, but should not"
+        # assert not done
+        # storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        # assert np.all(
+        #     np.abs(storage_p - [0.0, array_modif[1]]) <= self.tol_one
+        # ), "storage is not disconnected, yet alone on its busbar"
+        # assert obs.storage_bus[0] == -1, "storage should be disconnected"
+        # assert storage_v[0] == 0.0, "storage 0 should be disconnected"
+        # assert obs.line_or_bus[8] == 1
+        # assert obs.gen_bus[3] == 1
+        # self._aux_test_kirchoff()
 
         # check that if i don't touch it it's set to 0
-        act = self.env.action_space()
-        obs, reward, done, info = self.env.step(act)
-        assert not info["exception"]
-        storage_p, storage_q, storage_v = self.env.backend.storages_info()
-        assert np.all(
-            np.abs(storage_p - 0.0) <= self.tol_one
-        ), "storage should produce 0"
-        assert np.all(
-            np.abs(storage_q - 0.0) <= self.tol_one
-        ), "storage should produce 0"
-        assert obs.storage_bus[0] == -1, "storage should be disconnected"
-        assert storage_v[0] == 0.0, "storage 0 should be disconnected"
-        assert obs.line_or_bus[8] == 1
-        assert obs.gen_bus[3] == 1
-        self._aux_test_kirchoff()
+        # act = self.env.action_space()
+        # obs, reward, done, info = self.env.step(act)
+        # assert not info["exception"]
+        # storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        # assert np.all(
+        #     np.abs(storage_p - 0.0) <= self.tol_one
+        # ), "storage should produce 0"
+        # assert np.all(
+        #     np.abs(storage_q - 0.0) <= self.tol_one
+        # ), "storage should produce 0"
+        # assert obs.storage_bus[0] == -1, "storage should be disconnected"
+        # assert storage_v[0] == 0.0, "storage 0 should be disconnected"
+        # assert obs.line_or_bus[8] == 1
+        # assert obs.gen_bus[3] == 1
+        # self._aux_test_kirchoff()
 
-        # trying to act on a disconnected storage => illegal)
-        array_modif = np.array([2.0, 7.0], dtype=dt_float)
-        act = self.env.action_space({"set_storage": array_modif})
-        obs, reward, done, info = self.env.step(act)
-        assert info["exception"]  # action should be illegal
-        assert not done  # this is fine, as it's illegal it's replaced by do nothing
-        self._aux_test_kirchoff()
+        # # trying to act on a disconnected storage => illegal)
+        # array_modif = np.array([2.0, 7.0], dtype=dt_float)
+        # act = self.env.action_space({"set_storage": array_modif})
+        # obs, reward, done, info = self.env.step(act)
+        # assert info["exception"]  # action should be illegal
+        # assert not done  # this is fine, as it's illegal it's replaced by do nothing
+        # self._aux_test_kirchoff()
 
-        # trying to reconnect a storage alone on a bus => game over, not connected bus
-        array_modif = np.array([1.0, 7.0], dtype=dt_float)
-        act = self.env.action_space(
-            {
-                "set_storage": array_modif,
-                "set_bus": {
-                    "storages_id": [(0, 2)],
-                    "lines_or_id": [(8, 1)],
-                    "generators_id": [(3, 1)],
-                },
-            }
-        )
-        obs, reward, done, info = self.env.step(act)
-        assert info["exception"]  # this is a game over
-        assert done
+        # # trying to reconnect a storage alone on a bus => game over, not connected bus
+        # array_modif = np.array([1.0, 7.0], dtype=dt_float)
+        # act = self.env.action_space(
+        #     {
+        #         "set_storage": array_modif,
+        #         "set_bus": {
+        #             "storages_id": [(0, 2)],
+        #             "lines_or_id": [(8, 1)],
+        #             "generators_id": [(3, 1)],
+        #         },
+        #     }
+        # )
+        # obs, reward, done, info = self.env.step(act)
+        # assert info["exception"]  # this is a game over
+        # assert done
 
 
 class BaseIssuesTest(MakeBackend):
@@ -2635,7 +2675,7 @@ class BaseIssuesTest(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True, backend=backend)
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__)
         action = env.action_space({"set_bus": {"loads_id": [(1, -1)]}})
         obs, reward, am_i_done, info = env.step(action)
         assert info["is_illegal"] is False
@@ -2663,7 +2703,8 @@ class BaseIssuesTest(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, backend=backend, param=param
+                "rte_case14_realistic", test=True, backend=backend, param=param,
+                _add_to_name=type(self).__name__
             )
         obs_init = env.get_obs()
         LINE_ID = 2
@@ -2741,7 +2782,8 @@ class BaseIssuesTest(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, backend=backend, param=param
+                "rte_case14_realistic", test=True, backend=backend, param=param,
+                _add_to_name=type(self).__name__
             )
         LINE_ID = 2
 
@@ -2769,7 +2811,8 @@ class BaseIssuesTest(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, backend=backend, param=param
+                "rte_case14_realistic", test=True, backend=backend, param=param,
+                _add_to_name=type(self).__name__
             )
         LINE_ID = 2
 
@@ -2904,7 +2947,7 @@ class BaseIssuesTest(MakeBackend):
         type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env1 = grid2op.make("rte_case14_realistic", test=True, backend=backend)
+            env1 = grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__)
         env2 = env1.copy()
         obs1 = env1.reset()
         obs2 = env2.get_obs()
@@ -2922,7 +2965,8 @@ class BaseStatusActions(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, backend=backend, param=param
+                "rte_case14_realistic", test=True, backend=backend, param=param,
+                _add_to_name=type(self).__name__
             )
         return env
 

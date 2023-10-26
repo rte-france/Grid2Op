@@ -6,10 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import sys
 import unittest
-import numpy as np
 import pdb
 import warnings
 import numbers
@@ -18,15 +15,20 @@ from abc import ABC, abstractmethod
 import grid2op
 from grid2op.tests.helper_path_test import *
 from grid2op.Reward import *
-from grid2op.MakeEnv import make
+from grid2op.Parameters import Parameters
+from grid2op.Runner import Runner
+from grid2op.Agent import BaseAgent
+
+import warnings
 
 
 class TestLoadingReward(ABC):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
-                "rte_case5_example", test=True, reward_class=self._reward_type()
+            self.env = grid2op.make(
+                "rte_case5_example", test=True, reward_class=self._reward_type(),
+                _add_to_name=type(self).__name__
             )
 
         self.action = self.env.action_space()
@@ -191,8 +193,9 @@ class TestIncreaseFlatReward(unittest.TestCase):
     def test_ok(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
-                "l2rpn_case14_sandbox", reward_class=IncreasingFlatReward, test=True
+            env = grid2op.make(
+                "l2rpn_case14_sandbox", reward_class=IncreasingFlatReward, test=True,
+                _add_to_name=type(self).__name__
             )
 
         assert env.nb_time_step == 0
@@ -213,8 +216,9 @@ class TestEpisodeDurationReward(unittest.TestCase):
     def test_ok(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
-                "l2rpn_case14_sandbox", reward_class=EpisodeDurationReward, test=True
+            env = grid2op.make(
+                "l2rpn_case14_sandbox", reward_class=EpisodeDurationReward, test=True,
+                _add_to_name=type(self).__name__
             )
 
         assert env.nb_time_step == 0
@@ -251,8 +255,9 @@ class TestN1Reward(unittest.TestCase):
         L_ID = 2
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
-                "l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True
+            env = grid2op.make(
+                "l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True,
+                _add_to_name=type(self).__name__
             )
 
         obs = env.reset()
@@ -274,6 +279,7 @@ class TestN1Reward(unittest.TestCase):
                 "l2rpn_case14_sandbox",
                 other_rewards={f"line_{l_id}": N1Reward(l_id=l_id) for l_id in L_IDS},
                 test=True,
+                _add_to_name=type(self).__name__,
             )
         obs, reward, done, info = env.step(env.action_space())
         for l_id in L_IDS:
@@ -285,6 +291,89 @@ class TestN1Reward(unittest.TestCase):
             ), f"the correct reward has not been computed for line {l_id}"
         env.close()
 
+
+class TMPRewardForTest(BaseReward):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+        if is_done:
+            assert not has_error
+        return super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
+
+
+class ErrorAgent(BaseAgent):
+    def act(self, observation, reward, done=False):
+        if observation.current_step == 9:
+            return self.action_space({"set_bus": {"loads_id": [(0, -1)]}})  # force a game over
+        return super().act(observation, reward, done)
+    
+    
+class TestEndOfEpisode(unittest.TestCase):
+    """test the appropriate flags at the end of an episode"""
+    def setUp(self) -> None:
+        param = Parameters()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True,
+                                    reward_class=TMPRewardForTest, _add_to_name=type(self).__name__)
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_ok_end_of_episode(self):
+        # done = False
+        # i = 0
+        # while not done:
+        #     obs, reward, done, info = self.env.step(self.env.action_space())
+        #     i += 1
+        # assert i == 575, f"{i = } vs 575"
+        # above passed and took more than 30s
+        
+        self.env.set_max_iter(10)
+        # episode goes until the end, no error is raised
+        self.env.reset()
+        done = False
+        i = 0
+        while not done:
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        assert i == 10, f"{i = } vs 10"
+        
+        # agent does a game over, the reward should raise an error
+        self.env.reset()
+        done = False
+        i = 0
+        while i <= 1:
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        with self.assertRaises(AssertionError):
+            obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"loads_id": [(0, -1)]}}))
+        
+        # agent does a game over at last step, the reward should raise an error
+        self.env.reset()
+        done = False
+        i = 0
+        while i <= 8:
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        with self.assertRaises(AssertionError):
+            obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"loads_id": [(0, -1)]}}))
+    
+    def test_runner(self):
+        runner = Runner(**self.env.get_params_for_runner())
+        res = runner.run(nb_episode=1, max_iter=10)
+        assert res[0][3] == 10
+        
+        runner = Runner(**self.env.get_params_for_runner(),
+                        agentClass=ErrorAgent)
+        # error before last observation
+        with self.assertRaises(AssertionError):
+            res = runner.run(nb_episode=1, max_iter=11)
+        # error just at last observation
+        with self.assertRaises(AssertionError):
+            res = runner.run(nb_episode=1, max_iter=10)
+        # no error
+        res = runner.run(nb_episode=1, max_iter=9)
 
 if __name__ == "__main__":
     unittest.main()

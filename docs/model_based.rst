@@ -11,6 +11,26 @@ There are 3 standard methods currently in grid2op to apply "model based" / "plan
 1) use "obs.simulate" (see :func:`grid2op.Observation.BaseObservation.simulate`)
 2) use the "Simulator" (see :ref:`simulator_page` and :mod:`grid2op.simulator`)
 3) use the "forecast env" (see :func:`grid2op.Observation.BaseObservation.get_forecast_env`)
+4) use the "forecast env" (see :func:`grid2op.Observation.BaseObservation.get_env_from_external_forecasts`)
+
+.. note::
+    The main difference between :func:`grid2op.Observation.BaseObservation.get_forecast_env` 
+    and :func:`grid2op.Observation.BaseObservation.get_env_from_external_forecasts`
+    is that the first one rely on provided forecast in the environment
+    and in :func:`grid2op.Observation.BaseObservation.get_env_from_external_forecasts`
+    you are responsible for providing these forecasts.
+
+    This has some implications: 
+
+    - you cannot use `obs.get_forecast_env()` if the forecasts are deactivated,
+      or if there are no provided forecast in the environment
+    - the number of steps possible in `obs.get_forecast_env()` is fixed and determined
+      by the environment.
+    - `"garbarge in" = "garbage out"` is especially true for `obs.get_env_from_external_forecasts`
+      By this I mean that if you provided forecasts with poor quality (*eg* that does 
+      not contain any usefull information about the future, or such that the total generation is 
+      lower that the total demand etc.) then you will most likely not get any usefull information
+      from their usage.
 
 And you can use them for different strategies among:
 
@@ -276,7 +296,13 @@ Forecast env
 ---------------
 
 Finally you can use the :func:`grid2op.Observation.BaseObservation.get_forecast_env` to retrieve an actual
-environment already loaded with the "forecast" data available.
+environment already loaded with the "forecast" data available. Alternatively,
+if you want to use this feature but the environment does not provide such forecasts
+you can have a look at the 
+:func:`grid2op.Observation.BaseObservation.get_env_from_external_forecasts` 
+(if you can generate your own forecasts) or
+the :ref:`tshandler-module` section of the documentation (to still be able
+to "generate" forecasts)
 
 Lots of example can be use in this setting, for example using MCTS or any other "planning strategy", but if we take
 again the example of the section :ref:`mb_simulate` above this also allows to evaluate the impact of

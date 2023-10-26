@@ -13,10 +13,8 @@ import grid2op
 import numpy as np
 
 from grid2op.Space import GridObjects
-from grid2op.Action.PowerlineSetAction import PowerlineSetAction
-from grid2op.Action.PlayableAction import PlayableAction
-from grid2op.Observation.completeObservation import CompleteObservation
-from grid2op.Action.DontAct import DontAct
+from grid2op.Action import PowerlineSetAction, DontAct, PlayableAction
+from grid2op.Observation import CompleteObservation
 
 import pdb
 
@@ -31,7 +29,7 @@ class TestL2RPNNEURIPS2020_Track1Compat(unittest.TestCase):
                 "l2rpn_neurips_2020_track1",
                 test=True,
                 _compat_glop_version=GridObjects.BEFORE_COMPAT_VERSION,
-                _add_to_name="test_attached_compat_0",
+                _add_to_name=type(self).__name__+"test_attached_compat_0",
             )
             self.env.seed(0)
 
@@ -76,7 +74,7 @@ class TestL2RPNNEURIPS2020_Track2Compat(unittest.TestCase):
                 "l2rpn_neurips_2020_track2",
                 test=True,
                 _compat_glop_version=GridObjects.BEFORE_COMPAT_VERSION,
-                _add_to_name="test_attached_compat_1",
+                _add_to_name=type(self).__name__+"test_attached_compat_1",
             )
             self.env.seed(0)
 
@@ -124,7 +122,7 @@ class TestL2RPN_CASE14_SANDBOXCompat(unittest.TestCase):
                 "l2rpn_case14_sandbox",
                 test=True,
                 _compat_glop_version=GridObjects.BEFORE_COMPAT_VERSION,
-                _add_to_name="test_attached_compat_2",
+                _add_to_name=type(self).__name__+"test_attached_compat_2",
             )
             self.env.seed(42)
 
@@ -169,7 +167,7 @@ class TestEDUC_CASE14_REDISPCompat(unittest.TestCase):
                 "educ_case14_redisp",
                 test=True,
                 _compat_glop_version=GridObjects.BEFORE_COMPAT_VERSION,
-                _add_to_name="test_attached_compat_3",
+                _add_to_name=type(self).__name__+"test_attached_compat_3",
             )
             self.env.seed(0)
 
@@ -214,7 +212,7 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
                 "educ_case14_storage",
                 test=True,
                 _compat_glop_version=GridObjects.BEFORE_COMPAT_VERSION,
-                _add_to_name="test_attached_compat_4",
+                _add_to_name=type(self).__name__+"test_attached_compat_4",
             )
             self.env.seed(0)
 
@@ -241,7 +239,7 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
         res = 0
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_redisp", test=True)
+            env = grid2op.make("educ_case14_redisp", test=True, _add_to_name=type(self).__name__+"test_same_env_as_no_storage")
         for attr in self.env.observation_space.attr_list_vect:
             tmp = getattr(self.env.observation_space._template_obj, attr).shape
             tmp2 = getattr(env.observation_space._template_obj, attr).shape
@@ -280,7 +278,6 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
             "could not perform the random action test because it games over first time step. "
             "Please fix the test and try again"
         )
-
 
 if __name__ == "__main__":
     unittest.main()

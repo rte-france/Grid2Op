@@ -27,7 +27,7 @@ class Issue153Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, _add_to_name="test_issue_153"
+                "rte_case14_realistic", test=True, _add_to_name=type(self).__name__+"test_issue_153"
             )
         env.gen_max_ramp_up[:] = env.gen_pmax
         env.gen_max_ramp_down[:] = env.gen_pmax

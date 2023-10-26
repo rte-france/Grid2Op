@@ -10,12 +10,16 @@
 # This module will test that the environment, when copied, works as expected (ie with making some basic tests
 # for the results of "env.copy()"
 
+<<<<<<< HEAD
+=======
+import unittest
+>>>>>>> bd_dev
 import warnings
 
 from grid2op.tests.helper_path_test import *
 
+import grid2op
 from grid2op.Reward import L2RPNReward
-from grid2op.MakeEnv import make
 from grid2op.tests.test_Environment import (
     TestLoadingBackendPandaPower as Aux_TestLoadingBackendPandaPower,
     TestIllegalAmbiguous as Aux_TestIllegalAmbiguous,
@@ -68,12 +72,13 @@ class TestResetOkCopy(Aux_TestResetOk):
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = make(
+                env = grid2op.make(
                     "rte_case5_example",
                     test=True,
                     reward_class=L2RPNReward,
                     other_rewards={"test": L2RPNReward},
                     backend=backend,
+                    _add_to_name=type(self).__name__,
                 )
         super().test_reset_after_blackout_withdetailed_info(env=env.copy())
 

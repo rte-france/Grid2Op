@@ -31,12 +31,14 @@ class PPExtraArgs(PandaPowerBackend):
                  lightsim2grid=False,
                  dist_slack=False,
                  max_iter=10,
-                 can_be_copied=True):
+                 can_be_copied=True,
+                 with_numba=False):
         super().__init__(detailed_infos_for_cascading_failures,
                          lightsim2grid,
                          dist_slack,
                          max_iter,
-                         can_be_copied=can_be_copied)
+                         can_be_copied=can_be_copied,
+                         with_numba=with_numba)
         self._my_kwargs["stuff"] = stuff
 
 
@@ -46,7 +48,8 @@ class BackendProperlyInit(unittest.TestCase):
         self.env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make(self.env_name, test=True, backend=PPExtraArgs())
+            self.env = grid2op.make(self.env_name, test=True, backend=PPExtraArgs(),
+                                    _add_to_name=type(self).__name__)
             
     def tearDown(self) -> None:
         self.env.close()
@@ -69,7 +72,8 @@ class BackendProperlyInit(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_name,
                                     test=True,
-                                    backend=PPExtraArgs(stuff="toto"))
+                                    backend=PPExtraArgs(stuff="toto"),
+                                    _add_to_name=type(self).__name__)
         runner = Runner(**self.env.get_params_for_runner())
         env = runner.init_env()
         assert env.backend._my_kwargs["stuff"] == "toto"
@@ -83,7 +87,8 @@ class BackendProperlyInit(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_name,
                                     test=True,
-                                    backend=PPExtraArgs(stuff=counter))
+                                    backend=PPExtraArgs(stuff=counter),
+                                    _add_to_name=type(self).__name__)
         runner = Runner(**self.env.get_params_for_runner())
         env = runner.init_env()
         assert isinstance(env.backend._my_kwargs["stuff"], InstanceCount)

@@ -11,6 +11,8 @@ import requests
 import os
 import warnings
 import pkg_resources
+from typing import Union, Optional
+import logging
 
 from grid2op.Environment import Environment
 from grid2op.MakeEnv.MakeFromPath import make_from_dataset_path, ERR_MSG_KWARGS
@@ -39,6 +41,7 @@ TEST_DEV_ENVS = {
     "l2rpn_icaps_2021": DEV_DATASET.format("l2rpn_icaps_2021"),
     "l2rpn_wcci_2022_dev": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
     "l2rpn_wcci_2022": DEV_DATASET.format("l2rpn_wcci_2022_dev"),
+    "l2rpn_idf_2023": DEV_DATASET.format("l2rpn_idf_2023"),
     # educational files
     "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
     "educ_case14_storage": DEV_DATASET.format("educ_case14_storage"),
@@ -264,37 +267,54 @@ def _aux_make_multimix(
 
 
 def make(
-    dataset="rte_case14_realistic",
-    test=False,
-    logger=None,
-    experimental_read_from_local_dir=False,
-    _add_to_name="",
-    _compat_glop_version=None,
+    dataset : Union[str, os.PathLike],
+    *,
+    test : bool=False,
+    logger: Optional[logging.Logger]=None,
+    experimental_read_from_local_dir : bool=False,
+    _add_to_name : str="",
+    _compat_glop_version : Optional[str]=None,
     **kwargs
 ) -> Environment:
     """
-    This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
+    This function is a shortcut to rapidly create some (pre defined) environments within the grid2op framework.
 
     Other environments, with different powergrids will be made available in the future and will be easily downloadable
     using this function.
 
     It mimic the `gym.make` function.
 
+    .. versionchanged:: 1.9.3
+        Remove the possibility to use this function with arguments (force kwargs)
+        
     Parameters
     ----------
 
-    dataset: ``str``
+    dataset: ``str`` or path
         Name of the environment you want to create
 
     test: ``bool``
         Whether you want to use a test environment (**NOT** recommended). Use at your own risk.
 
+    logger: 
+        If you want to use a specific logger for environment and all other 
+        grid2op objects, you can put it here. This feature is still under development.
+        
+    experimental_read_from_local_dir: ``bool``
+        Grid2op "embed" the grid description into the description of the classes
+        themselves. By default this is done "on the fly" (when the environment is created)
+        but for some usecase (especially ones involving multiprocessing or "pickle")
+        it might not be easily usable. If you encounter issues with pickle or multi
+        processing, you can set this flag to ``True``. See the doc of 
+        :func:`grid2op.Environment.BaseEnv.generate_classes` for more information.
+        
     kwargs:
         Other keyword argument to give more control on the environment you are creating. See
         the Parameters information of the :func:`make_from_dataset_path`.
 
     _add_to_name:
-        Internal, do not use (and can only be used when setting "test=True")
+        Internal, do not use (and can only be used when setting "test=True"). If
+        `experimental_read_from_local_dir` is set to True, this has no effect.
 
     _compat_glop_version:
         Internal, do not use (and can only be used when setting "test=True")
@@ -307,12 +327,12 @@ def make(
     Examples
     --------
 
-    If you want to create the environment "rte_case14_realistic":
+    If you want to create the environment "l2rpn_case14_sandbox":
 
     .. code-block: python
 
         import grid2op
-        env_name = "rte_case14_realistic"  # or any other supported environment
+        env_name = "l2rpn_case14_sandbox"  # or any other supported environment
         env = grid2op.make(env_name)
         # env implements the openai gym interface (env.step, env.render, env.reset etc.)
 
@@ -320,13 +340,17 @@ def make(
     downloaded from the internet, sizes vary per dataset.
 
     """
-
     if _force_test_dataset():
         if not test:
             warnings.warn(f"The environment variable \"{_VAR_FORCE_TEST}\" is defined so grid2op will be forced in \"test\" mode. "
                           f"This is equivalent to pass \"grid2op.make(..., test=True)\" and prevents any download of data.")
             test = True
-            
+    
+    if dataset is None:
+        raise Grid2OpException("Impossible to create an environment without its name. Please call something like: \n"
+                               "> env = grid2op.make('l2rpn_case14_sandbox') \nor\n"
+                               "> env = grid2op.make('rte_case14_realistic')")
+
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
         if el not in accepted_kwargs:

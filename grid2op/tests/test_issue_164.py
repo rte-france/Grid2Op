@@ -33,7 +33,8 @@ class Issue164Tester(unittest.TestCase):
     def test_issue_164(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make(reward_class=Test164_Reward, test=True)
+            env = grid2op.make('rte_case14_realistic', reward_class=Test164_Reward, test=True,
+                               _add_to_name=type(self).__name__)
         max_timestep = env.chronics_handler.max_timestep()
 
         obs = env.reset()

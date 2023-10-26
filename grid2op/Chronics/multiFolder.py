@@ -12,8 +12,8 @@ import warnings
 import numpy as np
 from datetime import timedelta, datetime
 
-from grid2op.dtypes import dt_int
-from grid2op.Exceptions import *
+from grid2op.dtypes import dt_int, dt_float
+from grid2op.Exceptions import ChronicsNotFoundError, ChronicsError
 from grid2op.Chronics.gridValue import GridValue
 from grid2op.Chronics.gridStateFromFile import GridStateFromFile
 
@@ -54,6 +54,7 @@ class Multifolder(GridValue):
         :attr:`MultiFolder.gridvalueClass`.
 
     """
+    MULTI_CHRONICS = True
 
     def __init__(
         self,
@@ -210,7 +211,7 @@ class Multifolder(GridValue):
             self.subpaths = [
                 os.path.join(self.path, el)
                 for el in os.listdir(self.path)
-                if os.path.isdir(os.path.join(self.path, el))
+                if os.path.isdir(os.path.join(self.path, el)) and (el != "__pycache__") and (not el.startswith("."))
             ]
             self.subpaths.sort()
             self.subpaths = np.array(self.subpaths)
@@ -338,9 +339,17 @@ class Multifolder(GridValue):
         self._prev_cache_id = -1
         if probabilities is None:
             probabilities = np.ones(self._order.shape[0])
-
+        try:
+            probabilities = np.array(probabilities, dtype=dt_float)
+        except Exception as exc_:
+            raise ChronicsError("Impossible to convert the probablities given to an array of float") from exc_
+        
+        sum_prob = probabilities.sum()
+        if abs(sum_prob) <= 1e-5:
+            raise ChronicsError("Impossible to use the given probabilities argument, it sums to 0. (or close enough to it)")
+            
         # make sure it sums to 1
-        probabilities /= np.sum(probabilities)
+        probabilities /= sum_prob
         # take one at "random" among these
         selected = self.space_prng.choice(self._order, p=probabilities)
         id_sel = np.where(self._order == selected)[0]
@@ -376,7 +385,7 @@ class Multifolder(GridValue):
             self._order.append(i)
 
         if len(self._order) == 0:
-            raise RuntimeError(
+            raise ChronicsError(
                 'Impossible to initialize the Multifolder. Your "filter_fun" filters out all the '
                 "possible scenarios."
             )
@@ -495,8 +504,6 @@ class Multifolder(GridValue):
             Do you want to set to the previous value of this one or not (note that in general you want to set to
             the previous value, as calling this function as an impact only after `env.reset()` is called)
         """
-        import pdb
-
         if isinstance(id_num, str):
             # new accepted behaviour starting 1.6.4
             # new in version 1.6.5: you only need to specify the chronics folder id and not the full path
@@ -683,7 +690,7 @@ class Multifolder(GridValue):
 
             import grid2op
             import os
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             env.chronics_handler.real_data.split_and_save({"004": "2019-01-08 02:00",
                                                  "005": "2019-01-30 08:00",
@@ -729,7 +736,7 @@ class Multifolder(GridValue):
                 time_interval=self.time_interval,
                 sep=self.sep,
                 path=subpath,
-                max_iter=self.max_iter,
+                max_iter=self._max_iter,
                 chunk_size=self.chunk_size,
             )
             seed_chronics = None
@@ -767,3 +774,6 @@ class Multifolder(GridValue):
                     'Impossible to save the "metadata" for the chronics with error:\n"{}"'
                     "".format(exc_)
                 )
+                
+    def fast_forward(self, nb_timestep):
+        self.data.fast_forward(nb_timestep)

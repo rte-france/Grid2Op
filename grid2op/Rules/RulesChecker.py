@@ -6,6 +6,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import copy
+import warnings
+
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Rules.BaseRules import BaseRules
 from grid2op.Rules.AlwaysLegal import AlwaysLegal
@@ -26,20 +29,38 @@ class RulesChecker(object):
             The class that will be used to tell if the actions are legal or not. The class must be given, and not
             an object of this class. It should derived from :class:`BaseRules`.
         """
-        if not isinstance(legalActClass, type):
-            raise Grid2OpException(
-                'Parameter "legalActClass" used to build the RulesChecker should be a '
-                "type (a class) "
-                "and not an object (an instance of a class). "
-                'It is currently "{}"'.format(type(legalActClass))
-            )
-
-        if not issubclass(legalActClass, BaseRules):
-            raise Grid2OpException(
-                "Gamerules: legalActClass should be initialize with a class deriving "
-                "from BaseRules and not {}".format(type(legalActClass))
-            )
-        self.legal_action = legalActClass()
+        if isinstance(legalActClass, type):
+            if not issubclass(legalActClass, BaseRules):
+                raise Grid2OpException(
+                    "Gamerules: legalActClass should be initialize with a class deriving "
+                    "from BaseRules and not {}".format(type(legalActClass))
+                )
+            self.legal_action = legalActClass()
+        else:
+            if not isinstance(legalActClass, BaseRules):
+                raise Grid2OpException(
+                    'Parameter "legalActClass" used to build the Environment should be an instance of the '
+                    'grid2op.BaseRules class, type provided is "{}"'.format(
+                        type(legalActClass)
+                    )
+                )
+            try:
+                self.legal_action = copy.deepcopy(legalActClass)
+            except Exception as exc_:
+                warnings.warn("You passed the legal action as an instance that cannot be deepcopied. It will be "
+                              "used 'as is', we do not garantee anything if you modify the original object.")
+                self.legal_action = legalActClass
+                
+    def initialize(self, env):
+        """
+        This function is used to inform the class instance about the environment specification. 
+        It can be the place to assert the defined rules are suited for the environement.
+        Parameters
+        ----------
+        env: :class:`grid2op.Environment.Environment`
+            The environment on which the action is performed. 
+        """
+        self.legal_action.initialize(env)
 
     def __call__(self, action, env):
         """

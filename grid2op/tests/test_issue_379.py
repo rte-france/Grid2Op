@@ -10,14 +10,18 @@ import grid2op
 import unittest
 import warnings
 
-from grid2op.gym_compat import GymEnv
+from grid2op.gym_compat import (GymEnv, GYM_AVAILABLE, GYMNASIUM_AVAILABLE)
 import grid2op
-from gym import Env
-from gym.utils.env_checker import check_env
-try:
+
+
+CAN_TEST_ALL = True
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.utils.env_checker import check_env
+    from gymnasium.utils.env_checker import check_reset_return_type, check_reset_options, check_reset_seed
+elif GYM_AVAILABLE:
+    from gym.utils.env_checker import check_env
     from gym.utils.env_checker import check_reset_return_type, check_reset_options, check_reset_seed
-    CAN_TEST_ALL = True
-except ImportError:
+else:
     CAN_TEST_ALL = False
 
 
@@ -25,7 +29,7 @@ class Issue379Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
             self.gym_env = GymEnv(self.env)
     
     def tearDown(self) -> None:

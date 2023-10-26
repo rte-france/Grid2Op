@@ -13,12 +13,12 @@ import networkx
 from abc import abstractmethod
 import numpy as np
 from scipy.sparse import csr_matrix
+from typing import Optional
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
     Grid2OpException,
     NoForecastAvailable,
-    EnvError,
     BaseObservationError,
 )
 from grid2op.Space import GridObjects
@@ -264,21 +264,21 @@ class BaseObservation(GridObjects):
 
     is_alarm_illegal: ``bool``
         whether the last alarm has been illegal (due to budget constraint). It can only be ``True`` if an alarm
-        was raised by the agent on the previous step. Otherwise it is always ``False``
+        was raised by the agent on the previous step. Otherwise it is always ``False`` (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     time_since_last_alarm: ``int``
-        Number of steps since the last successful alarm has been raised. It is `-1` if no alarm has been raised yet.
+        Number of steps since the last successful alarm has been raised. It is `-1` if no alarm has been raised yet. (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     last_alarm: :class:`numpy.ndarray`, dtype:int
-        For each zones, gives how many steps since the last alarm was raised successfully for this zone
+        For each zones, gives how many steps since the last alarm was raised successfully for this zone (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     attention_budget: ``int``
         The current attention budget
 
     was_alarm_used_after_game_over: ``bool``
         Was the last alarm used to compute anything related
-        to the attention budget when there was a game over (can only be set to ``True`` if the observation
-        corresponds to a game over, but not necessarily)
+        to the attention budget when there was a game over. It can only be set to ``True`` if the observation
+        corresponds to a game over, but not necessarily. (warning: /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\)
 
     gen_margin_up: :class:`numpy.ndarray`, dtype:float
         From how much can you increase each generators production between this
@@ -294,6 +294,121 @@ class BaseObservation(GridObjects):
         It is always 0. for non renewable generators. For the others it is defined as
         `np.minimum(self.gen_p - type(self).gen_pmin, self.gen_max_ramp_down)`
 
+    active_alert: :class:`numpy.ndarray`, dtype:bool
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+        This attribute gives the lines "under alert" at the given observation.
+        It is only relevant for the "real" environment and not for `obs.simulate` nor `obs.get_forecast_env`
+        
+    time_since_last_alert: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+        Give the time since an alert has been raised for each powerline. If you just raise an
+        alert for attackable line `i` then obs.time_since_last_alert[i] = 0 (and counter
+        increase by 1 each step).
+        
+        If attackable line `i` has never been "under alert" then obs.time_since_last_alert[i] = -1
+        
+    alert_duration: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+        Give the time since an alert has started for all attackable line. If you just raise an
+        alert for attackable line `i` then obs.time_since_last_alert[i] = 1 and this counter
+        increase by 1 each step as long as the agent continues to "raise an alert on attackable line i"
+        
+        When the attackable line `i` is not under an alert then obs.time_since_last_alert[i] = 0
+        
+    total_number_of_alert: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+        This attribute stores, since the beginning of the current episode, the total number
+        of alerts (here 1 alert = one alert for 1 powerline for 1 step) sent by the agent.
+        
+    time_since_last_attack: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+        Similar to `time_since_last_alert` but for the attack.
+        
+        For each attackable line `i` it counts the number of steps since the powerline has
+        been attacked:
+        
+        - obs.time_since_last_attack[i] = -1 then attackable line `i` has never been attacked
+        - obs.time_since_last_attack[i] = 0 then attackable line `i` has been attacked "for the
+          first time" this step
+        - obs.time_since_last_attack[i] = 1 then attackable line `i` has been attacked "for the
+          first time" the previous step
+        - obs.time_since_last_attack[i] = 2 then attackable line `i` has been attacked "for the
+          first time" 2 steps ago
+          
+        .. note::
+            An attack "for the first time" is NOT an attack "for the first time of the scenario".
+            Indeed, for this attribute, if a powerline is under attack for say 5 consecutive steps,
+            then the opponent stops its attack on this line and says 6 or 7 steps later it
+            start again to attack it then obs.time_since_last_attack[i] = 0 at the "first time" the 
+            opponent attacks again this powerline.
+        
+    was_alert_used_after_attack: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. danger:: 
+           This attribute is only filled
+           if you use a compatible reward (*eg* :class:`grid2op.Reward.AlertReward`)
+           as the main reward (or a "combined" reward with this reward being part of it)
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+        For each attackable line `i` it says:
+        
+        - obs.was_alert_used_after_attack[i] = 0 => attackable line i has not been attacked
+        - obs.was_alert_used_after_attack[i] = -1 => attackable line i has been attacked and for the last attack
+          the INCORRECT alert was sent (meaning that: if the agent survives, it sends an alert
+          and if the agent died it fails to send an alert)
+        - obs.was_alert_used_after_attack[i] = +1 => attackable line i has been attacked and for the last attack
+          the CORRECT alert was sent (meaning that: if the agent survives, it did not send an alert
+          and if the agent died it properly sent an alert)
+
+        By "last attack", we mean the last attack that occured until now.
+
+    attack_under_alert: :class:`numpy.ndarray`, dtype:int
+        .. warning:: Only available if the environment supports the "alert" feature (*eg* "l2rpn_idf_2023"). 
+        
+        .. seealso:: :ref:`grid2op-alert-module` section of the doc for more information
+        
+        .. versionadded:: 1.9.1
+        
+        For each attackable line `i` it says:
+        
+        - obs.attack_under_alert[i] = 0 => attackable line i has not been attacked OR it
+          has been attacked before the relevant window (env.parameters.ALERT_TIME_WINDOW)
+        - obs.attack_under_alert[i] = -1 => attackable line i has been attacked and (before
+          the attack) no alert was sent (so your agent expects to survive at least 
+          env.parameters.ALERT_TIME_WINDOW steps)
+        - obs.attack_under_alert[i] = +1 => attackable line i has been attacked and (before
+          the attack) an alert was sent (so your agent expects to "game over" within the next 
+          env.parameters.ALERT_TIME_WINDOW steps)  
+        
     _shunt_p: :class:`numpy.ndarray`, dtype:float
         Shunt active value (only available if shunts are available) (in MW)
 
@@ -352,6 +467,14 @@ class BaseObservation(GridObjects):
         "last_alarm",
         "attention_budget",
         "was_alarm_used_after_game_over",
+        # line alert 
+        "active_alert",
+        "attack_under_alert",
+        "time_since_last_alert",
+        "alert_duration",
+        "total_number_of_alert",
+        "time_since_last_attack",
+        "was_alert_used_after_attack",
         # gen up / down
         "gen_margin_up",
         "gen_margin_down",
@@ -443,6 +566,16 @@ class BaseObservation(GridObjects):
         self.attention_budget = np.empty(shape=1, dtype=dt_float)
         self.was_alarm_used_after_game_over = np.zeros(shape=1, dtype=dt_bool)
 
+        # alert 
+        dim_alert = type(self).dim_alerts
+        self.active_alert = np.empty(shape=dim_alert, dtype=dt_bool)
+        self.attack_under_alert = np.empty(shape=dim_alert, dtype=dt_int)
+        self.time_since_last_alert = np.empty(shape=dim_alert, dtype=dt_int)
+        self.alert_duration = np.empty(shape=dim_alert, dtype=dt_int)
+        self.total_number_of_alert = np.empty(shape=1 if dim_alert else 0, dtype=dt_int)
+        self.time_since_last_attack = np.empty(shape=dim_alert, dtype=dt_int)
+        self.was_alert_used_after_attack = np.empty(shape=dim_alert, dtype=dt_int)
+        
         # to save some computation time
         self._connectivity_matrix_ = None
         self._bus_connectivity_matrix_ = None
@@ -506,6 +639,15 @@ class BaseObservation(GridObjects):
             "last_alarm",
             "attention_budget",
             "was_alarm_used_after_game_over",
+            # alert (new in 1.9.1)
+            "active_alert",
+            "attack_under_alert",
+            "time_since_last_alert",
+            "alert_duration",
+            "total_number_of_alert",
+            "time_since_last_attack",
+            "was_alert_used_after_attack",
+            # other
             "storage_power",
             "storage_power_target",
             "storage_charge",
@@ -850,10 +992,10 @@ class BaseObservation(GridObjects):
                     )
                 )
 
-            beg_ = int(np.sum(self.sub_info[:substation_id]))
+            beg_ = int(self.sub_info[:substation_id].sum())
             end_ = int(beg_ + self.sub_info[substation_id])
             topo_sub = self.topo_vect[beg_:end_]
-            if np.any(topo_sub > 0):
+            if (topo_sub > 0).any():
                 nb_bus = (
                     np.max(topo_sub[topo_sub > 0]) - np.min(topo_sub[topo_sub > 0]) + 1
                 )
@@ -981,6 +1123,27 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
+        if cls.glop_version < "1.9.1" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # alert attributes have been added in 1.9.1
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
+            for el in [
+                "active_alert",
+                "attack_under_alert",
+                "time_since_last_alert",
+                "alert_duration",
+                "total_number_of_alert",
+                "time_since_last_attack",
+                "was_alert_used_after_attack"
+            ]:
+                try:
+                    cls.attr_list_vect.remove(el)
+                except ValueError as exc_:
+                    # this attribute was not there in the first place
+                    pass
+            cls.attr_list_set = set(cls.attr_list_vect)
+
     def reset(self):
         """
         INTERNAL
@@ -1077,6 +1240,15 @@ class BaseObservation(GridObjects):
         self.attention_budget[:] = 0
         self.was_alarm_used_after_game_over[:] = False
 
+        # alert line feature 
+        self.active_alert[:] = False
+        self.attack_under_alert[:] = 0
+        self.time_since_last_alert[:] = 0
+        self.alert_duration[:] = 0
+        self.total_number_of_alert[:] = 0
+        self.time_since_last_attack[:] = -1
+        self.was_alert_used_after_attack[:] = 0
+        
         self.current_step = dt_int(0)
         self.max_step = dt_int(np.iinfo(dt_int).max)
         self.delta_time = dt_float(5.0)
@@ -1202,6 +1374,15 @@ class BaseObservation(GridObjects):
         else:
             self.was_alarm_used_after_game_over[:] = False
 
+        # related to alert 
+        self.active_alert[:] = False
+        self.time_since_last_alert[:] = 0
+        self.alert_duration[:] = 0
+        self.total_number_of_alert[:] = 0
+        self.time_since_last_attack[:] = -1        
+        # was_alert_used_after_attack not updated here in this case
+        # attack_under_alert not updated here in this case
+
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
         attr_other = getattr(other, name)
@@ -1219,7 +1400,7 @@ class BaseObservation(GridObjects):
                 # first special case: there can be Nan there
                 me_finite = np.isfinite(attr_me)
                 oth_finite = np.isfinite(attr_other)
-                if np.any(me_finite != oth_finite):
+                if (me_finite != oth_finite).any():
                     return False
                 # special case of floating points, otherwise vector are never equal
                 if not np.all(
@@ -1357,7 +1538,7 @@ class BaseObservation(GridObjects):
         for attr_nm in self._attr_eq:
             array_ = getattr(diff_, attr_nm)
             if array_.dtype == dt_bool:
-                if np.any(~array_):
+                if (~array_).any():
                     res.append(attr_nm)
             else:
                 if (array_.shape[0] > 0) and np.max(np.abs(array_)):
@@ -1438,7 +1619,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             obs = env.reset()
 
             # retrieve the id of extremity of powerline 1:
@@ -1843,13 +2024,13 @@ class BaseObservation(GridObjects):
             if self.shunts_data_available:
                 sh_vect = self._shunt_q
 
-        nb_lor = np.sum(lor_conn)
-        nb_lex = np.sum(lex_conn)
+        nb_lor = lor_conn.sum()
+        nb_lex = lex_conn.sum()
         data = np.zeros(nb_bus + nb_lor + nb_lex, dtype=dt_float)
 
         # if two generators / loads / storage unit are connected at the same bus
         # this is why i go with matrix product and sparse matrices
-        nb_prod = np.sum(prod_conn)
+        nb_prod = prod_conn.sum()
         if nb_prod:
             bus_prod = np.arange(prod_bus[prod_conn].max() + 1)
             map_mat = csr_matrix(
@@ -1860,7 +2041,7 @@ class BaseObservation(GridObjects):
             data[bus_prod] += map_mat.dot(prod_vect[prod_conn])
 
         # handle load
-        nb_load = np.sum(load_conn)
+        nb_load = load_conn.sum()
         if nb_load:
             bus_load = np.arange(load_bus[load_conn].max() + 1)
             map_mat = csr_matrix(
@@ -1871,7 +2052,7 @@ class BaseObservation(GridObjects):
             data[bus_load] -= map_mat.dot(load_vect[load_conn])
 
         # handle storage
-        nb_stor = np.sum(stor_conn)
+        nb_stor = stor_conn.sum()
         if nb_stor:
             bus_stor = np.arange(stor_bus[stor_conn].max() + 1)
             map_mat = csr_matrix(
@@ -1883,7 +2064,7 @@ class BaseObservation(GridObjects):
 
         if self.shunts_data_available:
             # handle shunts
-            nb_shunt = np.sum(sh_conn)
+            nb_shunt = sh_conn.sum()
             if nb_shunt:
                 bus_shunt = np.arange(sh_bus[sh_conn].max() + 1)
                 map_mat = csr_matrix(
@@ -1910,6 +2091,9 @@ class BaseObservation(GridObjects):
         """add the edges, when the attributes are common for the all the powerline"""
         dict_ = {}
         for lid, val in enumerate(vector):
+            if not self.line_status[lid]:
+                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if not tup_ in dict_:
                 # data is not in the graph, I insert it
@@ -1935,6 +2119,9 @@ class BaseObservation(GridObjects):
         """
         dict_or_glop = {}
         for lid, val in enumerate(vector_or):
+            if not self.line_status[lid]:
+                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if tup_ in dict_or_glop:
                 dict_or_glop[tup_] += val
@@ -1943,6 +2130,9 @@ class BaseObservation(GridObjects):
 
         dict_ex_glop = {}
         for lid, val in enumerate(vector_ex):
+            if not self.line_status[lid]:
+                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if tup_ in dict_ex_glop:
                 dict_ex_glop[tup_] += val
@@ -2064,7 +2254,7 @@ class BaseObservation(GridObjects):
 
             # create an environment and get the observation
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
 
@@ -2332,7 +2522,7 @@ class BaseObservation(GridObjects):
         edge_bus_li = [(bus_id,
                         bus_id % cls.n_sub,
                         {"type": "bus_to_substation"})
-                       for id_, bus_id in enumerate(bus_ids) if conn_bus[id_]]
+                       for id_, bus_id in enumerate(bus_ids)]
         graph.add_edges_from(edge_bus_li)
         graph.graph["bus_nodes_id"] = bus_ids
         return bus_ids
@@ -2703,18 +2893,67 @@ class BaseObservation(GridObjects):
         time `t + 5` mins) if you were to do the action at this step.
 
         It has the same return
-        value as the :func:`grid2op.Environment.Environment.step` function.
+        value as the :func:`grid2op.Environment.BaseEnv.step` function.
         
         .. seealso::
-            :func:`BaseObservation.get_forecast_env`
+            :func:`BaseObservation.get_forecast_env` and :func:`BaseObservation.get_env_from_external_forecasts`
         
-        .. versionadded:: 1.8.2
-            If the data of the :class:`grid2op.Environment.Environment` you are using supports it, then you can
-            now "chain" the simulate calls.
+        .. seealso::
+            :ref:`model_based_rl`
             
+        .. versionadded:: 1.9.0
+            If the data of the :class:`grid2op.Environment.Environment` you are using supports it
+            (**ie** you can access multiple steps ahead forecasts), then you can
+            now "chain" the simulate calls.
+        
+        Examples
+        ---------
+        
+        If forecast are available, you can use this function like this:
+        
+        .. code-block:: python
+        
+            import grid2op
+            
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            
+            obs = env.reset()
+            
+            an_action = env.action_space()  # or any other action
+            simobs, sim_reward, sim_done, sim_info = obs.simulate(an_action)
+        
+            # in this case, simobs will be an APPROXIMATION of the observation you will
+            # get after performing `an_action`
+            # obs, *_ = env.step(an_action)
+            
+        And if your environment allows to use "multiple steps ahead forecast" you can even
+        chain the calls like this:
+        
+        .. code-block:: python
+        
+            import grid2op
+            
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            
+            obs = env.reset()
+            
+            an_action = env.action_space()  # or any other action
+            simobs1, sim_reward1, sim_done1, sim_info1 = obs.simulate(an_action)   
+            
+            another_action = env.action_space()  # or any other action
+            simobs2, sim_reward2, sim_done2, sim_info2 = simobs1.simulate(another_action)     
+            
+            # in this case, simobs will be an APPROXIMATION of the observation you will
+            # get after performing `an_action` and then `another_action`:
+            # *_ = env.step(an_action)
+            # obs, *_ = env.step(another_action) 
+        
+
         Parameters
         ----------
-        action: :class:`grid2op.Action.Action`
+        action: :class:`grid2op.Action.BaseAction`
             The action to simulate
 
         time_step: ``int``
@@ -2728,7 +2967,7 @@ class BaseObservation(GridObjects):
 
         Returns
         -------
-        simulated_observation: :class:`grid2op.Observation.Observation`
+        simulated_observation: :class:`grid2op.Observation.BaseObservation`
             agent's observation of the current environment after the application of the action "act" on the
             the current state.
 
@@ -2763,7 +3002,7 @@ class BaseObservation(GridObjects):
 
             import grid2op
             # retrieve an environment
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             # retrieve an observation, this is the same for all observations
@@ -2785,7 +3024,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -2811,7 +3050,7 @@ class BaseObservation(GridObjects):
             .. code-block:: python
 
                 import grid2op
-                env_name = ...
+                env_name = "l2rpn_case14_sandbox"  # or any other name
                 env = grid2op.make(env_name)
                 obs = env.reset()
                 
@@ -2837,7 +3076,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -3151,6 +3390,7 @@ class BaseObservation(GridObjects):
         self._reset_matrices()
         # and ensure everything is reloaded properly
         super().from_vect(vect, check_legit=check_legit)
+        self._is_done = False
 
     def to_dict(self):
         """
@@ -3165,6 +3405,17 @@ class BaseObservation(GridObjects):
         -------
         The returned dictionary is not necessarily json serializable. To have a grid2op observation that you can
         serialize in a json fashion, please use the :func:`grid2op.Space.GridObjects.to_json` function.
+        
+        .. note:: 
+            This function is different to the :func:`grid2op.Space.GridObjects.to_dict`.
+            Indeed the dictionnary resulting from this function will count as keys all the attributes
+            in :attr:`GridObjects.attr_list_vect` only.
+            
+            Concretely, if `obs` is an observation (:class:`grid2op.Observation.BaseObservation`)
+            then `obs.to_dict()` will have the keys `type(obs).attr_list_vect` and the values will
+            be numpy arrays whereas `obs.to_json()` will have the keys
+            `type(obs).attr_list_vect` and `type(obs).attr_list_json` and the values will be
+            lists (serializable).
 
         """
         if self._dictionnarized is None:
@@ -3252,6 +3503,17 @@ class BaseObservation(GridObjects):
                 "was_alarm_used_after_game_over"
             ] = self.was_alarm_used_after_game_over[0]
 
+            # alert 
+            self._dictionnarized["active_alert"] = copy.deepcopy(self.active_alert)
+            self._dictionnarized["attack_under_alert"] = copy.deepcopy(self.attack_under_alert)
+            self._dictionnarized["time_since_last_alert"] = copy.deepcopy(self.time_since_last_alert)
+            self._dictionnarized["alert_duration"] = copy.deepcopy(self.alert_duration)
+            self._dictionnarized["time_since_last_attack"] = copy.deepcopy(self.time_since_last_attack)
+            self._dictionnarized["was_alert_used_after_attack"] = copy.deepcopy(self.was_alert_used_after_attack)
+            self._dictionnarized[
+                "total_number_of_alert"
+            ] = self.total_number_of_alert[0] if type(self).dim_alerts else []
+
             # current_step / max step
             self._dictionnarized["current_step"] = self.current_step
             self._dictionnarized["max_step"] = self.max_step
@@ -3299,7 +3561,7 @@ class BaseObservation(GridObjects):
 
         Returns
         -------
-        res: :class:`grid2op.Observation.Observation`
+        res: :class:`grid2op.Observation.BaseObservation`
             The resulting observation. Note that this observation is not initialized with everything.
             It is only relevant when you want to study the resulting topology after you applied an
             action. Lots of `res` attributes are empty.
@@ -3314,7 +3576,7 @@ class BaseObservation(GridObjects):
             import grid2op
 
             # create the environment
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             # generate the first observation
@@ -3382,7 +3644,7 @@ class BaseObservation(GridObjects):
                 & (line_ex_set_bus <= 0)
                 & (res.topo_vect[self.line_ex_pos_topo_vect] == -1)
             )
-            if np.any(tmp):
+            if tmp.any():
                 id_issue_ex = np.where(tmp)[0]
                 if issue_warn:
                     warnings.warn(error_no_bus_set.format(id_issue_ex))
@@ -3394,7 +3656,7 @@ class BaseObservation(GridObjects):
                 & (line_or_set_bus <= 0)
                 & (res.topo_vect[self.line_or_pos_topo_vect] == -1)
             )
-            if np.any(tmp):
+            if tmp.any():
                 id_issue_or = np.where(tmp)[0]
                 if issue_warn:
                     warnings.warn(error_no_bus_set.format(id_issue_or))
@@ -3452,7 +3714,7 @@ class BaseObservation(GridObjects):
             res.line_status[disco_line] = False
 
             # handle reconnected powerlines
-            if np.any(reco_line):
+            if reco_line.any():
                 if "set_bus" in act.authorized_keys:
                     line_ex_set_bus = 1 * act.line_ex_set_bus
                     line_or_set_bus = 1 * act.line_or_set_bus
@@ -3461,8 +3723,8 @@ class BaseObservation(GridObjects):
                     line_or_set_bus = np.zeros(res.n_line, dtype=dt_int)
 
                 if issue_warn and (
-                    np.any(line_or_set_bus[reco_line] == 0)
-                    or np.any(line_ex_set_bus[reco_line] == 0)
+                    (line_or_set_bus[reco_line] == 0).any()
+                    or (line_ex_set_bus[reco_line] == 0).any()
                 ):
                     warnings.warn(
                         'A powerline has been reconnected with a "change_status" action without '
@@ -3484,7 +3746,7 @@ class BaseObservation(GridObjects):
 
         if "redispatch" in act.authorized_keys:
             redisp = act.redispatch
-            if np.any(redisp != 0) and issue_warn:
+            if (redisp != 0).any() and issue_warn:
                 warnings.warn(
                     "You did redispatching on this action. Redispatching is heavily transformed "
                     "by the environment (consult the documentation about the modeling of the "
@@ -3493,7 +3755,7 @@ class BaseObservation(GridObjects):
 
         if "set_storage" in act.authorized_keys:
             storage_p = act.storage_p
-            if np.any(storage_p != 0) and issue_warn:
+            if (storage_p != 0).any() and issue_warn:
                 warnings.warn(
                     "You did action on storage units in this action. This implies performing some "
                     "redispatching which is heavily transformed "
@@ -3521,7 +3783,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()
@@ -3542,7 +3804,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()
@@ -3561,7 +3823,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
 
             obs = env.reset()
@@ -3691,22 +3953,8 @@ class BaseObservation(GridObjects):
         self.storage_power[:] = env._storage_power
 
         # handles forecasts here
-        if with_forecast:
-            inj_action = {}
-            dict_ = {}
-            dict_["load_p"] = dt_float(1.0 * self.load_p)
-            dict_["load_q"] = dt_float(1.0 * self.load_q)
-            dict_["prod_p"] = dt_float(1.0 * self.gen_p)
-            dict_["prod_v"] = dt_float(1.0 * self.gen_v)
-            inj_action["injection"] = dict_
-            # inj_action = self.action_helper(inj_action)
-            timestamp = self.get_time_stamp()
-            self._forecasted_inj = [(timestamp, inj_action)]
-            self._forecasted_inj += env.chronics_handler.forecasts()
-            self._forecasted_grid = [None for _ in self._forecasted_inj]
-            self._env_internal_params = {}
-            self._update_internal_env_params(env)
-
+        self._update_forecast(env, with_forecast)
+        
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line[:] = env._times_before_line_status_actionable
         self.time_before_cooldown_sub[:] = env._times_before_topology_actionable
@@ -3744,20 +3992,55 @@ class BaseObservation(GridObjects):
             self.curtailment_limit[:] = 1.0
             self.curtailment_limit_effective[:] = 1.0
 
-        if self.dim_alarms and env._has_attention_budget:
-            self.is_alarm_illegal[:] = env._is_alarm_illegal
-            if env._attention_budget.time_last_successful_alarm_raised > 0:
-                self.time_since_last_alarm[:] = (
-                    self.current_step
-                    - env._attention_budget.time_last_successful_alarm_raised
-                )
-            else:
-                self.time_since_last_alarm[:] = -1
-            self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
-            self.attention_budget[:] = env._attention_budget.current_budget
+        self._update_alarm(env)
 
         self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.0)
+        
+        self._update_alert(env)
 
+    def _update_forecast(self, env, with_forecast):
+        if not with_forecast:
+            return
+        
+        inj_action = {}
+        dict_ = {}
+        dict_["load_p"] = dt_float(1.0 * self.load_p)
+        dict_["load_q"] = dt_float(1.0 * self.load_q)
+        dict_["prod_p"] = dt_float(1.0 * self.gen_p)
+        dict_["prod_v"] = dt_float(1.0 * self.gen_v)
+        inj_action["injection"] = dict_
+        # inj_action = self.action_helper(inj_action)
+        timestamp = self.get_time_stamp()
+        self._forecasted_inj = [(timestamp, inj_action)]
+        self._forecasted_inj += env.forecasts()
+        self._forecasted_grid = [None for _ in self._forecasted_inj]
+        self._env_internal_params = {}
+        self._update_internal_env_params(env)
+        
+    def _update_alarm(self, env):
+        if not (self.dim_alarms and env._has_attention_budget):
+            return
+        
+        self.is_alarm_illegal[:] = env._is_alarm_illegal
+        if env._attention_budget.time_last_successful_alarm_raised > 0:
+            self.time_since_last_alarm[:] = (
+                self.current_step
+                - env._attention_budget.time_last_successful_alarm_raised
+            )
+        else:
+            self.time_since_last_alarm[:] = -1
+        self.last_alarm[:] = env._attention_budget.last_successful_alarm_raised
+        self.attention_budget[:] = env._attention_budget.current_budget        
+        
+    def _update_alert(self, env):
+        self.active_alert[:] = env._last_alert
+        self.time_since_last_alert[:] = env._time_since_last_alert
+        self.alert_duration[:] = env._alert_duration
+        self.total_number_of_alert[:] = env._total_number_of_alert
+        self.time_since_last_attack[:] = env._time_since_last_attack
+        self.attack_under_alert[:] = env._attack_under_alert
+        # self.was_alert_used_after_attack  # handled in self.update_after_reward
+        
     def get_simulator(self) -> "grid2op.simulator.Simulator":
         """This function allows to retrieve a valid and properly initialized "Simulator"
 
@@ -3774,10 +4057,10 @@ class BaseObservation(GridObjects):
         
         Basic usage are:
         
-        ..code-block:: python
+        .. code-block:: python
         
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             
             env = grid2op.make(env_name)
             obs = env.reset()
@@ -3786,6 +4069,9 @@ class BaseObservation(GridObjects):
             
         Please consult the page :ref:`simulator_page` for more information about how to use them.
         
+        .. seealso::
+            :ref:`model_based_rl`
+            
         """
         # BaseObservation is only used for typing in the simulator...
         if self._obs_env is None:
@@ -3806,8 +4092,11 @@ class BaseObservation(GridObjects):
             Simulator,
         )  # lazy import to prevent circular references
 
-        res = Simulator(backend=self._obs_env.backend)
+        nb_highres_called = self._obs_env.highres_sim_counter.nb_highres_called
+        res = Simulator(backend=self._obs_env.backend, _highres_sim_counter=self._obs_env._highres_sim_counter)
         res.set_state(self)
+        # it does one simulation when it inits it (calling env.step) so I remove 1 here
+        self._obs_env.highres_sim_counter._HighResSimCounter__nb_highres_called = nb_highres_called
         return res
 
     def _get_array_from_forecast(self, name):
@@ -3840,14 +4129,15 @@ class BaseObservation(GridObjects):
     
     def get_forecast_env(self) -> "grid2op.Environment.Environment":
         """
-        .. versionadded:: 1.8.2
+        .. versionadded:: 1.9.0
         
         This function will return a grid2op "environment" where the data (load, generation and maintenance)
         comes from the forecast data in the observation.
         
         This "forecasted environment" can be used like any grid2op environment. It checks the same "rules" as the 
         :func:`BaseObservation.simulate` (if you want to change them, make sure to use
-        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters`), with the exact same behaviour 
+        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` or 
+        :func:`BaseObservation.change_forecast_parameters`), with the exact same behaviour 
         as "env.step(...)".
         
         With this function, your agent can now make some predictions about the future.
@@ -3855,7 +4145,10 @@ class BaseObservation(GridObjects):
         This can be particularly useful for model based RL for example. 
 
         .. seealso::
-            :func:`BaseObservation.simulate`
+            :func:`BaseObservation.simulate` and :func:`BaseObservation.get_env_from_external_forecasts`
+        
+        .. seealso::
+            :ref:`model_based_rl`
             
         Examples
         --------
@@ -3864,7 +4157,7 @@ class BaseObservation(GridObjects):
         .. code-block:: python
 
             import grid2op
-            env_name = ...
+            env_name = "l2rpn_case14_sandbox"  # or any other name
             env = grid2op.make(env_name)
             obs = env.reset()
             
@@ -3887,7 +4180,7 @@ class BaseObservation(GridObjects):
             .. code-block:: python
 
                 import grid2op
-                env_name = ...
+                env_name = "l2rpn_case14_sandbox"  # or any other name
                 env = grid2op.make(env_name)
                 obs = env.reset()
                 
@@ -3926,13 +4219,194 @@ class BaseObservation(GridObjects):
                                        "data as this Observation does not appear to "
                                        "support forecast.")
         # build the forecast
-        from grid2op.Chronics import FromNPY, ChronicsHandler
         load_p = self._get_array_from_forecast("load_p")
         load_q = self._get_array_from_forecast("load_q")
         prod_p = self._get_array_from_forecast("prod_p")
         prod_v = self._get_array_from_forecast("prod_v")
         maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
+        return self._make_env_from_arays(load_p, load_q, prod_p, prod_v, maintenance)
+
+    def get_forecast_arrays(self):
+        """
+        This functions allows to retrieve (as numpy arrays) the values for all the loads / generators / maintenance
+        for the forseable future (they are the forecast availble in :func:`BaseObservation.simulate` and
+        :func:`BaseObservation.get_forecast_env`)
         
+        .. versionadded:: 1.9.0
+        
+        Examples
+        -----------
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"  # or any other name
+            env = grid2op.make(env_name)
+            
+            obs = env.reset()
+            
+            load_p, load_q, prod_p, prod_v, maintenance = obs.get_forecast_arrays()
+            
+        """
+        load_p = self._get_array_from_forecast("load_p")
+        load_q = self._get_array_from_forecast("load_q")
+        prod_p = self._get_array_from_forecast("prod_p")
+        prod_v = self._get_array_from_forecast("prod_v")
+        maintenance = self._generate_forecasted_maintenance_for_simenv(prod_v.shape[0])
+        return load_p, load_q, prod_p, prod_v, maintenance
+    
+    def _aux_aux_get_nb_ts(self, res, array) -> int:
+        if res == 0 and array is not None:
+            # first non empty array
+            return array.shape[0]
+        if res > 0 and array is not None:
+            # an array is provided with a shape
+            # and there is another array
+            # I check both shape match
+            if array.shape[0] != res:
+                raise BaseObservationError("Shape mismatch between some of the input arrays")
+            return res
+        # now array is None, so I return res anyway (size not changed)
+        return res
+    
+    def _aux_get_nb_ts(self,
+                       load_p: Optional[np.ndarray] = None,
+                       load_q: Optional[np.ndarray] = None,
+                       gen_p: Optional[np.ndarray] = None,
+                       gen_v: Optional[np.ndarray] = None,
+                       ) -> int:
+        res = 0
+        for arr in [load_p, load_q, gen_p, gen_v]:
+            res = self._aux_aux_get_nb_ts(res, arr)
+        return res
+        
+    def get_env_from_external_forecasts(self,
+                                        load_p: Optional[np.ndarray] = None,
+                                        load_q: Optional[np.ndarray] = None,
+                                        gen_p: Optional[np.ndarray] = None,
+                                        gen_v: Optional[np.ndarray] = None,
+                                        with_maintenance: bool= False,
+                                        ) -> "grid2op.Environment.Environment":
+        """
+        .. versionadded:: 1.9.0
+        
+        This function will return a grid2op "environment" where the data (load, generation and maintenance)
+        comes from the provided forecast data.
+        
+        This "forecasted environment" can be used like any grid2op environment. It checks the same "rules" as the 
+        :func:`BaseObservation.simulate` (if you want to change them, make sure to use
+        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` or 
+        :func:`BaseObservation.change_forecast_parameters`), with the exact same behaviour 
+        as "env.step(...)".
+        
+        This can be particularly useful for model based RL for example. 
+
+        Data should be:
+        
+        - `load_p` a numpy array of float32 (or convertible to it) with n_rows and n_load columns
+          representing the load active values in MW.
+        - `load_q` a numpy array of float32 (or convertible to it) with n_rows and n_load columns
+          representing the load reactive values in MVAr.
+        - `gen_p` a numpy array of float32 (or convertible to it) with n_rows and n_gen columns
+          representing the generation active values in MW.
+        - `gen_v` a numpy array of float32 (or convertible to it) with n_rows and n_gen columns
+          representing the voltage magnitude setpoint in kV.
+        
+        All arrays are optional. If nothing is provided for a given array then it's replaced by the value 
+        in the observation. For example, if you do not provided the `gen_p` value then `obs.gen_p` is used.
+        
+        All provided arrays should have the same number of rows.
+        
+        .. note::
+            Maintenance will be added from the information of the observation. If you don't want to add
+            maintenance, you can passe the kwarg `with_maintenance=False`
+            
+        .. seealso::
+            :func:`BaseObservation.simulate` and :func:`BaseObservation.get_forecast_env`
+        
+        .. seealso::
+            :ref:`model_based_rl`
+        
+        .. note::
+            With this method, you can have as many "steps" in the forecasted environment as you want. You are
+            not limited with the amount of data provided: if you send data with 10 rows, you have 10 steps. If 
+            you have 100 rows then you have 100 steps. 
+        
+        .. warning::
+            We remind that, if you provide some forecasts, it is expected that 
+            
+        Examples
+        --------
+        A typical use might look like
+        
+        .. code-block:: python
+
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"  # or any other name
+            env = grid2op.make(env_name)
+            obs = env.reset()
+            
+            # make some "forecast" with the method of your choice
+            load_p_forecasted = ...
+            load_q_forecasted = ...
+            gen_p_forecasted = ...
+            gen_v_forecasted = ...
+            
+            # and now retrieve the associated "forecasted_env"
+            forcast_env = obs.get_env_from_external_forecasts(load_p_forecasted,
+                                                              load_q_forecasted,
+                                                              gen_p_forecasted,
+                                                              gen_v_forecasted)
+            
+            # when reset this should be at the same "step" as the action
+            forecast_obs = forcast_env.reset()
+            # forecast_obs == obs  # should be True
+            
+            done = False
+            while not done:
+                next_forecast_obs, reward, done, info = forcast_env.step(env.action_space())
+                
+        Returns
+        -------
+        grid2op.Environment.Environment
+            The "forecasted environment" that is a grid2op environment with the data corresponding to the 
+            forecasts provided as input.
+            
+        """
+        nb_ts = self._aux_get_nb_ts(load_p, load_q, gen_p, gen_v) + 1
+        if load_p is not None:
+            load_p_this = np.concatenate((self.load_p.reshape(1, -1), load_p.astype(dt_float)))
+        else:
+            load_p_this = np.tile(self.load_p, nb_ts).reshape(nb_ts, -1)
+        
+        if load_q is not None:
+            load_q_this = np.concatenate((self.load_q.reshape(1, -1), load_q.astype(dt_float)))
+        else:
+            load_q_this = np.tile(self.load_q, nb_ts).reshape(nb_ts, -1)
+        
+        if gen_p is not None:
+            gen_p_this = np.concatenate((self.gen_p.reshape(1, -1), gen_p.astype(dt_float)))
+        else:
+            gen_p_this = np.tile(self.gen_p, nb_ts).reshape(nb_ts, -1)
+            
+        if gen_v is not None:
+            gen_v_this = np.concatenate((self.gen_v.reshape(1, -1), gen_v.astype(dt_float)))
+        else:
+            gen_v_this = np.tile(self.gen_v, nb_ts).reshape(nb_ts, -1)
+        if with_maintenance:
+            maintenance = self._generate_forecasted_maintenance_for_simenv(nb_ts)
+        else:
+            maintenance = None
+        return self._make_env_from_arays(load_p_this, load_q_this, gen_p_this, gen_v_this, maintenance)
+    
+    def _make_env_from_arays(self,
+                             load_p: np.ndarray,
+                             load_q: np.ndarray,
+                             prod_p: np.ndarray,
+                             prod_v: Optional[np.ndarray] = None,
+                             maintenance: Optional[np.ndarray] = None):
+        from grid2op.Chronics import FromNPY, ChronicsHandler
+        from grid2op.Environment._forecast_env import _ForecastEnv
         ch = ChronicsHandler(FromNPY,
                              load_p=load_p,
                              load_q=load_q,
@@ -3942,11 +4416,84 @@ class BaseObservation(GridObjects):
         
         backend = self._obs_env.backend.copy()
         backend._is_loaded = True
-        from grid2op.Environment import Environment
-        res = Environment(**self._ptr_kwargs_env,
-                          backend=backend,
-                          chronics_handler=ch,
-                          parameters=self._obs_env.parameters,
-                          _init_obs=self
-                          )
+        nb_highres_called = self._obs_env.highres_sim_counter.nb_highres_called
+        res = _ForecastEnv(**self._ptr_kwargs_env,
+                           backend=backend,
+                           chronics_handler=ch,
+                           parameters=self._obs_env.parameters,
+                           _init_obs=self,
+                           highres_sim_counter=self._obs_env.highres_sim_counter
+                           )
+        # it does one simulation when it inits it (calling env.step) so I remove 1 here
+        res.highres_sim_counter._HighResSimCounter__nb_highres_called = nb_highres_called
         return res
+
+    def change_forecast_parameters(self, params):
+        """This function allows to change the parameters (see :class:`grid2op.Parameters.Parameters` 
+        for more information) that are used for the `obs.simulate()` and `obs.get_forecast_env()` method.
+        
+        .. danger::
+            This function has a global impact. It changes the parameters for all sucessive calls to
+            :func:`BaseObservation.simulate` and :func:`BaseObservation.get_forecast_env` !
+        
+        .. seealso::
+            :func:`grid2op.Environment.BaseEnv.change_parameters` to change the parameters of the environment
+            of :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` to change the paremters used
+            for the `obs.simulate` and `obs.get_forecast_env` functions.
+            
+            The main advantages of this function is that you do not require to have access to an environment
+            to change them.
+        
+        .. versionadded:: 1.9.0
+        
+        Examples
+        -----------
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"  # or any other name
+            env = grid2op.make(env_name)
+            
+            obs = env.reset()
+            
+            new_params = env.parameters
+            new_params.NO_OVERFLOW_DISCONNECTION = True
+            obs.change_forecast_parameters(new_params)
+            
+            obs.simulate(...)  # uses the parameters `new_params`
+            f_env = obs.get_forecast_env()  # uses also the parameters `new_params`
+            
+        """
+        self._obs_env.change_parameters(params)
+        self._obs_env._parameters = params
+
+    def update_after_reward(self, env):
+        """Only called for the regular environment (so not available for
+        :func:`BaseObservation.get_forecast_env` or 
+        :func:`BaseObservation.simulate`)
+
+        .. warning::
+            You probably don't have to use except if you develop a specific
+            observation class !
+            
+        .. note::
+            If you want to develop a new type of observation with a new type of reward, you can use the 
+            `env._reward_to_obs` attribute (dictionary) in the reward to pass information to the 
+            observation (in this function).
+            
+            Basically, update `env._reward_to_obs` in the reward, and use the values in `env._reward_to_obs` 
+            in this function.
+            
+        .. versionadded:: 1.9.1
+        
+        Parameters
+        ----------
+        env : grid2op.Environment.BaseEnv
+            The environment with which to update the observation
+        """
+        if type(self).dim_alerts == 0:
+            return
+        
+        # update the was_alert_used_after_attack !
+        self.was_alert_used_after_attack[:] = env._was_alert_used_after_attack

@@ -20,7 +20,7 @@ class Issue196Tester(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("l2rpn_neurips_2020_track1", test=True)
+            env = grid2op.make("l2rpn_neurips_2020_track1", test=True, _add_to_name=type(self).__name__)
             env_gym = GymEnv(env)
             ob_space = env_gym.observation_space
             ob_space = ob_space.keep_only_attr(

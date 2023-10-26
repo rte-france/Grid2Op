@@ -7,26 +7,28 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import unittest
 from grid2op.Converter import BackendConverter
 
+import grid2op
 from grid2op.tests.helper_path_test import *
 from grid2op import make
 from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
 from grid2op.Backend import PandaPowerBackend
 
 from grid2op.tests.helper_path_test import HelperTests
-from grid2op.tests.BaseBackendTest import BaseTestNames
-from grid2op.tests.BaseBackendTest import BaseTestLoadingCase
-from grid2op.tests.BaseBackendTest import BaseTestLoadingBackendFunc
-from grid2op.tests.BaseBackendTest import BaseTestTopoAction
-from grid2op.tests.BaseBackendTest import BaseTestEnvPerformsCorrectCascadingFailures
-from grid2op.tests.BaseBackendTest import BaseTestChangeBusAffectRightBus
-from grid2op.tests.BaseBackendTest import BaseTestShuntAction
-from grid2op.tests.BaseBackendTest import BaseTestResetEqualsLoadGrid
-from grid2op.tests.BaseBackendTest import BaseTestVoltageOWhenDisco
-from grid2op.tests.BaseBackendTest import BaseTestChangeBusSlack
-from grid2op.tests.BaseBackendTest import BaseIssuesTest
-from grid2op.tests.BaseBackendTest import BaseStatusActions
+from grid2op.tests.BaseBackendTest import (BaseTestNames,
+                                           BaseTestLoadingCase,
+                                           BaseTestLoadingBackendFunc,
+                                           BaseTestTopoAction,
+                                           BaseTestEnvPerformsCorrectCascadingFailures,
+                                           BaseTestChangeBusAffectRightBus,
+                                           BaseTestShuntAction,
+                                           BaseTestResetEqualsLoadGrid,
+                                           BaseTestVoltageOWhenDisco,
+                                           BaseTestChangeBusSlack,
+                                           BaseIssuesTest,
+                                           BaseStatusActions)
 
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
@@ -35,7 +37,7 @@ BKclass1 = PandaPowerBackend
 BKclass2 = PandaPowerBackend
 
 
-class TestLoading(HelperTests):
+class TestLoading(HelperTests, unittest.TestCase):
     def test_init(self):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -44,10 +46,10 @@ class TestLoading(HelperTests):
         )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = make("rte_case14_realistic", test=True, backend=backend)
 
 
-class TestNames(HelperTests, BaseTestNames):
+class TestNames(BaseTestNames, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -61,7 +63,7 @@ class TestNames(HelperTests, BaseTestNames):
         return PATH_DATA_TEST_INIT
 
 
-class TestLoadingCase(HelperTests, BaseTestLoadingCase):
+class TestLoadingCase(BaseTestLoadingCase, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -78,7 +80,7 @@ class TestLoadingCase(HelperTests, BaseTestLoadingCase):
         return "test_case14.json"
 
 
-class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc):
+class TestLoadingBackendFunc(BaseTestLoadingBackendFunc, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestLoadingBackendFunc.setUp(self)
@@ -103,7 +105,7 @@ class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc):
         return "test_case14.json"
 
 
-class TestTopoAction(HelperTests, BaseTestTopoAction):
+class TestTopoAction(BaseTestTopoAction, unittest.TestCase):
     def setUp(self):
         BaseTestTopoAction.setUp(self)
 
@@ -128,7 +130,7 @@ class TestTopoAction(HelperTests, BaseTestTopoAction):
 
 
 class TestEnvPerformsCorrectCascadingFailures(
-    HelperTests, BaseTestEnvPerformsCorrectCascadingFailures
+    BaseTestEnvPerformsCorrectCascadingFailures, unittest.TestCase
 ):
     def setUp(self):
         BaseTestEnvPerformsCorrectCascadingFailures.setUp(self)
@@ -153,7 +155,7 @@ class TestEnvPerformsCorrectCascadingFailures(
         return PATH_DATA_TEST
 
 
-class TestChangeBusAffectRightBus(HelperTests, BaseTestChangeBusAffectRightBus):
+class TestChangeBusAffectRightBus(BaseTestChangeBusAffectRightBus, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -164,7 +166,7 @@ class TestChangeBusAffectRightBus(HelperTests, BaseTestChangeBusAffectRightBus):
         return backend
 
 
-class TestShuntAction(HelperTests, BaseTestShuntAction):
+class TestShuntAction(BaseTestShuntAction, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -175,7 +177,7 @@ class TestShuntAction(HelperTests, BaseTestShuntAction):
         return backend
 
 
-class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
+class TestResetEqualsLoadGrid(BaseTestResetEqualsLoadGrid, unittest.TestCase):
     def setUp(self):
         BaseTestResetEqualsLoadGrid.setUp(self)
 
@@ -189,7 +191,7 @@ class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
         return backend
 
 
-class TestVoltageOWhenDisco(HelperTests, BaseTestVoltageOWhenDisco):
+class TestVoltageOWhenDisco(BaseTestVoltageOWhenDisco, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -200,7 +202,7 @@ class TestVoltageOWhenDisco(HelperTests, BaseTestVoltageOWhenDisco):
         return backend
 
 
-class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack):
+class TestChangeBusSlack(BaseTestChangeBusSlack, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -211,7 +213,7 @@ class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack):
         return backend
 
 
-class TestIssuesTest(HelperTests, BaseIssuesTest):
+class TestIssuesTest(BaseIssuesTest, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
@@ -222,7 +224,7 @@ class TestIssuesTest(HelperTests, BaseIssuesTest):
         return backend
 
 
-class TestStatusAction(HelperTests, BaseStatusActions):
+class TestStatusAction(BaseStatusActions, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         backend = BackendConverter(
             source_backend_class=BKclass1,
