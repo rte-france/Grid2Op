@@ -31,6 +31,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+
+[1.9.7] - 20xx-yy-zz
+----------------------
+- [???]
+
 [1.9.6] - 2023-10-26
 ----------------------
 - [BREAKING] when a storage is connected alone on a bus, even if it produces / absorbs 0.0 MW it 
