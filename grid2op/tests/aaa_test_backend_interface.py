@@ -780,7 +780,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated loads in AC."                 
         assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
                     
@@ -795,7 +795,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated loads in DC."                 
         assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
                 
@@ -828,7 +828,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated gen."                 
         assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
                                
@@ -843,7 +843,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated gen."                 
         assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
                            
@@ -882,7 +882,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated shunt."                 
         assert res[1] is not None, "When your backend diverges, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
                     
@@ -897,7 +897,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated shunt in DC."                  
         assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend returns `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend returns `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
                        
@@ -933,7 +933,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated storage units in AC."                  
         assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated storage units) should preferably inherit from BackendError")
                 
@@ -947,7 +947,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of isolated storage unit."                 
         assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated storage units) should preferably inherit from BackendError")
                   
@@ -981,7 +981,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of disconnected load in AC."                  
         assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to disconnected load) should preferably inherit from BackendError")
         
@@ -996,7 +996,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of disconnected load in DC."                  
         assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to disconnected load) should preferably inherit from BackendError")
                                    
@@ -1030,7 +1030,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of disconnected gen in AC."                 
         assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to disconnected gen) should preferably inherit from BackendError")
         
@@ -1045,7 +1045,7 @@ class AAATestBackendAPI(MakeBackend):
         assert not res[0], "It is expected (at time of writing) that your backend returns `False` in case of disconnected gen in DC."                 
         assert res[1] is not None, "When your backend stops, we expect it throws an exception (second return value)"  
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to disconnected gen) should preferably inherit from BackendError")
 
@@ -1082,7 +1082,7 @@ class AAATestBackendAPI(MakeBackend):
         res = backend.runpf(is_dc=False)  
         assert not res[0], "It is expected that your backend return `False` in case of non connected grid in AC."                 
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to non connected grid) should preferably inherit from BackendError")
         backend.reset(self.get_path(), self.get_casefile())
@@ -1098,7 +1098,7 @@ class AAATestBackendAPI(MakeBackend):
         res = backend.runpf(is_dc=True)  
         assert not res[0], "It is expected that your backend throws an exception inheriting from BackendError in case of non connected grid in DC."                 
         error = res[1]
-        assert isinstance(error, Grid2OpException), "When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value)"  
+        assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to non connected grid) should preferably inherit from BackendError")
 
