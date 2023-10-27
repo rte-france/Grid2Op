@@ -249,7 +249,7 @@ class __AuxGymActionSpace:
         for attr_nm, sh, dt in zip(
             action_space.attr_list_vect, action_space.shape, action_space.dtype
         ):
-            if self.keys_grid2op_2_human[attr_nm] not in self.action_attr_to_keep:
+            if self.action_attr_to_keep is not None and self.keys_grid2op_2_human[attr_nm] not in self.action_attr_to_keep:
                 continue
             if sh == 0:
                 # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
