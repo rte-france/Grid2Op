@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
-from grid2op.Exceptions.Grid2OpException import Grid2OpException
+from grid2op.Exceptions import Grid2OpException
 from grid2op.dtypes import dt_float, dt_int, int_types
 
 

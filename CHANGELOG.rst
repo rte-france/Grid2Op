@@ -34,6 +34,18 @@ Change Log
 
 [1.9.7] - 20xx-yy-zz
 ----------------------
+- [BREAKING] removal of the `grid2op/Exceptions/PowerflowExceptions.py` file and move the
+  `DivergingPowerflow` as part of the BackendException. If you imported (to be avoided)
+  with `from grid2op.Exceptions.PowerflowExceptions import PowerflowExceptions`
+  simply do `from grid2op.Exceptions import PowerflowExceptions` and nothing
+  will change.
+- [BREAKING] rename with filename starting with lowercase all the files in the "`Exceptions`", 
+  module. This is both consistent with python practice but allows also to make the 
+  difference between the files in the 
+  module and the class imported. This should have little to no impact on all codes but to "upgrade"
+  instead of `from grid2op.Exceptions.XXX import PowerflowExceptions` (which you should not have done in the first place) 
+  just do `from grid2op.Exceptions import PowerflowExceptions`. Expect other changes like this for other grid2op modules
+  in the near future.
 - [IMPROVED] the function to check the backend interface now also check that
   the `topo_vect` returns value between 1 and 2.
 - [IMPROVED] the function to check backend now also check the `topo_vect`
