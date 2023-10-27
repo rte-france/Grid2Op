@@ -34,7 +34,10 @@ Change Log
 
 [1.9.7] - 20xx-yy-zz
 ----------------------
-- [???]
+- [IMPROVED] the function to check the backend interface now also check that
+  the `topo_vect` returns value between 1 and 2.
+- [IMPROVED] the function to check backend now also check the `topo_vect`
+  for each type of elements.
 
 [1.9.6] - 2023-10-26
 ----------------------

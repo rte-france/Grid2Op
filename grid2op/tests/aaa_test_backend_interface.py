@@ -9,6 +9,8 @@
 import os
 import numpy as np
 import warnings
+import grid2op
+from grid2op.Backend import Backend
 from grid2op.tests.helper_path_test import HelperTests, MakeBackend, PATH_DATA
 from grid2op.Exceptions import BackendError, Grid2OpException
 
@@ -36,7 +38,7 @@ class AAATestBackendAPI(MakeBackend):
         """do not run nor modify ! (used for this test class only)"""
         return "BasicTest_load_grid_" + type(self).__name__
 
-    def aux_make_backend(self):
+    def aux_make_backend(self) -> Backend:
         """do not run nor modify ! (used for this test class only)"""
         backend = self.make_backend()
         backend.load_grid(self.get_path(), self.get_casefile())
@@ -230,6 +232,8 @@ class AAATestBackendAPI(MakeBackend):
         cls = type(backend)
         if not cls.shunts_data_available:
             self.skipTest("Your backend does not support shunts")
+        if cls.n_shunt == 0:
+            self.skipTest("The grid you used for testing does not contain any shunts")
         
         init_shunt_p = np.array([0.0])
         init_shunt_q = np.array([-19.])
@@ -577,6 +581,28 @@ class AAATestBackendAPI(MakeBackend):
         assert not np.allclose(tmp_ex_reco[2][line_id], 0.), f"extremity voltage on connected line {line_id} is > 0."
         assert not np.allclose(tmp_ex_reco[3][line_id], 0.), f"extremity flow (amps) on connected line {line_id} is > 0."
 
+    def _aux_check_topo_vect(self, backend : Backend):
+        topo_vect = backend.get_topo_vect()
+        dim_topo = type(backend).dim_topo
+        assert len(topo_vect) == dim_topo, (f"backend.get_topo_vect() should return a vector of size 'dim_topo' "
+                                            f"({dim_topo}) but found size is {len(topo_vect)}. "
+                                            f"Remember: shunt are not part of the topo_vect")
+        assert np.all(topo_vect <= 2), (f"For simple environment, we suppose there are 2 buses per substation / voltage levels. "
+                                        f"topo_vect is supposed to give the id of the busbar (in the substation) to "
+                                        f"which the element is connected. This cannot be {np.max(topo_vect)}."
+                                        f"NB: this test is expected to fail if you test on a grid where more "
+                                        f"at least a substation can be split into (strictly) "
+                                        f"more than 2 independant buses.")
+        
+        assert np.all(topo_vect >= -1), (f"All element of topo_vect should be >= -1 (-1 meaning disconnected), "
+                                         f" or if it's a number >= 1 it's the id of the busbar")
+        
+        assert np.all(topo_vect != 0), (f"To avoid mixing the 'do not move an element' action and the "
+                                        f"id of a busbar, we decided that busbars labelling should start at 1 "
+                                        f"and not at 0. So there should not be any component of topo_vect that "
+                                        f"equals to 0.")
+        return topo_vect
+    
     def test_14change_topology(self):
         """try to change the topology of 2 different substations : connect their elements to different busbars and check consistency
         
@@ -599,8 +625,11 @@ class AAATestBackendAPI(MakeBackend):
         cls = type(backend)
         
         res = backend.runpf(is_dc=False)
+        
+        _ = self._aux_check_topo_vect(backend)
+        
         if not cls.shunts_data_available:
-            warnings.warn(f"{type(self.__name__)} test_14change_topology: This test is not performed in depth as your backend does not support shunts")
+            warnings.warn(f"{type(self).__name__} test_14change_topology: This test is not performed in depth as your backend does not support shunts")
         else:
             p_subs, q_subs, p_bus, q_bus, diff_v_bus = backend.check_kirchoff()
             assert np.allclose(p_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (no modif): kirchoff laws are not met for p (creation or suppression of active). Check the handling of the slack bus(se) maybe ?"
@@ -622,7 +651,7 @@ class AAATestBackendAPI(MakeBackend):
         assert res[0], "Your powerflow has diverged after the loading of the file, which should not happen"
         
         if not cls.shunts_data_available:
-            warnings.warn(f"{type(self.__name__)} test_14change_topology: This test is not performed in depth as your backend does not support shunts")
+            warnings.warn(f"{type(self).__name__} test_14change_topology: This test is not performed in depth as your backend does not support shunts")
         else:
             p_subs, q_subs, p_bus, q_bus, diff_v_bus = backend.check_kirchoff()
             assert np.allclose(p_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with no impact): kirchoff laws are not met for p (creation or suppression of active)."
@@ -648,7 +677,7 @@ class AAATestBackendAPI(MakeBackend):
         res = backend.runpf(is_dc=False)
         assert res[0], "Your powerflow has diverged after a topology action (but should not). Check `apply_action` for topology"
         if not cls.shunts_data_available:
-            warnings.warn(f"{type(self.__name__)} test_14change_topology: This test is not performed in depth as your backend does not support shunts")
+            warnings.warn(f"{type(self).__name__} test_14change_topology: This test is not performed in depth as your backend does not support shunts")
         else:
             p_subs, q_subs, p_bus, q_bus, diff_v_bus = backend.check_kirchoff()
             assert np.allclose(p_subs, 0., atol=3 * self.tol_one), "there are some discrepency in the backend after a powerflow (modif with a real impact): kirchoff laws are not met for p (creation or suppression of active)."
@@ -722,8 +751,8 @@ class AAATestBackendAPI(MakeBackend):
         assert np.allclose(v2_or, v_or), f"The v_or differ between its original value and after a reset. Check backend.reset()"
         assert np.allclose(a2_or, a_or), f"The a_or flow differ between its original value and after a reset. Check backend.reset()"
                                        
-    def test_16_isolated_load_make_divergence(self):
-        """Tests that an isolated load will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
+    def test_16_isolated_load_stops_computation(self):
+        """Tests that an isolated load will be spotted by the `run_pf` method and forwarded to grid2op by returining `False, an_exception` (in AC and DC)
         
         This test supposes that :
         
@@ -731,6 +760,11 @@ class AAATestBackendAPI(MakeBackend):
         - backend.runpf() (AC and DC mode) is implemented
         - backend.apply_action() for topology modification
         - backend.reset() is implemented
+        
+        .. note::
+            Currently this stops the computation of the environment and lead to a game over. 
+            
+            This behaviour might change in the future.
         """
         self.skip_if_needed()
         backend = self.aux_make_backend()
@@ -765,8 +799,8 @@ class AAATestBackendAPI(MakeBackend):
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
                 
-    def test_17_isolated_gen_make_divergence(self):
-        """Tests that an isolated generator will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
+    def test_17_isolated_gen_stops_computation(self):
+        """Tests that an isolated generator will be spotted by the `run_pf` method and forwarded to grid2op by returining `False, an_exception` (in AC and DC)
         
         This test supposes that :
         
@@ -774,6 +808,11 @@ class AAATestBackendAPI(MakeBackend):
         - backend.runpf() (AC and DC mode) is implemented
         - backend.apply_action() for topology modification
         - backend.reset() is implemented
+        
+        .. note::
+            Currently this stops the computation of the environment and lead to a game over. 
+            
+            This behaviour might change in the future.
         """
         self.skip_if_needed()
         backend = self.aux_make_backend()
@@ -808,8 +847,8 @@ class AAATestBackendAPI(MakeBackend):
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
                            
-    def test_18_isolated_shunt_make_divergence(self):
-        """Tests test that an isolated shunt will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
+    def test_18_isolated_shunt_stops_computation(self):
+        """Tests test that an isolated shunt will be spotted by the `run_pf` method and forwarded to grid2op by returining `False, an_exception` (in AC and DC)
         
         This test supposes that :
         
@@ -819,6 +858,11 @@ class AAATestBackendAPI(MakeBackend):
         - backend.reset() is implemented
         
         NB: this test is skipped if your backend does not (yet :-) ) supports shunt
+        
+        .. note::
+            Currently this stops the computation of the environment and lead to a game over. 
+            
+            This behaviour might change in the future.
         """
         self.skip_if_needed()
         backend = self.aux_make_backend()
@@ -857,8 +901,8 @@ class AAATestBackendAPI(MakeBackend):
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated shunt) should preferably inherit from BackendError")
                        
-    def test_19_isolated_storage_make_divergence(self):
-        """Teststest that an isolated storage unit will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
+    def test_19_isolated_storage_stops_computation(self):
+        """Teststest that an isolated storage unit will be spotted by the `run_pf` method and forwarded to grid2op by returining `False, an_exception` (in AC and DC)
         
         This test supposes that :
         
@@ -868,6 +912,11 @@ class AAATestBackendAPI(MakeBackend):
         - backend.reset() is implemented
         
         NB: this test is skipped if your backend does not (yet :-) ) supports storage units
+        
+        .. note::
+            Currently this stops the computation of the environment and lead to a game over. 
+            
+            This behaviour might change in the future.
         """
         self.skip_if_needed()
         backend = self.aux_make_backend()
@@ -902,8 +951,8 @@ class AAATestBackendAPI(MakeBackend):
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to isolated storage units) should preferably inherit from BackendError")
                   
-    def test_20_disconnected_load_make_divergence(self):
-        """Tests that a disconnected load unit will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
+    def test_20_disconnected_load_stops_computation(self):
+        """Tests that a disconnected load unit will be spotted by the `run_pf` method and forwarded to grid2op by returining `False, an_exception` (in AC and DC)
         
         This test supposes that :
         
@@ -913,6 +962,11 @@ class AAATestBackendAPI(MakeBackend):
         - backend.reset() is implemented
         
         NB: this test is skipped if your backend does not (yet :-) ) supports storage units
+        
+        .. note::
+            Currently this stops the computation of the environment and lead to a game over. 
+            
+            This behaviour might change in the future.
         """
         self.skip_if_needed()
         backend = self.aux_make_backend()
@@ -946,8 +1000,8 @@ class AAATestBackendAPI(MakeBackend):
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to disconnected load) should preferably inherit from BackendError")
                                    
-    def test_21_disconnected_gen_make_divergence(self):
-        """Tests that a disconnected generator will make the method `run_pf` "diverge" (in AC and DC) [behaviour might change in the future]
+    def test_21_disconnected_gen_stops_computation(self):
+        """Tests that a disconnected generator will be spotted by the `run_pf` method and forwarded to grid2op by returining `False, an_exception` (in AC and DC)
         
         This test supposes that :
         
@@ -957,6 +1011,11 @@ class AAATestBackendAPI(MakeBackend):
         - backend.reset() is implemented
         
         NB: this test is skipped if your backend does not (yet :-) ) supports storage units
+        
+        .. note::
+            Currently this stops the computation of the environment and lead to a game over. 
+            
+            This behaviour might change in the future.
         """
         self.skip_if_needed()
         backend = self.aux_make_backend()
@@ -990,11 +1049,11 @@ class AAATestBackendAPI(MakeBackend):
         if not isinstance(error, BackendError):
             warnings.warn("The error returned by your backend when it stopped (due to disconnected gen) should preferably inherit from BackendError")
 
-    def test_22_islanded_grid_make_divergence(self):
-        """Tests that when the grid is split in two different "sub_grid" it makes the runpf diverge both in AC and DC
+    def test_22_islanded_grid_stops_computation(self):
+        """Tests that when the grid is split in two different "sub_grid" is spotted by the `run_pf` method and forwarded to grid2op by returining `False, an_exception` (in AC and DC)
         
         For information, this is suppose to make a subgrid with substation 5, 11 and 12 on one side
-        and all the rest on the other.
+        and all the rest on the other (and works only for educ_case14_storage grid or equivalent).
         
         
         This test supposes that :
@@ -1005,6 +1064,11 @@ class AAATestBackendAPI(MakeBackend):
         - backend.reset() is implemented
         
         NB: this test is skipped if your backend does not (yet :-) ) supports storage units
+        
+        .. note::
+            Currently this stops the computation of the environment and lead to a game over. 
+            
+            This behaviour might change in the future.
         """
         self.skip_if_needed()
         backend = self.aux_make_backend()
@@ -1215,4 +1279,256 @@ class AAATestBackendAPI(MakeBackend):
         p_or_cpy, *_ = backend_cpy.lines_or_info()
         assert not np.allclose(p_or, p_or_cpy), (f"The p_or for your backend and its copy are identical though one has been modify and not the other. "
                                                   "It is likely that backend.copy implementation does not perform a deep copy")            
+
+    def test_27_topo_vect_disconnect(self):    
+        """Tests that the topo_vect vector is properly computed in some
+        atomic cases (disconnection of elements that can be disconnected)
+        
+        This test supposes that :
+        
+        - backend.load_grid(...) is implemented
+        - backend.runpf() (AC mode) is implemented
+        - backend.apply_action() for all types of action
+        - backend.reset() is implemented
+        - backend.get_topo_vect() is implemented        
+        
+        NB: part of this test is skipped if your backend does not support shunts
+        NB: part of this test is skipped if your backend does not support storage units
+            or if there are no storage units on the grid you test it on.
+            
+        """
+        self.skip_if_needed()
+        backend = self.aux_make_backend()
+        cls = type(backend)
+        
+        res = backend.runpf(is_dc=False)
+        topo_vect_orig = self._aux_check_topo_vect(backend)
+        
+        # disconnect line
+        line_id = 0
+        backend.reset(self.get_path(), self.get_casefile())
+        action = type(backend)._complete_action_class()
+        action.update({"set_line_status": [(line_id, -1)]})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)
+        res = backend.runpf(is_dc=False)  
+        topo_vect = self._aux_check_topo_vect(backend)
+        error_msg = (f"Line {line_id} has been disconnected, yet according to 'topo_vect' "
+                     f"is still connected (origin side) to busbar {topo_vect[cls.line_or_pos_topo_vect[line_id]]}")
+        assert topo_vect[cls.line_or_pos_topo_vect[line_id]] == -1, error_msg
+        error_msg = (f"Line {line_id} has been disconnected, yet according to 'topo_vect' "
+                     f"is still connected (ext side) to busbar {topo_vect[cls.line_ex_pos_topo_vect[line_id]]}")
+        assert topo_vect[cls.line_ex_pos_topo_vect[line_id]] == -1, error_msg
+        
+        # disconnect storage
+        if cls.n_storage > 0:
+            sto_id = 0
+            backend.reset(self.get_path(), self.get_casefile())
+            action = type(backend)._complete_action_class()
+            action.update({"set_bus": {"storages_id": [(sto_id, -1)]}})
+            bk_act = type(backend).my_bk_act_class()
+            bk_act += action
+            backend.apply_action(bk_act)
+            res = backend.runpf(is_dc=False)  
+            topo_vect = self._aux_check_topo_vect(backend)
+            error_msg = (f"Storage {sto_id} has been disconnected, yet according to 'topo_vect' "
+                        f"is still connected (origin side) to busbar {topo_vect[cls.storage_pos_topo_vect[line_id]]}")
+            assert topo_vect[cls.storage_pos_topo_vect[sto_id]] == -1, error_msg
+        else:
+             warnings.warn(f"{type(self).__name__} test_27_topo_vect_disconnect: This test is not performed in depth as your backend does not support storage units (or there are none on the grid)")
+            
+        # disconnect shunt 
+        if not cls.shunts_data_available:
+             warnings.warn(f"{type(self).__name__} test_27_topo_vect_disconnect: This test is not performed in depth as your backend does not support shunts data")
+        elif cls.n_shunt == 0:
+             warnings.warn(f"{type(self).__name__} test_27_topo_vect_disconnect The grid you used for testing does not contain any shunt, this test is not performed in depth")
+        else:
+            # so cls.shunts_data_available and cls.n_shunt >= 1
+            shunt_id = 0
+            backend.reset(self.get_path(), self.get_casefile())
+            action = type(backend)._complete_action_class()
+            action.update({"shunt": {"shunt_bus": [(shunt_id, -1)]}})
+            bk_act = type(backend).my_bk_act_class()
+            bk_act += action
+            backend.apply_action(bk_act)
+            res = backend.runpf(is_dc=False)  
+            topo_vect = self._aux_check_topo_vect(backend)
+            error_msg = (f"Disconnecting a shunt should have no impact on the topo_vect vector "
+                         f"as shunt are not taken into account in this")
+            assert (topo_vect == topo_vect_orig).all(), error_msg
     
+    def _aux_aux_get_line(self, el_id, el_to_subid, line_xx_to_subid):
+        sub_id = el_to_subid[el_id]
+        if (line_xx_to_subid == sub_id).sum() >= 2:
+            return True, np.where(line_xx_to_subid == sub_id)[0][0]
+        elif (line_xx_to_subid == sub_id).sum() == 1:
+            return False, np.where(line_xx_to_subid == sub_id)[0][0]
+        else:
+            return None
+        
+    def _aux_get_lines(self, cls, el_id, el_to_subid):
+        or_id = None
+        ex_id = None
+        
+        line_or_maybe = self._aux_aux_get_line(el_id, el_to_subid, cls.line_or_to_subid)
+        if line_or_maybe is not None:
+            can_do_or, or_id = line_or_maybe
+            if can_do_or:
+                return or_id, ex_id
+        line_ex_maybe = self._aux_aux_get_line(el_id, el_to_subid, cls.line_ex_to_subid)
+        
+        if line_ex_maybe is None:
+            if line_or_maybe is None:
+                # not possible for this el_id
+                return None
+            if not can_do_or:
+                # only one line to this substation (or side)
+                return None
+        else:
+            # line_ex_maybe is not None
+            if line_or_maybe is None:
+                # only one line to this substation (ex side)
+                return None
+            can_do_ex, ex_id = line_ex_maybe
+            if can_do_ex:
+                # 2 ext lines are connected I return 1
+                return None, ex_id
+            else:
+                # one "or" and one "ex" I return the or
+                return or_id, None
+    
+    def _aux_check_el_generic(self, backend, busbar_id,
+                              nb_el, el_to_subid, 
+                              el_nm, el_key, el_pos_topo_vect):
+        cls = type(backend)
+        # try to find a line with which an element of this type can be moved
+        # we do that to avoid avoid isolated element on the grid
+        res = None
+        el_id = -1
+        while res is None:
+            el_id += 1
+            if el_id >= nb_el:
+                break
+            res = self._aux_get_lines(cls, el_id, el_to_subid)
+        if res is None:
+            # there would be an isolated element if I move all element of this type, 
+            # I cannot perform the test, probably a more suitable grid could be used.
+            warnings.warn(f"{type(self).__name__} test_28_topo_vect_set: The grid you provide does not "
+                          f"allow to set_bus with {el_nm}, because no {el_nm} is "
+                          f"connected to a substation with at least 2 powerlines. "
+                          f"You need to change the powergrid used for this test if you "
+                          f"want to perform it in depth.")
+            return
+        
+        # prepare the action to move the element and the line
+        or_id, ex_id = res
+        if or_id is not None:
+            key_ = "lines_or_id"
+            val = [(or_id, busbar_id)]
+        else:
+            key_ = "lines_ex_id"
+            val = [(ex_id, busbar_id)]
+            
+        action = type(backend)._complete_action_class()
+        action.update({"set_bus": {
+                        el_key: [(el_id, busbar_id)],  # move the element
+                        key_: val  # move the line
+                        }})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)  # apply the action
+        res = backend.runpf(is_dc=False)  
+        # now check the topology vector
+        topo_vect = self._aux_check_topo_vect(backend)
+        error_msg = (f"{el_nm} {el_id} has been moved to busbar {busbar_id}, yet according to 'topo_vect' "
+                     f"it is connected to busbar {topo_vect[el_pos_topo_vect[el_id]]}")
+
+        assert topo_vect[el_pos_topo_vect[el_id]] == busbar_id, error_msg
+    
+    def test_28_topo_vect_set(self):    
+        """Tests that the topo_vect vector is properly computed in some
+        atomic cases (moved elements)
+        
+        This test supposes that :
+        
+        - backend.load_grid(...) is implemented
+        - backend.runpf() (AC mode) is implemented
+        - backend.apply_action() for all types of action
+        - backend.reset() is implemented
+        - backend.get_topo_vect() is implemented        
+        
+        """
+        self.skip_if_needed()
+        backend = self.aux_make_backend()
+        cls = type(backend)
+        
+        res = backend.runpf(is_dc=False)
+        topo_vect_orig = self._aux_check_topo_vect(backend)
+        
+        # line or
+        line_id = 0
+        busbar_id = 2
+        backend.reset(self.get_path(), self.get_casefile())
+        action = type(backend)._complete_action_class()
+        action.update({"set_bus": {"lines_or_id": [(line_id, busbar_id)]}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)
+        res = backend.runpf(is_dc=False)  
+        topo_vect = self._aux_check_topo_vect(backend)
+        error_msg = (f"Line {line_id} (or. side) has been moved to busbar {busbar_id}, yet according to 'topo_vect' "
+                     f"is still connected (origin side) to busbar {topo_vect[cls.line_or_pos_topo_vect[line_id]]}")
+        assert topo_vect[cls.line_or_pos_topo_vect[line_id]] == busbar_id, error_msg
+        
+        # line ex
+        line_id = 0
+        busbar_id = 2
+        backend.reset(self.get_path(), self.get_casefile())
+        action = type(backend)._complete_action_class()
+        action.update({"set_bus": {"lines_ex_id": [(line_id, busbar_id)]}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)
+        res = backend.runpf(is_dc=False)  
+        topo_vect = self._aux_check_topo_vect(backend)
+        error_msg = (f"Line {line_id} (ex. side) has been moved to busbar {busbar_id}, yet according to 'topo_vect' "
+                     f"is still connected (ext side) to busbar {topo_vect[cls.line_ex_pos_topo_vect[line_id]]}")
+        assert topo_vect[cls.line_ex_pos_topo_vect[line_id]] == busbar_id, error_msg
+        
+        # load
+        backend.reset(self.get_path(), self.get_casefile())
+        busbar_id = 2
+        nb_el = cls.n_load
+        el_to_subid = cls.load_to_subid
+        el_nm = "load"
+        el_key = "loads_id"
+        el_pos_topo_vect = cls.load_pos_topo_vect
+        self._aux_check_el_generic(backend, busbar_id, nb_el, el_to_subid, 
+                                   el_nm, el_key, el_pos_topo_vect)
+        
+        # generator
+        backend.reset(self.get_path(), self.get_casefile())
+        busbar_id = 2
+        nb_el = cls.n_gen
+        el_to_subid = cls.gen_to_subid
+        el_nm = "generator"
+        el_key = "generators_id"
+        el_pos_topo_vect = cls.gen_pos_topo_vect
+        self._aux_check_el_generic(backend, busbar_id, nb_el, el_to_subid, 
+                                   el_nm, el_key, el_pos_topo_vect)
+        
+        # storage
+        if cls.n_storage > 0:
+            backend.reset(self.get_path(), self.get_casefile())
+            busbar_id = 2
+            nb_el = cls.n_storage
+            el_to_subid = cls.storage_to_subid
+            el_nm = "storage"
+            el_key = "storages_id"
+            el_pos_topo_vect = cls.storage_pos_topo_vect
+            self._aux_check_el_generic(backend, busbar_id, nb_el, el_to_subid, 
+                                       el_nm, el_key, el_pos_topo_vect)
+        else:
+             warnings.warn(f"{type(self).__name__} test_28_topo_vect_set: This test is not performed in depth as your backend does not support storage units (or there are none on the grid)")
+            
