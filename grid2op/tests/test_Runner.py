@@ -501,6 +501,10 @@ class TestRunner(HelperTests, unittest.TestCase):
             "1.8.1",
             # "1.9.0",  # this one is bugy I don"t know why
             "1.9.1",
+            "1.9.2",
+            "1.9.3",
+            "1.9.4",
+            "1.9.5",
         ]
         curr_version = "test_version"
         assert (
