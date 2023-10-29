@@ -701,7 +701,7 @@ class Environment(BaseEnv):
             from grid2op import make
             from grid2op.BaseAgent import DoNothingAgent
 
-            env = make("l2rpn_case14_sandbox")  # create an environment
+            env = make("rte_case14_realistic")  # create an environment
             agent = DoNothingAgent(env.action_space)  # create an BaseAgent
 
             for i in range(10):
@@ -721,7 +721,7 @@ class Environment(BaseEnv):
             from grid2op import make
             from grid2op.BaseAgent import DoNothingAgent
 
-            env = make("l2rpn_case14_sandbox")  # create an environment
+            env = make("rte_case14_realistic")  # create an environment
             agent = DoNothingAgent(env.action_space)  # create an BaseAgent
             scenario_order = [1,2,3,4,5,10,8,6,5,7,78, 8]
             for id_ in scenario_order:
@@ -868,7 +868,7 @@ class Environment(BaseEnv):
         self.logger = logger
         return self
 
-    def reset(self) -> BaseObservation:
+    def normal_reset(self):
         """
         Reset the environment to a clean state.
         It will reload the next chronics if any. And reset the grid to a clean state.
@@ -934,17 +934,24 @@ class Environment(BaseEnv):
         if self._init_obs is not None:
             self._reset_to_orig_state(self._init_obs)
 
-        # set initial outage
+    def reset(self) -> BaseObservation:
+        if not hasattr(self, 'outage_idx'):
+            self.outage_idx = 0
+            self.num_outages = self.n_line
 
-        obs = self.get_obs()
-        line_id_to_set = [self.outage_idx]
-        act = self.action_space()
-        act.line_set_status = [[l_id, -1] for l_id in line_id_to_set]
-        obs, _, _, _ = self.step(act)
+        obs = None
 
-        self.outage_idx = (self.outage_idx + 1) % self.num_outages
+        done = True
+        while done:
+            self.normal_reset()
+            line_id_to_set = [self.outage_idx]
+            act = self.action_space()
+            act.line_set_status = [[l_id, -1] for l_id in line_id_to_set]
+            obs, _, done, _ = self.step(act)
+            self.outage_idx = (self.outage_idx + 1) % self.num_outages
         
-        return obs
+        return obs if obs is not None else self.get_obs()
+
     def render(self, mode="rgb_array"):
         """
         Render the state of the environment on the screen, using matplotlib
