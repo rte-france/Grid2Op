@@ -329,6 +329,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # observation
         self.current_obs: Optional[BaseObservation] = None
         self._line_status: np.ndarray = None
+        
+        # ZK: the line status in previous step 
+        self.old_line_status: np.ndarray = None
 
         self._ignore_min_up_down_times: bool = self._parameters.IGNORE_MIN_UP_DOWN_TIME
         self._forbid_dispatch_off: bool = (
@@ -3110,6 +3113,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         lines_attacked, subs_attacked = None, None
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
+        
+        #ZK: line status in previous time step.
+        self.old_line_status = init_line_status
+        
         self.nb_time_step += 1
         self._disc_lines[:] = -1
 
@@ -3217,13 +3224,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
                     action, init_line_status, new_p, except_
                 )
+                
             else:
                 has_error = True
 
         except StopIteration:
             # episode is over
             is_done = True
-            
+             
         self._backend_action.reset()
         end_step = time.perf_counter()
         self._time_step += end_step - beg_step
@@ -3240,12 +3248,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "opponent_attack_line": lines_attacked,
             "opponent_attack_sub": subs_attacked,
             "opponent_attack_duration": attack_duration,
-            "exception": except_,
+            "exception": except_
         }
 
         if self.backend.detailed_infos_for_cascading_failures:
             self.infos["detailed_infos_for_cascading_failures"] = detailed_info
-            
+        
+        #ZK: if no more outages, terminate
+        if not self.old_line_status.all():
+            is_done = is_done or sum(self.old_line_status) - sum(self._line_status) == 0
+                    
         self.done = self._is_done(has_error, is_done)
         self.current_reward, other_reward = self._get_reward(
             action,
@@ -3276,6 +3288,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # TODO documentation on all the possible way to be illegal now
         if self.done:
             self.__is_init = False
+          
         return self.current_obs, self.current_reward, self.done, self.infos
 
     def _get_reward(self, action, has_error, is_done, is_illegal, is_ambiguous):
@@ -3303,7 +3316,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _is_done(self, has_error, is_done):
         no_more_data = self.chronics_handler.done()
-        return has_error or is_done or no_more_data
+        return has_error or is_done or no_more_data 
 
     def _reset_vectors_and_timings(self):
         """
