@@ -182,6 +182,32 @@ class Environment(BaseEnv):
         self.num_outages = self.n_line
         self.outage_idx = 0
         
+        # ZK: initialize initial outages:
+        def getInitialOutages(linename):
+            linename1 = list(map(lambda x: [int(i) for i in x.split('_')], linename))
+            busmat1 = np.array([[int(-1) for j in range(self.n_sub)] for i in range(self.n_sub)])
+            for l in linename1:
+                busmat1[l[0],l[1]] = l[2]
+                busmat1[l[1],l[0]] = l[2]
+
+            n1 = [[l[2]] for l in linename1]
+
+            from itertools import combinations
+            n2 = [[] for i in range(len(busmat1))]
+            for i in range(len(busmat1)):
+                x = busmat1[i]
+                x = x[x>-1]
+                if len(x)>0:
+                    n2[i] = list(combinations(x, 2))
+            n2 = [item for sublist in n2 for item in sublist]
+            n2 = list(map(list, n2))
+
+            initialOutages =  n1 + n2
+
+            return initialOutages
+        self.initial_outages = getInitialOutages(self.backend.name_line)
+        self.n_initial_outages = len(self.initial_outages)
+        
     def _init_backend(
         self,
         chronics_handler,
@@ -941,14 +967,15 @@ class Environment(BaseEnv):
 
         obs = None
 
-        done = True
-        while done:
-            self.normal_reset()
-            line_id_to_set = [self.outage_idx]
-            act = self.action_space()
-            act.line_set_status = [[l_id, -1] for l_id in line_id_to_set]
-            obs, _, done, _ = self.step(act)
-            self.outage_idx = (self.outage_idx + 1) % self.num_outages
+        self.normal_reset()
+        line_id_to_set = self.initial_outages[self.outage_idx]
+        act = self.action_space()
+        act.line_set_status = [[l_id, -1] for l_id in line_id_to_set]
+        obs, _, done, _ = self.step(act)
+        self.outage_idx = (self.outage_idx + 1) % self.n_initial_outages
+        if done:
+            print("system done after initial outages")
+            return None
         
         return obs if obs is not None else self.get_obs()
 

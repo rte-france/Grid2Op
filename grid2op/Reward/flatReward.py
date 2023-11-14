@@ -33,10 +33,10 @@ class FlatReward(BaseReward):
 
     """
 
-    def __init__(self, per_timestep=1, logger=None):
+    def __init__(self, per_timestep=-1, logger=None):
         BaseReward.__init__(self, logger=logger)
         self.per_timestep = dt_float(per_timestep)
-        self.reward_min = dt_float(0.0)
+        self.reward_min = dt_float(-100)
         self.reward_max = dt_float(per_timestep)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
