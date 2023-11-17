@@ -15,6 +15,7 @@ import argparse
 from grid2op.Exceptions import Grid2OpException
 from grid2op.PlotGrid.PlotMatplot import PlotMatplot
 from grid2op.Episode.EpisodeData import EpisodeData
+from grid2op.Episode.CompactEpisodeData import CompactEpisodeData
 
 
 class EpisodeReplay(object):
@@ -76,6 +77,7 @@ class EpisodeReplay(object):
         load_info="p",
         gen_info="p",
         resolution=(1280, 720),
+        compact=False,
     ):
         """
         When called, this function will start the display of the episode in a "mini movie" format.
@@ -114,6 +116,10 @@ class EpisodeReplay(object):
 
         resolution: ``tuple``
             Defaults to (1280, 720). The resolution to use for the gif.
+
+        compact: ``bool``
+            Defaults to False. Whether to load from the Compact Episode Data format. 
+            Requires episode data to have been stored using :class:`CompactEpisodeData`.
         """
         # Check args
         path_ep = os.path.join(self.agent_path, episode_id)
@@ -121,9 +127,14 @@ class EpisodeReplay(object):
             raise Grid2OpException('No episode is found at "{}".'.format(path_ep))
 
         # Load episode observations
-        self.episode_data = EpisodeData.from_disk(
-            agent_path=self.agent_path, name=episode_id
-        )
+        if compact:
+            self.episode_data = CompactEpisodeData.from_disk(
+                path=self.agent_path, ep_id=episode_id,
+            )
+        else:
+            self.episode_data = EpisodeData.from_disk(
+                agent_path=self.agent_path, name=episode_id
+            )
         all_obs = [el for el in self.episode_data.observations]
         # Create a plotter
         width, height = resolution
