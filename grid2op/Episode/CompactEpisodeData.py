@@ -87,7 +87,7 @@ class CompactEpisodeData():
         episode_store.from_disk(ep_id)
     """
         
-    def __init__(self, env, obs, exp_dir:p|str|None, ep_id:str=None):
+    def __init__(self, env, obs, exp_dir, ep_id:str=None):
         """
         Creates Dictionary of Numpy Arrays for storing the details of a Grid2Op Episode (actions, observations, etc.).
         Pre-allocating the arrays like this is more efficient than appending to a mutable datatype (like a list).
@@ -284,7 +284,7 @@ class CompactEpisodeData():
             self.store_arrays()
 
     @classmethod
-    def from_disk(cls, path:p|str, ep_id:str):
+    def from_disk(cls, path, ep_id:str):
         """
         Load EpisodeStore data from disk for a specific episode.
         """
