@@ -3114,12 +3114,34 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
         
+        ##############################################
+        #ZK: apply initial outages
+        
+        if not hasattr(self, 'outage_idx'):
+            self.outage_idx = 0
+            self.num_outages = self.n_line
+        if hasattr(self, "initial_outages") and self.nb_time_step == 0 :  
+            verbose = False
+            if verbose: print("step:", self.nb_time_step)
+            line_id_to_set = self.initial_outages[self.outage_idx]
+            act = self.action_space()
+            act.line_set_status = [[l_id, -1] for l_id in line_id_to_set]
+            # perform the disconnection action
+            for l in line_id_to_set:     
+                self.backend._disconnect_line(l)
+            if verbose: print("apply initial outages:", line_id_to_set)
+
+            self.outage_idx = (self.outage_idx + 1) % self.n_initial_outages
+        
         #ZK: line status in previous time step.
         self.old_line_status = init_line_status
         
+        
+        
+        ##############################################
         self.nb_time_step += 1
-        self._disc_lines[:] = -1
-
+        self._disc_lines[:] = -1 
+        
         beg_step = time.perf_counter()
         self._last_obs : Optional[BaseObservation] = None
         self._forecasts = None  # force reading the forecast from the time series
@@ -3255,7 +3277,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.infos["detailed_infos_for_cascading_failures"] = detailed_info
         
         #ZK: if no more outages, terminate
-        if not self.old_line_status.all():
+        if not self.old_line_status.all() and self.nb_time_step > 0:
             is_done = is_done or sum(self.old_line_status) - sum(self._line_status) == 0
                     
         self.done = self._is_done(has_error, is_done)

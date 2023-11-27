@@ -177,7 +177,7 @@ class Environment(BaseEnv):
         )
         self._actionClass_orig = actionClass
         self._observationClass_orig = observationClass
-
+        ######################################################
         # initialize outage index
         self.num_outages = self.n_line
         self.outage_idx = 0
@@ -205,9 +205,11 @@ class Environment(BaseEnv):
             initialOutages =  n1 + n2
 
             return initialOutages
+        
         self.initial_outages = getInitialOutages(self.backend.name_line)
         self.n_initial_outages = len(self.initial_outages)
-        
+        ################################################
+
     def _init_backend(
         self,
         chronics_handler,
@@ -968,6 +970,7 @@ class Environment(BaseEnv):
         obs = None
 
         self.normal_reset()
+        '''
         line_id_to_set = self.initial_outages[self.outage_idx]
         act = self.action_space()
         act.line_set_status = [[l_id, -1] for l_id in line_id_to_set]
@@ -976,7 +979,7 @@ class Environment(BaseEnv):
         if done:
             print("system done after initial outages")
             return None
-        
+       ''' 
         return obs if obs is not None else self.get_obs()
 
     def render(self, mode="rgb_array"):

@@ -1009,7 +1009,14 @@ class PandaPowerBackend(Backend):
                     self._pf_init = "results"
                 else:
                     self._pf_init = "auto"
-
+                '''zk try
+                try:    
+                    if isolated_load:
+                        self._grid.load["p_mw"][isolated_load] = [0 for i in isolated_node]
+                    print("loads: ", self._grid.load["p_mw"][isolated_load])
+                except:
+                    print("no isolated_load: ")
+                '''
                 if (~self._grid.load["in_service"]).any():
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
@@ -1061,7 +1068,7 @@ class PandaPowerBackend(Backend):
                 self.load_q[:],
                 self.load_v[:],
                 self.load_theta[:],
-            ) = self._loads_info()
+            ) = self._loads_info()            
             if not is_dc:
                 if not np.all(np.isfinite(self.load_v)):
                     # TODO see if there is a better way here
