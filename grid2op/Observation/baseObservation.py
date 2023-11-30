@@ -583,7 +583,7 @@ class BaseObservation(GridObjects):
         self._vectorized = None
 
         # for shunt (these are not stored!)
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self._shunt_p = np.empty(shape=self.n_shunt, dtype=dt_float)
             self._shunt_q = np.empty(shape=self.n_shunt, dtype=dt_float)
             self._shunt_v = np.empty(shape=self.n_shunt, dtype=dt_float)
@@ -680,7 +680,7 @@ class BaseObservation(GridObjects):
             "curtailment_limit_effective",
         ]
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             attr_vect += ["_shunt_bus", "_shunt_v", "_shunt_q", "_shunt_p"]
 
         for attr_nm in attr_simple:
@@ -1220,7 +1220,7 @@ class BaseObservation(GridObjects):
         self._connectivity_matrix_ = None
         self._bus_connectivity_matrix_ = None
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self._shunt_p[:] = np.NaN
             self._shunt_q[:] = np.NaN
             self._shunt_v[:] = np.NaN
@@ -1324,7 +1324,7 @@ class BaseObservation(GridObjects):
         # overflow
         self.timestep_overflow[:] = 0
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self._shunt_p[:] = 0.0
             self._shunt_q[:] = 0.0
             self._shunt_v[:] = 0.0
@@ -1989,7 +1989,7 @@ class BaseObservation(GridObjects):
             self.line_ex_pos_topo_vect, self.line_ex_to_subid
         )
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             sh_bus = 1 * self._shunt_bus
             sh_bus[sh_bus > 0] = (
                 self.shunt_to_subid[sh_bus > 0] * (sh_bus[sh_bus > 0] - 1)
@@ -2013,7 +2013,7 @@ class BaseObservation(GridObjects):
             or_vect = self.p_or
             ex_vect = self.p_ex
             stor_vect = self.storage_power
-            if self.shunts_data_available:
+            if type(self).shunts_data_available:
                 sh_vect = self._shunt_p
         else:
             prod_vect = self.gen_q
@@ -2021,7 +2021,7 @@ class BaseObservation(GridObjects):
             or_vect = self.q_or
             ex_vect = self.q_ex
             stor_vect = np.zeros(self.n_storage, dtype=dt_float)
-            if self.shunts_data_available:
+            if type(self).shunts_data_available:
                 sh_vect = self._shunt_q
 
         nb_lor = lor_conn.sum()
@@ -2062,7 +2062,7 @@ class BaseObservation(GridObjects):
             )
             data[bus_stor] -= map_mat.dot(stor_vect[stor_conn])
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             # handle shunts
             nb_shunt = sh_conn.sum()
             if nb_shunt:
@@ -3873,7 +3873,7 @@ class BaseObservation(GridObjects):
             self.gen_margin_down[:] = 0.0
 
         # handle shunts (if avaialble)
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             sh_p, sh_q, sh_v, sh_bus = backend.shunt_info()
             self._shunt_p[:] = sh_p
             self._shunt_q[:] = sh_q

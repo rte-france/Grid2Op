@@ -40,7 +40,7 @@ class VoltageOnlyAction(BaseAction):
         """
         BaseAction.__init__(self)
 
-        if VoltageOnlyAction._shunt_added is False and self.shunts_data_available:
+        if VoltageOnlyAction._shunt_added is False and type(self).shunts_data_available:
             VoltageOnlyAction.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
             VoltageOnlyAction.authorized_keys.add("shunt")
             VoltageOnlyAction._shunt_added = True

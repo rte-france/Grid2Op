@@ -1264,7 +1264,7 @@ class GridObjects:
         return res
 
     def _init_class_attr(self, obj=None):
-        """init the class attribute from an instance of the class
+        """Init the class attribute from an instance of the class
         
         THIS IS NOT A CLASS ATTR
         
@@ -2703,7 +2703,7 @@ class GridObjects:
             my_class = GridObjects._build_cls_from_import(name_res, gridobj._PATH_ENV)
             if my_class is not None:
                 return my_class
-            
+        
         if not gridobj.shunts_data_available:
             # if you import env for backend
             # with shunt and without shunt, then
@@ -4363,7 +4363,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     grid_layout = {grid_layout_str}
 
     # shunt data, not available in every backend
-    shunts_data_available = {"True" if cls.redispatching_unit_commitment_availble else "False"}
+    shunts_data_available = {"True" if cls.shunts_data_available else "False"}
     n_shunt = {cls.n_shunt}
     name_shunt = np.array([{name_shunt_str}])
     shunt_to_subid = {shunt_to_subid_str}

@@ -50,6 +50,8 @@ Change Log
   the `topo_vect` returns value between 1 and 2.
 - [IMPROVED] the function to check backend now also check the `topo_vect`
   for each type of elements.
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/561 (indent issue)
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/550 : issue with `shunts_data_available` now better handled
 
 [1.9.6] - 2023-10-26
 ----------------------

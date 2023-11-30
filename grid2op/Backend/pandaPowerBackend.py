@@ -107,7 +107,8 @@ class PandaPowerBackend(Backend):
         # and use "env" as "any open ai gym" environment.
 
     """
-
+    shunts_data_available = True
+    
     def __init__(
         self,
         detailed_infos_for_cascading_failures : bool=False,
@@ -713,7 +714,7 @@ class PandaPowerBackend(Backend):
         self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(
             dt_float
         )
-        self.shunts_data_available = True
+        # self.shunts_data_available = True  # TODO shunts_data_available
 
         # store the topoid -> objid
         self._big_topo_to_obj = [(None, None) for _ in range(self.dim_topo)]
