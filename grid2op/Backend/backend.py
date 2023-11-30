@@ -25,14 +25,12 @@ except ImportError:
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
     EnvError,
-    DivergingPowerFlow,
     IncorrectNumberOfElements,
     IncorrectNumberOfLoads,
-)
-from grid2op.Exceptions import (
     IncorrectNumberOfGenerators,
     BackendError,
     IncorrectNumberOfLines,
+    DivergingPowerflow,
 )
 from grid2op.Space import GridObjects
 from grid2op.Exceptions import Grid2OpException
@@ -941,7 +939,7 @@ class Backend(GridObjects, ABC):
 
         Raises
         ------
-        exc_: :class:`grid2op.Exceptions.DivergingPowerFlow`
+        exc_: :class:`grid2op.Exceptions.DivergingPowerflow`
             In case of divergence of the powerflow
 
         """
@@ -952,13 +950,13 @@ class Backend(GridObjects, ABC):
         except Grid2OpException as exc_:
             exc_me = exc_
         except Exception as exc_:
-            exc_me = DivergingPowerFlow(
+            exc_me = DivergingPowerflow(
                 f" An unexpected error occurred during the computation of the powerflow."
                 f"The error is: \n {exc_} \n. This is game over"
             )
 
         if not conv and exc_me is None:
-            exc_me = DivergingPowerFlow(
+            exc_me = DivergingPowerflow(
                 "GAME OVER: Powerflow has diverged during computation "
                 "or a load has been disconnected or a generator has been disconnected."
             )

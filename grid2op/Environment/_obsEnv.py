@@ -9,7 +9,7 @@
 import copy
 import numpy as np
 import warnings
-from grid2op.Exceptions.EnvExceptions import EnvError
+from grid2op.Exceptions.envExceptions import EnvError
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.baseEnv import BaseEnv
