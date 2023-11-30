@@ -137,7 +137,7 @@ class __AuxGymActionSpace:
             self._init_env = None
         else:
             raise RuntimeError(
-                "GymActionSpace must be created with an Environment of an ActionSpace (or a Converter)"
+                "GymActionSpace must be created with an Environment or an ActionSpace (or a Converter)"
             )
         dict_ = {}
         # TODO Make sure it works well !
@@ -230,7 +230,7 @@ class __AuxGymActionSpace:
     def _fill_dict_act_space(self, dict_, action_space, dict_variables):
         # TODO what about dict_variables !!!
         for attr_nm, sh, dt in zip(
-            type(action_space).attr_list_vect, action_space.shape, action_space.dtype
+            action_space.attr_list_vect, action_space.shape, action_space.dtype
         ):
             if sh == 0:
                 # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes

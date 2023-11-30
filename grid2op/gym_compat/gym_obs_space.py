@@ -222,7 +222,7 @@ class __AuxGymObservationSpace:
         
         # by default consider all attributes that are vectorized    
         for attr_nm, sh, dt in zip(
-            type(observation_space).attr_list_vect,
+            observation_space.attr_list_vect,
             observation_space.shape,
             observation_space.dtype,
         ):
