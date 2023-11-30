@@ -874,9 +874,9 @@ class TestActionBase(ABC):
             tmp[-action.n_gen :] = -1
 
         # compute the "set_bus" vect
-        id_set = np.where(np.array(action.attr_list_vect) == "_set_topo_vect")[0][0]
+        id_set = np.where(np.array(type(action).attr_list_vect) == "_set_topo_vect")[0][0]
         size_before = 0
-        for el in action.attr_list_vect[:id_set]:
+        for el in type(action).attr_list_vect[:id_set]:
             arr_ = action._get_array_from_attr_name(el)
             size_before += arr_.shape[0]
         tmp[size_before : (size_before + action.dim_topo)] = np.array(
@@ -941,11 +941,11 @@ class TestActionBase(ABC):
                 0,
             ]
         )
-        id_change = np.where(np.array(action.attr_list_vect) == "_change_bus_vect")[0][
+        id_change = np.where(np.array(type(action).attr_list_vect) == "_change_bus_vect")[0][
             0
         ]
         size_before = 0
-        for el in action.attr_list_vect[:id_change]:
+        for el in type(action).attr_list_vect[:id_change]:
             arr_ = action._get_array_from_attr_name(el)
             size_before += arr_.shape[0]
         tmp[size_before : (size_before + action.dim_topo)] = 1.0 * np.array(

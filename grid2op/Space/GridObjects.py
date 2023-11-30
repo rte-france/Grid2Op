@@ -818,7 +818,7 @@ class GridObjects:
         ``NotImplementedError``
 
         """
-        if self.attr_list_vect is None:
+        if type(self).attr_list_vect is None:
             raise IncorrectNumberOfElements(
                 "attr_list_vect attribute is not defined for class {}. "
                 "It is not possible to convert it from/to a vector, "
@@ -887,7 +887,7 @@ class GridObjects:
             self._raise_error_attr_list_none()
             li_vect = [
                 self._get_array_from_attr_name(el).astype(dt_float)
-                for el in self.attr_list_vect
+                for el in type(self).attr_list_vect
             ]
             if li_vect:
                 self._vectorized = np.concatenate(li_vect)
@@ -945,7 +945,7 @@ class GridObjects:
 
         """
         # TODO optimization for action or observation, to reduce json size, for example using the see `to_json`
-        all_keys = self.attr_list_vect + self.attr_list_json
+        all_keys = type(self).attr_list_vect + type(self).attr_list_json
         for key, array_ in dict_.items():
             if key not in all_keys:
                 raise AmbiguousAction(f'Impossible to recognize the key "{key}"')
@@ -1019,7 +1019,7 @@ class GridObjects:
         """
         self._raise_error_attr_list_none()
         res = np.array(
-            [self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect]
+            [self._get_array_from_attr_name(el).shape[0] for el in type(self).attr_list_vect]
         ).astype(dt_int)
         return res
 
@@ -1064,7 +1064,7 @@ class GridObjects:
 
         self._raise_error_attr_list_none()
         res = np.array(
-            [self._get_array_from_attr_name(el).dtype for el in self.attr_list_vect]
+            [self._get_array_from_attr_name(el).dtype for el in type(self).attr_list_vect]
         )
         return res
 
@@ -1161,7 +1161,7 @@ class GridObjects:
 
         self._raise_error_attr_list_none()
         prev_ = 0
-        for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
+        for attr_nm, sh, dt in zip(type(self).attr_list_vect, self.shape(), self.dtype()):
             tmp = vect[prev_ : (prev_ + sh)]
 
             # TODO a flag that says "default Nan" for example for when attributes are initialized with

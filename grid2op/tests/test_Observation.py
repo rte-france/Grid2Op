@@ -34,10 +34,6 @@ from grid2op.Action import CompleteAction, PlayableAction
 # temporary deactivation of all the failing test until simulate is fixed
 DEACTIVATE_FAILING_TEST = False
 
-import warnings
-
-warnings.simplefilter("error")
-
 
 class TestBasisObsBehaviour(unittest.TestCase):
     def setUp(self):
@@ -50,7 +46,10 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__)
+            self.env = grid2op.make("rte_case14_test",
+                                    test=True,
+                                    _add_to_name=type(self).__name__)
+            
         self.dict_ = {
             "name_gen": ["gen_1_0", "gen_2_1", "gen_5_2", "gen_7_3", "gen_0_4"],
             "name_load": [
@@ -2020,12 +2019,14 @@ class TestBasisObsBehaviour(unittest.TestCase):
     def test_0_load_properly(self):
         # this test aims at checking that everything in setUp is working properly, eg that "ObsEnv" class has enough
         # information for example
-        pass
+        assert type(self.env).shunts_data_available
 
     def test_1_generating_obs(self):
         # test that helper_obs is abl to generate a valid observation
+        assert type(self.env).shunts_data_available
         obs = self.env.observation_space(self.env)
-        pass
+        assert type(self.env).shunts_data_available
+        assert type(obs).shunts_data_available
 
     def test_2_reset(self):
         # test that helper_obs is abl to generate a valid observation

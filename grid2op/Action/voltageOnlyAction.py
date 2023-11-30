@@ -61,7 +61,7 @@ class VoltageOnlyAction(BaseAction):
         """
         if self._dict_inj:
             for el in self._dict_inj:
-                if el not in self.attr_list_vect:
+                if el not in type(self).attr_list_vect:
                     raise AmbiguousAction(
                         'Impossible to modify something different than "prod_v" using '
                         '"VoltageOnlyAction" action.'
