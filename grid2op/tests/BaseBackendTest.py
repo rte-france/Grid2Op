@@ -2079,7 +2079,6 @@ class BaseTestShuntAction(MakeBackend):
     def test_shunt_ambiguous_id_incorrect(self):
         self.skip_if_needed()
         backend = self.make_backend()
-        type(backend)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with grid2op.make(
@@ -2088,7 +2087,7 @@ class BaseTestShuntAction(MakeBackend):
                 gamerules_class=AlwaysLegal,
                 action_class=CompleteAction,
                 backend=backend,
-                _add_to_name=type(self).__name__
+                _add_to_name=type(self).__name__ + "_1"
             ) as env_case2:
                 with self.assertRaises(AmbiguousAction):
                     act = env_case2.action_space({"shunt": {"set_bus": [(0, 2)]}})
@@ -2097,7 +2096,6 @@ class BaseTestShuntAction(MakeBackend):
         self.skip_if_needed()
         backend1 = self.make_backend()
         backend2 = self.make_backend()
-        type(backend1)._clear_class_attribute()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_ref = grid2op.make(
@@ -2106,7 +2104,7 @@ class BaseTestShuntAction(MakeBackend):
                 gamerules_class=AlwaysLegal,
                 action_class=CompleteAction,
                 backend=backend1,
-                _add_to_name=type(self).__name__
+                _add_to_name=type(self).__name__  + "_2"
             )
             env_change_q = grid2op.make(
                 "rte_case14_realistic",
@@ -2114,7 +2112,7 @@ class BaseTestShuntAction(MakeBackend):
                 gamerules_class=AlwaysLegal,
                 action_class=CompleteAction,
                 backend=backend2,
-                _add_to_name=type(self).__name__
+                _add_to_name=type(self).__name__ + "_3"
             )
             param = env_ref.parameters
             param.NO_OVERFLOW_DISCONNECTION = True

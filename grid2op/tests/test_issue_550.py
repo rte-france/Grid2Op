@@ -16,9 +16,6 @@ class PandaPowerNoShunt_Test550(PandaPowerBackend):
     shunts_data_available = False  # class attribute (only one used)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-    def _init_private_attrs(self) -> None:
-        super()._init_private_attrs()
 
 
 class Issue550Tester(unittest.TestCase):
