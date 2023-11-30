@@ -495,6 +495,12 @@ class BaseAction(GridObjects):
         # sometimes this method is used...
         return self.__deepcopy__()
 
+    def shape(self):
+        return type(self).shapes()
+    
+    def dtype(self):
+        return type(self).dtypes()
+    
     def _aux_copy(self, other):
         attr_simple = [
             "_modif_inj",

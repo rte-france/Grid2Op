@@ -121,7 +121,7 @@ class ToVect(Converter):
             order_me = []
             _order_gym_2_me = np.zeros(my_type.shape[0], dtype=dt_int) - 1
             _order_me_2_gym = np.zeros(my_type.shape[0], dtype=dt_int) - 1
-            for el in type(self.init_action_space).attr_list_vect:
+            for el in self.init_action_space.attr_list_vect:
                 order_me.append(cls_gym.keys_grid2op_2_human[el])
 
             prev = 0

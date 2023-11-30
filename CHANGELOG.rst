@@ -46,6 +46,8 @@ Change Log
   instead of `from grid2op.Exceptions.XXX import PowerflowExceptions` (which you should not have done in the first place) 
   just do `from grid2op.Exceptions import PowerflowExceptions`. Expect other changes like this for other grid2op modules
   in the near future.
+- [BREAKING] change the `gridobj_cls.shape()` and `gridobj_cls.dtype()` to `gridobj_cls.shapes()` and `gridobj_cls.dtypes()`
+  to be more clear when dealing with action_space and observation_space (where `shape` and `dtype` are attribute and not functions)
 - [IMPROVED] the function to check the backend interface now also check that
   the `topo_vect` returns value between 1 and 2.
 - [IMPROVED] the function to check backend now also check the `topo_vect`

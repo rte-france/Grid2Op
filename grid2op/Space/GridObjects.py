@@ -1088,7 +1088,7 @@ class GridObjects:
             elif dtype == bool:
                 dict_[attr_nm] = [bool(el) for el in tmp]
 
-    def shape(self):
+    def shapes(self):
         """
         The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
         part of the action.
@@ -1134,7 +1134,7 @@ class GridObjects:
         ).astype(dt_int)
         return res
 
-    def dtype(self):
+    def dtypes(self):
         """
         The types of the components of the GridObjects, mainly used for gym compatibility is the shape of all part
         of the action.
@@ -1272,7 +1272,7 @@ class GridObjects:
 
         self._raise_error_attr_list_none()
         prev_ = 0
-        for attr_nm, sh, dt in zip(type(self).attr_list_vect, self.shape(), self.dtype()):
+        for attr_nm, sh, dt in zip(type(self).attr_list_vect, self.shapes(), self.dtypes()):
             tmp = vect[prev_ : (prev_ + sh)]
 
             # TODO a flag that says "default Nan" for example for when attributes are initialized with
@@ -1347,7 +1347,7 @@ class GridObjects:
             print("The size of the action space is {}".format(env.action_space.size()))
 
         """
-        res = self.shape().sum(dtype=dt_int)
+        res = self.shapes().sum(dtype=dt_int)
         return res
 
     @classmethod

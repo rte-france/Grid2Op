@@ -1448,11 +1448,11 @@ class TestActionBase(ABC):
 
     def test_sum_shape_equal_size(self):
         act = self.helper_action({})
-        assert act.size() == np.sum(act.shape())
+        assert act.size() == np.sum(act.shapes())
 
     def test_shape_correct(self):
         act = self.helper_action({})
-        assert act.shape().shape == act.dtype().shape
+        assert act.shapes().shape == act.dtypes().shape
 
     def test_redispatching(self):
         self._skipMissingKey("redispatch")

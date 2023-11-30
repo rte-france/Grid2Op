@@ -1144,6 +1144,12 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
+    def shape(self):
+        return type(self).shapes()
+    
+    def dtype(self):
+        return type(self).dtypes()
+    
     def reset(self):
         """
         INTERNAL
