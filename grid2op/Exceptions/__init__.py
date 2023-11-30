@@ -125,6 +125,8 @@ from grid2op.Exceptions.backendExceptions import (BackendError,
                                                   DisconnectedLoad,
                                                   DisconnectedGenerator,
                                                   )
+DivergingPowerFlow = DivergingPowerflow  # for compatibility with lightsim2grid
+
 
 from grid2op.Exceptions.plotExceptions import PlotError
 
