@@ -31,9 +31,9 @@ from grid2op.Exceptions import (
     BackendError,
     IncorrectNumberOfLines,
     DivergingPowerflow,
+    Grid2OpException,
 )
 from grid2op.Space import GridObjects
-from grid2op.Exceptions import Grid2OpException
 
 
 # TODO method to get V and theta at each bus, could be in the same shape as check_kirchoff
@@ -1818,7 +1818,9 @@ class Backend(GridObjects, ABC):
                 sh_q[~shunt_co] = np.NaN
                 dict_["shunt"]["shunt_p"] = sh_p
                 dict_["shunt"]["shunt_q"] = sh_q
-            act.update(dict_)
+        elif type(self).shunts_data_available and not type(obs).shunts_data_available:
+            warnings.warn("Backend supports shunt but not the observation. This behaviour is non standard.")
+        act.update(dict_)
         backend_action += act
         self.apply_action(backend_action)
 
