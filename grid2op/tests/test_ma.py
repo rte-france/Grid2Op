@@ -13,12 +13,9 @@ import numpy as np
 
 
 from grid2op import make
-from grid2op.Action import ActionSpace
-from grid2op.Action.BaseAction import BaseAction
-from grid2op.Action.PlayableAction import PlayableAction
-from grid2op.Exceptions.IllegalActionExceptions import IllegalAction
-from grid2op.Exceptions.ObservationExceptions import SimulateError
-from grid2op.Observation.completeObservation import CompleteObservation
+from grid2op.Action import ActionSpace, BaseAction, PlayableAction
+from grid2op.Exceptions import IllegalAction, SimulateError
+from grid2op.Observation import CompleteObservation
 try:
     from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
     from grid2op.multi_agent.subgridAction import SubGridAction
