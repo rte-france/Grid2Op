@@ -6,7 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from grid2op.Exceptions.Grid2OpException import Grid2OpException
+from grid2op.Exceptions import Grid2OpException
+
 
 class DomainException(Grid2OpException):
     """This class represents the exceptions that occur in the
@@ -15,11 +16,13 @@ class DomainException(Grid2OpException):
     """
     pass
 
+
 class MultiAgentStillBeta(UserWarning):
     """
     Multi agent is currently a beta feature. API is subject to change
     """
     pass
+
 
 class MissingFeature(MultiAgentStillBeta):
     """This feature is currently missing, if you need it, either implement it

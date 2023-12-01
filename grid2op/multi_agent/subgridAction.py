@@ -7,7 +7,6 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import copy
-from lib2to3.pytree import Base
 import warnings
 import numpy as np
 from typing import Tuple

@@ -8,6 +8,7 @@
 
 from numpy.random import shuffle
 
+
 def random_order(agents : list, *args, **kwargs):
     """Returns the random order
 
@@ -20,6 +21,7 @@ def random_order(agents : list, *args, **kwargs):
     # TODO BEN: remove that and use the space_prng of the Environment
     return shuffle(agents)
 
+
 class AgentSelector:
     """
     Outputs an agent in the given order whenever agent_select is called. Can reinitialize to a new order
@@ -27,6 +29,7 @@ class AgentSelector:
     #TODO
     
     def __init__(self, agents : list, agent_order_fn, *args, **kwargs):
+        raise NotImplementedError("This function is not implemented at the moment.")
         self.agents = agents
         if agent_order_fn is None:
             agent_order_fn = lambda x : x
