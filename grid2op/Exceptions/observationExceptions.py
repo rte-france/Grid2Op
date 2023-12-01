@@ -34,10 +34,6 @@ class SimulateError(Grid2OpException):
     """Generic error concerning the `obs.simulate(...)` function"""
     pass
 
-<<<<<<< HEAD
-class SimulateUsedTooMuch(SimulateError):
-    """More precise error: you called `obs.simulate(...)` too much, raising an error"""
-=======
 class SimulateError(BaseObservationError):
     """
     This is the generic exception related to :func:`grid2op.Observation.BaseObservation.simulate` function
@@ -47,7 +43,6 @@ class SimulateError(BaseObservationError):
 
 
 class SimulateUsedTooMuch(SimulateError):
->>>>>>> bd_dev
     pass
 
 
