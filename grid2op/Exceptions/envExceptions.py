@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from grid2op.Exceptions.Grid2OpException import Grid2OpException
+from grid2op.Exceptions.grid2OpException import Grid2OpException
 
 
 # Exception bad environment configured

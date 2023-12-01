@@ -795,6 +795,117 @@ class GridObjects:
         cls.alertable_line_ids = []
 
     @classmethod
+    def _clear_grid_dependant_class_attributes(cls):
+        cls.glop_version = grid2op.__version__
+        cls._PATH_ENV = None
+
+        cls.SUB_COL = 0
+        cls.LOA_COL = 1
+        cls.GEN_COL = 2
+        cls.LOR_COL = 3
+        cls.LEX_COL = 4
+        cls.STORAGE_COL = 5
+
+        cls.attr_list_vect = None
+        cls.attr_list_set = {}
+        cls.attr_list_json = []
+        cls.attr_nan_list_set = set()
+
+        # class been init
+        cls._IS_INIT = False
+
+        # name of the objects
+        cls.env_name = "unknown"
+        cls.name_load = None
+        cls.name_gen = None
+        cls.name_line = None
+        cls.name_sub = None
+        cls.name_storage = None
+
+        cls.n_gen = -1
+        cls.n_load = -1
+        cls.n_line = -1
+        cls.n_sub = -1
+        cls.n_storage = -1
+
+        cls.sub_info = None
+        cls.dim_topo = -1
+
+        # to which substation is connected each element
+        cls.load_to_subid = None
+        cls.gen_to_subid = None
+        cls.line_or_to_subid = None
+        cls.line_ex_to_subid = None
+        cls.storage_to_subid = None
+
+        # which index has this element in the substation vector
+        cls.load_to_sub_pos = None
+        cls.gen_to_sub_pos = None
+        cls.line_or_to_sub_pos = None
+        cls.line_ex_to_sub_pos = None
+        cls.storage_to_sub_pos = None
+
+        # which index has this element in the topology vector
+        cls.load_pos_topo_vect = None
+        cls.gen_pos_topo_vect = None
+        cls.line_or_pos_topo_vect = None
+        cls.line_ex_pos_topo_vect = None
+        cls.storage_pos_topo_vect = None
+
+        # "convenient" way to retrieve information of the grid
+        cls.grid_objects_types = None
+        # to which substation each element of the topovect is connected
+        cls._topo_vect_to_sub = None
+                
+        # list of attribute to convert it from/to a vector
+        cls._vectorized = None
+        
+        # redispatch data, not available in all environment
+        cls.redispatching_unit_commitment_availble = False
+        cls.gen_type = None
+        cls.gen_pmin = None
+        cls.gen_pmax = None
+        cls.gen_redispatchable = None
+        cls.gen_max_ramp_up = None
+        cls.gen_max_ramp_down = None
+        cls.gen_min_uptime = None
+        cls.gen_min_downtime = None
+        cls.gen_cost_per_MW = None  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
+        cls.gen_startup_cost = None  # start cost (in currency)
+        cls.gen_shutdown_cost = None  # shutdown cost (in currency)
+        cls.gen_renewable = None
+
+        # storage unit static data
+        cls.storage_type = None
+        cls.storage_Emax = None
+        cls.storage_Emin = None
+        cls.storage_max_p_prod = None
+        cls.storage_max_p_absorb = None
+        cls.storage_marginal_cost = None
+        cls.storage_loss = None
+        cls.storage_charging_efficiency = None
+        cls.storage_discharging_efficiency = None
+        
+        # alarm / alert
+        cls.assistant_warning_type = None
+        
+        # alarms
+        cls.dim_alarms = 0
+        cls.alarms_area_names = []
+        cls.alarms_lines_area = {}
+        cls.alarms_area_lines = []
+
+        # alerts
+        cls.dim_alerts = 0
+        cls.alertable_line_names = []
+        cls.alertable_line_ids = []
+        
+        # shunt data, not available in every backend
+        cls.n_shunt = None
+        cls.name_shunt = None
+        cls.shunt_to_subid = None
+        
+    @classmethod
     def _update_value_set(cls):
         """
         INTERNAL
@@ -818,7 +929,7 @@ class GridObjects:
         ``NotImplementedError``
 
         """
-        if self.attr_list_vect is None:
+        if type(self).attr_list_vect is None:
             raise IncorrectNumberOfElements(
                 "attr_list_vect attribute is not defined for class {}. "
                 "It is not possible to convert it from/to a vector, "
@@ -887,7 +998,7 @@ class GridObjects:
             self._raise_error_attr_list_none()
             li_vect = [
                 self._get_array_from_attr_name(el).astype(dt_float)
-                for el in self.attr_list_vect
+                for el in type(self).attr_list_vect
             ]
             if li_vect:
                 self._vectorized = np.concatenate(li_vect)
@@ -945,7 +1056,7 @@ class GridObjects:
 
         """
         # TODO optimization for action or observation, to reduce json size, for example using the see `to_json`
-        all_keys = self.attr_list_vect + self.attr_list_json
+        all_keys = type(self).attr_list_vect + type(self).attr_list_json
         for key, array_ in dict_.items():
             if key not in all_keys:
                 raise AmbiguousAction(f'Impossible to recognize the key "{key}"')
@@ -977,7 +1088,7 @@ class GridObjects:
             elif dtype == bool:
                 dict_[attr_nm] = [bool(el) for el in tmp]
 
-    def shape(self):
+    def shapes(self):
         """
         The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
         part of the action.
@@ -1019,11 +1130,11 @@ class GridObjects:
         """
         self._raise_error_attr_list_none()
         res = np.array(
-            [self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect]
+            [self._get_array_from_attr_name(el).shape[0] for el in type(self).attr_list_vect]
         ).astype(dt_int)
         return res
 
-    def dtype(self):
+    def dtypes(self):
         """
         The types of the components of the GridObjects, mainly used for gym compatibility is the shape of all part
         of the action.
@@ -1064,7 +1175,7 @@ class GridObjects:
 
         self._raise_error_attr_list_none()
         res = np.array(
-            [self._get_array_from_attr_name(el).dtype for el in self.attr_list_vect]
+            [self._get_array_from_attr_name(el).dtype for el in type(self).attr_list_vect]
         )
         return res
 
@@ -1161,7 +1272,7 @@ class GridObjects:
 
         self._raise_error_attr_list_none()
         prev_ = 0
-        for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
+        for attr_nm, sh, dt in zip(type(self).attr_list_vect, self.shapes(), self.dtypes()):
             tmp = vect[prev_ : (prev_ + sh)]
 
             # TODO a flag that says "default Nan" for example for when attributes are initialized with
@@ -1236,7 +1347,7 @@ class GridObjects:
             print("The size of the action space is {}".format(env.action_space.size()))
 
         """
-        res = self.shape().sum(dtype=dt_int)
+        res = self.shapes().sum(dtype=dt_int)
         return res
 
     @classmethod
@@ -1264,7 +1375,7 @@ class GridObjects:
         return res
 
     def _init_class_attr(self, obj=None):
-        """init the class attribute from an instance of the class
+        """Init the class attribute from an instance of the class
         
         THIS IS NOT A CLASS ATTR
         
@@ -2703,7 +2814,7 @@ class GridObjects:
             my_class = GridObjects._build_cls_from_import(name_res, gridobj._PATH_ENV)
             if my_class is not None:
                 return my_class
-            
+        
         if not gridobj.shunts_data_available:
             # if you import env for backend
             # with shunt and without shunt, then
@@ -4363,7 +4474,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     grid_layout = {grid_layout_str}
 
     # shunt data, not available in every backend
-    shunts_data_available = {"True" if cls.redispatching_unit_commitment_availble else "False"}
+    shunts_data_available = {"True" if cls.shunts_data_available else "False"}
     n_shunt = {cls.n_shunt}
     name_shunt = np.array([{name_shunt_str}])
     shunt_to_subid = {shunt_to_subid_str}

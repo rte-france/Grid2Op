@@ -38,7 +38,6 @@ __all__ = [
     "AmbiguousAction",
     "NonFiniteElement",
     "AmbiguousActionRaiseAlert",
-    "DivergingPowerFlow",
     "BaseObservationError",
     "NoForecastAvailable",
     "SimulateError",
@@ -62,9 +61,9 @@ __all__ = [
     "HandlerError"
 ]
 
-from grid2op.Exceptions.Grid2OpException import Grid2OpException
+from grid2op.Exceptions.grid2OpException import Grid2OpException
 
-from grid2op.Exceptions.EnvExceptions import (EnvError,
+from grid2op.Exceptions.envExceptions import (EnvError,
                                               IncorrectNumberOfLoads,
                                               IncorrectNumberOfGenerators,
                                               IncorrectNumberOfLines,
@@ -78,7 +77,7 @@ from grid2op.Exceptions.EnvExceptions import (EnvError,
                                               UnknownEnv,
                                               MultiEnvException)
 
-from grid2op.Exceptions.IllegalActionExceptions import (IllegalAction,
+from grid2op.Exceptions.illegalActionExceptions import (IllegalAction,
                                                         OnProduction,
                                                         VSetpointModified,
                                                         ActiveSetPointAbovePmax,
@@ -89,7 +88,7 @@ from grid2op.Exceptions.IllegalActionExceptions import (IllegalAction,
                                                         UnitCommitorRedispachingNotAvailable,
                                                         )
 
-from grid2op.Exceptions.AmbiguousActionExceptions import (NotEnoughGenerators,
+from grid2op.Exceptions.ambiguousActionExceptions import (NotEnoughGenerators,
                                                           GeneratorTurnedOffTooSoon,
                                                           GeneratorTurnedOnTooSoon,
                                                           InvalidRedispatching,
@@ -106,36 +105,36 @@ from grid2op.Exceptions.AmbiguousActionExceptions import (NotEnoughGenerators,
                                                           NonFiniteElement,
                                                           AmbiguousActionRaiseAlert)
 
-from grid2op.Exceptions.PowerflowExceptions import DivergingPowerFlow
-
-from grid2op.Exceptions.ObservationExceptions import (BaseObservationError,
+from grid2op.Exceptions.observationExceptions import (BaseObservationError,
                                                       NoForecastAvailable,
                                                       SimulateError,
                                                       SimulateUsedTooMuchThisStep,
                                                       SimulateUsedTooMuchThisEpisode)
 
-from grid2op.Exceptions.ChronicsExceptions import (ChronicsError,
+from grid2op.Exceptions.chronicsExceptions import (ChronicsError,
                                                    ChronicsNotFoundError,
                                                    InsufficientData,
                                                    )
 from grid2op.Exceptions.handlers_exceptions import (HandlerError,
                                                     )
 
-from grid2op.Exceptions.BackendExceptions import (BackendError,
+from grid2op.Exceptions.backendExceptions import (BackendError,
                                                   DivergingPowerflow,
                                                   IslandedGrid,
                                                   IsolatedElement,
                                                   DisconnectedLoad,
                                                   DisconnectedGenerator,
                                                   )
+DivergingPowerFlow = DivergingPowerflow  # for compatibility with lightsim2grid
 
-from grid2op.Exceptions.PlotExceptions import PlotError
 
-from grid2op.Exceptions.OpponentError import OpponentError
+from grid2op.Exceptions.plotExceptions import PlotError
 
-from grid2op.Exceptions.RunnerError import UsedRunnerError
+from grid2op.Exceptions.opponentError import OpponentError
 
-from grid2op.Exceptions.AttentionBudgetExceptions import NotEnoughAttentionBudget
+from grid2op.Exceptions.runnerError import UsedRunnerError
+
+from grid2op.Exceptions.attentionBudgetExceptions import NotEnoughAttentionBudget
 
 from grid2op.Exceptions.agentError import AgentError
 

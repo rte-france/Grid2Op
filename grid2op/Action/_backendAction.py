@@ -236,7 +236,8 @@ class _BackendAction(GridObjects):
         )
 
         # shunts
-        if self.shunts_data_available:
+        cls = type(self)
+        if cls.shunts_data_available:
             self.shunt_p = ValueStore(self.n_shunt, dtype=dt_float)
             self.shunt_q = ValueStore(self.n_shunt, dtype=dt_float)
             self.shunt_bus = ValueStore(self.n_shunt, dtype=dt_int)
@@ -266,7 +267,8 @@ class _BackendAction(GridObjects):
         res.storage_power.copy(self.storage_power)
         res.activated_bus[:, :] = self.activated_bus
         # res.big_topo_to_subid[:] = self.big_topo_to_subid  # cste
-        if self.shunts_data_available:
+        cls = type(self)
+        if cls.shunts_data_available:
             res.shunt_p.copy(self.shunt_p)
             res.shunt_q.copy(self.shunt_q)
             res.shunt_bus.copy(self.shunt_bus)
@@ -307,7 +309,8 @@ class _BackendAction(GridObjects):
 
         self.storage_power.reorder(no_storage)
 
-        if self.shunts_data_available:
+        cls = type(self)
+        if cls.shunts_data_available:
             self.shunt_p.reorder(no_shunt)
             self.shunt_q.reorder(no_shunt)
             self.shunt_bus.reorder(no_shunt)
@@ -331,7 +334,8 @@ class _BackendAction(GridObjects):
         self.storage_power.values[:] = 0.0
 
         # shunts
-        if self.shunts_data_available:
+        cls = type(self)
+        if cls.shunts_data_available:
             self.shunt_p.reset()
             self.shunt_q.reset()
             self.shunt_bus.reset()
@@ -411,7 +415,7 @@ class _BackendAction(GridObjects):
         # II shunts
         if type(self).shunts_data_available:
             shunts = {}
-            if other.shunts_data_available:
+            if type(other).shunts_data_available:
                 shunts["shunt_p"] = other.shunt_p
                 shunts["shunt_q"] = other.shunt_q
                 shunts["shunt_bus"] = other.shunt_bus
@@ -515,7 +519,7 @@ class _BackendAction(GridObjects):
         )
         topo = self.current_topo
         shunts = None
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             shunts = self.shunt_p, self.shunt_q, self.shunt_bus
         self._get_active_bus()
         return self.activated_bus, injections, topo, shunts

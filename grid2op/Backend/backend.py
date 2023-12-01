@@ -25,17 +25,15 @@ except ImportError:
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
     EnvError,
-    DivergingPowerFlow,
     IncorrectNumberOfElements,
     IncorrectNumberOfLoads,
-)
-from grid2op.Exceptions import (
     IncorrectNumberOfGenerators,
     BackendError,
     IncorrectNumberOfLines,
+    DivergingPowerflow,
+    Grid2OpException,
 )
 from grid2op.Space import GridObjects
-from grid2op.Exceptions import Grid2OpException
 
 
 # TODO method to get V and theta at each bus, could be in the same shape as check_kirchoff
@@ -941,7 +939,7 @@ class Backend(GridObjects, ABC):
 
         Raises
         ------
-        exc_: :class:`grid2op.Exceptions.DivergingPowerFlow`
+        exc_: :class:`grid2op.Exceptions.DivergingPowerflow`
             In case of divergence of the powerflow
 
         """
@@ -952,13 +950,13 @@ class Backend(GridObjects, ABC):
         except Grid2OpException as exc_:
             exc_me = exc_
         except Exception as exc_:
-            exc_me = DivergingPowerFlow(
+            exc_me = DivergingPowerflow(
                 f" An unexpected error occurred during the computation of the powerflow."
                 f"The error is: \n {exc_} \n. This is game over"
             )
 
         if not conv and exc_me is None:
-            exc_me = DivergingPowerFlow(
+            exc_me = DivergingPowerflow(
                 "GAME OVER: Powerflow has diverged during computation "
                 "or a load has been disconnected or a generator has been disconnected."
             )
@@ -1820,7 +1818,9 @@ class Backend(GridObjects, ABC):
                 sh_q[~shunt_co] = np.NaN
                 dict_["shunt"]["shunt_p"] = sh_p
                 dict_["shunt"]["shunt_q"] = sh_q
-            act.update(dict_)
+        elif type(self).shunts_data_available and not type(obs).shunts_data_available:
+            warnings.warn("Backend supports shunt but not the observation. This behaviour is non standard.")
+        act.update(dict_)
         backend_action += act
         self.apply_action(backend_action)
 
@@ -1854,8 +1854,9 @@ class Backend(GridObjects, ABC):
             )
             # reset the attribute of the grid2op.Backend.Backend class
             # that can be messed up with depending on the initialization of the backend
-            Backend._clear_class_attribute()
-            orig_type._clear_class_attribute()
+            Backend._clear_class_attribute()  # reset totally the grid2op Backend type
+            # orig_type._clear_class_attribute()
+            orig_type._clear_grid_dependant_class_attributes()  # only reset the attributes that could be modified by user
 
         my_cls = type(self)
         my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls)

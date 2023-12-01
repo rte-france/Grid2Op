@@ -440,7 +440,7 @@ class BaseAction(GridObjects):
         self._subs_impacted = None
 
         # shunts
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self.shunt_p = np.full(
                 shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float
             )
@@ -495,6 +495,12 @@ class BaseAction(GridObjects):
         # sometimes this method is used...
         return self.__deepcopy__()
 
+    def shape(self):
+        return type(self).shapes()
+    
+    def dtype(self):
+        return type(self).dtypes()
+    
     def _aux_copy(self, other):
         attr_simple = [
             "_modif_inj",
@@ -524,7 +530,7 @@ class BaseAction(GridObjects):
             "_raise_alert",
         ]
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             attr_vect += ["shunt_p", "shunt_q", "shunt_bus"]
 
         for attr_nm in attr_simple:
@@ -1050,7 +1056,7 @@ class BaseAction(GridObjects):
             return False
 
         # shunts are the same
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             if self.n_shunt != other.n_shunt:
                 return False
             is_ok_me = np.isfinite(self.shunt_p)
@@ -1455,7 +1461,7 @@ class BaseAction(GridObjects):
         self._subs_impacted = None
 
         # shunts
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self.shunt_p[:] = np.NaN
             self.shunt_q[:] = np.NaN
             self.shunt_bus[:] = 0
@@ -1631,7 +1637,7 @@ class BaseAction(GridObjects):
         self._assign_iadd_or_warn("_change_bus_vect", me_change)
 
         # shunts
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             val = other.shunt_p
             ok_ind = np.isfinite(val)
             shunt_p = 1.0 * self.shunt_p
@@ -1763,7 +1769,7 @@ class BaseAction(GridObjects):
         storage_power = self._storage_power
         # remark: curtailment is handled by an algorithm in the environment, so don't need to be returned here
         shunts = {}
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             shunts["shunt_p"] = self.shunt_p
             shunts["shunt_q"] = self.shunt_q
             shunts["shunt_bus"] = self.shunt_bus
@@ -1780,7 +1786,7 @@ class BaseAction(GridObjects):
         )
 
     def _digest_shunt(self, dict_):
-        if not self.shunts_data_available:
+        if not type(self).shunts_data_available:
             return
 
         if "shunt" in dict_:
@@ -2664,7 +2670,7 @@ class BaseAction(GridObjects):
                     "which it is connected. This is ambiguous. You must *set* this bus instead."
                 )
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             if self.shunt_p.shape[0] != self.n_shunt:
                 raise IncorrectNumberOfElements(
                     "Incorrect number of shunt (for shunt_p) in your action."
@@ -3396,7 +3402,7 @@ class BaseAction(GridObjects):
         """
         injection = "load_p" in self._dict_inj or "prod_p" in self._dict_inj
         voltage = "prod_v" in self._dict_inj
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             voltage = voltage or np.isfinite(self.shunt_p).any()
             voltage = voltage or np.isfinite(self.shunt_q).any()
             voltage = voltage or (self.shunt_bus != 0).any()

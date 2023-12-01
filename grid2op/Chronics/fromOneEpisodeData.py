@@ -137,10 +137,10 @@ class FromOneEpisodeData(GridValue):
         
         env = grid2op.make(env_name,
                     chronics_class=FromOneEpisodeData,
-                    data_feeding_kwargs={"ep_data": ep_data},
+                    data_feeding_kwargs={"ep_data": ep_data,
+                                         "list_perfect_forecasts": (5, 10, 15)},
                     opponent_class=FromEpisodeDataOpponent,
                     opponent_attack_cooldown=1,
-                    list_perfect_forecasts=(5, 10, 15)
                 )
         # it creates an environment with perfect forecasts available for the next step (5),
         # the step afterwards (10) and again the following one (15)
@@ -327,7 +327,6 @@ class FromOneEpisodeData(GridValue):
         """
         if not self.list_perfect_forecasts:
             return []
-        
         res = []
         for h_id, h in enumerate(self.list_perfect_forecasts):
             res_d = {}
@@ -342,6 +341,7 @@ class FromOneEpisodeData(GridValue):
             
     def get_kwargs(self, dict_):
         dict_["ep_data"] = copy.deepcopy(self._episode_data)
+        # dict_["list_perfect_forecasts"] = copy.deepcopy(self.list_perfect_forecasts)
         return dict_
     
     def get_id(self) -> str:

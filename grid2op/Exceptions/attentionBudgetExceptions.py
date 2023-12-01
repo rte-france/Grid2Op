@@ -6,10 +6,13 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from grid2op.Exceptions.Grid2OpException import Grid2OpException
+from grid2op.Exceptions.grid2OpException import Grid2OpException
 
 
-class OpponentError(Grid2OpException):
-    """General error for the :class:`grid2op.Opponent`"""
+class NotEnoughAttentionBudget(Grid2OpException):
+    """
+    This exception is raised when the player attempted to alert the "human operator" but it has not
+    enough budget to do so.
+    """
 
     pass

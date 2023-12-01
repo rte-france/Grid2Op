@@ -176,7 +176,7 @@ class BaseReward(ABC):
             An environment instance properly initialized.
 
         has_error: ``bool``
-            Has there been an error, for example a :class:`grid2op.DivergingPowerFlow` be thrown when the action has
+            Has there been an error, for example a :class:`grid2op.DivergingPowerflow` be thrown when the action has
             been implemented in the environment.
 
         is_done: ``bool``
