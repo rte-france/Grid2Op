@@ -748,10 +748,10 @@ class GridObjects:
         cls.grid_objects_types = None
         # to which substation each element of the topovect is connected
         cls._topo_vect_to_sub = None
-                
+
         # list of attribute to convert it from/to a vector
         cls._vectorized = None
-        
+
         # redispatch data, not available in all environment
         cls.redispatching_unit_commitment_availble = False
         cls.gen_type = None
@@ -777,7 +777,15 @@ class GridObjects:
         cls.storage_loss = None
         cls.storage_charging_efficiency = None
         cls.storage_discharging_efficiency = None
-        
+
+        # grid layout
+        cls.grid_layout = None
+
+        # shunt data, not available in every backend
+        cls.n_shunt = None
+        cls.name_shunt = None
+        cls.shunt_to_subid = None
+
         # alarm / alert
         cls.assistant_warning_type = None
         
@@ -791,11 +799,6 @@ class GridObjects:
         cls.dim_alerts = 0
         cls.alertable_line_names = []
         cls.alertable_line_ids = []
-        
-        # shunt data, not available in every backend
-        cls.n_shunt = None
-        cls.name_shunt = None
-        cls.shunt_to_subid = None
         
     @classmethod
     def _update_value_set(cls):

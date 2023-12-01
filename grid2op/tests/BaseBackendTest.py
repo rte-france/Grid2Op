@@ -74,7 +74,7 @@ class BaseTestNames(MakeBackend):
     
     def test_properNames(self):
         self.skip_if_needed()
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
         path = self.get_path()
 
         with warnings.catch_warnings():
@@ -97,7 +97,7 @@ class BaseTestLoadingCase(MakeBackend):
         return "test_case14.json"
     
     def test_load_file(self):
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
         path_matpower = self.get_path()
         case_file = self.get_casefile()
         with warnings.catch_warnings():
@@ -191,7 +191,7 @@ class BaseTestLoadingCase(MakeBackend):
             assert np.max(np.abs(q_bus.flatten())) <= self.tolvect
 
     def test_assert_grid_correct(self):
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
         path_matpower = self.get_path()
         case_file = self.get_casefile()
         with warnings.catch_warnings():
@@ -212,7 +212,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         return "test_case14.json"
     
     def setUp(self):
-        self.backend = self.make_backend()
+        self.backend = self.make_backend_with_glue_code()
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
         with warnings.catch_warnings():
@@ -813,7 +813,7 @@ class BaseTestTopoAction(MakeBackend):
         return "test_case14.json"
     
     def setUp(self):
-        self.backend = self.make_backend()
+        self.backend = self.make_backend_with_glue_code()
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
         with warnings.catch_warnings():
@@ -1422,13 +1422,13 @@ class BaseTestTopoAction(MakeBackend):
             env = grid2op.make(
                 "educ_case14_storage",
                 test=True,
-                backend=self.make_backend(),
+                backend=self.make_backend_with_glue_code(),
                 _add_to_name=type(self).__name__
             )
             env2 = grid2op.make(
                 "educ_case14_storage",
                 test=True,
-                backend=self.make_backend(),
+                backend=self.make_backend_with_glue_code(),
                 _add_to_name=type(self).__name__
             )
         obs, *_ = env.step(env.action_space({"set_storage": [-1.0, 1.0]}))
@@ -1453,7 +1453,7 @@ class BaseTestTopoAction(MakeBackend):
             env = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
-                backend=self.make_backend(),
+                backend=self.make_backend_with_glue_code(),
                 _add_to_name=type(self).__name__
             )
 
@@ -1559,8 +1559,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         return PATH_DATA_TEST
 
     def setUp(self):
-        self.backend = self.make_backend(detailed_infos_for_cascading_failures=True)
-        type(self.backend)._clear_grid_dependant_class_attributes()
+        self.backend = self.make_backend_with_glue_code(detailed_infos_for_cascading_failures=True)
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
         with warnings.catch_warnings():
@@ -1885,12 +1884,11 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_set_bus(self):
         self.skip_if_needed()
         # print("test_set_bus")
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
-                       _add_to_name=type(self).__name__)
+                               _add_to_name=type(self).__name__)
         env.reset()
         action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
         obs, reward, done, info = env.step(action)
@@ -1901,8 +1899,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_change_bus(self):
         self.skip_if_needed()
         # print("test_change_bus")
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
@@ -1916,8 +1913,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_change_bustwice(self):
         self.skip_if_needed()
         # print("test_change_bustwice")
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
@@ -1938,8 +1934,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_isolate_load(self):
         self.skip_if_needed()
         # print("test_isolate_load")
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True, backend=backend,
@@ -1951,8 +1946,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_reco_disco_bus(self):
         self.skip_if_needed()
         # print("test_reco_disco_bus")
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case1 = grid2op.make(
@@ -1978,8 +1972,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_reco_disco_bus2(self):
         self.skip_if_needed()
         # print("test_reco_disco_bus2")
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case2 = grid2op.make(
@@ -2005,8 +1998,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_reco_disco_bus3(self):
         self.skip_if_needed()
         # print("test_reco_disco_bus3")
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case2 = grid2op.make(
@@ -2030,8 +2022,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_reco_disco_bus4(self):
         self.skip_if_needed()
         # print("test_reco_disco_bus4")
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case2 = grid2op.make(
@@ -2055,8 +2046,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_reco_disco_bus5(self):
         self.skip_if_needed()
         # print("test_reco_disco_bus5")
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case2 = grid2op.make(
@@ -2078,7 +2068,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 class BaseTestShuntAction(MakeBackend):
     def test_shunt_ambiguous_id_incorrect(self):
         self.skip_if_needed()
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with grid2op.make(
@@ -2094,8 +2084,8 @@ class BaseTestShuntAction(MakeBackend):
 
     def test_shunt_effect(self):
         self.skip_if_needed()
-        backend1 = self.make_backend()
-        backend2 = self.make_backend()
+        backend1 = self.make_backend_with_glue_code()
+        backend2 = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_ref = grid2op.make(
@@ -2170,9 +2160,8 @@ class BaseTestShuntAction(MakeBackend):
 
 class BaseTestResetEqualsLoadGrid(MakeBackend):
     def setUp(self):
-        backend1 = self.make_backend()
-        backend2 = self.make_backend()
-        type(backend1)._clear_grid_dependant_class_attributes()
+        backend1 = self.make_backend_with_glue_code()
+        backend2 = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env1 = grid2op.make("rte_case5_example", test=True, backend=backend1, _add_to_name=type(self).__name__)
@@ -2304,8 +2293,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
 
     def test_combined_changes(self):
         # Unlimited sub changes
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         params = grid2op.Parameters.Parameters()
         params.MAX_SUB_CHANGED = 999
 
@@ -2376,8 +2364,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
 class BaseTestVoltageOWhenDisco(MakeBackend):
     def test_this(self):
         self.skip_if_needed()
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__) as env:
@@ -2392,8 +2379,7 @@ class BaseTestVoltageOWhenDisco(MakeBackend):
 class BaseTestChangeBusSlack(MakeBackend):
     def test_change_slack_case14(self):
         self.skip_if_needed()
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__)
@@ -2439,8 +2425,7 @@ class BaseTestStorageAction(MakeBackend):
     def test_there_are_storage(self):
         """test the backend properly loaded the storage units"""
         self.skip_if_needed()
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("educ_case14_storage", test=True, backend=backend, _add_to_name=type(self).__name__)
@@ -2449,8 +2434,7 @@ class BaseTestStorageAction(MakeBackend):
     def test_storage_action_mw(self):
         """test the actions are properly implemented in the backend"""
         self.skip_if_needed()
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("educ_case14_storage", test=True, backend=backend, _add_to_name=type(self).__name__)
@@ -2520,8 +2504,7 @@ class BaseTestStorageAction(MakeBackend):
         param = Parameters()
         param.NB_TIMESTEP_COOLDOWN_SUB = 0
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
@@ -2669,8 +2652,7 @@ class BaseIssuesTest(MakeBackend):
     def test_issue_125(self):
         # https://github.com/rte-france/Grid2Op/issues/125
         self.skip_if_needed()
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__)
@@ -2691,8 +2673,7 @@ class BaseIssuesTest(MakeBackend):
 
     def test_issue_134(self):
         self.skip_if_needed()
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         param = Parameters()
 
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
@@ -2769,8 +2750,7 @@ class BaseIssuesTest(MakeBackend):
 
     def test_issue_134_check_ambiguity(self):
         self.skip_if_needed()
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         param = Parameters()
 
         param.MAX_LINE_STATUS_CHANGED = 9999
@@ -2799,8 +2779,7 @@ class BaseIssuesTest(MakeBackend):
 
     def test_issue_134_withcooldown_forrules(self):
         self.skip_if_needed()
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         param = Parameters()
 
         param.NB_TIMESTEP_COOLDOWN_LINE = 20
@@ -2941,8 +2920,7 @@ class BaseIssuesTest(MakeBackend):
 
     def test_issue_copyenv(self):
         # https://github.com/BDonnot/lightsim2grid/issues/10
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env1 = grid2op.make("rte_case14_realistic", test=True, backend=backend, _add_to_name=type(self).__name__)
@@ -2954,8 +2932,7 @@ class BaseIssuesTest(MakeBackend):
 
 class BaseStatusActions(MakeBackend):
     def _make_my_env(self):
-        backend = self.make_backend()
-        type(backend)._clear_grid_dependant_class_attributes()
+        backend = self.make_backend_with_glue_code()
         param = Parameters()
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
         param.NB_TIMESTEP_COOLDOWN_SUB = 0
