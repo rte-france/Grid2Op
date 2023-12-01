@@ -397,6 +397,8 @@ grid2op/tests/test_failing_simulator.txt
 old_pyproject.toml
 pp_bug_gen_alone.py
 test_dunder.py
+grid2op/tests/test_fail_ci.txt
+saved_multiepisode_agent_36bus_DN_4/
 
 # profiling files
 **.prof

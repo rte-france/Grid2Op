@@ -32,6 +32,12 @@ Change Log
 - [???] properly model interconnecting powerlines
 
 
+[1.9.8] - 20xx-yy-zz
+----------------------
+- [IMPROVED] the CI speed: by not testing every possible numpy version but only most ancient and most recent
+- [IMPROVED] Runner now test grid2op version 1.9.6 and 1.9.7
+
+
 [1.9.7] - 2023-12-01
 ----------------------
 - [BREAKING] removal of the `grid2op/Exceptions/PowerflowExceptions.py` file and move the
