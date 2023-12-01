@@ -36,7 +36,8 @@ Change Log
 ----------------------
 - [IMPROVED] the CI speed: by not testing every possible numpy version but only most ancient and most recent
 - [IMPROVED] Runner now test grid2op version 1.9.6 and 1.9.7
-
+- [IMPROVED] refacto `gridobj_cls._clear_class_attribute` and `gridobj_cls._clear_grid_dependant_class_attributes`
+- [IMPROVED] the bahviour of the generic class `MakeBackend` used for the test suite.
 
 [1.9.7] - 2023-12-01
 ----------------------
