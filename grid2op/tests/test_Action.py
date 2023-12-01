@@ -27,9 +27,6 @@ from grid2op.Space.space_utils import save_to_dict
 # TODO check that if i set the element of a powerline to -1, then it's working as intended (disconnect both ends)
 
 
-import pdb
-
-
 def _get_action_grid_class():
     GridObjects.env_name = "test_action_env"
     GridObjects.n_gen = 5
@@ -387,7 +384,8 @@ class TestActionBase(ABC):
 
     def tearDown(self):
         self.authorized_keys = {}
-        self.gridobj._clear_class_attribute()
+        type(self.gridobj)._clear_class_attribute()
+        GridObjects._clear_class_attribute()
 
     def test_reset_modified_flags(self):
         act = self.helper_action.sample()
