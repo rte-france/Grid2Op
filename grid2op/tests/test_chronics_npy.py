@@ -29,7 +29,7 @@ class TestNPYChronics(unittest.TestCase):
         self.env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_ref = grid2op.make(self.env_name, test=True)
+            self.env_ref = grid2op.make(self.env_name, test=True, _add_to_name=type(self).__name__)
 
         self.load_p = 1.0 * self.env_ref.chronics_handler.real_data.data.load_p
         self.load_q = 1.0 * self.env_ref.chronics_handler.real_data.data.load_q
@@ -436,7 +436,7 @@ class TestNPYChronicsWithHazards(unittest.TestCase):
         env_path = os.path.join(PATH_DATA_TEST, "env_14_test_maintenance")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_ref = grid2op.make(env_path, test=True, param=param)
+            env_ref = grid2op.make(env_path, test=True, param=param, _add_to_name=type(self).__name__)
         env_ref.chronics_handler.real_data.data.maintenance_starting_hour = 1
         env_ref.chronics_handler.real_data.data.maintenance_ending_hour = 2
         env_ref.seed(0)  # 1 -> 108
@@ -456,6 +456,7 @@ class TestNPYChronicsWithHazards(unittest.TestCase):
                 env_path,
                 chronics_class=FromNPY,
                 test=True,
+                _add_to_name=type(self).__name__,
                 data_feeding_kwargs={
                     "i_start": 0,
                     "i_end": 10,  # excluded

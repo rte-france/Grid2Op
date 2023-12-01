@@ -29,7 +29,8 @@ class TestLimitAction(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("l2rpn_wcci_2022_dev",
                                     test=True,
-                                    backend=LightSimBackend())
+                                    backend=LightSimBackend(),
+                                    _add_to_name=type(self).__name__)
         
         self.act = self.env.action_space()
         tmp_ = np.zeros(self.env.n_gen, dtype=float) -1

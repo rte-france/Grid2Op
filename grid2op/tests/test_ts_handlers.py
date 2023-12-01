@@ -6,10 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import copy
-import pdb
-import time
 import warnings
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
@@ -45,7 +43,7 @@ def _load_next_chunk_in_memory_hack(self):
     self.current_index = 0
    
      
-class TestCSVHandlerEnv(HelperTests):
+class TestCSVHandlerEnv(HelperTests, unittest.TestCase):
     """test the env part of the storage functionality"""
     def _aux_assert_right_type_chronics(self):
         assert isinstance(self.env1.chronics_handler.real_data.data, GridStateFromFile)
@@ -61,7 +59,7 @@ class TestCSVHandlerEnv(HelperTests):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = grid2op.make("l2rpn_case14_sandbox", test=True)  # regular env
+            self.env1 = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)  # regular env
             self.env2 = grid2op.make("l2rpn_case14_sandbox",
                                      data_feeding_kwargs={"gridvalueClass": FromHandlers,
                                                           "gen_p_handler": CSVHandler("prod_p"),
@@ -69,7 +67,7 @@ class TestCSVHandlerEnv(HelperTests):
                                                           "gen_v_handler": CSVHandler("prod_v"),
                                                           "load_q_handler": CSVHandler("load_q"),
                                                           },
-                                     _add_to_name="_TestCSVHandlerEnv",
+                                     _add_to_name=type(self).__name__+"_TestCSVHandlerEnv",
                                      test=True)  # regular env
         self._aux_reproducibility()
         return super().setUp()
@@ -188,7 +186,7 @@ class TestCSVHandlerEnv(HelperTests):
                                               "gen_v_handler": DoNothingHandler(),
                                               "load_q_handler": CSVHandler("load_q"), # crash because this file does not exist
                                               },
-                         _add_to_name="_TestCSVHandlerEnv")  # regular env
+                         _add_to_name=type(self).__name__+"_TestCSVHandlerEnv")  # regular env
 
     def test_max_episode_duration(self):
         assert self.env2.max_episode_duration() == self.env1.max_episode_duration()
@@ -241,7 +239,7 @@ class TestSomeFileMissingEnv(TestCSVHandlerEnv):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"))  # regular env
+            self.env1 = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"), _add_to_name=type(self).__name__)  # regular env
             self.env2 = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"),
                                      data_feeding_kwargs={"gridvalueClass": FromHandlers,
                                                           "gen_p_handler": CSVHandler("prod_p"),
@@ -249,7 +247,7 @@ class TestSomeFileMissingEnv(TestCSVHandlerEnv):
                                                           "gen_v_handler": DoNothingHandler(),
                                                           "load_q_handler": DoNothingHandler(),
                                                           },
-                                     _add_to_name="_TestDNHandlerEnv")
+                                     _add_to_name=type(self).__name__+"_TestDNHandlerEnv")
         self._aux_reproducibility()
         
         
@@ -263,7 +261,8 @@ class TestWithoutMultiFolderEnv(TestCSVHandlerEnv):
             warnings.filterwarnings("ignore")
             self.env1 = grid2op.make("l2rpn_case14_sandbox", test=True,
                                      chronics_class=GridStateFromFileWithForecasts,
-                                     chronics_path=chronics_path)  # regular env
+                                     chronics_path=chronics_path,
+                                     _add_to_name=type(self).__name__)  # regular env
             self.env2 = grid2op.make("l2rpn_case14_sandbox",
                                      chronics_class=FromHandlers,
                                      data_feeding_kwargs={
@@ -273,7 +272,7 @@ class TestWithoutMultiFolderEnv(TestCSVHandlerEnv):
                                                           "load_q_handler": CSVHandler("load_q"),
                                                           },
                                      chronics_path=chronics_path,
-                                     _add_to_name="TestWithoutMultiFolderEnv",
+                                     _add_to_name=type(self).__name__+"TestWithoutMultiFolderEnv",
                                      test=True)
         self._aux_reproducibility()
         
@@ -293,7 +292,8 @@ class TestForecastHandlerNoMultiFolder(TestWithoutMultiFolderEnv):
             warnings.filterwarnings("ignore")
             self.env1 = grid2op.make("l2rpn_case14_sandbox", test=True,
                                      chronics_class=GridStateFromFileWithForecasts,
-                                     chronics_path=chronics_path)  # regular env
+                                     chronics_path=chronics_path,
+                                     _add_to_name=type(self).__name__)  # regular env
             self.env2 = grid2op.make("l2rpn_case14_sandbox",
                                      chronics_class=FromHandlers,
                                      data_feeding_kwargs={"gen_p_handler": CSVHandler("prod_p"),
@@ -306,7 +306,7 @@ class TestForecastHandlerNoMultiFolder(TestWithoutMultiFolderEnv):
                                                           "load_q_for_handler": CSVForecastHandler("load_q_forecasted"),
                                                           },
                                      chronics_path=chronics_path,
-                                     _add_to_name="TestForecastHandlerNoMulti14",
+                                     _add_to_name=type(self).__name__+"TestForecastHandlerNoMulti14",
                                      test=True)
         self._aux_reproducibility()
         assert np.all(self.env1.chronics_handler.real_data.load_p_forecast == 
@@ -323,7 +323,7 @@ class TestForecastHandler14(TestCSVHandlerEnv):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = grid2op.make("l2rpn_case14_sandbox", test=True)  # regular env
+            self.env1 = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)  # regular env
             self.env2 = grid2op.make("l2rpn_case14_sandbox",
                                      data_feeding_kwargs={"gridvalueClass": FromHandlers,
                                                           "gen_p_handler": CSVHandler("prod_p"),
@@ -335,7 +335,7 @@ class TestForecastHandler14(TestCSVHandlerEnv):
                                                           "gen_v_for_handler": CSVForecastHandler("prod_v_forecasted"),
                                                           "load_q_for_handler": CSVForecastHandler("load_q_forecasted"),
                                                           },
-                                     _add_to_name="TestForecastHandlerEnv",
+                                     _add_to_name=type(self).__name__+"TestForecastHandlerEnv",
                                      test=True)
         self._aux_reproducibility()
         assert np.all(self.env1.chronics_handler.real_data.data.load_p_forecast == 
@@ -355,6 +355,7 @@ class TestForecastHandler5MultiSteps(TestCSVHandlerEnv):
             warnings.filterwarnings("ignore")
             self.env1 = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"), test=True,
                                      data_feeding_kwargs={"gridvalueClass": GridStateFromFileWithForecastsWithoutMaintenance},
+                                     _add_to_name=type(self).__name__,
                                      )  # regular env
             self.env2 = grid2op.make(os.path.join(PATH_DATA_TEST, "5bus_example_forecasts"),
                                      data_feeding_kwargs={"gridvalueClass": FromHandlers,
@@ -366,7 +367,7 @@ class TestForecastHandler5MultiSteps(TestCSVHandlerEnv):
                                                           "load_p_for_handler": CSVForecastHandler("load_p_forecasted"),
                                                           "load_q_for_handler": CSVForecastHandler("load_q_forecasted"),
                                                           },
-                                     _add_to_name="TestForecastHandler5MultiSteps",
+                                     _add_to_name=type(self).__name__+"TestForecastHandler5MultiSteps",
                                      test=True)
         self._aux_reproducibility()
         assert np.all(self.env1.chronics_handler.real_data.data.load_p == 
@@ -401,7 +402,8 @@ class TestMaintenanceCSV(TestForecastHandler14):
             warnings.filterwarnings("ignore")
             self.env1 = grid2op.make(os.path.join(PATH_DATA_TEST, "env_14_test_maintenance"),
                                      test=True,
-                                     param=param
+                                     param=param,
+                                     _add_to_name=type(self).__name__
                                      )  # regular env
             self.env2 = grid2op.make(os.path.join(PATH_DATA_TEST, "env_14_test_maintenance"),
                                      data_feeding_kwargs={"gridvalueClass": FromHandlers,
@@ -415,7 +417,7 @@ class TestMaintenanceCSV(TestForecastHandler14):
                                                           "load_p_for_handler": CSVForecastHandler("load_p_forecasted"),
                                                           "load_q_for_handler": CSVForecastHandler("load_q_forecasted"),
                                                           },
-                                     _add_to_name="TestMaintenanceCSV",
+                                     _add_to_name=type(self).__name__+"TestMaintenanceCSV",
                                      test=True,
                                      param=param)
         self._aux_reproducibility()
@@ -444,7 +446,7 @@ class TestMaintenanceJson(unittest.TestCase):
                                                           "load_p_for_handler": CSVForecastHandler("load_p_forecasted"),
                                                           "load_q_for_handler": CSVForecastHandler("load_q_forecasted"),
                                                           },
-                                     _add_to_name="TestMaintenanceCSV",
+                                     _add_to_name=type(self).__name__+"TestMaintenanceCSV",
                                      test=True,
                                      param=param)
         # carefull here ! the "seed" mechanism does not work the same way between the two alternative.
@@ -501,7 +503,7 @@ class TestPersistenceHandler(unittest.TestCase):
                                                           "load_p_for_handler": PersistenceForecastHandler("load_p_forecasted"),
                                                           "load_q_for_handler": PersistenceForecastHandler("load_q_forecasted"),
                                                           },
-                                     _add_to_name="TestPersistenceHandler",
+                                     _add_to_name=type(self).__name__+"TestPersistenceHandler",
                                      test=True)  
             
     def tearDown(self) -> None:
@@ -587,7 +589,7 @@ class TestPerfectForecastHandler(TestPersistenceHandler):
                                                           "load_p_for_handler": PerfectForecastHandler("load_p_forecasted"),
                                                           "load_q_for_handler": PerfectForecastHandler("load_q_forecasted"),
                                                           },
-                                     _add_to_name="TestPerfectForecastHandler",
+                                     _add_to_name=type(self).__name__+"TestPerfectForecastHandler",
                                      test=True)  
     def tearDown(self) -> None:
         self.env.close()
@@ -625,7 +627,7 @@ class TestPerfectForecastHandler(unittest.TestCase):
                                                           "load_p_for_handler": NoisyForecastHandler("load_p_forecasted"),
                                                           "load_q_for_handler": NoisyForecastHandler("load_q_forecasted"),
                                                           },
-                                     _add_to_name="TestPerfectForecastHandler",
+                                     _add_to_name=type(self).__name__+"TestPerfectForecastHandler",
                                      test=True)  
     def tearDown(self) -> None:
         self.env.close()
@@ -719,7 +721,7 @@ class TestLoadQPHandler14(TestCSVHandlerEnv):
                                                           "load_p_for_handler": CSVForecastHandler("load_p_forecasted"),
                                                           "load_q_for_handler": LoadQFromPHandler("load_q_forecasted"),
                                                           },
-                                     _add_to_name="TestForecastHandlerEnv",
+                                     _add_to_name=type(self).__name__+"TestForecastHandlerEnv",
                                      test=True)
         self._aux_reproducibility()
                

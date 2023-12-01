@@ -7,9 +7,9 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import unittest
 
 import grid2op
-from grid2op.Chronics import ChangeNothing
 from grid2op.tests.helper_path_test import *
 from grid2op.Observation import CompleteObservation
 
@@ -45,7 +45,8 @@ class Issue235Tester(unittest.TestCase):
             # from lightsim2grid import LightSimBackend
             # backend=LightSimBackend(),
             self.env = grid2op.make(
-                env_nm, test=True, observation_class=Issue235TesterObs
+                env_nm, test=True, observation_class=Issue235TesterObs,
+                _add_to_name=type(self).__name__
             )
 
         # now set the right observation class for the simulate action

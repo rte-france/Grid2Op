@@ -9,10 +9,12 @@
 import warnings
 import os
 import json
+import unittest
+
 from grid2op.Action import BaseAction, PlayableAction
 from grid2op.tests.helper_path_test import *
 
-from grid2op.MakeEnv import make
+import grid2op
 from grid2op.Parameters import Parameters
 from grid2op.Converter import ConnectivityConverter, IdToAct
 import tempfile
@@ -20,28 +22,29 @@ import pdb
 
 import warnings
 
-warnings.simplefilter("error")
 
-
-class TestConnectivityConverter(HelperTests):
+class TestConnectivityConverter(HelperTests, unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
+        super().setUp()
         param = Parameters()
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
+            self.env = grid2op.make(
                 "educ_case14_storage",
                 test=True,
                 param=param,
                 action_class=PlayableAction,
+                _add_to_name=type(self).__name__,
             )
         np.random.seed(0)
 
     def tearDown(self):
+        super().tearDown()
         self.env.close()
 
     def test_ConnectivityConverter(self):
@@ -291,7 +294,7 @@ class TestConnectivityConverter(HelperTests):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True)
+            env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
         converter = ConnectivityConverter(env.action_space)
         # it's a good practice to seed the element that can be, for reproducibility
         converter.seed(0)
@@ -361,26 +364,29 @@ class TestConnectivityConverter(HelperTests):
         assert abs(disag3 - 4.0 / size_) <= self.tol_one
 
 
-class TestIdToAct(HelperTests):
+class TestIdToAct(HelperTests, unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
+        super().setUp()
         param = Parameters()
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
+            self.env = grid2op.make(
                 "educ_case14_storage",
                 test=True,
                 param=param,
                 action_class=PlayableAction,
+                _add_to_name=type(self).__name__
             )
         np.random.seed(0)
         self.filenamedict = "test_action_json_educ_case14_storage.json"
 
     def tearDown(self):
+        super().tearDown()
         self.env.close()
 
     def test_save_reload(self):

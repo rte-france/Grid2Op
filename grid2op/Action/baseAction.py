@@ -440,7 +440,7 @@ class BaseAction(GridObjects):
         self._subs_impacted = None
 
         # shunts
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self.shunt_p = np.full(
                 shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float
             )
@@ -495,6 +495,12 @@ class BaseAction(GridObjects):
         # sometimes this method is used...
         return self.__deepcopy__()
 
+    def shape(self):
+        return type(self).shapes()
+    
+    def dtype(self):
+        return type(self).dtypes()
+    
     def _aux_copy(self, other):
         attr_simple = [
             "_modif_inj",
@@ -588,6 +594,9 @@ class BaseAction(GridObjects):
 
         Once you have these dictionnary, you can use them to build back the action from the action space.
 
+        .. warning::
+            This function does not work correctly with version of grid2op lower (or equal to) 1.9.5 
+            
         Examples
         ---------
 
@@ -628,7 +637,8 @@ class BaseAction(GridObjects):
             self._aux_serialize_add_key_change("gen_change_bus", "generators_id", res["change_bus"])
             self._aux_serialize_add_key_change("line_or_change_bus", "lines_or_id", res["change_bus"])
             self._aux_serialize_add_key_change("line_ex_change_bus", "lines_ex_id", res["change_bus"])
-            self._aux_serialize_add_key_change("storage_change_bus", "storages_id", res["change_bus"])
+            if hasattr(type(self), "n_storage") and type(self).n_storage:
+                self._aux_serialize_add_key_change("storage_change_bus", "storages_id", res["change_bus"])
             if not res["change_bus"]:
                 del res["change_bus"]
             
@@ -646,7 +656,8 @@ class BaseAction(GridObjects):
             self._aux_serialize_add_key_set("gen_set_bus", "generators_id", res["set_bus"])
             self._aux_serialize_add_key_set("line_or_set_bus", "lines_or_id", res["set_bus"])
             self._aux_serialize_add_key_set("line_ex_set_bus", "lines_ex_id", res["set_bus"])
-            self._aux_serialize_add_key_set("storage_set_bus", "storages_id", res["set_bus"])
+            if hasattr(type(self), "n_storage") and type(self).n_storage:
+                self._aux_serialize_add_key_set("storage_set_bus", "storages_id", res["set_bus"])
             if not res["set_bus"]:
                 del res["set_bus"]
             
@@ -1045,7 +1056,7 @@ class BaseAction(GridObjects):
             return False
 
         # shunts are the same
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             if self.n_shunt != other.n_shunt:
                 return False
             is_ok_me = np.isfinite(self.shunt_p)
@@ -1244,10 +1255,10 @@ class BaseAction(GridObjects):
         
           - if a powerline is affected to a certain bus at one of its end with `set_bus` (for example 
             `set_bus` to 1 or 2) and at the same time disconnected (`set_line_status` is -1) then
-            the `set_bus` part is ignore to avoid `AmbiguousAction`
+            the `set_bus` part is ignored to avoid `AmbiguousAction`
           - if a powerline is disconnect from its bus at one of its end with `set_bus` (for example 
             `set_bus` to -1) and at the same time reconnected (`set_line_status` is 1) then
-            the `set_bus` part is ignore to avoid `AmbiguousAction`
+            the `set_bus` part is ignored to avoid `AmbiguousAction`
           - if a powerline is affected to a certain bus at one of its end with `change_bus` (`change_bus` is 
             ``True``) and at the same time disconnected (`set_line_status` is -1) then
             the `change_bus` part is ignore to avoid `AmbiguousAction`
@@ -1261,6 +1272,10 @@ class BaseAction(GridObjects):
         
         .. note::
             As from version 1.9.0 you are no longer forced to provide an observation if `check_cooldown=False`
+        
+        .. warning::
+            For grid2op equal or lower to 1.9.5 this function was bugged in some corner cases. We highly recommend
+            upgrading if you use this function with these grid2op versions.
             
         Examples
         ---------
@@ -1335,44 +1350,75 @@ class BaseAction(GridObjects):
         
         # remove the "set" part that would cause a reconnection
         mask_reco = np.full(cls.dim_topo, fill_value=False)
-        reco_or_ = np.full(cls.n_line, fill_value=False)
-        reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & 
-                 disconnected & line_under_cooldown] = True
-        mask_reco[cls.line_or_pos_topo_vect] = reco_or_
+        if check_cooldown:
+            reco_or_ = np.full(cls.n_line, fill_value=False)
+            reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & 
+                    disconnected & line_under_cooldown] = True
+            mask_reco[cls.line_or_pos_topo_vect] = reco_or_
+            
+            reco_ex_ = np.full(cls.n_line, fill_value=False)
+            reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & 
+                    disconnected & line_under_cooldown] = True
+            mask_reco[cls.line_ex_pos_topo_vect] = reco_ex_
         
-        reco_ex_ = np.full(cls.n_line, fill_value=False)
-        reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & 
-                 disconnected & line_under_cooldown] = True
-        mask_reco[cls.line_ex_pos_topo_vect] = reco_ex_
-        
+        # do not reconnect powerline that will be disconnected
+        reco_or_and_disco_ = np.full(cls.n_line, fill_value=False)
+        reco_or_and_disco_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & (self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0)] = True
+        reco_or_and_disco_[(self._set_topo_vect[cls.line_or_pos_topo_vect] > 0) & (self._set_line_status < 0)] = True
+        mask_reco[cls.line_or_pos_topo_vect] |= reco_or_and_disco_
+
+        reco_ex_and_disco_ = np.full(cls.n_line, fill_value=False)
+        reco_ex_and_disco_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & (self._set_topo_vect[cls.line_or_pos_topo_vect] < 0)] = True
+        reco_ex_and_disco_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0) & (self._set_line_status < 0)] = True
+        mask_reco[cls.line_ex_pos_topo_vect] |= reco_ex_and_disco_
+        # and now remove the change from the set_bus
         self._set_topo_vect[mask_reco] = 0
+
         
         # remove the "set" that would cause a disconnection
         mask_disco = np.full(cls.dim_topo, fill_value=False)
-        reco_or_ = np.full(cls.n_line, fill_value=False)
-        reco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] < 0) & 
-                 connected & line_under_cooldown] = True
-        mask_disco[cls.line_or_pos_topo_vect] = reco_or_
-        
-        reco_ex_ = np.full(cls.n_line, fill_value=False)
-        reco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0) & 
-                 connected & line_under_cooldown] = True
-        mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
-        
+        if check_cooldown:
+            disco_or_ = np.full(cls.n_line, fill_value=False)
+            disco_or_[(self._set_topo_vect[cls.line_or_pos_topo_vect] < 0) & 
+                    connected & line_under_cooldown] = True
+            mask_disco[cls.line_or_pos_topo_vect] = disco_or_
+            
+            disco_ex_ = np.full(cls.n_line, fill_value=False)
+            disco_ex_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0) & 
+                    connected & line_under_cooldown] = True
+            mask_disco[cls.line_ex_pos_topo_vect] = disco_ex_
+            
+        disco_or_and_reco_ = np.full(cls.n_line, fill_value=False)
+        disco_or_and_reco_[(self._set_topo_vect[cls.line_or_pos_topo_vect] < 0) & (self._set_line_status > 0)] = True
+        mask_disco[cls.line_or_pos_topo_vect] |= disco_or_and_reco_
+
+        disco_ex_and_reco_ = np.full(cls.n_line, fill_value=False)
+        disco_ex_and_reco_[(self._set_topo_vect[cls.line_ex_pos_topo_vect] < 0) & (self._set_line_status > 0)] = True
+        mask_disco[cls.line_ex_pos_topo_vect] |= disco_ex_and_reco_
         self._set_topo_vect[mask_disco] = 0
         
         # remove the "change" part when powerlines is disconnected
         mask_disco = np.full(cls.dim_topo, fill_value=False)
-        reco_or_ = np.full(cls.n_line, fill_value=False)
-        reco_or_[self._change_bus_vect[cls.line_or_pos_topo_vect] & 
-                 disconnected & line_under_cooldown] = True
-        mask_disco[cls.line_or_pos_topo_vect] = reco_or_
-        
-        reco_ex_ = np.full(cls.n_line, fill_value=False)
-        reco_ex_[self._change_bus_vect[cls.line_ex_pos_topo_vect] & 
-                 disconnected & line_under_cooldown] = True
-        mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
-        
+        if check_cooldown:
+            reco_or_ = np.full(cls.n_line, fill_value=False)
+            reco_or_[self._change_bus_vect[cls.line_or_pos_topo_vect] & 
+                    disconnected & line_under_cooldown] = True
+            mask_disco[cls.line_or_pos_topo_vect] = reco_or_
+            
+            reco_ex_ = np.full(cls.n_line, fill_value=False)
+            reco_ex_[self._change_bus_vect[cls.line_ex_pos_topo_vect] & 
+                    disconnected & line_under_cooldown] = True
+            mask_disco[cls.line_ex_pos_topo_vect] = reco_ex_
+            
+        # do not change bus of powerline that will be disconnected
+        reco_or_and_disco_ = np.full(cls.n_line, fill_value=False)
+        reco_or_and_disco_[(self._change_bus_vect[cls.line_or_pos_topo_vect]) & (self._set_line_status < 0)] = True
+        mask_disco[cls.line_or_pos_topo_vect] |= reco_or_and_disco_
+        reco_ex_and_disco_ = np.full(cls.n_line, fill_value=False)
+        reco_ex_and_disco_[(self._change_bus_vect[cls.line_ex_pos_topo_vect]) & (self._set_line_status < 0)] = True
+        mask_disco[cls.line_ex_pos_topo_vect] |= reco_ex_and_disco_
+
+        # "erase" the change_bus for concerned powerlines
         self._change_bus_vect[mask_disco] = False
         
         return self
@@ -1591,7 +1637,7 @@ class BaseAction(GridObjects):
         self._assign_iadd_or_warn("_change_bus_vect", me_change)
 
         # shunts
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             val = other.shunt_p
             ok_ind = np.isfinite(val)
             shunt_p = 1.0 * self.shunt_p
@@ -1839,7 +1885,7 @@ class BaseAction(GridObjects):
                     msg += (
                         ' at least one of "loads_id", "generators_id", "lines_or_id", '
                     )
-                    msg += '"lines_ex_id" or "substations_id"'
+                    msg += '"lines_ex_id" or "substations_id" or "storages_id"'
                     msg += " as keys. None where found. Current used keys are: "
                     msg += "{}".format(sorted(ddict_.keys()))
                     raise AmbiguousAction(msg)
@@ -1882,7 +1928,7 @@ class BaseAction(GridObjects):
                     msg += (
                         ' at least one of "loads_id", "generators_id", "lines_or_id", '
                     )
-                    msg += '"lines_ex_id" or "substations_id"'
+                    msg += '"lines_ex_id" or "substations_id" or "storages_id"'
                     msg += " as keys. None where found. Current used keys are: "
                     msg += "{}".format(sorted(ddict_.keys()))
                     raise AmbiguousAction(msg)
@@ -2624,7 +2670,7 @@ class BaseAction(GridObjects):
                     "which it is connected. This is ambiguous. You must *set* this bus instead."
                 )
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             if self.shunt_p.shape[0] != self.n_shunt:
                 raise IncorrectNumberOfElements(
                     "Incorrect number of shunt (for shunt_p) in your action."
@@ -3356,7 +3402,7 @@ class BaseAction(GridObjects):
         """
         injection = "load_p" in self._dict_inj or "prod_p" in self._dict_inj
         voltage = "prod_v" in self._dict_inj
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             voltage = voltage or np.isfinite(self.shunt_p).any()
             voltage = voltage or np.isfinite(self.shunt_q).any()
             voltage = voltage or (self.shunt_bus != 0).any()

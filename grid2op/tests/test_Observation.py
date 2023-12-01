@@ -11,6 +11,7 @@ import tempfile
 import warnings
 import copy
 import pdb
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
@@ -24,7 +25,6 @@ from grid2op.Reward import (
     RedispReward,
     RewardHelper,
 )
-from grid2op.MakeEnv import make
 from grid2op.Action import CompleteAction, PlayableAction
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
@@ -33,10 +33,6 @@ from grid2op.Action import CompleteAction, PlayableAction
 
 # temporary deactivation of all the failing test until simulate is fixed
 DEACTIVATE_FAILING_TEST = False
-
-import warnings
-
-warnings.simplefilter("error")
 
 
 class TestBasisObsBehaviour(unittest.TestCase):
@@ -50,7 +46,10 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_test", test=True)
+            self.env = grid2op.make("rte_case14_test",
+                                    test=True,
+                                    _add_to_name=type(self).__name__)
+            
         self.dict_ = {
             "name_gen": ["gen_1_0", "gen_2_1", "gen_5_2", "gen_7_3", "gen_0_4"],
             "name_load": [
@@ -106,7 +105,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
             ],
             "name_storage": [],
             "glop_version": grid2op.__version__,
-            "env_name": "rte_case14_test",
+            # "env_name": "rte_case14_test",
+            "env_name": "rte_case14_testTestBasisObsBehaviour",
             "sub_info": [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
             "load_to_subid": [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
             "gen_to_subid": [1, 2, 5, 7, 0],
@@ -991,7 +991,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_sum_shape_equal_size(self):
         obs = self.env.observation_space(self.env)
-        assert obs.size() == np.sum(obs.shape())
+        assert obs.size() == np.sum(obs.shapes())
 
     def test_sub_topology(self):
         """test the sub_topology function"""
@@ -1809,7 +1809,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
     def aux_test_conn_mat3(self, as_csr=False):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True)
+            env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
         obs, reward, done, info = env.step(
             env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}})
         )
@@ -1852,7 +1852,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
     def aux_flow_bus_matrix(self, active_flow):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_realistic", test=True)
+            env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
         obs, reward, done, info = env.step(
             env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}})
         )
@@ -1916,7 +1916,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("educ_case14_storage", test=True, action_class=CompleteAction)
+            env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction, _add_to_name=type(self).__name__)
         obs = env.reset()
         mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(
             active_flow=active_flow, as_csr_matrix=True
@@ -2012,19 +2012,21 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_shape_correct(self):
         obs = self.env.observation_space(self.env)
-        assert obs.shape().shape == obs.dtype().shape
-        assert np.all(obs.dtype() == self.dtypes)
-        assert np.all(obs.shape() == self.shapes)
+        assert obs.shapes().shape == obs.dtypes().shape
+        assert np.all(obs.dtypes() == self.dtypes)
+        assert np.all(obs.shapes() == self.shapes)
 
     def test_0_load_properly(self):
         # this test aims at checking that everything in setUp is working properly, eg that "ObsEnv" class has enough
         # information for example
-        pass
+        assert type(self.env).shunts_data_available
 
     def test_1_generating_obs(self):
         # test that helper_obs is abl to generate a valid observation
+        assert type(self.env).shunts_data_available
         obs = self.env.observation_space(self.env)
-        pass
+        assert type(self.env).shunts_data_available
+        assert type(obs).shunts_data_available
 
     def test_2_reset(self):
         # test that helper_obs is abl to generate a valid observation
@@ -2032,8 +2034,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert obs.prod_p[0] is not None
         obs.reset()
         assert np.all(np.isnan(obs.prod_p))
-        assert np.all(obs.dtype() == self.dtypes)
-        assert np.all(obs.shape() == self.shapes)
+        assert np.all(obs.dtypes() == self.dtypes)
+        assert np.all(obs.shapes() == self.shapes)
 
     def test_3_reset(self):
         # test that helper_obs is able to generate a valid observation
@@ -2042,15 +2044,15 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert obs == obs2
         obs2.reset()
         assert np.all(np.isnan(obs2.prod_p))
-        assert np.all(obs2.dtype() == self.dtypes)
-        assert np.all(obs2.shape() == self.shapes)
+        assert np.all(obs2.dtypes() == self.dtypes)
+        assert np.all(obs2.shapes() == self.shapes)
         # assert obs.prod_p is not None
 
     def test_shapes_types(self):
         obs = self.env.observation_space(self.env)
-        dtypes = obs.dtype()
+        dtypes = obs.dtypes()
         assert np.all(dtypes == self.dtypes)
-        shapes = obs.shape()
+        shapes = obs.shapes()
         assert np.all(shapes == self.shapes)
 
     def test_4_to_from_vect(self):
@@ -2061,8 +2063,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert vect.shape[0] == obs.size()
         obs2.reset()
         obs2.from_vect(vect)
-        assert np.all(obs.dtype() == self.dtypes)
-        assert np.all(obs.shape() == self.shapes)
+        assert np.all(obs.dtypes() == self.dtypes)
+        assert np.all(obs.shapes() == self.shapes)
 
         # TODO there is not reason that these 2 are equal: reset, will erase everything
         # TODO whereas creating the observation
@@ -2205,7 +2207,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
             
             ok_ = np.array_equal(val, val_res)
             assert ok_, (f"values different for {el}: "
-                         f"{dict_[el]}"
+                         f"{dict_[el]} vs "
                          f"{self.dict_[el]}")
             
         # self.maxDiff = None
@@ -2332,13 +2334,13 @@ class TestUpdateEnvironement(unittest.TestCase):
         # Create env and obs in left hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.lenv = make("rte_case5_example", test=True)
+            self.lenv = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
             self.lobs = self.lenv.reset()
 
         # Create env and obs in right hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.renv = make("rte_case5_example", test=True)
+            self.renv = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
             # Step once to make it different
             self.robs, _, _, _ = self.renv.step(self.renv.action_space())
 
@@ -2461,7 +2463,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Create env
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_realistic", test=True)
+            self.env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
 
         self.obs = self._make_forecast_perfect(self.env)
         self.sim_obs = None
@@ -2968,8 +2970,9 @@ class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
         # Create env
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make(
-                "educ_case14_storage", test=True, action_class=PlayableAction
+            self.env = grid2op.make(
+                "educ_case14_storage", test=True, action_class=PlayableAction,
+                _add_to_name=type(self).__name__
             )
         self.obs = self._make_forecast_perfect(self.env)
         self.sim_obs = None

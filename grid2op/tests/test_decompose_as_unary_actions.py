@@ -34,6 +34,7 @@ class TestDecompUnary(unittest.TestCase):
                 "educ_case14_storage",
                 test=True,
                 action_class=PlayableAction,
+                _add_to_name=type(self).__name__,
             )
     def tearDown(self) -> None:
         self.env.close()

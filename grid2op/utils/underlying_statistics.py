@@ -45,7 +45,7 @@ class EpisodeStatistics(object):
 
         import grid2op
         from grid2op.utils import EpisodeStatistics
-        env = grid2op.make()
+        env = grid2op.make("l2rpn_case14_sandbox")
 
         stats = EpisodeStatistics(env)
 
@@ -67,7 +67,7 @@ class EpisodeStatistics(object):
         import grid2op
         from grid2op.utils import EpisodeStatistics
         from grid2op.Parameters import Parameters
-        env = grid2op.make()
+        env = grid2op.make("l2rpn_case14_sandbox")
 
         nb_scenario = 8
 

@@ -21,7 +21,8 @@ class TestNoisy(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-                "educ_case14_storage", test=True, observation_class=NoisyObservation
+                "educ_case14_storage", test=True, observation_class=NoisyObservation,
+                _add_to_name=type(self).__name__
             )
         self.env.seed(0)
         self.env.set_id(0)
@@ -112,7 +113,7 @@ class TestNoisy(unittest.TestCase):
 
     def test_simulate(self):
         sim_o, *_ = self.obs.simulate(self.env.action_space())
-        assert type(sim_o).env_name == "educ_case14_storage"
+        assert type(sim_o).env_name == "educ_case14_storage"+type(self).__name__
         assert isinstance(sim_o, CompleteObservation)
 
         # test that it is reproducible
@@ -127,7 +128,8 @@ class TestNoisy(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "educ_case14_storage", test=True, observation_class=CompleteObservation
+                "educ_case14_storage", test=True, observation_class=CompleteObservation,
+                _add_to_name=type(self).__name__
             )
         env.seed(0)
         env.set_id(0)
@@ -184,6 +186,7 @@ class TestNoisyDiffParams(TestNoisy):
                 test=True,
                 observation_class=NoisyObservation,
                 kwargs_observation=kwargs_observation,
+                _add_to_name=type(self).__name__,
             )
         self.env.seed(0)
         self.env.set_id(0)
@@ -199,6 +202,7 @@ class TestNoisyDiffParams(TestNoisy):
                 test=True,
                 observation_class=NoisyObservation,
                 kwargs_observation=kwargs_observation,
+                _add_to_name=type(self).__name__
             )
         env.seed(0)
         env.set_id(0)

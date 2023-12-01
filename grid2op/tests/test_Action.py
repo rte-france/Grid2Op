@@ -27,9 +27,6 @@ from grid2op.Space.space_utils import save_to_dict
 # TODO check that if i set the element of a powerline to -1, then it's working as intended (disconnect both ends)
 
 
-import pdb
-
-
 def _get_action_grid_class():
     GridObjects.env_name = "test_action_env"
     GridObjects.n_gen = 5
@@ -387,7 +384,8 @@ class TestActionBase(ABC):
 
     def tearDown(self):
         self.authorized_keys = {}
-        self.gridobj._clear_class_attribute()
+        type(self.gridobj)._clear_class_attribute()
+        GridObjects._clear_class_attribute()
 
     def test_reset_modified_flags(self):
         act = self.helper_action.sample()
@@ -426,7 +424,7 @@ class TestActionBase(ABC):
         act = self.helper_action.sample()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_ref = grid2op.make("rte_case5_example", test=True)
+            env_ref = grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__)
             act_ref = env_ref.action_space()
         assert not (act == act_ref)
 
@@ -874,9 +872,9 @@ class TestActionBase(ABC):
             tmp[-action.n_gen :] = -1
 
         # compute the "set_bus" vect
-        id_set = np.where(np.array(action.attr_list_vect) == "_set_topo_vect")[0][0]
+        id_set = np.where(np.array(type(action).attr_list_vect) == "_set_topo_vect")[0][0]
         size_before = 0
-        for el in action.attr_list_vect[:id_set]:
+        for el in type(action).attr_list_vect[:id_set]:
             arr_ = action._get_array_from_attr_name(el)
             size_before += arr_.shape[0]
         tmp[size_before : (size_before + action.dim_topo)] = np.array(
@@ -941,11 +939,11 @@ class TestActionBase(ABC):
                 0,
             ]
         )
-        id_change = np.where(np.array(action.attr_list_vect) == "_change_bus_vect")[0][
+        id_change = np.where(np.array(type(action).attr_list_vect) == "_change_bus_vect")[0][
             0
         ]
         size_before = 0
-        for el in action.attr_list_vect[:id_change]:
+        for el in type(action).attr_list_vect[:id_change]:
             arr_ = action._get_array_from_attr_name(el)
             size_before += arr_.shape[0]
         tmp[size_before : (size_before + action.dim_topo)] = 1.0 * np.array(
@@ -1448,11 +1446,11 @@ class TestActionBase(ABC):
 
     def test_sum_shape_equal_size(self):
         act = self.helper_action({})
-        assert act.size() == np.sum(act.shape())
+        assert act.size() == np.sum(act.shapes())
 
     def test_shape_correct(self):
         act = self.helper_action({})
-        assert act.shape().shape == act.dtype().shape
+        assert act.shapes().shape == act.dtypes().shape
 
     def test_redispatching(self):
         self._skipMissingKey("redispatch")
@@ -2271,7 +2269,7 @@ class TestDeepCopy(unittest.TestCase):
     def test_alarm(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("l2rpn_icaps_2021", test=True) as env:
+            with grid2op.make("l2rpn_icaps_2021", test=True, _add_to_name=type(self).__name__) as env:
                 act = env.action_space()
                 act.raise_alarm = [0]
 
@@ -2282,7 +2280,7 @@ class TestDeepCopy(unittest.TestCase):
     def test_redisp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("l2rpn_icaps_2021", test=True) as env:
+            with grid2op.make("l2rpn_icaps_2021", test=True, _add_to_name=type(self).__name__) as env:
                 act = env.action_space()
                 act.redispatch = [(0, -1.0)]
 
@@ -2293,7 +2291,7 @@ class TestDeepCopy(unittest.TestCase):
     def test_storage(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("educ_case14_storage", test=True) as env:
+            with grid2op.make("educ_case14_storage", test=True, _add_to_name=type(self).__name__) as env:
                 act = env.action_space()
                 act.storage_p = [(0, -1.0)]
 
@@ -2304,7 +2302,7 @@ class TestDeepCopy(unittest.TestCase):
     def test_topo(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("l2rpn_case14_sandbox", test=True) as env:
+            with grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__) as env:
                 # set line status
                 act = env.action_space()
                 act.set_line_status = [(0, -1)]

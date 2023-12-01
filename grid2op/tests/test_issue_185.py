@@ -46,7 +46,7 @@ class Issue185Tester(unittest.TestCase):
                 continue
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True) as env:
+                with grid2op.make(env_name, test=True, _add_to_name=type(self).__name__) as env:
                     try:
                         gym_env = GymEnv(env)
                         # gym_env.seed(0)
@@ -74,7 +74,7 @@ class Issue185Tester(unittest.TestCase):
                 continue
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True) as env:
+                with grid2op.make(env_name, test=True, _add_to_name=type(self).__name__) as env:
                     try:
                         gym_env = GymEnv(env)
                         try:
@@ -110,7 +110,7 @@ class Issue185Tester(unittest.TestCase):
             #     continue
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True) as env:
+                with grid2op.make(env_name, test=True, _add_to_name=type(self).__name__) as env:
                     try:
                         gym_env = GymEnv(env)
                         gym_env.observation_space.close()
@@ -151,7 +151,7 @@ class Issue185Tester(unittest.TestCase):
 
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True) as env:
+                with grid2op.make(env_name, test=True, _add_to_name=type(self).__name__) as env:
                     try:
                         gym_env = GymEnv(env)
                         gym_env.action_space = MultiDiscreteActSpace(
@@ -187,7 +187,7 @@ class Issue185Tester(unittest.TestCase):
                 continue
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True) as env:
+                with grid2op.make(env_name, test=True, _add_to_name=type(self).__name__) as env:
                     try:
                         gym_env = GymEnv(env)
                         gym_env.action_space = DiscreteActSpace(

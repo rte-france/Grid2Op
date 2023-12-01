@@ -26,7 +26,7 @@ class Issue367Tester(unittest.TestCase):
             param.NB_TIMESTEP_COOLDOWN_SUB = 3
             param.NB_TIMESTEP_COOLDOWN_LINE = 3
             param.NO_OVERFLOW_DISCONNECTION = True
-            self.env = grid2op.make('l2rpn_wcci_2022', param=param)
+            self.env = grid2op.make('l2rpn_wcci_2022', param=param, _add_to_name=type(self).__name__)
             
         self.env.set_id(0) 
         self.env.seed(0)

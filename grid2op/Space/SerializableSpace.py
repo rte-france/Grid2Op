@@ -111,9 +111,9 @@ class SerializableSpace(GridObjects, RandomObject):
 
         self.global_vars = None
 
-        self.shape = self._template_obj.shape()
-        self.dtype = self._template_obj.dtype()
-        self.attr_list_vect = copy.deepcopy(self._template_obj.attr_list_vect)
+        self._shape = self._template_obj.shapes()
+        self._dtype = self._template_obj.dtypes()
+        self.attr_list_vect = copy.deepcopy(type(self._template_obj).attr_list_vect)
 
         self._to_extract_vect = {}  # key: attr name, value: tuple: (beg_, end_, dtype)
         beg_ = 0
@@ -123,6 +123,14 @@ class SerializableSpace(GridObjects, RandomObject):
             self._to_extract_vect[attr] = (beg_, end_, dtype_)
             beg_ += size
 
+    @property
+    def shape(self):
+        return self._shape
+    
+    @property
+    def dtype(self):
+        return self._dtype
+    
     def _custom_deepcopy_for_copy(self, new_obj):
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
 
@@ -132,10 +140,10 @@ class SerializableSpace(GridObjects, RandomObject):
         new_obj._template_obj = self._template_obj.copy()
         new_obj.n = self.n
         new_obj.global_vars = copy.deepcopy(self.global_vars)
-        new_obj.shape = copy.deepcopy(self.shape)
-        new_obj.dtype = copy.deepcopy(self.dtype)
-        new_obj.attr_list_vect = copy.deepcopy(self.attr_list_vect)
-        new_obj._to_extract_vect = copy.deepcopy(self._to_extract_vect)
+        new_obj._shape = copy.deepcopy(self._shape)
+        new_obj._dtype = copy.deepcopy(self._dtype)
+        new_obj.attr_list_vect = copy.deepcopy(self.attr_list_vect)  # TODO is this necessary, that's class attribute I think
+        new_obj._to_extract_vect = copy.deepcopy(self._to_extract_vect)  # TODO is this necessary, that's class attribute I think
 
     @staticmethod
     def from_dict(dict_):
@@ -360,7 +368,7 @@ class SerializableSpace(GridObjects, RandomObject):
 
             import numpy as np
             import grid2op
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # get the vector representation of an observation:
             obs = env.reset()
@@ -415,7 +423,7 @@ class SerializableSpace(GridObjects, RandomObject):
             ################
             # INTRO
             # create a runner
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             # see the documentation of the Runner if you want to change the agent.
             # in this case it will be "do nothing"
             runner = Runner(**env.get_params_for_runner())

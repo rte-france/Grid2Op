@@ -64,7 +64,8 @@ class TestScoreL2RPN2023NRES(unittest.TestCase):
                                                           "gen_v_for_handler": PerfectForecastHandler("prod_v_forecasted", quiet_warnings=True),
                                                           "load_p_for_handler": PerfectForecastHandler("load_p_forecasted", quiet_warnings=True),
                                                           "load_q_for_handler": PerfectForecastHandler("load_q_forecasted", quiet_warnings=True),
-                                                        },) 
+                                                        },
+                                    _add_to_name=type(self).__name__) 
             self.env.set_max_iter(20)
             params = self.env.parameters
             params.NO_OVERFLOW_DISCONNECTION = True

@@ -31,7 +31,77 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.9.5] - 2023-xx-yy
+
+[1.9.8] - 20xx-yy-zz
+----------------------
+- [IMPROVED] the CI speed: by not testing every possible numpy version but only most ancient and most recent
+- [IMPROVED] Runner now test grid2op version 1.9.6 and 1.9.7
+- [IMPROVED] refacto `gridobj_cls._clear_class_attribute` and `gridobj_cls._clear_grid_dependant_class_attributes`
+- [IMPROVED] the bahviour of the generic class `MakeBackend` used for the test suite.
+- [IMPROVED] re introducing python 12 testing
+
+[1.9.7] - 2023-12-01
+----------------------
+- [BREAKING] removal of the `grid2op/Exceptions/PowerflowExceptions.py` file and move the
+  `DivergingPowerflow` as part of the BackendException. If you imported (to be avoided)
+  with `from grid2op.Exceptions.PowerflowExceptions import PowerflowExceptions`
+  simply do `from grid2op.Exceptions import PowerflowExceptions` and nothing
+  will change.
+- [BREAKING] rename with filename starting with lowercase all the files in the "`Exceptions`", 
+  module. This is both consistent with python practice but allows also to make the 
+  difference between the files in the 
+  module and the class imported. This should have little to no impact on all codes but to "upgrade"
+  instead of `from grid2op.Exceptions.XXX import PowerflowExceptions` (which you should not have done in the first place) 
+  just do `from grid2op.Exceptions import PowerflowExceptions`. Expect other changes like this for other grid2op modules
+  in the near future.
+- [BREAKING] change the `gridobj_cls.shape()` and `gridobj_cls.dtype()` to `gridobj_cls.shapes()` and `gridobj_cls.dtypes()`
+  to be more clear when dealing with action_space and observation_space (where `shape` and `dtype` are attribute and not functions)
+  This change means you can still use `act.shape()` and `act.dtype()` but that `act_space.shape` and `act_space.dtype` are now
+  clearly properties (and NOT attribute). For the old function `gridobj_cls.dtype()` you can now use `gridobj_cls.dtypes()`
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/561 (indent issue)
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/550 : issue with `shunts_data_available` now better handled
+- [IMPROVED] the function to check the backend interface now also check that
+  the `topo_vect` returns value between 1 and 2.
+- [IMPROVED] the function to check backend now also check the `topo_vect`
+  for each type of elements.
+
+[1.9.6] - 2023-10-26
+----------------------
+- [BREAKING] when a storage is connected alone on a bus, even if it produces / absorbs 0.0 MW it 
+  will raise a diverging powerflow error (previously the storage was automatically disconnected by 
+  `PandaPowerBackend`, but probably not by other backends)
+- [BREAKING] when a shunt is alone on a bus, the powerflow will diverge even in DC mode 
+  (previously it only converges which was wrong behaviour: grid2op should not disconnect shunt)
+- [FIXED] a bug in PandaPowerBackend (DC mode) where isolated load did not raised 
+  exception (they should lead to a divergence)
+- [FIXED] some wrong behaviour in the `remove_line_status_from_topo` when no observation where provided
+  and `check_cooldown` is `False`
+- [FIXED] a bug in PandaPowerBackend in AC powerflow: disconnected storage unit had no 0. as voltage
+- [FIXED] a bug in PandaPowerBackend in AC powerflow when a generator was alone a bus it made the powerflow
+  crash on some cases (*eg* without lightsim2grid, without numba)
+- [FIXED] a bug in PandaPowerBackend in DC (in some cases non connected grid were not spotted)
+- [FIXED] now the observations once reloaded have the correct `_is_done` flag (`obs._is_done = False`)
+  which allows to use the `obs.get_energy_graph()` for example. This fixes https://github.com/rte-france/Grid2Op/issues/538
+- [ADDED] now depends on the `typing_extensions` package
+- [ADDED] a complete test suite to help people develop new backend using "Test Driven Programming" 
+  techniques
+- [ADDED] the information on which time series data has been used by the environment in the `info`return value
+  of `env.step(...)`
+- [ADDED] a test suite easy to set up to test the backend API (and only the backend for now, integration tests with
+  runner and environment will follow)
+- [ADDED] an attribute of the backend to specify which file extension can be processed by it. Environment creation will
+  fail if none are found. See `backend.supported_grid_format` see https://github.com/rte-france/Grid2Op/issues/429
+- [IMPROVED] now easier than ever to run the grid2op test suite with a new backend (for relevant tests)
+- [IMPROVED] type hints for `Backend` and `PandapowerBackend`
+- [IMPROVED] distribute python 3.12 wheel
+- [IMPROVED] test for python 3.12 and numpy 1.26 when appropriate (*eg* when numpy version is released)
+- [IMPROVED] handling of environments without shunts
+- [IMPROVED] error messages when grid is not consistent 
+- [IMPROVED] add the default `l2rpn_case14_sandbox` environment in all part of the docs (substituing `rte_case14_realistic` or nothing)
+- [IMPROVED] imports on the `Exceptions` module
+- [IMPROVED] pandapower backend raises `BackendError` when "diverging"
+
+[1.9.5] - 2023-09-18
 ---------------------
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/518
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/446

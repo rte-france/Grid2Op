@@ -32,7 +32,7 @@ This can be done with:
     p.MAX_LINE_STATUS_CHANGED = 10
 
     # Give Parameters instance to make, so its used
-    env = grid2op.make("rte_case14_realistic", param=p)
+    env = grid2op.make("l2rpn_case14_sandbox", param=p)
 
 
 .. automodule:: grid2op.Parameters

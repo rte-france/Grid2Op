@@ -48,7 +48,8 @@ class BackendProperlyInit(unittest.TestCase):
         self.env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make(self.env_name, test=True, backend=PPExtraArgs())
+            self.env = grid2op.make(self.env_name, test=True, backend=PPExtraArgs(),
+                                    _add_to_name=type(self).__name__)
             
     def tearDown(self) -> None:
         self.env.close()
@@ -71,7 +72,8 @@ class BackendProperlyInit(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_name,
                                     test=True,
-                                    backend=PPExtraArgs(stuff="toto"))
+                                    backend=PPExtraArgs(stuff="toto"),
+                                    _add_to_name=type(self).__name__)
         runner = Runner(**self.env.get_params_for_runner())
         env = runner.init_env()
         assert env.backend._my_kwargs["stuff"] == "toto"
@@ -85,7 +87,8 @@ class BackendProperlyInit(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_name,
                                     test=True,
-                                    backend=PPExtraArgs(stuff=counter))
+                                    backend=PPExtraArgs(stuff=counter),
+                                    _add_to_name=type(self).__name__)
         runner = Runner(**self.env.get_params_for_runner())
         env = runner.init_env()
         assert isinstance(env.backend._my_kwargs["stuff"], InstanceCount)

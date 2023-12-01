@@ -23,7 +23,8 @@ class TestPreventWrongBehaviour(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(env_name,
                                     chronics_class=MultifolderWithCache,
-                                    test=True)
+                                    test=True,
+                                    _add_to_name=type(self).__name__)
     def tearDown(self) -> None:
         self.env.close()
         
@@ -90,10 +91,6 @@ class TestPreventWrongBehaviour(unittest.TestCase):
         env_cpy2.step(env_cpy2.action_space())
         
     def test_runner_max_iter(self):
-        # env_name = "l2rpn_case14_sandbox"            
-        # self.env = grid2op.make(env_name,
-        #                         # chronics_class=MultifolderWithCache,
-        #                         test=True)
         self.env.chronics_handler.real_data.reset()
         runner = Runner(**self.env.get_params_for_runner())
         res = runner.run(nb_episode=1,

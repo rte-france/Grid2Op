@@ -19,7 +19,7 @@ To get started with such an environment, you can simply do:
 .. code-block:: python
 
     import grid2op
-    env = grid2op.make("rte_case14_realistic")
+    env = grid2op.make("l2rpn_case14_sandbox")
 
 
 You can consult the different notebooks in the `getting_stared` directory of this package for more information on
@@ -44,9 +44,9 @@ you want to use:
 .. code-block:: python
 
     import grid2op
-    env = grid2op.make("rte_case14_realistic")
+    env = grid2op.make("l2rpn_case14_sandbox")
 
-This will create the environment known "rte_case14_realistic" with all default parameters. If this environment is has
+This will create the environment known "l2rpn_case14_sandbox" with all default parameters. If this environment is has
 not been downloaded, at the first call to this function it will download it and store it in a cache on your system (
 see the section :ref:`cache_manip` for more information), afterwards it will use the downloaded environment.
 
@@ -56,18 +56,18 @@ the full absolute path of you dataset. On linux / unix (including macos) machine
 .. code-block:: python
 
     import grid2op
-    env = grid2op.make("/full/path/where/the/env/is/located/rte_case14_realistic")
+    env = grid2op.make("/full/path/where/the/env/is/located/l2rpn_case14_sandbox")
 
 And on windows based machine this will look like:
 
 .. code-block:: python
 
     import grid2op
-    env = grid2op.make("C:\\where\\the\\env\\is\\located\\rte_case14_realistic")
+    env = grid2op.make("C:\\where\\the\\env\\is\\located\\l2rpn_case14_sandbox")
 
-In bot cases it will load the environment named "rte_case14_realistic" (provided that you found a way to get it on your
-machine) located at the path "/full/path/where/the/env/is/located/rte_case14_realistic" (or
-"C:\\the\\full\\path\\where\\the\\env\\is\\located\\rte_case14_realistic").
+In bot cases it will load the environment named "l2rpn_case14_sandbox" (provided that you found a way to get it on your
+machine) located at the path "/full/path/where/the/env/is/located/l2rpn_case14_sandbox" (or
+"C:\\the\\full\\path\\where\\the\\env\\is\\located\\l2rpn_case14_sandbox").
 
 Important notes
 ---------------
@@ -81,7 +81,7 @@ It has the following behavior:
 2) if you specify the name of an environment that you have already downloaded, it will use this environment (NB
    currently no checks are implemented if the environment has been updated remotely, which can happen if
    we realize there were some issues with it.)
-3) if you provided no arguments a default environment will be used: ``rte_case14_realistic`` 
+3) you are expected to provide an environment name (if you don't know what this is just put `"l2rpn_case14_sandbox"`)
 4) if the flag `test` is set to ``False`` (default behaviour) and none of the above conditions are met, the
    :func:`make` will download the data of this environment locally the first time it is called. If you don't want
    to download anything then you can pass the flag ``test=True``
