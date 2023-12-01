@@ -380,4 +380,4 @@ workflows:
           - install39
           - install310
           - install311
-        #   - install312  # failing because of dependencies of numba, torch etc. Tired of it so ignoring it !
+          - install312  # failing because of dependencies of numba, torch etc. Tired of it so ignoring it !
