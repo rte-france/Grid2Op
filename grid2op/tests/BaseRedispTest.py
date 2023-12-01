@@ -33,7 +33,7 @@ class BaseTestRedispatch(MakeBackend):
     def setUp(self):
         super().setUp()
         # powergrid
-        self.backend = self.make_backend()
+        self.backend = self.make_backend_with_glue_code()
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
 
@@ -374,7 +374,7 @@ class BaseTestRedispatchChangeNothingEnvironment(MakeBackend):
     def setUp(self):
         super().setUp()
         # powergrid
-        self.backend = self.make_backend()
+        self.backend = self.make_backend_with_glue_code()
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
 
@@ -476,7 +476,7 @@ class BaseTestRedispTooLowHigh(MakeBackend):
     # test bug reported in issues https://github.com/rte-france/Grid2Op/issues/44
     def setUp(self) -> None:
         super().setUp()
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("rte_case14_redisp",
@@ -574,7 +574,7 @@ class BaseTestDispatchRampingIllegalETC(MakeBackend):
     def setUp(self):
         super().setUp()
         # powergrid
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("rte_case14_test", test=True, backend=backend,
@@ -842,7 +842,7 @@ class BaseTestLoadingAcceptAlmostZeroSumRedisp(MakeBackend):
     def setUp(self):
         super().setUp()
         # powergrid
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("rte_case14_test", test=True, backend=backend,

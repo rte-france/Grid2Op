@@ -40,7 +40,7 @@ class AAATestBackendAPI(MakeBackend):
 
     def aux_make_backend(self) -> Backend:
         """do not run nor modify ! (used for this test class only)"""
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
         backend.load_grid(self.get_path(), self.get_casefile())
         backend.load_redispacthing_data("tmp")  # pretend there is no generator
         backend.load_storage_data(self.get_path())
@@ -52,7 +52,7 @@ class AAATestBackendAPI(MakeBackend):
     def test_00create_backend(self):
         """Tests the backend can be created (not integrated in a grid2op environment yet)"""
         self.skip_if_needed()
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
     
     def test_01load_grid(self):
         """Tests the grid can be loaded (supposes that your backend can read the grid.json in educ_case14_storage)*
