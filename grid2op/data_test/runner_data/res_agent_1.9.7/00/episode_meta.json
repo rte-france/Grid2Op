@@ -1,0 +1,11 @@
+{
+    "agent_seed": null,
+    "backend_type": "PandaPowerBackend_rte_case5_example",
+    "chronics_max_timestep": "100",
+    "chronics_path": "/home/donnotben/Documents/grid2op_dev/grid2op/data/rte_case5_example/chronics/00",
+    "cumulative_reward": 30.19790267944336,
+    "env_seed": null,
+    "env_type": "Environment_rte_case5_example",
+    "grid_path": "/home/donnotben/Documents/grid2op_dev/grid2op/data/rte_case5_example/grid.json",
+    "nb_timestep_played": 7
+}

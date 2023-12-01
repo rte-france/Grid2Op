@@ -530,7 +530,7 @@ class BaseTestResetOk:
         obs, reward, done, info = env.step(env.action_space())
         # at this stage there is a cascading failure
         assert len(info["exception"])
-        assert isinstance(info["exception"][0], DivergingPowerFlow)
+        assert isinstance(info["exception"][0], BackendError)
         assert "detailed_infos_for_cascading_failures" in info
         assert len(info["detailed_infos_for_cascading_failures"])
         # reset the grid

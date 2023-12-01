@@ -4,7 +4,7 @@ __all__ = [
     "PlotPlotly",
     "PlotPyGame",
     "Plotting",
-    "EpisodeReplay",
+    # "EpisodeReplay",
 ]
 
 from grid2op.Plot.BasePlot import BasePlot
@@ -12,7 +12,7 @@ from grid2op.Plot.PlotMatplotlib import PlotMatplotlib
 from grid2op.Plot.PlotPlotly import PlotPlotly
 from grid2op.Plot.PlotPyGame import PlotPyGame
 from grid2op.Plot.Plotting import Plotting
-from grid2op.Plot.EpisodeReplay import EpisodeReplay
+# from grid2op.Plot.EpisodeReplay import EpisodeReplay
 
 import warnings
 

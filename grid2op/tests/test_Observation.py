@@ -46,7 +46,10 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__)
+            self.env = grid2op.make("rte_case14_test",
+                                    test=True,
+                                    _add_to_name=type(self).__name__)
+            
         self.dict_ = {
             "name_gen": ["gen_1_0", "gen_2_1", "gen_5_2", "gen_7_3", "gen_0_4"],
             "name_load": [
@@ -988,7 +991,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_sum_shape_equal_size(self):
         obs = self.env.observation_space(self.env)
-        assert obs.size() == np.sum(obs.shape())
+        assert obs.size() == np.sum(obs.shapes())
 
     def test_sub_topology(self):
         """test the sub_topology function"""
@@ -2009,19 +2012,21 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_shape_correct(self):
         obs = self.env.observation_space(self.env)
-        assert obs.shape().shape == obs.dtype().shape
-        assert np.all(obs.dtype() == self.dtypes)
-        assert np.all(obs.shape() == self.shapes)
+        assert obs.shapes().shape == obs.dtypes().shape
+        assert np.all(obs.dtypes() == self.dtypes)
+        assert np.all(obs.shapes() == self.shapes)
 
     def test_0_load_properly(self):
         # this test aims at checking that everything in setUp is working properly, eg that "ObsEnv" class has enough
         # information for example
-        pass
+        assert type(self.env).shunts_data_available
 
     def test_1_generating_obs(self):
         # test that helper_obs is abl to generate a valid observation
+        assert type(self.env).shunts_data_available
         obs = self.env.observation_space(self.env)
-        pass
+        assert type(self.env).shunts_data_available
+        assert type(obs).shunts_data_available
 
     def test_2_reset(self):
         # test that helper_obs is abl to generate a valid observation
@@ -2029,8 +2034,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert obs.prod_p[0] is not None
         obs.reset()
         assert np.all(np.isnan(obs.prod_p))
-        assert np.all(obs.dtype() == self.dtypes)
-        assert np.all(obs.shape() == self.shapes)
+        assert np.all(obs.dtypes() == self.dtypes)
+        assert np.all(obs.shapes() == self.shapes)
 
     def test_3_reset(self):
         # test that helper_obs is able to generate a valid observation
@@ -2039,15 +2044,15 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert obs == obs2
         obs2.reset()
         assert np.all(np.isnan(obs2.prod_p))
-        assert np.all(obs2.dtype() == self.dtypes)
-        assert np.all(obs2.shape() == self.shapes)
+        assert np.all(obs2.dtypes() == self.dtypes)
+        assert np.all(obs2.shapes() == self.shapes)
         # assert obs.prod_p is not None
 
     def test_shapes_types(self):
         obs = self.env.observation_space(self.env)
-        dtypes = obs.dtype()
+        dtypes = obs.dtypes()
         assert np.all(dtypes == self.dtypes)
-        shapes = obs.shape()
+        shapes = obs.shapes()
         assert np.all(shapes == self.shapes)
 
     def test_4_to_from_vect(self):
@@ -2058,8 +2063,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert vect.shape[0] == obs.size()
         obs2.reset()
         obs2.from_vect(vect)
-        assert np.all(obs.dtype() == self.dtypes)
-        assert np.all(obs.shape() == self.shapes)
+        assert np.all(obs.dtypes() == self.dtypes)
+        assert np.all(obs.shapes() == self.shapes)
 
         # TODO there is not reason that these 2 are equal: reset, will erase everything
         # TODO whereas creating the observation

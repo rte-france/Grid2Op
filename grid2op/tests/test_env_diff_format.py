@@ -46,7 +46,7 @@ class TestBackendAPI_BackendDiffFormatTester(AAATestBackendAPI, unittest.TestCas
         return backend
 
     def setUp(self):
-        self.tests_skipped = ("test_01load_grid", "test_22_islanded_grid_make_divergence")
+        self.tests_skipped = ("test_01load_grid", "test_22_islanded_grid_stops_computation")
         return super().setUp()
     
 

@@ -11,10 +11,10 @@ import unittest
 import warnings
 
 from grid2op.Backend import PandaPowerBackend
-from grid2op.Exceptions import NoForecastAvailable
-from grid2op.Exceptions.EnvExceptions import EnvError
-from grid2op.Exceptions.ObservationExceptions import BaseObservationError
-from grid2op.Exceptions.simulatorExceptions import SimulatorError
+from grid2op.Exceptions import (NoForecastAvailable,
+                                EnvError,
+                                BaseObservationError,
+                                SimulatorError)
 from grid2op.simulator import Simulator
 
 

@@ -31,6 +31,32 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+
+[1.9.7] - 2023-12-01
+----------------------
+- [BREAKING] removal of the `grid2op/Exceptions/PowerflowExceptions.py` file and move the
+  `DivergingPowerflow` as part of the BackendException. If you imported (to be avoided)
+  with `from grid2op.Exceptions.PowerflowExceptions import PowerflowExceptions`
+  simply do `from grid2op.Exceptions import PowerflowExceptions` and nothing
+  will change.
+- [BREAKING] rename with filename starting with lowercase all the files in the "`Exceptions`", 
+  module. This is both consistent with python practice but allows also to make the 
+  difference between the files in the 
+  module and the class imported. This should have little to no impact on all codes but to "upgrade"
+  instead of `from grid2op.Exceptions.XXX import PowerflowExceptions` (which you should not have done in the first place) 
+  just do `from grid2op.Exceptions import PowerflowExceptions`. Expect other changes like this for other grid2op modules
+  in the near future.
+- [BREAKING] change the `gridobj_cls.shape()` and `gridobj_cls.dtype()` to `gridobj_cls.shapes()` and `gridobj_cls.dtypes()`
+  to be more clear when dealing with action_space and observation_space (where `shape` and `dtype` are attribute and not functions)
+  This change means you can still use `act.shape()` and `act.dtype()` but that `act_space.shape` and `act_space.dtype` are now
+  clearly properties (and NOT attribute). For the old function `gridobj_cls.dtype()` you can now use `gridobj_cls.dtypes()`
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/561 (indent issue)
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/550 : issue with `shunts_data_available` now better handled
+- [IMPROVED] the function to check the backend interface now also check that
+  the `topo_vect` returns value between 1 and 2.
+- [IMPROVED] the function to check backend now also check the `topo_vect`
+  for each type of elements.
+
 [1.9.6] - 2023-10-26
 ----------------------
 - [BREAKING] when a storage is connected alone on a bus, even if it produces / absorbs 0.0 MW it 

@@ -14,7 +14,7 @@ import warnings
 from grid2op.Episode import EpisodeData
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Plot.PlotPyGame import PlotPyGame
-from grid2op.Exceptions.PlotExceptions import PyGameQuit
+from grid2op.Exceptions.plotExceptions import PyGameQuit
 
 try:
     os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"

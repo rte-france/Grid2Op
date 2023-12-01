@@ -22,7 +22,7 @@ import os
 import time
 
 from grid2op.Plot.BasePlot import BasePlot
-from grid2op.Exceptions.PlotExceptions import PyGameQuit, PlotError
+from grid2op.Exceptions.plotExceptions import PyGameQuit, PlotError
 
 try:
     os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
