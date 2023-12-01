@@ -1259,6 +1259,15 @@ class BaseObservation(GridObjects):
         self.max_step = dt_int(np.iinfo(dt_int).max)
         self.delta_time = dt_float(5.0)
 
+    def _aux_set_game_over_thermal_limit(self, env=None):
+        """set the thermal limit when game over.
+        
+        Needs to be overriden in the SubObservationClass for multi agent"""
+        if env is not None:
+            self._thermal_limit[:] = 1.0 * env._thermal_limit_a  # function get_thermal_limit() "crashes" (because env is game over)
+        else:
+            self._thermal_limit[:] = 0. 
+            
     def set_game_over(self, env=None):
         """
         Set the observation to the "game over" state:
@@ -1353,10 +1362,7 @@ class BaseObservation(GridObjects):
             self.minute_of_hour = dt_int(env.time_stamp.minute)
             self.day_of_week = dt_int(env.time_stamp.weekday())
 
-        if env is not None:
-            self._thermal_limit[:] = 1.0 * env._thermal_limit_a  # function get_thermal_limit() "crashes" (because env is game over)
-        else:
-            self._thermal_limit[:] = 0. 
+
         
         # by convention, I say it's 0 if the grid is in total blackout
         self.theta_or[:] = 0.0

@@ -12,15 +12,17 @@ import re
 import numpy as np
 
 
-from grid2op import make
+import grid2op
 from grid2op.Action import ActionSpace, BaseAction, PlayableAction
 from grid2op.Exceptions import IllegalAction, SimulateError
 from grid2op.Observation import CompleteObservation
 try:
-    from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
-    from grid2op.multi_agent.subgridAction import SubGridAction
-    from grid2op.multi_agent.ma_exceptions import DomainException
-    from grid2op.multi_agent.subgridObservation import SubGridObservation
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
+        from grid2op.multi_agent.subgridAction import SubGridAction
+        from grid2op.multi_agent.ma_exceptions import DomainException
+        from grid2op.multi_agent.subgridObservation import SubGridObservation
 except ImportError as exc_:
     print(f"Impossible to load with error {exc_}")
     raise
@@ -59,8 +61,10 @@ class MATesterGlobalObs(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             
-            self.env = make("educ_case14_storage", test=True,
-                            action_class=PlayableAction, _add_to_name="test_ma")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name=type(self).__name__)
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains)
@@ -1123,8 +1127,10 @@ class TestAction(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             
-            self.env = make("educ_case14_storage", test=True,
-                            action_class=PlayableAction, _add_to_name="test_ma")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name=type(self).__name__)
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains)
@@ -1400,11 +1406,12 @@ class TestAction(unittest.TestCase):
             global_act_2 = (local_act["agent_0"].to_global(self.ma_env._cent_env.action_space) +
                             local_act["agent_1"].to_global(self.ma_env._cent_env.action_space)
                            )
-            if i == 42:
-                # this action does nothing, but unfortunately it's because it sampled a subtation
-                # a change_bus, and "decided" not to change anything
-                # this flag is "lost in the conversion"
-                global_act._modif_change_bus = False
+            # if i == 0 or i == 41:
+            #     # this action does nothing, but unfortunately it's because it sampled a subtation
+            #     # a change_bus, and "decided" not to change anything
+            #     # this flag is "lost in the conversion"
+            #     global_act._modif_change_bus = False
+            #     global_act._modif_set_bus = False
                 
             # when I combine these actions, it should be true
             assert global_act_2 == global_act, f"error for iteration {i} with ref:\n{global_act}\nand rebuilt:\n{global_act_2}"
@@ -1454,10 +1461,10 @@ class TestLocalObservation(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             
-            self.env = make("educ_case14_storage",
-                            test=True,
-                            action_class=PlayableAction,
-                            _add_to_name="TestObservation")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name=type(self).__name__)
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains, self.observation_domains)
@@ -1508,10 +1515,10 @@ class TestGlobalObservation(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             
-            self.env = make("educ_case14_storage",
-                            test=True,
-                            action_class=PlayableAction,
-                            _add_to_name="TestObservation")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name=type(self).__name__)
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains)
