@@ -10,7 +10,7 @@ import sys
 import copy
 import logging
 import os
-from grid2op.Exceptions.EnvExceptions import EnvError
+from grid2op.Exceptions.envExceptions import EnvError
 
 from grid2op.Observation.serializableObservationSpace import (
     SerializableObservationSpace,
