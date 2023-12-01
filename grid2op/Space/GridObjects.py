@@ -654,6 +654,43 @@ class GridObjects:
 
     @classmethod
     def _clear_class_attribute(cls):
+        cls.shunts_data_available = False
+        
+        # for redispatching / unit commitment
+        cls._li_attr_disp = [
+            "gen_type",
+            "gen_pmin",
+            "gen_pmax",
+            "gen_redispatchable",
+            "gen_max_ramp_up",
+            "gen_max_ramp_down",
+            "gen_min_uptime",
+            "gen_min_downtime",
+            "gen_cost_per_MW",
+            "gen_startup_cost",
+            "gen_shutdown_cost",
+            "gen_renewable",
+        ]
+
+        cls._type_attr_disp = [
+            str,
+            float,
+            float,
+            bool,
+            float,
+            float,
+            int,
+            int,
+            float,
+            float,
+            float,
+            bool,
+        ]
+        
+        cls._clear_grid_dependant_class_attributes()
+        
+    @classmethod
+    def _clear_grid_dependant_class_attributes(cls):
         cls.glop_version = grid2op.__version__
         cls._PATH_ENV = None
 
@@ -718,37 +755,6 @@ class GridObjects:
         # list of attribute to convert it from/to a vector
         cls._vectorized = None
 
-        # for redispatching / unit commitment
-        cls._li_attr_disp = [
-            "gen_type",
-            "gen_pmin",
-            "gen_pmax",
-            "gen_redispatchable",
-            "gen_max_ramp_up",
-            "gen_max_ramp_down",
-            "gen_min_uptime",
-            "gen_min_downtime",
-            "gen_cost_per_MW",
-            "gen_startup_cost",
-            "gen_shutdown_cost",
-            "gen_renewable",
-        ]
-
-        cls._type_attr_disp = [
-            str,
-            float,
-            float,
-            bool,
-            float,
-            float,
-            int,
-            int,
-            float,
-            float,
-            float,
-            bool,
-        ]
-
         # redispatch data, not available in all environment
         cls.redispatching_unit_commitment_availble = False
         cls.gen_type = None
@@ -779,7 +785,6 @@ class GridObjects:
         cls.grid_layout = None
 
         # shunt data, not available in every backend
-        cls.shunts_data_available = False
         cls.n_shunt = None
         cls.name_shunt = None
         cls.shunt_to_subid = None
@@ -825,7 +830,7 @@ class GridObjects:
         ``NotImplementedError``
 
         """
-        if self.attr_list_vect is None:
+        if type(self).attr_list_vect is None:
             raise IncorrectNumberOfElements(
                 "attr_list_vect attribute is not defined for class {}. "
                 "It is not possible to convert it from/to a vector, "
@@ -894,7 +899,7 @@ class GridObjects:
             self._raise_error_attr_list_none()
             li_vect = [
                 self._get_array_from_attr_name(el).astype(dt_float)
-                for el in self.attr_list_vect
+                for el in type(self).attr_list_vect
             ]
             if li_vect:
                 self._vectorized = np.concatenate(li_vect)
@@ -952,7 +957,7 @@ class GridObjects:
 
         """
         # TODO optimization for action or observation, to reduce json size, for example using the see `to_json`
-        all_keys = self.attr_list_vect + self.attr_list_json
+        all_keys = type(self).attr_list_vect + type(self).attr_list_json
         for key, array_ in dict_.items():
             if key not in all_keys:
                 raise AmbiguousAction(f'Impossible to recognize the key "{key}"')
@@ -984,7 +989,7 @@ class GridObjects:
             elif dtype == bool:
                 dict_[attr_nm] = [bool(el) for el in tmp]
 
-    def shape(self):
+    def shapes(self):
         """
         The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
         part of the action.
@@ -1026,11 +1031,11 @@ class GridObjects:
         """
         self._raise_error_attr_list_none()
         res = np.array(
-            [self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect]
+            [self._get_array_from_attr_name(el).shape[0] for el in type(self).attr_list_vect]
         ).astype(dt_int)
         return res
 
-    def dtype(self):
+    def dtypes(self):
         """
         The types of the components of the GridObjects, mainly used for gym compatibility is the shape of all part
         of the action.
@@ -1071,7 +1076,7 @@ class GridObjects:
 
         self._raise_error_attr_list_none()
         res = np.array(
-            [self._get_array_from_attr_name(el).dtype for el in self.attr_list_vect]
+            [self._get_array_from_attr_name(el).dtype for el in type(self).attr_list_vect]
         )
         return res
 
@@ -1168,7 +1173,7 @@ class GridObjects:
 
         self._raise_error_attr_list_none()
         prev_ = 0
-        for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
+        for attr_nm, sh, dt in zip(type(self).attr_list_vect, self.shapes(), self.dtypes()):
             tmp = vect[prev_ : (prev_ + sh)]
 
             # TODO a flag that says "default Nan" for example for when attributes are initialized with
@@ -1243,7 +1248,7 @@ class GridObjects:
             print("The size of the action space is {}".format(env.action_space.size()))
 
         """
-        res = self.shape().sum(dtype=dt_int)
+        res = self.shapes().sum(dtype=dt_int)
         return res
 
     @classmethod
@@ -1271,7 +1276,7 @@ class GridObjects:
         return res
 
     def _init_class_attr(self, obj=None):
-        """init the class attribute from an instance of the class
+        """Init the class attribute from an instance of the class
         
         THIS IS NOT A CLASS ATTR
         
@@ -2721,7 +2726,7 @@ class GridObjects:
             my_class = GridObjects._build_cls_from_import(name_res, gridobj._PATH_ENV)
             if my_class is not None:
                 return my_class
-            
+        
         if not gridobj.shunts_data_available:
             # if you import env for backend
             # with shunt and without shunt, then
@@ -4404,7 +4409,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     grid_layout = {grid_layout_str}
 
     # shunt data, not available in every backend
-    shunts_data_available = {"True" if cls.redispatching_unit_commitment_availble else "False"}
+    shunts_data_available = {"True" if cls.shunts_data_available else "False"}
     n_shunt = {cls.n_shunt}
     name_shunt = np.array([{name_shunt_str}])
     shunt_to_subid = {shunt_to_subid_str}

@@ -302,7 +302,7 @@ class EpisodeReboot:
         """update the "previous topological state" to the right value"""
         self.env._backend_action.current_topo.values[:] = obs.topo_vect
         self.env._backend_action.current_topo.changed[:] = True
-        if obs.shunts_data_available:
+        if type(obs).shunts_data_available:
             self.env._backend_action.shunt_bus.values[:] = obs._shunt_bus
         self.env._backend_action.shunt_bus.changed[:] = True
         # TODO previous update self.env._backend_action.last_topo_registered too !

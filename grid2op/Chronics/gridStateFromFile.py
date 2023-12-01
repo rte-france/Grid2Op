@@ -234,8 +234,6 @@ class GridStateFromFile(GridValue):
         lend_dict_values = len(vals)
 
         if len_dict_keys != len_backend:
-            import pdb
-            pdb.set_trace()
             err_msg = "Conversion mismatch between backend data {} elements and converter data {} (keys)"
             raise IncorrectNumberOfElements(err_msg.format(len_backend, len_dict_keys))
         if lend_dict_values != len_backend:

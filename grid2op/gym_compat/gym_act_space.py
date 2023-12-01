@@ -137,7 +137,7 @@ class __AuxGymActionSpace:
             self._init_env = None
         else:
             raise RuntimeError(
-                "GymActionSpace must be created with an Environment of an ActionSpace (or a Converter)"
+                "GymActionSpace must be created with an Environment or an ActionSpace (or a Converter)"
             )
         dict_ = {}
         # TODO Make sure it works well !

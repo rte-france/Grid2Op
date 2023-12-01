@@ -72,7 +72,7 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
         if np.any(load_q.changed):
             tmp_load_q.iloc[load_q.changed] = load_q.values[load_q.changed]
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             shunt_p, shunt_q, shunt_bus = shunts__
 
             if np.any(shunt_p.changed):

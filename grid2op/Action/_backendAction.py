@@ -238,7 +238,8 @@ class _BackendAction(GridObjects):
         )
 
         # shunts
-        if type(self).shunts_data_available:
+        cls = type(self)
+        if cls.shunts_data_available:
             self.shunt_p = ValueStore(self.n_shunt, dtype=dt_float)
             self.shunt_q = ValueStore(self.n_shunt, dtype=dt_float)
             self.shunt_bus = ValueStore(self.n_shunt, dtype=dt_int)
@@ -270,7 +271,8 @@ class _BackendAction(GridObjects):
         res.storage_power.copy(self.storage_power)
         res.activated_bus[:, :] = self.activated_bus
         # res.big_topo_to_subid[:] = self.big_topo_to_subid  # cste
-        if type(self).shunts_data_available:
+        cls = type(self)
+        if cls.shunts_data_available:
             res.shunt_p.copy(self.shunt_p)
             res.shunt_q.copy(self.shunt_q)
             res.shunt_bus.copy(self.shunt_bus)
@@ -313,7 +315,8 @@ class _BackendAction(GridObjects):
 
         self.storage_power.reorder(no_storage)
 
-        if type(self).shunts_data_available:
+        cls = type(self)
+        if cls.shunts_data_available:
             self.shunt_p.reorder(no_shunt)
             self.shunt_q.reorder(no_shunt)
             self.shunt_bus.reorder(no_shunt)
@@ -340,7 +343,8 @@ class _BackendAction(GridObjects):
         self.storage_power.values[:] = 0.0
 
         # shunts
-        if type(self).shunts_data_available:
+        cls = type(self)
+        if cls.shunts_data_available:
             self.shunt_p.reset()
             self.shunt_q.reset()
             self.shunt_bus.reset()
