@@ -32,7 +32,7 @@ Change Log
 - [???] properly model interconnecting powerlines
 
 
-[1.9.7] - 2023-12-0z
+[1.9.7] - 2023-12-01
 ----------------------
 - [BREAKING] removal of the `grid2op/Exceptions/PowerflowExceptions.py` file and move the
   `DivergingPowerflow` as part of the BackendException. If you imported (to be avoided)
