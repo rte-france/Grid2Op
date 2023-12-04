@@ -9,6 +9,7 @@
 import warnings
 import tempfile
 import json
+import unittest
 import pdb
 
 from grid2op.tests.helper_path_test import *
@@ -16,23 +17,33 @@ from grid2op.tests.helper_path_test import *
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
     os.path.join(PATH_CHRONICS, "test_multi_chronics")
 )
-PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
+PATH_PREVIOUS_RUNNER = os.path.join(data_test_dir, "runner_data")
 
 import grid2op
-from grid2op.Chronics import Multifolder
+from grid2op.Agent import BaseAgent
+from grid2op.Chronics import Multifolder, ChangeNothing
 from grid2op.Reward import L2RPNReward, N1Reward
 from grid2op.Backend import PandaPowerBackend
-from grid2op.MakeEnv import make
 from grid2op.Runner.aux_fun import _aux_one_process_parrallel
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
 from grid2op.Episode import EpisodeData
-from grid2op.Observation import CompleteObservation
+from grid2op.Observation import BaseObservation, CompleteObservation
 
-
-class TestRunner(HelperTests):
+    
+class AgentTestLegalAmbiguous(BaseAgent):
+    def act(self, observation: BaseObservation, reward: float, done: bool = False):
+        if observation.current_step == 1:
+            return self.action_space({"set_line_status": [(0, -1)], "change_line_status": [0]})  # ambiguous
+        if observation.current_step == 2:
+            return self.action_space({"set_line_status": [(0, -1), (1, -1)]})  # illegal
+        return super().act(observation, reward, done)
+            
+            
+class TestRunner(HelperTests, unittest.TestCase):
     def setUp(self):
+        super().setUp()
         self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
         self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
@@ -245,7 +256,7 @@ class TestRunner(HelperTests):
         nb_episode = 2
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 f = tempfile.mkdtemp()
                 runner_params = env.get_params_for_runner()
                 runner = Runner(**runner_params)
@@ -284,7 +295,7 @@ class TestRunner(HelperTests):
         nb_episode = 4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 f = tempfile.mkdtemp()
                 runner_params = env.get_params_for_runner()
                 runner = Runner(**runner_params)
@@ -302,8 +313,9 @@ class TestRunner(HelperTests):
     def test_init_from_env_with_other_reward(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
-                "rte_case14_test", test=True, other_rewards={"test": L2RPNReward}
+            with grid2op.make(
+                "rte_case14_test", test=True, other_rewards={"test": L2RPNReward},
+                _add_to_name=type(self).__name__
             ) as env:
                 runner = Runner(**env.get_params_for_runner())
         res = runner.run(nb_episode=1, max_iter=self.max_iter)
@@ -322,7 +334,7 @@ class TestRunner(HelperTests):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
+            with grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__) as env:
                 my_agent = TestSuitAgent(env.action_space)
                 runner = Runner(
                     **env.get_params_for_runner(),
@@ -349,7 +361,7 @@ class TestRunner(HelperTests):
         # regardless of the seed or the parallelism or the number of call to runner.run
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
+            with grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__) as env:
                 runner = Runner(**env.get_params_for_runner())
         res = runner.run(
             nb_episode=2,
@@ -386,7 +398,7 @@ class TestRunner(HelperTests):
     def test_nomaxiter(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
+            with grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__) as env:
                 runner = Runner(**env.get_params_for_runner())
         runner.gridStateclass_kwargs["max_iter"] = 2 * self.max_iter
         runner.chronics_handler.set_max_iter(2 * self.max_iter)
@@ -397,7 +409,7 @@ class TestRunner(HelperTests):
     def test_nomaxiter_par(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
+            with grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__) as env:
                 dict_ = env.get_params_for_runner()
                 dict_["max_iter"] = -1
                 sub_dict = dict_["gridStateclass_kwargs"]
@@ -475,6 +487,26 @@ class TestRunner(HelperTests):
             "1.5.1",
             "1.5.1.post1",
             "1.5.2",
+            "1.6.0",
+            "1.6.0.post1",
+            "1.6.1",
+            "1.6.2",
+            "1.6.2.post1",
+            "1.6.3",
+            "1.6.4",
+            "1.6.5",
+            "1.7.0",
+            "1.7.1",
+            "1.7.2",
+            "1.8.1",
+            # "1.9.0",  # this one is bugy I don"t know why
+            "1.9.1",
+            "1.9.2",
+            "1.9.3",
+            "1.9.4",
+            "1.9.5",
+            "1.9.6",
+            "1.9.7",
         ]
         curr_version = "test_version"
         assert (
@@ -482,8 +514,9 @@ class TestRunner(HelperTests):
         ), "error at the beginning"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
-                "rte_case5_example", test=True
+            with grid2op.make(
+                "rte_case5_example", test=True,
+                _add_to_name=type(self).__name__
             ) as env, tempfile.TemporaryDirectory() as path:
                 runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
                 runner.run(
@@ -495,29 +528,34 @@ class TestRunner(HelperTests):
                     agent_seeds=[42, 69],
                 )
                 # check that i can read this data generate for this runner
-                self._aux_backward(path, curr_version, curr_version)
-
+                try:
+                    self._aux_backward(path, curr_version, curr_version)
+                except Exception as exc_:
+                    raise RuntimeError(f"error for {curr_version}") from exc_
         assert (
             "curtailment" in CompleteObservation.attr_list_vect
         ), "error after the first runner"
 
         # check that it raises a warning if loaded on the compatibility version
         grid2op_version = backward_comp_version[0]
-        with self.assertWarns(UserWarning):
+        with self.assertWarns(UserWarning, msg=f"error for {grid2op_version}"):
             self._aux_backward(
                 PATH_PREVIOUS_RUNNER, f"res_agent_{grid2op_version}", grid2op_version
             )
-
+            
         for grid2op_version in backward_comp_version:
             # check that i can read previous data stored from previous grid2Op version
             # can be loaded properly
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self._aux_backward(
-                    PATH_PREVIOUS_RUNNER,
-                    f"res_agent_{grid2op_version}",
-                    grid2op_version,
-                )
+                try:
+                    self._aux_backward(
+                        PATH_PREVIOUS_RUNNER,
+                        f"res_agent_{grid2op_version}",
+                        grid2op_version,
+                    )
+                except Exception as exc_:
+                    raise RuntimeError(f"error for {grid2op_version}") from exc_
             assert "curtailment" in CompleteObservation.attr_list_vect, (
                 f"error after the legacy version " f"{grid2op_version}"
             )
@@ -526,8 +564,9 @@ class TestRunner(HelperTests):
         L_ID = 2
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
-                "l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True
+            env = grid2op.make(
+                "l2rpn_case14_sandbox", reward_class=N1Reward(l_id=L_ID), test=True,
+                _add_to_name=type(self).__name__
             )
         runner = Runner(**env.get_params_for_runner())
         runner.run(nb_episode=1, max_iter=10)
@@ -539,11 +578,53 @@ class TestRunner(HelperTests):
                 "l2rpn_case14_sandbox",
                 other_rewards={f"line_{l_id}": N1Reward(l_id=l_id) for l_id in [0, 1]},
                 test=True,
+                _add_to_name=type(self).__name__
             )
 
         runner = Runner(**env.get_params_for_runner())
         runner.run(nb_episode=1, max_iter=10)
         env.close()
+
+    def test_legal_ambiguous_regular(self):            
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)   
+                     
+        runner = Runner(**env.get_params_for_runner(), agentClass=AgentTestLegalAmbiguous)
+        env.close()
+        res, *_ = runner.run(nb_episode=1, max_iter=10, add_detailed_output=True)
+        ep_data = res[-1]
+        # test the "legal" part
+        assert ep_data.legal[0]
+        assert ep_data.legal[1]
+        assert not ep_data.legal[2]
+        assert ep_data.legal[3]
+        # test the ambiguous part
+        assert not ep_data.ambiguous[0]
+        assert ep_data.ambiguous[1]
+        assert not ep_data.ambiguous[2]
+        assert not ep_data.ambiguous[3]
+
+    def test_legal_ambiguous_nofaststorage(self):            
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox", test=True, chronics_class=ChangeNothing,
+                               _add_to_name=type(self).__name__)   
+                     
+            runner = Runner(**env.get_params_for_runner(), agentClass=AgentTestLegalAmbiguous)
+            env.close()
+            res, *_ = runner.run(nb_episode=1, max_iter=10, add_detailed_output=True)
+        ep_data = res[-1]
+        # test the "legal" part
+        assert ep_data.legal[0]
+        assert ep_data.legal[1]
+        assert not ep_data.legal[2]
+        assert ep_data.legal[3]
+        # test the ambiguous part
+        assert not ep_data.ambiguous[0]
+        assert ep_data.ambiguous[1]
+        assert not ep_data.ambiguous[2]
+        assert not ep_data.ambiguous[3]
 
 
 if __name__ == "__main__":

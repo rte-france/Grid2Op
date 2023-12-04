@@ -7,6 +7,8 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numbers
+import copy
+import warnings
 from tarfile import ENCODING
 
 from grid2op.Exceptions import *
@@ -86,6 +88,13 @@ def _get_default_aux(
     # first seek for the parameter in the kwargs, and check it's valid
     if name in kwargs:
         res = kwargs[name]
+        if defaultClassApp in (dict, list, set):# see https://github.com/rte-france/Grid2Op/issues/536
+            try:
+                res = copy.deepcopy(res)
+            except copy.Error:
+                warnings.warn(f"Impossible to copy mutable value for kwargs {name}. Make sure not to reuse "
+                              f"the same kwargs for creating two environments."
+                              "(more info on https://github.com/rte-france/Grid2Op/issues/536)")
         if isclass is None:
             # I don't know whether it's an object or a class
             error_msg_here = None

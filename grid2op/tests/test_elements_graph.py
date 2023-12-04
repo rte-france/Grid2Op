@@ -8,7 +8,6 @@
 
 import grid2op
 from grid2op.Action import PlayableAction
-import numpy as np
 import networkx
 import unittest
 import warnings
@@ -20,7 +19,7 @@ class TestElementsGraph14SandBox(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.env.set_id(0)
         self.tol = 1e-5
@@ -159,7 +158,7 @@ class TestElementsGraph14SandBox(unittest.TestCase):
             # an error in the construction of the edges
             graph = obs.get_elements_graph()
         # no edges
-        assert len(graph.edges) == 0
+        assert len(graph.edges) == 2 * self.env.n_sub  # each node to its substation
         # every element disconnected
         for el in range(obs.n_sub, len(graph.nodes)):
             assert not graph.nodes[el]["connected"], f"node {el} should be disconnected"
@@ -170,7 +169,7 @@ class TestElementsGraph14Storage(TestElementsGraph14SandBox):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.env = grid2op.make("educ_case14_storage", test=True, action_class=PlayableAction)
+            self.env = grid2op.make("educ_case14_storage", test=True, action_class=PlayableAction, _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.env.set_id(0)
         self.tol = 1e-5
@@ -186,7 +185,7 @@ class TestElementsGraph118(TestElementsGraph14SandBox):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.env = grid2op.make("l2rpn_wcci_2022", test=True)
+            self.env = grid2op.make("l2rpn_wcci_2022", test=True, _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.env.set_id(0)
         self.tol = 3e-5

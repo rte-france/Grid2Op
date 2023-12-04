@@ -17,7 +17,7 @@ class BasicTestActSpace(unittest.TestCase):
     def test_is_legal_None(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
 
             is_legal, reason = env.action_space._is_legal(None, None)
             assert reason is None

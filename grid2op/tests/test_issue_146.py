@@ -38,7 +38,8 @@ class Issue146Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "rte_case14_realistic", test=True, reward_class=TestReward
+                "rte_case14_realistic", test=True, reward_class=TestReward,
+                _add_to_name=type(self).__name__
             )
 
         action = env.action_space(

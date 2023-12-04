@@ -12,38 +12,77 @@
 # Grid2Op/tests subdirectory
 import sys
 import os
-import unittest
 import numpy as np
 from pathlib import Path
-
+from abc import ABC, abstractmethod
+import inspect
 from grid2op.dtypes import dt_float
+from grid2op.Backend import Backend
 
 test_dir = Path(__file__).parent.absolute()
 grid2op_dir = os.fspath(test_dir.parent.absolute())
-data_dir = os.path.abspath(os.path.join(grid2op_dir, "data_test"))
+data_test_dir = os.path.abspath(os.path.join(grid2op_dir, "data_test"))
+data_dir = os.path.abspath(os.path.join(grid2op_dir, "data"))
 
 sys.path.insert(0, grid2op_dir)
 
-PATH_DATA_TEST = data_dir
-PATH_CHRONICS = data_dir
+PATH_DATA = data_dir
+PATH_DATA_TEST = data_test_dir
+PATH_CHRONICS = data_test_dir
 PATH_CHRONICS_Make2 = os.path.abspath(os.path.join(grid2op_dir, "data"))
 PATH_DATA_TEST_PP = os.path.abspath(os.path.join(PATH_DATA_TEST, "test_PandaPower"))
 EXAMPLE_CHRONICSPATH = os.path.abspath(
-    os.path.join(data_dir, "5bus_example", "chronics")
+    os.path.join(data_test_dir, "5bus_example", "chronics")
 )
 EXAMPLE_CASEFILE = os.path.abspath(
-    os.path.join(data_dir, "5bus_example", "5bus_example.json")
+    os.path.join(data_test_dir, "5bus_example", "5bus_example.json")
 )
-PATH_DATA_MULTIMIX = os.path.abspath(os.path.join(data_dir, "multimix"))
+PATH_DATA_MULTIMIX = os.path.abspath(os.path.join(data_test_dir, "multimix"))
 
 
-class HelperTests(unittest.TestCase):
-    def __init__(self, methodName="runTest"):
-        unittest.TestCase.__init__(self, methodName=methodName)
+class HelperTests:
+    def setUp(self):
         self.tolvect = dt_float(1e-2)
         self.tol_one = dt_float(1e-5)
-
+        if hasattr(type(super()), "setUp"):
+            # needed for backward compatibility
+            super().setUp()
+            
+    def tearDown(self):
+        # needed for backward compatibility
+        pass
+    
     def compare_vect(self, pred, true):
         res = dt_float(np.max(np.abs(pred - true))) <= self.tolvect
         res = res and dt_float(np.mean(np.abs(pred - true))) <= self.tolvect
         return res
+
+
+class MakeBackend(ABC, HelperTests):
+    @abstractmethod
+    def make_backend(self, detailed_infos_for_cascading_failures=False) -> Backend:
+        pass
+
+    def make_backend_with_glue_code(self, detailed_infos_for_cascading_failures=False, extra_name="") -> Backend:
+        Backend._clear_class_attribute()
+        bk = self.make_backend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+        type(bk)._clear_grid_dependant_class_attributes()
+        type(bk).set_env_name(type(self).__name__ + extra_name)
+        return bk
+    
+    def get_path(self) -> str:
+        raise NotImplementedError(
+            "This function should be implemented for the test suit you are developping"
+        )
+
+    def get_casefile(self) -> str:
+        raise NotImplementedError(
+            "This function should be implemented for the test suit you are developping"
+        )
+
+    def skip_if_needed(self) -> None:
+        if hasattr(self, "tests_skipped"):
+            nm_ = inspect.currentframe().f_back.f_code.co_name
+            if nm_ in self.tests_skipped:
+                self.skipTest('the test "{}" is skipped: it has been added to self.tests_skipped'.format(nm_))
+                

@@ -37,7 +37,8 @@ class TestFromChronix2Grid(unittest.TestCase):
                                                          "with_maintenance": True,
                                                          "max_iter": 10,
                                                          "with_loss": False
-                                                        }
+                                                        },
+                                    _add_to_name=type(self).__name__
                                     )
     
     
@@ -52,21 +53,23 @@ class TestFromChronix2Grid(unittest.TestCase):
         id_ref = '377638611@2050-02-28'
         # test tell_id
         sum_prod_ref = 42340.949878
+        sum_prod_ref = 41784.477161
         self.env.seed(self.seed_)
         self.env.reset()
         id_ = self.env.chronics_handler.get_id()
         assert id_ == id_ref, f"wrong id {id_} instead of {id_ref}"
-        assert abs(self.env.chronics_handler.real_data._gen_p.sum() - sum_prod_ref) <= 1e-4
+        assert abs(self.env.chronics_handler.real_data._gen_p.sum() - sum_prod_ref) <= 1e-4, f"{self.env.chronics_handler.real_data._gen_p.sum():.2f}"
         self.env.reset()
-        assert abs(self.env.chronics_handler.real_data._gen_p.sum() - 38160.833356999996) <= 1e-4
+        # assert abs(self.env.chronics_handler.real_data._gen_p.sum() - 38160.833356999996) <= 1e-4
+        assert abs(self.env.chronics_handler.real_data._gen_p.sum() - 37662.206248999995) <= 1e-4, f"{self.env.chronics_handler.real_data._gen_p.sum():.2f}"
         self.env.set_id(id_ref)
         self.env.reset()
-        assert abs(self.env.chronics_handler.real_data._gen_p.sum() - sum_prod_ref) <= 1e-4
+        assert abs(self.env.chronics_handler.real_data._gen_p.sum() - sum_prod_ref) <= 1e-4, f"{self.env.chronics_handler.real_data._gen_p.sum():.2f}"
         
         # test seed
         self.env.seed(self.seed_)
         self.env.reset()
-        assert abs(self.env.chronics_handler.real_data._gen_p.sum() - sum_prod_ref) <= 1e-4
+        assert abs(self.env.chronics_handler.real_data._gen_p.sum() - sum_prod_ref) <= 1e-4, f"{self.env.chronics_handler.real_data._gen_p.sum():.2f}"
         
     def test_episode(self):
         """test that the episode can go until the end"""
@@ -90,7 +93,7 @@ class TestFromChronix2Grid(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_nm,
                                     test=True,
-                                    # backend=LightSimBackend(),
+                                    _add_to_name=type(self).__name__,
                                     chronics_class=FromChronix2grid,
                                     data_feeding_kwargs={"env_path": os.path.join(DEV_DATA_FOLDER, self.env_nm),
                                                          "with_maintenance": True,

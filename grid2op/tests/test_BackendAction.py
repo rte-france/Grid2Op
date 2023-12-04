@@ -72,7 +72,7 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
         if np.any(load_q.changed):
             tmp_load_q.iloc[load_q.changed] = load_q.values[load_q.changed]
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             shunt_p, shunt_q, shunt_bus = shunts__
 
             if np.any(shunt_p.changed):
@@ -185,14 +185,14 @@ class TestXXXBus(unittest.TestCase):
                 "rte_case14_realistic",
                 test=True,
                 backend=TestSuitePandaPowerBackend(),
-                _add_to_name="test_get_xxx_bus_test",
+                _add_to_name=type(self).__name__+"test_get_xxx_bus_test",
             )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.envref = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
-                _add_to_name="test_get_xxx_bus_ref"
+                _add_to_name=type(self).__name__+"test_get_xxx_bus_ref"
             )
         seed = 0
         self.nb_test = 10

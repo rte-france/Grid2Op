@@ -31,7 +31,7 @@ class EpisodeReplay(object):
 
         import grid2op
         agent_class = grid2op.Agent.DoNothingAgent  # change that for studying other agent
-        env = grid2op.make()  # make the default environment
+        env = grid2op.make("l2rpn_case14_sandbox")  # make the default environment
         runner = grid2op.Runner.Runner(**env.get_params_for_runner(), agentClass=agent_class)
         path_log = "agent_log"  # where the runner will output the standardized data when running the agent.
         res = runner.run(nb_episode=1, path_save=path_log)

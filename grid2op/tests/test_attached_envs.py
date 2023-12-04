@@ -10,10 +10,8 @@ import warnings
 import unittest
 import grid2op
 
-from grid2op.Action.PowerlineSetAction import PowerlineSetAction
-from grid2op.Action.PlayableAction import PlayableAction
-from grid2op.Observation.completeObservation import CompleteObservation
-from grid2op.Action.DontAct import DontAct
+from grid2op.Action import (PowerlineSetAction, PlayableAction, DontAct)
+from grid2op.Observation import CompleteObservation
 from grid2op.Opponent import GeometricOpponent
 
 import pdb
@@ -25,7 +23,7 @@ class TestL2RPNNEURIPS2020_Track1(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_neurips_2020_track1", test=True)
+            self.env = grid2op.make("l2rpn_neurips_2020_track1", test=True, _add_to_name=type(self).__name__)
             self.env.seed(0)
             _ = self.env.reset()
 
@@ -69,7 +67,7 @@ class TestL2RPNICAPS2021(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_icaps_2021", test=True)
+            self.env = grid2op.make("l2rpn_icaps_2021", test=True, _add_to_name=type(self).__name__)
             self.env.seed(0)
             _ = self.env.reset()
 
@@ -118,7 +116,7 @@ class TestL2RPNNEURIPS2020_Track2(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_neurips_2020_track2", test=True)
+            self.env = grid2op.make("l2rpn_neurips_2020_track2", test=True, _add_to_name=type(self).__name__)
             self.env.seed(2)  # 0 or 1 breaks the test `test_random_action`
             _ = self.env.reset()
 
@@ -162,7 +160,7 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=type(self).__name__)
             self.env.seed(42)
             _ = self.env.reset()
 
@@ -206,7 +204,7 @@ class TestEDUC_CASE14_REDISP(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_redisp", test=True)
+            self.env = grid2op.make("educ_case14_redisp", test=True, _add_to_name=type(self).__name__)
             self.env.seed(0)
             _ = self.env.reset()
 
@@ -250,7 +248,7 @@ class TestEDUC_STORAGE(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True)
+            self.env = grid2op.make("educ_case14_storage", test=True, _add_to_name=type(self).__name__)
             self.env.seed(0)
             _ = self.env.reset()
 

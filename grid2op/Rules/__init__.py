@@ -6,6 +6,7 @@ __all__ = [
     "LookParam",
     "PreventReconnection",
     "PreventDiscoStorageModif",
+    "RulesByArea",
 ]
 
 from grid2op.Rules.RulesChecker import RulesChecker
@@ -15,6 +16,7 @@ from grid2op.Rules.BaseRules import BaseRules
 from grid2op.Rules.LookParam import LookParam
 from grid2op.Rules.PreventReconnection import PreventReconnection
 from grid2op.Rules.PreventDiscoStorageModif import PreventDiscoStorageModif
+from grid2op.Rules.rulesByArea import RulesByArea
 import warnings
 
 

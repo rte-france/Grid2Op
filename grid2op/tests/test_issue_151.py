@@ -27,7 +27,7 @@ class Issue151Tester(unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_SUB = 3
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True)
+            env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
         do_nothing = env.action_space({})
         obs, reward, done, info = env.step(do_nothing)
         obs.line_status = (

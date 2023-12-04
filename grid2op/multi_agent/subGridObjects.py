@@ -8,12 +8,12 @@
 
 import pdb
 import numpy as np
-from grid2op.Exceptions.EnvExceptions import (EnvError, 
-                                              IncorrectNumberOfElements, 
-                                              IncorrectNumberOfGenerators, 
-                                              IncorrectNumberOfLines, 
-                                              IncorrectNumberOfLoads, 
-                                              IncorrectNumberOfStorages)
+from grid2op.Exceptions import (EnvError, 
+                                IncorrectNumberOfElements, 
+                                IncorrectNumberOfGenerators, 
+                                IncorrectNumberOfLines, 
+                                IncorrectNumberOfLoads, 
+                                IncorrectNumberOfStorages)
 
 from grid2op.dtypes import dt_int
 from grid2op.Space.GridObjects import GridObjects

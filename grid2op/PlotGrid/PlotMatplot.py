@@ -139,7 +139,7 @@ class PlotMatplot(BasePlot):
 
         import grid2op
         from grid2op.PlotGrid import PlotMatplot
-        env = grid2op.make()
+        env = grid2op.make("l2rpn_case14_sandbox")
         plot_helper = PlotMatplot(env.observation_space)
 
         # and now plot an observation (for example)

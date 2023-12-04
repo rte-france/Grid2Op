@@ -28,7 +28,7 @@ an agent:
 
     import grid2op
     from grid2op.Agent import RandomAgent
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     agent = RandomAgent(env.action_space)
     NB_EPISODE = 10  # assess the performance for 10 episodes, for example
     for i in range(NB_EPISODE):
@@ -48,7 +48,7 @@ the data (and make it easier to integrate it with other applications) we can use
     import grid2op
     from grid2op.Runner import Runner
     from grid2op.Agent import RandomAgent
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     NB_EPISODE = 10  # assess the performance for 10 episodes, for example
     NB_CORE = 2  # do it on 2 cores, for example
     PATH_SAVE = "agents_log"  # and store the results in the "agents_log" folder
@@ -65,7 +65,7 @@ you can also use the Runner pretty easily by passing it an instance of your agen
 
     import grid2op
     from grid2op.Runner import Runner
-    env = grid2op.make()
+    env = grid2op.make("l2rpn_case14_sandbox")
     NB_EPISODE = 10  # assess the performance for 10 episodes, for example
     NB_CORE = 2  # do it on 2 cores, for example
     PATH_SAVE = "agents_log"  # and store the results in the "agents_log" folder

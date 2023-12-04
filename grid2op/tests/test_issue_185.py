@@ -24,7 +24,7 @@ import pdb
 
 
 ENV_WITH_ALARM_NAME = os.path.join(
-    PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"
+    PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"
 )
 
 
@@ -46,61 +46,91 @@ class Issue185Tester(unittest.TestCase):
                 continue
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True) as env:
-                    gym_env = GymEnv(env)
-                    # gym_env.seed(0)
-                    # gym_env.observation_space.seed(0)
-                    # gym_env.action_space.seed(0)
-                    obs_gym, *_ = gym_env.reset(seed=0)  # reset and seed
-                    assert (
-                        obs_gym["a_ex"].shape[0] == env.n_line
-                    ), f"error for {env_name}"
-                    # if obs_gym not in gym_env.observation_space:
-                    for k in gym_env.observation_space.spaces.keys():
+                with grid2op.make(env_name, test=True, _add_to_name=type(self).__name__) as env:
+                    try:
+                        gym_env = GymEnv(env)
+                        # gym_env.seed(0)
+                        # gym_env.observation_space.seed(0)
+                        # gym_env.action_space.seed(0)
+                        gym_env.action_space.seed(0)
+                        obs_gym, *_ = gym_env.reset(seed=0)  # reset and seed
                         assert (
-                            obs_gym[k] in gym_env.observation_space[k]
-                        ), f"error for {env_name}, for key={k}"
+                            obs_gym["a_ex"].shape[0] == env.n_line
+                        ), f"error for {env_name}"
+                        # if obs_gym not in gym_env.observation_space:
+                        for k in gym_env.observation_space.spaces.keys():
+                            assert (
+                                obs_gym[k] in gym_env.observation_space[k]
+                            ), f"error for {env_name}, for key={k}"
+                    finally:
+                        gym_env.close()
 
     def test_issue_185_act_box_space(self):
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue
+            if env_name == "rte_case5_example":
+                # no action to perform for this env ! (no redispatch, curtail, storage)
+                continue
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True) as env:
-                    gym_env = GymEnv(env)
-                    gym_env.action_space = BoxGymActSpace(gym_env.init_env.action_space)
-                    # gym_env.seed(0)
-                    # gym_env.observation_space.seed(0)
-                    # gym_env.action_space.seed(0)
-                    obs_gym, *_ = gym_env.reset(seed=0)  # reset and seed
-                    assert obs_gym in gym_env.observation_space, f"error for {env_name}"
-                    act = gym_env.action_space.sample()
-                    assert act in gym_env.action_space, f"error for {env_name}"
-                    obs, reward, done, truncated, info = gym_env.step(act)
-                    assert obs in gym_env.observation_space, f"error for {env_name}"
+                with grid2op.make(env_name, test=True, _add_to_name=type(self).__name__) as env:
+                    try:
+                        gym_env = GymEnv(env)
+                        try:
+                            gym_env.action_space = BoxGymActSpace(gym_env.init_env.action_space)
+                        except Exception as exc_:
+                            raise AssertionError(f"Error for {env_name}: {exc_}") from exc_
+                        # gym_env.seed(0)
+                        # gym_env.observation_space.seed(0)
+                        # gym_env.action_space.seed(0)
+                        gym_env.action_space.seed(0)
+                        obs_gym, *_ = gym_env.reset(seed=0)  # reset and seed
+                        assert isinstance(obs_gym, dict), "probably a wrong gym version"
+                        # "was_alert_used_after_attack"
+                        # "was_alarm_used_after_game_over"
+                        for key in gym_env.observation_space.keys():
+                            assert key in obs_gym, f"error for {env_name} for {key}"
+                            assert obs_gym[key] in gym_env.observation_space[key], f"error for {env_name} for {key}"
+                        act = gym_env.action_space.sample()
+                        assert act in gym_env.action_space, f"error for {env_name}"
+                        obs, reward, done, truncated, info = gym_env.step(act)
+                        assert isinstance(obs_gym, dict)
+                        for key in gym_env.observation_space.keys():
+                            assert key in obs_gym, f"error for {env_name} for {key}"
+                            assert obs_gym[key] in gym_env.observation_space[key], f"error for {env_name} for {key}"
+                    finally:
+                        gym_env.close()
 
     def test_issue_185_obs_box_space(self):
         for env_name in self.get_list_env():
             if env_name == "blank":
                 continue
+            # if env_name != "l2rpn_neurips_2020_track1":
+            #     continue
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True) as env:
-                    gym_env = GymEnv(env)
-                    gym_env.observation_space.close()
-                    gym_env.observation_space = BoxGymObsSpace(
-                        gym_env.init_env.observation_space
-                    )
-                    # gym_env.seed(0)
-                    # gym_env.observation_space.seed(0)
-                    # gym_env.action_space.seed(0)
-                    obs_gym, *_ = gym_env.reset(seed=0)  # reset and seed
-                    assert obs_gym in gym_env.observation_space, f"error for {env_name}"
-                    act = gym_env.action_space.sample()
-                    assert act in gym_env.action_space, f"error for {env_name}"
-                    obs, reward, done, truncated, info = gym_env.step(act)
-                    assert obs in gym_env.observation_space, f"error for {env_name}"
+                with grid2op.make(env_name, test=True, _add_to_name=type(self).__name__) as env:
+                    try:
+                        gym_env = GymEnv(env)
+                        gym_env.observation_space.close()
+                        gym_env.observation_space = BoxGymObsSpace(
+                            gym_env.init_env.observation_space
+                        )
+                        # gym_env.seed(0)
+                        # gym_env.observation_space.seed(0)
+                        # gym_env.action_space.seed(0)
+                        gym_env.action_space.seed(0)
+                        obs_gym, *_ = gym_env.reset(seed=0)  # reset and seed
+                        if obs_gym not in gym_env.observation_space:
+                            raise AssertionError(f"error for {env_name}: \n{gym_env.observation_space.low}\n{obs_gym}\n{gym_env.observation_space.high}")
+                        act = gym_env.action_space.sample()
+                        assert act in gym_env.action_space, f"error for {env_name}"
+                        obs, reward, done, truncated, info = gym_env.step(act)
+                        if obs not in gym_env.observation_space:
+                            raise AssertionError(f"error for {env_name}: \n{gym_env.observation_space.low}\n{obs}\n{gym_env.observation_space.high}")
+                    finally:
+                        gym_env.close()
 
     def test_issue_185_act_multidiscrete_space(self):
         for env_name in self.get_list_env():
@@ -121,20 +151,23 @@ class Issue185Tester(unittest.TestCase):
 
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True) as env:
-                    gym_env = GymEnv(env)
-                    gym_env.action_space = MultiDiscreteActSpace(
-                        gym_env.init_env.action_space
-                    )
-                    # gym_env.seed(0)
-                    # gym_env.observation_space.seed(0)
-                    # gym_env.action_space.seed(0)
-                    obs_gym, *_ = gym_env.reset()
-                    assert obs_gym in gym_env.observation_space, f"error for {env_name}"
-                    act = gym_env.action_space.sample()
-                    assert act in gym_env.action_space, f"error for {env_name}"
-                    obs, reward, done, truncated, info = gym_env.step(act)
-                    assert obs in gym_env.observation_space, f"error for {env_name}"
+                with grid2op.make(env_name, test=True, _add_to_name=type(self).__name__) as env:
+                    try:
+                        gym_env = GymEnv(env)
+                        gym_env.action_space = MultiDiscreteActSpace(
+                            gym_env.init_env.action_space
+                        )
+                        # gym_env.seed(0)
+                        # gym_env.observation_space.seed(0)
+                        gym_env.action_space.seed(0)
+                        obs_gym, *_ = gym_env.reset(seed=0)
+                        assert obs_gym in gym_env.observation_space, f"error for {env_name}"
+                        act = gym_env.action_space.sample()
+                        assert act in gym_env.action_space, f"error for {env_name}"
+                        obs, reward, done, truncated, info = gym_env.step(act)
+                        assert obs in gym_env.observation_space, f"error for {env_name}"
+                    finally:
+                        gym_env.close()
 
     def test_issue_185_act_discrete_space(self):
         for env_name in self.get_list_env():
@@ -154,25 +187,29 @@ class Issue185Tester(unittest.TestCase):
                 continue
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with grid2op.make(env_name, test=True) as env:
-                    gym_env = GymEnv(env)
-                    gym_env.action_space = DiscreteActSpace(
-                        gym_env.init_env.action_space
-                    )
-                    # gym_env.seed(0)
-                    # gym_env.observation_space.seed(0)
-                    # gym_env.action_space.seed(0)
-                    obs_gym, *_ = gym_env.reset()
-                    assert obs_gym in gym_env.observation_space, f"error for {env_name}"
-                    act = gym_env.action_space.sample()
-                    assert act in gym_env.action_space, f"error for {env_name}"
-                    obs, reward, done, truncated, info = gym_env.step(act)
-                    if obs not in gym_env.observation_space:
-                        for k in obs:
-                            if not obs[k] in gym_env.observation_space[k]:
-                                raise RuntimeError(
-                                    f"Error for key {k} for env {env_name}"
-                                )
+                with grid2op.make(env_name, test=True, _add_to_name=type(self).__name__) as env:
+                    try:
+                        gym_env = GymEnv(env)
+                        gym_env.action_space = DiscreteActSpace(
+                            gym_env.init_env.action_space
+                        )
+                        # gym_env.seed(0)
+                        # gym_env.observation_space.seed(0)
+                        # gym_env.action_space.seed(0)
+                        gym_env.action_space.seed(0)
+                        obs_gym, *_ = gym_env.reset(seed=0)
+                        assert obs_gym in gym_env.observation_space, f"error for {env_name}"
+                        act = gym_env.action_space.sample()
+                        assert act in gym_env.action_space, f"error for {env_name}"
+                        obs, reward, done, truncated, info = gym_env.step(act)
+                        if obs not in gym_env.observation_space:
+                            for k in obs:
+                                if not obs[k] in gym_env.observation_space[k]:
+                                    raise RuntimeError(
+                                        f"Error for key {k} for env {env_name}"
+                                    )
+                    finally:
+                        gym_env.close()
 
 
 if __name__ == "__main__":

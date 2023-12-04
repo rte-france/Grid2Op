@@ -7,11 +7,12 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import os
 import numpy as np
+from collections import OrderedDict
 
 from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
-from grid2op.Exceptions.Grid2OpException import Grid2OpException
-from grid2op.dtypes import dt_float, dt_int
+from grid2op.Exceptions import Grid2OpException
+from grid2op.dtypes import dt_float, dt_int, int_types
 
 
 class IdToAct(Converter):
@@ -143,7 +144,7 @@ class IdToAct(Converter):
 
             import grid2op
             from grid2op.Converter import IdToAct
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             converter = IdToAct(env.action_space)
 
             # the path were will save it
@@ -171,7 +172,8 @@ class IdToAct(Converter):
             self.all_actions = []
             # add the do nothing action, always
             self.all_actions.append(super().__call__())
-            if "_set_line_status" in self._template_act.attr_list_vect:
+            tmp_act_cls = type(self._template_act)
+            if "_set_line_status" in tmp_act_cls.attr_list_vect:
                 # lines 'set'
                 include_ = True
                 if "set_line_status" in kwargs:
@@ -179,7 +181,7 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_line_set(self)
 
-            if "_switch_line_status" in self._template_act.attr_list_vect:
+            if "_switch_line_status" in tmp_act_cls.attr_list_vect:
                 # lines 'change'
                 include_ = True
                 if "change_line_status" in kwargs:
@@ -187,7 +189,7 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_line_change(self)
 
-            if "_set_topo_vect" in self._template_act.attr_list_vect:
+            if "_set_topo_vect" in tmp_act_cls.attr_list_vect:
                 # topologies 'set'
                 include_ = True
                 if "set_topo_vect" in kwargs:
@@ -195,7 +197,7 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_topologies_set(self)
 
-            if "_change_bus_vect" in self._template_act.attr_list_vect:
+            if "_change_bus_vect" in tmp_act_cls.attr_list_vect:
                 # topologies 'change'
                 include_ = True
                 if "change_bus_vect" in kwargs:
@@ -203,7 +205,7 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_topologies_change(self)
 
-            if "_redispatch" in self._template_act.attr_list_vect:
+            if "_redispatch" in tmp_act_cls.attr_list_vect:
                 # redispatch (transformed to discrete variables)
                 include_ = True
                 if "redispatch" in kwargs:
@@ -211,7 +213,7 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_redispatch(self)
 
-            if "_curtail" in self._template_act.attr_list_vect:
+            if "_curtail" in tmp_act_cls.attr_list_vect:
                 # redispatch (transformed to discrete variables)
                 include_ = True
                 if "curtail" in kwargs:
@@ -219,7 +221,7 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_curtail(self)
 
-            if "_storage_power" in self._template_act.attr_list_vect:
+            if "_storage_power" in tmp_act_cls.attr_list_vect:
                 # redispatch (transformed to discrete variables)
                 include_ = True
                 if "storage" in kwargs:
@@ -318,7 +320,7 @@ class IdToAct(Converter):
 
             import grid2op
             from grid2op.Converter import IdToAct
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
             converter = IdToAct(env.action_space)
 
             # the path were will save it
@@ -393,7 +395,7 @@ class IdToAct(Converter):
 
         return self.all_actions[encoded_act]
 
-    def get_gym_dict(self):
+    def get_gym_dict(self, cls_gym):
         """
         Transform this converter into a dictionary that can be used to initialized a :class:`gym.spaces.Dict`.
         The converter is modeled as a "Discrete" gym space with as many elements as the number
@@ -403,15 +405,10 @@ class IdToAct(Converter):
 
         This function should not be used "as is", but rather through :class:`grid2op.Converter.GymConverter`
 
-        Returns
-        -------
-        res: :class:`gym.spaces.Dict`
-            The dict
+        cls_gym represents either :class:`grid2op.gym_compat.LegacyGymActionSpace` or
+        :class:`grid2op.gym_compat.GymnasiumActionSpace`
         """
-        # lazy import gym
-        from gym import spaces
-
-        res = {"action": spaces.Discrete(n=self.n)}
+        res = {"action": cls_gym._DiscreteType(n=self.n)}
         return res
 
     def convert_action_from_gym(self, gymlike_action):
@@ -439,7 +436,7 @@ class IdToAct(Converter):
         .. code-block:: python
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # create the converter
             converter = IdToAct(env.action_space)
@@ -453,7 +450,7 @@ class IdToAct(Converter):
 
         """
         res = gymlike_action["action"]
-        if not isinstance(res, (int, dt_int, np.int, np.int64)):
+        if not isinstance(res, int_types):
             raise RuntimeError("TODO")
         return int(res)
 
@@ -481,7 +478,7 @@ class IdToAct(Converter):
         .. code-block:: python
 
             # create the environment
-            env = grid2op.make()
+            env = grid2op.make("l2rpn_case14_sandbox")
 
             # create the converter
             converter = IdToAct(env.action_space)
@@ -493,7 +490,5 @@ class IdToAct(Converter):
             gym_action = converter.to_gym(converter_action)  # this represents the same action
 
         """
-        from gym import spaces
-
-        res = spaces.dict.OrderedDict({"action": int(action)})
+        res = OrderedDict({"action": int(action)})
         return res

@@ -14,7 +14,7 @@ import numpy as np
 import warnings
 
 import grid2op
-from grid2op.Backend.EducPandaPowerBackend import EducPandaPowerBackend
+from grid2op.Backend.educPandaPowerBackend import EducPandaPowerBackend
 from grid2op.Exceptions import EnvError
 
 
@@ -25,7 +25,7 @@ class TestAuxFunctions(unittest.TestCase):
             self.envref = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
-                _add_to_name="test_gridobjects_testauxfunctions",
+                _add_to_name=type(self).__name__+"test_gridobjects_testauxfunctions",
             )
         seed = 0
         self.nb_test = 10

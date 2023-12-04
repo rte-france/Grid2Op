@@ -59,6 +59,13 @@ class Parameters:
         HARD_OVERFLOW_THRESHOLD is 2.0, then if the flow on the powerline reaches 2 * 150 = 300.0 the powerline
         the powerline is automatically disconnected.
 
+    SOFT_OVERFLOW_THRESHOLD: ``float``
+        .. versionadded:: 1.9.3
+        
+        Threshold above which delayed protection are triggered. A line with its current bellow `SOFT_OVERFLOW_THRESHOLD * thermal_limit`
+        then nothing happens. If it's above the delay start. And if it's above `SOFT_OVERFLOW_THRESHOLD * thermal_limit`
+        for more than :attr:`NB_TIMESTEP_OVERFLOW_ALLOWED` consecutive steps.
+    
     ENV_DC: ``bool``
         Whether or not making the simulations of the environment in the "direct current" approximation. This can be
         usefull for early training of agent, as this mode is much faster to compute than the corresponding
@@ -131,6 +138,10 @@ class Parameters:
         Number of steps for which it's worth it to give an alarm (if an alarm is send outside of the window
         `[ALARM_BEST_TIME - ALARM_WINDOW_SIZE, ALARM_BEST_TIME + ALARM_WINDOW_SIZE]` then it does not grant anything
 
+    ALERT_TIME_WINDOW : ``int``
+        Number of steps for which it's worth it to give an alert after an attack. If the alert is sent before, the assistant
+        score doesn't take into account that an alert is raised. 
+
     MAX_SIMULATE_PER_STEP: ``int``
         Maximum number of calls to `obs.simuate(...)` allowed per step (reset each "env.step(...)"). Defaults to -1 meaning "as much as you want".
 
@@ -167,6 +178,8 @@ class Parameters:
         # for example setting "HARD_OVERFLOW_THRESHOLD = 2" is equivalent, if a powerline has a thermal limit of
         # 243 A, to disconnect it instantly if it has a powerflow higher than 2 * 243 = 486 A
         self.HARD_OVERFLOW_THRESHOLD = dt_float(2.0)
+        
+        self.SOFT_OVERFLOW_THRESHOLD = dt_float(1.0)
 
         # are the powerflow performed by the environment in DC mode (dc powerflow) or AC (ac powerflow)
         self.ENV_DC = False
@@ -200,6 +213,9 @@ class Parameters:
         # alarms
         self.ALARM_BEST_TIME = 12
         self.ALARM_WINDOW_SIZE = 12
+
+        # alert 
+        self.ALERT_TIME_WINDOW = 12
 
         # number of simulate
         self.MAX_SIMULATE_PER_STEP = dt_int(-1)
@@ -289,6 +305,9 @@ class Parameters:
 
         if "HARD_OVERFLOW_THRESHOLD" in dict_:
             self.HARD_OVERFLOW_THRESHOLD = dt_float(dict_["HARD_OVERFLOW_THRESHOLD"])
+            
+        if "SOFT_OVERFLOW_THRESHOLD" in dict_:
+            self.SOFT_OVERFLOW_THRESHOLD = dt_float(dict_["SOFT_OVERFLOW_THRESHOLD"])
 
         if "ENV_DC" in dict_:
             self.ENV_DC = Parameters._isok_txt(dict_["ENV_DC"])
@@ -339,6 +358,10 @@ class Parameters:
         if "ALARM_WINDOW_SIZE" in dict_:
             self.ALARM_WINDOW_SIZE = dt_int(dict_["ALARM_WINDOW_SIZE"])
 
+        # alert parameters 
+        if "ALERT_TIME_WINDOW" in dict_:
+            self.ALERT_TIME_WINDOW = dt_int(dict_["ALERT_TIME_WINDOW"])
+
         if "MAX_SIMULATE_PER_STEP" in dict_:
             self.MAX_SIMULATE_PER_STEP = dt_int(dict_["MAX_SIMULATE_PER_STEP"])
 
@@ -379,6 +402,7 @@ class Parameters:
         res["NB_TIMESTEP_OVERFLOW_ALLOWED"] = int(self.NB_TIMESTEP_OVERFLOW_ALLOWED)
         res["NB_TIMESTEP_RECONNECTION"] = int(self.NB_TIMESTEP_RECONNECTION)
         res["HARD_OVERFLOW_THRESHOLD"] = float(self.HARD_OVERFLOW_THRESHOLD)
+        res["SOFT_OVERFLOW_THRESHOLD"] = float(self.SOFT_OVERFLOW_THRESHOLD)
         res["ENV_DC"] = bool(self.ENV_DC)
         res["FORECAST_DC"] = bool(self.FORECAST_DC)
         res["MAX_SUB_CHANGED"] = int(self.MAX_SUB_CHANGED)
@@ -389,6 +413,7 @@ class Parameters:
         res["ACTIVATE_STORAGE_LOSS"] = bool(self.ACTIVATE_STORAGE_LOSS)
         res["ALARM_BEST_TIME"] = int(self.ALARM_BEST_TIME)
         res["ALARM_WINDOW_SIZE"] = int(self.ALARM_WINDOW_SIZE)
+        res["ALERT_TIME_WINDOW"] = int(self.ALERT_TIME_WINDOW)
         res["MAX_SIMULATE_PER_STEP"] = int(self.MAX_SIMULATE_PER_STEP)
         res["MAX_SIMULATE_PER_EPISODE"] = int(self.MAX_SIMULATE_PER_EPISODE)
         return res
@@ -517,6 +542,27 @@ class Parameters:
                 "HARD_OVERFLOW_THRESHOLD < 1., this should be >= 1. (use env.set_thermal_limit "
                 "to modify the thermal limit)"
             )
+            
+        try:
+            self.SOFT_OVERFLOW_THRESHOLD = float(
+                self.SOFT_OVERFLOW_THRESHOLD
+            )  # to raise if numpy array
+            self.SOFT_OVERFLOW_THRESHOLD = dt_float(self.SOFT_OVERFLOW_THRESHOLD)
+        except Exception as exc_:
+            raise RuntimeError(
+                f'Impossible to convert SOFT_OVERFLOW_THRESHOLD to float with error \n:"{exc_}"'
+            )
+        if self.SOFT_OVERFLOW_THRESHOLD < 1.0:
+            raise RuntimeError(
+                "SOFT_OVERFLOW_THRESHOLD < 1., this should be >= 1. (use env.set_thermal_limit "
+                "to modify the thermal limit)"
+            )
+        if self.SOFT_OVERFLOW_THRESHOLD >= self.HARD_OVERFLOW_THRESHOLD:
+            raise RuntimeError(
+                "self.SOFT_OVERFLOW_THRESHOLD >= self.HARD_OVERFLOW_THRESHOLD this would that the"
+                "soft overflow would be deactivated. It's not possible at the moment."
+            )
+            
         try:
             if not isinstance(self.ENV_DC, (bool, dt_bool)):
                 raise RuntimeError("NO_OVERFLOW_DISCONNECTION should be a boolean")
@@ -624,11 +670,19 @@ class Parameters:
             raise RuntimeError(
                 f'Impossible to convert ALARM_BEST_TIME to int with error \n:"{exc_}"'
             )
+        try:
+            self.ALERT_TIME_WINDOW = dt_int(self.ALERT_TIME_WINDOW)
+        except Exception as exc_:
+            raise RuntimeError(
+                f'Impossible to convert ALERT_TIME_WINDOW to int with error \n:"{exc_}"'
+            )
 
         if self.ALARM_WINDOW_SIZE <= 0:
             raise RuntimeError("self.ALARM_WINDOW_SIZE should be a positive integer !")
         if self.ALARM_BEST_TIME <= 0:
             raise RuntimeError("self.ALARM_BEST_TIME should be a positive integer !")
+        if self.ALERT_TIME_WINDOW <= 0:
+            raise RuntimeError("self.ALERT_TIME_WINDOW should be a positive integer !")
 
         try:
             self.MAX_SIMULATE_PER_STEP = int(

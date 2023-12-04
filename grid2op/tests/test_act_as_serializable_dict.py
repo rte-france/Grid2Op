@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -8,12 +8,12 @@
 
 import unittest
 import numpy as np
-
+import warnings
 import grid2op
 
 from grid2op.dtypes import dt_int
 from grid2op.Exceptions import *
-from grid2op.Action import *
+from grid2op.Action import BaseAction, ActionSpace, PlayableAction, BaseAction
 from grid2op.Rules import RulesChecker
 from grid2op.Space import GridObjects
 import json
@@ -118,7 +118,7 @@ class TestActionSerialDict(unittest.TestCase):
 
     def tearDown(self):
         self.authorized_keys = {}
-        self.gridobj._clear_class_attribute()
+        type(self.gridobj)._clear_class_attribute()
         ActionSpace._clear_class_attribute()
 
     def setUp(self):
@@ -317,7 +317,7 @@ class TestActionSerialDict(unittest.TestCase):
                 ]
             }
         )
-        act += self.helper_action({"change_line_status": [l_id for l_id in [2, 4, 5]]})
+        act += self.helper_action({"change_line_status": [l_id for l_id in [6, 7, 8]]})
         act += self.helper_action(
             {
                 "set_bus": [
@@ -373,3 +373,117 @@ class TestActionSerialDict(unittest.TestCase):
         assert dict_ == dict_2
         with tempfile.TemporaryFile(mode="w") as f:
             json.dump(fp=f, obj=dict_)
+
+
+class TestMultiGrid(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = grid2op.make("l2rpn_case14_sandbox",
+                                     test=True,
+                                     action_class=PlayableAction,
+                                     _add_to_name=type(self).__name__+"env1")
+            self.env2 = grid2op.make("educ_case14_storage",
+                                     test=True,
+                                     action_class=PlayableAction,
+                                     _add_to_name=type(self).__name__+"env2")
+        return super().setUp()
+    def tearDown(self) -> None:
+        self.env1.close()
+        self.env2.close()
+        return super().tearDown()
+
+    def test_can_make_lineor(self):
+        act : BaseAction = self.env1.action_space({"set_bus": {"lines_or_id": [(0, 2), (5, 1), (15, 2)]}})
+        dict_ = act.as_serializable_dict()
+        assert dict_ == {'set_bus': {'lines_or_id': [(0, 2), (5, 1), (15, 2)]}}
+        act2 = self.env2.action_space(dict_)
+        dict_2 = act2.as_serializable_dict()
+        assert dict_ == dict_2
+        
+        act : BaseAction = self.env1.action_space({"change_bus": {"lines_or_id": [0, 5, 15]}})
+        dict_ = act.as_serializable_dict()
+        assert dict_ == {'change_bus': {'lines_or_id': [0, 5, 15]}}
+        act2 = self.env2.action_space(dict_)
+        dict_2 = act2.as_serializable_dict()
+        assert dict_ == dict_2
+
+    def test_can_make_lineex(self):
+        act : BaseAction = self.env1.action_space({"set_bus": {"lines_ex_id": [(0, 2), (5, 1), (15, 2)]}})
+        dict_ = act.as_serializable_dict()
+        assert dict_ == {'set_bus': {'lines_ex_id': [(0, 2), (5, 1), (15, 2)]}}
+        act2 = self.env2.action_space(dict_)
+        dict_2 = act2.as_serializable_dict()
+        assert dict_ == dict_2
+        
+        act : BaseAction = self.env1.action_space({"change_bus": {"lines_ex_id": [0, 5, 15]}})
+        dict_ = act.as_serializable_dict()
+        assert dict_ == {'change_bus': {'lines_ex_id': [0, 5, 15]}}
+        act2 = self.env2.action_space(dict_)
+        dict_2 = act2.as_serializable_dict()
+        assert dict_ == dict_2
+
+    def test_can_make_gen(self):
+        act : BaseAction = self.env1.action_space({"set_bus": {"generators_id": [(0, 2), (5, 1)]}})
+        dict_ = act.as_serializable_dict()
+        assert dict_ == {'set_bus': {'generators_id': [(0, 2), (5, 1)]}}
+        act2 = self.env2.action_space(dict_)
+        dict_2 = act2.as_serializable_dict()
+        assert dict_ == dict_2
+        
+        act : BaseAction = self.env1.action_space({"change_bus": {"generators_id": [0, 5]}})
+        dict_ = act.as_serializable_dict()
+        assert dict_ == {'change_bus': {'generators_id': [0, 5]}}
+        act2 = self.env2.action_space(dict_)
+        dict_2 = act2.as_serializable_dict()
+        assert dict_ == dict_2
+
+    def test_can_make_load(self):
+        act : BaseAction = self.env1.action_space({"set_bus": {"loads_id": [(0, 2), (5, 1)]}})
+        dict_ = act.as_serializable_dict()
+        assert dict_ == {'set_bus': {'loads_id': [(0, 2), (5, 1)]}}
+        act2 = self.env2.action_space(dict_)
+        dict_2 = act2.as_serializable_dict()
+        assert dict_ == dict_2
+        
+        act : BaseAction = self.env1.action_space({"change_bus": {"loads_id": [0, 5]}})
+        dict_ = act.as_serializable_dict()
+        assert dict_ == {'change_bus': {'loads_id': [0, 5]}}
+        act2 = self.env2.action_space(dict_)
+        dict_2 = act2.as_serializable_dict()
+        assert dict_ == dict_2
+
+    def test_with_gen_load_lineor_lineex(self):
+        act : BaseAction = self.env1.action_space({"set_bus": {"loads_id": [(0, 2), (5, 1)],
+                                                               "generators_id": [(0, 2), (5, 1)],
+                                                               "lines_ex_id": [(0, 2), (5, 1), (15, 2)],
+                                                               "lines_or_id": [(0, 2), (5, 1), (15, 2)]
+                                                               }})
+        dict_ = act.as_serializable_dict()
+        assert dict_ == {'set_bus': {'loads_id': [(0, 2), (5, 1)],
+                                     'generators_id': [(0, 2), (5, 1)],
+                                     'lines_ex_id': [(0, 2), (5, 1), (15, 2)],
+                                     'lines_or_id': [(0, 2), (5, 1), (15, 2)]
+                                     }}
+        act2 = self.env2.action_space(dict_)
+        dict_2 = act2.as_serializable_dict()
+        assert dict_ == dict_2
+        
+        act : BaseAction = self.env1.action_space({"change_bus": {'loads_id': [0, 5],
+                                                                  'generators_id': [0, 5],
+                                                                  'lines_ex_id': [0, 5, 15],
+                                                                  'lines_or_id': [0, 5, 15]
+                                                                  }})
+        dict_ = act.as_serializable_dict()
+        assert dict_ == {'change_bus': {'loads_id': [0, 5],
+                                        'generators_id': [0, 5],
+                                        'lines_ex_id': [0, 5, 15],
+                                        'lines_or_id': [0, 5, 15]
+                                        }}
+        act2 = self.env2.action_space(dict_)
+        dict_2 = act2.as_serializable_dict()
+        assert dict_ == dict_2
+        
+        
+if __name__ == "__main__":
+    unittest.main()

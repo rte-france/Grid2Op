@@ -9,9 +9,10 @@
 import copy
 import numpy as np
 
+from typing import Type
 from grid2op.dtypes import dt_float, dt_int, dt_bool
 from grid2op.Exceptions import SimulateError
-from grid2op.Observation import ObservationSpace, CompleteObservation
+from grid2op.Observation import ObservationSpace, CompleteObservation, BaseObservation
 from grid2op.multi_agent.subGridObjects import SubGridObjects
 from grid2op.multi_agent.ma_typing import ActionProfile
 
@@ -274,7 +275,15 @@ class SubGridObservation(SubGridObjects, CompleteObservation):
         self.time_next_maintenance_interco[:] = complete_obs.time_next_maintenance[my_cls.mask_interco]
         self.timestep_overflow_interco[:] = complete_obs.timestep_overflow[my_cls.mask_interco]
         
-    
+    def _aux_set_game_over_thermal_limit(self, env=None):
+        """set the thermal limit when game over.
+        
+        Needs to be overriden in the SubObservationClass for multi agent"""
+        if env is not None:
+            self._thermal_limit[:] = 1.0 * env._thermal_limit_a[type(self).mask_line]  # function get_thermal_limit() "crashes" (because env is game over)
+        else:
+            self._thermal_limit[:] = 0. 
+        
 class SubGridObservationSpace(SubGridObjects, ObservationSpace):
     # modeling choice : one observation space per "sub agent"
     
@@ -286,7 +295,7 @@ class SubGridObservationSpace(SubGridObjects, ObservationSpace):
         local_gridobj,  # gridobject for the observation space of this agent
         is_complete_obs=True, # whether the observation is complete or not
         rewardClass=None,
-        observationClass=SubGridObservation,  # should be a local observation
+        observationClass : Type[SubGridObservation]=SubGridObservation,  # should be a local observation
         actionClass=None,  # Complete action, used internally for simulate
         with_forecast=True,
         kwargs_observation=None,
@@ -302,8 +311,8 @@ class SubGridObservationSpace(SubGridObjects, ObservationSpace):
                                   with_forecast,
                                   kwargs_observation,
                                   logger)
-        self.local_obs_cls = observationClass.init_grid(local_gridobj)
-        self._is_complete_obs = is_complete_obs
+        self.local_obs_cls : Type[SubGridObservation] = observationClass.init_grid(local_gridobj)
+        self._is_complete_obs : bool = is_complete_obs
     
     def __call__(self, ma_env, cent_obs, _update_state=True):
         # cent obs is the centralized observation

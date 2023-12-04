@@ -45,7 +45,7 @@ class EpisodeStatistics(object):
 
         import grid2op
         from grid2op.utils import EpisodeStatistics
-        env = grid2op.make()
+        env = grid2op.make("l2rpn_case14_sandbox")
 
         stats = EpisodeStatistics(env)
 
@@ -67,7 +67,7 @@ class EpisodeStatistics(object):
         import grid2op
         from grid2op.utils import EpisodeStatistics
         from grid2op.Parameters import Parameters
-        env = grid2op.make()
+        env = grid2op.make("l2rpn_case14_sandbox")
 
         nb_scenario = 8
 
@@ -104,12 +104,15 @@ class EpisodeStatistics(object):
     SCENARIO_IDS = "scenario_ids.npz"
     SCORES = "scores.npz"
     SCORES_CLEAN = re.sub("\\.npz", "", SCORES)
-    KEY_SCORE = "__scores"
+    KEY_SCORE = "_scores"
     SCORE_FOOTPRINT = ".has_score"
     STATISTICS_FOLDER = "_statistics"
     STATISTICS_FOOTPRINT = ".statistics"
     METADATA = "metadata.json"
 
+
+    ERROR_MSG_CLEANED = ("This statistics has been removed from the hard drive through a call to "
+                         "`stat.clear_all()`. You cannot use it anymore.")
     def __init__(self, env, name_stats=None):
         if isinstance(env, MultiMixEnvironment):
             raise RuntimeError("MultiMixEnvironment are not supported at the moment")
@@ -118,6 +121,7 @@ class EpisodeStatistics(object):
         nm_ = self.get_name_dir(name_stats)
         self.path_save_stats = os.path.join(self.path_env, nm_)
         self.li_attributes = self.env.observation_space.attr_list_vect
+        self.__cleared = False
 
     @staticmethod
     def get_name_dir(name_stats):
@@ -331,6 +335,8 @@ class EpisodeStatistics(object):
             the same scenario.
 
         """
+        if self.__cleared:
+            raise RuntimeError(EpisodeStatistics.ERROR_MSG_CLEANED)
         # backward compatibility
         if attribute_name == "prod_p":
             attribute_name = "gen_p"
@@ -418,7 +424,8 @@ class EpisodeStatistics(object):
         Once done, this cannot be undone.
         """
         if os.path.exists(self.path_save_stats) and os.path.isdir(self.path_save_stats):
-            shutil.rmtree(self.path_save_stats)
+            shutil.rmtree(self.path_save_stats, ignore_errors=True)
+        self.__cleared = True
 
     @staticmethod
     def clean_all_stats(env):
@@ -531,6 +538,7 @@ class EpisodeStatistics(object):
         agent_seeds,
         pbar,
         nb_process,
+        add_nb_highres_sim=False,
     ):
 
         if scores_func is not None:
@@ -560,7 +568,7 @@ class EpisodeStatistics(object):
                     "be a dictionary"
                 )
         runner = Runner(**dict_kwg, agentClass=None, agentInstance=agent)
-        runner.run(
+        res_runner = runner.run(
             path_save=path_save,
             nb_episode=nb_scenario,
             max_iter=max_step,
@@ -568,10 +576,19 @@ class EpisodeStatistics(object):
             agent_seeds=agent_seeds,
             pbar=pbar,
             nb_process=nb_process,
+            add_detailed_output=False,  # check the return value if you change this
+            add_nb_highres_sim=add_nb_highres_sim
         )
+        if add_nb_highres_sim:
+            res = [el[-1] for el in res_runner]
+            return res
+        return None
 
     def get_metadata(self):
         """return the metadata as a dictionary"""
+        if self.__cleared:
+            raise RuntimeError(EpisodeStatistics.ERROR_MSG_CLEANED)
+        
         with open(
             os.path.join(self.path_save_stats, self.METADATA), "r", encoding="utf-8"
         ) as f:
@@ -726,7 +743,7 @@ class EpisodeStatistics(object):
             # reformat the observation into a proper "human readable" format
             self._clean_observations(path_tmp, episode_name)
 
-        # and now gather the information for at the top level
+        # and now gather the information for the top level
         self._gather_all(li_episodes, dict_metadata, score_names=score_names)
 
 
@@ -772,7 +789,7 @@ if __name__ == "__main__":
 
     # with multiple "scores"
     env = grid2op.make(
-        "/home/benjamin/Documents/grid2op_dev/grid2op/data_test/l2rpn_neurips_2020_track1_with_alert",
+        "l2rpn_neurips_2020_track1_with_alarm",
         backend=LightSimBackend(),
     )
     stats_dn = EpisodeStatistics(env, name_stats="do_nothing")

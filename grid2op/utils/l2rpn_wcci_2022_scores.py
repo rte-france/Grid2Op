@@ -23,5 +23,16 @@ class ScoreL2RPN2022(ScoreL2RPN2020):
                  verbose=0, max_step=-1,
                  nb_process_stats=1,
                  scores_func=L2RPNWCCI2022ScoreFun,
-                 score_names=None):
-        super().__init__(env, env_seeds, agent_seeds, nb_scenario, min_losses_ratio, verbose, max_step, nb_process_stats, scores_func, score_names)
+                 score_names=None,
+                 add_nb_highres_sim=False):
+        super().__init__(env,
+                         env_seeds,
+                         agent_seeds,
+                         nb_scenario,
+                         min_losses_ratio,
+                         verbose,
+                         max_step,
+                         nb_process_stats,
+                         scores_func,
+                         score_names,
+                         add_nb_highres_sim=add_nb_highres_sim)

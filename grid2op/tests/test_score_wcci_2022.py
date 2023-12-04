@@ -11,8 +11,7 @@ import warnings
 import numpy as np
 
 import grid2op
-from grid2op.Agent.baseAgent import BaseAgent
-from grid2op.Agent.doNothing import DoNothingAgent
+from grid2op.Agent import (BaseAgent, DoNothingAgent)
 from grid2op.Reward import L2RPNWCCI2022ScoreFun
 from grid2op.utils import ScoreL2RPN2022
 
@@ -36,7 +35,10 @@ class WCCI2022Tester(unittest.TestCase):
         
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True, reward_class=L2RPNWCCI2022ScoreFun)
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    reward_class=L2RPNWCCI2022ScoreFun,
+                                    _add_to_name=type(self).__name__)
     
     def tearDown(self) -> None:
         self.env.close()
@@ -78,7 +80,8 @@ class WCCI2022Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("educ_case14_storage", test=True,
-                                    reward_class=L2RPNWCCI2022ScoreFun(storage_cost=storage_cost))
+                                    reward_class=L2RPNWCCI2022ScoreFun(storage_cost=storage_cost),
+                                    _add_to_name=type(self).__name__)
         score_fun = L2RPNWCCI2022ScoreFun(storage_cost=storage_cost)
         score_fun.initialize(self.env)
         th_val = storage_cost * 10. / 12.
@@ -145,7 +148,7 @@ class TestL2RPNWCCI2022ScoreFun(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_wcci_2022", test=True)
+            self.env = grid2op.make("l2rpn_wcci_2022", test=True, _add_to_name=type(self).__name__)
         self.env.seed(0)
         self.env.reset()
         self.score_fun = L2RPNWCCI2022ScoreFun()

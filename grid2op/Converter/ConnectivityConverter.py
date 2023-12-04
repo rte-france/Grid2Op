@@ -68,7 +68,7 @@ class ConnectivityConverter(Converter):
         import numpy as np
         from grid2op.Converter import ConnectivityConverter
 
-        env = grid2op.make("rte_case14_realistic", test=True)
+        env = grid2op.make("l2rpn_case14_sandbox", test=True)
         converter = ConnectivityConverter(env.action_space)
         # it's a good practice to seed the element that can be, for reproducibility
         converter.seed(0)
@@ -378,7 +378,7 @@ class ConnectivityConverter(Converter):
             raise RuntimeError(
                 f"Invalid encoded_act shape provided it should be {self.n}"
             )
-        if np.any((encoded_act < -1.0) | (encoded_act > 1.0)):
+        if ((encoded_act < -1.0) | (encoded_act > 1.0)).any():
             errors = (encoded_act < -1.0) | (encoded_act > 1.0)
             indexes = np.where(errors)[0]
             raise RuntimeError(
@@ -503,7 +503,7 @@ class ConnectivityConverter(Converter):
         )
         # for the elements that are not affected by the action (i don't know where they will be: maximum penalty)
         not_set = np.full(
-            np.sum(((bus_el1 == 0) | (bus_el2 == 0)) & set_component),
+            (((bus_el1 == 0) | (bus_el2 == 0)) & set_component).sum(),
             fill_value=2,
             dtype=dt_int,
         )

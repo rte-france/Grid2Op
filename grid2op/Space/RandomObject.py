@@ -8,6 +8,7 @@
 
 import copy
 import numpy as np
+from typing import Optional
 
 
 class RandomObject(object):
@@ -58,7 +59,7 @@ class RandomObject(object):
         import grid2op
         from grid2op.Agent import RandomAgent # or any other agent of course. It might also be a custom you developed
         # create the environment
-        env = grid2op.make()
+        env = grid2op.make("l2rpn_case14_sandbox")
         agent = RandomAgent(env.action_space)
 
         # and now set the seed
@@ -83,7 +84,7 @@ class RandomObject(object):
         np.random.seed(42)  # or any other seed of course :-)
 
         # create the environment
-        env = grid2op.make()
+        env = grid2op.make("l2rpn_case14_sandbox")
         # NB setting a seed in this environment will have absolutely no effect on the runner
 
         # and now set the seed
@@ -103,8 +104,8 @@ class RandomObject(object):
     """
 
     def __init__(self):
-        self.space_prng = np.random.RandomState()
-        self.seed_used = None
+        self.space_prng : np.random.RandomState = np.random.RandomState()
+        self.seed_used : Optional[int] = None
 
     def seed(self, seed):
         """

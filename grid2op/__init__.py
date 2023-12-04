@@ -11,7 +11,7 @@
 Grid2Op
 
 """
-__version__ = '1.8.2.dev2'
+__version__ = '1.9.8.dev0'
 
 __all__ = [
     "Action",
@@ -41,14 +41,22 @@ __all__ = [
     "change_local_dir",
     "list_available_test_env",
     "update_env",
-    "make"
-,]
+    "make",
+]
 
-from grid2op.MakeEnv import make_old, make, make_from_dataset_path
-from grid2op.MakeEnv import update_env
-from grid2op.MakeEnv import (
-    list_available_remote_env,
-    list_available_local_env,
-    get_current_local_dir,
-)
-from grid2op.MakeEnv import change_local_dir, list_available_test_env
+
+from grid2op.MakeEnv import  (make,
+                              update_env,
+                              list_available_remote_env,
+                              list_available_local_env,
+                              get_current_local_dir,
+                              change_local_dir,
+                              list_available_test_env
+                             )
+
+try:
+    from grid2op._create_test_suite import create_test_suite
+    __all__.append("create_test_suite")
+except ImportError as exc_:
+    # grid2op is most likely not installed in editable mode from source
+    pass

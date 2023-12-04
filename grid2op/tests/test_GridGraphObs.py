@@ -22,7 +22,7 @@ class TestNetworkXGraph(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_neurips_2020_track1", test=True)
+            self.env = grid2op.make("l2rpn_neurips_2020_track1", test=True, _add_to_name=type(self).__name__)
         self.tol = 1e-5
 
     def test_kirchhoff(self):

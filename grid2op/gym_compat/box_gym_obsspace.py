@@ -6,18 +6,19 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import Tuple
 import copy
 import warnings
 import numpy as np
-from gym.spaces import Box
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Observation import ObservationSpace
 from grid2op.Exceptions import Grid2OpException
 
-from grid2op.gym_compat.utils import _compute_extra_power_for_losses
-from grid2op.gym_compat.utils import check_gym_version
-
+from grid2op.gym_compat.utils import (_compute_extra_power_for_losses,
+                                      GYM_AVAILABLE,
+                                      GYMNASIUM_AVAILABLE,
+                                      check_gym_version)
 
 ALL_ATTR_OBS = (
     "year",
@@ -65,8 +66,14 @@ ALL_ATTR_OBS = (
     "last_alarm",
     "attention_budget",
     "was_alarm_used_after_game_over",
-    "current_step",
     "max_step",
+    "active_alert",
+    "attack_under_alert",
+    "time_since_last_alert",
+    "alert_duration",
+    "total_number_of_alert",
+    "time_since_last_attack",
+    "was_alert_used_after_attack",
     "theta_or",
     "theta_ex",
     "load_theta",
@@ -78,14 +85,33 @@ ALL_ATTR_OBS = (
 # TODO add the is_illegal and co there
 
 
-class BoxGymObsSpace(Box):
+class __AuxBoxGymObsSpace:
     """
     This class allows to convert a grid2op observation space into a gym "Box" which is
     a regular Box in R^d.
 
     It also allows to customize which part of the observation you want to use and offer capacity to
     center / reduce the data or to use more complex function from the observation.
-
+    
+    .. warning::
+        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        
+        In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
+        no more maintained) RL packages. The behaviour is the following:
+        
+        - :class:`BoxGymObsSpace` will inherit from gymnasium if it's installed 
+          (in this case it will be :class:`BoxGymnasiumObsSpace`), otherwise it will
+          inherit from gym (and will be exactly :class:`BoxLegacyGymObsSpace`)
+        - :class:`BoxGymnasiumObsSpace` will inherit from gymnasium if it's available and never from
+          from gym
+        - :class:`BoxLegacyGymObsSpace` will inherit from gym if it's available and never from
+          from gymnasium
+        
+        See :ref:`gymnasium_gym` for more information
+    
+    .. note::
+        A gymnasium Box is encoded as a numpy array.
+        
     Examples
     --------
     If you simply want to use it you can do:
@@ -93,7 +119,7 @@ class BoxGymObsSpace(Box):
     .. code-block:: python
 
         import grid2op
-        env_name = ...
+        env_name = "l2rpn_case14_sandbox"  # or any other name
         env = grid2op.make(env_name)
 
         from grid2op.gym_compat import GymEnv, BoxGymObsSpace
@@ -179,7 +205,7 @@ class BoxGymObsSpace(Box):
         functs=None,
         replace_nan_by_0 : bool =False,  # replace nan by 0.
     ):
-        check_gym_version()
+        check_gym_version(type(self)._gymnasium)
         if not isinstance(grid2op_observation_space, ObservationSpace):
             raise RuntimeError(
                 f"Impossible to create a BoxGymObsSpace without providing a "
@@ -527,6 +553,49 @@ class BoxGymObsSpace(Box):
                 (1,),
                 dt_float,
             ),
+            # alert stuff
+            "active_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=False, dtype=dt_bool),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=True, dtype=dt_bool),
+                (ob_sp.dim_alerts,),
+                dt_bool,
+            ),
+            "time_since_last_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "alert_duration": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "total_number_of_alert": (
+                np.full(shape=(1 if ob_sp.dim_alerts else 0,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(1 if ob_sp.dim_alerts else 0,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (1 if ob_sp.dim_alerts else 0,),
+                dt_int,
+            ),
+            "time_since_last_attack": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=np.iinfo(dt_int).max, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "was_alert_used_after_attack": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=1, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
+            "attack_under_alert": (
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_alerts,), fill_value=1, dtype=dt_int),
+                (ob_sp.dim_alerts,),
+                dt_int,
+            ),
         }
         self._dict_properties["max_step"] = copy.deepcopy(self._dict_properties["current_step"])
         self._dict_properties["delta_time"] = copy.deepcopy(self._dict_properties["current_step"])
@@ -552,10 +621,10 @@ class BoxGymObsSpace(Box):
 
         if subtract is None:
             subtract = {}
-        self._subtract = subtract
+        self._subtract = subtract.copy()
         if divide is None:
             divide = {}
-        self._divide = divide
+        self._divide = divide.copy()
 
         # handle the "functional" part
         self._template_obs = ob_sp._template_obj.copy()
@@ -565,8 +634,32 @@ class BoxGymObsSpace(Box):
         low, high, shape, dtype = self._get_info(functs)
 
         # initialize the base container
-        Box.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
+        type(self)._BoxType.__init__(self, low=low, high=high, shape=shape, dtype=dtype)
+        
+        # convert data in `_subtract` and `_divide` to the right type
+        self._fix_value_sub_div(self._subtract, functs)
+        self._fix_value_sub_div(self._divide, functs)
 
+    def _get_shape(self, el, functs):
+        if el in functs:
+            callable_, low_, high_, shape_, dtype_ = functs[el]
+        elif el in self._dict_properties:
+            # el is an attribute of an observation, for example "load_q" or "topo_vect"
+            low_, high_, shape_, dtype_ = self._dict_properties[el]
+        return shape_
+    
+    def _fix_value_sub_div(self, dict_, functs):
+        """dict_ is either self._subtract or self._divide"""
+        keys = list(dict_.keys())
+        for k in keys:
+            v = dict_[k]
+            if isinstance(v, (list, tuple)):
+                v = np.array(v).astype(self.dtype)
+            else:
+                shape = self._get_shape(k, functs)
+                v = np.full(shape, fill_value=v, dtype=self.dtype)
+            dict_[k] = v
+        
     def _get_info(self, functs):
         low = None
         high = None
@@ -621,7 +714,7 @@ class BoxGymObsSpace(Box):
                 elif isinstance(high_, float):
                     high_ = np.full(shape_, fill_value=high_, dtype=dtype_)
 
-                if np.any((tmp < low_) | (tmp > high_)):
+                if ((tmp < low_) | (tmp > high_)).any():
                     raise RuntimeError(
                         f"Wrong value for low / high in the functs argument for key {el}. Please"
                         f"fix the low_ / high_ in the tuple ( callable_, low_, high_, shape_, dtype_)."
@@ -644,7 +737,11 @@ class BoxGymObsSpace(Box):
                 dtype = dtype_
             else:
                 if dtype_ == dt_float:
+                    # promote whatever to float anyway
                     dtype = dt_float
+                elif dtype_ == dt_int and dtype == dt_bool:
+                    # promote bool to int
+                    dtype = dt_int
 
             # handle the shape
             if shape is None:
@@ -722,6 +819,54 @@ class BoxGymObsSpace(Box):
     def close(self):
         pass
 
+    def get_indexes(self, key: str) -> Tuple[int, int]:
+        """Allows to retrieve the indexes of the gym action that
+        are concerned by the attribute name `key` given in input.
+
+        .. versionadded:: 1.9.3
+        
+        .. warning::
+            Copy paste from box_gym_act_space, need refacto !
+            
+        Parameters
+        ----------
+        key : str
+            the attribute name (*eg* "set_storage" or "redispatch")
+
+        Returns
+        -------
+        Tuple[int, int]
+            _description_
+
+        Examples
+        --------
+        
+        You can use it like:
+        
+        .. code-block:: python
+        
+            gym_env = ... # an environment with a BoxActSpace
+            
+            act = np.zeros(gym_env.action_space.shape)
+            key = "redispatch"  # "redispatch", "curtail", "set_storage"
+            start_, end_ = gym_env.action_space.get_indexes(key)
+            act[start_:end_] = np.random.uniform(high=1, low=-1, size=env.gen_redispatchable.sum())
+            # act only modifies the redispatch with the input given (here a uniform redispatching between -1 and 1)
+            
+        """
+        error_msg =(f"Impossible to use the grid2op action property \"{key}\""
+                    f"with this action space.")
+        if key not in self._attr_to_keep:
+            raise Grid2OpException(error_msg)
+        prev = 0
+        for attr_nm, where_to_put in zip(
+            self._attr_to_keep, self._dims
+        ):
+            if attr_nm == key:
+                return prev, where_to_put
+            prev = where_to_put
+        raise Grid2OpException(error_msg)
+    
     def normalize_attr(self, attr_nm: str):
         """
         This function normalizes the part of the space
@@ -767,7 +912,7 @@ class BoxGymObsSpace(Box):
                 both_finite = finite_high & finite_low
                 both_finite &= curr_high > curr_low
 
-                if np.any(~both_finite):
+                if (~both_finite).any():
                     warnings.warn(f"The normalization of attribute \"{both_finite}\" cannot be performed entirely as "
                                   f"there are some non finite value, or `high == `low` "
                                   f"for some components.")
@@ -784,3 +929,31 @@ class BoxGymObsSpace(Box):
                 self.low[prev:where_to_put][both_finite] = 0.0
                 break
             prev = where_to_put
+
+
+if GYM_AVAILABLE:
+    from gym.spaces import Box as LegGymBox
+    from grid2op.gym_compat.base_gym_attr_converter import BaseLegacyGymAttrConverter
+    BoxLegacyGymObsSpace = type("BoxLegacyGymObsSpace",
+                                (__AuxBoxGymObsSpace, LegGymBox, ),
+                                {"_gymnasium": False,
+                                 "_BaseGymAttrConverterType": BaseLegacyGymAttrConverter,
+                                 "_BoxType": LegGymBox,
+                                 "__module__": __name__})
+    BoxLegacyGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
+    BoxGymObsSpace = BoxLegacyGymObsSpace
+    BoxGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
+        
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Box
+    from grid2op.gym_compat.base_gym_attr_converter import BaseGymnasiumAttrConverter
+    BoxGymnasiumObsSpace = type("BoxGymnasiumObsSpace",
+                                (__AuxBoxGymObsSpace, Box, ),
+                                {"_gymnasium": True,
+                                 "_BaseGymAttrConverterType": BaseGymnasiumAttrConverter,
+                                 "_BoxType": Box,
+                                 "__module__": __name__})
+    BoxGymnasiumObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__
+    BoxGymObsSpace = BoxGymnasiumObsSpace
+    BoxGymObsSpace.__doc__ = __AuxBoxGymObsSpace.__doc__

@@ -14,7 +14,7 @@ import warnings
 
 from grid2op.Environment import Environment
 from grid2op.Backend import Backend, PandaPowerBackend
-from grid2op.Opponent.OpponentSpace import OpponentSpace
+from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, ChangeNothing, FromNPY, FromChronix2grid
 from grid2op.Chronics import GridStateFromFile, GridValue
@@ -91,7 +91,7 @@ ERR_MSG_KWARGS = {
 }
 
 NAME_CHRONICS_FOLDER = "chronics"
-NAME_GRID_FILE = "grid.json"
+NAME_GRID_FILE = "grid"
 NAME_GRID_LAYOUT_FILE = "grid_layout.json"
 NAME_CONFIG_FILE = "config.py"
 
@@ -293,20 +293,6 @@ def make_from_dataset_path(
     except Exception as exc_:
         exc_chronics = exc_
 
-    # Compute and find backend/grid file
-    grid_path = _get_default_aux(
-        "grid_path",
-        kwargs,
-        defaultClassApp=str,
-        defaultinstance="",
-        msg_error=ERR_MSG_KWARGS["grid_path"],
-    )
-    if grid_path == "":
-        grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_FILE))
-    else:
-        grid_path_abs = os.path.abspath(grid_path)
-    _check_path(grid_path_abs, "Dataset power flow solver configuration")
-
     # Compute and find grid layout file
     grid_layout_path_abs = os.path.abspath(
         os.path.join(dataset_path_abs, NAME_GRID_LAYOUT_FILE)
@@ -386,6 +372,31 @@ def make_from_dataset_path(
         msg_error=ERR_MSG_KWARGS["backend"],
     )
 
+    # Compute and find backend/grid file
+    grid_path = _get_default_aux(
+        "grid_path",
+        kwargs,
+        defaultClassApp=str,
+        defaultinstance="",
+        msg_error=ERR_MSG_KWARGS["grid_path"],
+    )
+    if grid_path == "":
+        grid_path_abs = None
+        for ext in backend.supported_grid_format:
+            grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, f"{NAME_GRID_FILE}.{ext}"))
+            try:
+                _check_path(grid_path_abs, "Dataset power flow solver configuration")
+                break
+            except EnvError as exc_:
+                pass
+        if grid_path_abs is None:
+            raise EnvError(f"Impossible to find a grid file format supported by your backend. Your backend said it supports "
+                           f"the file with extension {backend.supported_grid_format}, "
+                           f"none of which are found in '{dataset_path_abs}'")
+    else:
+        grid_path_abs = os.path.abspath(grid_path)
+    _check_path(grid_path_abs, "Dataset power flow solver configuration")
+    
     # Get default observation class
     observation_class_cfg = CompleteObservation
     if (
@@ -464,7 +475,12 @@ def make_from_dataset_path(
     # Get default rules class
     rules_class_cfg = DefaultRules
     if "rules_class" in config_data and config_data["rules_class"] is not None:
+        warnings.warn("You used the deprecated rules_class in your config. Please change its "
+                      "name to 'gamerules_class' to mimic the grid2op.make kwargs.")
         rules_class_cfg = config_data["rules_class"]
+    if "gamerules_class" in config_data and config_data["gamerules_class"] is not None:
+        rules_class_cfg = config_data["gamerules_class"]
+        
     ## Create the rules of the game (mimic the operationnal constraints)
     gamerules_class = _get_default_aux(
         "gamerules_class",
@@ -472,7 +488,7 @@ def make_from_dataset_path(
         defaultClass=rules_class_cfg,
         defaultClassApp=BaseRules,
         msg_error=ERR_MSG_KWARGS["gamerules_class"],
-        isclass=True,
+        isclass=None,
     )
 
     # Get default reward class
@@ -534,9 +550,9 @@ def make_from_dataset_path(
     ## the chronics to use
     ### the arguments used to build the data, note that the arguments must be compatible with the chronics class
     default_chronics_kwargs = {
-        "chronicsClass": chronics_class_cfg,
         "path": chronics_path_abs,
-        "gridvalueClass": grid_value_class_cfg,
+        "chronicsClass": chronics_class_cfg,
+        # "gridvalueClass": grid_value_class_cfg,
     }
 
     if "data_feeding_kwargs" in config_data and config_data["data_feeding_kwargs"] is not None:
@@ -554,7 +570,8 @@ def make_from_dataset_path(
     for el in default_chronics_kwargs:
         if el not in data_feeding_kwargs:
             data_feeding_kwargs[el] = default_chronics_kwargs[el]
-
+            
+            
     ### the chronics generator
     chronics_class_used = _get_default_aux(
         "chronics_class",
@@ -571,7 +588,15 @@ def make_from_dataset_path(
             f"Impossible to find the chronics for your environment. Please make sure to provide "
             f'a folder "{NAME_CHRONICS_FOLDER}" within your environment folder.'
         )
+    
     data_feeding_kwargs["chronicsClass"] = chronics_class_used
+    if chronics_class_used.MULTI_CHRONICS:
+        # add the default "gridvalueClass" in case of multi chronics and if the
+        # parameters is not given in the "make" function but present in the config file
+        if "gridvalueClass" not in data_feeding_kwargs:
+            data_feeding_kwargs["gridvalueClass"] = grid_value_class_cfg
+    
+    # now build the chronics handler
     data_feeding = _get_default_aux(
         "data_feeding",
         kwargs,
@@ -582,6 +607,9 @@ def make_from_dataset_path(
     )
 
     ### other rewards
+    other_rewards_cfg = {}
+    if "other_rewards" in config_data and config_data["other_rewards"] is not None:
+        other_rewards_cfg = config_data["other_rewards"]
     other_rewards = _get_default_aux(
         "other_rewards",
         kwargs,
@@ -590,6 +618,9 @@ def make_from_dataset_path(
         msg_error=ERR_MSG_KWARGS["other_rewards"],
         isclass=False,
     )
+    for k in other_rewards_cfg:
+        if k not in other_rewards:
+            other_rewards[k] = other_rewards_cfg[k]
 
     # Opponent
     opponent_space_type_cfg = OpponentSpace

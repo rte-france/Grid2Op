@@ -8,19 +8,20 @@
 
 import tempfile
 import warnings
+import unittest
+
 import grid2op
-from grid2op.Opponent.OpponentSpace import OpponentSpace
+from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.tests.helper_path_test import *
 from grid2op.Chronics import ChangeNothing
 from grid2op.Opponent import (
     BaseOpponent,
     RandomLineOpponent,
     WeightedRandomOpponent,
-    GeometricOpponent,
+    GeometricOpponent
 )
 from grid2op.Action import TopologyAction
-from grid2op.MakeEnv import make
-from grid2op.Opponent.BaseActionBudget import BaseActionBudget
+from grid2op.Opponent.baseActionBudget import BaseActionBudget
 from grid2op.dtypes import dt_int
 from grid2op.Parameters import Parameters
 from grid2op.Runner import Runner
@@ -86,14 +87,15 @@ class TestLoadingOpp(unittest.TestCase):
     def test_creation_BaseOpponent(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 my_opp = BaseOpponent(action_space=env.action_space)
 
     def test_env_modif_oppo(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
-                "rte_case5_example", test=True, opponent_class=TestSuiteOpponent_001
+            with grid2op.make(
+                "rte_case5_example", test=True, opponent_class=TestSuiteOpponent_001,
+                _add_to_name=type(self).__name__
             ) as env:
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
@@ -102,10 +104,11 @@ class TestLoadingOpp(unittest.TestCase):
     def test_env_modif_oppobudg(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "rte_case5_example",
                 test=True,
                 opponent_budget_class=TestSuiteBudget_001,
+                _add_to_name=type(self).__name__,
             ) as env:
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
@@ -115,8 +118,9 @@ class TestLoadingOpp(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budg = 100.0
-            with make(
-                "rte_case5_example", test=True, opponent_init_budget=init_budg
+            with grid2op.make(
+                "rte_case5_example", test=True, opponent_init_budget=init_budg,
+                _add_to_name=type(self).__name__
             ) as env:
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
@@ -126,8 +130,9 @@ class TestLoadingOpp(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budg = 100.0
-            with make(
-                "rte_case5_example", test=True, opponent_budget_per_ts=init_budg
+            with grid2op.make(
+                "rte_case5_example", test=True, opponent_budget_per_ts=init_budg,
+                _add_to_name=type(self).__name__
             ) as env:
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
@@ -136,8 +141,9 @@ class TestLoadingOpp(unittest.TestCase):
     def test_env_modif_opponent_action_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
-                "rte_case5_example", test=True, opponent_action_class=TopologyAction
+            with grid2op.make(
+                "rte_case5_example", test=True, opponent_action_class=TopologyAction,
+                _add_to_name=type(self).__name__
             ) as env:
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
@@ -148,7 +154,7 @@ class TestLoadingOpp(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budg = 100.0
-            with make(
+            with grid2op.make(
                 "rte_case5_example",
                 test=True,
                 opponent_init_budget=init_budg,
@@ -157,6 +163,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_attack_duration=ATTACK_DURATION,
                 opponent_attack_cooldown=ATTACK_COOLDOWN,
                 opponent_class=TestSuiteOpponent_001,
+                _add_to_name=type(self).__name__,
             ) as env:
                 obs = env.reset()
                 # opponent should not attack at the first time step
@@ -175,7 +182,7 @@ class TestLoadingOpp(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budg_ts = 0.5
-            with make(
+            with grid2op.make(
                 "rte_case5_example",
                 test=True,
                 opponent_budget_per_ts=init_budg_ts,
@@ -184,6 +191,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_budget_class=TestSuiteBudget_001,
                 opponent_attack_cooldown=ATTACK_COOLDOWN,
                 opponent_class=TestSuiteOpponent_001,
+                _add_to_name=type(self).__name__,
             ) as env:
                 obs = env.reset()
                 assert env._opponent_init_budget == 0.0
@@ -206,7 +214,7 @@ class TestLoadingOpp(unittest.TestCase):
             init_budget = 50
             param = Parameters()
             param.NO_OVERFLOW_DISCONNECTION = True  # otherwise there's a game over
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 param=param,
@@ -218,6 +226,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_attack_duration=ATTACK_DURATION,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -244,7 +253,7 @@ class TestLoadingOpp(unittest.TestCase):
             init_budget = 1000
             tries = 30
             attackable_lines_case14 = LINES_ATTACKED
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -255,6 +264,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_attack_cooldown=ATTACK_COOLDOWN,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -275,7 +285,7 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 1000
             tries = 30
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -286,6 +296,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_attack_cooldown=ATTACK_COOLDOWN,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -316,7 +327,7 @@ class TestLoadingOpp(unittest.TestCase):
             line_opponent_attack = 4
             line_opponent_attack = 15
             lines_attacked = ["3_6_15"]
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 param=param,
@@ -328,6 +339,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_attack_cooldown=attack_cooldown,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": lines_attacked},
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -386,7 +398,7 @@ class TestLoadingOpp(unittest.TestCase):
 
             # 1. attack is at the same time than the maintenance
             lines_attacked = ["8_13_11"]
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                 test=True,
                 param=param,
@@ -398,6 +410,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_attack_cooldown=attack_cooldown,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": lines_attacked},
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -423,7 +436,7 @@ class TestLoadingOpp(unittest.TestCase):
             attack_duration = 5
             lines_attacked = ["9_10_12"]
             line_id = 12
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                 test=True,
                 param=param,
@@ -435,6 +448,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_attack_cooldown=attack_cooldown,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": lines_attacked},
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -543,7 +557,7 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 10000
             length = 300
-            env = make(
+            env = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -554,6 +568,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_attack_duration=ATTACK_DURATION,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__,
             )
             env.seed(0)
             # Collect some attacks
@@ -614,7 +629,7 @@ class TestLoadingOpp(unittest.TestCase):
             ]
             attack_order = []
             has_disconnected_all = False
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -625,6 +640,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_budget_class=BaseActionBudget,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -663,7 +679,7 @@ class TestLoadingOpp(unittest.TestCase):
             opponent_attack_duration = 15
             opponent_attack_cooldown = 20
             line_id = 4
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -674,6 +690,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_budget_class=BaseActionBudget,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 reco_line = env.action_space({"set_line_status": [(line_id, 1)]})
@@ -720,19 +737,21 @@ class TestLoadingOpp(unittest.TestCase):
     def test_opponent_load(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "rte_case5_example",
                 test=True,
                 opponent_action_class=TopologyAction,
                 opponent_class=RandomLineOpponent,
+                _add_to_name=type(self).__name__,
             ) as env_1:
                 env_1.seed(0)
                 obs, reward, done, info = env_1.step(env_1.action_space())
-            with make(
+            with grid2op.make(
                 "rte_case118_example",
                 test=True,
                 opponent_action_class=TopologyAction,
                 opponent_class=RandomLineOpponent,
+                _add_to_name=type(self).__name__,
             ) as env_2:
                 env_2.seed(0)
                 obs, reward, done, info = env_2.step(env_2.action_space())
@@ -746,7 +765,7 @@ class TestLoadingOpp(unittest.TestCase):
             line_id = 4
             opponent_action_class = TopologyAction
 
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -757,6 +776,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_budget_class=BaseActionBudget,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 assert env._opponent_action_class == opponent_action_class
@@ -780,7 +800,7 @@ class TestLoadingOpp(unittest.TestCase):
             opponent_attack_cooldown = 20
             line_id = 4
 
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -791,6 +811,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_budget_class=BaseActionBudget,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__,
             ) as env:
 
                 env.seed(0)
@@ -849,7 +870,7 @@ class TestLoadingOpp(unittest.TestCase):
 
             p = Parameters()
             p.NO_OVERFLOW_DISCONNECTION = True
-            env = make(
+            env = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 param=p,
@@ -861,6 +882,7 @@ class TestLoadingOpp(unittest.TestCase):
                 opponent_budget_class=BaseActionBudget,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__,
             )
             env.seed(0)
             runner = Runner(**env.get_params_for_runner())
@@ -894,7 +916,7 @@ class TestLoadingOpp(unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_opponent", test=True, param=param)
+            env = grid2op.make("rte_case14_opponent", test=True, param=param, _add_to_name=type(self).__name__)
         env.seed(0)  # make sure i have reproducible experiments
         obs = env.reset()
         assert env._oppSpace.budget == 0
@@ -911,7 +933,7 @@ class TestLoadingOpp(unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make("rte_case14_opponent", test=True, param=param)
+            env = grid2op.make("rte_case14_opponent", test=True, param=param, _add_to_name=type(self).__name__)
         env.seed(0)  # make sure i have reproducible experiments
         multi_env = SingleEnvMultiProcess(env=env, nb_env=2)
         obs = multi_env.reset()
@@ -927,7 +949,7 @@ class TestLoadingOpp(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 50
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_attack_cooldown=1,  # only for testing
@@ -942,6 +964,7 @@ class TestLoadingOpp(unittest.TestCase):
                     "rho_normalization": RHO_NORMALIZATION,
                     "attack_period": 1,
                 },
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -968,7 +991,7 @@ class TestLoadingOpp(unittest.TestCase):
             init_budget = 1000
             tries = 30
             attackable_lines_case14 = LINES_ATTACKED
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -983,6 +1006,7 @@ class TestLoadingOpp(unittest.TestCase):
                     "rho_normalization": RHO_NORMALIZATION,
                     "attack_period": 1,
                 },
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -1003,7 +1027,7 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 1000
             tries = 30
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1018,6 +1042,7 @@ class TestLoadingOpp(unittest.TestCase):
                     "rho_normalization": RHO_NORMALIZATION,
                     "attack_period": 1,
                 },
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -1049,7 +1074,7 @@ class TestLoadingOpp(unittest.TestCase):
             line_opponent_attack = 15
             lines_attacked = ["3_6_15"]
             rho_normalization = [1]
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 param=param,
@@ -1065,6 +1090,7 @@ class TestLoadingOpp(unittest.TestCase):
                     "rho_normalization": rho_normalization,
                     "attack_period": 1,
                 },
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -1124,7 +1150,7 @@ class TestLoadingOpp(unittest.TestCase):
             # 1. attack is at the same time than the maintenance
             lines_attacked = ["8_13_11"]
             rho_normalization = [1]
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                 test=True,
                 param=param,
@@ -1140,6 +1166,7 @@ class TestLoadingOpp(unittest.TestCase):
                     "rho_normalization": rho_normalization,
                     "attack_period": 1,
                 },
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -1166,7 +1193,7 @@ class TestLoadingOpp(unittest.TestCase):
             lines_attacked = ["9_10_12"]
             rho_normalization = [1]
             line_id = 12
-            with make(
+            with grid2op.make(
                 os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                 test=True,
                 param=param,
@@ -1182,6 +1209,7 @@ class TestLoadingOpp(unittest.TestCase):
                     "rho_normalization": rho_normalization,
                     "attack_period": 1,
                 },
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -1289,7 +1317,7 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 10000
             length = 300
-            env = make(
+            env = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1304,6 +1332,7 @@ class TestLoadingOpp(unittest.TestCase):
                     "rho_normalization": RHO_NORMALIZATION,
                     "attack_period": 1,
                 },
+                _add_to_name=type(self).__name__
             )
             env.seed(0)
             # Collect some attacks
@@ -1371,7 +1400,7 @@ class TestLoadingOpp(unittest.TestCase):
 
             attack_order = []
             has_disconnected_all = False
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1386,6 +1415,7 @@ class TestLoadingOpp(unittest.TestCase):
                     "rho_normalization": RHO_NORMALIZATION,
                     "attack_period": 1,
                 },
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -1421,7 +1451,7 @@ class TestLoadingOpp(unittest.TestCase):
             init_budget = 1000
             length = 100
             attack_cooldown = 15
-            with make(
+            with grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1436,6 +1466,7 @@ class TestLoadingOpp(unittest.TestCase):
                     "rho_normalization": RHO_NORMALIZATION,
                     "attack_period": attack_cooldown,
                 },
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -1459,7 +1490,7 @@ class TestGeometricOpponent(unittest.TestCase):
     def test_can_create(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 my_opp = GeometricOpponent(action_space=env.action_space)
 
     def test_can_init(self):
@@ -1467,7 +1498,7 @@ class TestGeometricOpponent(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "l2rpn_case14_sandbox",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1478,6 +1509,7 @@ class TestGeometricOpponent(unittest.TestCase):
                 opponent_budget_class=BaseActionBudget,
                 opponent_class=GeometricOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -1487,7 +1519,7 @@ class TestGeometricOpponent(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "l2rpn_case14_sandbox",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1498,6 +1530,7 @@ class TestGeometricOpponent(unittest.TestCase):
                 opponent_budget_class=BaseActionBudget,
                 opponent_class=GeometricOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -1566,7 +1599,7 @@ class TestGeometricOpponent(unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "l2rpn_case14_sandbox",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1578,6 +1611,7 @@ class TestGeometricOpponent(unittest.TestCase):
                 opponent_class=GeometricOpponent,
                 param=param,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -1645,7 +1679,7 @@ class TestGeometricOpponent(unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "l2rpn_case14_sandbox",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1662,6 +1696,7 @@ class TestGeometricOpponent(unittest.TestCase):
                     "average_attack_duration_hour": 5,
                     "minimum_attack_duration_hour": 4,
                 },
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -1672,7 +1707,7 @@ class TestGeometricOpponent(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "l2rpn_case14_sandbox",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1689,6 +1724,7 @@ class TestGeometricOpponent(unittest.TestCase):
                     "average_attack_duration_hour": 5,
                     "minimum_attack_duration_hour": 1,
                 },
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -1699,7 +1735,7 @@ class TestGeometricOpponent(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "l2rpn_case14_sandbox",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1716,6 +1752,7 @@ class TestGeometricOpponent(unittest.TestCase):
                     "average_attack_duration_hour": 31,
                     "minimum_attack_duration_hour": 30,
                 },
+                _add_to_name=type(self).__name__
             ) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -1727,8 +1764,9 @@ class TestGeometricOpponent(unittest.TestCase):
     def test_average_attack_duration(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
-                "rte_case5_example", test=True, chronics_class=ChangeNothing
+            with grid2op.make(
+                "rte_case5_example", test=True, chronics_class=ChangeNothing,
+                _add_to_name=type(self).__name__
             ) as env:
                 my_opp = GeometricOpponent(action_space=env.action_space)
                 with self.assertRaises(OpponentError):
@@ -1759,8 +1797,9 @@ class TestGeometricOpponent(unittest.TestCase):
     def test_attack_every_xxx_hour(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
-                "rte_case5_example", test=True, chronics_class=ChangeNothing
+            with grid2op.make(
+                "rte_case5_example", test=True, chronics_class=ChangeNothing,
+                _add_to_name=type(self).__name__
             ) as env:
                 my_opp = GeometricOpponent(action_space=env.action_space)
                 n_ = 3_000_000
@@ -1791,7 +1830,7 @@ class TestGeometricOpponent(unittest.TestCase):
     def test_cannot_init_with_wrong_param(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env:
+            with grid2op.make("rte_case5_example", test=True, _add_to_name=type(self).__name__) as env:
                 my_opp = GeometricOpponent(action_space=env.action_space)
 
             with self.assertRaises(OpponentError):
@@ -1824,7 +1863,7 @@ class TestGeometricOpponent(unittest.TestCase):
         first_attack_ts = 64
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "l2rpn_case14_sandbox",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1836,6 +1875,7 @@ class TestGeometricOpponent(unittest.TestCase):
                 opponent_class=GeometricOpponent,
                 param=param,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__,
             ) as env:
                 reco_line = env.action_space({"set_line_status": [(line_id, 1)]})
                 env.seed(0)
@@ -1894,7 +1934,7 @@ class TestGeometricOpponent(unittest.TestCase):
         param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make(
+            with grid2op.make(
                 "l2rpn_case14_sandbox",
                 test=True,
                 opponent_init_budget=init_budget,
@@ -1906,6 +1946,7 @@ class TestGeometricOpponent(unittest.TestCase):
                 opponent_class=GeometricOpponent,
                 param=param,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__,
             ) as env:
                 env.seed(0)
                 _ = env.reset()
@@ -1923,7 +1964,7 @@ class TestGeometricOpponent(unittest.TestCase):
                 obs, reward, done, info = env.step(dn)
                 assert info["opponent_attack_line"] is not None
 
-    
+
 class TestChangeOppSpace(unittest.TestCase):
     """test i can change the opponent_space_type when creating an environment"""    
     def test_change_opp_space_type(self):
@@ -1932,11 +1973,11 @@ class TestChangeOppSpace(unittest.TestCase):
                 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("l2rpn_icaps_2021", test=True)
+            env = grid2op.make("l2rpn_icaps_2021", test=True, _add_to_name=type(self).__name__)
             assert isinstance(env._oppSpace, OpponentSpace) 
             
             # check i can change it from "make"
-            env = grid2op.make("l2rpn_icaps_2021", opponent_space_type=OpponentSpaceCust, test=True)
+            env = grid2op.make("l2rpn_icaps_2021", opponent_space_type=OpponentSpaceCust, test=True, _add_to_name=type(self).__name__)
             assert isinstance(env._oppSpace, OpponentSpaceCust) 
             # check it's properly propagated when copied
             env_cpy = env.copy()

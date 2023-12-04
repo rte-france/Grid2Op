@@ -109,6 +109,7 @@ class FromNPY(GridValue):
     ----------
     TODO
     """
+    MULTI_CHRONICS = False
 
     def __init__(
         self,
@@ -453,8 +454,8 @@ class FromNPY(GridValue):
             or self.current_index >= self._load_p.shape[0]
         ):
             res = True
-        elif self.max_iter > 0:
-            if self.curr_iter > self.max_iter:
+        elif self._max_iter > 0:
+            if self.curr_iter > self._max_iter:
                 res = True
         return res
 
@@ -607,8 +608,8 @@ class FromNPY(GridValue):
         )
 
     def max_timestep(self):
-        if self.max_iter >= 0:
-            return min(self.max_iter, self._load_p.shape[0], self._i_end)
+        if self._max_iter >= 0:
+            return min(self._max_iter, self._load_p.shape[0], self._i_end)
         return min(self._load_p.shape[0], self._i_end)
 
     def change_i_start(self, new_i_start: Union[int, None]):

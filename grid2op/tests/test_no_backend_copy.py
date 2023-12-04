@@ -11,10 +11,10 @@ import unittest
 import warnings
 
 from grid2op.Backend import PandaPowerBackend
-from grid2op.Exceptions import NoForecastAvailable
-from grid2op.Exceptions.EnvExceptions import EnvError
-from grid2op.Exceptions.ObservationExceptions import BaseObservationError
-from grid2op.Exceptions.simulatorExceptions import SimulatorError
+from grid2op.Exceptions import (NoForecastAvailable,
+                                EnvError,
+                                BaseObservationError,
+                                SimulatorError)
 from grid2op.simulator import Simulator
 
 
@@ -41,7 +41,7 @@ class NoCopyTester(unittest.TestCase):
         env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make(env_name, test=True, backend=PPNoCpy())
+            self.env = grid2op.make(env_name, test=True, backend=PPNoCpy(), _add_to_name=type(self).__name__)
             
     def tearDown(self) -> None:
         self.env.close()
@@ -83,7 +83,7 @@ class NoCopy2Tester(NoCopyTester):
         env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make(env_name, test=True, backend=PPNoCpyInCtor())
+            self.env = grid2op.make(env_name, test=True, backend=PPNoCpyInCtor(), _add_to_name=type(self).__name__)
             
             
 if __name__ == "__main__":

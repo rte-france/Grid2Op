@@ -27,7 +27,7 @@ class TestAlarmFeature(unittest.TestCase):
 
     def setUp(self) -> None:
         self.env_nm = os.path.join(
-            PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alert"
+            PATH_DATA_TEST, "l2rpn_neurips_2020_track1_with_alarm"
         )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

@@ -9,9 +9,10 @@
 import tempfile
 import warnings
 import pdb
+import unittest
 
 import grid2op
-from grid2op.Agent import OneChangeThenNothing, RandomAgent
+from grid2op.Agent import OneChangeThenNothing
 from grid2op.tests.helper_path_test import *
 from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
@@ -22,8 +23,7 @@ from grid2op.dtypes import dt_float
 from grid2op.Agent import BaseAgent
 from grid2op.Action import TopologyAction
 from grid2op.Parameters import Parameters
-from grid2op.MakeEnv import make
-from grid2op.Opponent.BaseActionBudget import BaseActionBudget
+from grid2op.Opponent.baseActionBudget import BaseActionBudget
 from grid2op.Opponent import RandomLineOpponent
 
 
@@ -123,7 +123,7 @@ class TestEpisodeData(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with grid2op.make("rte_case14_test", test=True) as env:
+            with grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__) as env:
                 my_agent = TestSuitAgent(env.action_space)
                 runner = Runner(
                     **env.get_params_for_runner(),
@@ -146,7 +146,7 @@ class TestEpisodeData(unittest.TestCase):
             episode_name,
             cum_reward,
             timestep,
-            episode_data_cached,
+            max_ts
         ) = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
@@ -176,7 +176,7 @@ class TestEpisodeData(unittest.TestCase):
             name_env="test_episodedata_env",
             agentClass=OneChange,
         )
-        _, cum_reward, timestep, episode_data = runner.run_one_episode(
+        _, cum_reward, timestep, max_ts, episode_data = runner.run_one_episode(
             max_iter=self.max_iter, detailed_output=True
         )
         # Check that the type of first action is set bus
@@ -189,7 +189,7 @@ class TestEpisodeData(unittest.TestCase):
             episode_name,
             cum_reward,
             timestep,
-            episode_data_cached,
+            max_ts
         ) = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
         len(episode_data)
@@ -237,7 +237,7 @@ class TestEpisodeData(unittest.TestCase):
         p.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(
+            env = grid2op.make(
                 "rte_case14_realistic",
                 test=True,
                 param=p,
@@ -249,6 +249,7 @@ class TestEpisodeData(unittest.TestCase):
                 opponent_budget_class=BaseActionBudget,
                 opponent_class=RandomLineOpponent,
                 kwargs_opponent={"lines_attacked": LINES_ATTACKED},
+                _add_to_name=type(self).__name__,
             )
         env.seed(0)
         runner = Runner(**env.get_params_for_runner())

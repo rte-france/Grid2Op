@@ -23,6 +23,8 @@ purpose is to be as clear and minimal as possible.
 import os
 import numpy as np
 import grid2op
+from typing import Optional, Tuple, Union
+
 from grid2op.Backend import Backend   # required
 
 # to serve as an example
@@ -30,7 +32,9 @@ import pandapower as pp
 
 
 class CustomBackend_Step1(Backend):
-    def load_grid(self, path, filename=None):
+    def load_grid(self,
+                  path : Union[os.PathLike, str],
+                  filename : Optional[Union[os.PathLike, str]]=None) -> None:
         # first load the grid from the file
         full_path = path
         if filename is not None:
@@ -92,25 +96,25 @@ class CustomBackend_Step1(Backend):
             
         self._compute_pos_big_topo()
 
-    def apply_action(self, action):
+    def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
         raise NotImplementedError("Will be detailed in another example script")
     
-    def runpf(self, is_dc=False):
+    def runpf(self, is_dc : bool=False) -> Tuple[bool, Union[Exception, None]]:
         raise NotImplementedError("Will be detailed in another example script")
     
-    def get_topo_vect(self):
+    def get_topo_vect(self) -> np.ndarray:
         raise NotImplementedError("Will be detailed in another example script")
     
-    def generators_info(self):
+    def generators_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         raise NotImplementedError("Will be detailed in another example script")
     
-    def loads_info(self):
+    def loads_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         raise NotImplementedError("Will be detailed in another example script")
     
-    def lines_or_info(self):
+    def lines_or_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         raise NotImplementedError("Will be detailed in another example script")
     
-    def lines_ex_info(self):
+    def lines_ex_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         raise NotImplementedError("Will be detailed in another example script")
 
 

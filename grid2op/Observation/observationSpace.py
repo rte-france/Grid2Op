@@ -10,7 +10,7 @@ import sys
 import copy
 import logging
 import os
-from grid2op.Exceptions.EnvExceptions import EnvError
+from grid2op.Exceptions.envExceptions import EnvError
 
 from grid2op.Observation.serializableObservationSpace import (
     SerializableObservationSpace,
@@ -40,18 +40,18 @@ class ObservationSpace(SerializableObservationSpace):
     _simulate_parameters: :class:`grid2op.Parameters.Parameters`
         Type of Parameters used to compute powerflow for the forecast.
 
-    rewardClass: ``type``
+    rewardClass: Union[type, BaseReward]
         Class used by the :class:`grid2op.Environment.Environment` to send information about its state to the
-        :class:`grid2op.BaseAgent.BaseAgent`. You can change this class to differentiate between the reward of output of
+        :class:`grid2op.Agent.BaseAgent`. You can change this class to differentiate between the reward of output of
         :func:`BaseObservation.simulate`  and the reward used to train the BaseAgent.
 
     action_helper_env: :class:`grid2op.Action.ActionSpace`
         BaseAction space used to create action during the :func:`BaseObservation.simulate`
 
-    reward_helper: :class:`grid2op.Reward.HelperReward`
+    reward_helper: :class:`grid2op.Reward.RewardHelper`
         BaseReward function used by the the :func:`BaseObservation.simulate` function.
 
-    obs_env: :class:`_ObsEnv`
+    obs_env: :class:`grid2op.Environment._Obsenv._ObsEnv`
         Instance of the environment used by the BaseObservation Helper to provide forcecast of the grid state.
 
     _empty_obs: :class:`BaseObservation`
@@ -78,11 +78,11 @@ class ObservationSpace(SerializableObservationSpace):
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
+        Env: requires :attr:`grid2op.Environment.BaseEnv.parameters` and :attr:`grid2op.Environment.BaseEnv.backend` to be valid
         """
 
         # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
-        from grid2op.Environment._ObsEnv import _ObsEnv
+        from grid2op.Environment._obsEnv import _ObsEnv
 
         if actionClass is None:
             from grid2op.Action import CompleteAction
@@ -110,7 +110,6 @@ class ObservationSpace(SerializableObservationSpace):
         # helpers
         self.action_helper_env = env._helper_action_env
         self.reward_helper = RewardHelper(reward_func=self._reward_func, logger=self.logger)
-        self.reward_helper.initialize(env)
 
         self.__can_never_use_simulate = False
         # TODO here: have another backend class maybe
@@ -122,7 +121,10 @@ class ObservationSpace(SerializableObservationSpace):
         self._ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
         setattr(sys.modules[_ObsEnv.__module__], self._ObsEnv_class.__name__, self._ObsEnv_class)
         if _with_obs_env:
-            self._create_obs_env(env)
+            self._create_obs_env(env, observationClass)
+            self.reward_helper.initialize(self.obs_env)
+            for k, v in self.obs_env.other_rewards.items():
+                v.reset(self.obs_env)
         else:
             self.with_forecast = False
             self.obs_env = None
@@ -133,6 +135,7 @@ class ObservationSpace(SerializableObservationSpace):
         self._update_env_time = 0.0
         self.__nb_simulate_called_this_step = 0
         self.__nb_simulate_called_this_episode = 0
+        self._highres_sim_counter = env.highres_sim_counter
 
         # extra argument to build the observation
         if kwargs_observation is None:
@@ -146,9 +149,9 @@ class ObservationSpace(SerializableObservationSpace):
     def set_real_env_kwargs(self, env):
         if not self.with_forecast:
             return 
-        
         # I don't need the backend nor the chronics_handler
-        self._real_env_kwargs = env.get_kwargs(False, False)
+        from grid2op.Environment import Environment
+        self._real_env_kwargs = Environment.get_kwargs(env, False, False)
         
         # remove the parameters anyways (the 'forecast parameters will be used
         # when building the forecasted_env)
@@ -171,7 +174,7 @@ class ObservationSpace(SerializableObservationSpace):
         if "observation_bk_kwargs" in self._real_env_kwargs:
             del self._real_env_kwargs["observation_bk_kwargs"]
         
-    def _create_obs_env(self, env):
+    def _create_obs_env(self, env, observationClass):
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
         self.obs_env = self._ObsEnv_class(
             init_env_path=None,  # don't leak the path of the real grid to the observation space
@@ -194,6 +197,7 @@ class ObservationSpace(SerializableObservationSpace):
             max_episode_duration=env.max_episode_duration(),
             delta_time_seconds=env.delta_time_seconds,
             logger=self.logger,
+            highres_sim_counter=env.highres_sim_counter,
             _complete_action_cls=env._complete_action_cls,
             _ptr_orig_obs_space=self,
         )
@@ -203,7 +207,8 @@ class ObservationSpace(SerializableObservationSpace):
     def _aux_create_backend(self, env, observation_bk_class, observation_bk_kwargs, path_grid_for):
         if observation_bk_kwargs is None:
             observation_bk_kwargs = env.backend._my_kwargs
-        self._backend_obs = observation_bk_class(**observation_bk_kwargs)   
+        observation_bk_class_used = observation_bk_class.init_grid(type(env.backend))
+        self._backend_obs = observation_bk_class_used(**observation_bk_kwargs)   
         self._backend_obs.set_env_name(env.name)
         self._backend_obs.load_grid(path_grid_for)
         self._backend_obs.assert_grid_correct()
@@ -301,6 +306,10 @@ class ObservationSpace(SerializableObservationSpace):
     @property
     def nb_simulate_called_this_step(self):
         return self.__nb_simulate_called_this_step
+
+    @property
+    def total_simulate_simulator_calls(self):
+        return self._highres_sim_counter.total_simulate_simulator_calls
 
     def can_use_simulate(self) -> bool:
         """
@@ -438,9 +447,9 @@ class ObservationSpace(SerializableObservationSpace):
         self.__nb_simulate_called_this_step = 0
         self.__nb_simulate_called_this_episode = 0
         if self.with_forecast:
-            self.obs_env._reward_helper.reset(real_env)
+            self.obs_env._reward_helper.reset(self.obs_env)
             for k, v in self.obs_env.other_rewards.items():
-                v.reset(real_env)
+                v.reset(self.obs_env)
             self.obs_env.reset()
         self._env_param = copy.deepcopy(real_env.parameters)
 
@@ -466,6 +475,11 @@ class ObservationSpace(SerializableObservationSpace):
         new_obj.__nb_simulate_called_this_step = self.__nb_simulate_called_this_step
         new_obj.__nb_simulate_called_this_episode = (
             self.__nb_simulate_called_this_episode
+        )
+        
+        # never copied (keep track of it)
+        new_obj._highres_sim_counter = (
+            self._highres_sim_counter
         )
         new_obj._env_param = copy.deepcopy(self._env_param)
 

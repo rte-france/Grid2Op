@@ -12,18 +12,17 @@ import re
 import numpy as np
 
 
-from grid2op import make
-from grid2op.Action import ActionSpace
-from grid2op.Action.BaseAction import BaseAction
-from grid2op.Action.PlayableAction import PlayableAction
-from grid2op.Exceptions.IllegalActionExceptions import IllegalAction
-from grid2op.Exceptions.ObservationExceptions import SimulateError
-from grid2op.Observation.completeObservation import CompleteObservation
+import grid2op
+from grid2op.Action import ActionSpace, BaseAction, PlayableAction
+from grid2op.Exceptions import IllegalAction, SimulateError
+from grid2op.Observation import CompleteObservation
 try:
-    from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
-    from grid2op.multi_agent.subgridAction import SubGridAction
-    from grid2op.multi_agent.ma_exceptions import DomainException
-    from grid2op.multi_agent.subgridObservation import SubGridObservation
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
+        from grid2op.multi_agent.subgridAction import SubGridAction
+        from grid2op.multi_agent.ma_exceptions import DomainException
+        from grid2op.multi_agent.subgridObservation import SubGridObservation
 except ImportError as exc_:
     print(f"Impossible to load with error {exc_}")
     raise
@@ -38,7 +37,8 @@ def _aux_sample_withtout_interco(act_sp: ActionSpace):
     return res
     
 
-def _aux_sample_without_interco_from_global(global_act_sp: ActionSpace, local_act_spaces):
+def _aux_sample_without_interco_from_global(global_act_sp: ActionSpace,
+                                            local_act_spaces):
     res: BaseAction = global_act_sp.sample()
     if res._modif_set_status:
         # if the action sample the interconnection, i resample it
@@ -55,15 +55,17 @@ class MATesterGlobalObs(unittest.TestCase):
     def setUp(self) -> None:
         
         self.action_domains = {
-            'agent_0' : [0,1,2,3, 4],
-            'agent_1' : [5,6,7,8,9,10,11,12,13]
+            'agent_0' : [0, 1, 2, 3, 4],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
         }
         
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             
-            self.env = make("educ_case14_storage", test=True,
-                            action_class=PlayableAction, _add_to_name="test_ma")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name=type(self).__name__)
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains)
@@ -1126,8 +1128,10 @@ class TestAction(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             
-            self.env = make("educ_case14_storage", test=True,
-                            action_class=PlayableAction, _add_to_name="test_ma")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name=type(self).__name__)
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains)
@@ -1408,7 +1412,7 @@ class TestAction(unittest.TestCase):
                 # a change_bus, and "decided" not to change anything
                 # this flag is "lost in the conversion"
                 global_act._modif_change_bus = False
-                
+                # global_act._modif_set_bus = False
             # when I combine these actions, it should be true
             assert global_act_2 == global_act, f"error for iteration {i} with ref:\n{global_act}\nand rebuilt:\n{global_act_2}"
             
@@ -1424,7 +1428,9 @@ class TestAction(unittest.TestCase):
             local_act_2 = {agent_nm: self.ma_env.action_spaces[agent_nm].from_global(global_act) 
                            for agent_nm in self.ma_env.agents}
 
-            if i == 78 :
+            # if i == 0:
+                # local_act["agent_0"]._modif_alert = False
+            if i == 78:
                 # this action does nothing, but unfortunately it's because it sampled a subtation
                 # a change_bus, and "decided" not to change anything
                 # this flag is "lost in the conversion"
@@ -1457,10 +1463,10 @@ class TestLocalObservation(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             
-            self.env = make("educ_case14_storage",
-                            test=True,
-                            action_class=PlayableAction,
-                            _add_to_name="TestObservation")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name=type(self).__name__)
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains, self.observation_domains)
@@ -1511,10 +1517,10 @@ class TestGlobalObservation(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             
-            self.env = make("educ_case14_storage",
-                            test=True,
-                            action_class=PlayableAction,
-                            _add_to_name="TestObservation")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name=type(self).__name__)
 
         
             self.ma_env = MultiAgentEnv(self.env, self.action_domains)

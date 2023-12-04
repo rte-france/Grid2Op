@@ -10,9 +10,9 @@ import copy
 from typing import Optional, Tuple
 import warnings
 import numpy as np
-from grid2op.Environment.Environment import Environment
+from grid2op.Environment import Environment
 
-from grid2op.Exceptions.EnvExceptions import EnvError
+from grid2op.Exceptions import EnvError
 from grid2op.Parameters import Parameters
 from grid2op.Space.RandomObject import RandomObject
 from grid2op.dtypes import dt_bool, dt_int

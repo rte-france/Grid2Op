@@ -67,7 +67,7 @@ var/
 *.egg
 
 # VirtualEnv
-venv_grid2op/
+*venv_grid2op/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -309,6 +309,8 @@ test_issue196.py
 test_increasingreward.py
 PlayWithRedispCurtail.ipynb
 test_jorge/
+grid2op/data_test/l2rpn_neurips_2020_track1_with_alarm.zip
+# For backward compatibility
 grid2op/data_test/l2rpn_neurips_2020_track1_with_alert.zip
 issue_208_res/
 test_issue_208.py
@@ -320,6 +322,8 @@ res_alert/
 env_debug_time_last_alarm_inconsistency.zip
 env_debug_time_last_alarm_inconsistency/
 OpponentCalibration.ipynb
+grid2op/data_test/l2rpn_neurips_2020_track1_with_alarm/_statistics_do_nothing/
+# For backward compatibility
 grid2op/data_test/l2rpn_neurips_2020_track1_with_alert/_statistics_do_nothing/
 save/
 shorten_env.py
@@ -367,6 +371,37 @@ examples/multi_agents/ma_ppo_test/
 test_render.py
 requirements_issue_389.txt
 test_multi_step_for.py
+test_vecenv.7z
+test_vecenv.py
+test_timeout_env.py
+test_pp_networks.py
+test_timeout_env.py
+test_timeout_env.py
+test_pp_networks.py
+test_timeout_env.py
+test_pp_dc.py
+et_trace()
+bug_malte.py
+grid2op/tests/tmp_test_1
+test_malte.7z
+test_malte.py
+example_gym_act.py
+test_to_fix.txt
+doc_raise_alert.py
+_profiling/profile.html
+_profiling/profile.json
+actspace_converter.py
+grid2op/data_test/input_data_local/
+test_sim2real_battery.py
+grid2op/tests/list_test_debug
+aux_test_make_backend_test_suite.py
+grid2op/tests/test_failing_simulator.txt
+old_pyproject.toml
+pp_bug_gen_alone.py
+test_dunder.py
+examples/multi_agents/ma_ppo_test_2ndsetting/
+grid2op/tests/test_fail_ci.txt
+saved_multiepisode_agent_36bus_DN_4/
 
 # profiling files
 **.prof

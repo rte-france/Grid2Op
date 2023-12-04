@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import sys
 import setuptools
 from setuptools import setup
 import unittest
@@ -29,7 +30,8 @@ pkgs = {
         "tqdm>=4.45.0",
         "networkx>=2.4",
         "requests>=2.23.0",
-        "packaging"  # because gym changes the way it uses numpy prng in version 0.26 and i need both gym before and after...
+        "packaging",  # because gym changes the way it uses numpy prng in version 0.26 and i need both gym before and after...
+        "typing_extensions"
     ],
     "extras": {
         "optional": [
@@ -43,16 +45,23 @@ pkgs = {
             "imageio>=2.8.0",
             "pygifsicle>=1.0.1",
             "psutil>=5.7.0",
-            "gym>=0.17.2",
+            "gymnasium",
             "lightsim2grid",
+        ],
+        "gym": [
+            "gym>=0.17.2",
+        ],
+        "gymnasium": [
+            "gymnasium",
         ],
         "docs": [
             "numpydoc>=0.9.2",
-            "sphinx>=2.4.4",
+            "sphinx<7.0.0,>=2.4.4",
             "sphinx-rtd-theme>=0.4.3",
             "sphinxcontrib-trio>=1.1.0",
             "autodocsumm>=0.1.13",
-            "gym>=0.17.2"
+            "gym>=0.17.2",
+            "gymnasium",
         ],
         "api": [
             "flask",
@@ -62,24 +71,42 @@ pkgs = {
         "plot": ["imageio"],
         "test": ["lightsim2grid",
                  "numba",
-                 "gym>=0.26"
+                 "gym>=0.26",
+                 "gymnasium",
+                 "stable-baselines3>=2.0",
+                 "nbconvert",
+                 "jinja2"
                  ],
         "chronix2grid": [
-            "ChroniX2Grid>=1.1.0.post1"
+            "ChroniX2Grid>=1.2.0.post1"
             ]
     }
 }
 pkgs["extras"]["test"] += pkgs["extras"]["optional"]
 pkgs["extras"]["test"] += pkgs["extras"]["plot"]
 pkgs["extras"]["test"] += pkgs["extras"]["chronix2grid"]
+pkgs["extras"]["test"] += pkgs["extras"]["gymnasium"]
 
+if sys.version_info.minor <= 7:
+    # typing "Literal" not available on python 3.7
+    pkgs["required"][3] = "pandapower>=2.2.2,<2.12"
+    # importlib provided importlib.metadata as of python 3.8
+    pkgs["required"].append("importlib_metadata")
+    
+if sys.version_info.minor == 12:
+    # numba is not available for python 3.12 at the moment
+    pkgs["extras"]["test"] = [el for el in  pkgs["extras"]["test"] if (not ("numba" in el) and 
+                                                                       not ("gym" in el) and 
+                                                                       not ('stable-baselines3' in el)
+                                                                       )
+                              ]
 
-setup(description='An gym compatible environment to model sequential decision making  for powersystems',
+setup(description='An gymnasium compatible environment to model sequential decision making  for powersystems',
       long_description=long_description,
       long_description_content_type="text/markdown",
       author='Benjamin DONNOT',
       author_email='benjamin.donnot@rte-france.com',
-      python_requires='>=3.7',
+      python_requires='>=3.8',
       url="https://github.com/rte-france/Grid2Op",
       packages=setuptools.find_packages(),
       include_package_data=True,

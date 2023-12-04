@@ -8,6 +8,7 @@
 
 import warnings
 import pdb
+import unittest
 
 from grid2op.tests.helper_path_test import *
 
@@ -164,7 +165,6 @@ class TestObservationMaintenance(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
-        # pdb.set_trace()
         self.rewardClass = L2RPNReward
         self.reward_helper = self.rewardClass()
         self.obsClass = CompleteObservation

@@ -5,12 +5,14 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import unittest
 import warnings
+import unittest
 
 import numpy as np
 
-from grid2op import make
+import grid2op
 
 from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
 from grid2op.Backend import PandaPowerBackend, Backend
@@ -128,7 +130,7 @@ class PandaPowerBackendDefault(PandaPowerBackend):
         return res
 
 
-class TestNames(HelperTests, BaseTestNames):
+class TestNames(BaseTestNames, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
@@ -138,7 +140,7 @@ class TestNames(HelperTests, BaseTestNames):
         return PATH_DATA_TEST_INIT
 
 
-class TestLoadingCase(HelperTests, BaseTestLoadingCase):
+class TestLoadingCase(BaseTestLoadingCase, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
@@ -151,7 +153,7 @@ class TestLoadingCase(HelperTests, BaseTestLoadingCase):
         return "test_case14.json"
 
 
-class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc):
+class TestLoadingBackendFunc(BaseTestLoadingBackendFunc, unittest.TestCase):
     def setUp(self):
         # TODO find something more elegant
         BaseTestLoadingBackendFunc.setUp(self)
@@ -172,7 +174,7 @@ class TestLoadingBackendFunc(HelperTests, BaseTestLoadingBackendFunc):
         return "test_case14.json"
 
 
-class TestTopoAction(HelperTests, BaseTestTopoAction):
+class TestTopoAction(BaseTestTopoAction, unittest.TestCase):
     def setUp(self):
         BaseTestTopoAction.setUp(self)
 
@@ -193,7 +195,7 @@ class TestTopoAction(HelperTests, BaseTestTopoAction):
 
 
 class TestEnvPerformsCorrectCascadingFailures(
-    HelperTests, BaseTestEnvPerformsCorrectCascadingFailures
+    BaseTestEnvPerformsCorrectCascadingFailures, unittest.TestCase
 ):
     def setUp(self):
         BaseTestEnvPerformsCorrectCascadingFailures.setUp(self)
@@ -214,21 +216,21 @@ class TestEnvPerformsCorrectCascadingFailures(
         return PATH_DATA_TEST
 
 
-class TestChangeBusAffectRightBus(HelperTests, BaseTestChangeBusAffectRightBus):
+class TestChangeBusAffectRightBus(BaseTestChangeBusAffectRightBus, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestShuntAction(HelperTests, BaseTestShuntAction):
+class TestShuntAction(BaseTestShuntAction, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
+class TestResetEqualsLoadGrid(BaseTestResetEqualsLoadGrid, unittest.TestCase):
     def setUp(self):
         BaseTestResetEqualsLoadGrid.setUp(self)
 
@@ -238,28 +240,28 @@ class TestResetEqualsLoadGrid(HelperTests, BaseTestResetEqualsLoadGrid):
         )
 
 
-class TestVoltageOWhenDisco(HelperTests, BaseTestVoltageOWhenDisco):
+class TestVoltageOWhenDisco(BaseTestVoltageOWhenDisco, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack):
+class TestChangeBusSlack(BaseTestChangeBusSlack, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestIssuesTest(HelperTests, BaseIssuesTest):
+class TestIssuesTest(BaseIssuesTest, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
         )
 
 
-class TestStatusAction(HelperTests, BaseStatusActions):
+class TestStatusAction(BaseStatusActions, unittest.TestCase):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures
@@ -279,7 +281,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = grid2op.make('rte_case14_realistic', test=True, backend=backend)
         env.reset()
         # action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
@@ -292,7 +294,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = grid2op.make('rte_case14_realistic', test=True, backend=backend)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -304,7 +306,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make(test=True, backend=backend)
+            env = grid2op.make('rte_case14_realistic', test=True, backend=backend)
         env.reset()
         action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)

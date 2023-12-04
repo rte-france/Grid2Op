@@ -115,6 +115,7 @@ class GridStateFromFile(GridValue):
         This directory matches the name of the objects (line extremity, generator or load) to the same object in the
         backed. See the help of :func:`GridValue.initialize` for more information).
     """
+    MULTI_CHRONICS = False
 
     def __init__(
         self,
@@ -194,6 +195,38 @@ class GridStateFromFile(GridValue):
         self._order_backend_prods = None
         self._order_backend_lines = None
 
+    def _clear(self):        
+        self.n_ = None  # maximum number of rows of the array
+        self.tmp_max_index = None  # size maximum of the current tables in memory
+        self.load_p = None  # numpy array corresponding to the current active load values in the power _grid. It has the same size as the number of loads
+        self.load_q = None  # numpy array corresponding to the current reactive load values in the power _grid. It has the same size as the number of loads
+        self.prod_p = None  # numpy array corresponding to the current active production values in the power _grid. It has the same size as the number of generators
+        self.prod_v = None  # numpy array corresponding to the current voltage production setpoint values in the power _grid. It has the same size as the number of generators
+
+        # for the two following vector, the convention is the following: False(line is disconnected) / True(line is connected)
+        self.hazards = None  # numpy array representing the outage (unplanned), same size as the number of powerlines on the _grid.
+        self.maintenance = None  # numpy array representing the _maintenance (planned withdrawal of a powerline), same size as the number of powerlines on the _grid.
+        self.maintenance_time = None
+        self.maintenance_duration = None
+
+        self.current_index = -1
+
+        self.names_chronics_to_backend = None
+
+        # added to provide an easier access to read data in chunk
+        self._data_chunk = {}
+        self._order_load_p = None
+        self._order_load_q = None
+        self._order_prod_p = None
+        self._order_prod_v = None
+        self._order_hazards = None
+        self._order_maintenance = None
+
+        # order of the names in the backend
+        self._order_backend_loads = None
+        self._order_backend_prods = None
+        self._order_backend_lines = None
+        
     def _assert_correct(self, dict_convert, order_backend):
         len_backend = len(order_backend)
         len_dict_keys = len(dict_convert)
@@ -288,8 +321,8 @@ class GridStateFromFile(GridValue):
         file_ext = self._get_fileext(data_name)
         
         if nrows is None:
-            if self.max_iter > 0:
-                nrows = self.max_iter + 1
+            if self._max_iter > 0:
+                nrows = self._max_iter + 1
             
         if file_ext is not None:
             if chunksize == -1:
@@ -525,8 +558,8 @@ class GridStateFromFile(GridValue):
         prod_v_iter = self._get_data("prod_v")
         read_compressed = self._get_fileext("hazards")
         nrows = None
-        if self.max_iter > 0:
-            nrows = self.max_iter + 1
+        if self._max_iter > 0:
+            nrows = self._max_iter + 1
 
         if read_compressed is not None:
             hazards = pd.read_csv(
@@ -631,21 +664,22 @@ class GridStateFromFile(GridValue):
                 )
         self.n_ = n_  # the -1 is present because the initial grid state doesn't count as a "time step"
 
-        if self.max_iter > 0:
+        if self._max_iter > 0:
             if self.n_ is not None:
-                if self.max_iter >= self.n_:
-                    self.max_iter = self.n_ - 1
+                if self._max_iter >= self.n_:
+                    self._max_iter = self.n_ - 1
                     # TODO: issue warning in this case
-            self.n_ = self.max_iter + 1
+            self.n_ = self._max_iter + 1
         else:
             # if the number of maximum time step is not set yet, we set it to be the number of
             # data in the chronics (number of rows of the files) -1.
             # the -1 is present because the initial grid state doesn't count as a "time step" but is read
             # from these data.
-            self.max_iter = self.n_ - 1
+            self._max_iter = self.n_ - 1
 
         self._init_attrs(
-            load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=maintenance
+            load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=maintenance,
+            is_init=True
         )
 
         self.curr_iter = 0
@@ -656,17 +690,21 @@ class GridStateFromFile(GridValue):
         return res
 
     def _init_attrs(
-        self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None
+        self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None,
+        is_init=False
     ):
+        # this called at the initialization but also each time more data should
+        # be read from the disk (at the end of each chunk for example)
         self.load_p = None
         self.load_q = None
         self.prod_p = None
         self.prod_v = None
-        self.hazards = None
-        self.hazard_duration = None
-        self.maintenance = None
-        self.maintenance_time = None
-        self.maintenance_duration = None
+        if is_init:
+            self.hazards = None
+            self.hazard_duration = None
+            self.maintenance = None
+            self.maintenance_time = None
+            self.maintenance_duration = None
 
         if load_p is not None:
             self.load_p = copy.deepcopy(
@@ -699,7 +737,6 @@ class GridStateFromFile(GridValue):
                 )
 
             self.hazards = self.hazards != 0.0
-
         if maintenance is not None:
             self.maintenance = copy.deepcopy(
                 maintenance.values[:, self._order_maintenance]
@@ -748,11 +785,27 @@ class GridStateFromFile(GridValue):
         # if self.current_index+1 >= self.tmp_max_index:
         if self.current_index > self.n_:
             res = True
-        elif self.max_iter > 0:
-            if self.curr_iter > self.max_iter:
+        elif self._max_iter > 0:
+            if self.curr_iter > self._max_iter:
                 res = True
         return res
 
+    @property
+    def max_iter(self):
+        return self._max_iter
+    
+    @max_iter.setter
+    def max_iter(self, value : int):
+        if value == -1:
+            self._max_iter = self.n_ - 1
+        else:
+            self._max_iter = int(value)
+        
+    def max_timestep(self):
+        if self._max_iter == -1:
+            return self.n_ - 1
+        return self._max_iter 
+    
     def _data_in_memory(self):
         if self.chunk_size is None:
             # if i don't use chunk, all the data are in memory alreay
@@ -775,19 +828,20 @@ class GridStateFromFile(GridValue):
         self.current_index = 0
 
     def load_next(self):
-        self.current_index += 1
+        self.current_index += 1  # index in the chunk
+        # for the "global" index use self.curr_iter
 
         if not self._data_in_memory():
             try:
                 self._load_next_chunk_in_memory()
-            except StopIteration as e:
-                raise e
+            except StopIteration as exc_:
+                raise StopIteration from exc_
 
         if self.current_index >= self.tmp_max_index:
             raise StopIteration
 
-        if self.max_iter > 0:
-            if self.curr_iter > self.max_iter:
+        if self._max_iter > 0:
+            if self.curr_iter > self._max_iter:
                 raise StopIteration
 
         res = {}
@@ -801,22 +855,18 @@ class GridStateFromFile(GridValue):
             dict_["prod_p"] = 1.0 * self.prod_p[self.current_index, :]
         if self.prod_v is not None:
             prod_v = 1.0 * self.prod_v[self.current_index, :]
-            # dict_["prod_v"] = prod_v
         if dict_:
             res["injection"] = dict_
 
         if self.maintenance is not None:
-            res["maintenance"] = self.maintenance[self.current_index, :]
+            res["maintenance"] = self.maintenance[self.curr_iter, :]
         if self.hazards is not None:
-            res["hazards"] = self.hazards[self.current_index, :]
-
-        self.current_datetime += self.time_interval
-        self.curr_iter += 1
+            res["hazards"] = self.hazards[self.curr_iter, :]
 
         if self.maintenance_time is not None:
-            maintenance_time = dt_int(1 * self.maintenance_time[self.current_index, :])
+            maintenance_time = dt_int(1 * self.maintenance_time[self.curr_iter, :])
             maintenance_duration = dt_int(
-                1 * self.maintenance_duration[self.current_index, :]
+                1 * self.maintenance_duration[self.curr_iter, :]
             )
         else:
             maintenance_time = np.full(self.n_line, fill_value=-1, dtype=dt_int)
@@ -827,6 +877,8 @@ class GridStateFromFile(GridValue):
         else:
             hazard_duration = np.full(self.n_line, fill_value=-1, dtype=dt_int)
 
+        self.current_datetime += self.time_interval
+        self.curr_iter += 1
         return (
             self.current_datetime,
             res,
@@ -951,15 +1003,17 @@ class GridStateFromFile(GridValue):
                         )
                         raise EnvError(msg_err.format(name_arr, arr.shape[0], self.n_))
 
-        if self.max_iter > 0:
-            if self.max_iter > self.n_:
+        if self._max_iter > 0:
+            if self._max_iter > self.n_:
                 msg_err = "Files count {} rows and you ask this episode to last at {} timestep."
-                raise InsufficientData(msg_err.format(self.n_, self.max_iter))
+                raise InsufficientData(msg_err.format(self.n_, self._max_iter))
 
     def next_chronics(self):
         self.current_datetime = self.start_datetime
         self.current_index = -1
         self.curr_iter = 0
+        if self.chunk_size is not None:
+            self._clear()  # remove previously loaded data [only needed if chunk size is set, I assume]
 
     def get_id(self) -> str:
         return self.path

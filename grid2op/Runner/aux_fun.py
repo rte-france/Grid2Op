@@ -11,12 +11,31 @@ import time
 
 import numpy as np
 
+from grid2op.Environment import Environment
+from grid2op.Agent import BaseAgent
+
 from grid2op.Episode import EpisodeData
 from grid2op.Runner.FakePBar import _FakePbar
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Chronics import ChronicsHandler
 
 
+def _aux_add_data(reward, env, episode,
+                  efficient_storing, end__, beg__, act,
+                  obs, info, time_step, opp_attack):
+    episode.incr_store(
+        efficient_storing,
+        time_step,
+        end__ - beg__,
+        float(reward),
+        env._env_modification,
+        act,
+        obs,
+        opp_attack,
+        info,
+    )
+    return reward
+                
 def _aux_one_process_parrallel(
     runner,
     episode_this_process,
@@ -26,6 +45,7 @@ def _aux_one_process_parrallel(
     agent_seeds=None,
     max_iter=None,
     add_detailed_output=False,
+    add_nb_highres_sim=False,
 ):
     """this is out of the runner, otherwise it does not work on windows / macos"""
     chronics_handler = ChronicsHandler(
@@ -49,7 +69,7 @@ def _aux_one_process_parrallel(
             agt_seed = None
             if agent_seeds is not None:
                 agt_seed = agent_seeds[i]
-            name_chron, cum_reward, nb_time_step, episode_data = _aux_run_one_episode(
+            tmp_ = _aux_run_one_episode(
                 env,
                 agent,
                 runner.logger,
@@ -60,29 +80,24 @@ def _aux_one_process_parrallel(
                 agent_seed=agt_seed,
                 detailed_output=add_detailed_output,
             )
+            (name_chron, cum_reward, nb_time_step, max_ts, episode_data, nb_highres_sim)  = tmp_
             id_chron = chronics_handler.get_id()
-            max_ts = chronics_handler.max_timestep()
+            res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
+            
             if add_detailed_output:
-                res[i] = (
-                    id_chron,
-                    name_chron,
-                    float(cum_reward),
-                    nb_time_step,
-                    max_ts,
-                    episode_data,
-                )
-            else:
-                res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
+                res[i] = (*res[i], episode_data)
+            if add_nb_highres_sim:
+                res[i] = (*res[i], nb_highres_sim)                
         finally:
             env.close()
     return res
 
 
 def _aux_run_one_episode(
-    env,
-    agent,
+    env: Environment,
+    agent: BaseAgent,
     logger,
-    indx,
+    indx : int,
     path_save=None,
     pbar=False,
     env_seed=None,
@@ -104,10 +119,12 @@ def _aux_run_one_episode(
     # handle max_iter
     if max_iter is not None:
         env.chronics_handler.set_max_iter(max_iter)
-
+        
     # reset it
     obs = env.reset()
-
+    # reset the number of calls to high resolution simulator
+    env._highres_sim_counter._HighResSimCounter__nb_highres_called = 0
+    
     # seed and reset the agent
     if agent_seed is not None:
         agent.seed(agent_seed)
@@ -117,7 +134,7 @@ def _aux_run_one_episode(
     nb_timestep_max = env.chronics_handler.max_timestep()
     efficient_storing = nb_timestep_max > 0
     nb_timestep_max = max(nb_timestep_max, 0)
-
+    max_ts = nb_timestep_max
     if path_save is None and not detailed_output:
         # i don't store anything on drive, so i don't need to store anything on memory
         nb_timestep_max = 0
@@ -127,6 +144,7 @@ def _aux_run_one_episode(
     attack_templ = np.full(
         (1, env._oppSpace.action_space.size()), fill_value=0.0, dtype=dt_float
     )
+    
     if efficient_storing:
         times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
         rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
@@ -151,6 +169,8 @@ def _aux_run_one_episode(
             fill_value=0.0,
             dtype=dt_float,
         )
+        legal = np.full(nb_timestep_max, fill_value=True, dtype=dt_bool)
+        ambiguous = np.full(nb_timestep_max, fill_value=False, dtype=dt_bool)
     else:
         times = np.full(0, fill_value=np.NaN, dtype=dt_float)
         rewards = np.full(0, fill_value=np.NaN, dtype=dt_float)
@@ -165,6 +185,8 @@ def _aux_run_one_episode(
         attack = np.full(
             (0, env._opponent_action_space.n), fill_value=0.0, dtype=dt_float
         )
+        legal = np.full(0, fill_value=True, dtype=dt_bool)
+        ambiguous = np.full(0, fill_value=False, dtype=dt_bool)
 
     need_store_first_act = path_save is not None or detailed_output
     if need_store_first_act:
@@ -173,6 +195,7 @@ def _aux_run_one_episode(
             observations[time_step, :] = obs.to_vect()
         else:
             observations = np.concatenate((observations, obs.to_vect().reshape(1, -1)))
+            
     episode = EpisodeData(
         actions=actions,
         env_actions=env_actions,
@@ -192,6 +215,9 @@ def _aux_run_one_episode(
         name=env.chronics_handler.get_name(),
         force_detail=detailed_output,
         other_rewards=[],
+        legal=legal,
+        ambiguous=ambiguous,
+        has_legal_ambiguous=True,
     )
     if need_store_first_act:
         # I need to manually force in the first observation (otherwise it's not computed)
@@ -212,27 +238,34 @@ def _aux_run_one_episode(
             act = agent.act(obs, reward, done)
             end__ = time.perf_counter()
             time_act += end__ - beg__
-
-            obs, reward, done, info = env.step(act)  # should load the first time stamp
-            cum_reward += reward
-            time_step += 1
-            pbar_.update(1)
-            opp_attack = env._oppSpace.last_attack
-            episode.incr_store(
-                efficient_storing,
-                time_step,
-                end__ - beg__,
-                float(reward),
-                env._env_modification,
-                act,
-                obs,
-                opp_attack,
-                info,
-            )
-
+            
+            if type(env).CAN_SKIP_TS:
+                # the environment can "skip" some time
+                # steps I need to call the 'env.steps()' to get all
+                # the steps.
+                res_env_tmp = env.steps(act)
+                for (obs, reward, done, info), opp_attack in zip(*res_env_tmp):
+                    time_step += 1
+                    cum_reward += _aux_add_data(reward, env, episode,
+                                                efficient_storing,
+                                                end__, beg__, act,
+                                                obs, info, time_step,
+                                                opp_attack)
+                    pbar_.update(1)
+            else:
+                # regular environment
+                obs, reward, done, info = env.step(act)
+                time_step += 1
+                opp_attack = env._oppSpace.last_attack
+                cum_reward += _aux_add_data(reward, env, episode,
+                                            efficient_storing,
+                                            end__, beg__, act,
+                                            obs, info, time_step,
+                                            opp_attack)
+                pbar_.update(1)
+        episode.set_game_over(time_step)
         end_ = time.perf_counter()
     episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
-
     li_text = [
         "Env: {:.2f}s",
         "\t - apply act {:.2f}s",
@@ -259,7 +292,11 @@ def _aux_run_one_episode(
 
     episode.to_disk()
     name_chron = env.chronics_handler.get_name()
-    return name_chron, cum_reward, int(time_step), episode
+    return (name_chron, cum_reward,
+            int(time_step),
+            int(max_ts),
+            episode,
+            env.nb_highres_called)
 
 
 def _aux_make_progress_bar(pbar, total, next_pbar):

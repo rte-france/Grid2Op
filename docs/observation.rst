@@ -7,6 +7,7 @@
 .. _n_storage: ./space.html#grid2op.Space.GridObjects.n_storage
 .. _dim_topo: ./space.html#grid2op.Space.GridObjects.dim_topo
 .. _dim_alarms: ./space.html#grid2op.Space.GridObjects.dim_alarms
+.. _dim_alerts: ./space.html#grid2op.Space.GridObjects.dim_alerts
 .. _year: ./observation.html#grid2op.Observation.BaseObservation.year
 .. _month: ./observation.html#grid2op.Observation.BaseObservation.month
 .. _day: ./observation.html#grid2op.Observation.BaseObservation.day
@@ -57,7 +58,13 @@
 .. _theta_ex: ./observation.html#grid2op.Observation.BaseObservation.theta_ex
 .. _gen_theta: ./observation.html#grid2op.Observation.BaseObservation.gen_theta
 .. _load_theta: ./observation.html#grid2op.Observation.BaseObservation.load_theta
-.. _storage_theta: ./observation.html#grid2op.Observation.BaseObservation.storage_theta
+.. _active_alert: ./observation.html#grid2op.Observation.BaseObservation.active_alert
+.. _time_since_last_alert: ./observation.html#grid2op.Observation.BaseObservation.time_since_last_alert
+.. _alert_duration: ./observation.html#grid2op.Observation.BaseObservation.alert_duration
+.. _total_number_of_alert: ./observation.html#grid2op.Observation.BaseObservation.total_number_of_alert
+.. _time_since_last_attack: ./observation.html#grid2op.Observation.BaseObservation.time_since_last_attack
+.. _was_alert_used_after_attack: ./observation.html#grid2op.Observation.BaseObservation.was_alert_used_after_attack
+.. _attack_under_alert: ./observation.html#grid2op.Observation.BaseObservation.attack_under_alert
 
 .. _observation_module:
 
@@ -79,7 +86,7 @@ how well the past action
 performed. The second main input received from the environment is the :class:`BaseObservation`. This is gives the BaseAgent
 partial, noisy, or complete information about the current state of the environment. This module implement a generic
 :class:`BaseObservation`  class and an example of a complete observation in the case of the Learning
-To Run a Power Network (`l2RPN <https://l2rpn.chalearn.org/>`_ ) competition.
+To Run a Power Network (`L2RPN <https://l2rpn.chalearn.org/>`_ ) competition.
 
 Compared to other Reinforcement Learning problems the L2PRN competition allows another flexibility. Today, when
 operating a powergrid, operators have "forecasts" at their disposal. We wanted to make them available in the
@@ -112,9 +119,9 @@ Main observation attributes
 In general, observations have the following attributes (if an attributes has name XXX [*eg* rho]  it can be accessed
 with `obs.XXX` [*eg* `obs.rho`])
 
-=============================================================================    ========= ============
+=============================================================================    ========= ==============
 Name(s)                                                                          Type      Size (each)
-=============================================================================    ========= ============
+=============================================================================    ========= ==============
 `year`_, `month`_, `day`_, `hour_of_day`_, `minute_of_hour`_, `day_of_week`_     int       1
 `gen_p`_, `gen_q`_, `gen_v`_, `gen_theta`_                                       float     `n_gen`_
 `load_p`_, `load_q`_, `load_v`_ , `load_theta`_                                  float     `n_load`_
@@ -143,7 +150,11 @@ Name(s)                                                                         
 `attention_budget`_                                                              int        1
 `max_step`_ , `current_step`_                                                    int        1
 `delta_time`_                                                                    float      1
-=============================================================================    ========= ============
+`total_number_of_alert`_ ,                                                       int        `dim_alerts`_
+`was_alert_used_after_attack`_ , `attack_under_alert`_                           int        `dim_alerts`_
+`time_since_last_alert`_ , `alert_duration`_ , `time_since_last_attack`_         int        `dim_alerts`_
+`alert_duration`_                                                                bool       `dim_alerts`_
+=============================================================================    ========= ==============
 
 (*NB* for concision, if a coma ("*,*") is present in the "Name(s)" part of the column, it means multiple attributes
 are present. If we take the example of the first row, it means that `obs.year`, `obs.month`, etc. are all valid
