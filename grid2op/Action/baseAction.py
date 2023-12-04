@@ -985,7 +985,7 @@ class BaseAction(GridObjects):
         same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
             return False
-
+        
         # _grid is the same, now I test the the injections modifications are the same
         same_action = self._modif_inj == other._modif_inj
         same_action = same_action and self._dict_inj.keys() == other._dict_inj.keys()

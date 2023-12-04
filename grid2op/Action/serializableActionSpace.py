@@ -105,21 +105,25 @@ class SerializableActionSpace(SerializableSpace):
     def _get_possible_action_types(self):
         rnd_types = []
         cls = type(self)
-        if "set_line_status" in self.actionClass.authorized_keys:
+        if "set_line_status" in self.actionClass.authorized_keys and cls.n_line > 0:
             rnd_types.append(cls.SET_STATUS_ID)
-        if "change_line_status" in self.actionClass.authorized_keys:
+        if "change_line_status" in self.actionClass.authorized_keys and cls.n_line > 0:
             rnd_types.append(cls.CHANGE_STATUS_ID)
         if "set_bus" in self.actionClass.authorized_keys:
             rnd_types.append(cls.SET_BUS_ID)
         if "change_bus" in self.actionClass.authorized_keys:
             rnd_types.append(cls.CHANGE_BUS_ID)
-        if "redispatch" in self.actionClass.authorized_keys:
+        can_do_redisp = "redispatch" in self.actionClass.authorized_keys
+        can_do_redisp = can_do_redisp and cls.n_gen > 0
+        can_do_redisp = can_do_redisp and cls.redispatching_unit_commitment_availble
+        can_do_redisp = can_do_redisp and cls.gen_redispatchable.sum() > 0
+        if can_do_redisp:
             rnd_types.append(cls.REDISPATCHING_ID)
-        if self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
+        if cls.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
             rnd_types.append(cls.STORAGE_POWER_ID)
-        if self.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
+        if cls.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
             rnd_types.append(cls.RAISE_ALARM_ID)
-        if self.dim_alerts > 0 and "raise_alert" in self.actionClass.authorized_keys:
+        if cls.dim_alerts > 0 and "raise_alert" in self.actionClass.authorized_keys:
             rnd_types.append(cls.RAISE_ALERT_ID)
         return rnd_types
 
@@ -326,25 +330,26 @@ class SerializableActionSpace(SerializableSpace):
         # Cannot sample this space, return do nothing
         if not len(rnd_types):
             return rnd_act
-
+        
         # this sampling
+        cls = type(self)
         rnd_type = self.space_prng.choice(rnd_types)
-
-        if rnd_type == self.SET_STATUS_ID:
+        
+        if rnd_type == cls.SET_STATUS_ID:
             rnd_update = self._sample_set_line_status()
-        elif rnd_type == self.CHANGE_STATUS_ID:
+        elif rnd_type == cls.CHANGE_STATUS_ID:
             rnd_update = self._sample_change_line_status()
-        elif rnd_type == self.SET_BUS_ID:
+        elif rnd_type == cls.SET_BUS_ID:
             rnd_update = self._sample_set_bus()
-        elif rnd_type == self.CHANGE_BUS_ID:
+        elif rnd_type == cls.CHANGE_BUS_ID:
             rnd_update = self._sample_change_bus()
-        elif rnd_type == self.REDISPATCHING_ID:
+        elif rnd_type == cls.REDISPATCHING_ID:
             rnd_update = self._sample_redispatch()
-        elif rnd_type == self.STORAGE_POWER_ID:
+        elif rnd_type == cls.STORAGE_POWER_ID:
             rnd_update = self._sample_storage_power()
-        elif rnd_type == self.RAISE_ALARM_ID:
+        elif rnd_type == cls.RAISE_ALARM_ID:
             rnd_update = self._sample_raise_alarm()
-        elif rnd_type == self.RAISE_ALERT_ID:
+        elif rnd_type == cls.RAISE_ALERT_ID:
             rnd_update = self._sample_raise_alert()
         else:
             rnd_update = self._aux_sample_other_element(rnd_type)

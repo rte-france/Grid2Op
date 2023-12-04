@@ -37,7 +37,8 @@ def _aux_sample_withtout_interco(act_sp: ActionSpace):
     return res
     
 
-def _aux_sample_without_interco_from_global(global_act_sp: ActionSpace, local_act_spaces):
+def _aux_sample_without_interco_from_global(global_act_sp: ActionSpace,
+                                            local_act_spaces):
     res: BaseAction = global_act_sp.sample()
     if res._modif_set_status:
         # if the action sample the interconnection, i resample it
@@ -54,8 +55,8 @@ class MATesterGlobalObs(unittest.TestCase):
     def setUp(self) -> None:
         
         self.action_domains = {
-            'agent_0' : [0,1,2,3, 4],
-            'agent_1' : [5,6,7,8,9,10,11,12,13]
+            'agent_0' : [0, 1, 2, 3, 4],
+            'agent_1' : [5, 6, 7, 8, 9, 10, 11, 12, 13]
         }
         
         with warnings.catch_warnings():
@@ -1406,13 +1407,12 @@ class TestAction(unittest.TestCase):
             global_act_2 = (local_act["agent_0"].to_global(self.ma_env._cent_env.action_space) +
                             local_act["agent_1"].to_global(self.ma_env._cent_env.action_space)
                            )
-            # if i == 0 or i == 41:
-            #     # this action does nothing, but unfortunately it's because it sampled a subtation
-            #     # a change_bus, and "decided" not to change anything
-            #     # this flag is "lost in the conversion"
-            #     global_act._modif_change_bus = False
-            #     global_act._modif_set_bus = False
-                
+            if i == 42:
+                # this action does nothing, but unfortunately it's because it sampled a subtation
+                # a change_bus, and "decided" not to change anything
+                # this flag is "lost in the conversion"
+                global_act._modif_change_bus = False
+                # global_act._modif_set_bus = False
             # when I combine these actions, it should be true
             assert global_act_2 == global_act, f"error for iteration {i} with ref:\n{global_act}\nand rebuilt:\n{global_act_2}"
             
@@ -1428,7 +1428,9 @@ class TestAction(unittest.TestCase):
             local_act_2 = {agent_nm: self.ma_env.action_spaces[agent_nm].from_global(global_act) 
                            for agent_nm in self.ma_env.agents}
 
-            if i == 78 :
+            # if i == 0:
+                # local_act["agent_0"]._modif_alert = False
+            if i == 78:
                 # this action does nothing, but unfortunately it's because it sampled a subtation
                 # a change_bus, and "decided" not to change anything
                 # this flag is "lost in the conversion"

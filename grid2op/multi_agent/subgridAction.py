@@ -19,8 +19,8 @@ from grid2op.multi_agent.subGridObjects import SubGridObjects
 
 # TODO (later) make that a meta class too
 class SubGridActionSpace(SubGridObjects, ActionSpace):
-    INTERCO_SET_BUS_ID = ActionSpace.RAISE_ALARM_ID + 1
-    INTERCO_CHANGE_BUS_ID = ActionSpace.RAISE_ALARM_ID + 2
+    INTERCO_SET_BUS_ID = ActionSpace.RAISE_ALERT_ID + 1
+    INTERCO_CHANGE_BUS_ID = ActionSpace.RAISE_ALERT_ID + 2
     
     def __init__(
         self,
@@ -44,34 +44,13 @@ class SubGridActionSpace(SubGridObjects, ActionSpace):
         list
             All possible action types
         """
-        rnd_types = []
+        rnd_types = super()._get_possible_action_types()
         cls = type(self)
         act_cls = self.actionClass
-        if self.n_line > 0: #TODO interco v0.1
-            if "set_line_status" in act_cls.authorized_keys:
-                rnd_types.append(cls.SET_STATUS_ID)
-            if "change_line_status" in act_cls.authorized_keys:
-                rnd_types.append(cls.CHANGE_STATUS_ID)
-        
-        if "set_bus" in act_cls.authorized_keys:
-            rnd_types.append(cls.SET_BUS_ID)
-        if "change_bus" in act_cls.authorized_keys:
-            rnd_types.append(cls.CHANGE_BUS_ID)
-        
-        if self.n_gen > 0 and (self.gen_redispatchable).any():
-            if "redispatch" in act_cls.authorized_keys:
-                rnd_types.append(cls.REDISPATCHING_ID)
-                
-        if self.n_storage > 0 and "storage_power" in act_cls.authorized_keys:
-            rnd_types.append(cls.STORAGE_POWER_ID)
-            
-        if self.dim_alarms > 0 and "raise_alarm" in act_cls.authorized_keys:
-            rnd_types.append(cls.RAISE_ALARM_ID)
-        
-        if self.n_interco and "change_interco_status" in act_cls.authorized_keys:
+        if cls.n_interco > 0 and "change_interco_status" in act_cls.authorized_keys:
             rnd_types.append(cls.INTERCO_CHANGE_BUS_ID)
             
-        if self.n_interco and "set_interco_status" in act_cls.authorized_keys:
+        if cls.n_interco > 0 and "set_interco_status" in act_cls.authorized_keys:
             rnd_types.append(cls.INTERCO_SET_BUS_ID)
         return rnd_types
 
