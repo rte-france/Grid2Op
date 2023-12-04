@@ -1898,7 +1898,10 @@ class _AuxTestGOObsInRange:
         for key in self.env_gym.observation_space.spaces.keys():
             assert key in gym_obs, f"key: {key} no in the observation"
         for key in gym_obs.keys():
-            assert gym_obs[key] in self.env_gym.observation_space.spaces[key], f"error for {key}"
+            if not gym_obs[key] in self.env_gym.observation_space.spaces[key]:
+                msg_ = (f"error for {key}:\n{gym_obs[key]}\nvs\n"
+                        f"{self.env_gym.observation_space.spaces[key]}")
+                raise RuntimeError(msg_) 
             
 
 class _AuxObsAllAttr:

@@ -1362,7 +1362,8 @@ class BaseObservation(GridObjects):
             self.minute_of_hour = dt_int(env.time_stamp.minute)
             self.day_of_week = dt_int(env.time_stamp.weekday())
 
-
+        # handles thermal limit here (special cases for multi agent too)
+        self._aux_set_game_over_thermal_limit(env)
         
         # by convention, I say it's 0 if the grid is in total blackout
         self.theta_or[:] = 0.0
