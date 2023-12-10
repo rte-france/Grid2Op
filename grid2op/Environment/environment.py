@@ -208,7 +208,6 @@ class Environment(BaseEnv):
         
         self.initial_outages = getInitialOutages(self.backend.name_line)
         self.n_initial_outages = len(self.initial_outages)
-        ################################################
 
     def _init_backend(
         self,
@@ -970,6 +969,7 @@ class Environment(BaseEnv):
         obs = None
 
         self.normal_reset()
+
         '''
         line_id_to_set = self.initial_outages[self.outage_idx]
         act = self.action_space()
@@ -980,6 +980,7 @@ class Environment(BaseEnv):
             print("system done after initial outages")
             return None
        ''' 
+        
         return obs if obs is not None else self.get_obs()
 
     def render(self, mode="rgb_array"):
