@@ -3254,7 +3254,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.backend.detailed_infos_for_cascading_failures:
             self.infos["detailed_infos_for_cascading_failures"] = detailed_info
         
-        
         #ZK: if no more outages, terminate
         if not self.old_line_status.all():
             is_done = is_done or sum(self.old_line_status) - sum(self._line_status) == 0

@@ -966,17 +966,16 @@ class Environment(BaseEnv):
             self.num_outages = self.n_line
 
         obs = None
-        done = True
-        while done:
-            self.normal_reset()
-            line_id_to_set = self.initial_outages[self.outage_idx]
-            act = self.action_space()
-            act.line_set_status = [[l_id, -1] for l_id in line_id_to_set]
-            obs, _, done, _ = self.step(act)
-            self.outage_idx = (self.outage_idx + 1) % self.n_initial_outages
-        # if done:
-        #     print("system done after initial outages")
-        #     return obs
+
+        self.normal_reset()
+        line_id_to_set = self.initial_outages[self.outage_idx]
+        act = self.action_space()
+        act.line_set_status = [[l_id, -1] for l_id in line_id_to_set]
+        obs, _, done, _ = self.step(act)
+        self.outage_idx = (self.outage_idx + 1) % self.n_initial_outages
+        if done:
+            print("system done after initial outages")
+            return None
         
         return obs if obs is not None else self.get_obs()
 
