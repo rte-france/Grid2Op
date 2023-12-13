@@ -3113,8 +3113,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         lines_attacked, subs_attacked = None, None
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
-        
-        ##############################################
+
         #ZK: apply initial outages
         
         if not hasattr(self, 'outage_idx'):
@@ -3135,10 +3134,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         #ZK: line status in previous time step.
         self.old_line_status = init_line_status
-        
-        
-        
-        ##############################################
+
         self.nb_time_step += 1
         self._disc_lines[:] = -1 
         
@@ -3278,6 +3274,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         #ZK: if no more outages, terminate
         if not self.old_line_status.all() and self.nb_time_step > 0:
+
             is_done = is_done or sum(self.old_line_status) - sum(self._line_status) == 0
                     
         self.done = self._is_done(has_error, is_done)
