@@ -1052,6 +1052,8 @@ class PandaPowerBackend(Backend):
                 if "_ppc" in self._grid:
                     if "et" in self._grid["_ppc"]:
                         self.comp_time += self._grid["_ppc"]["et"]
+                #print("pandapowerbackend: ", self._grid.res_gen)
+                #print("pandapowerbackend: ", self._grid.res_load)
                 if self._grid.res_gen.isnull().values.any():
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     # sometimes pandapower does not detect divergence and put Nan.

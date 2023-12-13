@@ -1095,6 +1095,7 @@ class Backend(GridObjects, ABC):
         infos = []
         disconnected_during_cf = np.full(self.n_line, fill_value=-1, dtype=dt_int)
         conv_ = self._runpf_with_diverging_exception(is_dc)
+        #print("conv_", conv_)
         if env._no_overflow_disconnection or conv_ is not None:
             return disconnected_during_cf, infos, conv_
 
@@ -1121,11 +1122,12 @@ class Backend(GridObjects, ABC):
             ################################################
             # shed load
             verbose = False
+            if verbose: print("pf result: ", conv_)
             if env.current_obs is not None or env.nb_time_step > 0: 
                 tmp=self.shedload1(env.current_obs, np.where(to_disc))
                 backend_action = self.my_bk_act_class()
                 act = self._complete_action_class()
-                if verbose: print(tmp[0])
+                if verbose: print("do loadshed: ",tmp[0])
                 if tmp[0]:
                     dict_ = {
                         "injection": tmp[1],
@@ -1137,6 +1139,7 @@ class Backend(GridObjects, ABC):
             # disconnect the current power lines
             if to_disc[lines_status].sum() == 0:
                 # no powerlines have been disconnected at this time step, i stop the computation there
+                if verbose: print("no to disconnect lines ", )
                 break
             disconnected_during_cf[to_disc] = ts
             # perform the disconnection action
@@ -1146,6 +1149,7 @@ class Backend(GridObjects, ABC):
                     if verbose: print("disconnect line in cascading: line", i)
 
             # start a powerflow on this new state
+            '''
             conv_ = self._runpf_with_diverging_exception(is_dc)
             if verbose: print(conv_)
             if self.detailed_infos_for_cascading_failures:
@@ -1153,7 +1157,9 @@ class Backend(GridObjects, ABC):
 
             if conv_ is not None:
                 break
+           '''
             ts += 1
+            #ZK: compute pf in the next step
             break
         return disconnected_during_cf, infos, conv_
 
