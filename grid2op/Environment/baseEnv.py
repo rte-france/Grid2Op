@@ -3246,7 +3246,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
                     action, init_line_status, new_p, except_
                 )
-                
+           
             else:
                 has_error = True
 
