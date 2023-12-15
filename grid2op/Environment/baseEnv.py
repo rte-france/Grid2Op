@@ -2961,6 +2961,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self, action, init_line_status, new_p, except_
     ):
         has_error = True
+        detailed_info = None
         try:
             # compute the next _grid state
             beg_pf = time.perf_counter()

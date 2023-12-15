@@ -418,7 +418,7 @@ class Environment(BaseEnv):
             raise Grid2OpException(
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
                 "Available information are: {}".format(info)
-            )
+            ) from info["exception"][0]
 
         # test the backend returns object of the proper size
         if need_process_backend:
