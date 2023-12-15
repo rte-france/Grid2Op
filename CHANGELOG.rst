@@ -40,7 +40,7 @@ Change Log
 - [FIXED] the "BaseBackendTest" class did not correctly detect divergence in most cases (which lead 
   to weird bugs in failing tests)
 - [ADDED] A type of environment that does not perform the "emulation of the protections"
-  for some part of the grid (`MaskedEnvironment`)
+  for some part of the grid (`MaskedEnvironment`) see https://github.com/rte-france/Grid2Op/issues/571
 - [IMPROVED] the CI speed: by not testing every possible numpy version but only most ancient and most recent
 - [IMPROVED] Runner now test grid2op version 1.9.6 and 1.9.7
 - [IMPROVED] refacto `gridobj_cls._clear_class_attribute` and `gridobj_cls._clear_grid_dependant_class_attributes`
