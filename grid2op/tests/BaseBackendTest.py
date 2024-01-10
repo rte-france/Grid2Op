@@ -2741,7 +2741,7 @@ class BaseIssuesTest(MakeBackend):
             }
         )
         obs, reward, done, info = env.step(action)
-        assert not done
+        assert not done, f"Episode should not have ended here, error : {info['exception']}"
         assert obs.line_status[LINE_ID] == False
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1

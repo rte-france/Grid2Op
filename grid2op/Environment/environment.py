@@ -37,6 +37,14 @@ class Environment(BaseEnv):
     """
     This class is the grid2op implementation of the "Environment" entity in the RL framework.
 
+    .. danger::
+    
+        Long story short, once a environment is deleted, you cannot use anything it "holds" including,
+        but not limited to the capacity to perform `obs.simulate(...)` even if the `obs` is still
+        referenced.
+        
+        See :ref:`danger-env-ownership` (first danger block). 
+        
     Attributes
     ----------
 
