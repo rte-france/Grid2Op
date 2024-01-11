@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -23,7 +23,10 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
     of the `step` function. 
     
     For more information, see the documentation of 
-    :func:`TimedOutEnvironment.step` for 
+    :func:`TimedOutEnvironment.step` 
+    
+    .. warning::
+        This class might not behave normally if used with MaskedEnvironment, MultiEnv, MultiMixEnv etc.
     
     Attributes
     ----------

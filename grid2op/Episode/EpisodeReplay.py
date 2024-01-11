@@ -102,15 +102,15 @@ class EpisodeReplay(object):
 
         load_info: ``str``
             Defaults to "p". What kind of values to show on loads.
-            Can be oneof `["p", "v", None]`
+            Can be one of `["p", "v", None]`
 
         gen_info: ``str``
             Defaults to "p". What kind of values to show on generators.
-            Can be oneof `["p", "v", None]`
+            Can be one of `["p", "v", None]`
 
         line_info: ``str``
             Defaults to "rho". What kind of values to show on lines.
-            Can be oneof `["rho", "a", "p", "v", None]`
+            Can be one of `["rho", "a", "p", "v", None]`
 
         resolution: ``tuple``
             Defaults to (1280, 720). The resolution to use for the gif.
@@ -187,7 +187,12 @@ class EpisodeReplay(object):
         # Export all frames as gif if enabled
         if gif_name is not None and len(frames) > 0:
             try:
-                imageio.mimwrite(gif_path, frames, fps=fps)
+                try:
+                    # with imageio > 2.5 you need to compute the duration
+                    imageio.mimwrite(gif_path, frames, duration=1000./fps)
+                except TypeError:
+                    # imageio <= 2.5 can be given fps directly
+                    imageio.mimwrite(gif_path, frames, fps=fps)
                 # Try to compress
                 try:
                     from pygifsicle import optimize
