@@ -84,6 +84,65 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     The documentation is showed here to document the common attributes of an "BaseEnvironment".
 
+    .. _danger-env-ownership:
+    
+    Notes 
+    ------------------------
+    
+    Note en environment data ownership
+    
+    .. danger::
+    
+        
+        A non pythonic decision has been implemented in grid2op for various reasons: an environment
+        owns everything created from it.
+        
+        This means that if you (or the python interpreter) deletes the environment, you might not
+        use some data generate with this environment.
+        
+        More precisely, you cannot do something like:
+        
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make("l2rpn_case14_sandbox")
+            
+            saved_obs = []
+            
+            obs = env.reset()
+            saved_obs.append(obs)
+            obs2, reward, done, info = env.step(env.action_space())
+            saved_obs.append(obs2)
+            
+            saved_obs[0].simulate(env.action_space())  # works
+            del env
+            saved_obs[0].simulate(env.action_space())  # DOES NOT WORK
+            
+        It will raise an error like `Grid2OpException EnvError "This environment is closed. You cannot use it anymore."`
+        
+        This will also happen if you do things inside functions, for example like this:
+        
+        .. code-block:: python
+
+            import grid2op
+            
+            def foo(manager):
+                env = grid2op.make("l2rpn_case14_sandbox")
+                obs = env.reset()
+                manager.append(obs)
+                obs2, reward, done, info = env.step(env.action_space())
+                manager.append(obs2)
+                manager[0].simulate(env.action_space())  # works
+                return manager
+                
+            manager = []
+            manager = foo(manager)
+            manager[0].simulate(env.action_space())  # DOES NOT WORK
+        
+        The same error is raised because the environment `env` is automatically deleted by python when the function `foo` ends
+        (well it might work on some cases, if the function is called before the variable `env` is actually deleted but you 
+        should not rely on this behaviour.)
+            
     Attributes
     ----------
 
