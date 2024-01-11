@@ -17,9 +17,9 @@ if __name__ == "__main__":
     
     # agent_name : controlled substation id
     zones = {"agent_0": [0, 1, 2, 3, 4],
-             "agent_1": [5,6,7,8,9,10,11,12,13]}
+             "agent_1": [5, 6, 7, 8, 9, 10, 11, 12, 13]}
     env = MultiAgentEnv(cent_env, action_domains=zones)
-    
+    env.seed(0)
     dict_obs = env.reset()
     # dict with: key=agent_name, value=the SubGridObservation
     
