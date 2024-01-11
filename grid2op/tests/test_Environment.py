@@ -845,7 +845,7 @@ class TestDeactivateForecast(unittest.TestCase):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
         assert env._no_overflow_disconnection == param.NO_OVERFLOW_DISCONNECTION
-        assert env._hard_overflow_threshold == param.HARD_OVERFLOW_THRESHOLD
+        assert (env._hard_overflow_threshold == param.HARD_OVERFLOW_THRESHOLD).all()
 
         # store actions "cooldown"
         assert (

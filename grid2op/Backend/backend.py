@@ -1023,10 +1023,12 @@ class Backend(GridObjects, ABC):
             ] = True
 
             # disconnect the current power lines
-            if to_disc[lines_status].sum() == 0:
-                # no powerlines have been disconnected at this time step, i stop the computation there
+            if to_disc[lines_status].any() == 0:
+                # no powerlines have been disconnected at this time step, 
+                # i stop the computation there
                 break
             disconnected_during_cf[to_disc] = ts
+            
             # perform the disconnection action
             for i, el in enumerate(to_disc):
                 if el:

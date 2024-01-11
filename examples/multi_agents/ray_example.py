@@ -41,6 +41,8 @@ ma_env_for_cls = MultiAgentEnv(env_for_cls, ACTION_DOMAINS)
 class MAEnvWrapper(MAEnv):
     def __init__(self, env_config=None):
         super().__init__()
+        if env_config is None:
+            env_config = {}
 
         # you can customize stuff by using the "env config" if you want
         backend = LightSimBackend()
@@ -228,8 +230,7 @@ if __name__ == "__main__":
     # see ray doc for this...
     # syntax changes every ray major version apparently...
     config = PPOConfig()
-    config = config.training(gamma=0.9, lr=0.01, kl_coeff=0.3,
-        train_batch_size=128)
+    config = config.training(gamma=0.9, lr=0.01, kl_coeff=0.3, train_batch_size=128)
     config = config.resources(num_gpus=0)
     config = config.rollouts(num_rollout_workers=1)
    

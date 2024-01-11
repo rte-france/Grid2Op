@@ -178,7 +178,7 @@ class BaseTestLoadingCase(MakeBackend):
         assert np.all(backend.get_topo_vect() == np.ones(np.sum(backend.sub_info)))
 
         conv, *_  = backend.runpf()
-        assert conv, "powerflow diverge it is not supposed to!"
+        assert conv, f"powerflow diverge it is not supposed to! Error {_}"
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -200,7 +200,7 @@ class BaseTestLoadingCase(MakeBackend):
         type(backend).set_env_name("TestLoadingCase_env2_test_assert_grid_correct")
         backend.assert_grid_correct()
         conv, *_  = backend.runpf()
-        assert conv, "powerflow diverge it is not supposed to!"
+        assert conv, f"powerflow diverge it is not supposed to! Error {_}"
         backend.assert_grid_correct_after_powerflow()
 
 
@@ -263,7 +263,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def test_runpf_dc(self):
         self.skip_if_needed()
         conv, *_  = self.backend.runpf(is_dc=True)
-        assert conv
+        assert conv, f"powerflow diverge with error {_}"
         true_values_dc = np.array(
             [
                 147.83859556,
@@ -318,6 +318,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
             ]
         )
         conv, *_  = self.backend.runpf(is_dc=False)
+        assert conv, f"powerflow diverge with error {_}"
         assert conv
         p_or, *_ = self.backend.lines_or_info()
         assert self.compare_vect(p_or, true_values_ac)
@@ -326,7 +327,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         self.skip_if_needed()
         # i have the correct voltages in powerlines if the formula to link mw, mvar, kv and amps is correct
         conv, *_  = self.backend.runpf(is_dc=False)
-        assert conv, "powerflow diverge at loading"
+        assert conv, f"powerflow diverge at loading with error {_}"
 
         p_or, q_or, v_or, a_or = self.backend.lines_or_info()
         a_th = np.sqrt(p_or**2 + q_or**2) * 1e3 / (np.sqrt(3) * v_or)
@@ -342,7 +343,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         # of the powerline connected to it.
 
         conv, *_  = self.backend.runpf(is_dc=False)
-        assert conv, "powerflow diverge at loading"
+        assert conv, f"powerflow diverge at loading with error {_}"
         load_p, load_q, load_v = self.backend.loads_info()
         gen_p, gen__q, gen_v = self.backend.generators_info()
         p_or, q_or, v_or, a_or = self.backend.lines_or_info()
@@ -525,11 +526,11 @@ class BaseTestLoadingBackendFunc(MakeBackend):
             ]
         )
         conv, *_  = self.backend.runpf(is_dc=True)
-        assert conv
+        assert conv, f"error {_}"
         p_or_orig, q_or_orig, *_ = self.backend.lines_or_info()
         assert np.all(q_or_orig == 0.0), "in dc mode all q must be zero"
         conv, *_  = self.backend.runpf(is_dc=False)
-        assert conv
+        assert conv, f"error {_}"
         p_or_orig, q_or_orig, *_ = self.backend.lines_or_info()
         assert self.compare_vect(q_or_orig, true_values_ac)
 
@@ -574,8 +575,8 @@ class BaseTestLoadingBackendFunc(MakeBackend):
             conv, *_  = backend_cpy.runpf()
             assert (
                 conv
-            ), "Power flow computation does not converge if line {} is removed".format(
-                i
+            ), "Power flow computation does not converge if line {} is removed with error ".format(
+                i, _
             )
             flows = backend_cpy.get_line_status()
             assert not flows[i]
@@ -584,6 +585,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def test_donothing_action(self):
         self.skip_if_needed()
         conv, *_  = self.backend.runpf()
+        assert conv, f"error {_}"
         init_flow = self.backend.get_line_flow()
         init_lp, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
@@ -601,7 +603,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert np.all(init_ls == after_ls)  # check i didn't disconnect any powerlines
 
         conv, *_  = self.backend.runpf()
-        assert conv, "Cannot perform a powerflow after doing nothing"
+        assert conv, f"Cannot perform a powerflow after doing nothing with error {_}"
         after_flow = self.backend.get_line_flow()
         assert self.compare_vect(init_flow, after_flow)
 
@@ -613,7 +615,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
         # i set up the stuff to have exactly 0 losses
         conv, *_  = self.backend.runpf(is_dc=True)
-        assert conv, "powergrid diverge after loading (even in DC)"
+        assert conv, f"powergrid diverge after loading (even in DC) with error {_}"
         init_flow, *_ = self.backend.lines_or_info()
         init_lp, init_l_q, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
@@ -628,6 +630,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         bk_action += action
         self.backend.apply_action(bk_action)
         conv, *_  = self.backend.runpf(is_dc=True)
+        assert conv, f"powergrid diverge with error {_}"
         # now the system has exactly 0 losses (ie sum load = sum gen)
 
         # i check that if i divide by 2, then everything is divided by 2
@@ -678,7 +681,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def test_apply_action_prod_v(self):
         self.skip_if_needed()
         conv, *_  = self.backend.runpf(is_dc=False)
-        assert conv, "powergrid diverge after loading"
+        assert conv, f"powergrid diverge after loading with error {_}"
         prod_p_init, prod_q_init, prod_v_init = self.backend.generators_info()
         ratio = 1.05
         action = self.action_env(
@@ -688,7 +691,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         bk_action += action
         self.backend.apply_action(bk_action)
         conv, *_  = self.backend.runpf(is_dc=False)
-        assert conv, "Cannot perform a powerflow after modifying the powergrid"
+        assert conv, f"Cannot perform a powerflow after modifying the powergrid with error {_}"
 
         prod_p_after, prod_q_after, prod_v_after = self.backend.generators_info()
         assert self.compare_vect(
@@ -699,6 +702,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         self.skip_if_needed()
         # retrieve some initial data to be sure only a subpart of the _grid is modified
         conv, *_  = self.backend.runpf()
+        assert conv, f"powerflow diverge with , error: {_}"
         init_lp, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
 
@@ -714,7 +718,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
         # compute a load flow an performs more tests
         conv, *_ = self.backend.runpf()
-        assert conv, "Power does not converge if line {} is removed".format(19)
+        assert conv, "Power does not converge if line {} is removed with error {}".format(19, _)
 
         # performs basic check
         after_lp, *_ = self.backend.loads_info()
@@ -733,7 +737,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def test_apply_action_hazard(self):
         self.skip_if_needed()
         conv, *_  = self.backend.runpf()
-        assert conv, "powerflow did not converge at iteration 0"
+        assert conv, f"powerflow did not converge at iteration 0, with error {_}"
         init_lp, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
 
@@ -748,7 +752,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
         # compute a load flow an performs more tests
         conv, *_  = self.backend.runpf()
-        assert conv, "Power does not converge if line {} is removed".format(19)
+        assert conv, "Power does not converge if line {} is removed with error {}".format(19, _)
 
         # performs basic check
         after_lp, *_ = self.backend.loads_info()
@@ -764,6 +768,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         self.skip_if_needed()
         # retrieve some initial data to be sure only a subpart of the _grid is modified
         conv, *_  = self.backend.runpf()
+        assert conv, f"powerflow diverge with , error: {_}"
         init_lp, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
 
@@ -786,7 +791,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         conv, *_  = self.backend.runpf()
         assert (
             conv
-        ), "Powerflow does not converge if lines {} and {} are removed".format(17, 19)
+        ), "Powerflow does not converge if lines {} and {} are removed with error {}".format(17, 19, _)
 
         # performs basic check
         after_lp, *_ = self.backend.loads_info()
@@ -863,6 +868,7 @@ class BaseTestTopoAction(MakeBackend):
         # retrieve some initial data to be sure only a subpart of the _grid is modified
         self.skip_if_needed()
         conv, *_  = self.backend.runpf()
+        assert conv, f"powerflow diverge with , error: {_}"
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
@@ -874,7 +880,7 @@ class BaseTestTopoAction(MakeBackend):
         # apply the action here
         self.backend.apply_action(bk_action)
         conv, *_  = self.backend.runpf()
-        assert conv
+        assert conv, f"powerflow diverge with , error: {_}"
         after_amps_flow = self.backend.get_line_flow()
 
         topo_vect = self.backend.get_topo_vect()
@@ -945,6 +951,7 @@ class BaseTestTopoAction(MakeBackend):
         # retrieve some initial data to be sure only a subpart of the _grid is modified
         self.skip_if_needed()
         conv, *_  = self.backend.runpf()
+        assert conv, f"powerflow diverge with , error: {_}"
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
@@ -957,7 +964,7 @@ class BaseTestTopoAction(MakeBackend):
         # apply the action here
         self.backend.apply_action(bk_action)
         conv, *_  = self.backend.runpf()
-        assert conv
+        assert conv, f"powerflow diverge with , error: {_}"
         after_amps_flow = self.backend.get_line_flow()
 
         topo_vect = self.backend.get_topo_vect()
@@ -1042,6 +1049,7 @@ class BaseTestTopoAction(MakeBackend):
         # check that switching the bus of 3 object is equivalent to set them to bus 2 (as above)
         self.skip_if_needed()
         conv, *_  = self.backend.runpf()
+        assert conv, f"powerflow diverge with , error: {_}"
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
@@ -1055,7 +1063,7 @@ class BaseTestTopoAction(MakeBackend):
 
         # run the powerflow
         conv, *_  = self.backend.runpf()
-        assert conv
+        assert conv, f"powerflow diverge with , error: {_}"
         after_amps_flow = self.backend.get_line_flow()
 
         topo_vect = self.backend.get_topo_vect()
@@ -1116,6 +1124,7 @@ class BaseTestTopoAction(MakeBackend):
         # and that setting it again is equivalent to doing nothing
         self.skip_if_needed()
         conv, *_  = self.backend.runpf()
+        assert conv, f"powerflow diverge with , error: {_}"
         init_amps_flow = copy.deepcopy(self.backend.get_line_flow())
 
         # check that maintenance vector is properly taken into account
@@ -1129,7 +1138,7 @@ class BaseTestTopoAction(MakeBackend):
         self.backend.apply_action(bk_action)
         conv, *_  = self.backend.runpf()
         bk_action.reset()
-        assert conv
+        assert conv, f"powerflow diverge with , error: {_}"
         after_amps_flow = self.backend.get_line_flow()
 
         topo_vect = self.backend.get_topo_vect()
@@ -1191,7 +1200,7 @@ class BaseTestTopoAction(MakeBackend):
         # apply the action here
         self.backend.apply_action(bk_action)
         conv, *_  = self.backend.runpf()
-        assert conv
+        assert conv, f"powerflow diverge with error: {_}"
 
         after_amps_flow = self.backend.get_line_flow()
         assert self.compare_vect(after_amps_flow, init_amps_flow)
@@ -1219,7 +1228,7 @@ class BaseTestTopoAction(MakeBackend):
         # apply the action here
         self.backend.apply_action(bk_action)
         conv, *_  = self.backend.runpf()
-        assert conv, "powerflow diverge it should not"
+        assert conv, f"powerflow diverge it should not, error: {_}"
 
         # check the _grid is correct
         topo_vect = self.backend.get_topo_vect()
@@ -1689,7 +1698,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         conv, *_ = self.backend.runpf()
-        assert conv, "powerflow should converge at loading"
+        assert conv, f"powerflow should converge at loading, error: {_}"
         lines_flows_init = self.backend.get_line_flow()
         thermal_limit = 10 * lines_flows_init
         thermal_limit[self.id_first_line_disco] = (
@@ -1733,7 +1742,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         conv, *_ = self.backend.runpf()
-        assert conv, "powerflow should converge at loading"
+        assert conv, f"powerflow should converge at loading, error: {_}"
         lines_flows_init = self.backend.get_line_flow()
 
         thermal_limit = 10 * lines_flows_init
@@ -2732,7 +2741,7 @@ class BaseIssuesTest(MakeBackend):
             }
         )
         obs, reward, done, info = env.step(action)
-        assert not done
+        assert not done, f"Episode should not have ended here, error : {info['exception']}"
         assert obs.line_status[LINE_ID] == False
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
