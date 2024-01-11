@@ -27,7 +27,14 @@ class MaskedEnvironment(Environment):  # TODO heritage ou alors on met un truc d
     .. warning::
         At time of writing, the behaviour of "obs.simulate" is not modified
     """  
-    CAN_SKIP_TS = False  # some steps can be more than one time steps
+    # some kind of infinity value
+    # NB we multiply np.finfo(dt_float).max by a small number (1e-7) to avoid overflow
+    # indeed, _hard_overflow_threshold is multiply by the flow on the lines
+    INF_VAL_THM_LIM = 1e-7 * np.finfo(dt_float).max  
+    
+    # some kind of infinity value
+    INF_VAL_TS_OVERFLOW_ALLOW = np.iinfo(dt_int).max - 1  
+    
     def __init__(self,
                  grid2op_env: Union[Environment, dict],
                  lines_of_interest):
@@ -38,7 +45,7 @@ class MaskedEnvironment(Environment):  # TODO heritage ou alors on met un truc d
         elif isinstance(grid2op_env, dict):
             super().__init__(**grid2op_env)
         else:
-            raise EnvError(f"For TimedOutEnvironment you need to provide "
+            raise EnvError(f"For MaskedEnvironment you need to provide "
                            f"either an Environment or a dict "
                            f"for grid2op_env. You provided: {type(grid2op_env)}")
         
@@ -62,10 +69,8 @@ class MaskedEnvironment(Environment):  # TODO heritage ou alors on met un truc d
     
     def _reset_vectors_and_timings(self):
         super()._reset_vectors_and_timings()
-        self._hard_overflow_threshold[~self._lines_of_interest] = 1e-7 * np.finfo(dt_float).max   # some kind of infinity value
-        # NB we multiply np.finfo(dt_float).max by a small number to avoid overflow
-        # indeed, _hard_overflow_threshold is multiply by the flow on the lines
-        self._nb_timestep_overflow_allowed[~self._lines_of_interest] = np.iinfo(dt_int).max - 1  # some kind of infinity value
+        self._hard_overflow_threshold[~self._lines_of_interest] = type(self).INF_VAL_THM_LIM
+        self._nb_timestep_overflow_allowed[~self._lines_of_interest] = type(self).INF_VAL_TS_OVERFLOW_ALLOW
 
     def get_kwargs(self, with_backend=True, with_chronics_handler=True):
         res = {}
@@ -79,6 +84,10 @@ class MaskedEnvironment(Environment):  # TODO heritage ou alors on met un truc d
         res["other_env_kwargs"] = {"lines_of_interest": copy.deepcopy(self._lines_of_interest)}
         return res
 
+    def _custom_deepcopy_for_copy(self, new_obj):
+        super()._custom_deepcopy_for_copy(new_obj)
+        new_obj._lines_of_interest = copy.deepcopy(self._lines_of_interest)
+    
     @classmethod
     def init_obj_from_kwargs(cls,
                              other_env_kwargs,
