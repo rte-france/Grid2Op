@@ -471,6 +471,8 @@ class BaseAction(GridObjects):
         self._change_switch_status = None
         if cls.detailed_topo_desc is not None:
             self._change_switch_status = np.full(shape=cls.detailed_topo_desc.switches.shape[0], fill_value=False, dtype=dt_bool)
+            
+        # TODO detailed topo busbar coupler !!!!
         
         # change the stuff
         self._modif_inj = False
@@ -550,6 +552,7 @@ class BaseAction(GridObjects):
             
         if type(self).detailed_topo_desc is not None:
             attr_vect += ["_set_switch_status", "_change_switch_status"]
+            # TODO detailed topo busbar coupler !
             
         for attr_nm in attr_simple:
             setattr(other, attr_nm, getattr(self, attr_nm))
@@ -814,9 +817,9 @@ class BaseAction(GridObjects):
         cls.authorized_keys.add("change_switch")
         cls.attr_list_vect.append("_set_switch_status")
         cls.attr_list_vect.append("_change_switch_status")
+        # TODO detailed topo busbar coupler
         
         cls.attr_list_set = set(cls.attr_list_vect)
-        
     
     @classmethod
     def process_grid2op_compat(cls):
@@ -1145,6 +1148,52 @@ class BaseAction(GridObjects):
             and (not self._change_switch_status)
         )
 
+    def compute_switches_status(self):
+        """This function is used to "process" the action on switches and convert
+        it on action of type set_bus / change_bus
+        
+        It can raise some AmbiugousAction.
+        
+        It does not modify the action.
+        """
+            
+        # TODO detailed topo
+        
+        # set_line_status = 1 * self._set_line_status  # needed ?
+        # switch_line_status = copy.deepcopy(self._switch_line_status)  # needed ?
+        # topology changed
+        set_topo_vect = 1 * self._set_topo_vect
+        change_bus_vect = copy.deepcopy(self._change_bus_vect)
+        dtd = type(self).detailed_topo_desc
+        if dtd is None:
+            # nothing to do in this case
+            return set_topo_vect, change_bus_vect
+        
+        # check ambiguous behaviour
+        if ((self._set_switch_status != 0) & self._change_switch_status).any():
+            raise AmbiguousAction("Trying to both set the status of some switches (with 'set_switch') "
+                                  "and change it (with 'change_switch') using the same action.")
+        
+        id_topo_vect_set = dtd.switches_to_topovect_id[(self._set_switch_status != 0)]
+        id_topo_vect_set = id_topo_vect_set[id_topo_vect_set != -1]
+        if (set_topo_vect[id_topo_vect_set] != 0).any():
+            raise AmbiguousAction("Trying to modify the status of some switches (with 'set_switch') "
+                                  "and set the element to a given busbar (using `set_bus`)")
+        if change_bus_vect[id_topo_vect_set].any():
+            raise AmbiguousAction("Trying to modify the status of some switches (with 'set_switch') "
+                                  "and change the busbar to which the same element is connected "
+                                  "(using `change_bus`)")
+        id_topo_vect_change = dtd.switches_to_topovect_id[self._change_switch_status]
+        id_topo_vect_change = id_topo_vect_change[id_topo_vect_change != -1]
+        if (set_topo_vect[id_topo_vect_change] != 0).any():
+            raise AmbiguousAction("Trying to modify the status of some switches (with 'change_switch') "
+                                  "and set the element to a given busbar (using `set_bus`)")
+        if change_bus_vect[id_topo_vect_change].any():
+            raise AmbiguousAction("Trying to modify the status of some switches (with 'change_switch') "
+                                  "and change the busbar to which the same element is connected "
+                                  "(using `change_bus`)")
+        return set_topo_vect, change_bus_vect
+    
     def get_topological_impact(self, powerline_status=None) -> Tuple[np.ndarray, np.ndarray]:
         """
         Gives information about the element being impacted by this action.
