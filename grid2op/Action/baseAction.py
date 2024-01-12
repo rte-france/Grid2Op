@@ -928,8 +928,9 @@ class BaseAction(GridObjects):
         self._modif_alarm = self._raise_alarm.any()
         self._modif_alert = self._raise_alert.any()
         
-        self._modif_set_switch = (self._set_switch_status != 0).any()
-        self._modif_change_switch = (self._change_switch_status).any()
+        if type(self).detailed_topo_desc is not None:
+            self._modif_set_switch = (self._set_switch_status != 0).any()
+            self._modif_change_switch = (self._change_switch_status).any()
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
