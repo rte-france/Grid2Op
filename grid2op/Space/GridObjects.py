@@ -2760,6 +2760,12 @@ class GridObjects:
         res_cls.process_shunt_satic_data()
         if res_cls.glop_version != grid2op.__version__:
             res_cls.process_grid2op_compat()
+        
+        # this needs to be done after process_grid2op_compat
+        # because process_grid2op_compat can remove the description of the topology
+        # which is not supported in earlier grid2op versions
+        if res_cls.detailed_topo_desc is not None:
+            res_cls.process_grid2op_detailed_topo_vect()
 
         if force_module is not None:
             res_cls.__module__ = force_module  # hack because otherwise it says "abc" which is not the case
@@ -2770,6 +2776,13 @@ class GridObjects:
         del res_cls
         return globals()[name_res]
 
+    @classmethod
+    def process_grid2op_detailed_topo_vect(cls):
+        """Process the class to register new attribute for observation and action
+        if the detailed_topo_desc is not empty (*ie* if there switches on your grid)
+        """
+        pass
+    
     @classmethod
     def process_grid2op_compat(cls):
         """

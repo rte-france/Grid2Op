@@ -565,11 +565,12 @@ class _BackendAction(GridObjects):
     
     def get_all_switches(self):
         # TODO detailed topo
-        if type(self).detailed_topo_desc is None:
+        cls = type(self)
+        if cls.detailed_topo_desc is None:
             raise Grid2OpException(ERR_MSG_SWITCH)
-        detailed_topo_desc = type(self).detailed_topo_desc
-        if type(self).shunts_data_available:
-            shunt_bus = self.shunt_bus.values
+        detailed_topo_desc = cls.detailed_topo_desc
+        if cls.shunts_data_available:
+            shunt_bus = self.current_shunt_bus.values
         else:
             shunt_bus = None
         if self._detailed_topo is None:

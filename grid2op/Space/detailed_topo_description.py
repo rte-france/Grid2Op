@@ -16,55 +16,206 @@ from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
 class DetailedTopoDescription(object):
     """This class represent the detail description of the 
-    switches in the grid.
+    switches in the grid. It allows to use new types of actions (`act.set_switches = ..` # TODO detailed topo)
+    and to get some extra information in the observation (`obs.switches_state` # TODO detailed topo).
     
-    It does not say whether switches / breakers / etc. are opened or closed
-    just that it exists a switch between this and this
+    This class only stores the existence of switches. It just informs
+    the user that "just that it exists a switch between this and this". It does 
+    not say whether switches / breakers / etc. are opened or closed (for that you need to have 
+    a look at the observation) and it does not allow to modify the switches state (for that you
+    need to use the action).
     
-    It is const, should be initialized by the backend and never modified afterwards.
+    If set, it is "const" / "read only" / immutable.
+    It should be initialized by the backend and never modified afterwards.
     
-    It is a const member of the class (not the object, the class !)
+    It is a const member of the main grid2op classes (not the object, the class !), just like the `n_sub` or 
+    `lines_or_pos_topo_vect` property for example.
+    
+    In order to fill a :class:`DetailedTopoDescription` you need to fill the 
+    following attribute:
+    
+    - :attr:`DetailedTopoDescription.busbar_name`: 
+    - :attr:`DetailedTopoDescription.busbar_to_subid`
+    - :attr:`DetailedTopoDescription.busbar_connectors`
+    - :attr:`DetailedTopoDescription.switches`
+    - :attr:`DetailedTopoDescription.switches_to_topovect_id`
+    - :attr:`DetailedTopoDescription.switches_to_shunt_id` 
+    - :attr:`DetailedTopoDescription.load_to_busbar_id` 
+    - :attr:`DetailedTopoDescription.gen_to_busbar_id`
+    - :attr:`DetailedTopoDescription.line_or_to_busbar_id`
+    - :attr:`DetailedTopoDescription.line_ex_to_busbar_id`
+    - :attr:`DetailedTopoDescription.storage_to_busbar_id`
+    - :attr:`DetailedTopoDescription.shunt_to_busbar_id`
+
+    To create a "detailed description of the swtiches", somewhere in the implementation of your
+    backend you have a piece of code looking like:
+    
+    .. code-block:: python
+    
+        import os
+        from grid2op.Backend import Backend
+        from typing import Optional, Union, Tuple
+        
+        class MyBackend(Backend):
+            # some implementation of other methods...
+            
+            def load_grid(self,
+                          path : Union[os.PathLike, str],
+                          filename : Optional[Union[os.PathLike, str]]=None) -> None:
+                # do the regular implementation of the load_grid function
+                ...
+                ...
+                
+                # once done, then you can create a detailed topology
+                detailed_topo_desc = DetailedTopoDescription()
+                
+                # you fill it with the data in the grid you read
+                # (at this stage you tell grid2op what the grid is made of)
+                detailed_topo_desc.busbar_name = ...
+                detailed_topo_desc.busbar_to_subid = ...
+                detailed_topo_desc.busbar_connectors = ...
+                detailed_topo_desc.switches = ...
+                detailed_topo_desc.switches_to_topovect_id = ...
+                detailed_topo_desc.switches_to_shunt_id = ...
+                detailed_topo_desc.load_to_busbar_id = ...
+                detailed_topo_desc.gen_to_busbar_id = ...
+                detailed_topo_desc.line_or_to_busbar_id = ...
+                detailed_topo_desc.line_ex_to_busbar_id = ...
+                detailed_topo_desc.storage_to_busbar_id = ...
+                detailed_topo_desc.shunt_to_busbar_id = ...
+                
+                # and then you assign it as a member of this class
+                self.detailed_topo_desc =  detailed_topo_desc
+        
+            # some other implementation of other methods
+
+    Examples
+    --------
+    
+    Unfortunately, most of the ieee grid (used in released grid2op environments) does not
+    come with a detailed description of the topology. They only describe the "nodal" topology (buses)
+    and not how things are wired together with switches.
+    
+    If you want to use this feature with released grid2op environment, 
+    you can create a new backend class, and use it to create a new environment like this:
+    
+    .. code-block:: python
+    
+        import grid2op
+        from grid2op.Space import AddDetailedTopoIEEE
+        from grid2op.Backend import PandaPowerBackend  # or any other backend (*eg* lightsim2grid)
+        
+        class PandaPowerBackendWithDetailedTopo(AddDetailedTopoIEEE, PandaPowerBackend):
+            pass
+        
+        env_name = "l2rpn_case14_sandbox"
+        env = grid2op.make(env_name, backend=PandaPowerBackendWithDetailedTopo())
+        # do wathever you want
+
+        
     """
-    SUB_COL = 0
+    #: In the :attr:`DetailedTopoDescription.switches` table, tells that column 0
+    #: concerns the substation
+    SUB_COL = 0 
+    
+    #: In the :attr:`DetailedTopoDescription.switches` table, tells that column 1
+    #: concerns the type of object (0 for Load, see the `xxx_ID` (*eg* :attr:`DetailedTopoDescription.LOAD_ID`))
     OBJ_TYPE_COL = 1
+    
+    #: In the :attr:`DetailedTopoDescription.switches` table, tells that column 2
+    #: concerns the id of object that this switches connects / disconnects
     OBJ_ID_COL = 2
+    
+    #: In the :attr:`DetailedTopoDescription.switches` table, tells that column 2
+    #: concerns the id of the busbar that this switches connects / disconnects
     BUSBAR_ID_COL = 3
     
+    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
+    #: if a 0 is present, then this switch will connect a load to a busbar
     LOAD_ID = 0
+    
+    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
+    #: if a 1 is present, then this switch will connect a generator to a busbar
     GEN_ID = 1
+    
+    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
+    #: if a 2 is present, then this switch will connect a storage unit to a busbar
     STORAGE_ID = 2
+    
+    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
+    #: if a 3 is present, then this switch will connect a line (origin side) to a busbar
     LINE_OR_ID = 3
+    
+    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
+    #: if a 4 is present, then this switch will connect a line (extremity side) to a busbar
     LINE_EX_ID = 4
+    
+    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
+    #: if a 5 is present, then this switch will connect a shunt to a busbar
     SHUNT_ID = 5
     
     def __init__(self):        
-        self.busbar_name = None  # id / name / whatever for each busbars
-        self.busbar_to_subid = None  # which busbar belongs to which substation
+        #: vector of string that has the size of the number of busbars on your grid
+        #: and for each busbar it gives... its name
+        self.busbar_name = None
         
-        self.busbar_connectors = None  # for each element that connects busbars, tells which busbars its connect (by id)
+        #: vector of int that has the size of the number of busbars on
+        #: your grid and for each busbar it gives the substation id [0...n_sub] to which
+        #: the busbar belongs to.
+        self.busbar_to_subid = None
+        
+        #: A matrix representing the "switches" between the busbars.
+        #: It counts 2 columns and as many rows as the number of "switches" between
+        #: the busbars. And for each "busbars switches" it gives the id of the
+        #: busbars it can connect / disconnect.
+        self.busbar_connectors = None 
     
-        self.switches = None  # a matrix of 'n_switches' rows and 4 columns
-        # col 0 gives the substation id
-        # col 1 gives the object type it connects (0 = LOAD, etc.)
-        # col 2 gives the ID of the object it connects (number between 0 and n_load-1 if previous column is 0 for example)
-        # col 3 gives the busbar id that this switch connects its element to
+        #: It is a matrix describing each switches. This matrix has 'n_switches' rows and 4 columns. 
+        #: Each column provides an information about the switch:
+        #:     
+        #:     - col 0 gives the substation id
+        #:     - col 1 gives the object type it connects (0 = LOAD, etc.) see :attr:`DetailedTopoDescription.LOAD_ID`, 
+        #:       :attr:`DetailedTopoDescription.GEN_ID`, :attr:`DetailedTopoDescription.STORAGE_ID`, 
+        #:       :attr:`DetailedTopoDescription.LINE_OR_ID`, :attr:`DetailedTopoDescription.LINE_EX_ID` 
+        #:       and :attr:`DetailedTopoDescription.SHUNT_ID`
+        #:     - col 2 gives the ID of the object it connects (number between 0 and n_load-1 if previous column is 0 for example)
+        #:     - col 3 gives the busbar id that this switch connects its element to
+        self.switches = None
         
-        # for each switches says which element in the "topo_vect" it concerns [-1 for shunt]
+        #: This is a vector of integer having the same size as the number of switches in your grid.
+        #: For each switches it gives the ID of the element this switch controls in the `topo_vect` vector
+        #: When `-1` it means the element is not reprensented in the `topo_vect` (for example it's a shunt)
         self.switches_to_topovect_id = None
+        
+        #: This is a vector of integer having the same size as the number of switches in your grid.
+        #: For each switches it says "-1" if the switch does not control a shunt or the shunt id (=>0)
+        #: if the switch does control a shunt.
         self.switches_to_shunt_id = None
         
-        # whether the switches connects an element represented in the topo_vect vector  (unused atm)
-        self.in_topo_vect = None
+        #: A list of tuple that has the same size as the number of loads on the grid.
+        #: For each loads, it gives the busbar ids to which (thanks to a switch) a load can be
+        #: connected. For example if `type(env)..detailed_topo_desc.load_to_busbar_id[0]` is the tuple `(1, 15)` this means that load
+        #: id 0 can be connected to either busbar id 1 or busbar id 15.
+        #: This information is redundant with the one provided in :attr:`DetailedTopoDescription.switches`
+        self.load_to_busbar_id = None
         
-        self.load_to_busbar_id = None  # for each loads, you have a tuple of busbars to which it can be connected
+        #: Same as :attr:`DetailedTopoDescription.load_to_busbar_id` but for generators
         self.gen_to_busbar_id = None
+        
+        #: Same as :attr:`DetailedTopoDescription.load_to_busbar_id` but for lines (or side)
         self.line_or_to_busbar_id = None
+        
+        #: Same as :attr:`DetailedTopoDescription.load_to_busbar_id` but for lines (ex side)
         self.line_ex_to_busbar_id = None
+        
+        #: Same as :attr:`DetailedTopoDescription.load_to_busbar_id` but for storage unit
         self.storage_to_busbar_id = None
+        
+        #: Same as :attr:`DetailedTopoDescription.load_to_busbar_id` but for shunt
         self.shunt_to_busbar_id = None
     
     @classmethod
-    def from_init_grid(cls, init_grid):
+    def from_ieee_grid(cls, init_grid):
         """For now, suppose that the grid comes from ieee"""
         n_sub = init_grid.n_sub
         
@@ -76,8 +227,8 @@ class DetailedTopoDescription(object):
         # and 1 connector allows to connect both of them
         nb_connector = n_sub
         res.busbar_connectors = np.zeros((nb_connector, 2), dtype=dt_int)
-        res.busbar_connectors[:,0] = np.arange(n_sub)
-        res.busbar_connectors[:,1] = np.arange(n_sub) + n_sub
+        res.busbar_connectors[:, 0] = np.arange(n_sub)
+        res.busbar_connectors[:, 1] = np.arange(n_sub) + n_sub
         
         # for each element (load, gen, etc.)
         # gives the id of the busbar to which this element can be connected thanks to a
@@ -116,8 +267,8 @@ class DetailedTopoDescription(object):
             arrs_subid.append(init_grid.shunt_to_subid)
             ars2.append(np.array([-1] * init_grid.n_shunt))
             ids.append(cls.SHUNT_ID)
+            
         prev_el = 0
-        # prev_el1 = 0
         for sub_id in range(n_sub):    
             for arr_subid, pos_topo_vect, obj_col in zip(arrs_subid, ars2, ids):
                 nb_el = (arr_subid == sub_id).sum()
@@ -128,12 +279,7 @@ class DetailedTopoDescription(object):
                 res.switches_to_topovect_id[prev_el : (prev_el + 2 * nb_el)] = np.repeat(pos_topo_vect[arr_subid == sub_id], 2)
                 if init_grid.shunts_data_available and obj_col == cls.SHUNT_ID:
                     res.switches_to_shunt_id[prev_el : (prev_el + 2 * nb_el)] = np.repeat(where_el, 2)
-                    
-                # if obj_col != cls.SHUNT_ID:
-                #     # object is modeled in topo_vect
-                #     res.in_topo_vect[prev_el1 : (prev_el1 + nb_el)] = 1
                 prev_el += 2 * nb_el
-                # prev_el1 += nb_el
         
         # and also fill some extra information
         res.load_to_busbar_id = [(load_sub, load_sub + n_sub) for load_id, load_sub in enumerate(init_grid.load_to_subid)]

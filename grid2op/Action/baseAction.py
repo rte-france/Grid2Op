@@ -404,50 +404,51 @@ class BaseAction(GridObjects):
 
         """
         GridObjects.__init__(self)
-
+        cls = type(self)
+        
         # False(line is disconnected) / True(line is connected)
-        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=dt_int)
+        self._set_line_status = np.full(shape=cls.n_line, fill_value=0, dtype=dt_int)
         self._switch_line_status = np.full(
-            shape=self.n_line, fill_value=False, dtype=dt_bool
+            shape=cls.n_line, fill_value=False, dtype=dt_bool
         )
 
         # injection change
         self._dict_inj = {}
 
         # topology changed
-        self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=dt_int)
+        self._set_topo_vect = np.full(shape=cls.dim_topo, fill_value=0, dtype=dt_int)
         self._change_bus_vect = np.full(
-            shape=self.dim_topo, fill_value=False, dtype=dt_bool
+            shape=cls.dim_topo, fill_value=False, dtype=dt_bool
         )
 
         # add the hazards and maintenance usefull for saving.
-        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
-        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
+        self._hazards = np.full(shape=cls.n_line, fill_value=False, dtype=dt_bool)
+        self._maintenance = np.full(shape=cls.n_line, fill_value=False, dtype=dt_bool)
 
         # redispatching vector
-        self._redispatch = np.full(shape=self.n_gen, fill_value=0.0, dtype=dt_float)
+        self._redispatch = np.full(shape=cls.n_gen, fill_value=0.0, dtype=dt_float)
 
         # storage unit vector
         self._storage_power = np.full(
-            shape=self.n_storage, fill_value=0.0, dtype=dt_float
+            shape=cls.n_storage, fill_value=0.0, dtype=dt_float
         )
 
         # curtailment of renewable energy
-        self._curtail = np.full(shape=self.n_gen, fill_value=-1.0, dtype=dt_float)
+        self._curtail = np.full(shape=cls.n_gen, fill_value=-1.0, dtype=dt_float)
 
         self._vectorized = None
         self._lines_impacted = None
         self._subs_impacted = None
 
         # shunts
-        if type(self).shunts_data_available:
+        if cls.shunts_data_available:
             self.shunt_p = np.full(
-                shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float
+                shape=cls.n_shunt, fill_value=np.NaN, dtype=dt_float
             )
             self.shunt_q = np.full(
-                shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float
+                shape=cls.n_shunt, fill_value=np.NaN, dtype=dt_float
             )
-            self.shunt_bus = np.full(shape=self.n_shunt, fill_value=0, dtype=dt_int)
+            self.shunt_bus = np.full(shape=cls.n_shunt, fill_value=0, dtype=dt_int)
         else:
             self.shunt_p = None
             self.shunt_q = None
@@ -456,13 +457,21 @@ class BaseAction(GridObjects):
         self._single_act = True
 
         self._raise_alarm = np.full(
-            shape=self.dim_alarms, dtype=dt_bool, fill_value=False
+            shape=cls.dim_alarms, dtype=dt_bool, fill_value=False
         )  # TODO
 
         self._raise_alert = np.full(
-            shape=self.dim_alerts, dtype=dt_bool, fill_value=False
+            shape=cls.dim_alerts, dtype=dt_bool, fill_value=False
         )  # TODO
 
+        self._set_switch_status = None
+        if cls.detailed_topo_desc is not None:
+            self._set_switch_status = np.full(shape=cls.detailed_topo_desc.switches.shape[0], fill_value=0, dtype=dt_int)
+
+        self._change_switch_status = None
+        if cls.detailed_topo_desc is not None:
+            self._change_switch_status = np.full(shape=cls.detailed_topo_desc.switches.shape[0], fill_value=False, dtype=dt_bool)
+        
         # change the stuff
         self._modif_inj = False
         self._modif_set_bus = False
@@ -474,10 +483,14 @@ class BaseAction(GridObjects):
         self._modif_curtailment = False
         self._modif_alarm = False
         self._modif_alert = False
+        
+        # TODO detailed topo
+        self._modif_set_switch = False
+        self._modif_change_switch = False
 
     @classmethod
     def process_shunt_satic_data(cls):
-        if not cls.shunts_data_available:
+        if cls.shunts_data_available:
             # this is really important, otherwise things from grid2op base types will be affected
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
@@ -514,6 +527,8 @@ class BaseAction(GridObjects):
             "_modif_alarm",
             "_modif_alert",
             "_single_act",
+            "_modif_set_switch",
+            "_modif_change_switch",
         ]
 
         attr_vect = [
@@ -532,7 +547,10 @@ class BaseAction(GridObjects):
 
         if type(self).shunts_data_available:
             attr_vect += ["shunt_p", "shunt_q", "shunt_bus"]
-
+            
+        if type(self).detailed_topo_desc is not None:
+            attr_vect += ["_set_switch_status", "_change_switch_status"]
+            
         for attr_nm in attr_simple:
             setattr(other, attr_nm, getattr(self, attr_nm))
 
@@ -555,9 +573,9 @@ class BaseAction(GridObjects):
 
         return res
 
-    @classmethod
-    def process_shunt_satic_data(cls):
-        return super().process_shunt_satic_data()
+    # @classmethod
+    # def process_shunt_satic_data(cls):
+    #     return super().process_shunt_satic_data()
     
     def __deepcopy__(self, memodict={}) -> "BaseAction":
         res = type(self)()
@@ -725,6 +743,15 @@ class BaseAction(GridObjects):
                 ]
             if not res["shunt"]:
                 del res["shunt"]
+                
+        if type(self).detailed_topo_desc is not None:
+            # TODO detailed topo
+            
+            if self._modif_set_switch:
+                pass
+            if self._modif_change_switch:
+                pass
+            
         return res
 
     @classmethod
@@ -773,6 +800,25 @@ class BaseAction(GridObjects):
         return np.where(self._raise_alert)[0]
 
     @classmethod
+    def process_grid2op_detailed_topo_vect(cls):
+        """Process the class to register new attribute for observation and action
+        if the detailed_topo_desc is not empty (*ie* if there switches on your grid)
+        
+        Only called if a detailed topology is registered
+        """
+        cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
+        cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+        cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+        
+        cls.authorized_keys.add("set_switch")
+        cls.authorized_keys.add("change_switch")
+        cls.attr_list_vect.append("_set_switch_status")
+        cls.attr_list_vect.append("_change_switch_status")
+        
+        cls.attr_list_set = set(cls.attr_list_vect)
+        
+    
+    @classmethod
     def process_grid2op_compat(cls):
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             # oldest version: no storage and no curtailment available
@@ -804,6 +850,10 @@ class BaseAction(GridObjects):
         if cls.glop_version < "1.9.1":
             # this feature did not exist before.
             cls.dim_alerts = 0
+            
+        if cls.glop_version < "1.9.8":
+            # this feature did not exist before
+            cls.detailed_topo_desc = None
 
     def _reset_modified_flags(self):
         self._modif_inj = False
@@ -816,10 +866,12 @@ class BaseAction(GridObjects):
         self._modif_curtailment = False
         self._modif_alarm = False
         self._modif_alert = False
+        self._modif_set_switch = False
+        self._modif_change_switch = False
 
     def can_affect_something(self) -> bool:
         """
-        This functions returns True if the current action has any chance to change the grid.
+        This functions returns ``True`` if the current action has any chance to change the grid.
 
         Notes
         -----
@@ -836,6 +888,8 @@ class BaseAction(GridObjects):
             or self._modif_curtailment
             or self._modif_alarm
             or self._modif_alert
+            or self._modif_set_switch
+            or self._modif_change_switch
         )
 
     def _get_array_from_attr_name(self, attr_name):
@@ -845,14 +899,15 @@ class BaseAction(GridObjects):
             if attr_name in self._dict_inj:
                 res = self._dict_inj[attr_name]
             else:
+                cls = type(self)
                 if attr_name == "prod_p" or attr_name == "prod_v":
-                    res = np.full(self.n_gen, fill_value=0.0, dtype=dt_float)
+                    res = np.full(cls.n_gen, fill_value=0.0, dtype=dt_float)
                 elif attr_name == "load_p" or attr_name == "load_q":
-                    res = np.full(self.n_load, fill_value=0.0, dtype=dt_float)
+                    res = np.full(cls.n_load, fill_value=0.0, dtype=dt_float)
                 else:
                     raise Grid2OpException(
                         'Impossible to find the attribute "{}" '
-                        'into the BaseAction of type "{}"'.format(attr_name, type(self))
+                        'into the BaseAction of type "{}"'.format(attr_name, cls)
                     )
         return res
 
@@ -869,6 +924,9 @@ class BaseAction(GridObjects):
         self._modif_curtailment = (self._curtail != -1.0).any()
         self._modif_alarm = self._raise_alarm.any()
         self._modif_alert = self._raise_alert.any()
+        
+        self._modif_set_switch = (self._set_switch_status != 0).any()
+        self._modif_change_switch = (self._change_switch_status).any()
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
@@ -1073,7 +1131,8 @@ class BaseAction(GridObjects):
                 return False
             if not (self.shunt_bus == other.shunt_bus).all():
                 return False
-
+            
+        # TODO detailed topology
         return True
 
     def _dont_affect_topology(self) -> bool:
@@ -1082,6 +1141,8 @@ class BaseAction(GridObjects):
             and (not self._modif_change_bus)
             and (not self._modif_set_status)
             and (not self._modif_change_status)
+            and (not self._set_switch_status)
+            and (not self._change_switch_status)
         )
 
     def get_topological_impact(self, powerline_status=None) -> Tuple[np.ndarray, np.ndarray]:

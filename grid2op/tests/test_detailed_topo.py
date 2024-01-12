@@ -16,7 +16,7 @@ from grid2op.Action import BaseAction, CompleteAction
 from grid2op.Observation import BaseObservation
 from grid2op.Runner import Runner
 from grid2op.Backend import PandaPowerBackend
-from grid2op.Space import DetailedTopoDescription
+from grid2op.Space import AddDetailedTopoIEEE
 from grid2op.Agent import BaseAgent
 
 import pdb
@@ -41,7 +41,8 @@ def _aux_test_correct(detailed_topo_desc, dim_topo):
                       28, 29, 24, 25, 22, 23, 30, 31, 26, 27, 30, 31, 24, 25, 29, 30, 32,
                       33])
     assert (detailed_topo_desc.switches.sum(axis=1) == ref_1).all()
-    assert hashlib.blake2b((detailed_topo_desc.switches.tobytes())).hexdigest() == REF_HASH, f"{hashlib.blake2b((detailed_topo_desc.switches.tobytes())).hexdigest()}"
+    hash_ = hashlib.blake2b((detailed_topo_desc.switches.tobytes())).hexdigest()
+    assert hash_ == REF_HASH, f"{hash_}"
     
     # siwtches to pos topo vect
     ref_switches_pos_topo_vect = np.array([ 2,  2,  0,  0,  1,  1,  8,  8,  7,  7,  4,  4,  5,  5,  6,  6,  3,
@@ -56,11 +57,9 @@ def _aux_test_correct(detailed_topo_desc, dim_topo):
         assert np.sum(ref_switches_pos_topo_vect == i).sum() == 2, f"error for topo_vect_id = {i}"
     assert np.all(detailed_topo_desc.switches_to_topovect_id == ref_switches_pos_topo_vect)
     
-    
-class _PPBkForTestDetTopo(PandaPowerBackend):
-    def load_grid(self, path=None, filename=None):
-        super().load_grid(path, filename)
-        self.detailed_topo_desc = DetailedTopoDescription.from_init_grid(self)
+
+class _PPBkForTestDetTopo(AddDetailedTopoIEEE, PandaPowerBackend):
+    pass
 
 
 class TestDTDAgent(BaseAgent):
@@ -274,11 +273,66 @@ class DetailedTopoTester(unittest.TestCase):
         assert switches_state[1::2].sum() == 1
         assert not switches_state[type(obs).detailed_topo_desc.switches_to_shunt_id == el_id][0]
         assert switches_state[type(obs).detailed_topo_desc.switches_to_shunt_id == el_id][1]
+    
+    def test_get_all_switches(self):
+        """test I can use bkact.get_all_switches"""
+        obs = self.env.reset()
+        bk_act = self.env._backend_action
+        # nothing modified
+        busbar_coupler_state, switches_state = bk_act.get_all_switches()
+        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        assert switches_state[::2].all()
+        assert (~switches_state[1::2]).all()
         
+        # I modified the position of a "regular" element load 1 for the sake of the example
+        switches_this_loads = bk_act.detailed_topo_desc.switches_to_topovect_id == bk_act.load_pos_topo_vect[1]
+        bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, 2)]}})
+        busbar_coupler_state, switches_state = bk_act.get_all_switches()
+        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        assert (switches_state[::2] == False).sum() == 1, "only one 'switches to busbar 1' should be opened"
+        assert (switches_state[1::2] == True).sum() == 1, "only one 'switches to busbar 2' should be opened"
+        assert (switches_state[switches_this_loads] == [False, True]).all()
+        # I disconnect it
+        bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, -1)]}})
+        busbar_coupler_state, switches_state = bk_act.get_all_switches()
+        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        assert (switches_state[::2] == False).sum() == 1, "one 'switches to busbar 1' should be opened (the disconnected load)"
+        assert (switches_state[1::2] == False).all(), "no 'switches to busbar 2' should be opened"
+        assert (switches_state[switches_this_loads] == [False, False]).all()
+        # set back it back to its original position
+        bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, 1)]}})
+        busbar_coupler_state, switches_state = bk_act.get_all_switches()
+        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        assert switches_state[::2].all()
+        assert (~switches_state[1::2]).all()
+        
+        # I modify the position of a shunt (a bit special)
+        switches_this_shunts = bk_act.detailed_topo_desc.switches_to_shunt_id == 0
+        bk_act += self.env.action_space({"shunt": {"set_bus": [(0, 2)]}})
+        busbar_coupler_state, switches_state = bk_act.get_all_switches()
+        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        assert (switches_state[::2] == False).sum() == 1, "only one 'switches to busbar 1' should be opened"
+        assert (switches_state[1::2] == True).sum() == 1, "only one 'switches to busbar 2' should be opened"
+        assert (switches_state[switches_this_shunts] == [False, True]).all()
+        # I disconnect it
+        bk_act += self.env.action_space({"shunt": {"set_bus": [(0, -1)]}})
+        busbar_coupler_state, switches_state = bk_act.get_all_switches()
+        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        assert (switches_state[::2] == False).sum() == 1, "one 'switches to busbar 1' should be opened (the disconnected load)"
+        assert (switches_state[1::2] == False).all(), "no 'switches to busbar 2' should be opened"
+        assert (switches_state[switches_this_shunts] == [False, False]).all()
+        # set back it back to its original position
+        bk_act += self.env.action_space({"shunt": {"set_bus": [(0, 1)]}})
+        busbar_coupler_state, switches_state = bk_act.get_all_switches()
+        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        assert switches_state[::2].all()
+        assert (~switches_state[1::2]).all()
+        
+        
+            
     # TODO detailed topo
         
  # TODO test no shunt too
- # TODO implement and test compute_switches_position !!!
  # TODO test "_get_full_cls_str"(experimental_read_from_local_dir)
  
 if __name__ == "__main__":
