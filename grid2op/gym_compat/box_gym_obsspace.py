@@ -908,7 +908,7 @@ class __AuxBoxGymObsSpace:
                 both_finite &= curr_high > curr_low
 
                 if (~both_finite).any():
-                    warnings.warn(f"The normalization of attribute \"{both_finite}\" cannot be performed entirely as "
+                    warnings.warn(f"The normalization of attribute \"{attr_nm}\" cannot be performed entirely as "
                                   f"there are some non finite value, or `high == `low` "
                                   f"for some components.")
                     
