@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-
+from typing import Optional
 import numpy as np
 
 from grid2op.dtypes import dt_int, dt_bool
@@ -291,7 +291,29 @@ class DetailedTopoDescription(object):
             res.shunt_to_busbar_id = [(shunt_sub, shunt_sub + n_sub) for shunt_id, shunt_sub in enumerate(init_grid.shunt_to_subid)]
         return res
     
-    def compute_switches_position(self, topo_vect, shunt_bus):
+    def compute_switches_position(self, topo_vect: np.ndarray, shunt_bus: Optional[np.ndarray]=None):
+        """This function compute a plausible switches configuration
+        from a given `topo_vect` representation.
+        
+        .. danger::
+            At time of writing, it only works if the detailed topology has been generated
+            from :func:`DetailedTopoDescription.from_ieee_grid`
+
+        Parameters
+        ----------
+        topo_vect : `np.ndarray`
+            The `topo_vect` detailing on which bus each element of the grid is connected
+        shunt_bus : `np.ndarray`
+            The busbar on which each shunt is connected.
+
+        Returns
+        -------
+        Tuple of 2 elements:
+        
+        - `busbar_connectors_state` state of each busbar_connector
+        - `switches_state` state of each switches
+        
+        """
         # TODO detailed topo
         # TODO in reality, for more complex environment, this requires a routine to compute it
         # but for now in grid2op as only ficitive grid are modeled then 
