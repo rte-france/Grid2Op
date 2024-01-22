@@ -9,6 +9,7 @@
 """example with centralized observation and local actions"""
 import warnings
 import numpy as np
+import copy
 
 from gym.spaces import Discrete, Box
 
@@ -16,7 +17,7 @@ from ray.rllib.env.multi_agent_env import MultiAgentEnv as MAEnv
 from ray.rllib.policy.policy import PolicySpec, Policy
     
 import grid2op
-from grid2op.Action.PlayableAction import PlayableAction
+from grid2op.Action import PlayableAction
 from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
 from grid2op.gym_compat import GymEnv, BoxGymObsSpace, DiscreteActSpace
 
@@ -40,10 +41,18 @@ ma_env_for_cls = MultiAgentEnv(env_for_cls, ACTION_DOMAINS)
 class MAEnvWrapper(MAEnv):
     def __init__(self, env_config=None):
         super().__init__()
+        if env_config is None:
+            env_config = {}
 
+        # you can customize stuff by using the "env config" if you want
+        backend = LightSimBackend()
+        if "backend_cls" in env_config:
+            backend = env_config["backend_cls"]
+        # you can do the same for other attribute to the environment
+        
         env = grid2op.make(ENV_NAME,
                            action_class=PlayableAction,
-                           backend=LightSimBackend())  
+                           backend=backend)  
 
 
         self.ma_env = MultiAgentEnv(env, ACTION_DOMAINS)
@@ -55,41 +64,66 @@ class MAEnvWrapper(MAEnv):
         # with the grid2op / gym interface.
         self._gym_env = GymEnv(env)
         self._gym_env.observation_space.close()
+        
+        obs_attr_to_keep = ["gen_p", "rho"]
+        if "obs_attr_to_keep" in env_config:
+            obs_attr_to_keep = copy.deepcopy(env_config["obs_attr_to_keep"])
         self._gym_env.observation_space = BoxGymObsSpace(env.observation_space,
-                                                         attr_to_keep=["gen_p",
-                                                                       "rho"],
+                                                         attr_to_keep=obs_attr_to_keep,
                                                          replace_nan_by_0=True  # replace Nan by 0.
                                                          )
         
         # we did not experiment yet with the "partially observable" setting
         # so for now we suppose all agents see the same observation
         # which is the full grid                                
-        self.observation_space = Box(shape=self._gym_env.observation_space.shape,
-                                     high=self._gym_env.observation_space.high,
-                                     low=self._gym_env.observation_space.low,
-                                     dtype=np.float32
-                                     )
+        self._aux_observation_space = {
+            agent_id : BoxGymObsSpace(self.ma_env.observation_spaces[agent_id],
+                                      attr_to_keep=obs_attr_to_keep,
+                                      replace_nan_by_0=True  # replace Nan by 0.
+                                      )
+            for agent_id in self.ma_env.agents
+        }
+        # to avoid "weird" pickle issues
+        self.observation_space = {
+            agent_id : Box(low=self._aux_observation_space[agent_id].low,
+                           high=self._aux_observation_space[agent_id].high,
+                           dtype=self._aux_observation_space[agent_id].dtype)
+            for agent_id in self.ma_env.agents
+        }
         
         # we represent the action as discrete action for now. 
         # It should work to encode then differently using the 
         # gym_compat module for example
-        self._conv_action_space = {
-            agent_id : DiscreteActSpace(self.ma_env.action_spaces[agent_id])
-            for agent_id in self.ma_env.agents
-        }
+        act_type = "discrete"
+        if "act_type" in env_config:
+            act_type = env_config["act_type"]
         
-        # to avoid "weird" pickle issues
-        self.action_space = {
-            agent_id : Discrete(n=self.ma_env.action_spaces[agent_id].n)
-            for agent_id in self.ma_env.agents
-        }
+        # for discrete actions
+        if act_type == "discrete":
+            self._conv_action_space = {
+                agent_id : DiscreteActSpace(self.ma_env.action_spaces[agent_id])
+                for agent_id in self.ma_env.agents
+            }
+            
+            # to avoid "weird" pickle issues
+            self.action_space = {
+                agent_id : Discrete(n=self.ma_env.action_spaces[agent_id].n)
+                for agent_id in self.ma_env.agents
+            }
+        else:
+            raise NotImplementedError("Make the implementation in this case")
         
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
+        if seed is not None:
+            self.seed(seed)
+            
         # reset the underlying multi agent environment
         obs = self.ma_env.reset()
         
-        return self._format_obs(obs)
+        return self._format_obs(obs), {}
         
+    def seed(self, seed):
+        return self.ma_env.seed(seed)
     
     def _format_obs(self, grid2op_obs):
         # NB we heavily use here that all agents see the same things 
@@ -132,7 +166,9 @@ class MAEnvWrapper(MAEnv):
         
         # ignored for now
         info = {}
-        return gym_obs, r, done, info
+        truncateds = {k: False for k in self.ma_env.agents}
+        truncateds['__all__'] = truncateds[first_agent_id]
+        return gym_obs, r, done, truncateds, info
 
 
 def policy_mapping_fn(agent_id, episode, worker, **kwargs):
@@ -141,7 +177,8 @@ def policy_mapping_fn(agent_id, episode, worker, **kwargs):
 
 if __name__ == "__main__":
     import ray
-    from ray.rllib.agents.ppo import ppo
+    # from ray.rllib.agents.ppo import ppo
+    from ray.rllib.algorithms.ppo import PPO, PPOConfig
     import json
     import os
     import shutil
@@ -164,34 +201,55 @@ if __name__ == "__main__":
     SELECT_ENV = MAEnvWrapper                            # Specifies the OpenAI Gym environment for Cart Pole
     N_ITER = 1000                                     # Number of training runs.
 
-    config = ppo.DEFAULT_CONFIG.copy()              # PPO's default configuration. See the next code cell.
-    config["log_level"] = "WARN"                    # Suppress too many messages, but try "INFO" to see what can be printed.
+    # config = ppo.DEFAULT_CONFIG.copy()              # PPO's default configuration. See the next code cell.
+    # config["log_level"] = "WARN"                    # Suppress too many messages, but try "INFO" to see what can be printed.
 
-    # Other settings we might adjust:
-    config["num_workers"] = 1                       # Use > 1 for using more CPU cores, including over a cluster
-    config["num_sgd_iter"] = 10                     # Number of SGD (stochastic gradient descent) iterations per training minibatch.
-                                                    # I.e., for each minibatch of data, do this many passes over it to train. 
-    config["sgd_minibatch_size"] = 64              # The amount of data records per minibatch
-    config["model"]["fcnet_hiddens"] = [100, 50]    #
-    config["num_cpus_per_worker"] = 0  # This avoids running out of resources in the notebook environment when this cell is re-executed
-    config["vf_clip_param"] = 100
+    # # Other settings we might adjust:
+    # config["num_workers"] = 1                       # Use > 1 for using more CPU cores, including over a cluster
+    # config["num_sgd_iter"] = 10                     # Number of SGD (stochastic gradient descent) iterations per training minibatch.
+    #                                                 # I.e., for each minibatch of data, do this many passes over it to train. 
+    # config["sgd_minibatch_size"] = 64              # The amount of data records per minibatch
+    # config["model"]["fcnet_hiddens"] = [100, 50]    #
+    # config["num_cpus_per_worker"] = 0  # This avoids running out of resources in the notebook environment when this cell is re-executed
+    # config["vf_clip_param"] = 100
 
-    # multi agent specific config
-    config["multiagent"] = {
-        "policies" : {
-            "agent_0" : PolicySpec(
-                action_space=ray_ma_env.action_space["agent_0"]
-            ),
-            "agent_1" : PolicySpec(
-                action_space=ray_ma_env.action_space["agent_1"]
-            )
-            },
-        "policy_mapping_fn": policy_mapping_fn,
-        "policies_to_train": ["agent_0", "agent_1"],
-    }
-
+    # # multi agent specific config
+    # config["multiagent"] = {
+    #     "policies" : {
+    #         "agent_0" : PolicySpec(
+    #             action_space=ray_ma_env.action_space["agent_0"]
+    #         ),
+    #         "agent_1" : PolicySpec(
+    #             action_space=ray_ma_env.action_space["agent_1"]
+    #         )
+    #         },
+    #     "policy_mapping_fn": policy_mapping_fn,
+    #     "policies_to_train": ["agent_0", "agent_1"],
+    # }
+    
+    # see ray doc for this...
+    # syntax changes every ray major version apparently...
+    config = PPOConfig()
+    config = config.training(gamma=0.9, lr=0.01, kl_coeff=0.3, train_batch_size=128)
+    config = config.resources(num_gpus=0)
+    config = config.rollouts(num_rollout_workers=1)
+   
+    # multi agent parts
+    config.multi_agent(policies={
+        "agent_0" : PolicySpec(
+            action_space=ray_ma_env.action_space["agent_0"],
+            observation_space=ray_ma_env.observation_space["agent_0"]
+        ),
+        "agent_1" : PolicySpec(
+            action_space=ray_ma_env.action_space["agent_1"],
+            observation_space=ray_ma_env.observation_space["agent_1"],
+        )
+        }, 
+                    policy_mapping_fn = policy_mapping_fn, 
+                    policies_to_train= ["agent_0", "agent_1"])
+         
     #Trainer
-    agent = ppo.PPOTrainer(config, env=SELECT_ENV)
+    agent = PPO(config=config, env=SELECT_ENV)
 
     results = []
     episode_data = []

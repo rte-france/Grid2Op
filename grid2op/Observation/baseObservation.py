@@ -4214,7 +4214,18 @@ class BaseObservation(GridObjects):
                 f_obs_3, *_ = forecast_env.step(act_3)
                 sim_obs_3, *_ = sim_obs_2.simulate(act_3)
                 # f_obs_3 should be sim_obs_3
-                
+        
+        .. danger::
+    
+            Long story short, once a environment (and a forecast_env is one) 
+            is deleted, you cannot use anything it "holds" including,
+            but not limited to the capacity to perform `obs.simulate(...)` even if the `obs` is still
+            referenced.
+
+            See :ref:`danger-env-ownership` (first danger block). 
+            
+            This caused issue https://github.com/rte-france/Grid2Op/issues/568 for example.
+            
         Returns
         -------
         grid2op.Environment.Environment
@@ -4346,8 +4357,26 @@ class BaseObservation(GridObjects):
             you have 100 rows then you have 100 steps. 
         
         .. warning::
-            We remind that, if you provide some forecasts, it is expected that 
+            We remind that, if you provide some forecasts, it is expected that they allow some powerflow to converge.
+            The balance between total generation on one side and total demand and losses on the other should also
+            make "as close as possible" to reduce some modeling artifact (by the backend, grid2op does not check
+            anything here).
             
+            Finally, make sure that your input data meet the constraints on the generators (pmin, pmax and ramps)
+            otherwise you might end up with incorrect behaviour. Grid2op supposes that data fed to it
+            is consistent with its model. If not it's "undefined behaviour".
+        
+        .. danger::
+    
+            Long story short, once a environment (and a forecast_env is one) 
+            is deleted, you cannot use anything it "holds" including,
+            but not limited to the capacity to perform `obs.simulate(...)` even if the `obs` is still
+            referenced.
+
+            See :ref:`danger-env-ownership` (first danger block). 
+            
+            This caused issue https://github.com/rte-france/Grid2Op/issues/568 for example.
+             
         Examples
         --------
         A typical use might look like

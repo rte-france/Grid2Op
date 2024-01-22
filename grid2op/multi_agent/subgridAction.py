@@ -381,15 +381,28 @@ class SubGridAction(SubGridObjects, PlayableAction):
                               "the target action type does not suppor it")
         
         if self._modif_interco_set_status:
-            raise NotImplementedError("What to do if I modified an interco status (set) ?")
+            # TODO not tested
+            if global_action_space.supports_type("set_line_status"):
+                global_action._modif_set_status = True
+                global_action._set_line_status[my_cls.interco_to_lineid] = self._set_interco_status
+            else:
+                warnings.warn("The set_line_status part of this local action has been removed because "
+                              "the target action type does not suppor it")
+                
         if self._modif_interco_change_status:
-            raise NotImplementedError("What to do if I modified an interco status (change) ?")
+            # TODO not tested
+            if global_action_space.supports_type("change_line_status"):
+                global_action._modif_change_status = True
+                global_action._set_line_status[my_cls.interco_to_lineid] = self._set_interco_status
+            else:
+                warnings.warn("The change_line_status part of this local action has been removed because "
+                              "the target action type does not suppor it")
+        
         if self._modif_inj:
             raise NotImplementedError("What to do if I modified an injection ?")
         if self._modif_alarm:
             raise NotImplementedError("What to do if I modified an alarm ?")
         return global_action
-        
         
     def impact_on_objects(self) -> dict:
         # TODO not tested

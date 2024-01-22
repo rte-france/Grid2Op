@@ -84,6 +84,65 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     The documentation is showed here to document the common attributes of an "BaseEnvironment".
 
+    .. _danger-env-ownership:
+    
+    Notes 
+    ------------------------
+    
+    Note en environment data ownership
+    
+    .. danger::
+    
+        
+        A non pythonic decision has been implemented in grid2op for various reasons: an environment
+        owns everything created from it.
+        
+        This means that if you (or the python interpreter) deletes the environment, you might not
+        use some data generate with this environment.
+        
+        More precisely, you cannot do something like:
+        
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make("l2rpn_case14_sandbox")
+            
+            saved_obs = []
+            
+            obs = env.reset()
+            saved_obs.append(obs)
+            obs2, reward, done, info = env.step(env.action_space())
+            saved_obs.append(obs2)
+            
+            saved_obs[0].simulate(env.action_space())  # works
+            del env
+            saved_obs[0].simulate(env.action_space())  # DOES NOT WORK
+            
+        It will raise an error like `Grid2OpException EnvError "This environment is closed. You cannot use it anymore."`
+        
+        This will also happen if you do things inside functions, for example like this:
+        
+        .. code-block:: python
+
+            import grid2op
+            
+            def foo(manager):
+                env = grid2op.make("l2rpn_case14_sandbox")
+                obs = env.reset()
+                manager.append(obs)
+                obs2, reward, done, info = env.step(env.action_space())
+                manager.append(obs2)
+                manager[0].simulate(env.action_space())  # works
+                return manager
+                
+            manager = []
+            manager = foo(manager)
+            manager[0].simulate(env.action_space())  # DOES NOT WORK
+        
+        The same error is raised because the environment `env` is automatically deleted by python when the function `foo` ends
+        (well it might work on some cases, if the function is called before the variable `env` is actually deleted but you 
+        should not rely on this behaviour.)
+            
     Attributes
     ----------
 
@@ -342,7 +401,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         )
         self._timestep_overflow: np.ndarray = None
         self._nb_timestep_overflow_allowed: np.ndarray = None
-        self._hard_overflow_threshold: float = self._parameters.HARD_OVERFLOW_THRESHOLD
+        self._hard_overflow_threshold: np.ndarray  = None
 
         # store actions "cooldown"
         self._times_before_line_status_actionable: np.ndarray = None
@@ -626,7 +685,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._nb_timestep_overflow_allowed = copy.deepcopy(
             self._nb_timestep_overflow_allowed
         )
-        new_obj._hard_overflow_threshold = self._hard_overflow_threshold
+        new_obj._hard_overflow_threshold = copy.deepcopy(self._hard_overflow_threshold)
 
         # store actions "cooldown"
         new_obj._times_before_line_status_actionable = copy.deepcopy(
@@ -1204,7 +1263,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_downtime = np.zeros(self.n_gen, dtype=dt_int)
         self._gen_activeprod_t = np.zeros(self.n_gen, dtype=dt_float)
         self._gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=dt_float)
-        self._nb_timestep_overflow_allowed = np.ones(shape=self.n_line, dtype=dt_int)
         self._max_timestep_line_status_deactivated = (
             self._parameters.NB_TIMESTEP_COOLDOWN_LINE
         )
@@ -1219,6 +1277,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             shape=(self.n_line,),
             fill_value=self._parameters.NB_TIMESTEP_OVERFLOW_ALLOWED,
             dtype=dt_int,
+        )
+        self._hard_overflow_threshold = np.full(
+            shape=(self.n_line,),
+            fill_value=self._parameters.HARD_OVERFLOW_THRESHOLD,
+            dtype=dt_float,
         )
         self._timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
@@ -1261,7 +1324,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
         self._no_overflow_disconnection = self._parameters.NO_OVERFLOW_DISCONNECTION
-        self._hard_overflow_threshold = self._parameters.HARD_OVERFLOW_THRESHOLD
 
         # store actions "cooldown"
         self._max_timestep_line_status_deactivated = (
@@ -1275,7 +1337,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._nb_timestep_overflow_allowed[
             :
         ] = self._parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
-
+        self._hard_overflow_threshold[:] = self._parameters.HARD_OVERFLOW_THRESHOLD
         # hard overflow part
         self._env_dc = self._parameters.ENV_DC
 
@@ -2957,16 +3019,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # TODO is non zero and disconnected, this should be ok.
         self._time_extract_obs += time.perf_counter() - beg_res
 
+    def _backend_next_grid_state(self):
+        """overlaoded in MaskedEnv"""
+        return self.backend.next_grid_state(env=self, is_dc=self._env_dc)
+    
     def _aux_run_pf_after_state_properly_set(
         self, action, init_line_status, new_p, except_
     ):
         has_error = True
+        detailed_info = None
         try:
             # compute the next _grid state
             beg_pf = time.perf_counter()
-            disc_lines, detailed_info, conv_ = self.backend.next_grid_state(
-                env=self, is_dc=self._env_dc
-            )
+            disc_lines, detailed_info, conv_ = self._backend_next_grid_state()
             self._disc_lines[:] = disc_lines
             self._time_powerflow += time.perf_counter() - beg_pf
             if conv_ is None:
@@ -3327,7 +3392,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         ] = self._parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
 
         self.nb_time_step = 0  # to have the first step at 0
-        self._hard_overflow_threshold = self._parameters.HARD_OVERFLOW_THRESHOLD
+        self._hard_overflow_threshold[:] = self._parameters.HARD_OVERFLOW_THRESHOLD
         self._env_dc = self._parameters.ENV_DC
 
         self._times_before_line_status_actionable[:] = 0
