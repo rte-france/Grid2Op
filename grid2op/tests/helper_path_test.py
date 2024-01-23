@@ -10,6 +10,7 @@
 # root package directory
 # Grid2Op subdirectory
 # Grid2Op/tests subdirectory
+
 import sys
 import os
 import numpy as np
@@ -24,7 +25,10 @@ grid2op_dir = os.fspath(test_dir.parent.absolute())
 data_test_dir = os.path.abspath(os.path.join(grid2op_dir, "data_test"))
 data_dir = os.path.abspath(os.path.join(grid2op_dir, "data"))
 
-sys.path.insert(0, grid2op_dir)
+# sys.path.insert(0, grid2op_dir)  # cause https://github.com/rte-france/Grid2Op/issues/577
+# because the addition of `from grid2op._create_test_suite import create_test_suite`
+# in grid2op "__init__.py"
+
 
 PATH_DATA = data_dir
 PATH_DATA_TEST = data_test_dir
