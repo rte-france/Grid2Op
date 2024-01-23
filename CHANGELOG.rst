@@ -40,6 +40,7 @@ Change Log
 - [FIXED] the "BaseBackendTest" class did not correctly detect divergence in most cases (which lead 
   to weird bugs in failing tests)
 - [FIXED] an issue with imageio having deprecated the `fps` kwargs (see https://github.com/rte-france/Grid2Op/issues/569)
+- [FIXED] adding the "`loads_charac.csv`" in the package data
 - [ADDED] A type of environment that does not perform the "emulation of the protections"
   for some part of the grid (`MaskedEnvironment`) see https://github.com/rte-france/Grid2Op/issues/571
 - [IMPROVED] the CI speed: by not testing every possible numpy version but only most ancient and most recent
