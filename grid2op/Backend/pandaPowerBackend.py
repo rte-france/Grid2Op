@@ -1347,18 +1347,18 @@ class PandaPowerBackend(Backend):
 
     def _disconnect_line(self, id_):
         if id_ < self._number_true_line:
-            self._grid.line["in_service"].iloc[id_] = False
+            self._grid.line.loc[id_, "in_service"] = False
         else:
-            self._grid.trafo["in_service"].iloc[id_ - self._number_true_line] = False
+            self._grid.trafo.loc[id_ - self._number_true_line, "in_service"] = False
         self._topo_vect[self.line_or_pos_topo_vect[id_]] = -1
         self._topo_vect[self.line_ex_pos_topo_vect[id_]] = -1
         self.line_status[id_] = False
 
     def _reconnect_line(self, id_):
         if id_ < self._number_true_line:
-            self._grid.line["in_service"].iloc[id_] = True
+            self._grid.line.loc[id_, "in_service"] = True
         else:
-            self._grid.trafo["in_service"].iloc[id_ - self._number_true_line] = True
+            self._grid.trafo.loc[id_ - self._number_true_line, "in_service"] = True
         self.line_status[id_] = True
 
     def get_topo_vect(self) -> np.ndarray:

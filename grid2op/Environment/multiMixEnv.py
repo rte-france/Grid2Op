@@ -10,10 +10,12 @@ import os
 import warnings
 import numpy as np
 import copy
+from typing import Any, Dict, Tuple, Union, List
 
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject
 from grid2op.Exceptions import EnvError, Grid2OpException
+from grid2op.Observation import BaseObservation
 
 
 class MultiMixEnvironment(GridObjects, RandomObject):
@@ -152,6 +154,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
     """
 
+    KEYS_RESET_OPTIONS = {"time serie id"}
+    
     def __init__(
         self,
         envs_dir,
@@ -359,17 +363,36 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         # Not found by name
         raise KeyError
 
-    def reset(self, random=False):
+    def reset(self, 
+              *,
+              seed: Union[int, None] = None,
+              random=False,
+              options: Union[Dict[str, Any], None] = None) -> BaseObservation:
+        
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
+        
+        if options is not None:
+            for el in options:
+                if el not in type(self).KEYS_RESET_OPTIONS:
+                    raise EnvError(f"You tried to customize the `reset` call with some "
+                                   f"`options` using the key `{el}` which is invalid. "
+                                   f"Only keys in {sorted(list(type(self).KEYS_RESET_OPTIONS))} "
+                                   f"can be used.")
+                    
         if random:
             self.env_index = self.space_prng.randint(len(self.mix_envs))
         else:
             self.env_index = (self.env_index + 1) % len(self.mix_envs)
 
         self.current_env = self.mix_envs[self.env_index]
-        self.current_env.reset()
-        return self.get_obs()
+        
+        if options is not None and "time serie id" in options:
+            self.set_id(options["time serie id"])
+                    
+        if seed is not None:
+            self.seed(seed)
+        return self.current_env.reset()
 
     def seed(self, seed=None):
         """

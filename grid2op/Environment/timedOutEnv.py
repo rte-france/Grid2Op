@@ -8,7 +8,7 @@
 
 import time
 from math import floor
-from typing import Tuple, Union, List
+from typing import Any, Dict, Tuple, Union, List
 from grid2op.Environment.environment import Environment
 from grid2op.Action import BaseAction
 from grid2op.Observation import BaseObservation
@@ -247,10 +247,17 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                                                "_read_from_local_dir": _read_from_local_dir},
                                   **other_env_kwargs)
         return res
-            
-    def reset(self) -> BaseObservation:
+    
+
+    def reset(self, 
+              *,
+              seed: Union[int, None] = None,
+              options: Union[Dict[str, Any], None] = None) -> BaseObservation:
         """Reset the environment.
 
+        .. seealso::
+            The doc of :func:`Environment.reset` for more information
+            
         Returns
         -------
         BaseObservation
@@ -260,7 +267,7 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
         self.__last_act_send = time.perf_counter()
         self.__last_act_received = self.__last_act_send
         self._is_init_dn = False
-        res = super().reset()
+        res = super().reset(seed=seed, options=options)
         self.__last_act_send = time.perf_counter()
         self._is_init_dn = True
         return res
