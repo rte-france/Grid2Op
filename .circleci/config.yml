@@ -57,7 +57,7 @@ jobs:
                   source venv_test/bin/activate
                   cd grid2op/tests/
                   export _GRID2OP_FORCE_TEST=1
-                  python3 -m unittest $(cat /tmp/tests_run)
+                  python3 -m unittest -v $(cat /tmp/tests_run)
                   
     install36:
         executor: python36
