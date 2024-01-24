@@ -47,6 +47,10 @@ jobs:
                   export _GRID2OP_FORCE_TEST=1
                   cd grid2op/tests/
                   python3 helper_list_test.py | circleci tests split > /tmp/tests_run
+            - run:
+                command: |
+                  source venv_test/bin/activate
+                  pip freeze
             - run: cat /tmp/tests_run
             - run:
                 command: |

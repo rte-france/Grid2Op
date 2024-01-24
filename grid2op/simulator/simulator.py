@@ -339,7 +339,7 @@ class Simulator(object):
         scale_objective = np.round(scale_objective, decimals=4)
 
         tmp_zeros = np.zeros((1, nb_dispatchable), dtype=float)
-
+        
         # wrap everything into the proper scipy form
         def target(actual_dispatchable):
             # define my real objective
@@ -407,7 +407,7 @@ class Simulator(object):
                 denom_adjust = 1.0
             x0[can_adjust] = -init_sum / (weights[can_adjust] * denom_adjust)
 
-        res = f(x0)
+        res = f(x0.astype(float))
         if res.success:
             return res.x
         else:

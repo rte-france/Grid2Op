@@ -867,19 +867,19 @@ class PandaPowerBackend(Backend):
             shunt_p, shunt_q, shunt_bus = shunts__
 
             if (shunt_p.changed).any():
-                self._grid.shunt["p_mw"].iloc[shunt_p.changed] = shunt_p.values[
+                self._grid.shunt.loc[shunt_p.changed, "p_mw"] = shunt_p.values[
                     shunt_p.changed
                 ]
             if (shunt_q.changed).any():
-                self._grid.shunt["q_mvar"].iloc[shunt_q.changed] = shunt_q.values[
+                self._grid.shunt.loc[shunt_q.changed, "q_mvar"] = shunt_q.values[
                     shunt_q.changed
                 ]
             if (shunt_bus.changed).any():
                 sh_service = shunt_bus.values[shunt_bus.changed] != -1
-                self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service           
+                self._grid.shunt.loc[shunt_bus.changed, "in_service"] = sh_service           
                 chg_and_in_service = sh_service & shunt_bus.changed
-                self._grid.shunt["bus"].loc[chg_and_in_service] = cls.local_bus_to_global(shunt_bus.values[chg_and_in_service],
-                                                                                         cls.shunt_to_subid[chg_and_in_service])
+                self._grid.shunt.loc[chg_and_in_service, "bus"] = cls.local_bus_to_global(shunt_bus.values[chg_and_in_service],
+                                                                                          cls.shunt_to_subid[chg_and_in_service])
 
         # i made at least a real change, so i implement it in the backend
         for id_el, new_bus in topo__:
