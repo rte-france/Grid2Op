@@ -76,9 +76,14 @@ def testinstall():
                 os.path.join(this_directory, "tests"), pattern=file_name
             )
         )
+        
+    def fun(*args, **kwargs):
+        sys.stderr.write(*args, **kwargs)
+        sys.stderr.write(*"\n")
+    sys.stderr.writeln = fun
     results = unittest.TextTestResult(stream=sys.stderr,
                                       descriptions=True,
-                                      verbosity=3)
+                                      verbosity=2)
     test_suite.run(results)
     if results.wasSuccessful():
         sys.exit(0)
