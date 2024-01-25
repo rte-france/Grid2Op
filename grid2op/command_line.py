@@ -79,7 +79,7 @@ def testinstall():
         
     def fun(*args, **kwargs):
         sys.stderr.write(*args, **kwargs)
-        sys.stderr.write(*"\n")
+        sys.stderr.write("\n")
     sys.stderr.writeln = fun
     results = unittest.TextTestResult(stream=sys.stderr,
                                       descriptions=True,
