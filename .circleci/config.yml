@@ -142,6 +142,13 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.20,<1.21" pandas scipy numba
                    python -m pip install -U .[test]
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
             # - run:
@@ -170,6 +177,13 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.24,<1.25" pandas scipy numba
                    python -m pip install -U .[test]
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
 
@@ -201,6 +215,13 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.20,<1.21" pandas scipy numba
                    python -m pip install -U .[test]
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
             # - run:
@@ -243,6 +264,13 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.26,<1.27" pandas scipy numba
                    python -m pip install -U .[test]
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
 
@@ -267,6 +295,13 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.21,<1.22" pandas scipy numba
                    python -m pip install -U .[test]
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
             # - run:
@@ -302,6 +337,13 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.26,<1.27" pandas scipy numba
                    python -m pip install -U .[test]
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
 
@@ -325,6 +367,13 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.23,<1.24" pandas scipy numba
                    python -m pip install -U .[test]
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
             # - run:
@@ -346,6 +395,13 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.26,<1.27"
                    python -m pip install -U .[test]
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
     install312:
@@ -369,6 +425,13 @@ jobs:
                    source venv_test/bin/activate
                    python -m pip install -U "numpy>=1.26,<1.27"
                    python -m pip install -U .[test]
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
                    grid2op.testinstall
 
