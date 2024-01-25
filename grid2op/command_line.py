@@ -77,8 +77,9 @@ def testinstall():
             )
         )
         
-    def fun(*args, **kwargs):
-        sys.stderr.write(*args, **kwargs)
+    def fun(first=None, *args, **kwargs):
+        if first is not None:
+            sys.stderr.write(first, *args, **kwargs)
         sys.stderr.write("\n")
     sys.stderr.writeln = fun
     results = unittest.TextTestResult(stream=sys.stderr,
@@ -86,12 +87,14 @@ def testinstall():
                                       verbosity=2)
     test_suite.run(results)
     if results.wasSuccessful():
-        sys.exit(0)
+        return 0
     else:
-        for _, str_ in results.errors:
-            print(str_)
-            print("-------------------------\n")
-        for _, str_ in results.failures:
-            print(str_)
-            print("-------------------------\n")
+        print("\n")
+        results.printErrors()
+        # for _, str_ in results.errors:
+        #     print(str_)
+        #     print("-------------------------\n")
+        # for _, str_ in results.failures:
+        #     print(str_)
+        #     print("-------------------------\n")
         raise RuntimeError("Test not successful !")

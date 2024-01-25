@@ -140,7 +140,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.20,<1.21" pandas "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.20,<1.21" "pandas<2.2" "scipy<1.12" numba .[test]
                    pip freeze
             - run:
                 command: |
@@ -151,7 +151,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.24,<1.25" pandas "scipy<1.12" numba
+                   python -m pip install -U "numpy>=1.24,<1.25" "pandas<2.2" "scipy<1.12" numba
                    python -m pip install -U .[test]
             - run:
                 command: |
@@ -185,7 +185,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.20,<1.21" pandas "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.20,<1.21" "pandas<2.2" "scipy<1.12" numba .[test]
                    pip freeze
             - run:
                 command: |
@@ -196,7 +196,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27" pandas "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba .[test]
                    pip freeze
             - run:
                 command: |
@@ -224,7 +224,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.21,<1.22" pandas "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.21,<1.22" "pandas<2.2" "scipy<1.12" numba .[test]
                    pip freeze
             - run:
                 command: |
@@ -235,7 +235,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27" pandas "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba .[test]
                    pip freeze
             - run:
                 command: |
@@ -262,7 +262,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.23,<1.24" pandas "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.23,<1.24" "pandas<2.2" "scipy<1.12" numba .[test]
                    pip freeze
             - run:
                 command: |
@@ -273,7 +273,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27" pandas "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba .[test]
                    pip freeze
             - run:
                 command: |
@@ -300,7 +300,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27" pandas "scipy<1.12" .[test]
+                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" .[test]
                    pip freeze
             - run:
                 command: |
