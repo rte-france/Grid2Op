@@ -346,8 +346,8 @@ class PandaPowerBackend(Backend):
             self._grid = pp.from_json(full_path)
         self._check_for_non_modeled_elements()
         
-        self._in_service_line_col_id = int(np.where(self._grid.line.columns == "in_service")[0])
-        self._in_service_trafo_col_id = int(np.where(self._grid.trafo.columns == "in_service")[0])
+        self._in_service_line_col_id = int(np.where(self._grid.line.columns == "in_service")[0][0])
+        self._in_service_trafo_col_id = int(np.where(self._grid.trafo.columns == "in_service")[0][0])
 
         # add the slack bus that is often not modeled as a generator, but i need it for this backend to work
         bus_gen_added = None
