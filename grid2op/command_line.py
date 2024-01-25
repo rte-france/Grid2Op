@@ -61,7 +61,7 @@ def replay():
 
 def testinstall():
     """
-    Performs aperforms basic tests to make sure grid2op is properly installed and working.
+    Performs basic tests to make sure grid2op is properly installed and working.
 
     It's not because these tests pass that grid2op will be fully functional however.
     """
@@ -76,7 +76,9 @@ def testinstall():
                 os.path.join(this_directory, "tests"), pattern=file_name
             )
         )
-    results = unittest.TextTestResult(stream=sys.stderr, descriptions=True, verbosity=1)
+    results = unittest.TextTestResult(stream=sys.stderr,
+                                      descriptions=True,
+                                      verbosity=3)
     test_suite.run(results)
     if results.wasSuccessful():
         sys.exit(0)
