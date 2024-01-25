@@ -393,7 +393,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27"
+                   python -m pip install -U "numpy>=1.26,<1.27" pandas scipy numba
                    python -m pip install -U .[test]
             - run:
                 command: |
@@ -423,7 +423,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27"
+                   python -m pip install -U "numpy>=1.26,<1.27" pandas scipy numba
                    python -m pip install -U .[test]
             - run:
                 command: |
