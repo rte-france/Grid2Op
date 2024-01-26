@@ -1185,10 +1185,10 @@ class Backend(GridObjects, ABC):
         q_subs = np.zeros(cls.n_sub, dtype=dt_float)
 
         # check for each bus
-        p_bus = np.zeros((cls.n_sub, 2), dtype=dt_float)
-        q_bus = np.zeros((cls.n_sub, 2), dtype=dt_float)
+        p_bus = np.zeros((cls.n_sub, cls.n_busbar_per_sub), dtype=dt_float)
+        q_bus = np.zeros((cls.n_sub, cls.n_busbar_per_sub), dtype=dt_float)
         v_bus = (
-            np.zeros((cls.n_sub, 2, 2), dtype=dt_float) - 1.0
+            np.zeros((cls.n_sub, cls.n_busbar_per_sub, 2), dtype=dt_float) - 1.0
         )  # sub, busbar, [min,max]
         topo_vect = self.get_topo_vect()
 
@@ -1221,28 +1221,30 @@ class Backend(GridObjects, ABC):
             q_bus[sub_ex_id, loc_bus_ex] += q_ex[i]
 
             # fill the min / max voltage per bus (initialization)
-            if (v_bus[sub_or_id,loc_bus_or,][0] == -1):
-                v_bus[sub_or_id,loc_bus_or,][0] = v_or[i]
-            if (v_bus[sub_ex_id,loc_bus_ex,][0] == -1):
-                v_bus[sub_ex_id,loc_bus_ex,][0] = v_ex[i]
+            if (v_bus[sub_or_id, loc_bus_or,][0] == -1):
+                v_bus[sub_or_id, loc_bus_or,][0] = v_or[i]
+            if (v_bus[sub_ex_id, loc_bus_ex,][0] == -1):
+                v_bus[sub_ex_id, loc_bus_ex,][0] = v_ex[i]
             if (v_bus[sub_or_id, loc_bus_or,][1]== -1):
-                v_bus[sub_or_id,loc_bus_or,][1] = v_or[i]
-            if (v_bus[sub_ex_id,loc_bus_ex,][1]== -1):
-                v_bus[sub_ex_id,loc_bus_ex,][1] = v_ex[i]
+                v_bus[sub_or_id, loc_bus_or,][1] = v_or[i]
+            if (v_bus[sub_ex_id, loc_bus_ex,][1]== -1):
+                v_bus[sub_ex_id, loc_bus_ex,][1] = v_ex[i]
 
             # now compute the correct stuff
             if v_or[i] > 0.0:
                 # line is connected
-                v_bus[sub_or_id,loc_bus_or,][0] = min(v_bus[sub_or_id,loc_bus_or,][0],v_or[i],)
-                v_bus[sub_or_id,loc_bus_or,][1] = max(v_bus[sub_or_id,loc_bus_or,][1],v_or[i],)
+                v_bus[sub_or_id, loc_bus_or,][0] = min(v_bus[sub_or_id, loc_bus_or,][0],v_or[i],)
+                v_bus[sub_or_id, loc_bus_or,][1] = max(v_bus[sub_or_id, loc_bus_or,][1],v_or[i],)
                 
             if v_ex[i] > 0:
                 # line is connected
-                v_bus[sub_ex_id,loc_bus_ex,][0] = min(v_bus[sub_ex_id,loc_bus_ex,][0],v_ex[i],)
-                v_bus[sub_ex_id,loc_bus_ex,][1] = max(v_bus[sub_ex_id,loc_bus_ex,][1],v_ex[i],)
+                v_bus[sub_ex_id, loc_bus_ex,][0] = min(v_bus[sub_ex_id, loc_bus_ex,][0],v_ex[i],)
+                v_bus[sub_ex_id, loc_bus_ex,][1] = max(v_bus[sub_ex_id, loc_bus_ex,][1],v_ex[i],)
         
         for i in range(cls.n_gen):
-            if topo_vect[cls.gen_pos_topo_vect[i]] == -1:
+            gptv = cls.gen_pos_topo_vect[i]
+            
+            if topo_vect[gptv] == -1:
                 # gen is disconnected
                 continue
             
@@ -1250,38 +1252,42 @@ class Backend(GridObjects, ABC):
             p_subs[cls.gen_to_subid[i]] -= p_gen[i]
             q_subs[cls.gen_to_subid[i]] -= q_gen[i]
 
+            loc_bus = topo_vect[gptv] - 1
             # for bus
             p_bus[
-                cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1
+                cls.gen_to_subid[i], loc_bus
             ] -= p_gen[i]
             q_bus[
-                cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1
+                cls.gen_to_subid[i], loc_bus
             ] -= q_gen[i]
 
             # compute max and min values
             if v_gen[i]:
                 # but only if gen is connected
-                v_bus[cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1][
+                v_bus[cls.gen_to_subid[i], loc_bus][
                     0
                 ] = min(
                     v_bus[
-                        cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1
+                        cls.gen_to_subid[i], loc_bus
                     ][0],
                     v_gen[i],
                 )
-                v_bus[cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1][
+                v_bus[cls.gen_to_subid[i], loc_bus][
                     1
                 ] = max(
                     v_bus[
-                        cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1
+                        cls.gen_to_subid[i], loc_bus
                     ][1],
                     v_gen[i],
                 )
 
         for i in range(cls.n_load):
-            if topo_vect[cls.load_pos_topo_vect[i]] == -1:
+            gptv = cls.load_pos_topo_vect[i]
+            
+            if topo_vect[gptv] == -1:
                 # load is disconnected
                 continue
+            loc_bus = topo_vect[gptv] - 1
             
             # for substations
             p_subs[cls.load_to_subid[i]] += p_load[i]
@@ -1289,44 +1295,46 @@ class Backend(GridObjects, ABC):
 
             # for buses
             p_bus[
-                cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1
+                cls.load_to_subid[i], loc_bus
             ] += p_load[i]
             q_bus[
-                cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1
+                cls.load_to_subid[i], loc_bus
             ] += q_load[i]
 
             # compute max and min values
             if v_load[i]:
                 # but only if load is connected
-                v_bus[cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1][
+                v_bus[cls.load_to_subid[i], loc_bus][
                     0
                 ] = min(
                     v_bus[
-                        cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1
+                        cls.load_to_subid[i], loc_bus
                     ][0],
                     v_load[i],
                 )
-                v_bus[cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1][
+                v_bus[cls.load_to_subid[i], loc_bus][
                     1
                 ] = max(
                     v_bus[
-                        cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1
+                        cls.load_to_subid[i], loc_bus
                     ][1],
                     v_load[i],
                 )
 
         for i in range(cls.n_storage):
-            if topo_vect[cls.storage_pos_topo_vect[i]] == -1:
+            gptv = cls.storage_pos_topo_vect[i]
+            if topo_vect[gptv] == -1:
                 # storage is disconnected
                 continue
+            loc_bus = topo_vect[gptv] - 1
             
             p_subs[cls.storage_to_subid[i]] += p_storage[i]
             q_subs[cls.storage_to_subid[i]] += q_storage[i]
             p_bus[
-                cls.storage_to_subid[i], topo_vect[cls.storage_pos_topo_vect[i]] - 1
+                cls.storage_to_subid[i], loc_bus
             ] += p_storage[i]
             q_bus[
-                cls.storage_to_subid[i], topo_vect[cls.storage_pos_topo_vect[i]] - 1
+                cls.storage_to_subid[i], loc_bus
             ] += q_storage[i]
 
             # compute max and min values
@@ -1334,21 +1342,21 @@ class Backend(GridObjects, ABC):
                 # the storage unit is connected
                 v_bus[
                     cls.storage_to_subid[i],
-                    topo_vect[cls.storage_pos_topo_vect[i]] - 1,
+                    loc_bus,
                 ][0] = min(
                     v_bus[
                         cls.storage_to_subid[i],
-                        topo_vect[cls.storage_pos_topo_vect[i]] - 1,
+                        loc_bus,
                     ][0],
                     v_storage[i],
                 )
                 v_bus[
                     self.storage_to_subid[i],
-                    topo_vect[self.storage_pos_topo_vect[i]] - 1,
+                    loc_bus,
                 ][1] = max(
                     v_bus[
                         cls.storage_to_subid[i],
-                        topo_vect[cls.storage_pos_topo_vect[i]] - 1,
+                        loc_bus,
                     ][1],
                     v_storage[i],
                 )
@@ -1380,7 +1388,7 @@ class Backend(GridObjects, ABC):
                 "Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
                 "incorrect."
             )
-        diff_v_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
+        diff_v_bus = np.zeros((cls.n_sub, 2), dtype=dt_float)
         diff_v_bus[:, :] = v_bus[:, :, 1] - v_bus[:, :, 0]
         return p_subs, q_subs, p_bus, q_bus, diff_v_bus
 

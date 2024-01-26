@@ -34,12 +34,14 @@ Change Log
 [1.9.9] - 2024-xx-yy
 ----------------------
 - [FIXED] github CI did not upload the source files
-- [FIXED] l2rpn_utils module did not stored correctly the order
+- [FIXED] `l2rpn_utils` module did not stored correctly the order
   of actions and observation for wcci_2020
+- [FIXED] 2 bugs detected by static code analysis (thanks sonar cloud)
 - [IMPROVED] handling of "compatibility" grid2op version
   (by calling the relevant things done in the base class 
   in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`
   to check version (instead of comparing strings)
+- [IMPROVED] slightly the code of `check_kirchoff` to make it slightly clearer
 
 [1.9.8] - 2024-01-26
 ----------------------

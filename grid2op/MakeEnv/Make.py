@@ -289,6 +289,9 @@ def make(
 
     .. versionchanged:: 1.9.3
         Remove the possibility to use this function with arguments (force kwargs)
+    
+    .. versionadded:: 1.9.9
+        The `n_busbar` parameters
         
     Parameters
     ----------
@@ -356,7 +359,15 @@ def make(
         raise Grid2OpException("Impossible to create an environment without its name. Please call something like: \n"
                                "> env = grid2op.make('l2rpn_case14_sandbox') \nor\n"
                                "> env = grid2op.make('rte_case14_realistic')")
+    try:
+        n_busbar_int = int(n_busbar)
+    except Exception as exc_:
+        raise Grid2OpException("n_busbar parameters should be convertible to integer") from exc_
 
+    if n_busbar != n_busbar_int:
+        raise Grid2OpException(f"n_busbar parameters should be convertible to integer, but we have "
+                               f"int(n_busbar) = {n_busbar_int} != {n_busbar}")
+        
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
         if el not in accepted_kwargs:
