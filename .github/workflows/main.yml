@@ -156,7 +156,7 @@ jobs:
 
       - name: Upload source archive
         uses: actions/upload-artifact@v2
-        if: matrix.config.name == 'darwin' && matrix.python.name == 'cp39'
+        if: matrix.config.name == 'darwin' && matrix.python.name == 'cp310'
         with:
           name: grid2op-sources
           path: dist/*.tar.gz

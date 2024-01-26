@@ -399,6 +399,10 @@ pp_bug_gen_alone.py
 test_dunder.py
 grid2op/tests/test_fail_ci.txt
 saved_multiepisode_agent_36bus_DN_4/
+grid2op/tests/requirements.txt
+grid2op/tests/venv_test_311/
+issue_577/
+junk.py
 
 # profiling files
 **.prof
