@@ -21,7 +21,7 @@ import scipy
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Backend.backend import Backend
 from grid2op.Action import BaseAction
-from grid2op.Exceptions import *
+from grid2op.Exceptions import BackendError
 
 try:
     import numba
@@ -118,6 +118,12 @@ class PandaPowerBackend(Backend):
         can_be_copied: bool=True,
         with_numba: bool=NUMBA_,
     ):
+        from grid2op.MakeEnv.Make import _force_test_dataset
+        if _force_test_dataset():
+            if with_numba:
+                warnings.warn(f"Forcing `test=True` will disable numba for {type(self)}")
+            with_numba = False
+            
         Backend.__init__(
             self,
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
@@ -214,6 +220,8 @@ class PandaPowerBackend(Backend):
         self._lightsim2grid : bool = lightsim2grid
         self._dist_slack : bool = dist_slack
         self._max_iter : bool = max_iter
+        self._in_service_line_col_id = None
+        self._in_service_trafo_col_id = None
 
     def _check_for_non_modeled_elements(self):
         """This function check for elements in the pandapower grid that will have no impact on grid2op.
@@ -337,6 +345,9 @@ class PandaPowerBackend(Backend):
             warnings.filterwarnings("ignore", category=FutureWarning)
             self._grid = pp.from_json(full_path)
         self._check_for_non_modeled_elements()
+        
+        self._in_service_line_col_id = int(np.where(self._grid.line.columns == "in_service")[0][0])
+        self._in_service_trafo_col_id = int(np.where(self._grid.trafo.columns == "in_service")[0][0])
 
         # add the slack bus that is often not modeled as a generator, but i need it for this backend to work
         bus_gen_added = None
@@ -879,7 +890,7 @@ class PandaPowerBackend(Backend):
                 self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service           
                 chg_and_in_service = sh_service & shunt_bus.changed
                 self._grid.shunt["bus"].loc[chg_and_in_service] = cls.local_bus_to_global(shunt_bus.values[chg_and_in_service],
-                                                                                         cls.shunt_to_subid[chg_and_in_service])
+                                                                                          cls.shunt_to_subid[chg_and_in_service])
 
         # i made at least a real change, so i implement it in the backend
         for id_el, new_bus in topo__:
@@ -1292,6 +1303,9 @@ class PandaPowerBackend(Backend):
         res.load_theta = copy.deepcopy(self.load_theta)
         res.gen_theta = copy.deepcopy(self.gen_theta)
         res.storage_theta = copy.deepcopy(self.storage_theta)
+        
+        res._in_service_line_col_id = self._in_service_line_col_id
+        res._in_service_trafo_col_id = self._in_service_trafo_col_id
 
         return res
 
@@ -1347,18 +1361,18 @@ class PandaPowerBackend(Backend):
 
     def _disconnect_line(self, id_):
         if id_ < self._number_true_line:
-            self._grid.line["in_service"].iloc[id_] = False
+            self._grid.line.iloc[id_, self._in_service_line_col_id] = False
         else:
-            self._grid.trafo["in_service"].iloc[id_ - self._number_true_line] = False
+            self._grid.trafo.iloc[id_ - self._number_true_line, self._in_service_trafo_col_id]  = False
         self._topo_vect[self.line_or_pos_topo_vect[id_]] = -1
         self._topo_vect[self.line_ex_pos_topo_vect[id_]] = -1
         self.line_status[id_] = False
 
     def _reconnect_line(self, id_):
         if id_ < self._number_true_line:
-            self._grid.line["in_service"].iloc[id_] = True
+            self._grid.line.iloc[id_, self._in_service_line_col_id] = True
         else:
-            self._grid.trafo["in_service"].iloc[id_ - self._number_true_line] = True
+            self._grid.trafo.iloc[id_ - self._number_true_line, self._in_service_trafo_col_id] = True
         self.line_status[id_] = True
 
     def get_topo_vect(self) -> np.ndarray:

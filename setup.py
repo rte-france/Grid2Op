@@ -73,7 +73,7 @@ pkgs = {
                  "numba",
                  "gym>=0.26",
                  "gymnasium",
-                 "stable-baselines3>=2.0",
+                #  "stable-baselines3>=2.0",
                  "nbconvert",
                  "jinja2"
                  ],

@@ -793,9 +793,8 @@ class _AuxTestBoxGymObsSpace:
                 action_class=PlayableAction,
                 _add_to_name=type(self).__name__
             )
-        self.env.seed(0)
-        self.env.reset()  # seed part !
-        self.obs_env = self.env.reset()
+        self.env.reset()
+        self.obs_env = self.env.reset(seed=0, options={"time serie id": 0})
         self.env_gym = self._aux_GymEnv_cls()(self.env)
 
     def test_assert_raises_creation(self):
@@ -888,7 +887,7 @@ class _AuxTestBoxGymObsSpace:
         assert observation_space._attr_to_keep == kept_attr
         assert len(obs_gym) == 17
         # the substract are calibrated so that the maximum is really close to 0
-        assert obs_gym.max() <= 0
+        assert obs_gym.max() <= 0, f"{obs_gym.max()} should be 0."
         assert obs_gym.max() >= -0.5
 
     def test_functs(self):

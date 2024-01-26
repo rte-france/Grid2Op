@@ -10,6 +10,7 @@ import copy
 import warnings
 import numpy as np
 import re
+from typing import Union, Any, Dict
 
 import grid2op
 from grid2op.Opponent import OpponentSpace
@@ -680,7 +681,7 @@ class Environment(BaseEnv):
         """
         return self.get_obs().simulate(action)
 
-    def set_id(self, id_):
+    def set_id(self, id_: Union[int, str]) -> None:
         """
         Set the id that will be used at the next call to :func:`Environment.reset`.
 
@@ -688,6 +689,29 @@ class Environment(BaseEnv):
 
         **NB** The environment need to be **reset** for this to take effect.
 
+        .. versionchanged:: 1.6.4
+            `id_` can now be a string instead of an integer. You can call something like
+            `env.set_id("0000")` or `env.set_id("Scenario_april_000")` 
+            or `env.set_id("2050-01-03_0")` (depending on your environment)
+            to use the right time series.
+        
+        .. seealso::
+            function :func:`Environment.reset` for extra information
+        
+        .. versionchanged:: 1.9.8
+            Starting from version 1.9.8 you can directly set the time serie id when calling
+            reset.
+        
+        .. warning::
+            If the "time serie generator" you use is on standard (*eg* it is random in some sense)
+            and if you want fully reproducible results, you should first call `env.set_id(...)` and
+            then call `env.seed(...)` (and of course `env.reset()`)
+            
+            Calling `env.seed(...)` and then `env.set_id(...)` might not behave the way you want.
+            
+            In this case, it is much better to use the function 
+            `reset(seed=..., options={"time serie id": ...})` directly.
+            
         Parameters
         ----------
         id_: ``int``
@@ -870,7 +894,10 @@ class Environment(BaseEnv):
         self.logger = logger
         return self
 
-    def reset(self) -> BaseObservation:
+    def reset(self, 
+              *,
+              seed: Union[int, None] = None,
+              options: Union[Dict[str, Any], None] = None) -> BaseObservation:
         """
         Reset the environment to a clean state.
         It will reload the next chronics if any. And reset the grid to a clean state.
@@ -889,17 +916,59 @@ class Environment(BaseEnv):
             import grid2op
 
             # create the environment
-            env = grid2op.make("l2rpn_case14_sandbox")
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
 
-            # and now you can "render" (plot) the state of the grid
+            # start a new episode
             obs = env.reset()
             done = False
             reward = env.reward_range[0]
             while not done:
                 action = agent.act(obs, reward, done)
                 obs, reward, done, info = env.step(action)
+                
+        .. versionadded:: 1.9.8
+            It is now possible to set the seed and the time series you want to use at the new
+            episode by calling `env.reset(seed=..., options={"time serie id": ...})`
+
+        Before version 1.9.8, if you wanted to use a fixed seed, you would need to (see 
+        doc of :func:`Environment.seed` ):
+        
+        .. code-block:: python
+
+            seed = ...
+            env.seed(seed)
+            obs = env.reset()
+            ...
+            
+        Starting from version 1.9.8 you can do this in one call:
+        
+        .. code-block:: python
+
+            seed = ...
+            obs = env.reset(seed=seed)  
+            
+        For the "time series id" it is the same concept. Before you would need to do (see
+        doc of :func:`Environment.set_id` for more information ):
+        
+        .. code-block:: python
+
+            time_serie_id = ...
+            env.set_id(time_serie_id)
+            obs = env.reset()
+            ...        
+            
+        And now (from version 1.9.8) you can more simply do:
+        
+        .. code-block:: python
+
+            time_serie_id = ...
+            obs = env.reset(options={"time serie id": time_serie_id})
+            ... 
+        
         """
-        super().reset()
+        super().reset(seed=seed, options=options)
+            
         self.chronics_handler.next_chronics()
         self.chronics_handler.initialize(
             self.backend.name_load,

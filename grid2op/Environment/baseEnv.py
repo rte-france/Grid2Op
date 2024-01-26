@@ -13,30 +13,38 @@ import time
 import copy
 import os
 import json
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union, Dict, Any
+try:
+    # Literal introduced in python 3.9
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
 import warnings
 import numpy as np
 from scipy.optimize import (minimize, LinearConstraint)
+
 from abc import ABC, abstractmethod
-from grid2op.Action import ActionSpace
 from grid2op.Observation import (BaseObservation,
                                  ObservationSpace,
                                  HighResSimCounter)
 from grid2op.Backend import Backend
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects, RandomObject
-from grid2op.Exceptions import *
+from grid2op.Exceptions import (Grid2OpException,
+                                EnvError,
+                                InvalidRedispatching,
+                                GeneratorTurnedOffTooSoon,
+                                GeneratorTurnedOnTooSoon,
+                                AmbiguousActionRaiseAlert)
 from grid2op.Parameters import Parameters
-from grid2op.Reward import BaseReward
-from grid2op.Reward import RewardHelper
-from grid2op.Opponent import OpponentSpace, NeverAttackBudget
-from grid2op.Action import DontAct, BaseAction
-from grid2op.Rules import AlwaysLegal
-from grid2op.Opponent import BaseOpponent
+from grid2op.Reward import BaseReward, RewardHelper
+from grid2op.Opponent import OpponentSpace, NeverAttackBudget, BaseOpponent
+from grid2op.Action import DontAct, BaseAction, ActionSpace
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Action._backendAction import _BackendAction
 from grid2op.Chronics import ChronicsHandler
-from grid2op.Rules import AlwaysLegal, BaseRules
+from grid2op.Rules import AlwaysLegal, BaseRules, AlwaysLegal
 
 
 # TODO put in a separate class the redispatching function
@@ -293,6 +301,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     
     CAN_SKIP_TS = False  # each step is exactly one time step
 
+    #: this are the keys of the dictionnary `options`
+    #: that can be used when calling `env.reset(..., options={})`
+    KEYS_RESET_OPTIONS = {"time serie id"}
+    
+    
     def __init__(
         self,
         init_env_path: os.PathLike,
@@ -1343,14 +1356,28 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         self.__new_param = None
 
-    def reset(self):
+    def set_id(self, id_: Union[int, str]) -> None:
+        # nothing to do in general, overloaded for real Environment
+        pass
+    
+    def reset(self, 
+              *,
+              seed: Union[int, None] = None,
+              options: Union[Dict[Literal["time serie id"], Union[int, str]], None] = None):
         """
         Reset the base environment (set the appropriate variables to correct initialization).
         It is (and must be) overloaded in other :class:`grid2op.Environment`
         """
         if self.__closed:
             raise EnvError("This environment is closed. You cannot use it anymore.")
-
+        if options is not None:
+            for el in options:
+                if el not in type(self).KEYS_RESET_OPTIONS:
+                    raise EnvError(f"You tried to customize the `reset` call with some "
+                                   f"`options` using the key `{el}` which is invalid. "
+                                   f"Only keys in {sorted(list(type(self).KEYS_RESET_OPTIONS))} "
+                                   f"can be used.")
+                    
         self.__is_init = True
         # current = None is an indicator that this is the first step of the environment
         # so don't change the setting of current_obs = None unless you are willing to change that
@@ -1371,9 +1398,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         self._last_obs = None
 
-        # seeds (so that next episode does not depend on what happened in previous episode)
-        if self.seed_used is not None and not self._has_just_been_seeded:
+        if options is not None and "time serie id" in options:
+            self.set_id(options["time serie id"])
+            
+        if seed is not None:
+            self.seed(seed)  
+        elif self.seed_used is not None and not self._has_just_been_seeded:
+            # seeds (so that next episode does not depend on what happened in previous episode)
             self.seed(None, _seed_me=False)
+            
         self._reset_storage()
         self._reset_curtailment()
         self._reset_alert()
@@ -1418,6 +1451,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Set the seed of this :class:`Environment` for a better control and to ease reproducible experiments.
 
+        .. seealso::
+            function :func:`Environment.reset` for extra information
+
+        .. versionchanged:: 1.9.8
+            Starting from version 1.9.8 you can directly set the seed when calling
+            reset.
+            
+        .. warning::
+            It is preferable to call this function `just before` a call to `env.reset()` otherwise
+            the seeding might not work properly (especially if some non standard "time serie generators"
+            *aka* chronics are used)
+            
         Parameters
         ----------
         seed: ``int``
