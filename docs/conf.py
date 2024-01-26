@@ -22,7 +22,7 @@ copyright = '2019, RTE France'
 author = 'Benjamin Donnot'
 
 # The full version, including alpha/beta/rc tags
-release = '1.9.8.dev1'
+release = '1.9.8'
 version = '1.9'
 
 
