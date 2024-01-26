@@ -34,8 +34,9 @@ Change Log
 [1.9.9] - 2024-xx-yy
 ----------------------
 - [FIXED] github CI did not upload the source files
-- [FIXED] l2rpn_utils module did not stored correctly the order
+- [FIXED] `l2rpn_utils` module did not stored correctly the order
   of actions and observation for wcci_2020
+- [FIXED] 2 bugs detected by static code analysis (thanks sonar cloud)
 
 [1.9.8] - 2024-01-26
 ----------------------
