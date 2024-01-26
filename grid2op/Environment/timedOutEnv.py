@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# Copyright (c) 2023, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -8,7 +8,7 @@
 
 import time
 from math import floor
-from typing import Tuple, Union, List
+from typing import Any, Dict, Tuple, Union, List
 from grid2op.Environment.environment import Environment
 from grid2op.Action import BaseAction
 from grid2op.Observation import BaseObservation
@@ -23,7 +23,10 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
     of the `step` function. 
     
     For more information, see the documentation of 
-    :func:`TimedOutEnvironment.step` for 
+    :func:`TimedOutEnvironment.step` 
+    
+    .. warning::
+        This class might not behave normally if used with MaskedEnvironment, MultiEnv, MultiMixEnv etc.
     
     Attributes
     ----------
@@ -244,10 +247,17 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                                                "_read_from_local_dir": _read_from_local_dir},
                                   **other_env_kwargs)
         return res
-            
-    def reset(self) -> BaseObservation:
+    
+
+    def reset(self, 
+              *,
+              seed: Union[int, None] = None,
+              options: Union[Dict[str, Any], None] = None) -> BaseObservation:
         """Reset the environment.
 
+        .. seealso::
+            The doc of :func:`Environment.reset` for more information
+            
         Returns
         -------
         BaseObservation
@@ -257,7 +267,7 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
         self.__last_act_send = time.perf_counter()
         self.__last_act_received = self.__last_act_send
         self._is_init_dn = False
-        res = super().reset()
+        res = super().reset(seed=seed, options=options)
         self.__last_act_send = time.perf_counter()
         self._is_init_dn = True
         return res

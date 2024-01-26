@@ -77,14 +77,14 @@ class __AuxBoxGymActSpace:
 
     .. code-block:: python
 
-        gym_env.observation_space = BoxGymActSpace(env.observation_space,
+        gym_env.action_space = BoxGymActSpace(env.action_space,
                                                    attr_to_keep=['redispatch', "curtail"])
 
     You can also apply some basic transformation to the attribute of the action. This can be done with:
 
     .. code-block:: python
 
-        gym_env.observation_space = BoxGymActSpace(env.observation_space,
+        gym_env.action_space = BoxGymActSpace(env.action_space,
                                                    attr_to_keep=['redispatch', "curtail"],
                                                    multiply={"redispatch": env.gen_max_ramp_up},
                                                    add={"redispatch": 0.5 * env.gen_max_ramp_up})
@@ -654,7 +654,7 @@ class __AuxBoxGymActSpace:
                 both_finite &= curr_high > curr_low
 
                 if (~both_finite).any():
-                    warnings.warn(f"The normalization of attribute \"{both_finite}\" cannot be performed entirely as "
+                    warnings.warn(f"The normalization of attribute \"{attr_tmp}\" cannot be performed entirely as "
                                   f"there are some non finite value, or `high == `low` "
                                   f"for some components.")
                     

@@ -312,6 +312,10 @@ but it is currently not on our priorities.
 A quick fix that is known to work include to set the `experimental_read_from_local_dir` when creating the
 environment with `grid2op.make(..., experimental_read_from_local_dir=True)` (see doc for more information)
 
+Sometimes, on some configuration (python version) we do not recommend to use grid2op with pandas>=2.2
+If you encounter any trouble, please downgrade to pandas<2.2. This behaviour occured in our continuous 
+integration environment for python >=3.9 but could not be reproduced locally.
+
 ### Perform tests locally
 
 Provided that Grid2Op is installed *from source*:

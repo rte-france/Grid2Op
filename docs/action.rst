@@ -85,7 +85,7 @@ you want to perform on the grid. For more information you can consult the help o
 
 To avoid extremely verbose things, as of grid2op 1.5.0, we introduced some convenience functions to allow
 easier action construction. You can now do `act.load_set_bus = ...` instead of the previously way
-more verbose `act.update({"set_bus": {"loads_id": ...}}`
+more verbose `act.update({"set_bus": {"loads_id": ...}})`
 
 .. _action-module-examples:
 

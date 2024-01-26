@@ -1137,6 +1137,7 @@ class Runner(object):
                 returned list are not necessarily sorted by this value)
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
+              - "total_step": the total number of time steps possible in this episode.
               - "episode_data" : [Optional] The :class:`EpisodeData` corresponding to this episode run only
                 if `add_detailed_output=True`
               - "add_nb_highres_sim": [Optional] The estimated number of calls to high resolution simulator made

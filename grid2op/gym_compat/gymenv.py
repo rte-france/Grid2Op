@@ -154,15 +154,17 @@ class __AuxGymEnv:
         # used for gym > 0.26
         if self._shuffle_chronics and isinstance(
             self.init_env.chronics_handler.real_data, Multifolder
-        ):
+        ) and (options is not None and "time serie id" not in options):
             self.init_env.chronics_handler.sample_next_chronics()
         
-        super().reset(seed=seed)    
+        super().reset(seed=seed)  # seed gymnasium env
         if seed is not None:
             self._aux_seed_spaces()
             seed, next_seed, underlying_env_seeds = self._aux_seed_g2op(seed)
-            
-        g2op_obs = self.init_env.reset()
+        
+        # we don't seed grid2op with reset as it is done
+        # earlier
+        g2op_obs = self.init_env.reset(seed=None, options=options)
         gym_obs = self.observation_space.to_gym(g2op_obs)
             
         chron_id = self.init_env.chronics_handler.get_id()

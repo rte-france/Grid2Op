@@ -40,7 +40,7 @@ class AAATestBackendAPI(MakeBackend):
 
     def aux_make_backend(self) -> Backend:
         """do not run nor modify ! (used for this test class only)"""
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
         backend.load_grid(self.get_path(), self.get_casefile())
         backend.load_redispacthing_data("tmp")  # pretend there is no generator
         backend.load_storage_data(self.get_path())
@@ -52,7 +52,7 @@ class AAATestBackendAPI(MakeBackend):
     def test_00create_backend(self):
         """Tests the backend can be created (not integrated in a grid2op environment yet)"""
         self.skip_if_needed()
-        backend = self.make_backend()
+        backend = self.make_backend_with_glue_code()
     
     def test_01load_grid(self):
         """Tests the grid can be loaded (supposes that your backend can read the grid.json in educ_case14_storage)*
@@ -405,7 +405,7 @@ class AAATestBackendAPI(MakeBackend):
         backend.apply_action(bk_act)  # modification of load_p, load_q and gen_p        
         
         res2 = backend.runpf(is_dc=False)
-        assert res2[0], "backend should not have diverge after such a little perturbation"
+        assert res2[0], f"backend should not have diverged after such a little perturbation. It diverges with error {res2[1]}"
         tmp2 = backend.loads_info()
         assert len(tmp) == 3, "loads_info() should return 3 elements: load_p, load_q, load_v (see doc)"
         load_p_after, load_q_after, load_v_after = tmp2 
@@ -428,7 +428,8 @@ class AAATestBackendAPI(MakeBackend):
             bk_act += action
             backend.apply_action(bk_act)  # modification of load_p, load_q and gen_p   
             res_tmp = backend.runpf(is_dc=False)
-            assert res_tmp[0], "backend should not have diverge after such a little perturbation"
+            assert res_tmp[0], (f"backend should not have diverged after such a little perturbation. "
+                                f"It diverges with error {res_tmp[1]} for load {load_id}")
             tmp = backend.loads_info() 
             assert np.abs(tmp[0][load_id] - load_p_init[load_id]) >= delta_mw / 2., f"error when trying to modify load {load_id}: check the consistency between backend.loads_info() and backend.apply_action for load_p"
             assert np.abs(tmp[1][load_id] - load_q_init[load_id]) >= delta_mvar / 2., f"error when trying to modify load {load_id}: check the consistency between backend.loads_info() and backend.apply_action for load_q"
@@ -463,12 +464,16 @@ class AAATestBackendAPI(MakeBackend):
         backend.apply_action(bk_act)  # modification of load_p, load_q and gen_p        
         
         res2 = backend.runpf(is_dc=False)
-        assert res2[0], "backend should not have diverge after such a little perturbation"
+        assert res2[0], f"backend should not have diverged after such a little perturbation. It diverges with error {res2[1]}"
         tmp2 = backend.generators_info()
         assert len(tmp) == 3, "generators_info() should return 3 elements: gen_p, gen_q, gen_v (see doc)"
         gen_p_after, gen_q_after, gen_v_after = tmp2 
-        assert not np.allclose(gen_p_after, gen_p_init), f"gen_p does not seemed to be modified by apply_action when generators are impacted (active value): check `apply_action` for gen_p / prod_p"
-        assert not np.allclose(gen_v_after, gen_v_init), f"gen_v does not seemed to be modified by apply_action when generators are impacted (voltage setpoint value): check `apply_action` for gen_v / prod_v"
+        assert not np.allclose(gen_p_after, gen_p_init), (f"gen_p does not seemed to be modified by apply_action when "
+                                                          "generators are impacted (active value): check `apply_action` "
+                                                          "for gen_p / prod_p")
+        assert not np.allclose(gen_v_after, gen_v_init), (f"gen_v does not seemed to be modified by apply_action when "
+                                                          "generators are impacted (voltage setpoint value): check `apply_action` "
+                                                          "for gen_v / prod_v")
 
         # now a basic check for "one gen at a time"
         # NB this test cannot be done like this for "prod_v" / gen_v because two generators might be connected to the same
@@ -486,7 +491,8 @@ class AAATestBackendAPI(MakeBackend):
             bk_act += action
             backend.apply_action(bk_act)
             res_tmp = backend.runpf(is_dc=False)
-            assert res_tmp[0], "backend should not have diverge after such a little perturbation"
+            assert res_tmp[0], (f"backend should not have diverged after such a little "
+                                f"perturbation. It diverges with error {res_tmp[1]} for gen {gen_id}")
             tmp = backend.generators_info() 
             if np.abs(tmp[0][gen_id] - gen_p_init[gen_id]) <= delta_mw / 2.:
                 # in case of non distributed slack, backend cannot control the generator acting as the slack.
@@ -541,7 +547,8 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action1
         backend.apply_action(bk_act)  # disconnection of line 0 only
         res_disco = backend.runpf(is_dc=False)
-        assert res_disco[0], f"your backend diverge after disconnection of line {line_id}, which should not be the case"
+        #  backend._grid.tell_solver_need_reset() 
+        assert res_disco[0], f"your backend diverges after disconnection of line {line_id}, which should not be the case"
         tmp_or_disco = backend.lines_or_info()
         tmp_ex_disco = backend.lines_ex_info()
         assert not np.allclose(tmp_or_disco[0], p_or), f"p_or does not seemed to be modified by apply_action when a powerline is disconnected (active value): check `apply_action` for line connection disconnection"
@@ -565,7 +572,7 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action2
         backend.apply_action(bk_act)  # disconnection of line 0 only
         res_disco = backend.runpf(is_dc=False)
-        assert res_disco[0], f"your backend diverge after disconnection of line {line_id}, which should not be the case"
+        assert res_disco[0], f"your backend diverges after disconnection of line {line_id}, which should not be the case"
         tmp_or_reco = backend.lines_or_info()
         tmp_ex_reco = backend.lines_ex_info()
         assert not np.allclose(tmp_or_disco[0], tmp_or_reco[0]), f"p_or does not seemed to be modified by apply_action when a powerline is reconnected (active value): check `apply_action` for line connection reconnection"
@@ -648,7 +655,8 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action1
         backend.apply_action(bk_act)  # everything on busbar 2 at sub 0
         res = backend.runpf(is_dc=False)
-        assert res[0], "Your powerflow has diverged after the loading of the file, which should not happen"
+        assert res[0], (f"Your powerflow has diverged after a topological change at substation {sub_id} with error {res[1]}."
+                        f"\nCheck `apply_action` for topology.")
         
         if not cls.shunts_data_available:
             warnings.warn(f"{type(self).__name__} test_14change_topology: This test is not performed in depth as your backend does not support shunts")
@@ -1080,7 +1088,7 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=False)  
-        assert not res[0], "It is expected that your backend return `False` in case of non connected grid in AC."                 
+        assert not res[0], f"It is expected that your backend return `(False, _)` in case of non connected grid in AC."                 
         error = res[1]
         assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
@@ -1096,7 +1104,7 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # mix of bus 1 and 2 on substation 1
         res = backend.runpf(is_dc=True)  
-        assert not res[0], "It is expected that your backend throws an exception inheriting from BackendError in case of non connected grid in DC."                 
+        assert not res[0], f"It is expected that your backend return `(False, _)` in case of non connected grid in DC."                    
         error = res[1]
         assert isinstance(error, Grid2OpException), f"When your backend return `False`, we expect it throws an exception inheriting from Grid2OpException (second return value), backend returned {type(error)}"  
         if not isinstance(error, BackendError):
@@ -1125,6 +1133,7 @@ class AAATestBackendAPI(MakeBackend):
         backend.apply_action(bk_act)
         
         res = backend.runpf(is_dc=False)  
+        assert res[0], f"Your backend diverged in AC after a line disconnection, error was {res[1]}"   
         p_or, q_or, v_or, a_or = backend.lines_or_info()
         p_ex, q_ex, v_ex, a_ex = backend.lines_ex_info()
         assert np.allclose(v_or[line_id], 0.), f"v_or should be 0. for disconnected line, but is currently {v_or[line_id]} (AC)" 
@@ -1141,6 +1150,7 @@ class AAATestBackendAPI(MakeBackend):
         backend.apply_action(bk_act)
         
         res = backend.runpf(is_dc=True)  
+        assert res[0],  f"Your backend diverged in DC after a line disconnection, error was {res[1]}"    
         p_or, q_or, v_or, a_or = backend.lines_or_info()
         p_ex, q_ex, v_ex, a_ex = backend.lines_ex_info()
         assert np.allclose(v_or[line_id], 0.), f"v_or should be 0. for disconnected line, but is currently {v_or[line_id]} (DC)" 
@@ -1177,6 +1187,7 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)
         res = backend.runpf(is_dc=False)  
+        assert res[0],  f"Your backend diverged in AC after a shunt disconnection, error was {res[1]}"    
         p_, q_, v_, bus_ = backend.shunt_info()
         assert np.allclose(v_[shunt_id], 0.), f"v should be 0. for disconnected shunt, but is currently {v_[shunt_id]} (AC)" 
         assert bus_[shunt_id] == -1, f"bus_ should be -1 for disconnected shunt, but is currently {bus_[shunt_id]} (AC)" 
@@ -1189,6 +1200,7 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)
         res = backend.runpf(is_dc=True)  
+        assert res[0],  f"Your backend diverged in DC after a shunt disconnection, error was {res[1]}"    
         p_, q_, v_, bus_ = backend.shunt_info()
         assert np.allclose(v_[shunt_id], 0.), f"v should be 0. for disconnected shunt, but is currently {v_[shunt_id]} (DC)" 
         assert bus_[shunt_id] == -1, f"bus_ should be -1 for disconnected shunt, but is currently {bus_[shunt_id]} (DC)" 
@@ -1221,6 +1233,7 @@ class AAATestBackendAPI(MakeBackend):
         backend.apply_action(bk_act)
         
         res = backend.runpf(is_dc=False)  
+        assert res[0],  f"Your backend diverged in AC after a storage disconnection, error was {res[1]}"    
         p_, q_, v_ = backend.storages_info()
         assert np.allclose(v_[storage_id], 0.), f"v should be 0. for disconnected storage, but is currently {v_[storage_id]} (AC)" 
         
@@ -1232,6 +1245,7 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)
         res = backend.runpf(is_dc=True)  
+        assert res[0],  f"Your backend diverged in DC after a storage disconnection, error was {res[1]}"    
         p_, q_, v_ = backend.storages_info()
         assert np.allclose(v_[storage_id], 0.), f"v should be 0. for disconnected storage, but is currently {v_[storage_id]} (AC)" 
     
@@ -1261,7 +1275,8 @@ class AAATestBackendAPI(MakeBackend):
         # backend can be copied
         backend_cpy = backend.copy()
         assert isinstance(backend_cpy, type(backend)), f"backend.copy() is supposed to return an object of the same type as your backend. Check backend.copy()"
-        backend.runpf(is_dc=False)
+        res = backend.runpf(is_dc=False)
+        assert res[0],  f"Your backend diverged in AC after a copy, error was {res[1]}"    
         # now modify original one
         init_gen_p, *_ = backend.generators_info() 
         init_load_p, *_ = backend.loads_info()
@@ -1274,6 +1289,7 @@ class AAATestBackendAPI(MakeBackend):
         backend.apply_action(bk_act)
         res = backend.runpf(is_dc=True) 
         res_cpy = backend_cpy.runpf(is_dc=True) 
+        assert res_cpy[0],  f"Your backend diverged in DC after a copy, error was {res_cpy[1]}"    
         
         p_or, *_ = backend.lines_or_info()
         p_or_cpy, *_ = backend_cpy.lines_or_info()
@@ -1302,6 +1318,7 @@ class AAATestBackendAPI(MakeBackend):
         cls = type(backend)
         
         res = backend.runpf(is_dc=False)
+        assert res[0],  f"Your backend diverged in AC after loading, error was {res[1]}"    
         topo_vect_orig = self._aux_check_topo_vect(backend)
         
         # disconnect line
@@ -1313,6 +1330,7 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)
         res = backend.runpf(is_dc=False)  
+        assert res[0],  f"Your backend diverged in AC after a line disconnection, error was {res[1]}"    
         topo_vect = self._aux_check_topo_vect(backend)
         error_msg = (f"Line {line_id} has been disconnected, yet according to 'topo_vect' "
                      f"is still connected (origin side) to busbar {topo_vect[cls.line_or_pos_topo_vect[line_id]]}")
@@ -1331,6 +1349,7 @@ class AAATestBackendAPI(MakeBackend):
             bk_act += action
             backend.apply_action(bk_act)
             res = backend.runpf(is_dc=False)  
+            assert res[0],  f"Your backend diverged in AC after a storage disconnection, error was {res[1]}"    
             topo_vect = self._aux_check_topo_vect(backend)
             error_msg = (f"Storage {sto_id} has been disconnected, yet according to 'topo_vect' "
                         f"is still connected (origin side) to busbar {topo_vect[cls.storage_pos_topo_vect[line_id]]}")
@@ -1353,6 +1372,7 @@ class AAATestBackendAPI(MakeBackend):
             bk_act += action
             backend.apply_action(bk_act)
             res = backend.runpf(is_dc=False)  
+            assert res[0],  f"Your backend diverged in AC after a shunt disconnection, error was {res[1]}"    
             topo_vect = self._aux_check_topo_vect(backend)
             error_msg = (f"Disconnecting a shunt should have no impact on the topo_vect vector "
                          f"as shunt are not taken into account in this")
@@ -1439,6 +1459,7 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)  # apply the action
         res = backend.runpf(is_dc=False)  
+        assert res[0],  f"Your backend diverged in AC after setting a {el_nm} on busbar {busbar_id}, error was {res[1]}"    
         # now check the topology vector
         topo_vect = self._aux_check_topo_vect(backend)
         error_msg = (f"{el_nm} {el_id} has been moved to busbar {busbar_id}, yet according to 'topo_vect' "
@@ -1464,6 +1485,7 @@ class AAATestBackendAPI(MakeBackend):
         cls = type(backend)
         
         res = backend.runpf(is_dc=False)
+        assert res[0],  f"Your backend diverged in AC after loading the grid state, error was {res[1]}"    
         topo_vect_orig = self._aux_check_topo_vect(backend)
         
         # line or
@@ -1476,6 +1498,7 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)
         res = backend.runpf(is_dc=False)  
+        assert res[0],  f"Your backend diverged in AC after setting a line (or side) on busbar 2, error was {res[1]}"    
         topo_vect = self._aux_check_topo_vect(backend)
         error_msg = (f"Line {line_id} (or. side) has been moved to busbar {busbar_id}, yet according to 'topo_vect' "
                      f"is still connected (origin side) to busbar {topo_vect[cls.line_or_pos_topo_vect[line_id]]}")
@@ -1491,6 +1514,7 @@ class AAATestBackendAPI(MakeBackend):
         bk_act += action
         backend.apply_action(bk_act)
         res = backend.runpf(is_dc=False)  
+        assert res[0],  f"Your backend diverged in AC after setting a line (ex side) on busbar 2, error was {res[1]}"    
         topo_vect = self._aux_check_topo_vect(backend)
         error_msg = (f"Line {line_id} (ex. side) has been moved to busbar {busbar_id}, yet according to 'topo_vect' "
                      f"is still connected (ext side) to busbar {topo_vect[cls.line_ex_pos_topo_vect[line_id]]}")

@@ -32,6 +32,29 @@ Change Log
 - [???] properly model interconnecting powerlines
 
 
+[1.9.8] - 2024-01-26
+----------------------
+- [FIXED] the `backend.check_kirchoff` function was not correct when some elements were disconnected 
+  (the wrong columns of the p_bus and q_bus was set in case of disconnected elements)
+- [FIXED] `PandapowerBackend`, when no slack was present
+- [FIXED] the "BaseBackendTest" class did not correctly detect divergence in most cases (which lead 
+  to weird bugs in failing tests)
+- [FIXED] an issue with imageio having deprecated the `fps` kwargs (see https://github.com/rte-france/Grid2Op/issues/569)
+- [FIXED] adding the "`loads_charac.csv`" in the package data
+- [FIXED] a bug when using grid2op, not "utils.py" script could be used (see 
+  https://github.com/rte-france/Grid2Op/issues/577). This was caused by the modification of
+  `sys.path` when importing the grid2op test suite.
+- [ADDED] A type of environment that does not perform the "emulation of the protections"
+  for some part of the grid (`MaskedEnvironment`) see https://github.com/rte-france/Grid2Op/issues/571
+- [ADDED] a "gym like" API for reset allowing to set the seed and the time serie id directly when calling
+  `env.reset(seed=.., options={"time serie id": ...})`
+- [IMPROVED] the CI speed: by not testing every possible numpy version but only most ancient and most recent
+- [IMPROVED] Runner now test grid2op version 1.9.6 and 1.9.7
+- [IMPROVED] refacto `gridobj_cls._clear_class_attribute` and `gridobj_cls._clear_grid_dependant_class_attributes`
+- [IMPROVED] the bahviour of the generic class `MakeBackend` used for the test suite.
+- [IMPROVED] re introducing python 12 testing
+- [IMPROVED] error messages in the automatic test suite (`AAATestBackendAPI`)
+
 [1.9.7] - 2023-12-01
 ----------------------
 - [BREAKING] removal of the `grid2op/Exceptions/PowerflowExceptions.py` file and move the
