@@ -337,6 +337,7 @@ class PandaPowerBackend(Backend):
         are set as "out of service" unless a topological action acts on these specific substations.
 
         """
+        self.cannot_handle_more_than_2_busbar()
         full_path = self.make_complete_path(path, filename)
 
         with warnings.catch_warnings():
@@ -1306,7 +1307,8 @@ class PandaPowerBackend(Backend):
         
         res._in_service_line_col_id = self._in_service_line_col_id
         res._in_service_trafo_col_id = self._in_service_trafo_col_id
-
+        
+        res._missing_two_busbars_support_info = self._missing_two_busbars_support_info
         return res
 
     def close(self) -> None:

@@ -10,6 +10,7 @@ import copy
 import numpy as np
 import warnings
 from typing import Tuple
+from packaging import version
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
@@ -774,6 +775,9 @@ class BaseAction(GridObjects):
 
     @classmethod
     def process_grid2op_compat(cls):
+        GridObjects.process_grid2op_compat(cls)
+        glop_ver = cls._get_grid2op_version_as_version_obj()
+        
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             # oldest version: no storage and no curtailment available
 
@@ -797,11 +801,11 @@ class BaseAction(GridObjects):
                 cls.attr_list_vect.remove("_curtail")
                 cls.attr_list_set = set(cls.attr_list_vect)
 
-        if cls.glop_version < "1.6.0":
+        if glop_ver < version.parse("1.6.0"):
             # this feature did not exist before.
             cls.dim_alarms = 0
         
-        if cls.glop_version < "1.9.1":
+        if glop_ver < version.parse("1.9.1"):
             # this feature did not exist before.
             cls.dim_alerts = 0
 

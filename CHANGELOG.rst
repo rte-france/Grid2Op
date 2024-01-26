@@ -36,6 +36,10 @@ Change Log
 - [FIXED] github CI did not upload the source files
 - [FIXED] l2rpn_utils module did not stored correctly the order
   of actions and observation for wcci_2020
+- [IMPROVED] handling of "compatibility" grid2op version
+  (by calling the relevant things done in the base class 
+  in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`
+  to check version (instead of comparing strings)
 
 [1.9.8] - 2024-01-26
 ----------------------

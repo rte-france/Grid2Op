@@ -13,6 +13,7 @@ from grid2op.Environment.environment import Environment
 from grid2op.Action import BaseAction
 from grid2op.Observation import BaseObservation
 from grid2op.Exceptions import EnvError
+from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
 
 
 class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc de base
@@ -212,7 +213,8 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                              observation_bk_class,
                              observation_bk_kwargs,
                              _raw_backend_class,
-                             _read_from_local_dir):
+                             _read_from_local_dir,
+                             n_busbar=DEFAULT_N_BUSBAR_PER_SUB):
         res = TimedOutEnvironment(grid2op_env={"init_env_path": init_env_path,
                                                "init_grid_path": init_grid_path,
                                                "chronics_handler": chronics_handler,
@@ -244,7 +246,8 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                                                "observation_bk_class": observation_bk_class,
                                                "observation_bk_kwargs": observation_bk_kwargs,
                                                "_raw_backend_class": _raw_backend_class,
-                                               "_read_from_local_dir": _read_from_local_dir},
+                                               "_read_from_local_dir": _read_from_local_dir,
+                                               "n_busbar": int(n_busbar)},
                                   **other_env_kwargs)
         return res
     

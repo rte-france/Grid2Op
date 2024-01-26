@@ -14,6 +14,7 @@ from abc import abstractmethod
 import numpy as np
 from scipy.sparse import csr_matrix
 from typing import Optional
+from packaging import version
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
@@ -1027,6 +1028,9 @@ class BaseObservation(GridObjects):
     
     @classmethod
     def process_grid2op_compat(cls):
+        GridObjects.process_grid2op_compat(cls)
+        glop_ver = cls._get_grid2op_version_as_version_obj()
+        
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             # oldest version: no storage and no curtailment available
 
@@ -1053,7 +1057,7 @@ class BaseObservation(GridObjects):
 
             cls.attr_list_set = set(cls.attr_list_vect)
 
-        if cls.glop_version < "1.6.0" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+        if glop_ver < version.parse("1.6.0"):
             # this feature did not exist before and was introduced in grid2op 1.6.0
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
@@ -1080,7 +1084,7 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
-        if cls.glop_version < "1.6.4" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+        if glop_ver < version.parse("1.6.4"):
             # "current_step", "max_step" were added in grid2Op 1.6.4
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
@@ -1093,7 +1097,7 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
-        if cls.glop_version < "1.6.5" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+        if glop_ver < version.parse("1.6.5"):
             # "current_step", "max_step" were added in grid2Op 1.6.5
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
@@ -1106,7 +1110,7 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
-        if cls.glop_version < "1.6.6" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+        if glop_ver < version.parse("1.6.6"):
             # "gen_margin_up", "gen_margin_down" were added in grid2Op 1.6.6
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
@@ -1123,7 +1127,7 @@ class BaseObservation(GridObjects):
                     pass
             cls.attr_list_set = set(cls.attr_list_vect)
 
-        if cls.glop_version < "1.9.1" or cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+        if glop_ver < version.parse("1.9.1"):
             # alert attributes have been added in 1.9.1
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
             cls.attr_list_set = copy.deepcopy(cls.attr_list_set)

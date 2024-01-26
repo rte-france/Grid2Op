@@ -33,7 +33,7 @@ from grid2op.Exceptions import (
     DivergingPowerflow,
     Grid2OpException,
 )
-from grid2op.Space import GridObjects
+from grid2op.Space import GridObjects, DEFAULT_N_BUSBAR_PER_SUB
 
 
 # TODO method to get V and theta at each bus, could be in the same shape as check_kirchoff
@@ -171,6 +171,56 @@ class Backend(GridObjects, ABC):
         for k, v in kwargs.items():
             self._my_kwargs[k] = v
         
+        #: .. versionadded:: 1.9.9
+        #: A flag to indicate whether the :func:`Backend.cannot_handle_more_than_2_busbar`
+        #: or the :func:`Backend.cannot_handle_more_than_2_busbar`
+        #: has been called when :func:`Backend.load_grid` was called.
+        #: Starting from grid2op 1.9.9 this is a requirement (to 
+        #: ensure backward compatibility)
+        self._missing_two_busbars_support_info = True
+    
+    def can_handle_more_than_2_busbar(self):
+        """
+        .. versionadded:: 1.9.9
+        
+        This function should be called once in `load_grid` if your backend is able
+        to handle more than 2 busbars per substation.
+        
+        If not called, then the `environment` will not be able to use more than 2 busbars per substations.
+        
+        .. seealso::
+            :func:`Backend.cannot_handle_more_than_2_busbar`
+            
+        .. danger::
+            We highly recommend you do not try to override this function. 
+            
+            At time of writing I can't find any good reason to do so.
+        """
+        self._missing_two_busbars_support_info = False
+        self.n_busbar_per_sub = type(self).n_busbar_per_sub
+    
+    def cannot_handle_more_than_2_busbar(self):
+        """
+        .. versionadded:: 1.9.9
+        
+        This function should be called once in `load_grid` if your backend is able
+        to handle more than 2 busbars per substation.
+        
+        If not called, then the `environment` will not be able to use more than 2 busbars per substations.
+        
+        .. seealso::
+            :func:`Backend.cnot_handle_more_than_2_busbar`
+
+        .. danger::
+            We highly recommend you do not try to override this function. 
+            
+            At time of writing I can't find any good reason to do so.
+        """
+        self._missing_two_busbars_support_info = False
+        if type(self).n_busbar_per_sub != DEFAULT_N_BUSBAR_PER_SUB:
+            warnings.warn("You asked in `make` function to pass ")
+        self.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
+    
     def make_complete_path(self,
                            path : Union[os.PathLike, str],
                            filename : Optional[Union[os.PathLike, str]]=None) -> str:
@@ -1859,6 +1909,22 @@ class Backend(GridObjects, ABC):
         from grid2op.Action import CompleteAction
         from grid2op.Action._backendAction import _BackendAction
 
+        if self._missing_two_busbars_support_info:
+            warnings.warn("The backend implementation you are using is probably too old to take advantage of the "
+                          "new feature added in grid2op 1.9.9: the possibility "
+                          "to have more than 2 busbars per substations (or not). "
+                          "To silence this warning, you can modify the `load_grid` implementation "
+                          "of your backend and either call:\n"
+                          "- self.can_handle_more_than_2_busbar if the current implementation "
+                          "   can handle more than 2 busbsars OR\n"
+                          "- self.cannot_handle_more_than_2_busbar if not."
+                          "\nAnd of course, ideally, if the current implementation "
+                          "of your backend cannot "
+                          "handle more than 2 busbars per substation, then change it :-)\n"
+                          "Your backend will behave as if it did not support it.")
+            self._missing_two_busbars_support_info = False
+            self.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
+            
         orig_type = type(self)
         if orig_type.my_bk_act_class is None:
             # class is already initialized

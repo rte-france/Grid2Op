@@ -335,11 +335,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         observation_bk_kwargs=None,  # type of backend for the observation space
         highres_sim_counter=None,
         update_obs_after_reward=False,
+        n_busbar=2,
         _is_test: bool = False,  # TODO not implemented !!
         _init_obs: Optional[BaseObservation] =None
     ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
+        self._n_busbar = n_busbar  # env attribute not class attribute !
         if other_rewards is None:
             other_rewards = {}
         if kwargs_attention_budget is None:
@@ -630,7 +632,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
         if dict_ is None:
             dict_ = {}
-
+        new_obj._n_busbar = self._n_busbar
+        
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
         new_obj._init_env_path = copy.deepcopy(self._init_env_path)
 

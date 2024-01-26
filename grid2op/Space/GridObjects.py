@@ -20,6 +20,7 @@ to manipulate.
 import warnings
 import copy
 import numpy as np
+from packaging import version
 
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -27,6 +28,7 @@ from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
 # TODO tests of these methods and this class in general
+DEFAULT_N_BUSBAR_PER_SUB = 2
 
 
 class GridObjects:
@@ -487,6 +489,7 @@ class GridObjects:
     name_sub = None
     name_storage = None
 
+    n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
     n_gen = -1
     n_load = -1
     n_line = -1
@@ -619,6 +622,10 @@ class GridObjects:
         pass
 
     @classmethod
+    def set_n_busbar_per_sub(cls, n_busbar_per_sub):
+        cls.n_busbar_per_sub = n_busbar_per_sub
+        
+    @classmethod
     def tell_dim_alarm(cls, dim_alarms):
         if cls.dim_alarms != 0:
             # number of alarms has already been set, i issue a warning
@@ -651,6 +658,7 @@ class GridObjects:
     @classmethod
     def _clear_class_attribute(cls):
         cls.shunts_data_available = False
+        cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
         
         # for redispatching / unit commitment
         cls._li_attr_disp = [
@@ -2714,6 +2722,11 @@ class GridObjects:
             # with shunt and without shunt, then
             # there might be issues
             name_res += "_noshunt"
+            
+        if gridobj.n_busbar_per_sub != DEFAULT_N_BUSBAR_PER_SUB:
+            # to be able to load same environment with
+            # different `n_busbar_per_sub`
+            name_res += f"_{gridobj.n_busbar_per_sub}"
         
         if name_res in globals():
             if not force:
@@ -2750,22 +2763,37 @@ class GridObjects:
         return globals()[name_res]
 
     @classmethod
+    def _get_grid2op_version_as_version_obj(cls):
+        if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            glop_ver = version.parse("0.0.0")
+        else:
+            glop_ver = version.parse(cls.glop_version)
+        return glop_ver
+        
+    @classmethod
     def process_grid2op_compat(cls):
-        """
-        This function can be overloaded.
+        """This is called when the class is initialized, with `init_grid` to broadcast grid2op compatibility feature.
+        
+        This function can be overloaded, but in this case it's best to call this original method too.
 
-        This is called when the class is initialized, with `init_grid` to broadcast grid2op compatibility feature.
         """
-        if cls.glop_version < "1.6.0":
+        glop_ver = cls._get_grid2op_version_as_version_obj()
+        
+        if glop_ver < version.parse("1.6.0"):
             # this feature did not exist before.
             cls.dim_alarms = 0
             cls.assistant_warning_type = None
             
-        if cls.glop_version < "1.9.1":
+        if glop_ver < version.parse("1.9.1"):
             # this feature did not exists before
             cls.dim_alerts = 0 
             cls.alertable_line_names = []
             cls.alertable_line_ids = []
+            
+        if glop_ver < version.parse("1.9.9.dev0"):
+            # this feature did not exists before
+            # I need to set it to the default if set elsewhere
+            cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
 
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
@@ -3510,6 +3538,8 @@ class GridObjects:
         res[
             "redispatching_unit_commitment_availble"
         ] = cls.redispatching_unit_commitment_availble
+        # n_busbar_per_sub
+        res["n_busbar_per_sub"] = cls.n_busbar_per_sub
 
     @classmethod
     def cls_to_dict(cls):
@@ -4250,7 +4280,7 @@ class GridObjects:
         tmp_tmp_ = ",".join([f"{el}" for el in cls.alertable_line_ids])
         tmp_ = f"[{tmp_tmp_}]"
         alertable_line_ids_str = '[]' if cls.dim_alerts == 0 else tmp_
-        res = f"""# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
+        res = f"""# Copyright (c) 2019-2024, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -4293,6 +4323,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     name_sub = np.array([{name_sub_str}])
     name_storage = np.array([{name_storage_str}])
 
+    n_busbar_per_sub = {cls.n_busbar_per_sub}
     n_gen = {cls.n_gen}
     n_load = {cls.n_load}
     n_line = {cls.n_line}
