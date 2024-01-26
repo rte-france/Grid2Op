@@ -32,7 +32,7 @@ Change Log
 - [???] properly model interconnecting powerlines
 
 
-[1.9.8] - 20xx-yy-zz
+[1.9.8] - 2024-01-26
 ----------------------
 - [FIXED] the `backend.check_kirchoff` function was not correct when some elements were disconnected 
   (the wrong columns of the p_bus and q_bus was set in case of disconnected elements)
