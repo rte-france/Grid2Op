@@ -408,6 +408,9 @@ class TestGridObjt(unittest.TestCase):
     
     
 class TestAction_3busbars(unittest.TestCase):
+    def get_nb_bus(self):
+        return 3
+    
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -415,7 +418,7 @@ class TestAction_3busbars(unittest.TestCase):
                                     backend=_AuxFakeBackendSupport(),
                                     action_class=CompleteAction,
                                     test=True,
-                                    n_busbar=3,
+                                    n_busbar=self.get_nb_bus(),
                                     _add_to_name=type(self).__name__)
         return super().setUp()
     
@@ -550,16 +553,8 @@ class TestAction_3busbars(unittest.TestCase):
     
     
 class TestAction_1busbar(TestAction_3busbars):
-    def setUp(self) -> None:
-        super().setUp()
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage",
-                                    backend=_AuxFakeBackendSupport(),
-                                    action_class=CompleteAction,
-                                    test=True,
-                                    n_busbar=1,
-                                    _add_to_name=type(self).__name__)
+    def get_nb_bus(self):
+        return 1
 
 
 class TestActionSpace(unittest.TestCase):

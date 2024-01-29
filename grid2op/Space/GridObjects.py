@@ -3221,7 +3221,7 @@ class GridObjects:
         """NB: `cls` can be here a class or an object of a class..."""
         save_to_dict(res, cls, "glop_version", str, copy_)
         res["_PATH_ENV"] = cls._PATH_ENV  # i do that manually for more control
-        res["n_busbar_per_sub"] = f"{cls.n_busbar_per_sub}"
+        save_to_dict(res, cls, "n_busbar_per_sub", str, copy_)
         
         save_to_dict(
             res,

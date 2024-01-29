@@ -827,7 +827,7 @@ class PandaPowerBackend(Backend):
         ) = backendAction()
 
         # handle bus status
-        self._grid.bus["in_service"] = active_bus.T.reshape(-1)
+        self._grid.bus["in_service"] = pd.Series(data=active_bus.T.reshape(-1), index=np.arange(cls.n_sub * cls.n_busbar_per_sub))
         
         # handle generators
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
@@ -875,6 +875,7 @@ class PandaPowerBackend(Backend):
             #     cls.storage_pos_topo_vect[stor_bus.changed][~activated]
             # ] = -1
             new_bus_num = cls.local_bus_to_global(cls.storage_pos_topo_vect[stor_bus.changed], cls.storage_to_subid[stor_bus.changed])
+            # TODO n_busbar_per_sub
 
         if type(backendAction).shunts_data_available:
             shunt_p, shunt_q, shunt_bus = shunts__
