@@ -1028,7 +1028,7 @@ class BaseObservation(GridObjects):
     
     @classmethod
     def process_grid2op_compat(cls):
-        GridObjects.process_grid2op_compat(cls)
+        super().process_grid2op_compat()
         glop_ver = cls._get_grid2op_version_as_version_obj()
         
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:

@@ -131,7 +131,8 @@ class EducPandaPowerBackend(Backend):
             example. (But of course  you can still use switches if you really want to)
 
         """
-
+        self.cannot_handle_more_than_2_busbar()
+        
         # first, handles different kind of path:
         full_path = self.make_complete_path(path, filename)
 

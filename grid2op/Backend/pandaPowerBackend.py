@@ -18,10 +18,11 @@ from typing import Optional, Union, Tuple
 import pandapower as pp
 import scipy
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Backend.backend import Backend
 from grid2op.Action import BaseAction
 from grid2op.Exceptions import BackendError
+from grid2op.Backend.backend import Backend
 
 try:
     import numba
@@ -337,7 +338,7 @@ class PandaPowerBackend(Backend):
         are set as "out of service" unless a topological action acts on these specific substations.
 
         """
-        self.cannot_handle_more_than_2_busbar()
+        self.can_handle_more_than_2_busbar()
         full_path = self.make_complete_path(path, filename)
 
         with warnings.catch_warnings():
@@ -557,12 +558,11 @@ class PandaPowerBackend(Backend):
 
         # "hack" to handle topological changes, for now only 2 buses per substation
         add_topo = copy.deepcopy(self._grid.bus)
-        add_topo.index += add_topo.shape[0]
-        add_topo["in_service"] = False
-        # self._grid.bus = pd.concat((self._grid.bus, add_topo))
-        for ind, el in add_topo.iterrows():
-            pp.create_bus(self._grid, index=ind, **el)
-
+        for busbar_supp in range(self.n_busbar_per_sub - 1):   # self.n_busbar_per_sub and not type(self) here otherwise it erases can_handle_more_than_2_busbar / cannot_handle_more_than_2_busbar
+            add_topo.index += add_topo.shape[0]
+            add_topo["in_service"] = False
+            for ind, el in add_topo.iterrows():
+                pp.create_bus(self._grid, index=ind, **el)
         self._init_private_attrs()
 
     def _init_private_attrs(self) -> None:
@@ -814,6 +814,8 @@ class PandaPowerBackend(Backend):
         """
         if backendAction is None:
             return
+        from grid2op.Action._backendAction import _BackendAction
+        backendAction : _BackendAction = backendAction
         
         cls = type(self)
         
@@ -825,11 +827,9 @@ class PandaPowerBackend(Backend):
         ) = backendAction()
 
         # handle bus status
-        bus_is = self._grid.bus["in_service"]
-        for i, (bus1_status, bus2_status) in enumerate(active_bus):
-            bus_is[i] = bus1_status  # no iloc for bus, don't ask me why please :-/
-            bus_is[i + self.__nb_bus_before] = bus2_status
-            
+        self._grid.bus["in_service"] = active_bus.T.reshape(-1)
+        
+        # handle generators
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if (prod_p.changed).any():
             tmp_prod_p.iloc[prod_p.changed] = prod_p.values[prod_p.changed]
@@ -852,7 +852,7 @@ class PandaPowerBackend(Backend):
         if (load_q.changed).any():
             tmp_load_q.iloc[load_q.changed] = load_q.values[load_q.changed]
 
-        if self.n_storage > 0:
+        if cls.n_storage > 0:
             # active setpoint
             tmp_stor_p = self._grid.storage["p_mw"]
             if (storage.changed).any():
@@ -862,18 +862,19 @@ class PandaPowerBackend(Backend):
             stor_bus = backendAction.get_storages_bus()
             new_bus_id = stor_bus.values[stor_bus.changed]  # id of the busbar 1 or 2 if
             activated = new_bus_id > 0  # mask of storage that have been activated
-            new_bus_num = (
-                self.storage_to_subid[stor_bus.changed] + (new_bus_id - 1) * self.n_sub
-            )  # bus number
-            new_bus_num[~activated] = self.storage_to_subid[stor_bus.changed][
-                ~activated
-            ]
-            self._grid.storage["in_service"].values[stor_bus.changed] = activated
-            self._grid.storage["bus"].values[stor_bus.changed] = new_bus_num
-            self._topo_vect[self.storage_pos_topo_vect[stor_bus.changed]] = new_bus_num
-            self._topo_vect[
-                self.storage_pos_topo_vect[stor_bus.changed][~activated]
-            ] = -1
+            # new_bus_num = (
+            #     cls.storage_to_subid[stor_bus.changed] + (new_bus_id - 1) * cls.n_sub
+            # )  # bus number
+            # new_bus_num[~activated] = cls.storage_to_subid[stor_bus.changed][
+            #     ~activated
+            # ]
+            # self._grid.storage["in_service"].values[stor_bus.changed] = activated
+            # self._grid.storage["bus"].values[stor_bus.changed] = new_bus_num
+            # self._topo_vect[cls.storage_pos_topo_vect[stor_bus.changed]] = new_bus_num
+            # self._topo_vect[
+            #     cls.storage_pos_topo_vect[stor_bus.changed][~activated]
+            # ] = -1
+            new_bus_num = cls.local_bus_to_global(cls.storage_pos_topo_vect[stor_bus.changed], cls.storage_to_subid[stor_bus.changed])
 
         if type(backendAction).shunts_data_available:
             shunt_p, shunt_q, shunt_bus = shunts__

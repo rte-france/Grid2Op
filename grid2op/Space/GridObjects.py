@@ -189,6 +189,12 @@ class GridObjects:
     Attributes
     ----------
 
+    n_busbar_per_sub: :class:`int`
+        number of independant busbars for all substations [*class attribute*]. It's 2 by default
+        or if the implementation of the backend does not support this feature.
+        
+        .. versionadded:: 1.9.9
+
     n_line: :class:`int`
         number of powerlines in the powergrid [*class attribute*]
 
@@ -2756,8 +2762,7 @@ class GridObjects:
         
         res_cls._compute_pos_big_topo_cls()
         res_cls.process_shunt_satic_data()
-        if res_cls.glop_version != grid2op.__version__:
-            res_cls.process_grid2op_compat()
+        res_cls.process_grid2op_compat()
 
         if force_module is not None:
             res_cls.__module__ = force_module  # hack because otherwise it says "abc" which is not the case
@@ -3204,7 +3209,7 @@ class GridObjects:
 
         if not res:  # res is empty here
             raise BackendError(
-                "GridObjects.bd: impossible to find a storage unit connected at substation {}".format(
+                "GridObjects.get_storages_id: impossible to find a storage unit connected at substation {}".format(
                     sub_id
                 )
             )
@@ -3216,6 +3221,8 @@ class GridObjects:
         """NB: `cls` can be here a class or an object of a class..."""
         save_to_dict(res, cls, "glop_version", str, copy_)
         res["_PATH_ENV"] = cls._PATH_ENV  # i do that manually for more control
+        res["n_busbar_per_sub"] = f"{cls.n_busbar_per_sub}"
+        
         save_to_dict(
             res,
             cls,
@@ -3598,7 +3605,7 @@ class GridObjects:
 
         cls = res
         if "glop_version" in dict_:
-            cls.glop_version = dict_["glop_version"]
+            cls.glop_version = str(dict_["glop_version"])
         else:
             cls.glop_version = cls.BEFORE_COMPAT_VERSION
 
@@ -3606,6 +3613,8 @@ class GridObjects:
             cls._PATH_ENV = str(dict_["_PATH_ENV"])
         else:
             cls._PATH_ENV = None
+            
+        cls.n_busbar_per_sub = int(dict_["n_busbar_per_sub"])
 
         cls.name_gen = extract_from_dict(
             dict_, "name_gen", lambda x: np.array(x).astype(str)

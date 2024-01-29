@@ -18,9 +18,9 @@ from grid2op.Environment import MaskedEnvironment, TimedOutEnvironment
 from grid2op.Runner import Runner
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
-from grid2op.Action import ActionSpace, BaseAction
+from grid2op.Action import ActionSpace, BaseAction, CompleteAction
 from grid2op.Observation import BaseObservation
-from grid2op.Exceptions import Grid2OpException, EnvError
+from grid2op.Exceptions import Grid2OpException, EnvError, IllegalAction
 import pdb
 
 
@@ -345,7 +345,6 @@ class TestGridObjt(unittest.TestCase):
         vect[gen_on_3] = 3
         assert (res == vect).all()
     
-    
     def test_local_bus_to_global_int(self):
         cls_env = type(self.env)
         # easy case: everything on bus 1
@@ -407,6 +406,173 @@ class TestGridObjt(unittest.TestCase):
         assert res[gen_on_2] == cls_env.gen_to_subid[gen_on_2] + cls_env.n_sub
         assert res[gen_on_3] == cls_env.gen_to_subid[gen_on_3] + 2 * cls_env.n_sub
     
+    
+class TestAction_3busbars(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage",
+                                    backend=_AuxFakeBackendSupport(),
+                                    action_class=CompleteAction,
+                                    test=True,
+                                    n_busbar=3,
+                                    _add_to_name=type(self).__name__)
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def _aux_test_act_consistent_as_dict(self, act_as_dict, name_xxx, el_id, bus_val):
+        if name_xxx is not None:
+            # regular element in the topo_vect
+            assert "set_bus_vect" in act_as_dict
+            tmp = act_as_dict["set_bus_vect"]
+            assert len(tmp['modif_subs_id']) == 1
+            sub_id = tmp['modif_subs_id'][0]
+            assert name_xxx[el_id] in tmp[sub_id]
+            assert tmp[sub_id][name_xxx[el_id]]["new_bus"] == bus_val
+        else:
+            # el not in topo vect (eg shunt)
+            assert "shunt" in act_as_dict
+            tmp = act_as_dict["shunt"]["shunt_bus"]
+            assert tmp[el_id] == bus_val
+
+    def _aux_test_act_consistent_as_serializable_dict(self, act_as_dict, el_nms, el_id, bus_val):
+        if el_nms is not None:
+            # regular element
+            assert "set_bus" in act_as_dict
+            assert el_nms in act_as_dict["set_bus"]
+            tmp = act_as_dict["set_bus"][el_nms]
+            assert tmp == [(el_id, bus_val)]
+        else:
+            # shunts of other things not in the topo vect
+            assert "shunt" in act_as_dict
+            tmp = act_as_dict["shunt"]["shunt_bus"]
+            assert tmp == [(el_id, bus_val)]
+    
+    def _aux_test_action(self, act : BaseAction, name_xxx, el_id, bus_val, el_nms):
+        assert act.can_affect_something()
+        assert not act.is_ambiguous()[0]
+        tmp = f"{act}"  # test the print does not crash
+        tmp = act.as_dict()  # test I can convert to dict
+        self._aux_test_act_consistent_as_dict(tmp, name_xxx, el_id, bus_val)
+        tmp = act.as_serializable_dict()  # test I can convert to another type of dict
+        self._aux_test_act_consistent_as_serializable_dict(tmp, el_nms, el_id, bus_val)
+        
+    def _aux_test_set_bus_onebus(self, nm_prop, el_id, bus_val, name_xxx, el_nms):
+        act = self.env.action_space()
+        setattr(act, nm_prop, [(el_id, bus_val)])
+        self._aux_test_action(act, name_xxx, el_id, bus_val, el_nms)
+        
+    def test_set_load_bus(self):
+        self._aux_test_set_bus_onebus("load_set_bus", 0, -1, type(self.env).name_load, 'loads_id')
+        for bus in range(type(self.env).n_busbar_per_sub):
+            self._aux_test_set_bus_onebus("load_set_bus", 0, bus + 1, type(self.env).name_load, 'loads_id')
+        act = self.env.action_space()
+        with self.assertRaises(IllegalAction):
+            act.load_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
+            
+    def test_set_gen_bus(self):
+        self._aux_test_set_bus_onebus("gen_set_bus", 0, -1, type(self.env).name_gen, 'generators_id')
+        for bus in range(type(self.env).n_busbar_per_sub):
+            self._aux_test_set_bus_onebus("gen_set_bus", 0, bus + 1, type(self.env).name_gen, 'generators_id')
+        act = self.env.action_space()
+        with self.assertRaises(IllegalAction):
+            act.gen_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
+    
+    def test_set_storage_bus(self):
+        self._aux_test_set_bus_onebus("storage_set_bus", 0, -1, type(self.env).name_storage, 'storages_id')
+        for bus in range(type(self.env).n_busbar_per_sub):
+            self._aux_test_set_bus_onebus("storage_set_bus", 0, bus + 1, type(self.env).name_storage, 'storages_id')
+        act = self.env.action_space()
+        with self.assertRaises(IllegalAction):
+            act.storage_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
+    
+    def test_set_lineor_bus(self):
+        self._aux_test_set_bus_onebus("line_or_set_bus", 0, -1, type(self.env).name_line, 'lines_or_id')
+        for bus in range(type(self.env).n_busbar_per_sub):
+            self._aux_test_set_bus_onebus("line_or_set_bus", 0, bus + 1, type(self.env).name_line, 'lines_or_id')
+        act = self.env.action_space()
+        with self.assertRaises(IllegalAction):
+            act.line_or_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
+            
+    def test_set_lineex_bus(self):
+        self._aux_test_set_bus_onebus("line_ex_set_bus", 0, -1, type(self.env).name_line, 'lines_ex_id')
+        for bus in range(type(self.env).n_busbar_per_sub):
+            self._aux_test_set_bus_onebus("line_ex_set_bus", 0, bus + 1, type(self.env).name_line, 'lines_ex_id')
+        act = self.env.action_space()
+        with self.assertRaises(IllegalAction):
+            act.line_ex_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
+    
+    def _aux_test_set_bus_onebus_sub_setbus(self, nm_prop, sub_id, el_id_sub, bus_val, name_xxx, el_nms):
+        # for now works only with lines_ex (in other words, the name_xxx and name_xxx should be 
+        # provided by the user and it's probably not a good idea to use something
+        # else than type(self.env).name_line and lines_ex_id
+        act = self.env.action_space()
+        buses_val = np.zeros(type(self.env).sub_info[sub_id], dtype=int)
+        buses_val[el_id_sub] = bus_val
+        setattr(act, nm_prop, [(sub_id, buses_val)])
+        el_id_in_topo_vect = np.where(act._set_topo_vect == bus_val)[0][0]
+        el_type = np.where(type(self.env).grid_objects_types[el_id_in_topo_vect][1:] != -1)[0][0]
+        el_id = type(self.env).grid_objects_types[el_id_in_topo_vect][el_type + 1]
+        self._aux_test_action(act, name_xxx, el_id, bus_val, el_nms)
+        
+    def test_sub_set_bus(self):
+        self._aux_test_set_bus_onebus_sub_setbus("sub_set_bus", 1, 0, -1, type(self.env).name_line, 'lines_ex_id')
+        for bus in range(type(self.env).n_busbar_per_sub):
+            self._aux_test_set_bus_onebus_sub_setbus("sub_set_bus", 1, 0, bus + 1, type(self.env).name_line, 'lines_ex_id')
+        act = self.env.action_space()
+        with self.assertRaises(IllegalAction):
+            act.line_ex_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
+            
+    def test_change_deactivated(self):
+        assert "set_bus" in type(self.env.action_space()).authorized_keys
+        assert self.env.action_space.supports_type("set_bus")
+        
+        assert "change_bus" not in type(self.env.action_space()).authorized_keys
+        assert not self.env.action_space.supports_type("change_bus")
+    
+    def test_shunt(self):
+        el_id = 0
+        bus_val = -1
+        name_xxx = None
+        el_nms = None
+        
+        act = self.env.action_space({"shunt": {"set_bus": [(0, -1)]}})
+        # self._aux_test_action(act, type(self.env).name_shunt, el_id, bus_val, None)  # does not work for a lot of reasons
+        assert not act.is_ambiguous()[0]
+        tmp = f"{act}"  # test the print does not crash
+        tmp = act.as_dict()  # test I can convert to dict
+        self._aux_test_act_consistent_as_dict(tmp, name_xxx, el_id, bus_val)
+        tmp = act.as_serializable_dict()  # test I can convert to another type of dict
+        self._aux_test_act_consistent_as_serializable_dict(tmp, el_nms, el_id, bus_val)
+    
+    
+class TestAction_1busbar(TestAction_3busbars):
+    def setUp(self) -> None:
+        super().setUp()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage",
+                                    backend=_AuxFakeBackendSupport(),
+                                    action_class=CompleteAction,
+                                    test=True,
+                                    n_busbar=1,
+                                    _add_to_name=type(self).__name__)
+
+
+class TestActionSpace(unittest.TestCase):
+    pass
+
+
+class TestBackendAction(unittest.TestCase):
+    pass
+
+class TestPandapowerBackend(unittest.TestCase):
+    pass
+
+
 if __name__ == "__main__":
     unittest.main()
         

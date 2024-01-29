@@ -37,6 +37,9 @@ Change Log
 - [FIXED] `l2rpn_utils` module did not stored correctly the order
   of actions and observation for wcci_2020
 - [FIXED] 2 bugs detected by static code analysis (thanks sonar cloud)
+- [FIXED] a bug in `act.get_gen_modif` (vector of wrong size was used, could lead
+  to some crashes if n_gen >= n_load)
+- [FIXED] a bug in `act.as_dict` when shunts were modified
 - [IMPROVED] handling of "compatibility" grid2op version
   (by calling the relevant things done in the base class 
   in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`
