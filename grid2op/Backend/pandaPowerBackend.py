@@ -558,6 +558,7 @@ class PandaPowerBackend(Backend):
 
         # "hack" to handle topological changes, for now only 2 buses per substation
         add_topo = copy.deepcopy(self._grid.bus)
+        # TODO n_busbar: what if non contiguous indexing ???
         for busbar_supp in range(self.n_busbar_per_sub - 1):   # self.n_busbar_per_sub and not type(self) here otherwise it erases can_handle_more_than_2_busbar / cannot_handle_more_than_2_busbar
             add_topo.index += add_topo.shape[0]
             add_topo["in_service"] = False
@@ -827,7 +828,10 @@ class PandaPowerBackend(Backend):
         ) = backendAction()
 
         # handle bus status
-        self._grid.bus["in_service"] = pd.Series(data=active_bus.T.reshape(-1), index=np.arange(cls.n_sub * cls.n_busbar_per_sub))
+        self._grid.bus["in_service"] = pd.Series(data=active_bus.T.reshape(-1),
+                                                 index=np.arange(cls.n_sub * cls.n_busbar_per_sub),
+                                                 dtype=bool)
+        # TODO n_busbar what if index is not continuous
         
         # handle generators
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
@@ -902,7 +906,7 @@ class PandaPowerBackend(Backend):
             if type_obj is not None:
                 # storage unit are handled elsewhere
                 self._type_to_bus_set[type_obj](new_bus, id_el_backend, id_topo)
-        
+
     def _apply_load_bus(self, new_bus, id_el_backend, id_topo):
         new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_load[id_el_backend]
@@ -993,6 +997,70 @@ class PandaPowerBackend(Backend):
         )
         return res
 
+    def _aux_runpf_pp(self, is_dc: bool):
+        with warnings.catch_warnings():
+            # remove the warning if _grid non connex. And it that case load flow as not converged
+            warnings.filterwarnings(
+                "ignore", category=scipy.sparse.linalg.MatrixRankWarning
+            )
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            nb_bus = self.get_nb_active_bus()
+            if self._nb_bus_before is None:
+                self._pf_init = "dc"
+            elif nb_bus == self._nb_bus_before:
+                self._pf_init = "results"
+            else:
+                self._pf_init = "auto"
+
+            if (~self._grid.load["in_service"]).any():
+                # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
+                raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
+                                                        " disconnected load. If you want to disconnect one, say it"
+                                                        " consumes 0. instead. Please check loads: "
+                                                        f"{np.where(~self._grid.load['in_service'])[0]}"
+                                                        )
+            if (~self._grid.gen["in_service"]).any():
+                # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
+                raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
+                                                        " disconnected generators. If you want to disconnect one, say it"
+                                                        " produces 0. instead. Please check generators: "
+                                                        f"{np.where(~self._grid.gen['in_service'])[0]}"
+                                                        )
+            try:
+                if is_dc:
+                    pp.rundcpp(self._grid, check_connectivity=True, init="flat")
+                    # if I put check_connectivity=False then the test AAATestBackendAPI.test_22_islanded_grid_make_divergence
+                    # does not pass
+                    
+                    # if dc i start normally next time i call an ac powerflow
+                    self._nb_bus_before = None
+                else:
+                    pp.runpp(
+                        self._grid,
+                        check_connectivity=False,
+                        init=self._pf_init,
+                        numba=self.with_numba,
+                        lightsim2grid=self._lightsim2grid,
+                        max_iteration=self._max_iter,
+                        distributed_slack=self._dist_slack,
+                    )
+            except IndexError as exc_:
+                raise pp.powerflow.LoadflowNotConverged(f"Surprising behaviour of pandapower when a bus is not connected to "
+                                                        f"anything but present on the bus (with check_connectivity=False). "
+                                                        f"Error was {exc_}"
+                                                        )
+                    
+            # stores the computation time
+            if "_ppc" in self._grid:
+                if "et" in self._grid["_ppc"]:
+                    self.comp_time += self._grid["_ppc"]["et"]
+            if self._grid.res_gen.isnull().values.any():
+                # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
+                # sometimes pandapower does not detect divergence and put Nan.
+                raise pp.powerflow.LoadflowNotConverged("Divergence due to Nan values in res_gen table (most likely due to "
+                                                        "a non connected grid).")
+                            
     def runpf(self, is_dc : bool=False) -> Tuple[bool, Union[Exception, None]]:
         """
         INTERNAL
@@ -1004,70 +1072,10 @@ class PandaPowerBackend(Backend):
         buses has not changed between two calls, the previous results are re used. This speeds up the computation
         in case of "do nothing" action applied.
         """
-        nb_bus = self.get_nb_active_bus()
         try:
-            with warnings.catch_warnings():
-                # remove the warning if _grid non connex. And it that case load flow as not converged
-                warnings.filterwarnings(
-                    "ignore", category=scipy.sparse.linalg.MatrixRankWarning
-                )
-                warnings.filterwarnings("ignore", category=RuntimeWarning)
-                warnings.filterwarnings("ignore", category=DeprecationWarning)
-                if self._nb_bus_before is None:
-                    self._pf_init = "dc"
-                elif nb_bus == self._nb_bus_before:
-                    self._pf_init = "results"
-                else:
-                    self._pf_init = "auto"
-
-                if (~self._grid.load["in_service"]).any():
-                    # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
-                                                            " disconnected load. If you want to disconnect one, say it"
-                                                            " consumes 0. instead. Please check loads: "
-                                                            f"{np.where(~self._grid.load['in_service'])[0]}"
-                                                            )
-                if (~self._grid.gen["in_service"]).any():
-                    # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
-                                                            " disconnected generators. If you want to disconnect one, say it"
-                                                            " produces 0. instead. Please check generators: "
-                                                            f"{np.where(~self._grid.gen['in_service'])[0]}"
-                                                            )
-                try:
-                    if is_dc:
-                        pp.rundcpp(self._grid, check_connectivity=True, init="flat")
-                        # if I put check_connectivity=False then the test AAATestBackendAPI.test_22_islanded_grid_make_divergence
-                        # does not pass
-                        
-                        # if dc i start normally next time i call an ac powerflow
-                        self._nb_bus_before = None
-                    else:
-                        pp.runpp(
-                            self._grid,
-                            check_connectivity=False,
-                            init=self._pf_init,
-                            numba=self.with_numba,
-                            lightsim2grid=self._lightsim2grid,
-                            max_iteration=self._max_iter,
-                            distributed_slack=self._dist_slack,
-                        )
-                except IndexError as exc_:
-                    raise pp.powerflow.LoadflowNotConverged(f"Surprising behaviour of pandapower when a bus is not connected to "
-                                                            f"anything but present on the bus (with check_connectivity=False). "
-                                                            f"Error was {exc_}"
-                                                            )
-                        
-                # stores the computation time
-                if "_ppc" in self._grid:
-                    if "et" in self._grid["_ppc"]:
-                        self.comp_time += self._grid["_ppc"]["et"]
-                if self._grid.res_gen.isnull().values.any():
-                    # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    # sometimes pandapower does not detect divergence and put Nan.
-                    raise pp.powerflow.LoadflowNotConverged("Divergence due to Nan values in res_gen table (most likely due to "
-                                                            "a non connected grid).")
-                
+            self._aux_runpf_pp(is_dc)
+            
+            cls = type(self)  
             # if a connected bus has a no voltage, it's a divergence (grid was not connected)
             if self._grid.res_bus.loc[self._grid.bus["in_service"]]["va_degree"].isnull().any():
                 raise pp.powerflow.LoadflowNotConverged("Isolated bus")
@@ -1097,15 +1105,15 @@ class PandaPowerBackend(Backend):
                 # need to assign the correct value when a generator is present at the same bus
                 # TODO optimize this ugly loop
                 # see https://github.com/e2nIEE/pandapower/issues/1996 for a fix
-                for l_id in range(self.n_load):
-                    if self.load_to_subid[l_id] in self.gen_to_subid:
+                for l_id in range(cls.n_load):
+                    if cls.load_to_subid[l_id] in cls.gen_to_subid:
                         ind_gens = np.where(
-                            self.gen_to_subid == self.load_to_subid[l_id]
+                            cls.gen_to_subid == cls.load_to_subid[l_id]
                         )[0]
                         for g_id in ind_gens:
                             if (
-                                self._topo_vect[self.load_pos_topo_vect[l_id]]
-                                == self._topo_vect[self.gen_pos_topo_vect[g_id]]
+                                self._topo_vect[cls.load_pos_topo_vect[l_id]]
+                                == self._topo_vect[cls.gen_pos_topo_vect[g_id]]
                             ):
                                 self.load_v[l_id] = self.prod_v[g_id]
                                 break

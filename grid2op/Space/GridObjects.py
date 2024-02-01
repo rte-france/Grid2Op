@@ -3613,8 +3613,12 @@ class GridObjects:
             cls._PATH_ENV = str(dict_["_PATH_ENV"])
         else:
             cls._PATH_ENV = None
-            
-        cls.n_busbar_per_sub = int(dict_["n_busbar_per_sub"])
+        
+        if 'n_busbar_per_sub' in dict_:
+            cls.n_busbar_per_sub = int(dict_["n_busbar_per_sub"])
+        else:
+            # compat version: was not set
+            cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
 
         cls.name_gen = extract_from_dict(
             dict_, "name_gen", lambda x: np.array(x).astype(str)

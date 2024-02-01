@@ -1060,7 +1060,6 @@ class BaseObservation(GridObjects):
         if glop_ver < version.parse("1.6.0"):
             # this feature did not exist before and was introduced in grid2op 1.6.0
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
-            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
             cls.dim_alarms = 0
             for el in [
                 "is_alarm_illegal",
@@ -1082,12 +1081,10 @@ class BaseObservation(GridObjects):
                 except ValueError as exc_:
                     # this attribute was not there in the first place
                     pass
-            cls.attr_list_set = set(cls.attr_list_vect)
 
         if glop_ver < version.parse("1.6.4"):
             # "current_step", "max_step" were added in grid2Op 1.6.4
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
-            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
 
             for el in ["max_step", "current_step"]:
                 try:
@@ -1095,12 +1092,10 @@ class BaseObservation(GridObjects):
                 except ValueError as exc_:
                     # this attribute was not there in the first place
                     pass
-            cls.attr_list_set = set(cls.attr_list_vect)
 
         if glop_ver < version.parse("1.6.5"):
             # "current_step", "max_step" were added in grid2Op 1.6.5
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
-            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
 
             for el in ["delta_time"]:
                 try:
@@ -1108,12 +1103,10 @@ class BaseObservation(GridObjects):
                 except ValueError as exc_:
                     # this attribute was not there in the first place
                     pass
-            cls.attr_list_set = set(cls.attr_list_vect)
 
         if glop_ver < version.parse("1.6.6"):
             # "gen_margin_up", "gen_margin_down" were added in grid2Op 1.6.6
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
-            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
 
             for el in [
                 "gen_margin_up",
@@ -1125,12 +1118,10 @@ class BaseObservation(GridObjects):
                 except ValueError as exc_:
                     # this attribute was not there in the first place
                     pass
-            cls.attr_list_set = set(cls.attr_list_vect)
 
         if glop_ver < version.parse("1.9.1"):
             # alert attributes have been added in 1.9.1
             cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
-            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
 
             for el in [
                 "active_alert",
@@ -1146,7 +1137,9 @@ class BaseObservation(GridObjects):
                 except ValueError as exc_:
                     # this attribute was not there in the first place
                     pass
-            cls.attr_list_set = set(cls.attr_list_vect)
+                
+        cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+        cls.attr_list_set = set(cls.attr_list_vect)
 
     def shape(self):
         return type(self).shapes()

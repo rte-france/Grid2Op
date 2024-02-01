@@ -177,7 +177,12 @@ class Backend(GridObjects, ABC):
         #: has been called when :func:`Backend.load_grid` was called.
         #: Starting from grid2op 1.9.9 this is a requirement (to 
         #: ensure backward compatibility)
-        self._missing_two_busbars_support_info = True
+        self._missing_two_busbars_support_info: bool = True
+        
+        #: .. versionadded:: 1.9.9
+        #: There is a difference between this and the class attribute.
+        #: You should not worry about the class attribute of the backend in :func:`Backend.apply_action`
+        self.n_busbar_per_sub: int = DEFAULT_N_BUSBAR_PER_SUB
     
     def can_handle_more_than_2_busbar(self):
         """
@@ -999,11 +1004,11 @@ class Backend(GridObjects, ABC):
             conv, exc_me = self.runpf(is_dc=is_dc)  # run powerflow
         except Grid2OpException as exc_:
             exc_me = exc_
-        except Exception as exc_:
-            exc_me = DivergingPowerflow(
-                f" An unexpected error occurred during the computation of the powerflow."
-                f"The error is: \n {exc_} \n. This is game over"
-            )
+        # except Exception as exc_:
+        #     exc_me = DivergingPowerflow(
+        #         f" An unexpected error occurred during the computation of the powerflow."
+        #         f"The error is: \n {exc_} \n. This is game over"
+        #     )
 
         if not conv and exc_me is None:
             exc_me = DivergingPowerflow(

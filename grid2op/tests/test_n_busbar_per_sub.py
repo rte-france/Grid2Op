@@ -419,7 +419,7 @@ class TestAction_3busbars(unittest.TestCase):
                                     action_class=CompleteAction,
                                     test=True,
                                     n_busbar=self.get_nb_bus(),
-                                    _add_to_name=type(self).__name__)
+                                    _add_to_name=type(self).__name__ + f'_{self.get_nb_bus()}')
         return super().setUp()
     
     def tearDown(self) -> None:
@@ -536,7 +536,7 @@ class TestAction_3busbars(unittest.TestCase):
         assert "change_bus" not in type(self.env.action_space()).authorized_keys
         assert not self.env.action_space.supports_type("change_bus")
     
-    def _aux_test_action_shunt(self, act, el_id, bus_val):
+    def _aux_test_action_shunt(self, act : BaseAction, el_id, bus_val):
         name_xxx = None
         el_nms = None
         # self._aux_test_action(act, type(self.env).name_shunt, el_id, bus_val, None)  # does not work for a lot of reasons
@@ -550,16 +550,16 @@ class TestAction_3busbars(unittest.TestCase):
     def test_shunt(self):
         el_id = 0
         bus_val = -1
-        act = self.env.action_space({"shunt": {"set_bus": [(0, bus_val)]}})
+        act = self.env.action_space({"shunt": {"set_bus": [(el_id, bus_val)]}})
         self._aux_test_action_shunt(act, el_id, bus_val)
         
         for bus_val in range(type(self.env).n_busbar_per_sub):
-            act = self.env.action_space({"shunt": {"set_bus": [(0, bus_val)]}})
-            self._aux_test_action_shunt(act, el_id, bus_val)
+            act = self.env.action_space({"shunt": {"set_bus": [(el_id, bus_val + 1)]}})
+            self._aux_test_action_shunt(act, el_id, bus_val + 1)
             
         act = self.env.action_space()
         with self.assertRaises(IllegalAction):
-            act = self.env.action_space({"shunt": {"set_bus": [(0, type(self.env).n_busbar_per_sub + 1)]}})
+            act = self.env.action_space({"shunt": {"set_bus": [(el_id, type(self.env).n_busbar_per_sub + 1)]}})
 
 class TestAction_1busbar(TestAction_3busbars):
     def get_nb_bus(self):
@@ -572,6 +572,7 @@ class TestActionSpace(unittest.TestCase):
 
 class TestBackendAction(unittest.TestCase):
     pass
+
 
 class TestPandapowerBackend(unittest.TestCase):
     pass

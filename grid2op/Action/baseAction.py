@@ -1830,6 +1830,7 @@ class BaseAction(GridObjects):
                         vect_self[:] = tmp
                     elif isinstance(tmp, list):
                         # expected a list: (id shunt, new bus)
+                        cls = type(self)
                         for (sh_id, new_bus) in tmp:
                             if sh_id < 0:
                                 raise AmbiguousAction(
@@ -1837,11 +1838,22 @@ class BaseAction(GridObjects):
                                         sh_id
                                     )
                                 )
-                            if sh_id >= self.n_shunt:
+                            if sh_id >= cls.n_shunt:
                                 raise AmbiguousAction(
                                     "Invalid shunt id {}. Shunt id should be less than the number "
-                                    "of shunt {}".format(sh_id, self.n_shunt)
+                                    "of shunt {}".format(sh_id, cls.n_shunt)
                                 )
+                            if new_bus <= -2:
+                                raise IllegalAction(
+                                    f"Cannot ask for a shunt id <= 2, found {new_bus} for shunt id {sh_id}"
+                                )
+                            elif new_bus > cls.n_busbar_per_sub:
+                                raise IllegalAction(
+                                    f"Cannot ask for a shunt id > {cls.n_busbar_per_sub} "
+                                    f"the maximum number of busbar per substations"
+                                    f", found {new_bus} for shunt id {sh_id}"
+                                )
+                                
                             vect_self[sh_id] = new_bus
                     elif tmp is None:
                         pass
