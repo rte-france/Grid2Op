@@ -45,6 +45,7 @@ Change Log
   in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`
   to check version (instead of comparing strings)
 - [IMPROVED] slightly the code of `check_kirchoff` to make it slightly clearer
+- [IMRPOVED] typing and doc for some of the main classes of the `Action` module
 
 [1.9.8] - 2024-01-26
 ----------------------

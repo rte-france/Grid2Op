@@ -862,19 +862,19 @@ class PandaPowerBackend(Backend):
             stor_bus = backendAction.get_storages_bus()
             new_bus_id = stor_bus.values[stor_bus.changed]  # id of the busbar 1 or 2 if
             activated = new_bus_id > 0  # mask of storage that have been activated
-            # new_bus_num = (
-            #     cls.storage_to_subid[stor_bus.changed] + (new_bus_id - 1) * cls.n_sub
-            # )  # bus number
-            # new_bus_num[~activated] = cls.storage_to_subid[stor_bus.changed][
-            #     ~activated
-            # ]
-            # self._grid.storage["in_service"].values[stor_bus.changed] = activated
-            # self._grid.storage["bus"].values[stor_bus.changed] = new_bus_num
-            # self._topo_vect[cls.storage_pos_topo_vect[stor_bus.changed]] = new_bus_num
-            # self._topo_vect[
-            #     cls.storage_pos_topo_vect[stor_bus.changed][~activated]
-            # ] = -1
-            new_bus_num = cls.local_bus_to_global(cls.storage_pos_topo_vect[stor_bus.changed], cls.storage_to_subid[stor_bus.changed])
+            new_bus_num = (
+                cls.storage_to_subid[stor_bus.changed] + (new_bus_id - 1) * cls.n_sub
+            )  # bus number
+            new_bus_num[~activated] = cls.storage_to_subid[stor_bus.changed][
+                ~activated
+            ]
+            self._grid.storage["in_service"].values[stor_bus.changed] = activated
+            self._grid.storage["bus"].values[stor_bus.changed] = new_bus_num
+            self._topo_vect[cls.storage_pos_topo_vect[stor_bus.changed]] = new_bus_num
+            self._topo_vect[
+                cls.storage_pos_topo_vect[stor_bus.changed][~activated]
+            ] = -1
+            # new_bus_num = cls.local_bus_to_global(cls.storage_pos_topo_vect[stor_bus.changed], cls.storage_to_subid[stor_bus.changed])
             # TODO n_busbar_per_sub
 
         if type(backendAction).shunts_data_available:

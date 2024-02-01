@@ -2126,9 +2126,6 @@ class BaseAction(GridObjects):
                 - +3 -> set to bus 3 (grid2op >= 1.9.9)
                 - etc.
                 - -1: You can use this method to disconnect an object by setting the value to -1.
-                
-              .. versionchanged:: 1.9.9
-                This feature is deactivated if `act.n_busbar_per_sub == 1`
 
             - "change_bus": (numpy bool vector or dictionary) will change the bus to which the object is connected.
               True will
@@ -2156,6 +2153,10 @@ class BaseAction(GridObjects):
               - If "change_bus" is True, then objects will be moved from one bus to another. If the object were on bus 1
                 then it will be moved on bus 2, and if it were on bus 2, it will be moved on bus 1. If the object is
                 disconnected then the action is ambiguous, and calling it will throw an AmbiguousAction exception.
+                
+            - "curtail" : TODO
+            - "raise_alarm" : TODO
+            - "raise_alert": TODO
 
             **NB**: CHANGES: you can reconnect a powerline without specifying on each bus you reconnect it at both its
             ends. In that case the last known bus id for each its end is used.

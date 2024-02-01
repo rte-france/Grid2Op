@@ -8,6 +8,12 @@
 
 import warnings
 import copy
+from typing import Dict, List, Any
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+    
 
 from grid2op.Action.baseAction import BaseAction
 from grid2op.Action.serializableActionSpace import SerializableActionSpace
@@ -72,7 +78,23 @@ class ActionSpace(SerializableActionSpace):
         self.legal_action = legal_action
 
     def __call__(
-        self, dict_: dict = None, check_legal: bool = False, env: "BaseEnv" = None
+        self,
+        dict_: Dict[Literal["injection",
+                            "hazards",
+                            "maintenance",
+                            "set_line_status",
+                            "change_line_status",
+                            "set_bus", 
+                            "change_bus",
+                            "redispatch",
+                            "set_storage",
+                            "curtail",
+                            "raise_alarm",
+                            "raise_alert"], Any] = None,
+        check_legal: bool = False,
+        env: "grid2op.Environment.BaseEnv" = None,
+        *,
+        injection=None,  # TODO n_busbar_per_sub
     ) -> BaseAction:
         """
         This utility allows you to build a valid action, with the proper sizes if you provide it with a valid
@@ -116,10 +138,12 @@ class ActionSpace(SerializableActionSpace):
             see :func:`Action.udpate`.
 
         """
-
+        # build the action
         res = self.actionClass()
+        
         # update the action
         res.update(dict_)
+        
         if check_legal:
             is_legal, reason = self._is_legal(res, env)
             if not is_legal:
