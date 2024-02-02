@@ -43,6 +43,8 @@ Change Log
 - [FIXED] a bug in `act.get_gen_modif` (vector of wrong size was used, could lead
   to some crashes if n_gen >= n_load)
 - [FIXED] a bug in `act.as_dict` when shunts were modified
+- [FIXED] a bug affecting shunts: sometimes it was not possible to modify their p / q 
+  values for certain values of p or q (an AmbiguousAction exception was raised wrongly)
 - [IMPROVED] handling of "compatibility" grid2op version
   (by calling the relevant things done in the base class 
   in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`

@@ -1843,16 +1843,17 @@ class BaseAction(GridObjects):
                                     "Invalid shunt id {}. Shunt id should be less than the number "
                                     "of shunt {}".format(sh_id, cls.n_shunt)
                                 )
-                            if new_bus <= -2:
-                                raise IllegalAction(
-                                    f"Cannot ask for a shunt id <= 2, found {new_bus} for shunt id {sh_id}"
-                                )
-                            elif new_bus > cls.n_busbar_per_sub:
-                                raise IllegalAction(
-                                    f"Cannot ask for a shunt id > {cls.n_busbar_per_sub} "
-                                    f"the maximum number of busbar per substations"
-                                    f", found {new_bus} for shunt id {sh_id}"
-                                )
+                            if key_n == "shunt_bus" or key_n == "set_bus":
+                                if new_bus <= -2:
+                                    raise IllegalAction(
+                                        f"Cannot ask for a shunt bus <= 2, found {new_bus} for shunt id {sh_id}"
+                                    )
+                                elif new_bus > cls.n_busbar_per_sub:
+                                    raise IllegalAction(
+                                        f"Cannot ask for a shunt bus > {cls.n_busbar_per_sub} "
+                                        f"the maximum number of busbar per substations"
+                                        f", found {new_bus} for shunt id {sh_id}"
+                                    )
                                 
                             vect_self[sh_id] = new_bus
                     elif tmp is None:
