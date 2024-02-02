@@ -1846,7 +1846,7 @@ class BaseAction(GridObjects):
                             if key_n == "shunt_bus" or key_n == "set_bus":
                                 if new_bus <= -2:
                                     raise IllegalAction(
-                                        f"Cannot ask for a shunt bus <= 2, found {new_bus} for shunt id {sh_id}"
+                                        f"Cannot ask for a shunt bus <= -2, found {new_bus} for shunt id {sh_id}"
                                     )
                                 elif new_bus > cls.n_busbar_per_sub:
                                     raise IllegalAction(

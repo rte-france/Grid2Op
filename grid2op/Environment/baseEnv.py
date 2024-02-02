@@ -36,7 +36,8 @@ from grid2op.Exceptions import (Grid2OpException,
                                 InvalidRedispatching,
                                 GeneratorTurnedOffTooSoon,
                                 GeneratorTurnedOnTooSoon,
-                                AmbiguousActionRaiseAlert)
+                                AmbiguousActionRaiseAlert,
+                                ImpossibleTopology)
 from grid2op.Parameters import Parameters
 from grid2op.Reward import BaseReward, RewardHelper
 from grid2op.Opponent import OpponentSpace, NeverAttackBudget, BaseOpponent
@@ -523,11 +524,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._voltage_controler = None
 
         # backend action
-        self._backend_action_class = None
-        self._backend_action = None
+        self._backend_action_class : type = None
+        self._backend_action : _BackendAction = None
 
         # specific to Basic Env, do not change
-        self.backend :Backend = None
+        self.backend : Backend = None
         self.__is_init = False
         self.debug_dispatch = False
 
@@ -2949,10 +2950,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             res_action = action
         return res_action, is_illegal_redisp, is_illegal_reco, is_done
 
-    def _aux_update_backend_action(self, action, action_storage_power, init_disp):
+    def _aux_update_backend_action(self,
+                                   action: BaseAction,
+                                   action_storage_power: np.ndarray,
+                                   init_disp: np.ndarray):
         # make sure the dispatching action is not implemented "as is" by the backend.
         # the environment must make sure it's a zero-sum action.
         # same kind of limit for the storage
+        res_exc_ = None
         action._redispatch[:] = 0.0
         action._storage_power[:] = self._storage_power
         self._backend_action += action
@@ -2961,6 +2966,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # TODO storage: check the original action, even when replaced by do nothing is not modified
         self._backend_action += self._env_modification
         self._backend_action.set_redispatch(self._actual_dispatch)
+        return res_exc_
 
     def _update_alert_properties(self, action, lines_attacked, subs_attacked):
         # update the environment with the alert information from the
@@ -3230,6 +3236,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         beg_step = time.perf_counter()
         self._last_obs : Optional[BaseObservation] = None
         self._forecasts = None  # force reading the forecast from the time series
+        cls = type(self)
         try:
             beg_ = time.perf_counter()
 
@@ -3243,12 +3250,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 )  # battery information
                 is_ambiguous = True
                     
-                if type(self).dim_alerts > 0:
+                if cls.dim_alerts > 0:
                     # keep the alert even if the rest is ambiguous (if alert is non ambiguous)
                     is_ambiguous_alert = isinstance(except_tmp, AmbiguousActionRaiseAlert)
                     if is_ambiguous_alert:
                         # reset the alert
-                        init_alert = np.zeros(type(self).dim_alerts, dtype=dt_bool)
+                        init_alert = np.zeros(cls.dim_alerts, dtype=dt_bool)
                     else:
                         action.raise_alert = init_alert
                 except_.append(except_tmp)
@@ -3262,13 +3269,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     1.0 * action._storage_power
                 )  # battery information
                 except_.append(reason)
-                if type(self).dim_alerts > 0:
+                if cls.dim_alerts > 0:
                     # keep the alert even if the rest is illegal
                     action.raise_alert = init_alert
                 is_illegal = True
 
             if self._has_attention_budget:
-                if type(self).assistant_warning_type == "zonal":
+                if cls.assistant_warning_type == "zonal":
                     # this feature is implemented, so i do it
                     reason_alarm_illegal = self._attention_budget.register_action(
                         self, action, is_illegal, is_ambiguous
@@ -3284,7 +3291,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             new_p_th = 1.0 * new_p
 
             # storage unit
-            if self.n_storage > 0:
+            if cls.n_storage > 0:
                 # limiting the storage units is done in `_aux_apply_redisp`
                 # this only ensure the Emin / Emax and all the actions
                 self._compute_storage(action_storage_power)
@@ -3295,7 +3302,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             gen_curtailed = self._aux_handle_curtailment_without_limit(action, new_p)
 
             beg__redisp = time.perf_counter()
-            if self.redispatching_unit_commitment_availble or self.n_storage > 0.0:
+            if cls.redispatching_unit_commitment_availble or cls.n_storage > 0.0:
                 # this computes the "optimal" redispatching
                 # and it is also in this function that the limiting of the curtailment / storage actions
                 # is perform to make the state "feasible"
@@ -3321,16 +3328,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 tock = time.perf_counter()
                 self._time_opponent += tock - tick
                 self._time_create_bk_act += tock - beg_
-                
-                self.backend.apply_action(self._backend_action)
+                try:
+                    self.backend.apply_action(self._backend_action)
+                except ImpossibleTopology as exc_:
+                    has_error = True
+                    except_.append(exc_)
+                    is_done = True
+                    # TODO in this case: cancel the topological action of the agent
+                    # and continue instead of "game over"
                 self._time_apply_act += time.perf_counter() - beg_
 
                 # now it's time to run the powerflow properly
                 # and to update the time dependant properties
-                self._update_alert_properties(action, lines_attacked, subs_attacked)
-                detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
-                    action, init_line_status, new_p, except_
-                )
+                if not is_done:
+                    self._update_alert_properties(action, lines_attacked, subs_attacked)
+                    detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
+                        action, init_line_status, new_p, except_
+                    )
             else:
                 has_error = True
 

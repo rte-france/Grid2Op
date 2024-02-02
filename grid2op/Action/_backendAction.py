@@ -205,6 +205,10 @@ class ValueStore:
         to_unchanged = local_bus == -1
         to_unchanged[~mask] = False
         self.changed[to_unchanged] = False
+    
+    def register_new_topo(self, current_topo: "ValueStore"):
+        mask_co = current_topo.values >= 1
+        self.values[mask_co] = current_topo.values[mask_co]
         
 
 class _BackendAction(GridObjects):
@@ -221,39 +225,39 @@ class _BackendAction(GridObjects):
         GridObjects.__init__(self)
         cls = type(self)
         # last connected registered
-        self.last_topo_registered = ValueStore(cls.dim_topo, dtype=dt_int)
+        self.last_topo_registered: ValueStore = ValueStore(cls.dim_topo, dtype=dt_int)
 
         # topo at time t
-        self.current_topo = ValueStore(cls.dim_topo, dtype=dt_int)
+        self.current_topo: ValueStore = ValueStore(cls.dim_topo, dtype=dt_int)
         
         # by default everything is on busbar 1
         self.last_topo_registered.values[:] = 1
         self.current_topo.values[:] = 1  
 
         # injection at time t
-        self.prod_p = ValueStore(cls.n_gen, dtype=dt_float)
-        self.prod_v = ValueStore(cls.n_gen, dtype=dt_float)
-        self.load_p = ValueStore(cls.n_load, dtype=dt_float)
-        self.load_q = ValueStore(cls.n_load, dtype=dt_float)
-        self.storage_power = ValueStore(cls.n_storage, dtype=dt_float)
+        self.prod_p: ValueStore = ValueStore(cls.n_gen, dtype=dt_float)
+        self.prod_v: ValueStore = ValueStore(cls.n_gen, dtype=dt_float)
+        self.load_p: ValueStore = ValueStore(cls.n_load, dtype=dt_float)
+        self.load_q: ValueStore = ValueStore(cls.n_load, dtype=dt_float)
+        self.storage_power: ValueStore = ValueStore(cls.n_storage, dtype=dt_float)
 
         self.activated_bus = np.full((cls.n_sub, cls.n_busbar_per_sub), dtype=dt_bool, fill_value=False)
-        self.big_topo_to_subid = np.repeat(
+        self.big_topo_to_subid: np.ndarray = np.repeat(
             list(range(cls.n_sub)), repeats=cls.sub_info
         )
 
         # shunts
         if cls.shunts_data_available:
-            self.shunt_p = ValueStore(cls.n_shunt, dtype=dt_float)
-            self.shunt_q = ValueStore(cls.n_shunt, dtype=dt_float)
-            self.shunt_bus = ValueStore(cls.n_shunt, dtype=dt_int)
-            self.current_shunt_bus = ValueStore(cls.n_shunt, dtype=dt_int)
+            self.shunt_p: ValueStore = ValueStore(cls.n_shunt, dtype=dt_float)
+            self.shunt_q: ValueStore = ValueStore(cls.n_shunt, dtype=dt_float)
+            self.shunt_bus: ValueStore = ValueStore(cls.n_shunt, dtype=dt_int)
+            self.current_shunt_bus: ValueStore = ValueStore(cls.n_shunt, dtype=dt_int)
             self.current_shunt_bus.values[:] = 1
 
-        self._status_or_before = np.ones(cls.n_line, dtype=dt_int)
-        self._status_ex_before = np.ones(cls.n_line, dtype=dt_int)
-        self._status_or = np.ones(cls.n_line, dtype=dt_int)
-        self._status_ex = np.ones(cls.n_line, dtype=dt_int)
+        self._status_or_before: np.ndarray = np.ones(cls.n_line, dtype=dt_int)
+        self._status_ex_before: np.ndarray = np.ones(cls.n_line, dtype=dt_int)
+        self._status_or: np.ndarray = np.ones(cls.n_line, dtype=dt_int)
+        self._status_ex: np.ndarray = np.ones(cls.n_line, dtype=dt_int)
 
         self._loads_bus = None
         self._gens_bus = None
@@ -323,7 +327,7 @@ class _BackendAction(GridObjects):
             self.current_shunt_bus.reorder(no_shunt)
 
     def reset(self) -> None:
-        # last topo
+        # last known topo
         self.last_topo_registered.reset()
 
         # topo at time t
@@ -346,6 +350,8 @@ class _BackendAction(GridObjects):
             self.shunt_q.reset()
             self.shunt_bus.reset()
             self.current_shunt_bus.reset()
+            
+        self.last_topo_registered.register_new_topo(self.current_topo)
 
     def all_changed(self) -> None:
         # last topo

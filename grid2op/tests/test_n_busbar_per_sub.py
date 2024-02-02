@@ -22,7 +22,8 @@ from grid2op.Exceptions import Grid2OpException, EnvError, IllegalAction
 import pdb
 
 
-HAS_TIME_AND_MEMORY = False  # test on a big computer only with lots of RAM, and lots of time available...
+# test on a big computer only with lots of RAM, and lots of time available...
+HAS_TIME_AND_MEMORY = False
 
 
 class _AuxFakeBackendSupport(PandaPowerBackend):
@@ -893,14 +894,95 @@ class TestActionSpace(unittest.TestCase):
         res = len(tmp2.env.action_space.get_all_unitary_line_set(tmp2.env.action_space))
         res_simple = len(tmp2.env.action_space.get_all_unitary_line_set_simple(tmp2.env.action_space))
         tmp2.tearDown()
-        assert res == (1 + 3*3) * 186, f"found: {res}"
+        assert res == (1 + 3 * 3) * 186, f"found: {res}"
         assert res_simple == 2 * 186, f"found: {res_simple}"
                
                
 class TestBackendAction(unittest.TestCase):
-    pass
+    def get_nb_bus(self):
+        return 3
+    
+    def get_env_nm(self):
+        return "educ_case14_storage"
+    
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.get_env_nm(),
+                                    backend=_AuxFakeBackendSupport(),
+                                    action_class=CompleteAction,
+                                    test=True,
+                                    n_busbar=self.get_nb_bus(),
+                                    _add_to_name=type(self).__name__ + f'_{self.get_nb_bus()}')
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
 
+    def test_correct_last_topo(self):
+        line_id = 0
+        id_topo_or = type(self.env).line_or_pos_topo_vect[line_id]
+        id_topo_ex = type(self.env).line_ex_pos_topo_vect[line_id]
+        
+        backend_action = self.env._backend_action
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, -1)]}})
+        backend_action += act
+        backend_action.reset()
+        assert backend_action.current_topo.values[id_topo_or] == -1, f"{backend_action.current_topo.values[id_topo_or]} vs -1"
+        assert backend_action.current_topo.values[id_topo_ex] == -1, f"{backend_action.current_topo.values[id_topo_ex]} vs -1"
+        assert backend_action.last_topo_registered.values[id_topo_or] == 1, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 1"
+        assert backend_action.last_topo_registered.values[id_topo_ex] == 1, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 1"
+        
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, 2)]}})
+        backend_action += act
+        backend_action.reset()
+        assert backend_action.current_topo.values[id_topo_or] == 2, f"{backend_action.current_topo.values[id_topo_or]} vs 2"
+        assert backend_action.current_topo.values[id_topo_ex] == 1, f"{backend_action.current_topo.values[id_topo_ex]} vs 1"
+        assert backend_action.last_topo_registered.values[id_topo_or] == 2, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 2"
+        assert backend_action.last_topo_registered.values[id_topo_ex] == 1, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 1"
+        
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, -1)]}})
+        backend_action += act
+        backend_action.reset()
+        assert backend_action.current_topo.values[id_topo_or] == -1, f"{backend_action.current_topo.values[id_topo_or]} vs -1"
+        assert backend_action.current_topo.values[id_topo_ex] == -1, f"{backend_action.current_topo.values[id_topo_ex]} vs -1"
+        assert backend_action.last_topo_registered.values[id_topo_or] == 2, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 2"
+        assert backend_action.last_topo_registered.values[id_topo_ex] == 1, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 1"
+        
+        act = self.env.action_space({"set_bus": {"lines_ex_id": [(line_id, 3)]}})
+        backend_action += act
+        backend_action.reset()
+        assert backend_action.current_topo.values[id_topo_or] == 2, f"{backend_action.current_topo.values[id_topo_or]} vs 2"
+        assert backend_action.current_topo.values[id_topo_ex] == 3, f"{backend_action.current_topo.values[id_topo_ex]} vs 3"
+        assert backend_action.last_topo_registered.values[id_topo_or] == 2, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 2"
+        assert backend_action.last_topo_registered.values[id_topo_ex] == 3, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 3"    
+         
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, -1)]}})
+        backend_action += act
+        backend_action.reset()
+        assert backend_action.current_topo.values[id_topo_or] == -1, f"{backend_action.current_topo.values[id_topo_or]} vs -1"
+        assert backend_action.current_topo.values[id_topo_ex] == -1, f"{backend_action.current_topo.values[id_topo_ex]} vs -1"
+        assert backend_action.last_topo_registered.values[id_topo_or] == 2, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 2"
+        assert backend_action.last_topo_registered.values[id_topo_ex] == 3, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 3"   
+        
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, -1)]}})
+        backend_action += act
+        backend_action.reset()
+        assert backend_action.current_topo.values[id_topo_or] == -1, f"{backend_action.current_topo.values[id_topo_or]} vs -1"
+        assert backend_action.current_topo.values[id_topo_ex] == -1, f"{backend_action.current_topo.values[id_topo_ex]} vs -1"
+        assert backend_action.last_topo_registered.values[id_topo_or] == 2, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 2"
+        assert backend_action.last_topo_registered.values[id_topo_ex] == 3, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 3"   
 
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, 1)]}})
+        backend_action += act
+        backend_action.reset()
+        assert backend_action.current_topo.values[id_topo_or] == 1, f"{backend_action.current_topo.values[id_topo_or]} vs 1"
+        assert backend_action.current_topo.values[id_topo_ex] == 3, f"{backend_action.current_topo.values[id_topo_ex]} vs 3"
+        assert backend_action.last_topo_registered.values[id_topo_or] == 1, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 1"
+        assert backend_action.last_topo_registered.values[id_topo_ex] == 3, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 3"   
+        
+        
 class TestPandapowerBackend(unittest.TestCase):
     pass
 

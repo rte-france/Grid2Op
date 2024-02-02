@@ -45,6 +45,8 @@ Change Log
 - [FIXED] a bug in `act.as_dict` when shunts were modified
 - [FIXED] a bug affecting shunts: sometimes it was not possible to modify their p / q 
   values for certain values of p or q (an AmbiguousAction exception was raised wrongly)
+- [FIXED] a bug in the `_BackendAction`: the "last known topoolgy" was not properly computed
+  in some cases (especially at the time where a line was reconnected)
 - [IMPROVED] handling of "compatibility" grid2op version
   (by calling the relevant things done in the base class 
   in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`

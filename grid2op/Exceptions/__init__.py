@@ -52,6 +52,7 @@ __all__ = [
     "IsolatedElement",
     "DisconnectedLoad",
     "DisconnectedGenerator",
+    "ImpossibleTopology",
     "PlotError",
     "OpponentError",
     "UsedRunnerError",
@@ -124,6 +125,8 @@ from grid2op.Exceptions.backendExceptions import (BackendError,
                                                   IsolatedElement,
                                                   DisconnectedLoad,
                                                   DisconnectedGenerator,
+                                                  ImpossibleTopology,
+                                                  
                                                   )
 DivergingPowerFlow = DivergingPowerflow  # for compatibility with lightsim2grid
 
