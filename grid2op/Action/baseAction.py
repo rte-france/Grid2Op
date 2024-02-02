@@ -2724,7 +2724,7 @@ class BaseAction(GridObjects):
                     "Incorrect number of shunt (for shunt_bus) in your action."
                 )
             if cls.n_shunt > 0:
-                if np.max(self.shunt_bus) > 2:
+                if np.max(self.shunt_bus) > cls.n_busbar_per_sub:
                     raise AmbiguousAction(
                         "Some shunt is connected to a bus greater than 2"
                     )

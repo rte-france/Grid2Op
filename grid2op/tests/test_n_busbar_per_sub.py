@@ -6,8 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from os import PathLike
-from typing import Optional, Union
 import warnings
 import unittest
 from grid2op.tests.helper_path_test import *
@@ -22,6 +20,9 @@ from grid2op.Action import ActionSpace, BaseAction, CompleteAction
 from grid2op.Observation import BaseObservation
 from grid2op.Exceptions import Grid2OpException, EnvError, IllegalAction
 import pdb
+
+
+HAS_TIME_AND_MEMORY = False  # test on a big computer only with lots of RAM, and lots of time available...
 
 
 class _AuxFakeBackendSupport(PandaPowerBackend):
@@ -47,7 +48,15 @@ class _AuxFakeBackendNoCalled(PandaPowerBackend):
 
 class TestRightNumber(unittest.TestCase):
     """This test that, when changing n_busbar in make it is 
-    back propagated where it needs"""
+    back propagated where it needs in the class attribute (this includes 
+    testing that the observation_space, action_space, runner, environment etc.
+    are all 'informed' about this feature)
+    
+    This class also tests than when the implementation of the backend does not 
+    use the new `can_handle_more_than_2_busbar` or `cannot_handle_more_than_2_busbar`
+    then the legacy behaviour is used (only 2 busbar per substation even if the 
+    user asked for a different number)
+    """
     def _aux_fun_test(self, env, n_busbar):
         assert type(env).n_busbar_per_sub == n_busbar, f"type(env).n_busbar_per_sub = {type(env).n_busbar_per_sub} != {n_busbar}"
         assert type(env.backend).n_busbar_per_sub == n_busbar, f"env.backend).n_busbar_per_sub = {type(env.backend).n_busbar_per_sub} != {n_busbar}"
@@ -60,9 +69,9 @@ class TestRightNumber(unittest.TestCase):
         
     def test_fail_if_not_int(self):
         with self.assertRaises(Grid2OpException):
-            env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar="froiy", _add_to_name=type(self).__name__+"_wrong")
+            env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar="froiy", _add_to_name=type(self).__name__+"_wrong_str")
         with self.assertRaises(Grid2OpException):
-            env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=3.5, _add_to_name=type(self).__name__+"_wrong")
+            env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=3.5, _add_to_name=type(self).__name__+"_wrong_float")
             
     def test_regular_env(self):
         with warnings.catch_warnings():
@@ -75,6 +84,11 @@ class TestRightNumber(unittest.TestCase):
             env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=3, _add_to_name=type(self).__name__+"_3")
         self._aux_fun_test(env, 3)
         
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=1, _add_to_name=type(self).__name__+"_3")
+        self._aux_fun_test(env, 1)
+        
     def test_multimix_env(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -85,6 +99,11 @@ class TestRightNumber(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make("l2rpn_neurips_2020_track2", backend=_AuxFakeBackendSupport(), test=True, n_busbar=3, _add_to_name=type(self).__name__+"_3")
         self._aux_fun_test(env, 3)
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_neurips_2020_track2", backend=_AuxFakeBackendSupport(), test=True, n_busbar=1, _add_to_name=type(self).__name__+"_3")
+        self._aux_fun_test(env, 1)
         
     def test_masked_env(self):
         with warnings.catch_warnings():
@@ -99,6 +118,12 @@ class TestRightNumber(unittest.TestCase):
                                     lines_of_interest=np.ones(shape=20, dtype=bool))
         self._aux_fun_test(env, 3)
         
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = MaskedEnvironment(grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=1, _add_to_name=type(self).__name__+"_mask_1"),
+                                    lines_of_interest=np.ones(shape=20, dtype=bool))
+        self._aux_fun_test(env, 1)
+        
     def test_to_env(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -111,6 +136,12 @@ class TestRightNumber(unittest.TestCase):
             env = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=3, _add_to_name=type(self).__name__+"_to_3"),
                                       time_out_ms=3000)
         self._aux_fun_test(env, 3)
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = TimedOutEnvironment(grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=1, _add_to_name=type(self).__name__+"_to_1"),
+                                      time_out_ms=3000)
+        self._aux_fun_test(env, 1)
     
     def test_xxxhandle_more_than_2_busbar_not_called(self):
         """when using a backend that did not called the `can_handle_more_than_2_busbar_not_called`
@@ -125,6 +156,11 @@ class TestRightNumber(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendNoCalled(), test=True, n_busbar=3, _add_to_name=type(self).__name__+"_nocall_3")
         self._aux_fun_test(env, DEFAULT_N_BUSBAR_PER_SUB)
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendNoCalled(), test=True, n_busbar=1, _add_to_name=type(self).__name__+"_nocall_1")
+        self._aux_fun_test(env, DEFAULT_N_BUSBAR_PER_SUB)
     
     def test_cannot_handle_more_than_2_busbar_not_called(self):
         """when using a backend that called `cannot_handle_more_than_2_busbar_not_called` then it's equivalent 
@@ -137,7 +173,12 @@ class TestRightNumber(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendNoSupport(), test=True, n_busbar=3, _add_to_name=type(self).__name__+"_dontcalled_3")
-        self._aux_fun_test(env, 2)
+        self._aux_fun_test(env, DEFAULT_N_BUSBAR_PER_SUB)
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendNoSupport(), test=True, n_busbar=1, _add_to_name=type(self).__name__+"_dontcalled_1")
+        self._aux_fun_test(env, DEFAULT_N_BUSBAR_PER_SUB)
         
     def test_env_copy(self):
         """test env copy does work correctly"""
@@ -155,6 +196,13 @@ class TestRightNumber(unittest.TestCase):
         env_cpy = env.copy()
         self._aux_fun_test(env_cpy, 3)
         
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=1, _add_to_name=type(self).__name__+"_copy_1")
+        self._aux_fun_test(env, 1)
+        env_cpy = env.copy()
+        self._aux_fun_test(env_cpy, 1)
+        
     def test_two_env_same_name(self):
         """test i can load 2 env with the same name but different n_busbar"""
         with warnings.catch_warnings():
@@ -166,6 +214,13 @@ class TestRightNumber(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env_3 = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=3, _add_to_name=type(self).__name__+"_same_name")
         self._aux_fun_test(env_3, 3)  # check env_3 has indeed 3 buses
+        self._aux_fun_test(env_2, DEFAULT_N_BUSBAR_PER_SUB)  # check env_2 is not modified
+        
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_1 = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=1, _add_to_name=type(self).__name__+"_same_name")
+        self._aux_fun_test(env_1, 1)  # check env_1 has indeed 3 buses
+        self._aux_fun_test(env_3, 3)  # check env_3 is not modified
         self._aux_fun_test(env_2, DEFAULT_N_BUSBAR_PER_SUB)  # check env_2 is not modified
 
 
@@ -261,6 +316,7 @@ class TestRunner(unittest.TestCase):
 
 
 class TestGridObjt(unittest.TestCase):
+    """Test that the GridObj class is fully compatible with this feature"""
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -276,6 +332,7 @@ class TestGridObjt(unittest.TestCase):
         return super().tearDown()
     
     def test_global_bus_to_local_int(self):
+        """test the function :func:`grid2op.Space.GridObjects.global_bus_to_local_int` """
         cls_env = type(self.env)
         # easy case: everything on bus 1
         res = cls_env.global_bus_to_local_int(cls_env.gen_to_subid[0], cls_env.gen_to_subid[0])
@@ -301,6 +358,7 @@ class TestGridObjt(unittest.TestCase):
             res = cls_env.global_bus_to_local_int(cls_env.gen_to_subid[gen_on_4] + 3 * cls_env.n_sub, cls_env.gen_to_subid[gen_on_4])
             
     def test_global_bus_to_local(self):
+        """test the function :func:`grid2op.Space.GridObjects.global_bus_to_local` """
         cls_env = type(self.env)
         # easy case: everything on bus 1
         res = cls_env.global_bus_to_local(cls_env.gen_to_subid, cls_env.gen_to_subid)
@@ -346,6 +404,7 @@ class TestGridObjt(unittest.TestCase):
         assert (res == vect).all()
     
     def test_local_bus_to_global_int(self):
+        """test the function :func:`grid2op.Space.GridObjects.local_bus_to_global_int` """
         cls_env = type(self.env)
         # easy case: everything on bus 1
         res = cls_env.local_bus_to_global_int(1, cls_env.gen_to_subid[0])
@@ -367,6 +426,7 @@ class TestGridObjt(unittest.TestCase):
         assert res == cls_env.gen_to_subid[gen_on_3] + 2 * cls_env.n_sub
     
     def test_local_bus_to_global(self):
+        """test the function :func:`grid2op.Space.GridObjects.local_bus_to_global` """
         cls_env = type(self.env)
         # easy case: everything on bus 1
         res = cls_env.local_bus_to_global(np.ones(cls_env.n_gen, dtype=int), cls_env.gen_to_subid)
@@ -408,6 +468,9 @@ class TestGridObjt(unittest.TestCase):
     
     
 class TestAction_3busbars(unittest.TestCase):
+    """This class test the Agent can perform actions (and that actions are properly working)
+    even if there are 3 busbars per substation
+    """
     def get_nb_bus(self):
         return 3
     
@@ -561,15 +624,279 @@ class TestAction_3busbars(unittest.TestCase):
         with self.assertRaises(IllegalAction):
             act = self.env.action_space({"shunt": {"set_bus": [(el_id, type(self.env).n_busbar_per_sub + 1)]}})
 
+
 class TestAction_1busbar(TestAction_3busbars):
+    """This class test the Agent can perform actions (and that actions are properly working)
+    even if there is only 1 busbar per substation
+    """
     def get_nb_bus(self):
         return 1
 
 
 class TestActionSpace(unittest.TestCase):
-    pass
+    """This function test the action space, basically the counting 
+    of unique possible topologies per substation
+    """
+    def get_nb_bus(self):
+        return 3
+    
+    def get_env_nm(self):
+        return "educ_case14_storage"
+    
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.get_env_nm(),
+                                    backend=_AuxFakeBackendSupport(),
+                                    action_class=CompleteAction,
+                                    test=True,
+                                    n_busbar=self.get_nb_bus(),
+                                    _add_to_name=type(self).__name__ + f'_{self.get_nb_bus()}')
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_legacy_all_unitary_topologies_set_behaviour(self):
+        """make sure nothing broke for 2 busbars per substation even if the implementation changes"""
+        class SubMe(TestActionSpace):
+            def get_nb_bus(self):
+                return 2
+            
+        tmp = SubMe()
+        tmp.setUp()
+        res = tmp.env.action_space.get_all_unitary_topologies_set(tmp.env.action_space, _count_only=True)
+        res_noalone = tmp.env.action_space.get_all_unitary_topologies_set(tmp.env.action_space,
+                                                                          add_alone_line=False,
+                                                                          _count_only=True)
+        tmp.tearDown()
+        assert res == [3, 29, 5, 31, 15, 113, 4, 0, 15, 3, 3, 3, 7, 3], f"found: {res}"
+        assert res_noalone == [0, 25, 3, 26, 11, 109, 0, 0, 11, 0, 0, 0, 4, 0], f"found: {res_noalone}"
+        
+        class SubMe2(TestActionSpace):
+            def get_nb_bus(self):
+                return 2
+            def get_env_nm(self):
+                return "l2rpn_idf_2023"
+        tmp2 = SubMe2()
+        tmp2.setUp()
+        res = tmp2.env.action_space.get_all_unitary_topologies_set(tmp2.env.action_space,  _count_only=True)
+        res_noalone = tmp2.env.action_space.get_all_unitary_topologies_set(tmp2.env.action_space,
+                                                                           add_alone_line=False,
+                                                                           _count_only=True)
+        tmp2.tearDown()
+        assert res == [3, 3, 7, 9, 16, 3, 3, 13, 2, 0, 57, 253, 3, 3, 241, 3, 63, 5, 29, 3, 
+                       3, 3, 29, 7, 7, 3, 57, 3, 3, 8, 7, 31, 3, 29, 3, 3, 32, 4, 3, 29, 3, 
+                       113, 3, 3, 13, 13, 7, 3, 65505, 3, 7, 3, 3, 125, 13, 497, 3, 3, 505, 
+                       13, 15, 57, 2, 4, 15, 61, 3, 8, 63, 121, 4, 3, 0, 3, 31, 5, 1009, 3, 
+                       3, 1017, 2, 7, 13, 3, 61, 3, 0, 3, 63, 25, 3, 253, 3, 31, 3, 61, 3, 
+                       3, 3, 2033, 3, 3, 15, 13, 61, 7, 5, 3, 3, 15, 0, 0, 9, 3, 3, 0, 0, 3], f"found: {res}"
+        assert res_noalone == [0, 0, 4, 7, 11, 0, 0, 10, 0, 0, 53, 246, 0, 0, 236, 0, 57, 3, 
+                               25, 0, 0, 0, 25, 4, 4, 0, 53, 0, 0, 4, 4, 26, 0, 25, 0, 0, 26, 
+                               0, 0, 25, 0, 109, 0, 0, 10, 10, 4, 0, 65493, 0, 4, 0, 0, 119, 
+                               10, 491, 0, 0, 498, 10, 11, 53, 0, 0, 11, 56, 0, 4, 57, 116, 
+                               0, 0, 0, 0, 26, 3, 1002, 0, 0, 1009, 0, 4, 10, 0, 56, 0, 0, 
+                               0, 57, 22, 0, 246, 0, 26, 0, 56, 0, 0, 0, 2025, 0, 0, 11, 10, 
+                               56, 4, 3, 0, 0, 11, 0, 0, 7, 0, 0, 0, 0, 0], f"found: {res_noalone}"
 
+    def test_is_ok_symmetry(self):
+        """test the :func:`grid2op.Action.SerializableActionSpace._is_ok_symmetry`"""
+        ok = np.array([1, 1, 1, 1])
+        assert type(self.env.action_space)._is_ok_symmetry(2, ok), f"should not break for {ok}"
+        ok = np.array([1, 2, 1, 1])
+        assert type(self.env.action_space)._is_ok_symmetry(2, ok), f"should not break for {ok}"
+        ok = np.array([1, 2, 3, 1])
+        assert type(self.env.action_space)._is_ok_symmetry(3, ok), f"should not break for {ok}"
+        ok = np.array([1, 1, 2, 3])
+        assert type(self.env.action_space)._is_ok_symmetry(3, ok), f"should not break for {ok}"
+        ok = np.array([1, 1, 2, 2])
+        assert type(self.env.action_space)._is_ok_symmetry(4, ok), f"should not break for {ok}"
+        
+        ko = np.array([1, 3, 2, 1])  # relabel 3 -> 2, so this topology is not valid
+        assert not type(self.env.action_space)._is_ok_symmetry(3, ko), f"should break for {ko}"
+        ko = np.array([1, 1, 3, 2])  # relabel 3 -> 2, so this topology is not valid
+        assert not type(self.env.action_space)._is_ok_symmetry(3, ko), f"should break for {ko}"
+        
+        ko = np.array([1, 3, 2, 1])  # relabel 3 -> 2, so this topology is not valid
+        assert not type(self.env.action_space)._is_ok_symmetry(4, ko), f"should break for {ko}"
+        ko = np.array([1, 1, 3, 2])  # relabel 3 -> 2, so this topology is not valid
+        assert not type(self.env.action_space)._is_ok_symmetry(4, ko), f"should break for {ko}"
 
+    def test_is_ok_line(self):
+        """test the :func:`grid2op.Action.SerializableActionSpace._is_ok_line`"""
+        lines_id = np.array([1, 3])
+        n_busbar_per_sub = 2
+        ok = np.array([1, 1, 1, 1])
+        assert type(self.env.action_space)._is_ok_line(n_busbar_per_sub, ok, lines_id), f"should not break for {ok}"
+        ok = np.array([1, 2, 2, 1])
+        assert type(self.env.action_space)._is_ok_line(n_busbar_per_sub, ok, lines_id), f"should not break for {ok}"
+        ko = np.array([1, 2, 1, 2])  # no lines on bus 1
+        assert not type(self.env.action_space)._is_ok_line(n_busbar_per_sub, ko, lines_id), f"should break for {ko}"
+        
+        n_busbar_per_sub = 3  # should have no impact
+        ok = np.array([1, 1, 1, 1])
+        assert type(self.env.action_space)._is_ok_line(n_busbar_per_sub, ok, lines_id), f"should not break for {ok}"
+        ok = np.array([1, 2, 2, 1])
+        assert type(self.env.action_space)._is_ok_line(n_busbar_per_sub, ok, lines_id), f"should not break for {ok}"
+        ko = np.array([1, 2, 1, 2])  # no lines on bus 1
+        assert not type(self.env.action_space)._is_ok_line(n_busbar_per_sub, ko, lines_id), f"should break for {ko}"
+        
+    def test_2_obj_per_bus(self):
+        """test the :func:`grid2op.Action.SerializableActionSpace._is_ok_2`"""
+        n_busbar_per_sub = 2
+        ok = np.array([1, 1, 1, 1])
+        assert type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ok), f"should not break for {ok}"
+        ok = np.array([1, 2, 2, 1])
+        assert type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ok), f"should not break for {ok}"
+        ok = np.array([1, 2, 1, 2])
+        assert type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ok), f"should not break for {ok}"
+        
+        ko = np.array([1, 2, 2, 2])  # only 1 element on bus 1
+        assert not type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ko), f"should break for {ko}"
+        ko = np.array([1, 2, 1, 1])  # only 1 element on bus 2
+        assert not type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ko), f"should break for {ko}"
+        ko = np.array([1, 1, 2, 2, 3])  # only 1 element on bus 3
+        assert not type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ko), f"should break for {ko}"
+        
+        n_busbar_per_sub = 3
+        ok = np.array([1, 1, 1, 1])
+        assert type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ok), f"should not break for {ok}"
+        ok = np.array([1, 2, 2, 1])
+        assert type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ok), f"should not break for {ok}"
+        ok = np.array([1, 2, 1, 2])
+        assert type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ok), f"should not break for {ok}"
+        
+        ko = np.array([1, 2, 2, 2])  # only 1 element on bus 1
+        assert not type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ko), f"should break for {ko}"
+        ko = np.array([1, 2, 1, 1])  # only 1 element on bus 2
+        assert not type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ko), f"should break for {ko}"
+        ko = np.array([1, 1, 2, 2, 3])  # only 1 element on bus 3
+        assert not type(self.env.action_space)._is_ok_2(n_busbar_per_sub, ko), f"should break for {ko}"
+
+    def test_1_busbar(self):
+        """test :func:`grid2op.Action.SerializableActionSpace.get_all_unitary_topologies_set` 
+        when there are only 1 busbar per substation"""
+        class SubMe(TestActionSpace):
+            def get_nb_bus(self):
+                return 1
+            
+        tmp = SubMe()
+        tmp.setUp()
+        res = [len(tmp.env.action_space.get_all_unitary_topologies_set(tmp.env.action_space,
+                                                                       sub_id))
+               for sub_id in range(type(tmp.env).n_sub)]
+        res_noalone = [len(tmp.env.action_space.get_all_unitary_topologies_set(tmp.env.action_space,
+                                                                               sub_id,
+                                                                               add_alone_line=False))
+                       for sub_id in range(type(tmp.env).n_sub)]
+        tmp.tearDown()
+        assert res == [0] * 14, f"found: {res}"
+        assert res_noalone == [0] * 14, f"found: {res_noalone}"
+        
+        class SubMe2(TestActionSpace):
+            def get_nb_bus(self):
+                return 1
+            def get_env_nm(self):
+                return "l2rpn_idf_2023"
+            
+        tmp2 = SubMe2()
+        tmp2.setUp()
+        res = [len(tmp2.env.action_space.get_all_unitary_topologies_set(tmp2.env.action_space,
+                                                                        sub_id))
+               for sub_id in range(type(tmp2.env).n_sub)]
+        res_noalone = [len(tmp2.env.action_space.get_all_unitary_topologies_set(tmp2.env.action_space,
+                                                                                sub_id,
+                                                                                add_alone_line=False))
+                       for sub_id in range(type(tmp2.env).n_sub)]
+        tmp2.tearDown()
+        assert res == [0] * 118, f"found: {res}"
+        assert res_noalone == [0] * 118, f"found: {res_noalone}"
+
+    def test_3_busbars(self):
+        """test :func:`grid2op.Action.SerializableActionSpace.get_all_unitary_topologies_set` 
+        when there are 3 busbars per substation"""
+        res = self.env.action_space.get_all_unitary_topologies_set(self.env.action_space,
+                                                                   _count_only=True)
+        res_noalone  = self.env.action_space.get_all_unitary_topologies_set(self.env.action_space,
+                                                                            add_alone_line=False,
+                                                                            _count_only=True)
+        assert res == [3, 83, 5, 106, 33, 599, 5, 0, 33, 3, 3, 3, 10, 3], f"found: {res}"
+        assert res_noalone == [0, 37, 3, 41, 11, 409, 0, 0, 11, 0, 0, 0, 4, 0], f"found: {res_noalone}"
+        class SubMe2(TestActionSpace):
+            def get_nb_bus(self):
+                return 3
+            def get_env_nm(self):
+                return "l2rpn_idf_2023"
+        tmp2 = SubMe2()
+        tmp2.setUp() 
+        th_vals = [0, 0, 4, 7, 11, 0, 0, 10, 0, 0, 125, 2108, 0, 0, 1711, 0, 162, 3, 37, 0, 0, 0, 37, 
+                   4, 4, 0, 125, 0, 0, 4, 4, 41, 0, 37, 0, 0, 41, 0, 0, 37, 0, 409, 0, 0, 10, 10, 4, 0]
+        for sub_id, th_val in zip(list(range(48)), th_vals):
+            res_noalone  = tmp2.env.action_space.get_all_unitary_topologies_set(tmp2.env.action_space,
+                                                                                sub_id=sub_id,
+                                                                                add_alone_line=False,
+                                                                                _count_only=True)
+            assert res_noalone[0] == th_val, f"error for sub_id {sub_id}: {res_noalone} vs {th_val}"
+        
+        if HAS_TIME_AND_MEMORY:            
+            # takes 850s (13 minutes)
+            res_noalone  = tmp2.env.action_space.get_all_unitary_topologies_set(tmp2.env.action_space,
+                                                                                sub_id=48,
+                                                                                add_alone_line=False,
+                                                                                _count_only=True)
+            assert res_noalone == 20698545, f"error for sub_id {48}: {res_noalone}"
+        tmp2.tearDown() 
+            
+    def test_legacy_all_unitary_line_set_behaviour(self):
+        """make sure nothing broke for 2 busbars per substation even if the implementation changes"""
+        class SubMe(TestActionSpace):
+            def get_nb_bus(self):
+                return 2
+            
+        tmp = SubMe()
+        tmp.setUp()
+        res = len(tmp.env.action_space.get_all_unitary_line_set(tmp.env.action_space))
+        res_simple = len(tmp.env.action_space.get_all_unitary_line_set_simple(tmp.env.action_space))
+        tmp.tearDown()
+        assert res == 5 * 20, f"found: {res}"
+        assert res_simple == 2 * 20, f"found: {res_simple}"
+        
+        class SubMe2(TestActionSpace):
+            def get_nb_bus(self):
+                return 2
+            def get_env_nm(self):
+                return "l2rpn_idf_2023"
+            
+        tmp2 = SubMe2()
+        tmp2.setUp()
+        res = len(tmp2.env.action_space.get_all_unitary_line_set(tmp2.env.action_space))
+        res_simple = len(tmp2.env.action_space.get_all_unitary_line_set_simple(tmp2.env.action_space))
+        tmp2.tearDown()
+        assert res == 5 * 186, f"found: {res}"
+        assert res_simple == 2 * 186, f"found: {res_simple}"
+        
+    def test_get_all_unitary_line_set(self):
+        """test the :func:`grid2op.Action.SerializableActionSpace.get_all_unitary_line_set` when 3 busbars"""
+        res = len(self.env.action_space.get_all_unitary_line_set(self.env.action_space))
+        assert res == (1 + 3*3) * 20, f"found: {res}"
+        res = len(self.env.action_space.get_all_unitary_line_set_simple(self.env.action_space))
+        assert res == 2 * 20, f"found: {res}"
+        class SubMe2(TestActionSpace):
+            def get_nb_bus(self):
+                return 3
+            def get_env_nm(self):
+                return "l2rpn_idf_2023"
+            
+        tmp2 = SubMe2()
+        tmp2.setUp()
+        res = len(tmp2.env.action_space.get_all_unitary_line_set(tmp2.env.action_space))
+        res_simple = len(tmp2.env.action_space.get_all_unitary_line_set_simple(tmp2.env.action_space))
+        tmp2.tearDown()
+        assert res == (1 + 3*3) * 186, f"found: {res}"
+        assert res_simple == 2 * 186, f"found: {res_simple}"
+               
+               
 class TestBackendAction(unittest.TestCase):
     pass
 
@@ -577,6 +904,12 @@ class TestBackendAction(unittest.TestCase):
 class TestPandapowerBackend(unittest.TestCase):
     pass
 
+
+class TestObservation(unittest.TestCase):
+    def test_action_space_get_back_to_ref_state(self):
+        """test the :func:`grid2op.Action.SerializableActionSpace.get_back_to_ref_state` 
+        when 3 busbars which could not be tested without observation"""
+        pass
 
 if __name__ == "__main__":
     unittest.main()

@@ -33,6 +33,9 @@ Change Log
 
 [1.9.9] - 2024-xx-yy
 ----------------------
+- [BREAKING] the order of the actions in `env.action_space.get_all_unitary_line_set` and 
+  `env.action_space.get_all_unitary_topologies_set` might have changed (this is caused 
+  by a rewriting of these functions in case there is not 2 busbars per substation)
 - [FIXED] github CI did not upload the source files
 - [FIXED] `l2rpn_utils` module did not stored correctly the order
   of actions and observation for wcci_2020

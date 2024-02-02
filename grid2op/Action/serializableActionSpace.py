@@ -10,6 +10,10 @@ import warnings
 import numpy as np
 import itertools
 from typing import Dict, List
+try:
+    from typing import Literal, Self
+except ImportError:
+    from typing_extensions import Literal, Self
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import AmbiguousAction, Grid2OpException
@@ -112,11 +116,11 @@ class SerializableActionSpace(SerializableSpace):
             rnd_types.append(cls.CHANGE_BUS_ID)
         if "redispatch" in self.actionClass.authorized_keys:
             rnd_types.append(cls.REDISPATCHING_ID)
-        if self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
+        if cls.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
             rnd_types.append(cls.STORAGE_POWER_ID)
-        if self.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
+        if cls.dim_alarms > 0 and "raise_alarm" in self.actionClass.authorized_keys:
             rnd_types.append(cls.RAISE_ALARM_ID)
-        if self.dim_alerts > 0 and "raise_alert" in self.actionClass.authorized_keys:
+        if cls.dim_alerts > 0 and "raise_alert" in self.actionClass.authorized_keys:
             rnd_types.append(cls.RAISE_ALERT_ID)
         return rnd_types
 
@@ -170,13 +174,13 @@ class SerializableActionSpace(SerializableSpace):
             f"The action type provided should be in {name_action_types}. "
             f"You provided {action_type} which is not supported."
         )
-
+        cls = type(self)
         if action_type == "storage_power":
-            return (self.n_storage > 0) and (
+            return (cls.n_storage > 0) and (
                 "set_storage" in self.actionClass.authorized_keys
             )
         elif action_type == "set_storage":
-            return (self.n_storage > 0) and (
+            return (cls.n_storage > 0) and (
                 "set_storage" in self.actionClass.authorized_keys
             )
         elif action_type == "curtail_mw":
@@ -262,7 +266,7 @@ class SerializableActionSpace(SerializableSpace):
         rnd_update["raise_alert"] = rnd_alerted_lines
         return rnd_update
 
-    def sample(self):
+    def sample(self) -> BaseAction:
         """
         A utility used to sample a new random :class:`BaseAction`.
 
@@ -303,7 +307,7 @@ class SerializableActionSpace(SerializableSpace):
             env = grid2op.make("l2rpn_case14_sandbox")
 
             # and now you can sample from the action space
-            random_action = env.action_space()
+            random_action = env.action_space()  # this action is not random at all, it starts by "do nothing"
             for i in range(5):
                 # my resulting action will be a complex action
                 # that will be the results of applying 5 random actions
@@ -322,22 +326,22 @@ class SerializableActionSpace(SerializableSpace):
 
         # this sampling
         rnd_type = self.space_prng.choice(rnd_types)
-
-        if rnd_type == self.SET_STATUS_ID:
+        cls = type(self)
+        if rnd_type == cls.SET_STATUS_ID:
             rnd_update = self._sample_set_line_status()
-        elif rnd_type == self.CHANGE_STATUS_ID:
+        elif rnd_type == cls.CHANGE_STATUS_ID:
             rnd_update = self._sample_change_line_status()
-        elif rnd_type == self.SET_BUS_ID:
+        elif rnd_type == cls.SET_BUS_ID:
             rnd_update = self._sample_set_bus()
-        elif rnd_type == self.CHANGE_BUS_ID:
+        elif rnd_type == cls.CHANGE_BUS_ID:
             rnd_update = self._sample_change_bus()
-        elif rnd_type == self.REDISPATCHING_ID:
+        elif rnd_type == cls.REDISPATCHING_ID:
             rnd_update = self._sample_redispatch()
-        elif rnd_type == self.STORAGE_POWER_ID:
+        elif rnd_type == cls.STORAGE_POWER_ID:
             rnd_update = self._sample_storage_power()
-        elif rnd_type == self.RAISE_ALARM_ID:
+        elif rnd_type == cls.RAISE_ALARM_ID:
             rnd_update = self._sample_raise_alarm()
-        elif rnd_type == self.RAISE_ALERT_ID:
+        elif rnd_type == cls.RAISE_ALERT_ID:
             rnd_update = self._sample_raise_alert()
         else:
             raise Grid2OpException(
@@ -347,7 +351,10 @@ class SerializableActionSpace(SerializableSpace):
         rnd_act.update(rnd_update)
         return rnd_act
 
-    def disconnect_powerline(self, line_id=None, line_name=None, previous_action=None):
+    def disconnect_powerline(self,
+                             line_id: int=None,
+                             line_name: str=None,
+                             previous_action: BaseAction=None) -> BaseAction:
         """
         Utilities to disconnect a powerline more easily.
 
@@ -396,6 +403,7 @@ class SerializableActionSpace(SerializableSpace):
             # after the last call!
 
         """
+        cls = type(self)
         if line_id is None and line_name is None:
             raise AmbiguousAction(
                 'You need to provide either the "line_id" or the "line_name" of the powerline '
@@ -408,11 +416,11 @@ class SerializableActionSpace(SerializableSpace):
             )
 
         if line_id is None:
-            line_id = np.where(self.name_line == line_name)[0]
+            line_id = np.where(cls.name_line == line_name)[0]
             if not len(line_id):
                 raise AmbiguousAction(
                     'Line with name "{}" is not on the grid. The powerlines names are:\n{}'
-                    "".format(line_name, self.name_line)
+                    "".format(line_name, cls.name_line)
                 )
         if previous_action is None:
             res = self.actionClass()
@@ -422,17 +430,22 @@ class SerializableActionSpace(SerializableSpace):
                     type(self).ERR_MSG_WRONG_TYPE.format(type(previous_action), self.actionClass)
                 )
             res = previous_action
-        if line_id > self.n_line:
+        if line_id > cls.n_line:
             raise AmbiguousAction(
                 "You asked to disconnect powerline of id {} but this id does not exist. The "
-                "grid counts only {} powerline".format(line_id, self.n_line)
+                "grid counts only {} powerline".format(line_id, cls.n_line)
             )
         res.update({"set_line_status": [(line_id, -1)]})
         return res
 
     def reconnect_powerline(
-        self, bus_or, bus_ex, line_id=None, line_name=None, previous_action=None
-    ):
+        self,
+        bus_or: int,
+        bus_ex: int,
+        line_id: int=None,
+        line_name: str=None,
+        previous_action: BaseAction=None
+    ) -> BaseAction:
         """
         Utilities to reconnect a powerline more easily.
 
@@ -503,19 +516,19 @@ class SerializableActionSpace(SerializableSpace):
                 'You need to provide only of the "line_id" or the "line_name" of the powerline '
                 "you want to reconnect"
             )
-
+        cls = type(self)
         if line_id is None:
-            line_id = np.where(self.name_line == line_name)[0]
+            line_id = np.where(cls.name_line == line_name)[0]
 
         if previous_action is None:
             res = self.actionClass()
         else:
             if not isinstance(previous_action, self.actionClass):
                 raise AmbiguousAction(
-                    type(self).ERR_MSG_WRONG_TYPE.format(type(previous_action), self.actionClass)
+                    cls.ERR_MSG_WRONG_TYPE.format(type(previous_action), self.actionClass)
                 )
             res = previous_action
-        if line_id > self.n_line:
+        if line_id > cls.n_line:
             raise AmbiguousAction(
                 "You asked to disconnect powerline of id {} but this id does not exist. The "
                 "grid counts only {} powerline".format(line_id, self.n_line)
@@ -533,12 +546,12 @@ class SerializableActionSpace(SerializableSpace):
 
     def change_bus(
         self,
-        name_element,
-        extremity=None,
-        substation=None,
-        type_element=None,
-        previous_action=None,
-    ):
+        name_element : str,
+        extremity : Literal["or", "ex"] =None,
+        substation: int=None,
+        type_element :str=None,
+        previous_action: BaseAction=None,
+    ) -> BaseAction:
         """
         Utilities to change the bus of a single element if you give its name. **NB** Changing a bus has the effect to
         assign the object to bus 1 if it was before that connected to bus 2, and to assign it to bus 2 if it was
@@ -557,7 +570,7 @@ class SerializableActionSpace(SerializableSpace):
             Its substation ID, if you know it will increase the performance. Otherwise, the method will search for it.
         type_element: ``str``, optional
             Type of the element to look for. It is here to speed up the computation. One of "line", "gen" or "load"
-        previous_action: :class:`Action`, optional
+        previous_action: :class:`BaseAction`, optional
             The (optional) action to update. It should be of the same type as :attr:`ActionSpace.actionClass`
 
         Notes
@@ -622,15 +635,16 @@ class SerializableActionSpace(SerializableSpace):
         res.update({"change_bus": {"substations_id": [(my_sub_id, arr_)]}})
         return res
 
-    def _extract_database_powerline(self, extremity):
+    @classmethod
+    def _extract_database_powerline(cls, extremity: Literal["or", "ex"]):
         if extremity[:2] == "or":
-            to_subid = self.line_or_to_subid
-            to_sub_pos = self.line_or_to_sub_pos
-            to_name = self.name_line
+            to_subid = cls.line_or_to_subid
+            to_sub_pos = cls.line_or_to_sub_pos
+            to_name = cls.name_line
         elif extremity[:2] == "ex":
-            to_subid = self.line_ex_to_subid
-            to_sub_pos = self.line_ex_to_sub_pos
-            to_name = self.name_line
+            to_subid = cls.line_ex_to_subid
+            to_sub_pos = cls.line_ex_to_sub_pos
+            to_name = cls.name_line
         elif extremity is None:
             raise Grid2OpException(
                 "It is mandatory to know on which ends you want to change the bus of the powerline"
@@ -653,18 +667,18 @@ class SerializableActionSpace(SerializableSpace):
         to_subid = None
         to_sub_pos = None
         to_name = None
-
+        cls = type(self)
         if type_element is None:
             # i have to look through all the objects to find it
-            if name_element in self.name_load:
-                to_subid = self.load_to_subid
-                to_sub_pos = self.load_to_sub_pos
-                to_name = self.name_load
-            elif name_element in self.name_gen:
-                to_subid = self.gen_to_subid
-                to_sub_pos = self.gen_to_sub_pos
-                to_name = self.name_gen
-            elif name_element in self.name_line:
+            if name_element in cls.name_load:
+                to_subid = cls.load_to_subid
+                to_sub_pos = cls.load_to_sub_pos
+                to_name = cls.name_load
+            elif name_element in cls.name_gen:
+                to_subid = cls.gen_to_subid
+                to_sub_pos = cls.gen_to_sub_pos
+                to_name = cls.name_gen
+            elif name_element in cls.name_line:
                 to_subid, to_sub_pos, to_name = self._extract_database_powerline(
                     extremity
                 )
@@ -675,13 +689,13 @@ class SerializableActionSpace(SerializableSpace):
         elif type_element == "line":
             to_subid, to_sub_pos, to_name = self._extract_database_powerline(extremity)
         elif type_element[:3] == "gen" or type_element[:4] == "prod":
-            to_subid = self.gen_to_subid
-            to_sub_pos = self.gen_to_sub_pos
-            to_name = self.name_gen
+            to_subid = cls.gen_to_subid
+            to_sub_pos = cls.gen_to_sub_pos
+            to_name = cls.name_gen
         elif type_element == "load":
-            to_subid = self.load_to_subid
-            to_sub_pos = self.load_to_sub_pos
-            to_name = self.name_load
+            to_subid = cls.load_to_subid
+            to_sub_pos = cls.load_to_sub_pos
+            to_name = cls.name_load
         else:
             raise AmbiguousAction(
                 'unknown type_element specifier "{}". type_element should be "line" or "load" '
@@ -704,13 +718,13 @@ class SerializableActionSpace(SerializableSpace):
 
     def set_bus(
         self,
-        name_element,
-        new_bus,
-        extremity=None,
-        substation=None,
-        type_element=None,
-        previous_action=None,
-    ):
+        name_element :str,
+        new_bus :int,
+        extremity: Literal["or", "ex"]=None,
+        substation: int=None,
+        type_element: int=None,
+        previous_action: BaseAction=None,
+    ) -> BaseAction:
         """
         Utilities to set the bus of a single element if you give its name. **NB** Setting a bus has the effect to
         assign the object to this bus. If it was before that connected to bus 1, and you assign it to bus 1 (*new_bus*
@@ -737,7 +751,7 @@ class SerializableActionSpace(SerializableSpace):
         type_element: ``str``, optional
             Type of the element to look for. It is here to speed up the computation. One of "line", "gen" or "load"
 
-        previous_action: :class:`Action`, optional
+        previous_action: :class:`BaseAction`, optional
             The (optional) action to update. It should be of the same type as :attr:`ActionSpace.actionClass`
 
         Returns
@@ -791,7 +805,7 @@ class SerializableActionSpace(SerializableSpace):
         res.update({"set_bus": {"substations_id": [(my_sub_id, dict_["set_bus"])]}})
         return res
 
-    def get_set_line_status_vect(self):
+    def get_set_line_status_vect(self) -> np.ndarray:
         """
         Computes and returns a vector that can be used in the "set_status" keyword if building an :class:`BaseAction`
 
@@ -803,7 +817,7 @@ class SerializableActionSpace(SerializableSpace):
         """
         return self._template_act.get_set_line_status_vect()
 
-    def get_change_line_status_vect(self):
+    def get_change_line_status_vect(self) -> np.ndarray:
         """
         Computes and return a vector that can be used in the "change_line_status" keyword if building an :class:`BaseAction`
 
@@ -816,11 +830,12 @@ class SerializableActionSpace(SerializableSpace):
         return self._template_act.get_change_line_status_vect()
 
     @staticmethod
-    def get_all_unitary_line_set(action_space):
+    def get_all_unitary_line_set(action_space: Self) -> List[BaseAction]:
         """
         Return all unitary actions that "set" powerline status.
 
-        For each powerline, there are 5 such actions:
+        For each powerline, if there are 2 busbars per substation, 
+        there are 5 such actions:
 
         - disconnect it
         - connected it origin at bus 1 and extremity at bus 1
@@ -828,9 +843,18 @@ class SerializableActionSpace(SerializableSpace):
         - connected it origin at bus 2 and extremity at bus 1
         - connected it origin at bus 2 and extremity at bus 2
 
+        This number increases quite rapidly if there are more busbars 
+        allowed per substation of course. For example if you allow
+        for 3 busbars per substations, it goes from (1 + 2*2) [=5]
+        to (1 + 3 * 3) [=10] and if you allow for 4 busbars per substations
+        you end up with (1 + 4 * 4) [=17] possible actions per powerline.
+        
+        .. seealso::
+            :func:`SerializableActionSpace.get_all_unitary_line_set_simple`
+        
         Parameters
         ----------
-        action_space: :class:`grid2op.BaseAction.ActionSpace`
+        action_space: :class:`ActionSpace`
             The action space used.
 
         Returns
@@ -840,24 +864,23 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         res = []
-
+        cls = type(action_space)
         # powerline switch: disconnection
-        for i in range(action_space.n_line):
-            res.append(action_space.disconnect_powerline(line_id=i))
-
-        # powerline switch: reconnection
-        for bus_or in [1, 2]:
-            for bus_ex in [1, 2]:
-                for i in range(action_space.n_line):
-                    act = action_space.reconnect_powerline(
-                        line_id=i, bus_ex=bus_ex, bus_or=bus_or
-                    )
-                    res.append(act)
+        for i in range(cls.n_line):
+            res.append(action_space.disconnect_powerline(line_id=i))     
+        
+        all_busbars = list(range(1, cls.n_busbar_per_sub + 1))
+        for bus1, bus2 in itertools.product(all_busbars, all_busbars):
+            for i in range(cls.n_line):
+                act = action_space.reconnect_powerline(
+                    line_id=i, bus_ex=bus1, bus_or=bus2
+                )
+                res.append(act)
 
         return res
 
     @staticmethod
-    def get_all_unitary_line_set_simple(action_space):
+    def get_all_unitary_line_set_simple(action_space: Self) -> List[BaseAction]:
         """
         Return all unitary actions that "set" powerline status but in a 
         more simple way than :func:`SerializableActionSpace.get_all_unitary_line_set`
@@ -869,12 +892,19 @@ class SerializableActionSpace(SerializableSpace):
           side used to be connected)
 
         It has the main advantages to "only" add 2 actions per powerline
-        instead of 5.
+        instead of 5 (if the number of busbars per substation is 2). 
+        
+        Using this method, powerlines will always be reconnected to their
+        previous busbars (the last known one) and you will always get
+        exactly 2 actions per powerlines.
+        
+        .. seealso::
+            :func:`SerializableActionSpace.get_all_unitary_line_set`
         
         
         Parameters
         ----------
-        action_space: :class:`grid2op.BaseAction.ActionSpace`
+        action_space: :class:`ActionSpace`
             The action space used.
 
         Returns
@@ -884,32 +914,33 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         res = []
-
+        cls = type(action_space)
         # powerline set: disconnection
-        for i in range(action_space.n_line):
+        for i in range(cls.n_line):
             res.append(action_space({"set_line_status": [(i,-1)]}))
         
         # powerline set: reconnection   
-        for i in range(action_space.n_line):
+        for i in range(cls.n_line):
             res.append(action_space({"set_line_status": [(i, +1)]}))
 
         return res
         
     @staticmethod
-    def get_all_unitary_alarm(action_space):
+    def get_all_unitary_alarm(action_space: Self) -> List[BaseAction]:
         """
         .. warning::
             /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
         """
+        cls = type(action_space)
         res = []
-        for i in range(action_space.dim_alarms):
-            status = np.full(action_space.dim_alarms, fill_value=False, dtype=dt_bool)
+        for i in range(cls.dim_alarms):
+            status = np.full(cls.dim_alarms, fill_value=False, dtype=dt_bool)
             status[i] = True
             res.append(action_space({"raise_alarm": status}))
         return res
 
     @staticmethod
-    def get_all_unitary_alert(action_space):
+    def get_all_unitary_alert(action_space: Self) -> List[BaseAction]:
         """
         Return all unitary actions that raise an alert on powerlines.
         
@@ -918,15 +949,16 @@ class SerializableActionSpace(SerializableSpace):
            
            If you got 22 attackable lines, then you got 2**22 actions... probably a TERRIBLE IDEA !
         """
+        cls = type(action_space)
         res = []
         possible_values = [False, True]
-        if action_space.dim_alerts:
-            for status in itertools.product(possible_values, repeat=type(action_space).dim_alerts):
+        if cls.dim_alerts:
+            for status in itertools.product(possible_values, repeat=cls.dim_alerts):
                 res.append(action_space({"raise_alert": np.array(status, dtype=dt_bool)}))
         return res
 
     @staticmethod
-    def get_all_unitary_line_change(action_space):
+    def get_all_unitary_line_change(action_space: Self) -> List[BaseAction]:
         """
         Return all unitary actions that "change" powerline status.
 
@@ -934,7 +966,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Parameters
         ----------
-        action_space: :class:`grid2op.BaseAction.ActionSpace`
+        action_space: :class:`ActionSpace`
             The action space used.
 
         Returns
@@ -943,15 +975,16 @@ class SerializableActionSpace(SerializableSpace):
             The list of all "change" action acting on powerline status
 
         """
+        cls = type(action_space)
         res = []
-        for i in range(action_space.n_line):
+        for i in range(cls.n_line):
             status = action_space.get_change_line_status_vect()
             status[i] = True
             res.append(action_space({"change_line_status": status}))
         return res
 
     @staticmethod
-    def get_all_unitary_topologies_change(action_space, sub_id=None):
+    def get_all_unitary_topologies_change(action_space: Self, sub_id : int=None) -> List[BaseAction]:
         """
         This methods allows to compute and return all the unitary topological changes that can be performed on a
         powergrid.
@@ -960,7 +993,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Parameters
         ----------
-        action_space: :class:`grid2op.BaseAction.ActionSpace`
+        action_space: :class:`ActionSpace`
             The action space used.
 
         sub_id: ``int``, optional
@@ -991,9 +1024,14 @@ class SerializableActionSpace(SerializableSpace):
             all_change_actions_sub4 = env.action_space.get_all_unitary_topologies_change(env.action_space, sub_id=4)
 
         """
+        cls = type(action_space)
+        if cls.n_busbar_per_sub == 1 or cls.n_busbar_per_sub >= 3:
+            raise Grid2OpException("Impossible to use `change_bus` action type "
+                                   "if your grid does not have exactly 2 busbars "
+                                   "per substation")
         res = []
         S = [0, 1]
-        for sub_id_, num_el in enumerate(action_space.sub_info):
+        for sub_id_, num_el in enumerate(cls.sub_info):
             if sub_id is not None:
                 if sub_id_ != sub_id:
                     continue
@@ -1020,8 +1058,79 @@ class SerializableActionSpace(SerializableSpace):
                 # a substation, changing A,B or changing C,D always has the same effect.
         return res
 
+    @classmethod
+    def _is_ok_symmetry(cls, n_busbar_per_sub: int, tup: np.ndarray, bus_start: int=2, id_start: int=1) -> bool:
+        # id_start: at which index to start in the `tup` vector
+        # bus_start: which maximum bus id should be present there
+        # tup: the topology vector
+        if id_start >= len(tup):
+            # i reached the end of the tuple
+            return True
+        if bus_start >= n_busbar_per_sub:
+            # all previous buses are filled
+            return True
+        
+        this_bus = tup[id_start]
+        if this_bus < bus_start:
+            # this bus id is already assigned
+            # go to next id, 
+            return cls._is_ok_symmetry(n_busbar_per_sub, tup, bus_start, id_start + 1)
+        else: 
+            if this_bus == bus_start:
+                # This is a new bus and it has the correct id
+                # so I go to next
+                return cls._is_ok_symmetry(n_busbar_per_sub, tup, bus_start + 1, id_start + 1)
+            else:
+                # by symmetry the "current" bus should be relabeled `bus_start`
+                # which is alreay added somewhere else. The current topologie
+                # is not valid.
+                return False
+        return True
+    
+    @classmethod
+    def _is_ok_line(cls, n_busbar_per_sub: int, tup: np.ndarray, lines_id: np.ndarray) -> bool:
+        """check there are at least a line connected to each buses"""
+        # now, this is the "smart" thing:
+        # as the bus should be labelled "in order" (no way we can add
+        # bus 3 if bus 2 is not already set in `tup` because of the 
+        # `_is_ok_symmetry` function), I know for a fact that there is
+        # `tup.max()` active buses in this topology. 
+        # So to make sure that every buses has at least a line connected to it
+        # then I just check the number of unique buses (tup.max())
+        # and compare it to the number of buses where there are
+        # at least a line len(buses_with_lines)        
+        nb = 0
+        only_line = tup[lines_id]
+        for el in range(1, n_busbar_per_sub +1):
+            nb += (only_line == el).any()
+        return nb == tup.max()
+        # buses_with_lines = np.unique(tup[lines_id])  # slower than python code above
+        # return buses_with_lines.size == tup.max()
+    
+    @classmethod
+    def _is_ok_2(cls, n_busbar_per_sub : int, tup) -> bool:
+        """check there are at least 2 elements per busbars"""
+        # now, this is the "smart" thing:
+        # as the bus should be labelled "in order" (no way we can add
+        # bus 3 if bus 2 is not already set in `tup` because of the 
+        # `_is_ok_symmetry` function), I know for a fact that there is
+        # `tup.max()` active buses in this topology. 
+        # So to make sure that every buses has at least a line connected to it
+        # then I just check the number of unique buses (tup.max())
+        # and compare it to the number of buses where there are
+        # at least a line len(buses_with_lines)
+        for el in range(1, tup.max() + 1):
+            if (tup == el).sum() < 2:
+                return False
+        return True
+        # un_, count = np.unique(tup, return_counts=True)  # slower than python code above
+        # return (count >= 2).all()
+    
     @staticmethod
-    def get_all_unitary_topologies_set(action_space, sub_id=None):
+    def get_all_unitary_topologies_set(action_space: Self,
+                                       sub_id: int=None,
+                                       add_alone_line=True,
+                                       _count_only=False) -> List[BaseAction]:
         """
         This methods allows to compute and return all the unitary topological changes that can be performed on a
         powergrid.
@@ -1029,14 +1138,60 @@ class SerializableActionSpace(SerializableSpace):
         The changes will be performed using the "set_bus" method. The "do nothing" action will be counted once
         per substation in the grid.
 
+        It returns all the "valid" topologies available at any substation (if `sub_id` is ``None`` -default)
+        or at the requested substation.
+        
+        To be valid a topology must satisfy:
+        
+        - there are at least one side of the powerline connected to each busbar (there cannot be a load alone
+          on a bus or a generator alone on a bus for example)
+        - if `add_alone_line=False` (not the default) then there must be at least two elements in a 
+          substation
+          
+        .. info::
+            We try to make the result of this function as small as possible. This means that if at any
+            substation the number of "valid" topology is only 1, it is ignored and will not be added
+            in the result.
+            
+            This imply that when `env.n_busbar_per_sub=1` then this function returns the empty list.
+            
+        .. info::
+            If `add_alone_line` is True (again NOT the default) then if any substation counts less than 
+            3 elements or less then no action will be added for this substation.
+            
+            If there are 4 or 5 elements at a substation (and add_alone_line=False), then only topologies
+            using 2 busbar will be used.
+            
+        .. warning::
+            This generates only topologies were all elements are connected. It does not generate 
+            topologies with disconnected lines.
+             
+        .. warning::
+            As far as we know, there are no bugs in this implementation. However we did not spend
+            lots of time finding a "closed form" formula to count exactly the number of possible topologies.
+            This means that we might have missed some topologies or counted the same "results" multiple
+            times if there has been an error in the symmetries.
+            
+            If you are interested in this topic, let us know with a discussion, for example here
+            https://github.com/rte-france/Grid2Op/discussions
+            
         Parameters
         ----------
-        action_space: :class:`grid2op.BaseAction.ActionHelper`
+        action_space: :class:`ActionSpace`
             The action space used.
 
         sub_id: ``int``, optional
             The substation ID. If ``None`` it is done for all substations.
 
+        add_alone_line: ``bool``, optional
+            If ``True`` (default) then topologiees where 1 line side is "alone" on a bus
+            are valid and put in the output (more topologies are considered). If not 
+            then only topologies with at least one line AND 2 elements per buses
+            are returned.
+        
+        _count_only: ``bool``, optional
+            Does not return the list but rather only the number of elements there would be
+            
         Notes
         -----
         This might take a long time on large grid (possibly 10-15 mins for the IEEE 118 for example)
@@ -1062,80 +1217,71 @@ class SerializableActionSpace(SerializableSpace):
             all_change_actions_sub4 = env.action_space.get_all_unitary_topologies_set(env.action_space, sub_id=4)
 
         """
+        cls = type(action_space)
+        if cls.n_busbar_per_sub == 1:
+            return []
+        
         res = []
-        S = [0, 1]
-        for sub_id_, num_el in enumerate(action_space.sub_info):
-            tmp = []
+        S = list(range(1, cls.n_busbar_per_sub + 1))
+        for sub_id_, num_el in enumerate(cls.sub_info):
+            if not _count_only:
+                tmp = []
+            else:
+                tmp = 0
+                
             if sub_id is not None:
                 if sub_id_ != sub_id:
                     continue
 
-            new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
-            # perform the action "set everything on bus 1"
-            action = action_space(
-                {"set_bus": {"substations_id": [(sub_id_, new_topo)]}}
-            )
-            tmp.append(action)
-
-            powerlines_or_id = action_space.line_or_to_sub_pos[
-                action_space.line_or_to_subid == sub_id_
+            powerlines_or_id = cls.line_or_to_sub_pos[
+                cls.line_or_to_subid == sub_id_
             ]
-            powerlines_ex_id = action_space.line_ex_to_sub_pos[
-                action_space.line_ex_to_subid == sub_id_
+            powerlines_ex_id = cls.line_ex_to_sub_pos[
+                cls.line_ex_to_subid == sub_id_
             ]
             powerlines_id = np.concatenate((powerlines_or_id, powerlines_ex_id))
 
             # computes all the topologies at 2 buses for this substation
             for tup in itertools.product(S, repeat=num_el - 1):
-                indx = np.full(shape=num_el, fill_value=False, dtype=dt_bool)
-                tup = np.array((0, *tup)).astype(
-                    dt_bool
-                )  # add a zero to first element -> break symmetry
-                indx[tup] = True
-                if indx.sum() >= 2 and (~indx).sum() >= 2:
-                    # i need 2 elements on each bus at least (almost all the times, except when a powerline
-                    # is alone on its bus)
-                    new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
-                    new_topo[~indx] = 2
-
-                    if (
-                        indx[powerlines_id].sum() == 0
-                        or (~indx[powerlines_id]).sum() == 0
-                    ):
-                        # if there is a "node" without a powerline, the topology is not valid
-                        continue
-
+                tup = np.array((1, *tup))  # force first el on bus 1 to break symmetry
+                
+                if not action_space._is_ok_symmetry(cls.n_busbar_per_sub, tup):
+                    # already added (by symmetry)
+                    continue
+                if not action_space._is_ok_line(cls.n_busbar_per_sub, tup, powerlines_id):
+                    # check there is at least one line per busbars
+                    continue
+                if not add_alone_line and not action_space._is_ok_2(cls.n_busbar_per_sub, tup):
+                    # check there are at least 2 elements per buses
+                    continue
+                
+                if not _count_only:
                     action = action_space(
-                        {"set_bus": {"substations_id": [(sub_id_, new_topo)]}}
+                        {"set_bus": {"substations_id": [(sub_id_, tup)]}}
                     )
                     tmp.append(action)
                 else:
-                    # i need to take into account the case where 1 powerline is alone on a bus too
-                    if (
-                        (indx[powerlines_id]).sum() >= 1
-                        and (~indx[powerlines_id]).sum() >= 1
-                    ):
-                        new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
-                        new_topo[~indx] = 2
-                        action = action_space(
-                            {"set_bus": {"substations_id": [(sub_id_, new_topo)]}}
-                        )
-                        tmp.append(action)
+                    tmp += 1
 
-            if len(tmp) >= 2:
+            if not _count_only and len(tmp) >= 2:
                 # if i have only one single topology on this substation, it doesn't make any action
-                # i cannot change the topology is there is only one.
+                # i cannot change the topology if there is only one.
                 res += tmp
-
+            elif _count_only:
+                if tmp >= 2:
+                    res.append(tmp)
+                else:
+                    # no real way to change if there is only one valid topology
+                    res.append(0)
         return res
 
     @staticmethod
     def get_all_unitary_redispatch(
         action_space, num_down=5, num_up=5, max_ratio_value=1.0
-    ):
+    ) -> List[BaseAction]:
         """
         Redispatching action are continuous action. This method is an helper to convert the continuous
-        action into discrete action (by rounding).
+        action into "discrete actions" (by rounding).
 
         The number of actions is equal to num_down + num_up (by default 10) per dispatchable generator.
 
@@ -1146,10 +1292,14 @@ class SerializableActionSpace(SerializableSpace):
           a distinct action (then counting `num_down` different action, because 0.0 is removed)
         - it will do the same for [0, gen_maw_ramp_up]
 
+        .. note::
+            With this "helper" only one generator is affected by one action. For example
+            there are no action acting on both generator 1 and generator 2 at the same
+            time.
 
         Parameters
         ----------
-        action_space: :class:`grid2op.BaseAction.ActionHelper`
+        action_space: :class:`ActionSpace`
             The action space used.
 
         num_down: ``int``
@@ -1204,7 +1354,7 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
-    def get_all_unitary_curtail(action_space, num_bin=10, min_value=0.5):
+    def get_all_unitary_curtail(action_space : Self, num_bin: int=10, min_value: float=0.5) -> List[BaseAction]:
         """
         Curtailment action are continuous action. This method is an helper to convert the continuous
         action into discrete action (by rounding).
@@ -1218,17 +1368,21 @@ class SerializableActionSpace(SerializableSpace):
         - it will divide the interval [0, 1] into `num_bin`, each will make
           a distinct action (then counting `num_bin` different action, because 0.0 is removed)
 
+        .. note::
+            With this "helper" only one generator is affected by one action. For example
+            there are no action acting on both generator 1 and generator 2 at the same
+            time.
 
         Parameters
         ----------
-        action_space: :class:`grid2op.BaseAction.ActionHelper`
+        action_space: :class:`ActionSpace`
             The action space used.
 
         num_bin: ``int``
             Number of actions for each renewable generator
 
         min_value: ``float``
-            Between 0. and 1.: minimum value allow for the curtailment. FOr example if you set this
+            Between 0. and 1.: minimum value allow for the curtailment. For example if you set this
             value to be 0.2 then no curtailment will be done to limit the generator below 20% of its maximum capacity
 
         Returns
@@ -1255,7 +1409,7 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
-    def get_all_unitary_storage(action_space, num_down=5, num_up=5):
+    def get_all_unitary_storage(action_space: Self, num_down: int =5, num_up: int=5) -> List[BaseAction]:
         """
         Storage action are continuous action. This method is an helper to convert the continuous
         action into discrete action (by rounding).
@@ -1269,10 +1423,15 @@ class SerializableActionSpace(SerializableSpace):
           a distinct action (then counting `num_down` different action, because 0.0 is removed)
         - it will do the same for [0, storage_max_p_absorb]
 
+        .. note::
+            With this "helper" only one storage unit is affected by one action. For example
+            there are no action acting on both storage unit 1 and storage unit 2 at the same
+            time.
+
 
         Parameters
         ----------
-        action_space: :class:`grid2op.BaseAction.ActionHelper`
+        action_space: :class:`ActionSpace`
             The action space used.
 
         Returns
@@ -1509,8 +1668,8 @@ class SerializableActionSpace(SerializableSpace):
     def get_back_to_ref_state(
         self,
         obs: "grid2op.Observation.BaseObservation",
-        storage_setpoint=0.5,
-        precision=5,
+        storage_setpoint: float=0.5,
+        precision: int=5,
     ) -> Dict[str, List[BaseAction]]:
         """
         This function returns the list of unary actions that you can perform in order to get back to the "fully meshed" / "initial" topology.
@@ -1525,8 +1684,8 @@ class SerializableActionSpace(SerializableSpace):
 
         - an action that acts on a single powerline
         - an action on a single substation
-        - a redispatching action
-        - a storage action
+        - a redispatching action (acting possibly on all generators)
+        - a storage action (acting possibly on all generators)
 
         The list might be relatively long, in the case where lots of actions are needed. Depending on the rules of the game (for example limiting the
         action on one single substation), in order to get back to this topology, multiple consecutive actions will need to be implemented.
@@ -1536,7 +1695,7 @@ class SerializableActionSpace(SerializableSpace):
         - "powerline" for the list of actions needed to set back the powerlines in a proper state (connected). They can be of type "change_line" or "set_line".
         - "substation" for the list of actions needed to set back each substation in its initial state (everything connected to bus 1). They can be
           implemented as "set_bus" or "change_bus"
-        - "redispatching": for the redispatching action (there can be multiple redispatching actions needed because of the ramps of the generator)
+        - "redispatching": for the redispatching actions (there can be multiple redispatching actions needed because of the ramps of the generator)
         - "storage": for action on storage units (you might need to perform multiple storage actions because of the maximum power these units can absorb / produce )
         - "curtailment": for curtailment action (usually at most one such action is needed)
 
@@ -1574,7 +1733,6 @@ class SerializableActionSpace(SerializableSpace):
                 "You need to provide a grid2op Observation for this function to work correctly."
             )
         res = {}
-
         # powerline actions
         self._aux_get_back_to_ref_state_line(res, obs)
         # substations
