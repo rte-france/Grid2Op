@@ -981,17 +981,337 @@ class TestBackendAction(unittest.TestCase):
         assert backend_action.current_topo.values[id_topo_ex] == 3, f"{backend_action.current_topo.values[id_topo_ex]} vs 3"
         assert backend_action.last_topo_registered.values[id_topo_or] == 1, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 1"
         assert backend_action.last_topo_registered.values[id_topo_ex] == 3, f"{backend_action.last_topo_registered.values[id_topo_or]} vs 3"   
+
+    def test_call(self):
+        cls = type(self.env)
+        line_id = 0
+        id_topo_or = cls.line_or_pos_topo_vect[line_id]
+        id_topo_ex = cls.line_ex_pos_topo_vect[line_id]
+        
+        backend_action = self.env._backend_action
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, -1)]}})
+        backend_action += act
+        (
+            active_bus,
+            (prod_p, prod_v, load_p, load_q, storage),
+            topo__,
+            shunts__,
+        ) = backend_action()
+        assert topo__.values[cls.line_or_pos_topo_vect[line_id]] == -1
+        assert topo__.values[cls.line_ex_pos_topo_vect[line_id]] == -1
+        backend_action.reset()
+        
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, 2)]}})
+        backend_action += act
+        (
+            active_bus,
+            (prod_p, prod_v, load_p, load_q, storage),
+            topo__,
+            shunts__,
+        ) = backend_action()
+        assert topo__.values[cls.line_or_pos_topo_vect[line_id]] == 2
+        assert topo__.values[cls.line_ex_pos_topo_vect[line_id]] == 1
+        backend_action.reset()
+        
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, -1)]}})
+        backend_action += act
+        (
+            active_bus,
+            (prod_p, prod_v, load_p, load_q, storage),
+            topo__,
+            shunts__,
+        ) = backend_action()
+        assert topo__.values[cls.line_or_pos_topo_vect[line_id]] == -1
+        assert topo__.values[cls.line_ex_pos_topo_vect[line_id]] == -1
+        backend_action.reset()
+        
+        act = self.env.action_space({"set_bus": {"lines_ex_id": [(line_id, 3)]}})
+        backend_action += act
+        (
+            active_bus,
+            (prod_p, prod_v, load_p, load_q, storage),
+            topo__,
+            shunts__,
+        ) = backend_action()
+        assert topo__.values[cls.line_or_pos_topo_vect[line_id]] == 2
+        assert topo__.values[cls.line_ex_pos_topo_vect[line_id]] == 3
+        backend_action.reset() 
+         
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, -1)]}})
+        backend_action += act
+        (
+            active_bus,
+            (prod_p, prod_v, load_p, load_q, storage),
+            topo__,
+            shunts__,
+        ) = backend_action()
+        assert topo__.values[cls.line_or_pos_topo_vect[line_id]] == -1
+        assert topo__.values[cls.line_ex_pos_topo_vect[line_id]] == -1
+        backend_action.reset() 
+
+        act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, 1)]}})
+        backend_action += act
+        (
+            active_bus,
+            (prod_p, prod_v, load_p, load_q, storage),
+            topo__,
+            shunts__,
+        ) = backend_action()
+        assert topo__.values[cls.line_or_pos_topo_vect[line_id]] == 1
+        assert topo__.values[cls.line_ex_pos_topo_vect[line_id]] == 3
+        backend_action.reset() 
         
         
-class TestPandapowerBackend(unittest.TestCase):
-    pass
+class TestPandapowerBackend_3busbars(unittest.TestCase):
+    def get_nb_bus(self):
+        return 3
+    
+    def get_env_nm(self):
+        return "educ_case14_storage"
+    
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.get_env_nm(),
+                                    backend=PandaPowerBackend(),
+                                    action_class=CompleteAction,
+                                    test=True,
+                                    n_busbar=self.get_nb_bus(),
+                                    _add_to_name=type(self).__name__ + f'_{self.get_nb_bus()}')
+        self.list_loc_bus = [-1] + list(range(1, type(self.env).n_busbar_per_sub + 1))
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_right_bus_made(self):
+        assert self.env.backend._grid.bus.shape[0] == self.get_nb_bus() * type(self.env).n_sub
+        assert (~self.env.backend._grid.bus.iloc[type(self.env).n_sub:]["in_service"]).all()
+
+    @staticmethod
+    def _aux_find_sub(env, obj_col):
+        """find a sub with 4 elements, the type of elements and at least 2 lines"""
+        cls = type(env)
+        res = None
+        for sub_id in range(cls.n_sub):
+            this_sub_mask = cls.grid_objects_types[:,cls.SUB_COL] == sub_id
+            this_sub = cls.grid_objects_types[this_sub_mask, :]
+            if this_sub.shape[0] <= 3:
+                # not enough element
+                continue
+            if (this_sub[:, obj_col] == -1).all():
+                # no load
+                continue
+            if ((this_sub[:, cls.LOR_COL] != -1) | (this_sub[:, cls.LEX_COL] != -1)).sum() <= 1:
+                # only 1 line
+                continue
+            el_id = this_sub[this_sub[:, obj_col] != -1, obj_col][0]
+            if (this_sub[:, cls.LOR_COL] != -1).any():
+                line_or_id = this_sub[this_sub[:, cls.LOR_COL] != -1, cls.LOR_COL][0]
+                line_ex_id = None
+            else:
+                line_or_id = None
+                line_ex_id = this_sub[this_sub[:, cls.LEX_COL] != -1, cls.LEX_COL][0]
+            res = (sub_id, el_id, line_or_id, line_ex_id)
+            break
+        return res
+    
+    @staticmethod
+    def _aux_find_sub_shunt(env):
+        """find a sub with 4 elements, the type of elements and at least 2 lines"""
+        cls = type(env)
+        res = None
+        for el_id in range(cls.n_shunt):
+            sub_id = cls.shunt_to_subid[el_id]
+            this_sub_mask = cls.grid_objects_types[:,cls.SUB_COL] == sub_id
+            this_sub = cls.grid_objects_types[this_sub_mask, :]
+            if this_sub.shape[0] <= 3:
+                # not enough element
+                continue
+            if ((this_sub[:, cls.LOR_COL] != -1) | (this_sub[:, cls.LEX_COL] != -1)).sum() <= 1:
+                # only 1 line
+                continue
+            if (this_sub[:, cls.LOR_COL] != -1).any():
+                line_or_id = this_sub[this_sub[:, cls.LOR_COL] != -1, cls.LOR_COL][0]
+                line_ex_id = None
+            else:
+                line_or_id = None
+                line_ex_id = this_sub[this_sub[:, cls.LEX_COL] != -1, cls.LEX_COL][0]
+            res = (sub_id, el_id, line_or_id, line_ex_id)
+            break
+        return res
+        
+    def test_move_load(self):
+        cls = type(self.env)            
+        res = self._aux_find_sub(self.env, cls.LOA_COL)
+        if res is None:
+            raise RuntimeError(f"Cannot carry the test 'test_move_load' as "
+                               "there are no suitable subastation in your grid.")
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            if line_or_id is not None:
+                act = self.env.action_space({"set_bus": {"loads_id": [(el_id, new_bus)], "lines_or_id": [(line_or_id, new_bus)]}})
+            else:
+                act = self.env.action_space({"set_bus": {"loads_id": [(el_id, new_bus)], "lines_ex_id": [(line_ex_id, new_bus)]}})
+            bk_act = self.env._backend_action_class()
+            bk_act += act
+            self.env.backend.apply_action(bk_act)
+            global_bus = sub_id + (new_bus -1) * cls.n_sub 
+            if new_bus >= 1:
+                assert self.env.backend._grid.load.iloc[el_id]["bus"] == global_bus
+                if line_or_id is not None:
+                    assert self.env.backend._grid.line.iloc[line_or_id]["from_bus"] == global_bus
+                else:
+                    assert self.env.backend._grid.line.iloc[line_ex_id]["to_bus"] == global_bus
+                assert self.env.backend._grid.bus.loc[global_bus]["in_service"]
+            else:
+                assert not self.env.backend._grid.load.iloc[el_id]["in_service"]
+                if line_or_id is not None:
+                    assert not self.env.backend._grid.line.iloc[line_or_id]["in_service"]
+                else:
+                    assert not self.env.backend._grid.line.iloc[line_ex_id]["in_service"]
+        
+    def test_move_gen(self):
+        cls = type(self.env)            
+        res = self._aux_find_sub(self.env, cls.GEN_COL)
+        if res is None:
+            raise RuntimeError(f"Cannot carry the test 'test_move_gen' as "
+                               "there are no suitable subastation in your grid.")
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            if line_or_id is not None:
+                act = self.env.action_space({"set_bus": {"generators_id": [(el_id, new_bus)], "lines_or_id": [(line_or_id, new_bus)]}})
+            else:
+                act = self.env.action_space({"set_bus": {"generators_id": [(el_id, new_bus)], "lines_ex_id": [(line_ex_id, new_bus)]}})
+            bk_act = self.env._backend_action_class()
+            bk_act += act
+            self.env.backend.apply_action(bk_act)
+            global_bus = sub_id + (new_bus -1) * cls.n_sub 
+            if new_bus >= 1:
+                assert self.env.backend._grid.gen.iloc[el_id]["bus"] == global_bus
+                if line_or_id is not None:
+                    assert self.env.backend._grid.line.iloc[line_or_id]["from_bus"] == global_bus
+                else:
+                    assert self.env.backend._grid.line.iloc[line_ex_id]["to_bus"] == global_bus
+                assert self.env.backend._grid.bus.loc[global_bus]["in_service"]
+            else:
+                assert not self.env.backend._grid.gen.iloc[el_id]["in_service"]
+                if line_or_id is not None:
+                    assert not self.env.backend._grid.line.iloc[line_or_id]["in_service"]
+                else:
+                    assert not self.env.backend._grid.line.iloc[line_ex_id]["in_service"]
+        
+    def test_move_storage(self):
+        cls = type(self.env)            
+        res = self._aux_find_sub(self.env, cls.STORAGE_COL)
+        if res is None:
+            raise RuntimeError(f"Cannot carry the test 'test_move_storage' as "
+                               "there are no suitable subastation in your grid.")
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            if line_or_id is not None:
+                act = self.env.action_space({"set_bus": {"storages_id": [(el_id, new_bus)], "lines_or_id": [(line_or_id, new_bus)]}})
+            else:
+                act = self.env.action_space({"set_bus": {"storages_id": [(el_id, new_bus)], "lines_ex_id": [(line_ex_id, new_bus)]}})
+            bk_act = self.env._backend_action_class()
+            bk_act += act
+            self.env.backend.apply_action(bk_act)
+            global_bus = sub_id + (new_bus -1) * cls.n_sub 
+            if new_bus >= 1:
+                assert self.env.backend._grid.storage.iloc[el_id]["bus"] == global_bus
+                if line_or_id is not None:
+                    assert self.env.backend._grid.line.iloc[line_or_id]["from_bus"] == global_bus
+                else:
+                    assert self.env.backend._grid.line.iloc[line_ex_id]["to_bus"] == global_bus
+                assert self.env.backend._grid.bus.loc[global_bus]["in_service"]
+            else:
+                assert not self.env.backend._grid.storage.iloc[el_id]["in_service"]
+                if line_or_id is not None:
+                    assert not self.env.backend._grid.line.iloc[line_or_id]["in_service"]
+                else:
+                    assert not self.env.backend._grid.line.iloc[line_ex_id]["in_service"]
+    
+    def test_move_line_or(self):
+        cls = type(self.env)            
+        line_id = 0
+        for new_bus in self.list_loc_bus:
+            act = self.env.action_space({"set_bus": {"lines_or_id": [(line_id, new_bus)]}})
+            bk_act = self.env._backend_action_class()
+            bk_act += act
+            self.env.backend.apply_action(bk_act)
+            global_bus = cls.line_or_to_subid[line_id] + (new_bus -1) * cls.n_sub 
+            if new_bus >= 1:
+                assert self.env.backend._grid.line.iloc[line_id]["from_bus"] == global_bus
+                assert self.env.backend._grid.bus.loc[global_bus]["in_service"]
+            else:
+                assert not self.env.backend._grid.line.iloc[line_id]["in_service"]
+                
+    def test_move_line_ex(self):
+        cls = type(self.env)            
+        line_id = 0
+        for new_bus in self.list_loc_bus:
+            act = self.env.action_space({"set_bus": {"lines_ex_id": [(line_id, new_bus)]}})
+            bk_act = self.env._backend_action_class()
+            bk_act += act
+            self.env.backend.apply_action(bk_act)
+            global_bus = cls.line_ex_to_subid[line_id] + (new_bus -1) * cls.n_sub 
+            if new_bus >= 1:
+                assert self.env.backend._grid.line.iloc[line_id]["to_bus"] == global_bus
+                assert self.env.backend._grid.bus.loc[global_bus]["in_service"]
+            else:
+                assert not self.env.backend._grid.line.iloc[line_id]["in_service"]
+            
+    def test_move_shunt(self):
+        cls = type(self.env)            
+        res = self._aux_find_sub_shunt(self.env)
+        if res is None:
+            raise RuntimeError(f"Cannot carry the test 'test_move_load' as "
+                               "there are no suitable subastation in your grid.")
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            if line_or_id is not None:
+                act = self.env.action_space({"shunt": {"set_bus": [(el_id, new_bus)]}, "set_bus": {"lines_or_id": [(line_or_id, new_bus)]}})
+            else:
+                act = self.env.action_space({"shunt": {"set_bus": [(el_id, new_bus)]}, "set_bus": {"lines_ex_id": [(line_ex_id, new_bus)]}})
+            bk_act = self.env._backend_action_class()
+            bk_act += act
+            self.env.backend.apply_action(bk_act)
+            global_bus = sub_id + (new_bus -1) * cls.n_sub 
+            if new_bus >= 1:
+                assert self.env.backend._grid.shunt.iloc[el_id]["bus"] == global_bus
+                if line_or_id is not None:
+                    assert self.env.backend._grid.line.iloc[line_or_id]["from_bus"] == global_bus
+                else:
+                    assert self.env.backend._grid.line.iloc[line_ex_id]["to_bus"] == global_bus
+                assert self.env.backend._grid.bus.loc[global_bus]["in_service"]
+            else:
+                assert not self.env.backend._grid.shunt.iloc[el_id]["in_service"]
+                if line_or_id is not None:
+                    assert not self.env.backend._grid.line.iloc[line_or_id]["in_service"]
+                else:
+                    assert not self.env.backend._grid.line.iloc[line_ex_id]["in_service"]
 
 
+class TestPandapowerBackend_1busbar(TestPandapowerBackend_3busbars):
+    def get_nb_bus(self):
+        return 3        
+        
+        
 class TestObservation(unittest.TestCase):
     def test_action_space_get_back_to_ref_state(self):
         """test the :func:`grid2op.Action.SerializableActionSpace.get_back_to_ref_state` 
         when 3 busbars which could not be tested without observation"""
         pass
+
+
+class TestEnv(unittest.TestCase):
+    pass
+
+
+class TestGym(unittest.TestCase):
+    pass
+
 
 if __name__ == "__main__":
     unittest.main()
