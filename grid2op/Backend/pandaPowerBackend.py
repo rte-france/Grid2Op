@@ -348,10 +348,6 @@ class PandaPowerBackend(Backend):
             warnings.filterwarnings("ignore", category=FutureWarning)
             self._grid = pp.from_json(full_path)
         self._check_for_non_modeled_elements()
-        
-        self._in_service_line_col_id = int(np.where(self._grid.line.columns == "in_service")[0][0])
-        self._in_service_trafo_col_id = int(np.where(self._grid.trafo.columns == "in_service")[0][0])
-        self._in_service_storage_cold_id = int(np.where(self._grid.storage.columns == "in_service")[0][0])
 
         # add the slack bus that is often not modeled as a generator, but i need it for this backend to work
         bus_gen_added = None
@@ -567,6 +563,11 @@ class PandaPowerBackend(Backend):
             for ind, el in add_topo.iterrows():
                 pp.create_bus(self._grid, index=ind, **el)
         self._init_private_attrs()
+        
+        # do this at the end
+        self._in_service_line_col_id = int(np.where(self._grid.line.columns == "in_service")[0][0])
+        self._in_service_trafo_col_id = int(np.where(self._grid.trafo.columns == "in_service")[0][0])
+        self._in_service_storage_cold_id = int(np.where(self._grid.storage.columns == "in_service")[0][0])
 
     def _init_private_attrs(self) -> None:
         #  number of elements per substation
@@ -873,7 +874,7 @@ class PandaPowerBackend(Backend):
             deact_and_changed = deactivated & stor_bus.changed
             new_bus_num[deact_and_changed] = cls.storage_to_subid[deact_and_changed]
             # self._grid.storage["in_service"][stor_bus.changed & deactivated] = False
-            self._grid.storage.loc[stor_bus.changed & deactivated, self._in_service_storage_cold_id] = False
+            self._grid.storage.loc[stor_bus.changed & deactivated, "in_service"] = False
             self._grid.storage["bus"] = new_bus_num
             self._topo_vect[cls.storage_pos_topo_vect[stor_bus.changed]] = new_bus_num[stor_bus.changed]
             self._topo_vect[
