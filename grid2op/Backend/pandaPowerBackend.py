@@ -223,6 +223,7 @@ class PandaPowerBackend(Backend):
         self._max_iter : bool = max_iter
         self._in_service_line_col_id = None
         self._in_service_trafo_col_id = None
+        self._in_service_storage_cold_id = None
 
     def _check_for_non_modeled_elements(self):
         """This function check for elements in the pandapower grid that will have no impact on grid2op.
@@ -350,6 +351,7 @@ class PandaPowerBackend(Backend):
         
         self._in_service_line_col_id = int(np.where(self._grid.line.columns == "in_service")[0][0])
         self._in_service_trafo_col_id = int(np.where(self._grid.trafo.columns == "in_service")[0][0])
+        self._in_service_storage_cold_id = int(np.where(self._grid.storage.columns == "in_service")[0][0])
 
         # add the slack bus that is often not modeled as a generator, but i need it for this backend to work
         bus_gen_added = None
@@ -870,7 +872,8 @@ class PandaPowerBackend(Backend):
             deactivated = new_bus_num <= -1
             deact_and_changed = deactivated & stor_bus.changed
             new_bus_num[deact_and_changed] = cls.storage_to_subid[deact_and_changed]
-            self._grid.storage["in_service"][stor_bus.changed & deactivated] = False
+            # self._grid.storage["in_service"][stor_bus.changed & deactivated] = False
+            self._grid.storage.loc[stor_bus.changed & deactivated, self._in_service_storage_cold_id] = False
             self._grid.storage["bus"] = new_bus_num
             self._topo_vect[cls.storage_pos_topo_vect[stor_bus.changed]] = new_bus_num[stor_bus.changed]
             self._topo_vect[
