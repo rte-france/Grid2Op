@@ -21,7 +21,12 @@ import warnings
 import copy
 import numpy as np
 from packaging import version
-
+from typing import Dict, Union
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+    
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
@@ -118,12 +123,13 @@ class GridObjects:
 
         - method 2 (not recommended): all of the above is stored (for the same powerline) in the
           :attr:`GridObjects.line_or_pos_topo_vect` [l_id]. In the example above, we will have:
-          :attr:`GridObjects.line_or_pos_topo_vect` [l_id] = 45 (=42+3:
+          :attr:`GridObjects.line_or_pos_topo_vect` [l_id] = 45 (=42+3):
           42 being the index on which the substation started and 3 being the index of the object in the substation)
         - method 3 (recommended): use any of the function that computes it for you:
           :func:`grid2op.Observation.BaseObservation.state_of` is such an interesting method. The two previous methods
           "method 1" and "method 2" were presented as a way to give detailed and "concrete" example on how the
           modeling of the powergrid work.
+        - method 4 (recommended): use the :func:`GridObjects.topo_vect_element`
 
     For a given powergrid, this object should be initialized once in the :class:`grid2op.Backend.Backend` when
     the first call to :func:`grid2op.Backend.Backend.load_grid` is performed. In particular the following attributes
@@ -2783,7 +2789,14 @@ class GridObjects:
         
     @classmethod
     def process_grid2op_compat(cls):
-        """This is called when the class is initialized, with `init_grid` to broadcast grid2op compatibility feature.
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            This is done at the creation of the environment. Use of this class outside of this particular
+            use is really dangerous and will lead to undefined behaviours. **Do not use this function**.
+            
+        This is called when the class is initialized, with `init_grid` to broadcast grid2op compatibility feature.
         
         This function can be overloaded, but in this case it's best to call this original method too.
 
@@ -2995,7 +3008,8 @@ class GridObjects:
         ]
         return res
 
-    def get_lines_id(self, _sentinel=None, from_=None, to_=None):
+    @classmethod
+    def get_lines_id(cls, _sentinel=None, from_=None, to_=None):
         """
         Returns the list of all the powerlines id in the backend going from `from_` to `to_`
 
@@ -3047,7 +3061,7 @@ class GridObjects:
             )
 
         for i, (ori, ext) in enumerate(
-            zip(self.line_or_to_subid, self.line_ex_to_subid)
+            zip(cls.line_or_to_subid, cls.line_ex_to_subid)
         ):
             if ori == from_ and ext == to_:
                 res.append(i)
@@ -3060,7 +3074,8 @@ class GridObjects:
 
         return res
 
-    def get_generators_id(self, sub_id):
+    @classmethod
+    def get_generators_id(cls, sub_id):
         """
         Returns the list of all generators id in the backend connected to the substation sub_id
 
@@ -3100,7 +3115,7 @@ class GridObjects:
                 'Please modify "sub_id" parameter'
             )
 
-        for i, s_id_gen in enumerate(self.gen_to_subid):
+        for i, s_id_gen in enumerate(cls.gen_to_subid):
             if s_id_gen == sub_id:
                 res.append(i)
 
@@ -3112,7 +3127,8 @@ class GridObjects:
 
         return res
 
-    def get_loads_id(self, sub_id):
+    @classmethod
+    def get_loads_id(cls, sub_id):
         """
         Returns the list of all loads id in the backend connected to the substation sub_id
 
@@ -3151,7 +3167,7 @@ class GridObjects:
                 'Please modify "sub_id" parameter'
             )
 
-        for i, s_id_gen in enumerate(self.load_to_subid):
+        for i, s_id_gen in enumerate(cls.load_to_subid):
             if s_id_gen == sub_id:
                 res.append(i)
 
@@ -3164,7 +3180,8 @@ class GridObjects:
 
         return res
 
-    def get_storages_id(self, sub_id):
+    @classmethod
+    def get_storages_id(cls, sub_id):
         """
         Returns the list of all storages element (battery or damp) id in the grid connected to the substation sub_id
 
@@ -3203,7 +3220,7 @@ class GridObjects:
                 'Please modify "sub_id" parameter'
             )
 
-        for i, s_id_gen in enumerate(self.storage_to_subid):
+        for i, s_id_gen in enumerate(cls.storage_to_subid):
             if s_id_gen == sub_id:
                 res.append(i)
 
@@ -3215,6 +3232,108 @@ class GridObjects:
             )
 
         return res
+
+    @classmethod
+    def topo_vect_element(cls, topo_vect_id: int) -> Dict[Literal["load_id", "gen_id", "line_id", "storage_id", "line_or_id", "line_ex_id", "sub_id"], Union[int, Dict[Literal["or", "ex"], int]]]:
+        """
+        This function aims to be the "opposite" of the
+        `cls.xxx_pos_topo_vect` (**eg** `cls.load_pos_topo_vect`)
+        
+        You give it an id in the topo_vect (*eg* 10) and it gives you 
+        information about which element it is. More precisely, if 
+        `type(env).topo_vect[topo_vect_id]` is:
+        
+        - a **load** then it will return `{'load_id': load_id}`, with `load_id`
+          being such that `type(env).load_pos_topo_vect[load_id] == topo_vect_id`
+        - a **generator** then it will return `{'gen_id': gen_id}`, with `gen_id`
+          being such that `type(env).gen_pos_topo_vect[gen_id] == topo_vect_id`
+        - a **storage** then it will return `{'storage_id': storage_id}`, with `storage_id`
+          being such that `type(env).storage_pos_topo_vect[storage_id] == topo_vect_id`
+        - a **line** (origin side) then it will return `{'line_id': {'or': line_id}, 'line_or_id': line_id}`, 
+          with `line_id`
+          being such that `type(env).line_or_pos_topo_vect[line_id] == topo_vect_id`
+        - a **line** (ext side) then it will return `{'line_id': {'ex': line_id}, 'line_ex_id': line_id}`, 
+          with `line_id`
+          being such that `type(env).line_or_pos_topo_vect[line_id] == topo_vect_id`
+          
+        .. seealso::
+            The attributes :attr:`GridObjects.load_pos_topo_vect`, :attr:`GridObjects.gen_pos_topo_vect`,
+            :attr:`GridObjects.storage_pos_topo_vect`, :attr:`GridObjects.line_or_pos_topo_vect` and
+            :attr:`GridObjects.line_ex_pos_topo_vect` to do the opposite.
+            
+            And you can also have a look at :attr:`GridObjects.grid_objects_types`
+          
+        Parameters
+        ----------
+        topo_vect_id: ``int``
+            The element of the topo vect to which you want more information.
+
+        Returns
+        -------
+        res: ``dict``
+            See details in the description
+
+        Examples
+        --------
+        It can be used like:
+
+        .. code-block:: python
+
+            import numpy as np
+            import grid2op
+            env = grid2op.make("l2rpn_case14_sandbox")
+
+            env_cls = type(env)  # or `type(act)` or` type(obs)` etc. or even `env.topo_vect_element(...)` or `obs.topo_vect_element(...)`
+            for load_id, pos_topo_vect in enumerate(env_cls.load_pos_topo_vect):
+                res = env_cls.topo_vect_element(pos_topo_vect)
+                assert "load_id" in res
+                assert res["load_id"] == load_id
+                
+            for gen_id, pos_topo_vect in enumerate(env_cls.gen_pos_topo_vect):
+                res = env_cls.topo_vect_element(pos_topo_vect)
+                assert "gen_id" in res
+                assert res["gen_id"] == gen_id
+                
+            for sto_id, pos_topo_vect in enumerate(env_cls.storage_pos_topo_vect):
+                res = env_cls.topo_vect_element(pos_topo_vect)
+                assert "storage_id" in res
+                assert res["storage_id"] == sto_id
+                
+            for line_id, pos_topo_vect in enumerate(env_cls.line_or_pos_topo_vect):
+                res = env_cls.topo_vect_element(pos_topo_vect)
+                assert "line_id" in res
+                assert res["line_id"] == {"or": line_id}
+                assert "line_or_id" in res
+                assert res["line_or_id"] == line_id
+                
+            for line_id, pos_topo_vect in enumerate(env_cls.line_ex_pos_topo_vect):
+                res = env_cls.topo_vect_element(pos_topo_vect)
+                assert "line_id" in res
+                assert res["line_id"] == {"ex": line_id}
+                assert "line_ex_id" in res
+                assert res["line_ex_id"] == line_id
+                
+        """
+        elt = cls.grid_objects_types[topo_vect_id]
+        res = {"sub_id": int(elt[cls.SUB_COL])}
+        if elt[cls.LOA_COL] != -1:
+            res["load_id"] = int(elt[cls.LOA_COL])
+            return res
+        if elt[cls.GEN_COL] != -1:
+            res["gen_id"] = int(elt[cls.GEN_COL])
+            return res
+        if elt[cls.STORAGE_COL] != -1:
+            res["storage_id"] = int(elt[cls.STORAGE_COL])
+            return res
+        if elt[cls.LOR_COL] != -1:
+            res["line_or_id"] = int(elt[cls.LOR_COL])
+            res["line_id"] = {"or": int(elt[cls.LOR_COL])}
+            return res
+        if elt[cls.LEX_COL] != -1:
+            res["line_ex_id"] = int(elt[cls.LEX_COL])
+            res["line_id"] = {"ex": int(elt[cls.LEX_COL])}
+            return res
+        raise Grid2OpException(f"Unknown element at position {topo_vect_id}")
 
     @staticmethod
     def _make_cls_dict(cls, res, as_list=True, copy_=True):

@@ -47,12 +47,17 @@ Change Log
   values for certain values of p or q (an AmbiguousAction exception was raised wrongly)
 - [FIXED] a bug in the `_BackendAction`: the "last known topoolgy" was not properly computed
   in some cases (especially at the time where a line was reconnected)
+- [ADDED] a method `gridobj.topo_vect_element()` that does the opposite of `gridobj.xxx_pos_topo_vect`
 - [IMPROVED] handling of "compatibility" grid2op version
   (by calling the relevant things done in the base class 
   in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`
   to check version (instead of comparing strings)
 - [IMPROVED] slightly the code of `check_kirchoff` to make it slightly clearer
 - [IMRPOVED] typing and doc for some of the main classes of the `Action` module
+- [IMPROVED] methods `gridobj.get_lines_id`, `gridobj.get_generators_id`, `gridobj.get_loads_id`
+  `gridobj.get_storages_id` are now class methods and can be used with `type(env).get_lines_id(...)`
+  or `act.get_lines_id(...)` for example.
+
 
 [1.9.8] - 2024-01-26
 ----------------------
