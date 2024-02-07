@@ -1393,7 +1393,7 @@ class Backend(GridObjects, ABC):
                 "Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
                 "incorrect."
             )
-        diff_v_bus = np.zeros((cls.n_sub, 2), dtype=dt_float)
+        diff_v_bus = np.zeros((cls.n_sub, cls.n_busbar_per_sub), dtype=dt_float)
         diff_v_bus[:, :] = v_bus[:, :, 1] - v_bus[:, :, 0]
         return p_subs, q_subs, p_bus, q_bus, diff_v_bus
 

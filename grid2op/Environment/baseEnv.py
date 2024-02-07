@@ -1367,7 +1367,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def reset(self, 
               *,
               seed: Union[int, None] = None,
-              options: Union[Dict[Literal["time serie id"], Union[int, str]], None] = None):
+              options: Union[Dict[Union[str, Literal["time serie id"]], Union[int, str]], None] = None):
         """
         Reset the base environment (set the appropriate variables to correct initialization).
         It is (and must be) overloaded in other :class:`grid2op.Environment`
@@ -3104,7 +3104,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 )
         return detailed_info, has_error
 
-    def step(self, action: BaseAction) -> Tuple[BaseObservation, float, bool, dict]:
+    def step(self, action: BaseAction) -> Tuple[BaseObservation,
+                                                float,
+                                                bool,
+                                                Dict[Literal["disc_lines",
+                                                             "is_illegal",
+                                                             "is_ambiguous",
+                                                             "is_dispatching_illegal",
+                                                             "is_illegal_reco",
+                                                             "reason_alarm_illegal",
+                                                             "reason_alert_illegal",
+                                                             "opponent_attack_line",
+                                                             "opponent_attack_sub",
+                                                             "exception",
+                                                             "detailed_infos_for_cascading_failures",
+                                                             "rewards",
+                                                             "time_series_id"],
+                                                     Any]]:
         """
         Run one timestep of the environment's dynamics. When end of
         episode is reached, you are responsible for calling `reset()`

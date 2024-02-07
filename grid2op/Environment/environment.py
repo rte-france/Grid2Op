@@ -11,6 +11,11 @@ import warnings
 import numpy as np
 import re
 from typing import Union, Any, Dict
+try:
+    # Literal introduced in python 3.9
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 import grid2op
 from grid2op.Opponent import OpponentSpace
@@ -901,7 +906,7 @@ class Environment(BaseEnv):
     def reset(self, 
               *,
               seed: Union[int, None] = None,
-              options: Union[Dict[str, Any], None] = None) -> BaseObservation:
+              options: Union[Dict[Union[str, Literal["time serie id"]], Union[int, str]], None] = None) -> BaseObservation:
         """
         Reset the environment to a clean state.
         It will reload the next chronics if any. And reset the grid to a clean state.

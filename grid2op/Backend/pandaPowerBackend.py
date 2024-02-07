@@ -875,8 +875,9 @@ class PandaPowerBackend(Backend):
             new_bus_num[deact_and_changed] = cls.storage_to_subid[deact_and_changed]
             # self._grid.storage["in_service"][stor_bus.changed & deactivated] = False
             self._grid.storage.loc[stor_bus.changed & deactivated, "in_service"] = False
+            self._grid.storage.loc[stor_bus.changed & ~deactivated, "in_service"] = True
             self._grid.storage["bus"] = new_bus_num
-            self._topo_vect[cls.storage_pos_topo_vect[stor_bus.changed]] = new_bus_num[stor_bus.changed]
+            self._topo_vect[cls.storage_pos_topo_vect[stor_bus.changed]] = new_bus_id
             self._topo_vect[
                 cls.storage_pos_topo_vect[deact_and_changed]
             ] = -1
@@ -1391,70 +1392,29 @@ class PandaPowerBackend(Backend):
         return self._topo_vect
 
     def _get_topo_vect(self):
-        res = np.full(self.dim_topo, fill_value=np.iinfo(dt_int).max, dtype=dt_int)
+        cls = type(self)
+        res = np.full(cls.dim_topo, fill_value=np.iinfo(dt_int).max, dtype=dt_int)
 
+        # lines / trafo
         line_status = self.get_line_status()
-
-        i = 0
-        for row in self._grid.line[["from_bus", "to_bus"]].values:
-            bus_or_id = row[0]
-            bus_ex_id = row[1]
-            if line_status[i]:
-                res[self.line_or_pos_topo_vect[i]] = (
-                    1 if bus_or_id == self.line_or_to_subid[i] else 2
-                )
-                res[self.line_ex_pos_topo_vect[i]] = (
-                    1 if bus_ex_id == self.line_ex_to_subid[i] else 2
-                )
-            else:
-                res[self.line_or_pos_topo_vect[i]] = -1
-                res[self.line_ex_pos_topo_vect[i]] = -1
-            i += 1
-
-        nb = self._number_true_line
-        i = 0
-        for row in self._grid.trafo[["hv_bus", "lv_bus"]].values:
-            bus_or_id = row[0]
-            bus_ex_id = row[1]
-
-            j = i + nb
-            if line_status[j]:
-                res[self.line_or_pos_topo_vect[j]] = (
-                    1 if bus_or_id == self.line_or_to_subid[j] else 2
-                )
-                res[self.line_ex_pos_topo_vect[j]] = (
-                    1 if bus_ex_id == self.line_ex_to_subid[j] else 2
-                )
-            else:
-                res[self.line_or_pos_topo_vect[j]] = -1
-                res[self.line_ex_pos_topo_vect[j]] = -1
-            i += 1
-
-        i = 0
-        for bus_id in self._grid.gen["bus"].values:
-            res[self.gen_pos_topo_vect[i]] = 1 if bus_id == self.gen_to_subid[i] else 2
-            i += 1
-
-        i = 0
-        for bus_id in self._grid.load["bus"].values:
-            res[self.load_pos_topo_vect[i]] = (
-                1 if bus_id == self.load_to_subid[i] else 2
-            )
-            i += 1
-
-        if self.n_storage:
-            # storage can be deactivated by the environment for backward compatibility
-            i = 0
-            for bus_id in self._grid.storage["bus"].values:
-                status = self._grid.storage["in_service"].values[i]
-                if status:
-                    res[self.storage_pos_topo_vect[i]] = (
-                        1 if bus_id == self.storage_to_subid[i] else 2
-                    )
-                else:
-                    res[self.storage_pos_topo_vect[i]] = -1
-                i += 1
-
+        glob_bus_or = np.concatenate((self._grid.line["from_bus"].values, self._grid.trafo["hv_bus"].values))
+        res[cls.line_or_pos_topo_vect] = cls.global_bus_to_local(glob_bus_or, cls.line_or_to_subid)
+        res[cls.line_or_pos_topo_vect[~line_status]] = -1
+        glob_bus_ex = np.concatenate((self._grid.line["to_bus"].values, self._grid.trafo["lv_bus"].values))
+        res[cls.line_ex_pos_topo_vect] = cls.global_bus_to_local(glob_bus_ex, cls.line_ex_to_subid)
+        res[cls.line_ex_pos_topo_vect[~line_status]] = -1
+        # load, gen
+        load_status = self._grid.load["in_service"].values
+        res[cls.load_pos_topo_vect] = cls.global_bus_to_local(self._grid.load["bus"].values, cls.load_to_subid)
+        res[cls.load_pos_topo_vect[~load_status]] = -1
+        gen_status = self._grid.gen["in_service"].values
+        res[cls.gen_pos_topo_vect] = cls.global_bus_to_local(self._grid.gen["bus"].values, cls.gen_to_subid)
+        res[cls.gen_pos_topo_vect[~gen_status]] = -1
+        # storage
+        if cls.n_storage:
+            storage_status = self._grid.storage["in_service"].values
+            res[cls.storage_pos_topo_vect] = cls.global_bus_to_local(self._grid.storage["bus"].values, cls.storage_to_subid)
+            res[cls.storage_pos_topo_vect[~storage_status]] = -1
         return res
 
     def _gens_info(self):

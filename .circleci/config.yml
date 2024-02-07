@@ -151,8 +151,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.24,<1.25" "pandas<2.2" "scipy<1.12" numba
-                   python -m pip install -U .[test]
+                   python -m pip install -U "numpy>=1.24,<1.25" "pandas<2.2" "scipy<1.12" numba .[test]
             - run:
                 command: |
                    source venv_test/bin/activate

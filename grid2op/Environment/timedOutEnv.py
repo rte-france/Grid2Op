@@ -9,6 +9,12 @@
 import time
 from math import floor
 from typing import Any, Dict, Tuple, Union, List
+try:
+    # Literal introduced in python 3.9
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+    
 from grid2op.Environment.environment import Environment
 from grid2op.Action import BaseAction
 from grid2op.Observation import BaseObservation
@@ -255,7 +261,7 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
     def reset(self, 
               *,
               seed: Union[int, None] = None,
-              options: Union[Dict[str, Any], None] = None) -> BaseObservation:
+              options: Union[Dict[Union[str, Literal["time serie id"]], Union[int, str]], None] = None) -> BaseObservation:
         """Reset the environment.
 
         .. seealso::

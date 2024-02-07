@@ -93,7 +93,12 @@ class TestMultiDiscreteGymnasiumActSpace(_AuxTestMultiDiscreteGymActSpace, Auxil
     pass
 
 class TestDiscreteGymnasiumActSpace(_AuxTestDiscreteGymActSpace, AuxilliaryForTestGymnasium, unittest.TestCase):
-    pass
+    def test_class_different_from_multi_discrete(self):
+        from grid2op.gym_compat import (DiscreteActSpaceGymnasium,
+                                        MultiDiscreteActSpaceGymnasium)
+        assert DiscreteActSpaceGymnasium is not MultiDiscreteActSpaceGymnasium
+        assert DiscreteActSpaceGymnasium.__doc__ != MultiDiscreteActSpaceGymnasium.__doc__
+        assert DiscreteActSpaceGymnasium.__name__ != MultiDiscreteActSpaceGymnasium.__name__
 
 class TestAllGymnasiumActSpaceWithAlarm(_AuxTestAllGymActSpaceWithAlarm, AuxilliaryForTestGymnasium, unittest.TestCase):
     pass

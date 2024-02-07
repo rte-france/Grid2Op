@@ -1171,6 +1171,8 @@ class TestPandapowerBackend_3busbars(unittest.TestCase):
                     assert not self.env.backend._grid.line.iloc[line_or_id]["in_service"]
                 else:
                     assert not self.env.backend._grid.line.iloc[line_ex_id]["in_service"]
+            topo_vect = self.env.backend._get_topo_vect()
+            assert topo_vect[cls.load_pos_topo_vect[el_id]] == new_bus, f"{topo_vect[cls.load_pos_topo_vect[el_id]]} vs {new_bus}"
         
     def test_move_gen(self):
         cls = type(self.env)            
@@ -1201,6 +1203,8 @@ class TestPandapowerBackend_3busbars(unittest.TestCase):
                     assert not self.env.backend._grid.line.iloc[line_or_id]["in_service"]
                 else:
                     assert not self.env.backend._grid.line.iloc[line_ex_id]["in_service"]
+            topo_vect = self.env.backend._get_topo_vect()
+            assert topo_vect[cls.gen_pos_topo_vect[el_id]] == new_bus, f"{topo_vect[cls.gen_pos_topo_vect[el_id]]} vs {new_bus}"
         
     def test_move_storage(self):
         cls = type(self.env)            
@@ -1220,17 +1224,20 @@ class TestPandapowerBackend_3busbars(unittest.TestCase):
             global_bus = sub_id + (new_bus -1) * cls.n_sub 
             if new_bus >= 1:
                 assert self.env.backend._grid.storage.iloc[el_id]["bus"] == global_bus
+                assert self.env.backend._grid.storage.iloc[el_id]["in_service"], f"storage should not be deactivated"
                 if line_or_id is not None:
                     assert self.env.backend._grid.line.iloc[line_or_id]["from_bus"] == global_bus
                 else:
                     assert self.env.backend._grid.line.iloc[line_ex_id]["to_bus"] == global_bus
                 assert self.env.backend._grid.bus.loc[global_bus]["in_service"]
             else:
-                assert not self.env.backend._grid.storage.iloc[el_id]["in_service"]
+                assert not self.env.backend._grid.storage.iloc[el_id]["in_service"], f"storage should be deactivated"
                 if line_or_id is not None:
                     assert not self.env.backend._grid.line.iloc[line_or_id]["in_service"]
                 else:
                     assert not self.env.backend._grid.line.iloc[line_ex_id]["in_service"]
+            topo_vect = self.env.backend._get_topo_vect()
+            assert topo_vect[cls.storage_pos_topo_vect[el_id]] == new_bus, f"{topo_vect[cls.storage_pos_topo_vect[el_id]]} vs {new_bus}"
     
     def test_move_line_or(self):
         cls = type(self.env)            
@@ -1246,6 +1253,9 @@ class TestPandapowerBackend_3busbars(unittest.TestCase):
                 assert self.env.backend._grid.bus.loc[global_bus]["in_service"]
             else:
                 assert not self.env.backend._grid.line.iloc[line_id]["in_service"]
+            self.env.backend.line_status[:] = self.env.backend._get_line_status()  # otherwise it's not updated
+            topo_vect = self.env.backend._get_topo_vect()
+            assert topo_vect[cls.line_or_pos_topo_vect[line_id]] == new_bus, f"{topo_vect[cls.line_or_pos_topo_vect[line_id]]} vs {new_bus}"
                 
     def test_move_line_ex(self):
         cls = type(self.env)            
@@ -1261,6 +1271,9 @@ class TestPandapowerBackend_3busbars(unittest.TestCase):
                 assert self.env.backend._grid.bus.loc[global_bus]["in_service"]
             else:
                 assert not self.env.backend._grid.line.iloc[line_id]["in_service"]
+            self.env.backend.line_status[:] = self.env.backend._get_line_status()  # otherwise it's not updated
+            topo_vect = self.env.backend._get_topo_vect()
+            assert topo_vect[cls.line_ex_pos_topo_vect[line_id]] == new_bus, f"{topo_vect[cls.line_ex_pos_topo_vect[line_id]]} vs {new_bus}"
             
     def test_move_shunt(self):
         cls = type(self.env)            
@@ -1291,18 +1304,150 @@ class TestPandapowerBackend_3busbars(unittest.TestCase):
                     assert not self.env.backend._grid.line.iloc[line_or_id]["in_service"]
                 else:
                     assert not self.env.backend._grid.line.iloc[line_ex_id]["in_service"]
+    
+    def test_check_kirchoff(self):
+        cls = type(self.env)            
+        res = self._aux_find_sub(self.env, cls.LOA_COL)
+        if res is None:
+            raise RuntimeError("Cannot carry the test 'test_move_load' as "
+                               "there are no suitable subastation in your grid.")
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            if new_bus <= -1:
+                continue
+            if line_or_id is not None:
+                act = self.env.action_space({"set_bus": {"loads_id": [(el_id, new_bus)], "lines_or_id": [(line_or_id, new_bus)]}})
+            else:
+                act = self.env.action_space({"set_bus": {"loads_id": [(el_id, new_bus)], "lines_ex_id": [(line_ex_id, new_bus)]}})
+            bk_act = self.env._backend_action_class()
+            bk_act += act
+            self.env.backend.apply_action(bk_act)
+            conv, maybe_exc = self.env.backend.runpf()
+            assert conv, f"error : {maybe_exc}"
+            p_subs, q_subs, p_bus, q_bus, diff_v_bus = self.env.backend.check_kirchoff()
+            # assert laws are met
+            assert np.abs(p_subs).max() <= 1e-5, f"error for busbar {new_bus}: {np.abs(p_subs).max():.2e}"
+            assert np.abs(q_subs).max() <= 1e-5, f"error for busbar {new_bus}: {np.abs(q_subs).max():.2e}"
+            assert np.abs(p_bus).max() <= 1e-5, f"error for busbar {new_bus}: {np.abs(p_bus).max():.2e}"
+            assert np.abs(q_bus).max() <= 1e-5, f"error for busbar {new_bus}: {np.abs(q_bus).max():.2e}"
+            assert np.abs(diff_v_bus).max() <= 1e-5, f"error for busbar {new_bus}: {np.abs(diff_v_bus).max():.2e}"
 
 
 class TestPandapowerBackend_1busbar(TestPandapowerBackend_3busbars):
     def get_nb_bus(self):
-        return 3        
+        return 1
         
         
 class TestObservation(unittest.TestCase):
+    def get_nb_bus(self):
+        return 3
+    
+    def get_env_nm(self):
+        return "educ_case14_storage"
+    
+    def get_reset_kwargs(self) -> dict:
+        return dict(seed=0, options={"time serie id": 0})
+    
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.get_env_nm(),
+                                    backend=PandaPowerBackend(),
+                                    action_class=CompleteAction,
+                                    test=True,
+                                    n_busbar=self.get_nb_bus(),
+                                    _add_to_name=type(self).__name__ + f'_{self.get_nb_bus()}')
+        self.list_loc_bus = list(range(1, type(self.env).n_busbar_per_sub + 1))
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_get_simulator(self):
+        obs = self.env.reset(**self.get_reset_kwargs())
+        sim = obs.get_simulator()
+        assert type(sim.backend).n_busbar_per_sub == self.get_nb_bus()
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        if res is None:
+            raise RuntimeError(f"Cannot carry the test 'test_get_simulator' as "
+                               "there are no suitable subastation in your grid.")
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            if line_or_id is not None:
+                act = self.env.action_space({"set_bus": {"loads_id": [(el_id, new_bus)], "lines_or_id": [(line_or_id, new_bus)]}})
+            else:
+                act = self.env.action_space({"set_bus": {"loads_id": [(el_id, new_bus)], "lines_ex_id": [(line_ex_id, new_bus)]}})
+            sim2 = sim.predict(act)
+            global_bus = sub_id + (new_bus -1) * type(self.env).n_sub 
+            assert sim2.backend._grid.load["bus"].iloc[el_id] == global_bus
+            
+    def _aux_build_act(self, res, new_bus, el_keys):
+        """res: output of TestPandapowerBackend_3busbars._aux_find_sub"""
+        if res is None:
+            raise RuntimeError(f"Cannot carry the test as "
+                               "there are no suitable subastation in your grid.")
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        if line_or_id is not None:
+            act = self.env.action_space({"set_bus": {el_keys: [(el_id, new_bus)], "lines_or_id": [(line_or_id, new_bus)]}})
+        else:
+            act = self.env.action_space({"set_bus": {el_keys: [(el_id, new_bus)], "lines_ex_id": [(line_ex_id, new_bus)]}})
+        return act
+        
+    def test_get_forecasted_env(self):
+        obs = self.env.reset(**self.get_reset_kwargs())
+        for_env = obs.get_forecast_env()
+        assert type(for_env).n_busbar_per_sub == self.get_nb_bus()
+        for_obs = for_env.reset()
+        assert type(for_obs).n_busbar_per_sub == self.get_nb_bus()
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            for_env = obs.get_forecast_env()
+            act = self._aux_build_act(res, new_bus, "loads_id")
+            sim_obs, sim_r, sim_d, sim_info = for_env.step(act)
+            assert not sim_d, f"{sim_info['exception']}"
+            assert sim_obs.load_bus[el_id] == new_bus, f"{sim_obs.load_bus[el_id]} vs {new_bus}"
+    
+    def test_add(self):
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            act = self._aux_build_act(res, new_bus, "loads_id")
+            obs_pus_act = obs + act
+            assert obs_pus_act.load_bus[el_id] == new_bus, f"{obs_pus_act.load_bus[el_id]} vs {new_bus}"
+            
+    def test_simulate(self):
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            act = self._aux_build_act(res, new_bus, "loads_id")
+            sim_obs, sim_r, sim_d, sim_info = obs.simulate(act)
+            assert not sim_d, f"{sim_info['exception']}"
+            assert sim_obs.load_bus[el_id] == new_bus, f"{sim_obs.load_bus[el_id]} vs {new_bus}"
+    
     def test_action_space_get_back_to_ref_state(self):
         """test the :func:`grid2op.Action.SerializableActionSpace.get_back_to_ref_state` 
         when 3 busbars which could not be tested without observation"""
         pass
+    
+    def test_connectivity_matrix(self):
+        pass
+    
+    def test_bus_connectivity_matrix(self):
+        pass
+    
+    def test_flow_bus_matrix(self):
+        pass
+    
+    def test_get_energy_graph(self):
+        pass
+    
+    def test_get_elements_graph(self):
+        pass
+        
 
 
 class TestEnv(unittest.TestCase):

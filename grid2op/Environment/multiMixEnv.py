@@ -11,6 +11,11 @@ import warnings
 import numpy as np
 import copy
 from typing import Any, Dict, Tuple, Union, List
+try:
+    # Literal introduced in python 3.9
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject, DEFAULT_N_BUSBAR_PER_SUB
@@ -370,7 +375,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
               *,
               seed: Union[int, None] = None,
               random=False,
-              options: Union[Dict[str, Any], None] = None) -> BaseObservation:
+              options: Union[Dict[Union[str, Literal["time serie id"]], Union[int, str]], None] = None) -> BaseObservation:
         
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
