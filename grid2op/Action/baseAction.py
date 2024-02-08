@@ -10,6 +10,11 @@ import copy
 import numpy as np
 import warnings
 from typing import Tuple, Dict, Literal, Any
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+    
 from packaging import version
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
@@ -74,9 +79,11 @@ class BaseAction(GridObjects):
       interpretation:
 
         - 0 -> don't change
+        - -1 -> disconnect the object.
         - 1 -> connect to bus 1
         - 2 -> connect to bus 2
-        - -1 -> disconnect the object.
+        - 3 -> connect to bus 3 (added in version 1.9.9)
+        - etc.  (added in version 1.9.9)
 
     - the fifth element changes the buses to which the object is connected. It's a boolean vector interpreted as:
 
@@ -757,7 +764,7 @@ class BaseAction(GridObjects):
             The indexes of the areas where the agent has raised an alarm.
 
         """
-        return np.where(self._raise_alarm)[0]
+        return np.nonzero(self._raise_alarm)[0]
 
     def alert_raised(self) -> np.ndarray:
         """
@@ -771,8 +778,38 @@ class BaseAction(GridObjects):
             The indexes of the lines where the agent has raised an alert.
 
         """
-        return np.where(self._raise_alert)[0]
+        return np.nonzero(self._raise_alert)[0]
 
+    @classmethod
+    def _aux_process_old_compat(cls):
+        # this is really important, otherwise things from grid2op base types will be affected
+        cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
+        cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+
+        # deactivate storage
+        cls.set_no_storage()
+        if "set_storage" in cls.authorized_keys:
+            cls.authorized_keys.remove("set_storage")
+        if "_storage_power" in cls.attr_list_vect:
+            cls.attr_list_vect.remove("_storage_power")
+            cls.attr_list_set = set(cls.attr_list_vect)
+
+        # remove the curtailment
+        if "curtail" in cls.authorized_keys:
+            cls.authorized_keys.remove("curtail")
+        if "_curtail" in cls.attr_list_vect:
+            cls.attr_list_vect.remove("_curtail")
+
+    @classmethod
+    def _aux_process_n_busbar_per_sub(cls):
+        cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
+        cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+        
+        if "change_bus" in cls.authorized_keys:
+            cls.authorized_keys.remove("change_bus")
+        if "_change_bus_vect" in cls.attr_list_vect:
+            cls.attr_list_vect.remove("_change_bus_vect")
+                
     @classmethod
     def process_grid2op_compat(cls):
         super().process_grid2op_compat()
@@ -780,25 +817,8 @@ class BaseAction(GridObjects):
         
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             # oldest version: no storage and no curtailment available
-
-            # this is really important, otherwise things from grid2op base types will be affected
-            cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
-            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
-
-            # deactivate storage
-            cls.set_no_storage()
-            if "set_storage" in cls.authorized_keys:
-                cls.authorized_keys.remove("set_storage")
-            if "_storage_power" in cls.attr_list_vect:
-                cls.attr_list_vect.remove("_storage_power")
-                cls.attr_list_set = set(cls.attr_list_vect)
-
-            # remove the curtailment
-            if "curtail" in cls.authorized_keys:
-                cls.authorized_keys.remove("curtail")
-            if "_curtail" in cls.attr_list_vect:
-                cls.attr_list_vect.remove("_curtail")
-
+            cls._aux_process_old_compat
+            
         if glop_ver < version.parse("1.6.0"):
             # this feature did not exist before.
             cls.dim_alarms = 0
@@ -813,13 +833,7 @@ class BaseAction(GridObjects):
             # or if there are only one busbar (cannot change anything)
             # if there are only one busbar, the "set_bus" action can still be used
             # to disconnect the element, this is why it's not removed
-            cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
-            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
-            
-            if "change_bus" in cls.authorized_keys:
-                cls.authorized_keys.remove("change_bus")
-            if "_change_bus_vect" in cls.attr_list_vect:
-                cls.attr_list_vect.remove("_change_bus_vect")
+            cls._aux_process_n_busbar_per_sub()
                 
         cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
         cls.attr_list_set = set(cls.attr_list_vect)
@@ -1506,8 +1520,8 @@ class BaseAction(GridObjects):
                 )
         else:
             getattr(self, attr_name)[:] = new_value
-
-    def __iadd__(self, other):
+            
+    def __iadd__(self, other: Self):
         """
         Add an action to this one.
 
@@ -1551,6 +1565,7 @@ class BaseAction(GridObjects):
                     val = other._dict_inj[el]
                     ok_ind = np.isfinite(val)
                     self._dict_inj[el][ok_ind] = val[ok_ind]
+                    
         # warning if the action cannot be added
         for el in other._dict_inj:
             if not el in self.attr_list_set:
@@ -2560,7 +2575,7 @@ class BaseAction(GridObjects):
                     "environment. Please set up the proper costs for generator"
                 )
 
-            if (self._redispatch[~cls.gen_redispatchable] != 0.0).any():
+            if (np.abs(self._redispatch[~cls.gen_redispatchable]) >= 1e-7).any():
                 raise InvalidRedispatching(
                     "Trying to apply a redispatching action on a non redispatchable generator"
                 )
@@ -2655,10 +2670,10 @@ class BaseAction(GridObjects):
         # if i disconnected of a line, but i modify also the bus where it's connected
         if self._modif_set_bus or self._modif_change_bus:
             idx = self._set_line_status == -1
-            id_disc = np.where(idx)[0]
+            id_disc = np.nonzero(idx)[0]
             
             idx2 = self._set_line_status == 1
-            id_reco = np.where(idx2)[0]
+            id_reco = np.nonzero(idx2)[0]
 
         if self._modif_set_bus:
             if "set_bus" not in cls.authorized_keys:
@@ -2793,13 +2808,13 @@ class BaseAction(GridObjects):
                     "units affected"
                 )
             if (self._storage_power < -cls.storage_max_p_prod).any():
-                where_bug = np.where(self._storage_power < -cls.storage_max_p_prod)[0]
+                where_bug = np.nonzero(self._storage_power < -cls.storage_max_p_prod)[0]
                 raise InvalidStorage(
                     f"you asked a storage unit to absorb more than what it can: "
                     f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}]."
                 )
             if (self._storage_power > cls.storage_max_p_absorb).any():
-                where_bug = np.where(self._storage_power > cls.storage_max_p_absorb)[0]
+                where_bug = np.nonzero(self._storage_power > cls.storage_max_p_absorb)[0]
                 raise InvalidStorage(
                     f"you asked a storage unit to produce more than what it can: "
                     f"self._storage_power[{where_bug}] > self.storage_max_p_absorb[{where_bug}]."
@@ -2834,14 +2849,14 @@ class BaseAction(GridObjects):
                 )
 
             if ((self._curtail < 0.0) & (self._curtail != -1.0)).any():
-                where_bug = np.where((self._curtail < 0.0) & (self._curtail != -1.0))[0]
+                where_bug = np.nonzero((self._curtail < 0.0) & (self._curtail != -1.0))[0]
                 raise InvalidCurtailment(
                     f"you asked to perform a negative curtailment: "
                     f"self._curtail[{where_bug}] < 0. "
                     f"Curtailment should be a real number between 0.0 and 1.0"
                 )
             if (self._curtail > 1.0).any():
-                where_bug = np.where(self._curtail > 1.0)[0]
+                where_bug = np.nonzero(self._curtail > 1.0)[0]
                 raise InvalidCurtailment(
                     f"you asked a storage unit to produce more than what it can: "
                     f"self._curtail[{where_bug}] > 1. "
@@ -3060,7 +3075,7 @@ class BaseAction(GridObjects):
         if my_cls.dim_alarms > 0:
             if self._modif_alarm:
                 li_area = np.array(my_cls.alarms_area_names)[
-                    np.where(self._raise_alarm)[0]
+                    np.nonzero(self._raise_alarm)[0]
                 ]
                 if len(li_area) == 1:
                     area_str = ": " + li_area[0]
@@ -3072,7 +3087,7 @@ class BaseAction(GridObjects):
         
         if my_cls.dim_alerts > 0:
             if self._modif_alert:
-                i_alert = np.where(self._raise_alert)[0]
+                i_alert = np.nonzero(self._raise_alert)[0]
                 li_line = np.array(my_cls.alertable_line_names)[i_alert]
                 if len(li_line) == 1:
                     line_str = f": {i_alert[0]} (on line {li_line[0]})"
@@ -3118,7 +3133,7 @@ class BaseAction(GridObjects):
             force_line_status["reconnections"]["count"] = (
                 self._set_line_status == 1
             ).sum()
-            force_line_status["reconnections"]["powerlines"] = np.where(
+            force_line_status["reconnections"]["powerlines"] = np.nonzero(
                 self._set_line_status == 1
             )[0]
 
@@ -3128,7 +3143,7 @@ class BaseAction(GridObjects):
             force_line_status["disconnections"]["count"] = (
                 self._set_line_status == -1
             ).sum()
-            force_line_status["disconnections"]["powerlines"] = np.where(
+            force_line_status["disconnections"]["powerlines"] = np.nonzero(
                 self._set_line_status == -1
             )[0]
 
@@ -3138,7 +3153,7 @@ class BaseAction(GridObjects):
             switch_line_status["changed"] = True
             has_impact = True
             switch_line_status["count"] = self._switch_line_status.sum()
-            switch_line_status["powerlines"] = np.where(self._switch_line_status)[0]
+            switch_line_status["powerlines"] = np.nonzero(self._switch_line_status)[0]
 
         topology = {
             "changed": False,
@@ -3333,10 +3348,10 @@ class BaseAction(GridObjects):
             res["set_line_status"]["nb_disconnected"] = (
                 self._set_line_status == -1
             ).sum()
-            res["set_line_status"]["connected_id"] = np.where(
+            res["set_line_status"]["connected_id"] = np.nonzero(
                 self._set_line_status == 1
             )[0]
-            res["set_line_status"]["disconnected_id"] = np.where(
+            res["set_line_status"]["disconnected_id"] = np.whnonzeroere(
                 self._set_line_status == -1
             )[0]
 
@@ -3344,7 +3359,7 @@ class BaseAction(GridObjects):
         if self._switch_line_status.sum():
             res["change_line_status"] = {}
             res["change_line_status"]["nb_changed"] = self._switch_line_status.sum()
-            res["change_line_status"]["changed_id"] = np.where(
+            res["change_line_status"]["changed_id"] = np.nonzero(
                 self._switch_line_status
             )[0]
 
@@ -3394,11 +3409,11 @@ class BaseAction(GridObjects):
             res["set_bus_vect"]["modif_subs_id"] = sorted(all_subs)
 
         if self._hazards.any():
-            res["hazards"] = np.where(self._hazards)[0]
+            res["hazards"] = np.nonzero(self._hazards)[0]
             res["nb_hazards"] = self._hazards.sum()
 
         if self._maintenance.any():
-            res["maintenance"] = np.where(self._maintenance)[0]
+            res["maintenance"] = np.nonzero(self._maintenance)[0]
             res["nb_maintenance"] = self._maintenance.sum()
 
         if (self._redispatch != 0.0).any():
@@ -3950,7 +3965,7 @@ class BaseAction(GridObjects):
                     )
                 el_id, new_bus = el
                 if isinstance(el_id, str) and name_els is not None:
-                    tmp = np.where(name_els == el_id)[0]
+                    tmp = np.nonzero(name_els == el_id)[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {el_id}")
                     el_id = tmp[0]
@@ -3968,7 +3983,7 @@ class BaseAction(GridObjects):
             # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
             for key, new_bus in values.items():
                 if isinstance(key, str) and name_els is not None:
-                    tmp = np.where(name_els == key)[0]
+                    tmp = np.nonzero(name_els == key)[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {key}")
                     key = tmp[0]
@@ -4657,7 +4672,7 @@ class BaseAction(GridObjects):
             # (note: i cannot convert to numpy array other I could mix types...)
             for el_id_or_name in values:
                 if isinstance(el_id_or_name, str):
-                    tmp = np.where(name_els == el_id_or_name)[0]
+                    tmp = np.nonzero(name_els == el_id_or_name)[0]
                     if len(tmp) == 0:
                         raise IllegalAction(
                             f'No known {name_el} with name "{el_id_or_name}"'
@@ -5348,7 +5363,7 @@ class BaseAction(GridObjects):
                     )
                 el_id, new_val = el
                 if isinstance(el_id, str):
-                    tmp = np.where(name_els == el_id)[0]
+                    tmp = np.nonzero(name_els == el_id)[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {el_id}")
                     el_id = tmp[0]
@@ -5364,7 +5379,7 @@ class BaseAction(GridObjects):
             # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
             for key, new_val in values.items():
                 if isinstance(key, str):
-                    tmp = np.where(name_els == key)[0]
+                    tmp = np.nonzero(name_els == key)[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {key}")
                     key = tmp[0]
@@ -5861,7 +5876,7 @@ class BaseAction(GridObjects):
 
     def _aux_sub_when_dict_get_id(self, sub_id):
         if isinstance(sub_id, str):
-            tmp = np.where(self.name_sub == sub_id)[0]
+            tmp = np.nonzero(self.name_sub == sub_id)[0]
             if len(tmp) == 0:
                 raise IllegalAction(f"No substation named {sub_id}")
             sub_id = tmp[0]
@@ -6173,7 +6188,7 @@ class BaseAction(GridObjects):
             tmp._switch_line_status = copy.deepcopy(self._switch_line_status)
             res["change_line_status"] = [tmp]
         else:
-            lines_changed = np.where(self._switch_line_status)[0]
+            lines_changed = np.nonzero(self._switch_line_status)[0]
             res["change_line_status"] = []
             for l_id in lines_changed:
                 tmp = cls()
@@ -6205,7 +6220,7 @@ class BaseAction(GridObjects):
             tmp._set_line_status = 1 * self._set_line_status
             res["set_line_status"] = [tmp]
         else:
-            lines_changed = np.where(self._set_line_status != 0)[0]
+            lines_changed = np.nonzero(self._set_line_status != 0)[0]
             res["set_line_status"] = []
             for l_id in lines_changed:
                 tmp = cls()
@@ -6220,7 +6235,7 @@ class BaseAction(GridObjects):
             tmp._redispatch = 1. * self._redispatch
             res["redispatch"] = [tmp]
         else:
-            gen_changed = np.where(self._redispatch != 0.)[0]
+            gen_changed = np.whernonzeroe(np.abs(self._redispatch) >= 1e-7)[0]
             res["redispatch"] = []
             for g_id in gen_changed:
                 tmp = cls()
@@ -6235,7 +6250,7 @@ class BaseAction(GridObjects):
             tmp._storage_power = 1. * self._storage_power
             res["set_storage"] = [tmp]
         else:
-            sto_changed = np.where(self._storage_power != 0.)[0]
+            sto_changed = np.nonzero(np.abs(self._storage_power) >= 1e-7)[0]
             res["set_storage"] = []
             for s_id in sto_changed:
                 tmp = cls()
@@ -6250,7 +6265,7 @@ class BaseAction(GridObjects):
             tmp._curtail = 1. * self._curtail
             res["curtail"] = [tmp]
         else:
-            gen_changed = np.where(self._curtail != -1.)[0]
+            gen_changed = np.nonzero(np.abs(self._curtail + 1.) >= 1e-7)[0]  #self._curtail != -1
             res["curtail"] = []
             for g_id in gen_changed:
                 tmp = cls()

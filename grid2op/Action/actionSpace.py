@@ -8,12 +8,7 @@
 
 import warnings
 import copy
-from typing import Dict, List, Any
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
-    
+from typing import Dict, List, Any, Literal
 
 from grid2op.Action.baseAction import BaseAction
 from grid2op.Action.serializableActionSpace import SerializableActionSpace
@@ -94,7 +89,7 @@ class ActionSpace(SerializableActionSpace):
         check_legal: bool = False,
         env: "grid2op.Environment.BaseEnv" = None,
         *,
-        injection=None,  # TODO n_busbar_per_sub
+        injection=None,
     ) -> BaseAction:
         """
         This utility allows you to build a valid action, with the proper sizes if you provide it with a valid

@@ -377,6 +377,58 @@ class _BackendAction(GridObjects):
     def set_redispatch(self, new_redispatching):
         self.prod_p.change_val(new_redispatching)
 
+    def _aux_iadd_inj(self, dict_injection):
+        if "load_p" in dict_injection:
+            tmp = dict_injection["load_p"]
+            self.load_p.set_val(tmp)
+        if "load_q" in dict_injection:
+            tmp = dict_injection["load_q"]
+            self.load_q.set_val(tmp)
+        if "prod_p" in dict_injection:
+            tmp = dict_injection["prod_p"]
+            self.prod_p.set_val(tmp)
+        if "prod_v" in dict_injection:
+            tmp = dict_injection["prod_v"]
+            self.prod_v.set_val(tmp)
+    
+    def _aux_iadd_shunt(self, other):
+        shunts = {}
+        if type(other).shunts_data_available:
+            shunts["shunt_p"] = other.shunt_p
+            shunts["shunt_q"] = other.shunt_q
+            shunts["shunt_bus"] = other.shunt_bus
+
+        arr_ = shunts["shunt_p"]
+        self.shunt_p.set_val(arr_)
+        arr_ = shunts["shunt_q"]
+        self.shunt_q.set_val(arr_)
+        arr_ = shunts["shunt_bus"]
+        self.shunt_bus.set_val(arr_)
+        self.current_shunt_bus.values[self.shunt_bus.changed] = self.shunt_bus.values[self.shunt_bus.changed]
+
+    def _aux_iadd_reconcile_disco_reco(self):
+        disco_or = (self._status_or_before == -1) | (self._status_or == -1)
+        disco_ex = (self._status_ex_before == -1) | (self._status_ex == -1)
+        disco_now = (
+            disco_or | disco_ex
+        )  # a powerline is disconnected if at least one of its extremity is
+        # added
+        reco_or = (self._status_or_before == -1) & (self._status_or >= 1)
+        reco_ex = (self._status_or_before == -1) & (self._status_ex >= 1)
+        reco_now = reco_or | reco_ex
+        # Set nothing
+        set_now = np.zeros_like(self._status_or)
+        # Force some disconnections
+        set_now[disco_now] = -1
+        set_now[reco_now] = 1
+
+        self.current_topo.set_status(
+            set_now,
+            self.line_or_pos_topo_vect,
+            self.line_ex_pos_topo_vect,
+            self.last_topo_registered,
+        )
+           
     def __iadd__(self, other : BaseAction) -> Self:
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -392,7 +444,6 @@ class _BackendAction(GridObjects):
 
         """
 
-        dict_injection = other._dict_inj
         set_status = other._set_line_status
         switch_status = other._switch_line_status
         set_topo_vect = other._set_topo_vect
@@ -403,19 +454,8 @@ class _BackendAction(GridObjects):
         # I deal with injections
         # Ia set the injection
         if other._modif_inj:
-            if "load_p" in dict_injection:
-                tmp = dict_injection["load_p"]
-                self.load_p.set_val(tmp)
-            if "load_q" in dict_injection:
-                tmp = dict_injection["load_q"]
-                self.load_q.set_val(tmp)
-            if "prod_p" in dict_injection:
-                tmp = dict_injection["prod_p"]
-                self.prod_p.set_val(tmp)
-            if "prod_v" in dict_injection:
-                tmp = dict_injection["prod_v"]
-                self.prod_v.set_val(tmp)
-
+            self._aux_iadd_inj(other._dict_inj)
+            
         # Ib change the injection aka redispatching
         if other._modif_redispatch:
             self.prod_p.change_val(redispatching)
@@ -426,20 +466,8 @@ class _BackendAction(GridObjects):
 
         # II shunts
         if type(self).shunts_data_available:
-            shunts = {}
-            if type(other).shunts_data_available:
-                shunts["shunt_p"] = other.shunt_p
-                shunts["shunt_q"] = other.shunt_q
-                shunts["shunt_bus"] = other.shunt_bus
-
-            arr_ = shunts["shunt_p"]
-            self.shunt_p.set_val(arr_)
-            arr_ = shunts["shunt_q"]
-            self.shunt_q.set_val(arr_)
-            arr_ = shunts["shunt_bus"]
-            self.shunt_bus.set_val(arr_)
-            self.current_shunt_bus.values[self.shunt_bus.changed] = self.shunt_bus.values[self.shunt_bus.changed]
-
+            self._aux_iadd_shunt(other)
+            
         # III line status
         # this need to be done BEFORE the topology, as a connected powerline will be connected to their old bus.
         # regardless if the status is changed in the action or not.
@@ -480,28 +508,7 @@ class _BackendAction(GridObjects):
 
         # At least one disconnected extremity
         if other._modif_change_bus or other._modif_set_bus:
-            disco_or = (self._status_or_before == -1) | (self._status_or == -1)
-            disco_ex = (self._status_ex_before == -1) | (self._status_ex == -1)
-            disco_now = (
-                disco_or | disco_ex
-            )  # a powerline is disconnected if at least one of its extremity is
-            # added
-            reco_or = (self._status_or_before == -1) & (self._status_or >= 1)
-            reco_ex = (self._status_or_before == -1) & (self._status_ex >= 1)
-            reco_now = reco_or | reco_ex
-            # Set nothing
-            set_now = np.zeros_like(self._status_or)
-            # Force some disconnections
-            set_now[disco_now] = -1
-            set_now[reco_now] = 1
-
-            self.current_topo.set_status(
-                set_now,
-                self.line_or_pos_topo_vect,
-                self.line_ex_pos_topo_vect,
-                self.last_topo_registered,
-            )
-
+            self._aux_iadd_reconcile_disco_reco()
         return self
 
     def _assign_0_to_disco_el(self) -> None:

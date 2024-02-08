@@ -195,11 +195,19 @@ class Backend(GridObjects, ABC):
         
         .. seealso::
             :func:`Backend.cannot_handle_more_than_2_busbar`
+
+        .. note::
+            From grid2op 1.9.9 it is preferable that your backend calls one of
+            :func:`Backend.can_handle_more_than_2_busbar` or 
+            :func:`Backend.cannot_handle_more_than_2_busbar`.
+            
+            If not, then the environments created with your backend will not be able to 
+            "operate" grid with more than 2 busbars per substation. 
             
         .. danger::
             We highly recommend you do not try to override this function. 
             
-            At time of writing I can't find any good reason to do so.
+            At least, at time of writing I can't find any good reason to do so.
         """
         self._missing_two_busbars_support_info = False
         self.n_busbar_per_sub = type(self).n_busbar_per_sub
@@ -208,7 +216,7 @@ class Backend(GridObjects, ABC):
         """
         .. versionadded:: 1.9.9
         
-        This function should be called once in `load_grid` if your backend is able
+        This function should be called once in `load_grid` if your backend is **NOT** able
         to handle more than 2 busbars per substation.
         
         If not called, then the `environment` will not be able to use more than 2 busbars per substations.
@@ -216,10 +224,18 @@ class Backend(GridObjects, ABC):
         .. seealso::
             :func:`Backend.cnot_handle_more_than_2_busbar`
 
+        .. note::
+            From grid2op 1.9.9 it is preferable that your backend calls one of
+            :func:`Backend.can_handle_more_than_2_busbar` or 
+            :func:`Backend.cannot_handle_more_than_2_busbar`.
+            
+            If not, then the environments created with your backend will not be able to 
+            "operate" grid with more than 2 busbars per substation. 
+            
         .. danger::
             We highly recommend you do not try to override this function. 
             
-            At time of writing I can't find any good reason to do so.
+            Atleast, at time of writing I can't find any good reason to do so.
         """
         self._missing_two_busbars_support_info = False
         if type(self).n_busbar_per_sub != DEFAULT_N_BUSBAR_PER_SUB:
