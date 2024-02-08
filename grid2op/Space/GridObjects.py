@@ -21,11 +21,7 @@ import warnings
 import copy
 import numpy as np
 from packaging import version
-from typing import Dict, Union
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Dict, Union, Literal
     
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool

@@ -9,12 +9,13 @@
 import warnings
 import numpy as np
 import itertools
-from typing import Dict, List
+from typing import Dict, List, Literal
 try:
-    from typing import Literal, Self
+    from typing import Self
 except ImportError:
-    from typing_extensions import Literal, Self
+    from typing_extensions import Self
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import AmbiguousAction, Grid2OpException
 from grid2op.Space import SerializableSpace
@@ -1148,14 +1149,14 @@ class SerializableActionSpace(SerializableSpace):
         - if `add_alone_line=False` (not the default) then there must be at least two elements in a 
           substation
           
-        .. info::
+        .. note::
             We try to make the result of this function as small as possible. This means that if at any
             substation the number of "valid" topology is only 1, it is ignored and will not be added
             in the result.
             
             This imply that when `env.n_busbar_per_sub=1` then this function returns the empty list.
             
-        .. info::
+        .. note::
             If `add_alone_line` is True (again NOT the default) then if any substation counts less than 
             3 elements or less then no action will be added for this substation.
             
@@ -1670,7 +1671,12 @@ class SerializableActionSpace(SerializableSpace):
         obs: "grid2op.Observation.BaseObservation",
         storage_setpoint: float=0.5,
         precision: int=5,
-    ) -> Dict[str, List[BaseAction]]:
+    ) -> Dict[Literal["powerline",
+                      "substation",
+                      "redispatching",
+                      "storage",
+                      "curtailment"],
+              List[BaseAction]]:
         """
         This function returns the list of unary actions that you can perform in order to get back to the "fully meshed" / "initial" topology.
 

@@ -1338,7 +1338,7 @@ class TestPandapowerBackend_1busbar(TestPandapowerBackend_3busbars):
         return 1
         
         
-class TestObservation(unittest.TestCase):
+class TestObservation_3busbars(unittest.TestCase):
     def get_nb_bus(self):
         return 3
     
@@ -1357,6 +1357,14 @@ class TestObservation(unittest.TestCase):
                                     test=True,
                                     n_busbar=self.get_nb_bus(),
                                     _add_to_name=type(self).__name__ + f'_{self.get_nb_bus()}')
+        param = self.env.parameters
+        param.NB_TIMESTEP_COOLDOWN_SUB = 0
+        param.NB_TIMESTEP_COOLDOWN_LINE = 0
+        param.MAX_LINE_STATUS_CHANGED = 99999
+        param.MAX_SUB_CHANGED = 99999
+        self.env.change_parameters(param)
+        self.env.change_forecast_parameters(param)
+        self.env.reset(**self.get_reset_kwargs())
         self.list_loc_bus = list(range(1, type(self.env).n_busbar_per_sub + 1))
         return super().setUp()
     
@@ -1431,25 +1439,186 @@ class TestObservation(unittest.TestCase):
     def test_action_space_get_back_to_ref_state(self):
         """test the :func:`grid2op.Action.SerializableActionSpace.get_back_to_ref_state` 
         when 3 busbars which could not be tested without observation"""
-        pass
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            if new_bus == 1:
+                # nothing to do if everything is moved to bus 1
+                continue
+            act = self._aux_build_act(res, new_bus, "loads_id")
+            obs, reward, done, info = self.env.step(act)
+            assert not done
+            acts = self.env.action_space.get_back_to_ref_state(obs)
+            assert "substation" in acts
+            assert len(acts["substation"]) == 1
+            act_to_ref = acts["substation"][0]
+            assert act_to_ref.load_set_bus[el_id] == 1
+            if line_or_id is not None:
+                assert act_to_ref.line_or_set_bus[line_or_id] == 1
+            if line_ex_id is not None:
+                assert act_to_ref.line_ex_set_bus[line_ex_id] == 1
     
     def test_connectivity_matrix(self):
-        pass
+        cls = type(self.env)
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            act = self._aux_build_act(res, new_bus, "loads_id")
+            obs, reward, done, info = self.env.step(act)
+            assert not done
+            assert not info["exception"], "there should not have any exception (action should be legal)"
+            conn_mat = obs.connectivity_matrix()
+            assert conn_mat.shape == (cls.dim_topo, cls.dim_topo)
+            if new_bus == 1:
+                min_sub = np.sum(cls.sub_info[:sub_id])
+                max_sub = min_sub + cls.sub_info[sub_id]
+                assert (conn_mat[min_sub:max_sub, min_sub:max_sub] == 1.).all()
+            else:
+                el_topov = cls.load_pos_topo_vect[el_id]
+                line_pos_topov = cls.line_or_pos_topo_vect[line_or_id] if line_or_id is not None else cls.line_ex_pos_topo_vect[line_ex_id]
+                line_pos_topo_other = cls.line_ex_pos_topo_vect[line_or_id] if line_or_id is not None else cls.line_or_pos_topo_vect[line_ex_id]
+                assert conn_mat[el_topov, line_pos_topov] == 1.
+                assert conn_mat[line_pos_topov, el_topov] == 1.
+                for el in range(cls.dim_topo):
+                    if el == line_pos_topov:
+                        continue
+                    if el == el_topov:
+                        continue
+                    if el == line_pos_topo_other:
+                        # other side of the line is connected to it
+                        continue
+                    assert conn_mat[el_topov, el] == 0., f"error for {new_bus}: ({el_topov}, {el}) appears to be connected: {conn_mat[el_topov, el]}"
+                    assert conn_mat[el, el_topov] == 0., f"error for {new_bus}: ({el}, {el_topov}) appears to be connected: {conn_mat[el, el_topov]}"
+                    assert conn_mat[line_pos_topov, el] == 0., f"error for {new_bus}: ({line_pos_topov}, {el}) appears to be connected: {conn_mat[line_pos_topov, el]}"
+                    assert conn_mat[el, line_pos_topov] == 0., f"error for {new_bus}: ({el}, {line_pos_topov}) appears to be connected: {conn_mat[el, line_pos_topov]}"
     
     def test_bus_connectivity_matrix(self):
-        pass
-    
+        cls = type(self.env)
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            act = self._aux_build_act(res, new_bus, "loads_id")
+            obs, reward, done, info = self.env.step(act)
+            assert not done
+            assert not info["exception"], "there should not have any exception (action should be legal)"
+            conn_mat, (lor_ind, lex_ind) = obs.bus_connectivity_matrix(return_lines_index=True)
+            if new_bus == 1:
+                assert conn_mat.shape == (cls.n_sub, cls.n_sub)
+            else:
+                assert conn_mat.shape == (cls.n_sub + 1, cls.n_sub + 1)
+                new_bus_id = lor_ind[line_or_id] if line_or_id else lex_ind[line_ex_id]
+                bus_other = lex_ind[line_or_id] if line_or_id else lor_ind[line_ex_id]
+                assert conn_mat[new_bus_id, bus_other] == 1.
+                assert conn_mat[bus_other, new_bus_id] == 1.
+                assert conn_mat[new_bus_id, sub_id] == 0.
+                assert conn_mat[sub_id, new_bus_id] == 0.
+                
     def test_flow_bus_matrix(self):
-        pass
+        cls = type(self.env)
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            act = self._aux_build_act(res, new_bus, "loads_id")
+            obs, reward, done, info = self.env.step(act)
+            assert not done
+            assert not info["exception"], "there should not have any exception (action should be legal)"
+            conn_mat, (load_bus, prod_bus, stor_bus, lor_ind, lex_ind) = obs.flow_bus_matrix()
+            if new_bus == 1:
+                assert conn_mat.shape == (cls.n_sub, cls.n_sub)
+            else:
+                assert conn_mat.shape == (cls.n_sub + 1, cls.n_sub + 1)
+                new_bus_id = lor_ind[line_or_id] if line_or_id else lex_ind[line_ex_id]
+                bus_other = lex_ind[line_or_id] if line_or_id else lor_ind[line_ex_id]
+                assert conn_mat[new_bus_id, bus_other] != 0. # there are some flows from these 2 buses
+                assert conn_mat[bus_other, new_bus_id] != 0. # there are some flows from these 2 buses
+                assert conn_mat[new_bus_id, sub_id] == 0.
+                assert conn_mat[sub_id, new_bus_id] == 0.
     
     def test_get_energy_graph(self):
-        pass
-    
+        cls = type(self.env)
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            act = self._aux_build_act(res, new_bus, "loads_id")
+            obs, reward, done, info = self.env.step(act)
+            assert not done
+            assert not info["exception"], "there should not have any exception (action should be legal)"
+            graph = obs.get_energy_graph()
+            if new_bus == 1:
+                assert len(graph.nodes) == cls.n_sub
+                continue
+            # if I end up here it's because new_bus >= 2
+            assert len(graph.nodes) == cls.n_sub + 1
+            new_bus_id = cls.n_sub  # this bus has been added
+            bus_other = cls.line_ex_to_subid[line_or_id] if line_or_id else cls.line_or_to_subid[line_ex_id]
+            assert (new_bus_id, bus_other) in graph.edges
+            edge = graph.edges[(new_bus_id, bus_other)]
+            node = graph.nodes[new_bus_id]
+            assert node["local_bus_id"] == new_bus
+            assert node["global_bus_id"] == sub_id + (new_bus - 1) * cls.n_sub
+            if line_or_id is not None:
+                assert edge["bus_or"] == new_bus
+                assert edge["global_bus_or"] == sub_id + (new_bus - 1) * cls.n_sub
+            else:
+                assert edge["bus_ex"] == new_bus
+                assert edge["global_bus_ex"] == sub_id + (new_bus - 1) * cls.n_sub
+                
     def test_get_elements_graph(self):
-        pass
-        
-
-
+        cls = type(self.env)
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        for new_bus in self.list_loc_bus:
+            act = self._aux_build_act(res, new_bus, "loads_id")
+            obs, reward, done, info = self.env.step(act)
+            assert not done
+            assert not info["exception"], "there should not have any exception (action should be legal)"
+            graph = obs.get_elements_graph()
+            global_bus_id = sub_id + (new_bus - 1) * cls.n_sub
+            node_bus_id = graph.graph['bus_nodes_id'][global_bus_id]
+            node_load_id = graph.graph['load_nodes_id'][el_id]
+            node_line_id = graph.graph['line_nodes_id'][line_or_id] if line_or_id is not None else graph.graph['line_nodes_id'][line_ex_id]
+            node_load = graph.nodes[node_load_id]
+            node_line = graph.nodes[node_line_id]     
+            assert len(graph.graph["bus_nodes_id"]) == cls.n_busbar_per_sub * cls.n_sub       
+            
+            # check the bus
+            for node_id in graph.graph["bus_nodes_id"]:
+                assert "global_id" in graph.nodes[node_id], "key 'global_id' should be in the node"
+            if new_bus == 1:
+                for node_id in graph.graph["bus_nodes_id"][cls.n_sub:]:
+                    assert not graph.nodes[node_id]["connected"], f"bus (global id {graph.nodes[node_id]['global_id']}) represented by node {node_id} should not be connected"
+            else:
+                for node_id in graph.graph["bus_nodes_id"][cls.n_sub:]:
+                    if graph.nodes[node_id]['global_id'] != global_bus_id:
+                        assert not graph.nodes[node_id]["connected"], f"bus (global id {graph.nodes[node_id]['global_id']}) represented by node {node_id} should not be connected"
+                    else:
+                        assert graph.nodes[node_id]["connected"], f"bus (global id {graph.nodes[node_id]['global_id']}) represented by node {node_id} should be connected"
+                        
+            # check the load
+            edge_load_id = node_load["bus_node_id"]
+            assert node_load["local_bus"] == new_bus
+            assert node_load["global_bus"] == global_bus_id
+            assert (node_load_id, edge_load_id) in graph.edges
+            
+            # check lines
+            side = "or" if line_or_id is not None else "ex"
+            edge_line_id = node_line[f"bus_node_id_{side}"]
+            assert node_line[f"local_bus_{side}"] == new_bus
+            assert node_line[f"global_bus_{side}"] == global_bus_id
+            assert (node_line_id, edge_line_id) in graph.edges
+   
+   
+class TestObservation_1busbar(TestObservation_3busbars):
+    def get_nb_bus(self):
+        return 1               
+                
+                
 class TestEnv(unittest.TestCase):
     pass
 

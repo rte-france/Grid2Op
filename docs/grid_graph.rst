@@ -645,7 +645,14 @@ The next `n_load` nodes of the "elements graph" represent the "loads" of the gri
 - `id`: which load does this node represent (between 0 and `n_load - 1`)
 - `type`: always "loads"
 - `name`: the name of this load (equal to `obs.name_load[id]`)
-- `connected`: whether or not this load is connected to the grid.
+- `connected`: whether or not this load is connected to the grid
+- `local_bus`: (from version 1.9.9) the id (local, so between `1, 2, ..., obs.n_busbar_per_sub`)
+  of the bus to which this load is connected
+- `global_bus`: (from version 1.9.9) the id (global, so between `0, 1, ..., obs.n_busbar_per_sub * obs.n_sub`)
+  of the bus to which this load is connected
+- `bus_node_id`: (from version 1.9.9) the id of the node of this graph representing the bus to which the 
+  load is connected. This means that if the load is connected, then (node_load_id, bus_node_id) is the
+  outgoing edge in this graph.
 
 The outgoing edges from the nodes representing loads tell at which bus this load is connected (for each load,
 there is only one outgoing edge). They have attributes:
@@ -676,6 +683,13 @@ The next `n_gen` nodes of the "elements graph" represent the "generators" of the
 - `curtailment_limit`: same as `obs.curtailment_limit[id]`, see :attr:`grid2op.Observation.BaseObservation.curtailment_limit`
 - `gen_margin_up`: same as `obs.gen_margin_up[id]`, see :attr:`grid2op.Observation.BaseObservation.gen_margin_up`
 - `gen_margin_down`: same as `obs.gen_margin_down[id]`, see :attr:`grid2op.Observation.BaseObservation.gen_margin_down`
+- `local_bus`: (from version 1.9.9) the id (local, so between `1, 2, ..., obs.n_busbar_per_sub`)
+  of the bus to which this generator is connected
+- `global_bus`: (from version 1.9.9) the id (global, so between `0, 1, ..., obs.n_busbar_per_sub * obs.n_sub`)
+  of the bus to which this generator is connected
+- `bus_node_id`: (from version 1.9.9) the id of the node of this graph representing the bus to which the 
+  generator is connected. This means that if the generator is connected, then (node_gen_id, bus_node_id) is the
+  outgoing edge in this graph.
 
 The outgoing edges from the nodes representing generators tell at which bus this generator is connected (for each generator,
 there is only one outgoing edge). They have attributes:
@@ -740,6 +754,14 @@ The next `n_storage` nodes represent the storage units. They have attributes:
 - `connected`: whether or not this storage unit is connected to the grid2op
 - `storage_charge`: same as `obs.storage_charge[id]`, see :attr:`grid2op.Observation.BaseObservation.storage_charge`
 - `storage_power_target`: same as `obs.storage_power_target[id]`, see :attr:`grid2op.Observation.BaseObservation.storage_power_target`
+- `local_bus`: (from version 1.9.9) the id (local, so between `1, 2, ..., obs.n_busbar_per_sub`)
+  of the bus to which this storage unit is connected
+- `global_bus`: (from version 1.9.9) the id (global, so between `0, 1, ..., obs.n_busbar_per_sub * obs.n_sub`)
+  of the bus to which this storage unit is connected
+- `bus_node_id`: (from version 1.9.9) the id of the node of this graph representing the bus to which the 
+  storage unit is connected. This means that if the storage unit is connected, 
+  then (node_storage_id, bus_node_id) is the
+  outgoing edge in this graph.
 
 The outgoing edges from the nodes representing storage units tells at which bus this load is connected (for each load,
 there is only one outgoing edge). They have attributes:
@@ -759,6 +781,14 @@ The next `n_shunt` nodes represent the storage units. They have attributes:
 - `type`: always "shunt"
 - `name`: the name of this shunt (equal to `obs.name_shunt[id]`)
 - `connected`: whether or not this shunt is connected to the grid2op
+- `local_bus`: (from version 1.9.9) the id (local, so between `1, 2, ..., obs.n_busbar_per_sub`)
+  of the bus to which this shunt is connected
+- `global_bus`: (from version 1.9.9) the id (global, so between `0, 1, ..., obs.n_busbar_per_sub * obs.n_sub`)
+  of the bus to which this shunt is connected
+- `bus_node_id`: (from version 1.9.9) the id of the node of this graph representing the bus to which the 
+  shunt is connected. This means that if the shunt is connected, 
+  then (node_shunt_id, bus_node_id) is the
+  outgoing edge in this graph.
 
 The outgoing edges from the nodes representing sthuns tell at which bus this shunt is connected (for each load,
 there is only one outgoing edge). They have attributes:

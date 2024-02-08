@@ -10,12 +10,7 @@ import copy
 import warnings
 import numpy as np
 import re
-from typing import Union, Any, Dict
-try:
-    # Literal introduced in python 3.9
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Union, Any, Dict, Literal
 
 import grid2op
 from grid2op.Opponent import OpponentSpace

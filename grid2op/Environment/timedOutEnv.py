@@ -8,12 +8,7 @@
 
 import time
 from math import floor
-from typing import Any, Dict, Tuple, Union, List
-try:
-    # Literal introduced in python 3.9
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Any, Dict, Tuple, Union, List, Literal
     
 from grid2op.Environment.environment import Environment
 from grid2op.Action import BaseAction

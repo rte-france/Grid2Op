@@ -13,12 +13,7 @@ import time
 import copy
 import os
 import json
-from typing import Optional, Tuple, Union, Dict, Any
-try:
-    # Literal introduced in python 3.9
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Optional, Tuple, Union, Dict, Any, Literal
 
 import warnings
 import numpy as np

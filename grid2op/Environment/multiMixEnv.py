@@ -10,12 +10,7 @@ import os
 import warnings
 import numpy as np
 import copy
-from typing import Any, Dict, Tuple, Union, List
-try:
-    # Literal introduced in python 3.9
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Any, Dict, Tuple, Union, List, Literal
 
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject, DEFAULT_N_BUSBAR_PER_SUB

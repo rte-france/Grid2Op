@@ -16,11 +16,11 @@ from scipy.sparse import csr_matrix
 from typing import Optional
 from packaging import version
 
-from typing import Dict, Union, Tuple, List, Optional, Any
+from typing import Dict, Union, Tuple, List, Optional, Any, Literal
 try:
-    from typing import Self, Literal
+    from typing import Self
 except ImportError:
-    from typing_extensions import Self, Literal
+    from typing_extensions import Self
 
 import grid2op  # for type hints
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -2230,6 +2230,21 @@ class BaseObservation(GridObjects):
         Convert this observation as a networkx graph. This graph is the graph "seen" by
         "the electron" / "the energy" of the power grid.
 
+        .. versionchanged:: 1.9.9
+            Addition of the attribute `local_bus_id` and `global_bus_id` for the nodes of the returned graph.
+            
+            `local_bus_id` give the local bus id (from 1 to `obs.n_busbar_per_sub`) id of the 
+            bus represented by this node.
+            
+            `global_bus_id` give the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) id of the 
+            bus represented by this node.
+            
+        .. versionchanged:: 1.9.9
+            Addition of the attribute `global_bus_or` and `global_bus_ex` for the edges of the returned graph.
+            
+            These provides the global id of the `origin` / `ext` side to which powerline(s) represented by
+            this edge is (are) connected.
+            
         Notes
         ------
         The resulting graph is "frozen" this means that you cannot add / remove attribute on nodes or edges, nor add /
@@ -2237,7 +2252,7 @@ class BaseObservation(GridObjects):
 
         This graphs has the following properties:
 
-        - it counts as many nodes as the number of buses of the grid
+        - it counts as many nodes as the number of buses of the grid (so it has a dynamic size !)
         - it counts less edges than the number of lines of the grid (two lines connecting the same buses are "merged"
           into one single edge - this is the case for parallel line, that are hence "merged" into the same edge)
         - nodes (represents "buses" of the grid) have attributes:
@@ -2248,9 +2263,14 @@ class BaseObservation(GridObjects):
             - `v`: the voltage magnitude at this node
             - `cooldown`: how much longer you need to wait before being able to merge / split or change this node
             - 'sub_id': the id of the substation to which it is connected (typically between `0` and `obs.n_sub - 1`)
-            - (optional) `theta`: the voltage angle (in degree) at this nodes
+            - 'local_bus_id': the local bus id (from 1 to `obs.n_busbar_per_sub`) of the bus represented by this node
+              (new in version 1.9.9)
+            - 'global_bus_id': the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) 
+              of the bus represented by this node
+              (new in version 1.9.9)
             - `cooldown` : the time you need to wait (in number of steps) before being able to act on the
               substation to which this bus is connected.
+            - (optional) `theta`: the voltage angle (in degree) at this nodes
             
         - edges have attributes too (in this modeling an edge might represent more than one powerline, all
           parallel powerlines are represented by the same edge):
@@ -2269,16 +2289,26 @@ class BaseObservation(GridObjects):
             - `p`: active power injected at the "or" side (equal to p_or) (in MW)
             - `v_or`: voltage magnitude at the "or" bus (in kV)
             - `v_ex`: voltage magnitude at the "ex" bus (in kV)
-            - (optional) `theta_or`: voltage angle at the "or" bus (in deg)
-            - (optional) `theta_ex`: voltage angle at the "ex" bus (in deg)
             - `time_next_maintenance`: see :attr:`BaseObservation.time_next_maintenance` (min over all powerline)
             - `duration_next_maintenance` see :attr:`BaseObservation.duration_next_maintenance` (max over all powerlines)
             - `sub_id_or`: id of the substation of the "or" side of the powerlines
             - `sub_id_ex`: id of the substation of the "ex" side of the powerlines
             - `node_id_or`: id of the node (in this graph) of the "or" side of the powergraph
             - `node_id_ex`: id of the node (in this graph) of the "ex" side of the powergraph
-            - `bus_or`: on which bus [1 or 2] is this powerline connected to at its "or" substation
-            - `bus_ex`: on which bus [1 or 2] is this powerline connected to at its "ex" substation
+            - `bus_or`: on which bus [1 or 2 or 3, etc.] is this powerline connected to at its "or" substation
+              (this is the local id of the bus)
+            - `bus_ex`: on which bus [1 or 2 or 3, etc.] is this powerline connected to at its "ex" substation
+              (this is the local id of the bus)
+            - 'global_bus_or': the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) 
+              of the bus to which the origin side of the line(s) represented by this edge
+              is (are) connected
+              (new in version 1.9.9)
+            - 'global_bus_ex': the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) 
+              of the bus to which the ext side of the line(s) represented by this edge
+              is (are) connected
+              (new in version 1.9.9)
+            - (optional) `theta_or`: voltage angle at the "or" bus (in deg)
+            - (optional) `theta_ex`: voltage angle at the "ex" bus (in deg)
 
         .. danger::
             **IMPORTANT NOTE** edges represents "fusion" of 1 or more powerlines. This graph is intended to be
@@ -2369,6 +2399,10 @@ class BaseObservation(GridObjects):
         bus_subid = np.zeros(mat_p.shape[0], dtype=dt_int)
         bus_subid[lor_bus[self.line_status]] = cls.line_or_to_subid[self.line_status]
         bus_subid[lex_bus[self.line_status]] = cls.line_ex_to_subid[self.line_status]
+        loc_bus_id = np.zeros(mat_p.shape[0], dtype=int)
+        loc_bus_id[lor_bus[self.line_status]] = self.topo_vect[cls.line_or_pos_topo_vect[self.line_status]]
+        loc_bus_id[lex_bus[self.line_status]] = self.topo_vect[cls.line_ex_pos_topo_vect[self.line_status]]
+        glob_bus_id = cls.local_bus_to_global(loc_bus_id, bus_subid)
         if self.support_theta:
             bus_theta[lor_bus[self.line_status]] = self.theta_or[self.line_status]
             bus_theta[lex_bus[self.line_status]] = self.theta_ex[self.line_status]
@@ -2408,7 +2442,14 @@ class BaseObservation(GridObjects):
         networkx.set_node_attributes(graph,
                                      {el: self.time_before_cooldown_sub[val] for el, val in enumerate(bus_subid)},
                                      "cooldown")
-
+        # add local_id and global_id as attribute to the node of this graph
+        networkx.set_node_attributes(
+            graph, {el: val for el, val in enumerate(loc_bus_id)}, "local_bus_id"
+        )
+        networkx.set_node_attributes(
+            graph, {el: val for el, val in enumerate(glob_bus_id)}, "global_bus_id"
+        )
+                
         # add the edges attributes
         self._add_edges_multi(self.p_or, self.p_ex, "p", lor_bus, lex_bus, graph)
         self._add_edges_multi(self.q_or, self.q_ex, "q", lor_bus, lex_bus, graph)
@@ -2468,17 +2509,25 @@ class BaseObservation(GridObjects):
             self.line_ex_bus,
             "bus_ex", lor_bus, lex_bus, graph
         )
+        self._add_edges_simple(
+            glob_bus_id[lor_bus],
+            "global_bus_or", lor_bus, lex_bus, graph
+        )
+        self._add_edges_simple(
+            glob_bus_id[lex_bus],
+            "global_bus_ex", lor_bus, lex_bus, graph
+        )
         
         # extra layer of security: prevent accidental modification of this graph
         networkx.freeze(graph)  
         return graph
 
     def _aux_get_connected_buses(self):
-        res = np.full(2 * self.n_sub, fill_value=False)
         cls = type(self)
+        res = np.full(cls.n_busbar_per_sub * cls.n_sub, fill_value=False)
         global_bus = cls.local_bus_to_global(self.topo_vect,
                                              cls._topo_vect_to_sub)
-        res[np.unique(global_bus[global_bus != -1])] = True
+        res[global_bus[global_bus != -1]] = True
         return res
     
     def _aux_add_edges(self,
@@ -2508,6 +2557,7 @@ class BaseObservation(GridObjects):
                     li_el_edges[ed_num][-1][prop_nm] = prop_vect[el_id]
                 ed_num += 1        
         graph.add_edges_from(li_el_edges)
+        return li_el_edges
         
     def _aux_add_el_to_comp_graph(self,
                                   graph,
@@ -2543,30 +2593,37 @@ class BaseObservation(GridObjects):
             el_connected = np.array(el_global_bus) >= 0
             for el_id in range(nb_el):
                 li_el_node[el_id][-1]["connected"] = el_connected[el_id]
+                li_el_node[el_id][-1]["local_bus"] = el_bus[el_id]
+                li_el_node[el_id][-1]["global_bus"] = el_global_bus[el_id]
 
         if nodes_prop is not None:
             for el_id in range(nb_el):
                 for prop_nm, prop_vect in nodes_prop:
                     li_el_node[el_id][-1][prop_nm] = prop_vect[el_id]
-        graph.add_nodes_from(li_el_node)
-        graph.graph[f"{el_name}_nodes_id"] = el_ids
         
         if el_bus is None and el_to_sub_id is None:
+            graph.add_nodes_from(li_el_node)
+            graph.graph[f"{el_name}_nodes_id"] = el_ids
             return el_ids
 
         # add the edges
-        self._aux_add_edges(el_ids,
-                            cls,
-                            el_global_bus,
-                            nb_el,
-                            el_connected,
-                            el_name,
-                            edges_prop,
-                            graph)
+        li_el_edges = self._aux_add_edges(el_ids,
+                                          cls,
+                                          el_global_bus,
+                                          nb_el,
+                                          el_connected,
+                                          el_name,
+                                          edges_prop,
+                                          graph)
+        for el_id, (el_node_id, edege_id, *_) in enumerate(li_el_edges):
+            li_el_node[el_id][-1]["bus_node_id"] = edege_id
+            
+        graph.add_nodes_from(li_el_node)
+        graph.graph[f"{el_name}_nodes_id"] = el_ids
         return el_ids
     
     def _aux_add_buses(self, graph, cls, first_id):
-        bus_ids = first_id + np.arange(2 * cls.n_sub)
+        bus_ids = first_id + np.arange(cls.n_busbar_per_sub * cls.n_sub)
         conn_bus = self._aux_get_connected_buses()
         bus_li = [
             (bus_ids[bus_id],
@@ -2576,7 +2633,7 @@ class BaseObservation(GridObjects):
               "type": "bus",
               "connected": conn_bus[bus_id]}
              )
-            for bus_id in range(2 * cls.n_sub)
+            for bus_id in range(cls.n_busbar_per_sub * cls.n_sub)
         ]
         graph.add_nodes_from(bus_li)
         edge_bus_li = [(bus_id,
@@ -2676,15 +2733,32 @@ class BaseObservation(GridObjects):
         ]
         if theta_vect is not None:
             edges_prop.append(("theta", theta_vect))
-        self._aux_add_edges(line_node_ids,
-                            cls,
-                            global_bus,
-                            cls.n_line,
-                            conn_,
-                            "line",
-                            edges_prop,
-                            graph)
-        
+        res = self._aux_add_edges(line_node_ids,
+                                  cls,
+                                  global_bus,
+                                  cls.n_line,
+                                  conn_,
+                                  "line",
+                                  edges_prop,
+                                  graph)
+        return res
+    
+    def _aux_add_local_global(self, cls, graph, lin_ids, el_loc_bus, xxx_subid, side):
+        el_global_bus = cls.local_bus_to_global(el_loc_bus,
+                                                xxx_subid)
+        dict_ = {}
+        for el_node_id, loc_bus in zip(lin_ids, el_loc_bus):
+            dict_[el_node_id] = loc_bus 
+        networkx.set_node_attributes(
+            graph, dict_, f"local_bus_{side}"
+        ) 
+        dict_ = {}
+        for el_node_id, glob_bus in zip(lin_ids, el_global_bus):
+            dict_[el_node_id] = glob_bus 
+        networkx.set_node_attributes(
+            graph, dict_, f"global_bus_{side}"
+        ) 
+    
     def _aux_add_lines(self, graph, cls, first_id):        
         nodes_prop = [("rho", self.rho),
                       ("connected", self.line_status),
@@ -2693,6 +2767,7 @@ class BaseObservation(GridObjects):
                       ("time_next_maintenance", self.time_next_maintenance),
                       ("duration_next_maintenance", self.duration_next_maintenance),
                       ]
+        
         # only add the nodes, not the edges right now
         lin_ids = self._aux_add_el_to_comp_graph(graph,
                                                  first_id,
@@ -2704,32 +2779,47 @@ class BaseObservation(GridObjects):
                                                  nodes_prop=nodes_prop,
                                                  edges_prop=None
                                                  )
+        self._aux_add_local_global(cls, graph, lin_ids, self.line_or_bus, cls.line_or_to_subid, "or")
+        self._aux_add_local_global(cls, graph, lin_ids, self.line_ex_bus, cls.line_ex_to_subid, "ex")
         
         # add "or" edges
-        self._aux_add_edge_line_side(cls,
-                                     graph,
-                                     self.line_or_bus,
-                                     cls.line_or_to_subid,
-                                     lin_ids,
-                                     "or",
-                                     self.p_or,
-                                     self.q_or,
-                                     self.v_or,
-                                     self.a_or,
-                                     self.theta_or if self.support_theta else None)        
+        li_el_edges_or = self._aux_add_edge_line_side(cls,
+                                                      graph,
+                                                      self.line_or_bus,
+                                                      cls.line_or_to_subid,
+                                                      lin_ids,
+                                                      "or",
+                                                      self.p_or,
+                                                      self.q_or,
+                                                      self.v_or,
+                                                      self.a_or,
+                                                      self.theta_or if self.support_theta else None)    
+        dict_or = {}
+        for el_id, (el_node_id, edege_id, *_) in enumerate(li_el_edges_or):
+            dict_or[el_node_id] = edege_id 
+        networkx.set_node_attributes(
+            graph, dict_or, "bus_node_id_or"
+        ) 
         
         # add "ex" edges
-        self._aux_add_edge_line_side(cls,
-                                     graph,
-                                     self.line_ex_bus,
-                                     cls.line_ex_to_subid,
-                                     lin_ids,
-                                     "ex",
-                                     self.p_ex,
-                                     self.q_ex,
-                                     self.v_ex,
-                                     self.a_ex,
-                                     self.theta_ex if self.support_theta else None)
+        li_el_edges_ex = self._aux_add_edge_line_side(cls,
+                                                      graph,
+                                                      self.line_ex_bus,
+                                                      cls.line_ex_to_subid,
+                                                      lin_ids,
+                                                      "ex",
+                                                      self.p_ex,
+                                                      self.q_ex,
+                                                      self.v_ex,
+                                                      self.a_ex,
+                                                      self.theta_ex if self.support_theta else None)    
+        dict_ex = {}
+        for el_id, (el_node_id, edege_id, *_) in enumerate(li_el_edges_ex):
+            dict_ex[el_node_id] = edege_id 
+        networkx.set_node_attributes(
+            graph, dict_ex, "bus_node_id_ex"
+        ) 
+        
         return lin_ids
     
     def _aux_add_shunts(self, graph, cls, first_id): 
@@ -2756,7 +2846,8 @@ class BaseObservation(GridObjects):
         """This function returns the "elements graph" as a networkx object.
         
         .. seealso::
-            This object is extensively described in the documentation, see :ref:`elmnt-graph-gg` for more information.
+            This object is extensively described in the documentation, 
+            see :ref:`elmnt-graph-gg` for more information.
         
         Basically, each "element" of the grid (element = a substation, a bus, a load, a generator, 
         a powerline, a storate unit or a shunt) is represented by a node in this graph.

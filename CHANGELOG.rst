@@ -60,7 +60,10 @@ Change Log
 - [IMPROVED] methods `gridobj.get_lines_id`, `gridobj.get_generators_id`, `gridobj.get_loads_id`
   `gridobj.get_storages_id` are now class methods and can be used with `type(env).get_lines_id(...)`
   or `act.get_lines_id(...)` for example.
-
+- [IMPROVED] `obs.get_energy_graph()` by giving the "local_bus_id" and the "global_bus_id"
+  of the bus that represents each node of this graph.
+- [IMPROVED] `obs.get_elements_graph()` by giving access to the bus id (local, global and 
+  id of the node) where each element is connected.
 
 [1.9.8] - 2024-01-26
 ----------------------
