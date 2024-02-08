@@ -39,7 +39,7 @@ class __AuxMultiDiscreteActSpace:
     - "change_line_status":  `n_line` dimensions, each containing 2 elements "CHANGE", "DONT CHANGE" and
       affecting the powerline status (connected / disconnected)
     - "set_bus": `dim_topo` dimensions, each containing 4 choices: "DISCONNECT", "DONT AFFECT", "CONNECT TO BUSBAR 1",
-      or "CONNECT TO BUSBAR 2" and affecting to which busbar an object is connected
+      or "CONNECT TO BUSBAR 2", "CONNECT TO BUSBAR 3", ... and affecting to which busbar an object is connected
     - "change_bus": `dim_topo` dimensions, each containing 2 choices: "CHANGE", "DONT CHANGE" and affect
       to which busbar an element is connected
     - "redispatch": `sum(env.gen_redispatchable)` dimensions, each containing a certain number of choices depending on the value
@@ -201,7 +201,7 @@ class __AuxMultiDiscreteActSpace:
 
         self._attr_to_keep = sorted(attr_to_keep)
 
-        act_sp = grid2op_action_space
+        act_sp = type(grid2op_action_space)
         self._act_space = copy.deepcopy(grid2op_action_space)
 
         low_gen = -1.0 * act_sp.gen_max_ramp_down
@@ -222,7 +222,7 @@ class __AuxMultiDiscreteActSpace:
                 self.ATTR_CHANGE,
             ),
             "set_bus": (
-                [4 for _ in range(act_sp.dim_topo)],
+                [2 + act_sp.n_busbar_per_sub for _ in range(act_sp.dim_topo)],
                 act_sp.dim_topo,
                 self.ATTR_SET,
             ),

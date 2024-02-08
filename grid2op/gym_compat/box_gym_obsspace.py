@@ -213,7 +213,7 @@ class __AuxBoxGymObsSpace:
             )
         self._attr_to_keep = sorted(attr_to_keep)
 
-        ob_sp = grid2op_observation_space
+        ob_sp = type(grid2op_observation_space)
         tol_redisp = (
             ob_sp.obs_env._tol_poly
         )  # add to gen_p otherwise ... well it can crash
@@ -408,7 +408,7 @@ class __AuxBoxGymObsSpace:
             ),
             "topo_vect": (
                 np.full(shape=(ob_sp.dim_topo,), fill_value=-1, dtype=dt_int),
-                np.full(shape=(ob_sp.dim_topo,), fill_value=2, dtype=dt_int),
+                np.full(shape=(ob_sp.dim_topo,), fill_value=ob_sp.n_busbar_per_sub, dtype=dt_int),
                 (ob_sp.dim_topo,),
                 dt_int,
             ),

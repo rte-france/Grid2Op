@@ -252,7 +252,9 @@ class __AuxGymObservationSpace:
                 elif attr_nm == "day_of_week":
                     my_type = type(self)._DiscreteType(n=8)
                 elif attr_nm == "topo_vect":
-                    my_type = type(self)._BoxType(low=-1, high=2, shape=shape, dtype=dt)
+                    my_type = type(self)._BoxType(low=-1,
+                                                  high=observation_space.n_busbar_per_sub,
+                                                  shape=shape, dtype=dt)
                 elif attr_nm == "time_before_cooldown_line":
                     my_type = type(self)._BoxType(
                         low=0,

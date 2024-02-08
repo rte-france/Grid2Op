@@ -225,7 +225,7 @@ class __AuxBoxGymActSpace:
         
         self._attr_to_keep = sorted(attr_to_keep)
 
-        act_sp = grid2op_action_space
+        act_sp = type(grid2op_action_space)
         self._act_space = copy.deepcopy(grid2op_action_space)
 
         low_gen = -1.0 * act_sp.gen_max_ramp_down[act_sp.gen_redispatchable]
@@ -249,7 +249,7 @@ class __AuxBoxGymActSpace:
             ),
             "set_bus": (
                 np.full(shape=(act_sp.dim_topo,), fill_value=-1, dtype=dt_int),
-                np.full(shape=(act_sp.dim_topo,), fill_value=1, dtype=dt_int),
+                np.full(shape=(act_sp.dim_topo,), fill_value=act_sp.n_busbar_per_sub, dtype=dt_int),
                 (act_sp.dim_topo,),
                 dt_int,
             ),

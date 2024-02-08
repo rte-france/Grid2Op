@@ -45,7 +45,7 @@ class __AuxGymEnv:
     - :class:`GymEnv_Modern` for gym >= 0.26
 
     .. warning::
-        Depending on the presence absence of gymnasium and gym packages this class might behave differently.
+        Depending on the presence absence of `gymnasium` and `gym` packages this class might behave differently.
         
         In grid2op we tried to maintain compatibility both with gymnasium (newest) and gym (legacy, 
         no more maintained) RL packages. The behaviour is the following:
