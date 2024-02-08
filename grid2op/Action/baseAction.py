@@ -3351,7 +3351,7 @@ class BaseAction(GridObjects):
             res["set_line_status"]["connected_id"] = np.nonzero(
                 self._set_line_status == 1
             )[0]
-            res["set_line_status"]["disconnected_id"] = np.whnonzeroere(
+            res["set_line_status"]["disconnected_id"] = np.nonzero(
                 self._set_line_status == -1
             )[0]
 

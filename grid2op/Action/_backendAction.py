@@ -398,12 +398,12 @@ class _BackendAction(GridObjects):
             shunts["shunt_q"] = other.shunt_q
             shunts["shunt_bus"] = other.shunt_bus
 
-        arr_ = shunts["shunt_p"]
-        self.shunt_p.set_val(arr_)
-        arr_ = shunts["shunt_q"]
-        self.shunt_q.set_val(arr_)
-        arr_ = shunts["shunt_bus"]
-        self.shunt_bus.set_val(arr_)
+            arr_ = shunts["shunt_p"]
+            self.shunt_p.set_val(arr_)
+            arr_ = shunts["shunt_q"]
+            self.shunt_q.set_val(arr_)
+            arr_ = shunts["shunt_bus"]
+            self.shunt_bus.set_val(arr_)
         self.current_shunt_bus.values[self.shunt_bus.changed] = self.shunt_bus.values[self.shunt_bus.changed]
 
     def _aux_iadd_reconcile_disco_reco(self):

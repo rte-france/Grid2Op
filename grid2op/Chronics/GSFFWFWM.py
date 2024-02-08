@@ -251,7 +251,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
                         size=n_Generated_Maintenance - maxDailyMaintenance,
                     )
                     are_lines_in_maintenance[
-                        np.where(are_lines_in_maintenance)[0][not_chosen]
+                        np.nonzero(are_lines_in_maintenance)[0][not_chosen]
                     ] = False
                 maintenance_me[
                     selected_rows_beg:selected_rows_end, are_lines_in_maintenance

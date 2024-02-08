@@ -188,11 +188,11 @@ class ConnectivityConverter(Converter):
             if nb_element < 4:
                 continue
 
-            c_id = np.where(self.load_to_subid == sub_id)[0]
-            g_id = np.where(self.gen_to_subid == sub_id)[0]
-            lor_id = np.where(self.line_or_to_subid == sub_id)[0]
-            lex_id = np.where(self.line_ex_to_subid == sub_id)[0]
-            storage_id = np.where(self.storage_to_subid == sub_id)[0]
+            c_id = np.nonzero(self.load_to_subid == sub_id)[0]
+            g_id = np.nonzero(self.gen_to_subid == sub_id)[0]
+            lor_id = np.nonzero(self.line_or_to_subid == sub_id)[0]
+            lex_id = np.nonzero(self.line_ex_to_subid == sub_id)[0]
+            storage_id = np.nonzero(self.storage_to_subid == sub_id)[0]
 
             c_pos = self.load_to_sub_pos[self.load_to_subid == sub_id]
             g_pos = self.gen_to_sub_pos[self.gen_to_subid == sub_id]
@@ -380,7 +380,7 @@ class ConnectivityConverter(Converter):
             )
         if ((encoded_act < -1.0) | (encoded_act > 1.0)).any():
             errors = (encoded_act < -1.0) | (encoded_act > 1.0)
-            indexes = np.where(errors)[0]
+            indexes = np.nonzero(errors)[0]
             raise RuntimeError(
                 f'All elements of "encoded_act" must be in range [-1, 1]. Please check your '
                 f"encoded action at positions {indexes[:5]}... (only first 5 displayed)"
@@ -393,7 +393,7 @@ class ConnectivityConverter(Converter):
             return super().__call__()
 
         argsort_changed = np.argsort(-np.abs(encoded_act_filtered))
-        argsort = np.where(act_want_change)[0][argsort_changed]
+        argsort = np.nonzero(act_want_change)[0][argsort_changed]
         act, disag = self._aux_act_from_order(argsort, encoded_act)
         self.indx_sel = 0
         if explore is None:

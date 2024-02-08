@@ -524,7 +524,7 @@ class Environment(BaseEnv):
                 # deals with the "sub_pos" vector
                 for sub_id in range(cls_bk.n_sub):
                     if (cls_bk.storage_to_subid == sub_id).any():
-                        stor_ids = np.where(cls_bk.storage_to_subid == sub_id)[0]
+                        stor_ids = np.nonzero(cls_bk.storage_to_subid == sub_id)[0]
                         stor_locs = cls_bk.storage_to_sub_pos[stor_ids]
                         for stor_loc in sorted(stor_locs, reverse=True):
                             for vect, sub_id_me in zip(

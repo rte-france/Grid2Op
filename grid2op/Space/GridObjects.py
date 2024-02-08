@@ -2036,7 +2036,7 @@ class GridObjects:
 
         if not np.all(obj_per_sub == cls.sub_info):
             raise IncorrectNumberOfElements(
-                f"for substation(s): {np.where(obj_per_sub != cls.sub_info)[0]}"
+                f"for substation(s): {np.nonzero(obj_per_sub != cls.sub_info)[0]}"
             )
 
         # test right number of element in substations
@@ -2337,57 +2337,57 @@ class GridObjects:
             )
 
         if (cls.storage_Emax < cls.storage_Emin).any():
-            tmp = np.where(cls.storage_Emax < cls.storage_Emin)[0]
+            tmp = np.nonzero(cls.storage_Emax < cls.storage_Emin)[0]
             raise BackendError(
                 f"storage_Emax < storage_Emin for storage units with ids: {tmp}"
             )
         if (cls.storage_Emax < 0.0).any():
-            tmp = np.where(cls.storage_Emax < 0.0)[0]
+            tmp = np.nonzero(cls.storage_Emax < 0.0)[0]
             raise BackendError(
                 f"self.storage_Emax < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_Emin < 0.0).any():
-            tmp = np.where(cls.storage_Emin < 0.0)[0]
+            tmp = np.nonzero(cls.storage_Emin < 0.0)[0]
             raise BackendError(
                 f"self.storage_Emin < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_max_p_prod < 0.0).any():
-            tmp = np.where(cls.storage_max_p_prod < 0.0)[0]
+            tmp = np.nonzero(cls.storage_max_p_prod < 0.0)[0]
             raise BackendError(
                 f"self.storage_max_p_prod < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_max_p_absorb < 0.0).any():
-            tmp = np.where(cls.storage_max_p_absorb < 0.0)[0]
+            tmp = np.nonzero(cls.storage_max_p_absorb < 0.0)[0]
             raise BackendError(
                 f"self.storage_max_p_absorb < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_loss < 0.0).any():
-            tmp = np.where(cls.storage_loss < 0.0)[0]
+            tmp = np.nonzero(cls.storage_loss < 0.0)[0]
             raise BackendError(
                 f"self.storage_loss < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_discharging_efficiency <= 0.0).any():
-            tmp = np.where(cls.storage_discharging_efficiency <= 0.0)[0]
+            tmp = np.nonzero(cls.storage_discharging_efficiency <= 0.0)[0]
             raise BackendError(
                 f"self.storage_discharging_efficiency <= 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_discharging_efficiency > 1.0).any():
-            tmp = np.where(cls.storage_discharging_efficiency > 1.0)[0]
+            tmp = np.nonzero(cls.storage_discharging_efficiency > 1.0)[0]
             raise BackendError(
                 f"self.storage_discharging_efficiency > 1. for storage units with ids: {tmp}"
             )
         if (cls.storage_charging_efficiency < 0.0).any():
-            tmp = np.where(cls.storage_charging_efficiency < 0.0)[0]
+            tmp = np.nonzero(cls.storage_charging_efficiency < 0.0)[0]
             raise BackendError(
                 f"self.storage_charging_efficiency < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_charging_efficiency > 1.0).any():
-            tmp = np.where(cls.storage_charging_efficiency > 1.0)[0]
+            tmp = np.nonzero(cls.storage_charging_efficiency > 1.0)[0]
             raise BackendError(
                 f"self.storage_charging_efficiency > 1. for storage units with ids: {tmp}"
             )
         if (cls.storage_loss > cls.storage_max_p_absorb).any():
-            tmp = np.where(cls.storage_loss > cls.storage_max_p_absorb)[0]
+            tmp = np.nonzero(cls.storage_loss > cls.storage_max_p_absorb)[0]
             raise BackendError(
                 f"Some storage units are such that their loss (self.storage_loss) is higher "
                 f"than the maximum power at which they can be charged (self.storage_max_p_absorb). "
@@ -2884,11 +2884,11 @@ class GridObjects:
                 "".format(substation_id)
             )
         res = {
-            "loads_id": np.where(cls.load_to_subid == substation_id)[0],
-            "generators_id": np.where(cls.gen_to_subid == substation_id)[0],
-            "lines_or_id": np.where(cls.line_or_to_subid == substation_id)[0],
-            "lines_ex_id": np.where(cls.line_ex_to_subid == substation_id)[0],
-            "storages_id": np.where(cls.storage_to_subid == substation_id)[0],
+            "loads_id": np.nonzero(cls.load_to_subid == substation_id)[0],
+            "generators_id": np.nonzero(cls.gen_to_subid == substation_id)[0],
+            "lines_or_id": np.nonzero(cls.line_or_to_subid == substation_id)[0],
+            "lines_ex_id": np.nonzero(cls.line_ex_to_subid == substation_id)[0],
+            "storages_id": np.nonzero(cls.storage_to_subid == substation_id)[0],
             "nb_elements": cls.sub_info[substation_id],
         }
         return res
