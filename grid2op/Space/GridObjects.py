@@ -2894,6 +2894,46 @@ class GridObjects:
         return res
 
     @classmethod
+    def get_powerline_id(cls, sub_id: int) -> np.ndarray:
+        """
+        Return the id of all powerlines connected to the substation `sub_id`
+        either "or" side or "ex" side
+        
+        Parameters
+        -----------
+        sub_id: `int`
+            The id of the substation concerned
+            
+        Returns
+        -------     
+        res: np.ndarray, int
+            The id of all powerlines connected to this substation (either or side or ex side)
+        
+        Examples
+        --------
+
+        To get the id of all powerlines connected to substation with id 1, 
+        you can do:
+        
+        .. code-block:: python
+
+            import numpy as np
+            import grid2op
+            env = grid2op.make("l2rpn_case14_sandbox")
+            
+            all_lines_conn_to_sub_id_1 = type(env).get_powerline_id(1)   
+                
+        """
+        powerlines_or_id = cls.line_or_to_sub_pos[
+            cls.line_or_to_subid == sub_id
+        ]
+        powerlines_ex_id = cls.line_ex_to_sub_pos[
+            cls.line_ex_to_subid == sub_id
+        ]
+        powerlines_id = np.concatenate((powerlines_or_id, powerlines_ex_id))
+        return powerlines_id
+    
+    @classmethod
     def get_obj_substations(cls, _sentinel=None, substation_id=None):
         """
         Return the object connected as a substation in form of a numpy array instead of a dictionary (as

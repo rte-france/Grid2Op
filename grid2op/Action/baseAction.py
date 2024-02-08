@@ -817,7 +817,7 @@ class BaseAction(GridObjects):
         
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             # oldest version: no storage and no curtailment available
-            cls._aux_process_old_compat
+            cls._aux_process_old_compat()
             
         if glop_ver < version.parse("1.6.0"):
             # this feature did not exist before.
@@ -1521,6 +1521,158 @@ class BaseAction(GridObjects):
         else:
             getattr(self, attr_name)[:] = new_value
             
+    def _aux_iadd_inj(self, other):
+        for el in self.attr_list_vect:
+            if el in other._dict_inj:
+                if el not in self._dict_inj:
+                    self._dict_inj[el] = other._dict_inj[el]
+                else:
+                    val = other._dict_inj[el]
+                    ok_ind = np.isfinite(val)
+                    self._dict_inj[el][ok_ind] = val[ok_ind]
+        # warning if the action cannot be added
+        for el in other._dict_inj:
+            if not el in self.attr_list_set:
+                warnings.warn(
+                    type(self).ERR_ACTION_CUT.format(el)
+                )
+    
+    def _aux_iadd_redisp(self, other):
+        redispatching = other._redispatch
+        if (redispatching != 0.0).any():
+            if "_redispatch" not in self.attr_list_set:
+                warnings.warn(
+                    type(self).ERR_ACTION_CUT.format("_redispatch")
+                )
+            else:
+                ok_ind = np.isfinite(redispatching)
+                self._redispatch[ok_ind] += redispatching[ok_ind]
+    
+    def _aux_iadd_curtail(self, other):
+        curtailment = other._curtail
+        ok_ind = np.isfinite(curtailment) & (curtailment != -1.0)
+        if ok_ind.any():
+            if "_curtail" not in self.attr_list_set:
+                warnings.warn(
+                    type(self).ERR_ACTION_CUT.format("_curtail")
+                )
+            else:
+                # new curtailment of the results should be
+                # the curtailment of rhs, only when rhs acts
+                # on curtailment
+                self._curtail[ok_ind] = curtailment[ok_ind]
+    
+    def _aux_iadd_storage(self, other):
+        set_storage = other._storage_power
+        ok_ind = np.isfinite(set_storage) & (set_storage != 0.0).any()
+        if ok_ind.any():
+            if "_storage_power" not in self.attr_list_set:
+                warnings.warn(
+                    type(self).ERR_ACTION_CUT.format("_storage_power")
+                )
+            else:
+                self._storage_power[ok_ind] += set_storage[ok_ind]
+                
+    def _aux_iadd_modif_flags(self, other):
+        self._modif_change_bus = self._modif_change_bus or other._modif_change_bus
+        self._modif_set_bus = self._modif_set_bus or other._modif_set_bus
+        self._modif_change_status = (
+            self._modif_change_status or other._modif_change_status
+        )
+        self._modif_set_status = self._modif_set_status or other._modif_set_status
+        self._modif_inj = self._modif_inj or other._modif_inj
+        self._modif_redispatch = self._modif_redispatch or other._modif_redispatch
+        self._modif_storage = self._modif_storage or other._modif_storage
+        self._modif_curtailment = self._modif_curtailment or other._modif_curtailment
+        self._modif_alarm = self._modif_alarm or other._modif_alarm
+        self._modif_alert = self._modif_alert or other._modif_alert
+        
+    def _aux_iadd_shunt(self, other):
+        if not type(other).shunts_data_available:
+            warnings.warn("Trying to add an action that does not support "
+                          "shunt with an action that does.")
+            return
+        
+        val = other.shunt_p
+        ok_ind = np.isfinite(val)
+        shunt_p = 1.0 * self.shunt_p
+        shunt_p[ok_ind] = val[ok_ind]
+        self._assign_iadd_or_warn("shunt_p", shunt_p)
+
+        val = other.shunt_q
+        ok_ind = np.isfinite(val)
+        shunt_q = 1.0 * self.shunt_q
+        shunt_q[ok_ind] = val[ok_ind]
+        self._assign_iadd_or_warn("shunt_q", shunt_q)
+
+        val = other.shunt_bus
+        ok_ind = val != 0
+        shunt_bus = 1 * self.shunt_bus
+        shunt_bus[ok_ind] = val[ok_ind]
+        self._assign_iadd_or_warn("shunt_bus", shunt_bus)
+    
+    def _aux_iadd_set_change_status(self, other):
+        other_set = other._set_line_status
+        other_change = other._switch_line_status
+        me_set = 1 * self._set_line_status
+        me_change = copy.deepcopy(self._switch_line_status)
+
+        # i change, but so does the other, i do nothing
+        canceled_change = other_change & me_change
+        # i dont change, the other change, i change
+        update_change = other_change & ~me_change
+        # Defered apply to prevent conflicts
+        me_change[canceled_change] = False
+        me_change[update_change] = True
+
+        # i change, but the other set, it's erased
+        me_change[other_set != 0 & me_change] = False
+
+        # i set, but the other change, set to the opposite
+        inverted_set = other_change & (me_set != 0)
+        # so change +1 becomes -1 and -1 becomes +1
+        me_set[inverted_set] *= -1
+        # Has been inverted, cancel change
+        me_change[inverted_set] = False
+
+        # i set, the other set
+        me_set[other_set != 0] = other_set[other_set != 0]
+
+        self._assign_iadd_or_warn("_set_line_status", me_set)
+        self._assign_iadd_or_warn("_switch_line_status", me_change)
+        
+    def _aux_iadd_set_change_bus(self, other):
+        other_set = other._set_topo_vect
+        other_change = other._change_bus_vect
+        me_set = 1 * self._set_topo_vect
+        me_change = copy.deepcopy(self._change_bus_vect)
+
+        # i change, but so does the other, i do nothing
+        canceled_change = other_change & me_change
+        # i dont change, the other change, i change
+        update_change = other_change & ~me_change
+        # Defered apply to prevent conflicts
+        me_change[canceled_change] = False
+        me_change[update_change] = True
+
+        # i change, but the other set, it's erased
+        me_change[other_set != 0 & me_change] = False
+
+        # i set, but the other change, set to the opposite
+        inverted_set = other_change & (me_set > 0)
+        # so change +1 becomes +2 and +2 becomes +1
+        me_set[inverted_set] -= 1  # 1 becomes 0 and 2 becomes 1
+        me_set[inverted_set] *= -1  # 1 is 0 and 2 becomes -1
+        me_set[inverted_set] += 2  # 1 is 2 and 2 becomes 1
+        # Has been inverted, cancel change
+        me_change[inverted_set] = False
+
+        # i set, the other set
+        me_set[other_set != 0] = other_set[other_set != 0]
+
+        self._assign_iadd_or_warn("_set_topo_vect", me_set)
+        self._assign_iadd_or_warn("_change_bus_vect", me_change)
+        
     def __iadd__(self, other: Self):
         """
         Add an action to this one.
@@ -1557,138 +1709,26 @@ class BaseAction(GridObjects):
         """
 
         # deal with injections
-        for el in self.attr_list_vect:
-            if el in other._dict_inj:
-                if el not in self._dict_inj:
-                    self._dict_inj[el] = other._dict_inj[el]
-                else:
-                    val = other._dict_inj[el]
-                    ok_ind = np.isfinite(val)
-                    self._dict_inj[el][ok_ind] = val[ok_ind]
-                    
-        # warning if the action cannot be added
-        for el in other._dict_inj:
-            if not el in self.attr_list_set:
-                warnings.warn(
-                    type(self).ERR_ACTION_CUT.format(el)
-                )
+        self._aux_iadd_inj(other)
+                
         # redispatching
-        redispatching = other._redispatch
-        if (redispatching != 0.0).any():
-            if "_redispatch" not in self.attr_list_set:
-                warnings.warn(
-                    type(self).ERR_ACTION_CUT.format("_redispatch")
-                )
-            else:
-                ok_ind = np.isfinite(redispatching)
-                self._redispatch[ok_ind] += redispatching[ok_ind]
-
+        self._aux_iadd_redisp(other)
+        
         # storage
-        set_storage = other._storage_power
-        ok_ind = np.isfinite(set_storage) & (set_storage != 0.0).any()
-        if ok_ind.any():
-            if "_storage_power" not in self.attr_list_set:
-                warnings.warn(
-                    type(self).ERR_ACTION_CUT.format("_storage_power")
-                )
-            else:
-                self._storage_power[ok_ind] += set_storage[ok_ind]
+        self._aux_iadd_storage(other)
 
         # curtailment
-        curtailment = other._curtail
-        ok_ind = np.isfinite(curtailment) & (curtailment != -1.0)
-        if ok_ind.any():
-            if "_curtail" not in self.attr_list_set:
-                warnings.warn(
-                    type(self).ERR_ACTION_CUT.format("_curtail")
-                )
-            else:
-                # new curtailment of the results should be
-                # the curtailment of rhs, only when rhs acts
-                # on curtailment
-                self._curtail[ok_ind] = curtailment[ok_ind]
+        self._aux_iadd_curtail(other)
 
         # set and change status
-        other_set = other._set_line_status
-        other_change = other._switch_line_status
-        me_set = 1 * self._set_line_status
-        me_change = copy.deepcopy(self._switch_line_status)
-
-        # i change, but so does the other, i do nothing
-        canceled_change = other_change & me_change
-        # i dont change, the other change, i change
-        update_change = other_change & ~me_change
-        # Defered apply to prevent conflicts
-        me_change[canceled_change] = False
-        me_change[update_change] = True
-
-        # i change, but the other set, it's erased
-        me_change[other_set != 0 & me_change] = False
-
-        # i set, but the other change, set to the opposite
-        inverted_set = other_change & (me_set != 0)
-        # so change +1 becomes -1 and -1 becomes +1
-        me_set[inverted_set] *= -1
-        # Has been inverted, cancel change
-        me_change[inverted_set] = False
-
-        # i set, the other set
-        me_set[other_set != 0] = other_set[other_set != 0]
-
-        self._assign_iadd_or_warn("_set_line_status", me_set)
-        self._assign_iadd_or_warn("_switch_line_status", me_change)
+        self._aux_iadd_set_change_status(other)
 
         # set and change bus
-        other_set = other._set_topo_vect
-        other_change = other._change_bus_vect
-        me_set = 1 * self._set_topo_vect
-        me_change = copy.deepcopy(self._change_bus_vect)
-
-        # i change, but so does the other, i do nothing
-        canceled_change = other_change & me_change
-        # i dont change, the other change, i change
-        update_change = other_change & ~me_change
-        # Defered apply to prevent conflicts
-        me_change[canceled_change] = False
-        me_change[update_change] = True
-
-        # i change, but the other set, it's erased
-        me_change[other_set != 0 & me_change] = False
-
-        # i set, but the other change, set to the opposite
-        inverted_set = other_change & (me_set > 0)
-        # so change +1 becomes +2 and +2 becomes +1
-        me_set[inverted_set] -= 1  # 1 becomes 0 and 2 becomes 1
-        me_set[inverted_set] *= -1  # 1 is 0 and 2 becomes -1
-        me_set[inverted_set] += 2  # 1 is 2 and 2 becomes 1
-        # Has been inverted, cancel change
-        me_change[inverted_set] = False
-
-        # i set, the other set
-        me_set[other_set != 0] = other_set[other_set != 0]
-
-        self._assign_iadd_or_warn("_set_topo_vect", me_set)
-        self._assign_iadd_or_warn("_change_bus_vect", me_change)
+        self._aux_iadd_set_change_bus(other)
 
         # shunts
         if type(self).shunts_data_available:
-            val = other.shunt_p
-            ok_ind = np.isfinite(val)
-            shunt_p = 1.0 * self.shunt_p
-            shunt_p[ok_ind] = val[ok_ind]
-            self._assign_iadd_or_warn("shunt_p", shunt_p)
-
-            val = other.shunt_q
-            ok_ind = np.isfinite(val)
-            shunt_q = 1.0 * self.shunt_q
-            shunt_q[ok_ind] = val[ok_ind]
-            self._assign_iadd_or_warn("shunt_q", shunt_q)
-
-            val = other.shunt_bus
-            ok_ind = val != 0
-            shunt_bus = 1 * self.shunt_bus
-            shunt_bus[ok_ind] = val[ok_ind]
-            self._assign_iadd_or_warn("shunt_bus", shunt_bus)
+            self._aux_iadd_shunt(other)
 
         # alarm feature
         self._raise_alarm[other._raise_alarm] = True
@@ -1698,19 +1738,7 @@ class BaseAction(GridObjects):
 
 
         # the modif flags
-        self._modif_change_bus = self._modif_change_bus or other._modif_change_bus
-        self._modif_set_bus = self._modif_set_bus or other._modif_set_bus
-        self._modif_change_status = (
-            self._modif_change_status or other._modif_change_status
-        )
-        self._modif_set_status = self._modif_set_status or other._modif_set_status
-        self._modif_inj = self._modif_inj or other._modif_inj
-        self._modif_redispatch = self._modif_redispatch or other._modif_redispatch
-        self._modif_storage = self._modif_storage or other._modif_storage
-        self._modif_curtailment = self._modif_curtailment or other._modif_curtailment
-        self._modif_alarm = self._modif_alarm or other._modif_alarm
-        self._modif_alert = self._modif_alert or other._modif_alert
-
+        self._aux_iadd_modif_flags(other)
         return self
 
     def __add__(self, other)  -> "BaseAction":
@@ -2874,49 +2902,55 @@ class BaseAction(GridObjects):
         self._set_topo_vect[np.array(self.line_ex_pos_topo_vect[sel_])] = 0
         self._change_bus_vect[np.array(self.line_ex_pos_topo_vect[sel_])] = False
 
-    def _obj_caract_from_topo_id(self, id_, with_name=False):
-        obj_id = None
-        objt_type = None
-        array_subid = None
-        cls = type(self)
-        for l_id, id_in_topo in enumerate(cls.load_pos_topo_vect):
+    def _aux_obj_caract(self, id_, with_name, xxx_pos_topo_vect, objt_type, xxx_subid, name_xxx):
+        for l_id, id_in_topo in enumerate(xxx_pos_topo_vect):
             if id_in_topo == id_:
                 obj_id = l_id
-                objt_type = "load"
-                array_subid = cls.load_to_subid
-                obj_name = cls.name_load[l_id]
-        if obj_id is None:
-            for l_id, id_in_topo in enumerate(cls.gen_pos_topo_vect):
-                if id_in_topo == id_:
-                    obj_id = l_id
-                    objt_type = "generator"
-                    array_subid = cls.gen_to_subid
-                    obj_name = cls.name_gen[l_id]
-        if obj_id is None:
-            for l_id, id_in_topo in enumerate(cls.line_or_pos_topo_vect):
-                if id_in_topo == id_:
-                    obj_id = l_id
-                    objt_type = self._line_or_str
-                    array_subid = cls.line_or_to_subid
-                    obj_name = cls.name_line[l_id]
-        if obj_id is None:
-            for l_id, id_in_topo in enumerate(cls.line_ex_pos_topo_vect):
-                if id_in_topo == id_:
-                    obj_id = l_id
-                    objt_type = self._line_ex_str
-                    array_subid = cls.line_ex_to_subid
-                    obj_name = cls.name_line[l_id]
-        if obj_id is None:
-            for l_id, id_in_topo in enumerate(cls.storage_pos_topo_vect):
-                if id_in_topo == id_:
-                    obj_id = l_id
-                    objt_type = "storage"
-                    array_subid = cls.storage_to_subid
-                    obj_name = cls.name_storage[l_id]
-        substation_id = array_subid[obj_id]
-        if not with_name:
-            return obj_id, objt_type, substation_id 
-        return obj_id, objt_type, substation_id, obj_name
+                obj_name = name_xxx[l_id]
+                substation_id = xxx_subid[obj_id]
+                if not with_name:
+                    return obj_id, objt_type, substation_id 
+                return obj_id, objt_type, substation_id, obj_name
+        return None
+        
+    def _aux_obj_caract_from_topo_id_load(self, cls, id_, with_name):
+        return self._aux_obj_caract(id_, with_name, cls.load_pos_topo_vect, "load", cls.load_to_subid, cls.name_load)
+
+    def _aux_obj_caract_from_topo_id_gen(self, cls, id_, with_name):
+        return self._aux_obj_caract(id_, with_name, cls.gen_pos_topo_vect,
+                                    "generator", cls.gen_to_subid, cls.name_gen)
+        
+    def _aux_obj_caract_from_topo_id_lor(self, cls, id_, with_name):
+        return self._aux_obj_caract(id_, with_name, cls.line_or_pos_topo_vect,
+                                    self._line_or_str, cls.line_or_to_subid, cls.name_line)
+        
+    def _aux_obj_caract_from_topo_id_lex(self, cls, id_, with_name):
+        return self._aux_obj_caract(id_, with_name, cls.line_ex_pos_topo_vect,
+                                    self._line_ex_str, cls.line_ex_to_subid, cls.name_line)
+        
+    def _aux_obj_caract_from_topo_storage(self, cls, id_, with_name):
+        return self._aux_obj_caract(id_, with_name, cls.storage_pos_topo_vect,
+                                    "storage", cls.storage_to_subid, cls.name_storage)
+        
+    def _obj_caract_from_topo_id(self, id_, with_name=False):
+        # TODO refactor this with gridobj.topo_vect_element
+        cls = type(self)
+        tmp = self._aux_obj_caract_from_topo_id_load(cls, id_, with_name)
+        if tmp is not None:
+            return tmp
+        tmp = self._aux_obj_caract_from_topo_id_gen(cls, id_, with_name)
+        if tmp is not None:
+            return tmp
+        tmp = self._aux_obj_caract_from_topo_id_lor(cls, id_, with_name)
+        if tmp is not None:
+            return tmp
+        tmp = self._aux_obj_caract_from_topo_id_lex(cls, id_, with_name)
+        if tmp is not None:
+            return tmp
+        tmp = self._aux_obj_caract_from_topo_storage(cls, id_, with_name)
+        if tmp is not None:
+            return tmp
+        raise Grid2OpException(f"Unknown element in topovect with id {id_}")
 
     def __str__(self) -> str:
         """
@@ -3267,6 +3301,69 @@ class BaseAction(GridObjects):
             "curtailment": curtailment,
         }
 
+    def _aux_as_dict_set_line(self, res):
+        res["set_line_status"] = {}
+        res["set_line_status"]["nb_connected"] = (self._set_line_status == 1).sum()
+        res["set_line_status"]["nb_disconnected"] = (
+            self._set_line_status == -1
+        ).sum()
+        res["set_line_status"]["connected_id"] = np.nonzero(
+            self._set_line_status == 1
+        )[0]
+        res["set_line_status"]["disconnected_id"] = np.nonzero(
+            self._set_line_status == -1
+        )[0]
+        
+    def _aux_as_dict_change_line(self, res):
+        res["change_line_status"] = {}
+        res["change_line_status"]["nb_changed"] = self._switch_line_status.sum()
+        res["change_line_status"]["changed_id"] = np.nonzero(
+            self._switch_line_status
+        )[0]
+    
+    def _aux_as_dict_change_bus(self, res):
+        res["change_bus_vect"] = {}
+        res["change_bus_vect"]["nb_modif_objects"] = self._change_bus_vect.sum()
+        all_subs = set()
+        for id_, k in enumerate(self._change_bus_vect):
+            if k:
+                obj_id, objt_type, substation_id, nm_  = self._obj_caract_from_topo_id(
+                    id_, with_name=True
+                )
+                sub_id = "{}".format(substation_id)
+                if not sub_id in res["change_bus_vect"]:
+                    res["change_bus_vect"][sub_id] = {}
+                res["change_bus_vect"][sub_id][nm_] = {
+                    "type": objt_type,
+                    "id": obj_id,
+                }
+                all_subs.add(sub_id)
+
+        res["change_bus_vect"]["nb_modif_subs"] = len(all_subs)
+        res["change_bus_vect"]["modif_subs_id"] = sorted(all_subs)
+    
+    def _aux_as_dict_set_bus(self, res):
+        res["set_bus_vect"] = {}
+        res["set_bus_vect"]["nb_modif_objects"] = (self._set_topo_vect != 0).sum()
+        all_subs = set()
+        for id_, k in enumerate(self._set_topo_vect):
+            if k != 0:
+                obj_id, objt_type, substation_id, nm_ = self._obj_caract_from_topo_id(
+                    id_, with_name=True
+                )
+                sub_id = "{}".format(substation_id)
+                if not sub_id in res["set_bus_vect"]:
+                    res["set_bus_vect"][sub_id] = {}
+                res["set_bus_vect"][sub_id][nm_] = {
+                    "type": objt_type,
+                    "id": obj_id,
+                    "new_bus": k,
+                }
+                all_subs.add(sub_id)
+
+        res["set_bus_vect"]["nb_modif_subs"] = len(all_subs)
+        res["set_bus_vect"]["modif_subs_id"] = sorted(all_subs)
+        
     def as_dict(self) -> Dict[Literal["load_p", "load_q", "prod_p", "prod_v",
                                       "change_line_status", "set_line_status",
                                       "change_bus_vect", "set_bus_vect",
@@ -3343,70 +3440,19 @@ class BaseAction(GridObjects):
 
         # handles actions on force line status
         if (self._set_line_status != 0).any():
-            res["set_line_status"] = {}
-            res["set_line_status"]["nb_connected"] = (self._set_line_status == 1).sum()
-            res["set_line_status"]["nb_disconnected"] = (
-                self._set_line_status == -1
-            ).sum()
-            res["set_line_status"]["connected_id"] = np.nonzero(
-                self._set_line_status == 1
-            )[0]
-            res["set_line_status"]["disconnected_id"] = np.nonzero(
-                self._set_line_status == -1
-            )[0]
+            self._aux_as_dict_set_line(res)
 
         # handles action on swtich line status
         if self._switch_line_status.sum():
-            res["change_line_status"] = {}
-            res["change_line_status"]["nb_changed"] = self._switch_line_status.sum()
-            res["change_line_status"]["changed_id"] = np.nonzero(
-                self._switch_line_status
-            )[0]
+            self._aux_as_dict_change_line(res)
 
         # handles topology change
         if (self._change_bus_vect).any():
-            res["change_bus_vect"] = {}
-            res["change_bus_vect"]["nb_modif_objects"] = self._change_bus_vect.sum()
-            all_subs = set()
-            for id_, k in enumerate(self._change_bus_vect):
-                if k:
-                    obj_id, objt_type, substation_id, nm_  = self._obj_caract_from_topo_id(
-                        id_, with_name=True
-                    )
-                    sub_id = "{}".format(substation_id)
-                    if not sub_id in res["change_bus_vect"]:
-                        res["change_bus_vect"][sub_id] = {}
-                    res["change_bus_vect"][sub_id][nm_] = {
-                        "type": objt_type,
-                        "id": obj_id,
-                    }
-                    all_subs.add(sub_id)
-
-            res["change_bus_vect"]["nb_modif_subs"] = len(all_subs)
-            res["change_bus_vect"]["modif_subs_id"] = sorted(all_subs)
+            self._aux_as_dict_change_bus(res)
 
         # handles topology set
         if (self._set_topo_vect!= 0).any():
-            res["set_bus_vect"] = {}
-            res["set_bus_vect"]["nb_modif_objects"] = (self._set_topo_vect != 0).sum()
-            all_subs = set()
-            for id_, k in enumerate(self._set_topo_vect):
-                if k != 0:
-                    obj_id, objt_type, substation_id, nm_ = self._obj_caract_from_topo_id(
-                        id_, with_name=True
-                    )
-                    sub_id = "{}".format(substation_id)
-                    if not sub_id in res["set_bus_vect"]:
-                        res["set_bus_vect"][sub_id] = {}
-                    res["set_bus_vect"][sub_id][nm_] = {
-                        "type": objt_type,
-                        "id": obj_id,
-                        "new_bus": k,
-                    }
-                    all_subs.add(sub_id)
-
-            res["set_bus_vect"]["nb_modif_subs"] = len(all_subs)
-            res["set_bus_vect"]["modif_subs_id"] = sorted(all_subs)
+            self._aux_as_dict_set_bus(res)
 
         if self._hazards.any():
             res["hazards"] = np.nonzero(self._hazards)[0]
@@ -3416,7 +3462,7 @@ class BaseAction(GridObjects):
             res["maintenance"] = np.nonzero(self._maintenance)[0]
             res["nb_maintenance"] = self._maintenance.sum()
 
-        if (self._redispatch != 0.0).any():
+        if (np.abs(self._redispatch) >= 1e-7).any():
             res["redispatch"] = 1.0 * self._redispatch
 
         if self._modif_storage:

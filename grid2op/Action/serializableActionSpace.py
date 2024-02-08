@@ -176,11 +176,7 @@ class SerializableActionSpace(SerializableSpace):
             f"You provided {action_type} which is not supported."
         )
         cls = type(self)
-        if action_type == "storage_power":
-            return (cls.n_storage > 0) and (
-                "set_storage" in self.actionClass.authorized_keys
-            )
-        elif action_type == "set_storage":
+        if action_type == "storage_power" or action_type == "set_storage":
             return (cls.n_storage > 0) and (
                 "set_storage" in self.actionClass.authorized_keys
             )
@@ -1086,7 +1082,6 @@ class SerializableActionSpace(SerializableSpace):
                 # which is alreay added somewhere else. The current topologie
                 # is not valid.
                 return False
-        return True
     
     @classmethod
     def _is_ok_line(cls, n_busbar_per_sub: int, tup: np.ndarray, lines_id: np.ndarray) -> bool:
@@ -1099,14 +1094,16 @@ class SerializableActionSpace(SerializableSpace):
         # So to make sure that every buses has at least a line connected to it
         # then I just check the number of unique buses (tup.max())
         # and compare it to the number of buses where there are
-        # at least a line len(buses_with_lines)        
+        # at least a line len(buses_with_lines)    
+        
+        # NB the alternative implementation is slower
+        # >>> buses_with_lines = np.unique(tup[lines_id])
+        # >>> return buses_with_lines.size == tup.max()    
         nb = 0
         only_line = tup[lines_id]
         for el in range(1, n_busbar_per_sub +1):
             nb += (only_line == el).any()
         return nb == tup.max()
-        # buses_with_lines = np.unique(tup[lines_id])  # slower than python code above
-        # return buses_with_lines.size == tup.max()
     
     @classmethod
     def _is_ok_2(cls, n_busbar_per_sub : int, tup) -> bool:
@@ -1120,13 +1117,47 @@ class SerializableActionSpace(SerializableSpace):
         # then I just check the number of unique buses (tup.max())
         # and compare it to the number of buses where there are
         # at least a line len(buses_with_lines)
+        
+        
+        # NB the alternative implementation is slower
+        # >>> un_, count = np.unique(tup, return_counts=True)
+        # >>> return (count >= 2).all()
         for el in range(1, tup.max() + 1):
             if (tup == el).sum() < 2:
                 return False
         return True
-        # un_, count = np.unique(tup, return_counts=True)  # slower than python code above
-        # return (count >= 2).all()
     
+    @staticmethod
+    def _aux_get_all_unitary_topologies_set_comp_topo(S, num_el, action_space,
+                                                      cls, powerlines_id, add_alone_line,
+                                                      _count_only, sub_id_):
+        if not _count_only:
+            tmp = []
+        else:
+            tmp = 0
+                
+        for tup in itertools.product(S, repeat=num_el - 1):
+            tup = np.array((1, *tup))  # force first el on bus 1 to break symmetry
+            
+            if not action_space._is_ok_symmetry(cls.n_busbar_per_sub, tup):
+                # already added (by symmetry)
+                continue
+            if not action_space._is_ok_line(cls.n_busbar_per_sub, tup, powerlines_id):
+                # check there is at least one line per busbars
+                continue
+            if not add_alone_line and not action_space._is_ok_2(cls.n_busbar_per_sub, tup):
+                # check there are at least 2 elements per buses
+                continue
+            
+            if not _count_only:
+                action = action_space(
+                    {"set_bus": {"substations_id": [(sub_id_, tup)]}}
+                )
+                tmp.append(action)
+            else:
+                tmp += 1
+        return tmp
+        
     @staticmethod
     def get_all_unitary_topologies_set(action_space: Self,
                                        sub_id: int=None,
@@ -1224,45 +1255,14 @@ class SerializableActionSpace(SerializableSpace):
         
         res = []
         S = list(range(1, cls.n_busbar_per_sub + 1))
-        for sub_id_, num_el in enumerate(cls.sub_info):
-            if not _count_only:
-                tmp = []
-            else:
-                tmp = 0
-                
-            if sub_id is not None:
-                if sub_id_ != sub_id:
-                    continue
-
-            powerlines_or_id = cls.line_or_to_sub_pos[
-                cls.line_or_to_subid == sub_id_
-            ]
-            powerlines_ex_id = cls.line_ex_to_sub_pos[
-                cls.line_ex_to_subid == sub_id_
-            ]
-            powerlines_id = np.concatenate((powerlines_or_id, powerlines_ex_id))
-
+        if sub_id is not None:            
+            num_el = cls.sub_info[sub_id]
+            powerlines_id = cls.get_powerline_id(sub_id)
+            
             # computes all the topologies at 2 buses for this substation
-            for tup in itertools.product(S, repeat=num_el - 1):
-                tup = np.array((1, *tup))  # force first el on bus 1 to break symmetry
-                
-                if not action_space._is_ok_symmetry(cls.n_busbar_per_sub, tup):
-                    # already added (by symmetry)
-                    continue
-                if not action_space._is_ok_line(cls.n_busbar_per_sub, tup, powerlines_id):
-                    # check there is at least one line per busbars
-                    continue
-                if not add_alone_line and not action_space._is_ok_2(cls.n_busbar_per_sub, tup):
-                    # check there are at least 2 elements per buses
-                    continue
-                
-                if not _count_only:
-                    action = action_space(
-                        {"set_bus": {"substations_id": [(sub_id_, tup)]}}
-                    )
-                    tmp.append(action)
-                else:
-                    tmp += 1
+            tmp = action_space._aux_get_all_unitary_topologies_set_comp_topo(S, num_el, action_space,
+                                                                       cls, powerlines_id, add_alone_line,
+                                                                       _count_only, sub_id)
 
             if not _count_only and len(tmp) >= 2:
                 # if i have only one single topology on this substation, it doesn't make any action
@@ -1270,10 +1270,21 @@ class SerializableActionSpace(SerializableSpace):
                 res += tmp
             elif _count_only:
                 if tmp >= 2:
-                    res.append(tmp)
+                    res = tmp
                 else:
                     # no real way to change if there is only one valid topology
-                    res.append(0)
+                    res = 0
+            return res
+                                
+        for sub_id in range(cls.n_sub):
+            this = cls.get_all_unitary_topologies_set(action_space,
+                                                      sub_id,
+                                                      add_alone_line,
+                                                      _count_only)
+            if not _count_only:
+                res += this
+            else:
+                res.append(this)
         return res
 
     @staticmethod

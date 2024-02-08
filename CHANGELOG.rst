@@ -50,6 +50,8 @@ Change Log
 - [FIXED] `MultiDiscreteActSpace` and `DiscreteActSpace` could be the same classes
   on some cases (typo in the code).
 - [ADDED] a method `gridobj.topo_vect_element()` that does the opposite of `gridobj.xxx_pos_topo_vect`
+- [ADDED] a mthod `gridobj.get_powerline_id(sub_id)` that gives the
+  id of all powerlines connected to a given substation
 - [IMPROVED] handling of "compatibility" grid2op version
   (by calling the relevant things done in the base class 
   in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`

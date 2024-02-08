@@ -1627,6 +1627,13 @@ class TestGym(unittest.TestCase):
     pass
 
 
+class TestRules(unittest.TestCase):
+    """test the rules for the reco / deco of line works also when >= 3 busbars, 
+    also ttests the act.get_impact()...
+    """
+    pass
+
+
 if __name__ == "__main__":
     unittest.main()
         

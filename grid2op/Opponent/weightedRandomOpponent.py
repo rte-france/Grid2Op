@@ -73,7 +73,7 @@ class WeightedRandomOpponent(BaseOpponent):
         # Store attackable lines IDs
         self._lines_ids = []
         for l_name in lines_attacked:
-            l_id = np.whnonzeroere(self.action_space.name_line == l_name)
+            l_id = np.nonzero(self.action_space.name_line == l_name)
             if len(l_id) and len(l_id[0]):
                 self._lines_ids.append(l_id[0][0])
             else:
