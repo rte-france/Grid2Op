@@ -30,6 +30,8 @@ from grid2op.Backend import Backend   # required
 # to serve as an example
 import pandapower as pp
 
+ERR_MSG_ELSEWHERE = "Will be detailed in another example script"
+
 
 class CustomBackend_Step1(Backend):
     def load_grid(self,
@@ -97,25 +99,25 @@ class CustomBackend_Step1(Backend):
         self._compute_pos_big_topo()
 
     def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError()
     
     def runpf(self, is_dc : bool=False) -> Tuple[bool, Union[Exception, None]]:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
     
     def get_topo_vect(self) -> np.ndarray:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
     
     def generators_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
     
     def loads_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
     
     def lines_or_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
     
     def lines_ex_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
 
 
 if __name__ == "__main__":

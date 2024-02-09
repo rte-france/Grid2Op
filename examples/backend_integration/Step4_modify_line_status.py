@@ -224,10 +224,10 @@ if __name__ == "__main__":
     print(f"{q_or = }")
     print(f"{v_or = }")
     print(f"{a_or = }")
-    assert p_or[0] == 0.
-    assert q_or[0] == 0.
-    assert v_or[0] == 0.
-    assert a_or[0] == 0.
+    assert np.abs(p_or[0]) <= 1e-7
+    assert np.abs(q_or[0]) <= 1e-7
+    assert np.abs(v_or[0]) <= 1e-7
+    assert np.abs(a_or[0]) <= 1e-7
     
     # this is how "user" manipute the grid
     # in this I reconnect powerline 0
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     print(f"{q_or = }")
     print(f"{v_or = }")
     print(f"{a_or = }")
-    assert p_or[line_id] == 0.
-    assert q_or[line_id] == 0.
-    assert v_or[line_id] == 0.
-    assert a_or[line_id] == 0.
+    assert np.abs(p_or[line_id]) <= 1e-7
+    assert np.abs(q_or[line_id]) <= 1e-7
+    assert np.abs(v_or[line_id]) <= 1e-7
+    assert np.abs(a_or[line_id]) <= 1e-7

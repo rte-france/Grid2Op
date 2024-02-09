@@ -736,7 +736,7 @@ class GridStateFromFile(GridValue):
                     self.hazards[:, line_id]
                 )
 
-            self.hazards = self.hazards != 0.0
+            self.hazards = np.abs(self.hazards) >= 1e-7
         if maintenance is not None:
             self.maintenance = copy.deepcopy(
                 maintenance.values[:, self._order_maintenance]
@@ -759,7 +759,7 @@ class GridStateFromFile(GridValue):
                 ] = self.get_maintenance_duration_1d(self.maintenance[:, line_id])
 
             # there are _maintenance and hazards only if the value in the file is not 0.
-            self.maintenance = self.maintenance != 0.0
+            self.maintenance = np.abs(self.maintenance) >= 1e-7
             self.maintenance = self.maintenance.astype(dt_bool)
 
     def done(self):

@@ -350,7 +350,6 @@ class FromOneEpisodeData(GridValue):
         else:
             # TODO EpisodeData.path !!!
             return ""
-            raise NotImplementedError()
     
     def shuffle(self, shuffler=None):
         # TODO

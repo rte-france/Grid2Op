@@ -564,7 +564,7 @@ class PlotPlotly(BasePlot):
         capacity = observation.rho[line_id]
         capacity = np.clip(capacity, 0.0, 1.0)
         color = color_scheme[int(capacity * float(len(color_scheme) - 1))]
-        if capacity == 0.0:
+        if np.abs(capacity) <= 1e-7:
             color = "black"
         line_style = dict(dash=None if connected else "dash", color=color)
         line_text = ""
@@ -613,7 +613,7 @@ class PlotPlotly(BasePlot):
         capacity = min(observation.rho[line_id], 1.0)
         color_idx = int(capacity * (len(color_scheme) - 1))
         color = color_scheme[color_idx]
-        if capacity == 0.0:
+        if np.abs(capacity) <= 1e-7:
             color = "black"
         if line_value is not None:
             line_text = pltu.format_value_unit(line_value, line_unit)
