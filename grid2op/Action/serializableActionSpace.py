@@ -1128,7 +1128,7 @@ class SerializableActionSpace(SerializableSpace):
         return True
     
     @staticmethod
-    def _aux_get_all_unitary_topologies_set_comp_topo(S, num_el, action_space,
+    def _aux_get_all_unitary_topologies_set_comp_topo(busbar_set, num_el, action_space,
                                                       cls, powerlines_id, add_alone_line,
                                                       _count_only, sub_id_):
         if not _count_only:
@@ -1136,7 +1136,7 @@ class SerializableActionSpace(SerializableSpace):
         else:
             tmp = 0
                 
-        for tup in itertools.product(S, repeat=num_el - 1):
+        for tup in itertools.product(busbar_set, repeat=num_el - 1):
             tup = np.array((1, *tup))  # force first el on bus 1 to break symmetry
             
             if not action_space._is_ok_symmetry(cls.n_busbar_per_sub, tup):
@@ -1274,17 +1274,16 @@ class SerializableActionSpace(SerializableSpace):
                 else:
                     # no real way to change if there is only one valid topology
                     res = 0
-            return res
+            if not _count_only:
+                return res
+            return [res]  # need to be a list still
                                 
         for sub_id in range(cls.n_sub):
             this = cls.get_all_unitary_topologies_set(action_space,
                                                       sub_id,
                                                       add_alone_line,
                                                       _count_only)
-            if not _count_only:
-                res += this
-            else:
-                res.append(this)
+            res += this
         return res
 
     @staticmethod

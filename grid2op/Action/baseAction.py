@@ -3363,6 +3363,17 @@ class BaseAction(GridObjects):
 
         res["set_bus_vect"]["nb_modif_subs"] = len(all_subs)
         res["set_bus_vect"]["modif_subs_id"] = sorted(all_subs)
+    
+    def _aux_as_dict_shunt(self, res): 
+        tmp = {}
+        if np.any(np.isfinite(self.shunt_p)):
+            tmp["shunt_p"] = 1.0 * self.shunt_p
+        if np.any(np.isfinite(self.shunt_q)):
+            tmp["shunt_q"] = 1.0 * self.shunt_q
+        if np.any(self.shunt_bus != 0):
+            tmp["shunt_bus"] = 1.0 * self.shunt_bus
+        if tmp:
+            res["shunt"] = tmp
         
     def as_dict(self) -> Dict[Literal["load_p", "load_q", "prod_p", "prod_v",
                                       "change_line_status", "set_line_status",
@@ -3472,15 +3483,7 @@ class BaseAction(GridObjects):
             res["curtailment"] = 1.0 * self._curtail
             
         if type(self).shunts_data_available:
-            tmp = {}
-            if np.any(np.isfinite(self.shunt_p)):
-                tmp["shunt_p"] = 1.0 * self.shunt_p
-            if np.any(np.isfinite(self.shunt_q)):
-                tmp["shunt_q"] = 1.0 * self.shunt_q
-            if np.any(self.shunt_bus != 0):
-                tmp["shunt_bus"] = 1.0 * self.shunt_bus
-            if tmp:
-                res["shunt"] = tmp
+            self._aux_as_dict_shunt(res)
         return res
 
     def get_types(self) -> Tuple[bool, bool, bool, bool, bool, bool, bool]:
@@ -6281,7 +6284,7 @@ class BaseAction(GridObjects):
             tmp._redispatch = 1. * self._redispatch
             res["redispatch"] = [tmp]
         else:
-            gen_changed = np.whernonzeroe(np.abs(self._redispatch) >= 1e-7)[0]
+            gen_changed = np.nonzero(np.abs(self._redispatch) >= 1e-7)[0]
             res["redispatch"] = []
             for g_id in gen_changed:
                 tmp = cls()

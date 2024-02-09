@@ -557,7 +557,7 @@ class PandaPowerBackend(Backend):
         # "hack" to handle topological changes, for now only 2 buses per substation
         add_topo = copy.deepcopy(self._grid.bus)
         # TODO n_busbar: what if non contiguous indexing ???
-        for busbar_supp in range(self.n_busbar_per_sub - 1):   # self.n_busbar_per_sub and not type(self) here otherwise it erases can_handle_more_than_2_busbar / cannot_handle_more_than_2_busbar
+        for _ in range(self.n_busbar_per_sub - 1):   # self.n_busbar_per_sub and not type(self) here otherwise it erases can_handle_more_than_2_busbar / cannot_handle_more_than_2_busbar
             add_topo.index += add_topo.shape[0]
             add_topo["in_service"] = False
             for ind, el in add_topo.iterrows():
@@ -818,8 +818,6 @@ class PandaPowerBackend(Backend):
         """
         if backendAction is None:
             return
-        from grid2op.Action._backendAction import _BackendAction
-        backendAction : _BackendAction = backendAction
         
         cls = type(self)
         
@@ -873,7 +871,6 @@ class PandaPowerBackend(Backend):
             deactivated = new_bus_num <= -1
             deact_and_changed = deactivated & stor_bus.changed
             new_bus_num[deact_and_changed] = cls.storage_to_subid[deact_and_changed]
-            # self._grid.storage["in_service"][stor_bus.changed & deactivated] = False
             self._grid.storage.loc[stor_bus.changed & deactivated, "in_service"] = False
             self._grid.storage.loc[stor_bus.changed & ~deactivated, "in_service"] = True
             self._grid.storage["bus"] = new_bus_num
