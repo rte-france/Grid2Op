@@ -20,13 +20,16 @@ to manipulate.
 import warnings
 import copy
 import numpy as np
-
+from packaging import version
+from typing import Dict, Union, Literal
+    
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
 # TODO tests of these methods and this class in general
+DEFAULT_N_BUSBAR_PER_SUB = 2
 
 
 class GridObjects:
@@ -116,12 +119,13 @@ class GridObjects:
 
         - method 2 (not recommended): all of the above is stored (for the same powerline) in the
           :attr:`GridObjects.line_or_pos_topo_vect` [l_id]. In the example above, we will have:
-          :attr:`GridObjects.line_or_pos_topo_vect` [l_id] = 45 (=42+3:
+          :attr:`GridObjects.line_or_pos_topo_vect` [l_id] = 45 (=42+3):
           42 being the index on which the substation started and 3 being the index of the object in the substation)
         - method 3 (recommended): use any of the function that computes it for you:
           :func:`grid2op.Observation.BaseObservation.state_of` is such an interesting method. The two previous methods
           "method 1" and "method 2" were presented as a way to give detailed and "concrete" example on how the
           modeling of the powergrid work.
+        - method 4 (recommended): use the :func:`GridObjects.topo_vect_element`
 
     For a given powergrid, this object should be initialized once in the :class:`grid2op.Backend.Backend` when
     the first call to :func:`grid2op.Backend.Backend.load_grid` is performed. In particular the following attributes
@@ -186,6 +190,12 @@ class GridObjects:
 
     Attributes
     ----------
+
+    n_busbar_per_sub: :class:`int`
+        number of independant busbars for all substations [*class attribute*]. It's 2 by default
+        or if the implementation of the backend does not support this feature.
+        
+        .. versionadded:: 1.9.9
 
     n_line: :class:`int`
         number of powerlines in the powergrid [*class attribute*]
@@ -487,6 +497,7 @@ class GridObjects:
     name_sub = None
     name_storage = None
 
+    n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
     n_gen = -1
     n_load = -1
     n_line = -1
@@ -619,6 +630,10 @@ class GridObjects:
         pass
 
     @classmethod
+    def set_n_busbar_per_sub(cls, n_busbar_per_sub):
+        cls.n_busbar_per_sub = n_busbar_per_sub
+        
+    @classmethod
     def tell_dim_alarm(cls, dim_alarms):
         if cls.dim_alarms != 0:
             # number of alarms has already been set, i issue a warning
@@ -651,6 +666,7 @@ class GridObjects:
     @classmethod
     def _clear_class_attribute(cls):
         cls.shunts_data_available = False
+        cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
         
         # for redispatching / unit commitment
         cls._li_attr_disp = [
@@ -1842,6 +1858,12 @@ class GridObjects:
         # TODO refactor this method with the `_check***` methods.
         # TODO refactor the `_check***` to use the same "base functions" that would be coded only once.
 
+        if cls.n_busbar_per_sub != int(cls.n_busbar_per_sub):
+            raise EnvError(f"`n_busbar_per_sub` should be convertible to an integer, found {cls.n_busbar_per_sub}")
+        cls.n_busbar_per_sub = int(cls.n_busbar_per_sub)
+        if cls.n_busbar_per_sub < 1:
+            raise EnvError(f"`n_busbar_per_sub` should be >= 1 found {cls.n_busbar_per_sub}")
+            
         if cls.n_gen <= 0:
             raise EnvError(
                 "n_gen is negative. Powergrid is invalid: there are no generator"
@@ -2014,7 +2036,7 @@ class GridObjects:
 
         if not np.all(obj_per_sub == cls.sub_info):
             raise IncorrectNumberOfElements(
-                f"for substation(s): {np.where(obj_per_sub != cls.sub_info)[0]}"
+                f"for substation(s): {np.nonzero(obj_per_sub != cls.sub_info)[0]}"
             )
 
         # test right number of element in substations
@@ -2315,57 +2337,57 @@ class GridObjects:
             )
 
         if (cls.storage_Emax < cls.storage_Emin).any():
-            tmp = np.where(cls.storage_Emax < cls.storage_Emin)[0]
+            tmp = np.nonzero(cls.storage_Emax < cls.storage_Emin)[0]
             raise BackendError(
                 f"storage_Emax < storage_Emin for storage units with ids: {tmp}"
             )
         if (cls.storage_Emax < 0.0).any():
-            tmp = np.where(cls.storage_Emax < 0.0)[0]
+            tmp = np.nonzero(cls.storage_Emax < 0.0)[0]
             raise BackendError(
                 f"self.storage_Emax < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_Emin < 0.0).any():
-            tmp = np.where(cls.storage_Emin < 0.0)[0]
+            tmp = np.nonzero(cls.storage_Emin < 0.0)[0]
             raise BackendError(
                 f"self.storage_Emin < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_max_p_prod < 0.0).any():
-            tmp = np.where(cls.storage_max_p_prod < 0.0)[0]
+            tmp = np.nonzero(cls.storage_max_p_prod < 0.0)[0]
             raise BackendError(
                 f"self.storage_max_p_prod < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_max_p_absorb < 0.0).any():
-            tmp = np.where(cls.storage_max_p_absorb < 0.0)[0]
+            tmp = np.nonzero(cls.storage_max_p_absorb < 0.0)[0]
             raise BackendError(
                 f"self.storage_max_p_absorb < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_loss < 0.0).any():
-            tmp = np.where(cls.storage_loss < 0.0)[0]
+            tmp = np.nonzero(cls.storage_loss < 0.0)[0]
             raise BackendError(
                 f"self.storage_loss < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_discharging_efficiency <= 0.0).any():
-            tmp = np.where(cls.storage_discharging_efficiency <= 0.0)[0]
+            tmp = np.nonzero(cls.storage_discharging_efficiency <= 0.0)[0]
             raise BackendError(
                 f"self.storage_discharging_efficiency <= 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_discharging_efficiency > 1.0).any():
-            tmp = np.where(cls.storage_discharging_efficiency > 1.0)[0]
+            tmp = np.nonzero(cls.storage_discharging_efficiency > 1.0)[0]
             raise BackendError(
                 f"self.storage_discharging_efficiency > 1. for storage units with ids: {tmp}"
             )
         if (cls.storage_charging_efficiency < 0.0).any():
-            tmp = np.where(cls.storage_charging_efficiency < 0.0)[0]
+            tmp = np.nonzero(cls.storage_charging_efficiency < 0.0)[0]
             raise BackendError(
                 f"self.storage_charging_efficiency < 0. for storage units with ids: {tmp}"
             )
         if (cls.storage_charging_efficiency > 1.0).any():
-            tmp = np.where(cls.storage_charging_efficiency > 1.0)[0]
+            tmp = np.nonzero(cls.storage_charging_efficiency > 1.0)[0]
             raise BackendError(
                 f"self.storage_charging_efficiency > 1. for storage units with ids: {tmp}"
             )
         if (cls.storage_loss > cls.storage_max_p_absorb).any():
-            tmp = np.where(cls.storage_loss > cls.storage_max_p_absorb)[0]
+            tmp = np.nonzero(cls.storage_loss > cls.storage_max_p_absorb)[0]
             raise BackendError(
                 f"Some storage units are such that their loss (self.storage_loss) is higher "
                 f"than the maximum power at which they can be charged (self.storage_max_p_absorb). "
@@ -2714,6 +2736,11 @@ class GridObjects:
             # with shunt and without shunt, then
             # there might be issues
             name_res += "_noshunt"
+            
+        if gridobj.n_busbar_per_sub != DEFAULT_N_BUSBAR_PER_SUB:
+            # to be able to load same environment with
+            # different `n_busbar_per_sub`
+            name_res += f"_{gridobj.n_busbar_per_sub}"
         
         if name_res in globals():
             if not force:
@@ -2737,8 +2764,7 @@ class GridObjects:
         
         res_cls._compute_pos_big_topo_cls()
         res_cls.process_shunt_satic_data()
-        if res_cls.glop_version != grid2op.__version__:
-            res_cls.process_grid2op_compat()
+        res_cls.process_grid2op_compat()
 
         if force_module is not None:
             res_cls.__module__ = force_module  # hack because otherwise it says "abc" which is not the case
@@ -2750,22 +2776,44 @@ class GridObjects:
         return globals()[name_res]
 
     @classmethod
+    def _get_grid2op_version_as_version_obj(cls):
+        if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            glop_ver = version.parse("0.0.0")
+        else:
+            glop_ver = version.parse(cls.glop_version)
+        return glop_ver
+        
+    @classmethod
     def process_grid2op_compat(cls):
         """
-        This function can be overloaded.
+        INTERNAL
 
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            This is done at the creation of the environment. Use of this class outside of this particular
+            use is really dangerous and will lead to undefined behaviours. **Do not use this function**.
+            
         This is called when the class is initialized, with `init_grid` to broadcast grid2op compatibility feature.
+        
+        This function can be overloaded, but in this case it's best to call this original method too.
+
         """
-        if cls.glop_version < "1.6.0":
+        glop_ver = cls._get_grid2op_version_as_version_obj()
+        
+        if glop_ver < version.parse("1.6.0"):
             # this feature did not exist before.
             cls.dim_alarms = 0
             cls.assistant_warning_type = None
             
-        if cls.glop_version < "1.9.1":
+        if glop_ver < version.parse("1.9.1"):
             # this feature did not exists before
             cls.dim_alerts = 0 
             cls.alertable_line_names = []
             cls.alertable_line_ids = []
+            
+        if glop_ver < version.parse("1.9.9.dev0"):
+            # this feature did not exists before
+            # I need to set it to the default if set elsewhere
+            cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
 
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
@@ -2836,15 +2884,55 @@ class GridObjects:
                 "".format(substation_id)
             )
         res = {
-            "loads_id": np.where(cls.load_to_subid == substation_id)[0],
-            "generators_id": np.where(cls.gen_to_subid == substation_id)[0],
-            "lines_or_id": np.where(cls.line_or_to_subid == substation_id)[0],
-            "lines_ex_id": np.where(cls.line_ex_to_subid == substation_id)[0],
-            "storages_id": np.where(cls.storage_to_subid == substation_id)[0],
+            "loads_id": np.nonzero(cls.load_to_subid == substation_id)[0],
+            "generators_id": np.nonzero(cls.gen_to_subid == substation_id)[0],
+            "lines_or_id": np.nonzero(cls.line_or_to_subid == substation_id)[0],
+            "lines_ex_id": np.nonzero(cls.line_ex_to_subid == substation_id)[0],
+            "storages_id": np.nonzero(cls.storage_to_subid == substation_id)[0],
             "nb_elements": cls.sub_info[substation_id],
         }
         return res
 
+    @classmethod
+    def get_powerline_id(cls, sub_id: int) -> np.ndarray:
+        """
+        Return the id of all powerlines connected to the substation `sub_id`
+        either "or" side or "ex" side
+        
+        Parameters
+        -----------
+        sub_id: `int`
+            The id of the substation concerned
+            
+        Returns
+        -------     
+        res: np.ndarray, int
+            The id of all powerlines connected to this substation (either or side or ex side)
+        
+        Examples
+        --------
+
+        To get the id of all powerlines connected to substation with id 1, 
+        you can do:
+        
+        .. code-block:: python
+
+            import numpy as np
+            import grid2op
+            env = grid2op.make("l2rpn_case14_sandbox")
+            
+            all_lines_conn_to_sub_id_1 = type(env).get_powerline_id(1)   
+                
+        """
+        powerlines_or_id = cls.line_or_to_sub_pos[
+            cls.line_or_to_subid == sub_id
+        ]
+        powerlines_ex_id = cls.line_ex_to_sub_pos[
+            cls.line_ex_to_subid == sub_id
+        ]
+        powerlines_id = np.concatenate((powerlines_or_id, powerlines_ex_id))
+        return powerlines_id
+    
     @classmethod
     def get_obj_substations(cls, _sentinel=None, substation_id=None):
         """
@@ -2956,7 +3044,8 @@ class GridObjects:
         ]
         return res
 
-    def get_lines_id(self, _sentinel=None, from_=None, to_=None):
+    @classmethod
+    def get_lines_id(cls, _sentinel=None, from_=None, to_=None):
         """
         Returns the list of all the powerlines id in the backend going from `from_` to `to_`
 
@@ -3008,7 +3097,7 @@ class GridObjects:
             )
 
         for i, (ori, ext) in enumerate(
-            zip(self.line_or_to_subid, self.line_ex_to_subid)
+            zip(cls.line_or_to_subid, cls.line_ex_to_subid)
         ):
             if ori == from_ and ext == to_:
                 res.append(i)
@@ -3021,7 +3110,8 @@ class GridObjects:
 
         return res
 
-    def get_generators_id(self, sub_id):
+    @classmethod
+    def get_generators_id(cls, sub_id):
         """
         Returns the list of all generators id in the backend connected to the substation sub_id
 
@@ -3061,7 +3151,7 @@ class GridObjects:
                 'Please modify "sub_id" parameter'
             )
 
-        for i, s_id_gen in enumerate(self.gen_to_subid):
+        for i, s_id_gen in enumerate(cls.gen_to_subid):
             if s_id_gen == sub_id:
                 res.append(i)
 
@@ -3073,7 +3163,8 @@ class GridObjects:
 
         return res
 
-    def get_loads_id(self, sub_id):
+    @classmethod
+    def get_loads_id(cls, sub_id):
         """
         Returns the list of all loads id in the backend connected to the substation sub_id
 
@@ -3112,7 +3203,7 @@ class GridObjects:
                 'Please modify "sub_id" parameter'
             )
 
-        for i, s_id_gen in enumerate(self.load_to_subid):
+        for i, s_id_gen in enumerate(cls.load_to_subid):
             if s_id_gen == sub_id:
                 res.append(i)
 
@@ -3125,7 +3216,8 @@ class GridObjects:
 
         return res
 
-    def get_storages_id(self, sub_id):
+    @classmethod
+    def get_storages_id(cls, sub_id):
         """
         Returns the list of all storages element (battery or damp) id in the grid connected to the substation sub_id
 
@@ -3164,24 +3256,128 @@ class GridObjects:
                 'Please modify "sub_id" parameter'
             )
 
-        for i, s_id_gen in enumerate(self.storage_to_subid):
+        for i, s_id_gen in enumerate(cls.storage_to_subid):
             if s_id_gen == sub_id:
                 res.append(i)
 
         if not res:  # res is empty here
             raise BackendError(
-                "GridObjects.bd: impossible to find a storage unit connected at substation {}".format(
+                "GridObjects.get_storages_id: impossible to find a storage unit connected at substation {}".format(
                     sub_id
                 )
             )
 
         return res
 
+    @classmethod
+    def topo_vect_element(cls, topo_vect_id: int) -> Dict[Literal["load_id", "gen_id", "line_id", "storage_id", "line_or_id", "line_ex_id", "sub_id"], Union[int, Dict[Literal["or", "ex"], int]]]:
+        """
+        This function aims to be the "opposite" of the
+        `cls.xxx_pos_topo_vect` (**eg** `cls.load_pos_topo_vect`)
+        
+        You give it an id in the topo_vect (*eg* 10) and it gives you 
+        information about which element it is. More precisely, if 
+        `type(env).topo_vect[topo_vect_id]` is:
+        
+        - a **load** then it will return `{'load_id': load_id}`, with `load_id`
+          being such that `type(env).load_pos_topo_vect[load_id] == topo_vect_id`
+        - a **generator** then it will return `{'gen_id': gen_id}`, with `gen_id`
+          being such that `type(env).gen_pos_topo_vect[gen_id] == topo_vect_id`
+        - a **storage** then it will return `{'storage_id': storage_id}`, with `storage_id`
+          being such that `type(env).storage_pos_topo_vect[storage_id] == topo_vect_id`
+        - a **line** (origin side) then it will return `{'line_id': {'or': line_id}, 'line_or_id': line_id}`, 
+          with `line_id`
+          being such that `type(env).line_or_pos_topo_vect[line_id] == topo_vect_id`
+        - a **line** (ext side) then it will return `{'line_id': {'ex': line_id}, 'line_ex_id': line_id}`, 
+          with `line_id`
+          being such that `type(env).line_or_pos_topo_vect[line_id] == topo_vect_id`
+          
+        .. seealso::
+            The attributes :attr:`GridObjects.load_pos_topo_vect`, :attr:`GridObjects.gen_pos_topo_vect`,
+            :attr:`GridObjects.storage_pos_topo_vect`, :attr:`GridObjects.line_or_pos_topo_vect` and
+            :attr:`GridObjects.line_ex_pos_topo_vect` to do the opposite.
+            
+            And you can also have a look at :attr:`GridObjects.grid_objects_types`
+          
+        Parameters
+        ----------
+        topo_vect_id: ``int``
+            The element of the topo vect to which you want more information.
+
+        Returns
+        -------
+        res: ``dict``
+            See details in the description
+
+        Examples
+        --------
+        It can be used like:
+
+        .. code-block:: python
+
+            import numpy as np
+            import grid2op
+            env = grid2op.make("l2rpn_case14_sandbox")
+
+            env_cls = type(env)  # or `type(act)` or` type(obs)` etc. or even `env.topo_vect_element(...)` or `obs.topo_vect_element(...)`
+            for load_id, pos_topo_vect in enumerate(env_cls.load_pos_topo_vect):
+                res = env_cls.topo_vect_element(pos_topo_vect)
+                assert "load_id" in res
+                assert res["load_id"] == load_id
+                
+            for gen_id, pos_topo_vect in enumerate(env_cls.gen_pos_topo_vect):
+                res = env_cls.topo_vect_element(pos_topo_vect)
+                assert "gen_id" in res
+                assert res["gen_id"] == gen_id
+                
+            for sto_id, pos_topo_vect in enumerate(env_cls.storage_pos_topo_vect):
+                res = env_cls.topo_vect_element(pos_topo_vect)
+                assert "storage_id" in res
+                assert res["storage_id"] == sto_id
+                
+            for line_id, pos_topo_vect in enumerate(env_cls.line_or_pos_topo_vect):
+                res = env_cls.topo_vect_element(pos_topo_vect)
+                assert "line_id" in res
+                assert res["line_id"] == {"or": line_id}
+                assert "line_or_id" in res
+                assert res["line_or_id"] == line_id
+                
+            for line_id, pos_topo_vect in enumerate(env_cls.line_ex_pos_topo_vect):
+                res = env_cls.topo_vect_element(pos_topo_vect)
+                assert "line_id" in res
+                assert res["line_id"] == {"ex": line_id}
+                assert "line_ex_id" in res
+                assert res["line_ex_id"] == line_id
+                
+        """
+        elt = cls.grid_objects_types[topo_vect_id]
+        res = {"sub_id": int(elt[cls.SUB_COL])}
+        if elt[cls.LOA_COL] != -1:
+            res["load_id"] = int(elt[cls.LOA_COL])
+            return res
+        if elt[cls.GEN_COL] != -1:
+            res["gen_id"] = int(elt[cls.GEN_COL])
+            return res
+        if elt[cls.STORAGE_COL] != -1:
+            res["storage_id"] = int(elt[cls.STORAGE_COL])
+            return res
+        if elt[cls.LOR_COL] != -1:
+            res["line_or_id"] = int(elt[cls.LOR_COL])
+            res["line_id"] = {"or": int(elt[cls.LOR_COL])}
+            return res
+        if elt[cls.LEX_COL] != -1:
+            res["line_ex_id"] = int(elt[cls.LEX_COL])
+            res["line_id"] = {"ex": int(elt[cls.LEX_COL])}
+            return res
+        raise Grid2OpException(f"Unknown element at position {topo_vect_id}")
+
     @staticmethod
     def _make_cls_dict(cls, res, as_list=True, copy_=True):
         """NB: `cls` can be here a class or an object of a class..."""
         save_to_dict(res, cls, "glop_version", str, copy_)
         res["_PATH_ENV"] = cls._PATH_ENV  # i do that manually for more control
+        save_to_dict(res, cls, "n_busbar_per_sub", str, copy_)
+        
         save_to_dict(
             res,
             cls,
@@ -3510,6 +3706,8 @@ class GridObjects:
         res[
             "redispatching_unit_commitment_availble"
         ] = cls.redispatching_unit_commitment_availble
+        # n_busbar_per_sub
+        res["n_busbar_per_sub"] = cls.n_busbar_per_sub
 
     @classmethod
     def cls_to_dict(cls):
@@ -3562,7 +3760,7 @@ class GridObjects:
 
         cls = res
         if "glop_version" in dict_:
-            cls.glop_version = dict_["glop_version"]
+            cls.glop_version = str(dict_["glop_version"])
         else:
             cls.glop_version = cls.BEFORE_COMPAT_VERSION
 
@@ -3570,6 +3768,12 @@ class GridObjects:
             cls._PATH_ENV = str(dict_["_PATH_ENV"])
         else:
             cls._PATH_ENV = None
+        
+        if 'n_busbar_per_sub' in dict_:
+            cls.n_busbar_per_sub = int(dict_["n_busbar_per_sub"])
+        else:
+            # compat version: was not set
+            cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
 
         cls.name_gen = extract_from_dict(
             dict_, "name_gen", lambda x: np.array(x).astype(str)
@@ -3953,7 +4157,7 @@ class GridObjects:
         )
 
     @classmethod
-    def local_bus_to_global(cls, local_bus, to_sub_id):
+    def local_bus_to_global(cls, local_bus: np.ndarray, to_sub_id: np.ndarray) -> np.ndarray:
         """This function translate "local bus" whose id are in a substation, to "global bus id" whose
         id are consistent for the whole grid.
         
@@ -3962,24 +4166,30 @@ class GridObjects:
         global id 41 or 40 or 39 or etc.
         
         .. note::
-            Typically, "local bus" are numbered 1 or 2. They represent the id of the busbar to which the element
+            Typically, "local bus" are numbered 1, 2, ... cls.n_busbar_per_sub. They represent the id of the busbar to which the element
             is connected IN its substation.
             
             On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., 2 * self.n_sub. They represent some kind of 
             "universal" labelling of the busbars of all the grid. For example, substation 0 might have busbar `0` and `self.n_sub`, 
             substation 1 have busbar `1` and `self.n_sub + 1` etc.
-            [on_bus_1]
+            
             Local and global bus id represents the same thing. The difference comes down to convention.
+            
+        ..warning::
+            In order to be as fast as possible, these functions do not check for "out of bound" or
+            "impossible" configuration. 
+            
+            They assume that the input data are consistent with the grid.
         """
         global_bus = (1 * local_bus).astype(dt_int)  # make a copy
-        on_bus_1 = global_bus == 1
-        on_bus_2 = global_bus == 2
-        global_bus[on_bus_1] = to_sub_id[on_bus_1]
-        global_bus[on_bus_2] = to_sub_id[on_bus_2] + cls.n_sub
+        global_bus[local_bus < 0] = -1
+        for i in range(cls.n_busbar_per_sub):
+            on_bus_i = local_bus == i + 1
+            global_bus[on_bus_i] = to_sub_id[on_bus_i] + i * cls.n_sub
         return global_bus
 
     @classmethod
-    def local_bus_to_global_int(cls, local_bus, to_sub_id):
+    def local_bus_to_global_int(cls, local_bus : int, to_sub_id : int) -> int:
         """This function translate "local bus" whose id are in a substation, to "global bus id" whose
         id are consistent for the whole grid.
         
@@ -3988,26 +4198,30 @@ class GridObjects:
         global id 41 or 40 or 39 or etc.
         
         .. note::
-            Typically, "local bus" are numbered 1 or 2. They represent the id of the busbar to which the element
+            Typically, "local bus" are numbered 1, 2, ... cls.n_busbar_per_sub. They represent the id of the busbar to which the element
             is connected IN its substation.
             
-            On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., 2 * self.n_sub. They represent some kind of 
+            On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., cls.n_busbar_per_sub  * self.n_sub. They represent some kind of 
             "universal" labelling of the busbars of all the grid. For example, substation 0 might have busbar `0` and `self.n_sub`, 
             substation 1 have busbar `1` and `self.n_sub + 1` etc.
             
             Local and global bus id represents the same thing. The difference comes down to convention.
             
         .. note::
-            This is the "non vectorized" version that applies only on integers.
+            This is the "non vectorized" version that applies only on integers.          
+              
+        ..warning::
+            In order to be as fast as possible, these functions do not check for "out of bound" or
+            "impossible" configuration. 
+            
+            They assume that the input data are consistent with the grid.
         """
-        if local_bus == 1:
-            return to_sub_id
-        elif local_bus == 2:
-            return to_sub_id + cls.n_sub
-        return -1
+        if local_bus == -1:
+            return -1
+        return to_sub_id + (int(local_bus) - 1) * cls.n_sub
 
     @classmethod
-    def global_bus_to_local(cls, global_bus, to_sub_id):
+    def global_bus_to_local(cls, global_bus: np.ndarray, to_sub_id: np.ndarray) -> np.ndarray:
         """This function translate "local bus" whose id are in a substation, to "global bus id" whose
         id are consistent for the whole grid.
         
@@ -4016,23 +4230,29 @@ class GridObjects:
         global id 41 or 40 or 39 or etc.
         
         .. note::
-            Typically, "local bus" are numbered 1 or 2. They represent the id of the busbar to which the element
+            Typically, "local bus" are numbered 1, 2, ... cls.n_busbar_per_sub. They represent the id of the busbar to which the element
             is connected IN its substation.
             
-            On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., 2 * self.n_sub. They represent some kind of 
+            On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., cls.n_busbar_per_sub * self.n_sub. They represent some kind of 
             "universal" labelling of the busbars of all the grid. For example, substation 0 might have busbar `0` and `self.n_sub`, 
             substation 1 have busbar `1` and `self.n_sub + 1` etc.
             
             Local and global bus id represents the same thing. The difference comes down to convention.
+                        
+        ..warning::
+            In order to be as fast as possible, these functions do not check for "out of bound" or
+            "impossible" configuration. 
+            
+            They assume that the input data are consistent with the grid.
         """
         res = (1 * global_bus).astype(dt_int)  # make a copy
-        res[global_bus < cls.n_sub] = 1
-        res[global_bus >= cls.n_sub] = 2
+        for i in range(cls.n_busbar_per_sub):
+            res[(i * cls.n_sub <= global_bus) & (global_bus < (i+1) * cls.n_sub)] = i + 1
         res[global_bus == -1] = -1
         return res
     
     @classmethod
-    def global_bus_to_local_int(cls, global_bus, to_sub_id):
+    def global_bus_to_local_int(cls, global_bus: int, to_sub_id: int) -> int:
         """This function translate "local bus" whose id are in a substation, to "global bus id" whose
         id are consistent for the whole grid.
         
@@ -4041,22 +4261,27 @@ class GridObjects:
         global id 41 or 40 or 39 or etc.
         
         .. note::
-            Typically, "local bus" are numbered 1 or 2. They represent the id of the busbar to which the element
+            Typically, "local bus" are numbered 1, 2, ... cls.n_busbar_per_sub. They represent the id of the busbar to which the element
             is connected IN its substation.
             
-            On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., 2 * self.n_sub. They represent some kind of 
+            On the other hand, the "global bus" are numberd, 0, 1, 2, 3, ..., cls.n_busbar_per_sub * self.n_sub. They represent some kind of 
             "universal" labelling of the busbars of all the grid. For example, substation 0 might have busbar `0` and `self.n_sub`, 
             substation 1 have busbar `1` and `self.n_sub + 1` etc.
             
-            Local and global bus id represents the same thing. The difference comes down to convention.
+            Local and global bus id represents the same thing. The difference comes down to convention.      
+                  
+        ..warning::
+            In order to be as fast as possible, these functions do not check for "out of bound" or
+            "impossible" configuration. 
+            
+            They assume that the input data are consistent with the grid.
         """
         if global_bus == -1:
             return -1
-        if global_bus < cls.n_sub:
-            return 1
-        if global_bus >= cls.n_sub:
-            return 2
-        return -1
+        for i in range(cls.n_busbar_per_sub):
+            if global_bus < (i+1) * cls.n_sub:
+                return i+1
+        raise EnvError(f"This environment can have only {cls.n_busbar_per_sub} independant busbars per substation.")
     
     @staticmethod
     def _format_int_vect_to_cls_str(int_vect):
@@ -4250,7 +4475,7 @@ class GridObjects:
         tmp_tmp_ = ",".join([f"{el}" for el in cls.alertable_line_ids])
         tmp_ = f"[{tmp_tmp_}]"
         alertable_line_ids_str = '[]' if cls.dim_alerts == 0 else tmp_
-        res = f"""# Copyright (c) 2019-2023, RTE (https://www.rte-france.com)
+        res = f"""# Copyright (c) 2019-2024, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
@@ -4293,6 +4518,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     name_sub = np.array([{name_sub_str}])
     name_storage = np.array([{name_storage_str}])
 
+    n_busbar_per_sub = {cls.n_busbar_per_sub}
     n_gen = {cls.n_gen}
     n_load = {cls.n_load}
     n_line = {cls.n_line}

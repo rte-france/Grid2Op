@@ -1381,9 +1381,9 @@ class AAATestBackendAPI(MakeBackend):
     def _aux_aux_get_line(self, el_id, el_to_subid, line_xx_to_subid):
         sub_id = el_to_subid[el_id]
         if (line_xx_to_subid == sub_id).sum() >= 2:
-            return True, np.where(line_xx_to_subid == sub_id)[0][0]
+            return True, np.nonzero(line_xx_to_subid == sub_id)[0][0]
         elif (line_xx_to_subid == sub_id).sum() == 1:
-            return False, np.where(line_xx_to_subid == sub_id)[0][0]
+            return False, np.nonzero(line_xx_to_subid == sub_id)[0][0]
         else:
             return None
         

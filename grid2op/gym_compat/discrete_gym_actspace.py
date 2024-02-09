@@ -363,7 +363,7 @@ if GYMNASIUM_AVAILABLE:
     from gymnasium.spaces import Discrete
     from grid2op.gym_compat.box_gym_actspace import BoxGymnasiumActSpace
     from grid2op.gym_compat.continuous_to_discrete import  ContinuousToDiscreteConverterGymnasium
-    DiscreteActSpaceGymnasium = type("MultiDiscreteActSpaceGymnasium",
+    DiscreteActSpaceGymnasium = type("DiscreteActSpaceGymnasium",
                                      (__AuxDiscreteActSpace, Discrete, ),
                                      {"_gymnasium": True,
                                       "_DiscreteType": Discrete,

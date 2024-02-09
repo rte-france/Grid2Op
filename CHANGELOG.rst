@@ -33,10 +33,40 @@ Change Log
 
 [1.9.9] - 2024-xx-yy
 ----------------------
+- [BREAKING] the order of the actions in `env.action_space.get_all_unitary_line_set` and 
+  `env.action_space.get_all_unitary_topologies_set` might have changed (this is caused 
+  by a rewriting of these functions in case there is not 2 busbars per substation)
 - [FIXED] github CI did not upload the source files
 - [FIXED] `l2rpn_utils` module did not stored correctly the order
   of actions and observation for wcci_2020
 - [FIXED] 2 bugs detected by static code analysis (thanks sonar cloud)
+- [FIXED] a bug in `act.get_gen_modif` (vector of wrong size was used, could lead
+  to some crashes if `n_gen >= n_load`)
+- [FIXED] a bug in `act.as_dict` when shunts were modified
+- [FIXED] a bug affecting shunts: sometimes it was not possible to modify their p / q 
+  values for certain values of p or q (an AmbiguousAction exception was raised wrongly)
+- [FIXED] a bug in the `_BackendAction`: the "last known topoolgy" was not properly computed
+  in some cases (especially at the time where a line was reconnected)
+- [FIXED] `MultiDiscreteActSpace` and `DiscreteActSpace` could be the same classes
+  on some cases (typo in the code).
+- [ADDED] a method `gridobj.topo_vect_element()` that does the opposite of `gridobj.xxx_pos_topo_vect`
+- [ADDED] a mthod `gridobj.get_powerline_id(sub_id)` that gives the
+  id of all powerlines connected to a given substation
+- [IMPROVED] handling of "compatibility" grid2op version
+  (by calling the relevant things done in the base class 
+  in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`
+  to check version (instead of comparing strings)
+- [IMPROVED] slightly the code of `check_kirchoff` to make it slightly clearer
+- [IMRPOVED] typing and doc for some of the main classes of the `Action` module
+- [IMRPOVED] typing and doc for some of the main classes of the `Observation` module
+- [IMPROVED] methods `gridobj.get_lines_id`, `gridobj.get_generators_id`, `gridobj.get_loads_id`
+  `gridobj.get_storages_id` are now class methods and can be used with `type(env).get_lines_id(...)`
+  or `act.get_lines_id(...)` for example.
+- [IMPROVED] `obs.get_energy_graph()` by giving the "local_bus_id" and the "global_bus_id"
+  of the bus that represents each node of this graph.
+- [IMPROVED] `obs.get_elements_graph()` by giving access to the bus id (local, global and 
+  id of the node) where each element is connected.
+- [IMPROVED] description of the different graph of the grid in the documentation.
 
 [1.9.8] - 2024-01-26
 ----------------------

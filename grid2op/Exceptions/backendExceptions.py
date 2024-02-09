@@ -53,3 +53,10 @@ class DisconnectedLoad(BackendError):
 class DisconnectedGenerator(BackendError):
     """Specific error raised by the backend when a generator is disconnected"""
     pass
+
+
+class ImpossibleTopology(BackendError):
+    """Specific error raised by the backend :func:`grid2op.Backend.Backend.apply_action`
+    when the player asked a topology (for example using `set_bus`) that 
+    cannot be applied by the backend.
+    """

@@ -52,6 +52,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
             
         self.dict_ = {
             "name_gen": ["gen_1_0", "gen_2_1", "gen_5_2", "gen_7_3", "gen_0_4"],
+            "n_busbar_per_sub": "2",
             "name_load": [
                 "load_1_0",
                 "load_2_1",
@@ -1785,7 +1786,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
         obs, reward, done, info = self.env.step(
             self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}})
         )
-        assert not done
+        assert not done, f"failed with error {info['exception']}"
         assert obs.bus_connectivity_matrix(as_csr).shape == (15, 15)
         assert (
             obs.bus_connectivity_matrix(as_csr)[14, 11] == 1.0

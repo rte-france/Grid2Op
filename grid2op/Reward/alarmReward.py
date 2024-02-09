@@ -107,7 +107,7 @@ class AlarmReward(BaseReward):
         """compute the multiplicative factor that increases the score if the right zone is predicted"""
         res = 1.0
         # extract the lines that have been disconnected due to cascading failures
-        lines_disconnected_first = np.where(disc_lines == 0)[0]
+        lines_disconnected_first = np.nonzero(disc_lines == 0)[0]
 
         if (
             alarm.sum() > 1
@@ -124,7 +124,7 @@ class AlarmReward(BaseReward):
 
         # now retrieve the id of the zones in which a powerline has been disconnected
         list_zone_names = list(zones_these_lines)
-        list_zone_ids = np.where(np.isin(env.alarms_area_names, list_zone_names))[0]
+        list_zone_ids = np.nonzero(np.isin(env.alarms_area_names, list_zone_names))[0]
         # and finally, award some extra points if one of the zone, containing one of the powerline disconnected
         # by protection is in the alarm
         if alarm[list_zone_ids].any():
