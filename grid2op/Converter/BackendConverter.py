@@ -206,13 +206,13 @@ class BackendConverter(Backend):
                 == sorted(self.target_backend.name_sub)
             ):
                 for id_source, nm_source in enumerate(self.source_backend.name_sub):
-                    id_target = np.where(self.target_backend.name_sub == nm_source)[0]
+                    id_target = np.nonzero(self.target_backend.name_sub == nm_source)[0]
                     self._sub_tg2sr[id_source] = id_target
                     self._sub_sr2tg[id_target] = id_source
         else:
             for id_source, nm_source in enumerate(self.source_backend.name_sub):
                 nm_target = self.sub_source_target[nm_source]
-                id_target = np.where(self.target_backend.name_sub == nm_target)[0]
+                id_target = np.nonzero(self.target_backend.name_sub == nm_target)[0]
                 self._sub_tg2sr[id_source] = id_target
                 self._sub_sr2tg[id_target] = id_source
 
@@ -300,7 +300,7 @@ class BackendConverter(Backend):
     def _get_possible_target_ids(self, id_source, source_2_id_sub, target_2_id_sub, nm):
         id_sub_source = source_2_id_sub[id_source]
         id_sub_target = self._sub_tg2sr[id_sub_source]
-        ids_target = np.where(target_2_id_sub == id_sub_target)[0]
+        ids_target = np.nonzero(target_2_id_sub == id_sub_target)[0]
         if ids_target.shape[0] == 0:
             raise RuntimeError(
                 ERROR_ELEMENT_CONNECTED.format(nm, id_sub_target, id_sub_source)
@@ -346,7 +346,7 @@ class BackendConverter(Backend):
             idor_sub_target = self._sub_tg2sr[idor_sub_source]
             idex_sub_source = source_ex_2_id_sub[id_source]
             idex_sub_target = self._sub_tg2sr[idex_sub_source]
-            ids_target = np.where(
+            ids_target = np.nonzero(
                 (target_or_2_id_sub == idor_sub_target)
                 & (target_ex_2_id_sub == idex_sub_target)
             )[0]

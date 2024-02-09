@@ -33,7 +33,7 @@ from grid2op.Exceptions import (
     DivergingPowerflow,
     Grid2OpException,
 )
-from grid2op.Space import GridObjects
+from grid2op.Space import GridObjects, DEFAULT_N_BUSBAR_PER_SUB
 
 
 # TODO method to get V and theta at each bus, could be in the same shape as check_kirchoff
@@ -171,6 +171,77 @@ class Backend(GridObjects, ABC):
         for k, v in kwargs.items():
             self._my_kwargs[k] = v
         
+        #: .. versionadded:: 1.9.9
+        #: A flag to indicate whether the :func:`Backend.cannot_handle_more_than_2_busbar`
+        #: or the :func:`Backend.cannot_handle_more_than_2_busbar`
+        #: has been called when :func:`Backend.load_grid` was called.
+        #: Starting from grid2op 1.9.9 this is a requirement (to 
+        #: ensure backward compatibility)
+        self._missing_two_busbars_support_info: bool = True
+        
+        #: .. versionadded:: 1.9.9
+        #: There is a difference between this and the class attribute.
+        #: You should not worry about the class attribute of the backend in :func:`Backend.apply_action`
+        self.n_busbar_per_sub: int = DEFAULT_N_BUSBAR_PER_SUB
+    
+    def can_handle_more_than_2_busbar(self):
+        """
+        .. versionadded:: 1.9.9
+        
+        This function should be called once in `load_grid` if your backend is able
+        to handle more than 2 busbars per substation.
+        
+        If not called, then the `environment` will not be able to use more than 2 busbars per substations.
+        
+        .. seealso::
+            :func:`Backend.cannot_handle_more_than_2_busbar`
+
+        .. note::
+            From grid2op 1.9.9 it is preferable that your backend calls one of
+            :func:`Backend.can_handle_more_than_2_busbar` or 
+            :func:`Backend.cannot_handle_more_than_2_busbar`.
+            
+            If not, then the environments created with your backend will not be able to 
+            "operate" grid with more than 2 busbars per substation. 
+            
+        .. danger::
+            We highly recommend you do not try to override this function. 
+            
+            At least, at time of writing I can't find any good reason to do so.
+        """
+        self._missing_two_busbars_support_info = False
+        self.n_busbar_per_sub = type(self).n_busbar_per_sub
+    
+    def cannot_handle_more_than_2_busbar(self):
+        """
+        .. versionadded:: 1.9.9
+        
+        This function should be called once in `load_grid` if your backend is **NOT** able
+        to handle more than 2 busbars per substation.
+        
+        If not called, then the `environment` will not be able to use more than 2 busbars per substations.
+        
+        .. seealso::
+            :func:`Backend.cnot_handle_more_than_2_busbar`
+
+        .. note::
+            From grid2op 1.9.9 it is preferable that your backend calls one of
+            :func:`Backend.can_handle_more_than_2_busbar` or 
+            :func:`Backend.cannot_handle_more_than_2_busbar`.
+            
+            If not, then the environments created with your backend will not be able to 
+            "operate" grid with more than 2 busbars per substation. 
+            
+        .. danger::
+            We highly recommend you do not try to override this function. 
+            
+            Atleast, at time of writing I can't find any good reason to do so.
+        """
+        self._missing_two_busbars_support_info = False
+        if type(self).n_busbar_per_sub != DEFAULT_N_BUSBAR_PER_SUB:
+            warnings.warn("You asked in `make` function to pass ")
+        self.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
+    
     def make_complete_path(self,
                            path : Union[os.PathLike, str],
                            filename : Optional[Union[os.PathLike, str]]=None) -> str:
@@ -949,11 +1020,11 @@ class Backend(GridObjects, ABC):
             conv, exc_me = self.runpf(is_dc=is_dc)  # run powerflow
         except Grid2OpException as exc_:
             exc_me = exc_
-        except Exception as exc_:
-            exc_me = DivergingPowerflow(
-                f" An unexpected error occurred during the computation of the powerflow."
-                f"The error is: \n {exc_} \n. This is game over"
-            )
+        # except Exception as exc_:
+        #     exc_me = DivergingPowerflow(
+        #         f" An unexpected error occurred during the computation of the powerflow."
+        #         f"The error is: \n {exc_} \n. This is game over"
+        #     )
 
         if not conv and exc_me is None:
             exc_me = DivergingPowerflow(
@@ -1135,10 +1206,10 @@ class Backend(GridObjects, ABC):
         q_subs = np.zeros(cls.n_sub, dtype=dt_float)
 
         # check for each bus
-        p_bus = np.zeros((cls.n_sub, 2), dtype=dt_float)
-        q_bus = np.zeros((cls.n_sub, 2), dtype=dt_float)
+        p_bus = np.zeros((cls.n_sub, cls.n_busbar_per_sub), dtype=dt_float)
+        q_bus = np.zeros((cls.n_sub, cls.n_busbar_per_sub), dtype=dt_float)
         v_bus = (
-            np.zeros((cls.n_sub, 2, 2), dtype=dt_float) - 1.0
+            np.zeros((cls.n_sub, cls.n_busbar_per_sub, 2), dtype=dt_float) - 1.0
         )  # sub, busbar, [min,max]
         topo_vect = self.get_topo_vect()
 
@@ -1171,28 +1242,30 @@ class Backend(GridObjects, ABC):
             q_bus[sub_ex_id, loc_bus_ex] += q_ex[i]
 
             # fill the min / max voltage per bus (initialization)
-            if (v_bus[sub_or_id,loc_bus_or,][0] == -1):
-                v_bus[sub_or_id,loc_bus_or,][0] = v_or[i]
-            if (v_bus[sub_ex_id,loc_bus_ex,][0] == -1):
-                v_bus[sub_ex_id,loc_bus_ex,][0] = v_ex[i]
+            if (v_bus[sub_or_id, loc_bus_or,][0] == -1):
+                v_bus[sub_or_id, loc_bus_or,][0] = v_or[i]
+            if (v_bus[sub_ex_id, loc_bus_ex,][0] == -1):
+                v_bus[sub_ex_id, loc_bus_ex,][0] = v_ex[i]
             if (v_bus[sub_or_id, loc_bus_or,][1]== -1):
-                v_bus[sub_or_id,loc_bus_or,][1] = v_or[i]
-            if (v_bus[sub_ex_id,loc_bus_ex,][1]== -1):
-                v_bus[sub_ex_id,loc_bus_ex,][1] = v_ex[i]
+                v_bus[sub_or_id, loc_bus_or,][1] = v_or[i]
+            if (v_bus[sub_ex_id, loc_bus_ex,][1]== -1):
+                v_bus[sub_ex_id, loc_bus_ex,][1] = v_ex[i]
 
             # now compute the correct stuff
             if v_or[i] > 0.0:
                 # line is connected
-                v_bus[sub_or_id,loc_bus_or,][0] = min(v_bus[sub_or_id,loc_bus_or,][0],v_or[i],)
-                v_bus[sub_or_id,loc_bus_or,][1] = max(v_bus[sub_or_id,loc_bus_or,][1],v_or[i],)
+                v_bus[sub_or_id, loc_bus_or,][0] = min(v_bus[sub_or_id, loc_bus_or,][0],v_or[i],)
+                v_bus[sub_or_id, loc_bus_or,][1] = max(v_bus[sub_or_id, loc_bus_or,][1],v_or[i],)
                 
             if v_ex[i] > 0:
                 # line is connected
-                v_bus[sub_ex_id,loc_bus_ex,][0] = min(v_bus[sub_ex_id,loc_bus_ex,][0],v_ex[i],)
-                v_bus[sub_ex_id,loc_bus_ex,][1] = max(v_bus[sub_ex_id,loc_bus_ex,][1],v_ex[i],)
+                v_bus[sub_ex_id, loc_bus_ex,][0] = min(v_bus[sub_ex_id, loc_bus_ex,][0],v_ex[i],)
+                v_bus[sub_ex_id, loc_bus_ex,][1] = max(v_bus[sub_ex_id, loc_bus_ex,][1],v_ex[i],)
         
         for i in range(cls.n_gen):
-            if topo_vect[cls.gen_pos_topo_vect[i]] == -1:
+            gptv = cls.gen_pos_topo_vect[i]
+            
+            if topo_vect[gptv] == -1:
                 # gen is disconnected
                 continue
             
@@ -1200,38 +1273,42 @@ class Backend(GridObjects, ABC):
             p_subs[cls.gen_to_subid[i]] -= p_gen[i]
             q_subs[cls.gen_to_subid[i]] -= q_gen[i]
 
+            loc_bus = topo_vect[gptv] - 1
             # for bus
             p_bus[
-                cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1
+                cls.gen_to_subid[i], loc_bus
             ] -= p_gen[i]
             q_bus[
-                cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1
+                cls.gen_to_subid[i], loc_bus
             ] -= q_gen[i]
 
             # compute max and min values
             if v_gen[i]:
                 # but only if gen is connected
-                v_bus[cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1][
+                v_bus[cls.gen_to_subid[i], loc_bus][
                     0
                 ] = min(
                     v_bus[
-                        cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1
+                        cls.gen_to_subid[i], loc_bus
                     ][0],
                     v_gen[i],
                 )
-                v_bus[cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1][
+                v_bus[cls.gen_to_subid[i], loc_bus][
                     1
                 ] = max(
                     v_bus[
-                        cls.gen_to_subid[i], topo_vect[cls.gen_pos_topo_vect[i]] - 1
+                        cls.gen_to_subid[i], loc_bus
                     ][1],
                     v_gen[i],
                 )
 
         for i in range(cls.n_load):
-            if topo_vect[cls.load_pos_topo_vect[i]] == -1:
+            gptv = cls.load_pos_topo_vect[i]
+            
+            if topo_vect[gptv] == -1:
                 # load is disconnected
                 continue
+            loc_bus = topo_vect[gptv] - 1
             
             # for substations
             p_subs[cls.load_to_subid[i]] += p_load[i]
@@ -1239,44 +1316,46 @@ class Backend(GridObjects, ABC):
 
             # for buses
             p_bus[
-                cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1
+                cls.load_to_subid[i], loc_bus
             ] += p_load[i]
             q_bus[
-                cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1
+                cls.load_to_subid[i], loc_bus
             ] += q_load[i]
 
             # compute max and min values
             if v_load[i]:
                 # but only if load is connected
-                v_bus[cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1][
+                v_bus[cls.load_to_subid[i], loc_bus][
                     0
                 ] = min(
                     v_bus[
-                        cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1
+                        cls.load_to_subid[i], loc_bus
                     ][0],
                     v_load[i],
                 )
-                v_bus[cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1][
+                v_bus[cls.load_to_subid[i], loc_bus][
                     1
                 ] = max(
                     v_bus[
-                        cls.load_to_subid[i], topo_vect[cls.load_pos_topo_vect[i]] - 1
+                        cls.load_to_subid[i], loc_bus
                     ][1],
                     v_load[i],
                 )
 
         for i in range(cls.n_storage):
-            if topo_vect[cls.storage_pos_topo_vect[i]] == -1:
+            gptv = cls.storage_pos_topo_vect[i]
+            if topo_vect[gptv] == -1:
                 # storage is disconnected
                 continue
+            loc_bus = topo_vect[gptv] - 1
             
             p_subs[cls.storage_to_subid[i]] += p_storage[i]
             q_subs[cls.storage_to_subid[i]] += q_storage[i]
             p_bus[
-                cls.storage_to_subid[i], topo_vect[cls.storage_pos_topo_vect[i]] - 1
+                cls.storage_to_subid[i], loc_bus
             ] += p_storage[i]
             q_bus[
-                cls.storage_to_subid[i], topo_vect[cls.storage_pos_topo_vect[i]] - 1
+                cls.storage_to_subid[i], loc_bus
             ] += q_storage[i]
 
             # compute max and min values
@@ -1284,21 +1363,21 @@ class Backend(GridObjects, ABC):
                 # the storage unit is connected
                 v_bus[
                     cls.storage_to_subid[i],
-                    topo_vect[cls.storage_pos_topo_vect[i]] - 1,
+                    loc_bus,
                 ][0] = min(
                     v_bus[
                         cls.storage_to_subid[i],
-                        topo_vect[cls.storage_pos_topo_vect[i]] - 1,
+                        loc_bus,
                     ][0],
                     v_storage[i],
                 )
                 v_bus[
                     self.storage_to_subid[i],
-                    topo_vect[self.storage_pos_topo_vect[i]] - 1,
+                    loc_bus,
                 ][1] = max(
                     v_bus[
                         cls.storage_to_subid[i],
-                        topo_vect[cls.storage_pos_topo_vect[i]] - 1,
+                        loc_bus,
                     ][1],
                     v_storage[i],
                 )
@@ -1330,7 +1409,7 @@ class Backend(GridObjects, ABC):
                 "Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
                 "incorrect."
             )
-        diff_v_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
+        diff_v_bus = np.zeros((cls.n_sub, cls.n_busbar_per_sub), dtype=dt_float)
         diff_v_bus[:, :] = v_bus[:, :, 1] - v_bus[:, :, 0]
         return p_subs, q_subs, p_bus, q_bus, diff_v_bus
 
@@ -1859,6 +1938,22 @@ class Backend(GridObjects, ABC):
         from grid2op.Action import CompleteAction
         from grid2op.Action._backendAction import _BackendAction
 
+        if self._missing_two_busbars_support_info:
+            warnings.warn("The backend implementation you are using is probably too old to take advantage of the "
+                          "new feature added in grid2op 1.9.9: the possibility "
+                          "to have more than 2 busbars per substations (or not). "
+                          "To silence this warning, you can modify the `load_grid` implementation "
+                          "of your backend and either call:\n"
+                          "- self.can_handle_more_than_2_busbar if the current implementation "
+                          "   can handle more than 2 busbsars OR\n"
+                          "- self.cannot_handle_more_than_2_busbar if not."
+                          "\nAnd of course, ideally, if the current implementation "
+                          "of your backend cannot "
+                          "handle more than 2 busbars per substation, then change it :-)\n"
+                          "Your backend will behave as if it did not support it.")
+            self._missing_two_busbars_support_info = False
+            self.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
+            
         orig_type = type(self)
         if orig_type.my_bk_act_class is None:
             # class is already initialized

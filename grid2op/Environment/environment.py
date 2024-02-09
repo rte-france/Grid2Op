@@ -10,7 +10,7 @@ import copy
 import warnings
 import numpy as np
 import re
-from typing import Union, Any, Dict
+from typing import Union, Any, Dict, Literal
 
 import grid2op
 from grid2op.Opponent import OpponentSpace
@@ -32,6 +32,7 @@ from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageControll
 from grid2op.Environment.baseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
+from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
 
 
 class Environment(BaseEnv):
@@ -82,6 +83,7 @@ class Environment(BaseEnv):
         backend,
         parameters,
         name="unknown",
+        n_busbar=DEFAULT_N_BUSBAR_PER_SUB,
         names_chronics_to_backend=None,
         actionClass=TopologyAction,
         observationClass=CompleteObservation,
@@ -148,6 +150,7 @@ class Environment(BaseEnv):
             observation_bk_kwargs=observation_bk_kwargs,
             highres_sim_counter=highres_sim_counter,
             update_obs_after_reward=_update_obs_after_reward,
+            n_busbar=n_busbar,
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )
@@ -244,7 +247,8 @@ class Environment(BaseEnv):
                 self.backend._PATH_ENV = self.get_path_env()
             # all the above should be done in this exact order, otherwise some weird behaviour might occur
             # this is due to the class attribute
-            self.backend.set_env_name(self.name)
+            type(self.backend).set_env_name(self.name)
+            type(self.backend).set_n_busbar_per_sub(self._n_busbar)
             self.backend.load_grid(
                 self._init_grid_path
             )  # the real powergrid of the environment
@@ -520,7 +524,7 @@ class Environment(BaseEnv):
                 # deals with the "sub_pos" vector
                 for sub_id in range(cls_bk.n_sub):
                     if (cls_bk.storage_to_subid == sub_id).any():
-                        stor_ids = np.where(cls_bk.storage_to_subid == sub_id)[0]
+                        stor_ids = np.nonzero(cls_bk.storage_to_subid == sub_id)[0]
                         stor_locs = cls_bk.storage_to_sub_pos[stor_ids]
                         for stor_loc in sorted(stor_locs, reverse=True):
                             for vect, sub_id_me in zip(
@@ -897,7 +901,7 @@ class Environment(BaseEnv):
     def reset(self, 
               *,
               seed: Union[int, None] = None,
-              options: Union[Dict[str, Any], None] = None) -> BaseObservation:
+              options: Union[Dict[Union[str, Literal["time serie id"]], Union[int, str]], None] = None) -> BaseObservation:
         """
         Reset the environment to a clean state.
         It will reload the next chronics if any. And reset the grid to a clean state.
@@ -1136,6 +1140,7 @@ class Environment(BaseEnv):
 
         """
         res = {}
+        res["n_busbar"] = self._n_busbar
         res["init_env_path"] = self._init_env_path
         res["init_grid_path"] = self._init_grid_path
         if with_chronics_handler:
@@ -1774,6 +1779,7 @@ class Environment(BaseEnv):
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["grid_layout"] = self.grid_layout
         res["name_env"] = self.name
+        res["n_busbar"] = self._n_busbar
 
         res["opponent_space_type"] = self._opponent_space_type
         res["opponent_action_class"] = self._opponent_action_class
@@ -1798,6 +1804,7 @@ class Environment(BaseEnv):
 
     @classmethod
     def init_obj_from_kwargs(cls,
+                             *,
                              other_env_kwargs,
                              init_env_path,
                              init_grid_path,
@@ -1830,39 +1837,41 @@ class Environment(BaseEnv):
                              observation_bk_class,
                              observation_bk_kwargs,
                              _raw_backend_class,
-                             _read_from_local_dir):
-        res = Environment(init_env_path=init_env_path,
-                          init_grid_path=init_grid_path,
-                          chronics_handler=chronics_handler,
-                          backend=backend,
-                          parameters=parameters,
-                          name=name,
-                          names_chronics_to_backend=names_chronics_to_backend,
-                          actionClass=actionClass,
-                          observationClass=observationClass,
-                          rewardClass=rewardClass,
-                          legalActClass=legalActClass,
-                          voltagecontrolerClass=voltagecontrolerClass,
-                          other_rewards=other_rewards,
-                          opponent_space_type=opponent_space_type,
-                          opponent_action_class=opponent_action_class,
-                          opponent_class=opponent_class,
-                          opponent_init_budget=opponent_init_budget,
-                          opponent_budget_per_ts=opponent_budget_per_ts,
-                          opponent_budget_class=opponent_budget_class,
-                          opponent_attack_duration=opponent_attack_duration,
-                          opponent_attack_cooldown=opponent_attack_cooldown,
-                          kwargs_opponent=kwargs_opponent,
-                          with_forecast=with_forecast,
-                          attention_budget_cls=attention_budget_cls,
-                          kwargs_attention_budget=kwargs_attention_budget,
-                          has_attention_budget=has_attention_budget,
-                          logger=logger,
-                          kwargs_observation=kwargs_observation,
-                          observation_bk_class=observation_bk_class,
-                          observation_bk_kwargs=observation_bk_kwargs,
-                          _raw_backend_class=_raw_backend_class,
-                          _read_from_local_dir=_read_from_local_dir)
+                             _read_from_local_dir,
+                             n_busbar=DEFAULT_N_BUSBAR_PER_SUB):
+        res = cls(init_env_path=init_env_path,
+                  init_grid_path=init_grid_path,
+                  chronics_handler=chronics_handler,
+                  backend=backend,
+                  parameters=parameters,
+                  name=name,
+                  names_chronics_to_backend=names_chronics_to_backend,
+                  actionClass=actionClass,
+                  observationClass=observationClass,
+                  rewardClass=rewardClass,
+                  legalActClass=legalActClass,
+                  voltagecontrolerClass=voltagecontrolerClass,
+                  other_rewards=other_rewards,
+                  opponent_space_type=opponent_space_type,
+                  opponent_action_class=opponent_action_class,
+                  opponent_class=opponent_class,
+                  opponent_init_budget=opponent_init_budget,
+                  opponent_budget_per_ts=opponent_budget_per_ts,
+                  opponent_budget_class=opponent_budget_class,
+                  opponent_attack_duration=opponent_attack_duration,
+                  opponent_attack_cooldown=opponent_attack_cooldown,
+                  kwargs_opponent=kwargs_opponent,
+                  with_forecast=with_forecast,
+                  attention_budget_cls=attention_budget_cls,
+                  kwargs_attention_budget=kwargs_attention_budget,
+                  has_attention_budget=has_attention_budget,
+                  logger=logger,
+                  kwargs_observation=kwargs_observation,
+                  observation_bk_class=observation_bk_class,
+                  observation_bk_kwargs=observation_bk_kwargs,
+                  n_busbar=int(n_busbar),
+                  _raw_backend_class=_raw_backend_class,
+                  _read_from_local_dir=_read_from_local_dir)
         return res
     
     def generate_data(self, nb_year=1, nb_core=1, seed=None, **kwargs):
@@ -1872,8 +1881,7 @@ class Environment(BaseEnv):
 
         I also requires the lightsim2grid simulator.
 
-        This is only available for some environment (only the environment used for wcci 2022 competition at
-        time of writing).
+        This is only available for some environment (only the environment after 2022).
 
         Generating data takes some time (around 1 - 2 minutes to generate a weekly scenario) and this why we recommend
         to do it "offline" and then use the generated data for training or evaluation.

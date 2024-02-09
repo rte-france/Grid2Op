@@ -41,6 +41,6 @@ class PreventDiscoStorageModif(BaseRules):
             tmp_ = power_modif_disco & not_set_status & not_change_status
             return False, IllegalAction(
                 f"Attempt to modify the power produced / absorbed by a storage unit "
-                f"without reconnecting it (check storage with id {np.where(tmp_)[0]}."
+                f"without reconnecting it (check storage with id {np.nonzero(tmp_)[0]}."
             )
         return True, None

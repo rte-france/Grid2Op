@@ -7,6 +7,11 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
 from typing import Optional, Tuple
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
+    
 import numpy as np
 import os
 from scipy.optimize import minimize
@@ -70,7 +75,7 @@ class Simulator(object):
                     f"inheriting from BaseEnv"
                 )
             if env.backend._can_be_copied:
-                self.backend = env.backend.copy()
+                self.backend: Backend = env.backend.copy()
             else:
                 raise SimulatorError("Impossible to make a Simulator when you "
                                      "cannot copy the backend of the environment.")
@@ -100,7 +105,7 @@ class Simulator(object):
     def converged(self, values):
         raise SimulatorError("Cannot set this property.")
 
-    def copy(self) -> "Simulator":
+    def copy(self) -> Self:
         """Allows to perform a (deep) copy of the simulator.
 
         Returns
@@ -126,7 +131,7 @@ class Simulator(object):
         res._highres_sim_counter = self._highres_sim_counter
         return res
 
-    def change_backend(self, backend: Backend):
+    def change_backend(self, backend: Backend) -> None:
         """You can use this function in case you want to change the "solver" use to perform the computation.
         
         For example, you could use a machine learning based model to do the computation (to accelerate them), provided

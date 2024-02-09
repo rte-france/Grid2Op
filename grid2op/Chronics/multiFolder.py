@@ -352,7 +352,7 @@ class Multifolder(GridValue):
         probabilities /= sum_prob
         # take one at "random" among these
         selected = self.space_prng.choice(self._order, p=probabilities)
-        id_sel = np.where(self._order == selected)[0]
+        id_sel = np.nonzero(self._order == selected)[0]
         self._prev_cache_id = selected - 1
         return id_sel
 
