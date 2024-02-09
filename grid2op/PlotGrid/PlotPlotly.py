@@ -144,8 +144,10 @@ class PlotPlotly(BasePlot):
                 format="png", width=self.width, height=self.height, scale=1
             )
             return imageio.imread(img_bytes, format="png")
-        except:
-            warnings.warn("Plotly need additional dependencies for offline rendering")
+        except Exception as exc_:
+            warnings.warn(f"Plotly need additional dependencies for "
+                          f"offline rendering. Error was: "
+                          f"\n{exc_}")
             return np.full((self.height, self.width, 3), 255, dtype=np.unit8)
 
     def _draw_substation_txt(self, name, pos_x, pos_y, text):

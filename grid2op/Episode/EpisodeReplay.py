@@ -198,7 +198,7 @@ class EpisodeReplay(object):
                     from pygifsicle import optimize
 
                     optimize(gif_path, options=["-w", "--no-conserve-memory"])
-                except:
+                except Exception as exc_:
                     warn_msg = (
                         "Failed to optimize .GIF size, but gif is still saved:\n"
                         "Install dependencies to reduce size by ~3 folds\n"

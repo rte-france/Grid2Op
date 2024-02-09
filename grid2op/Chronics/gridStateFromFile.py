@@ -1026,14 +1026,14 @@ class GridStateFromFile(GridValue):
         if not isinstance(datetime_beg, datetime):
             try:
                 res = datetime.strptime(datetime_beg, "%Y-%m-%d %H:%M")
-            except:
+            except Exception as exc_:
                 try:
                     res = datetime.strptime(datetime_beg, "%Y-%m-%d")
-                except:
+                except Exception as exc_2:
                     raise ChronicsError(
                         'Impossible to convert "{}" to a valid datetime. Accepted format is '
                         '"%Y-%m-%d %H:%M"'.format(datetime_beg)
-                    )
+                    ) from exc_2
         return res
 
     def _extract_array(self, nm):
