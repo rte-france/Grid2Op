@@ -33,7 +33,7 @@ class PreventDiscoStorageModif(BaseRules):
         storage_power, storage_set_bus, storage_change_bus = action.get_storage_modif()
 
         power_modif_disco = (np.isfinite(storage_power[storage_disco]) & 
-                             np.abs(storage_power[storage_disco]) >= 1e-7)
+                             (np.abs(storage_power[storage_disco]) >= 1e-7))
         not_set_status = storage_set_bus[storage_disco] <= 0
         not_change_status = ~storage_change_bus[storage_disco]
         if (power_modif_disco & not_set_status & not_change_status).any():
