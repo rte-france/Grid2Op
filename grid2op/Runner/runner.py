@@ -479,7 +479,7 @@ class Runner(object):
             # Test if we can copy the agent for parallel runs
             try:
                 copy.copy(self.agent)
-            except:
+            except Exception as exc_:
                 self.__can_copy_agent = False
         else:
             raise RuntimeError(

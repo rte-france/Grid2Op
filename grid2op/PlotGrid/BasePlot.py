@@ -1011,10 +1011,10 @@ class BasePlot(ABC):
                     observation.rho = copy.deepcopy(line_values)
                     try:
                         observation.rho = np.array(observation.rho).astype(dt_float)
-                    except:
+                    except Exception as exc_:
                         raise PlotError(
                             "Impossible to convert the input values (line_values) to floating point"
-                        )
+                        ) from exc_
 
                     # rescaling to have range 0 - 1.0
                     tmp = observation.rho[np.isfinite(observation.rho)]
@@ -1038,10 +1038,10 @@ class BasePlot(ABC):
                         observation.prod_p = np.array(observation.prod_p).astype(
                             dt_float
                         )
-                    except:
+                    except Exception as exc_:
                         raise PlotError(
                             "Impossible to convert the input values (gen_values) to floating point"
-                        )
+                        ) from exc_
 
                     # rescaling to have range 0 - 1.0
                     tmp = observation.prod_p[np.isfinite(observation.prod_p)]

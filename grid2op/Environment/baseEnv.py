@@ -1847,9 +1847,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         redisp_act_orig = 1.0 * action._redispatch
 
         if (
-            np.all(redisp_act_orig == 0.0)
-            and np.all(self._target_dispatch == 0.0)
-            and np.all(self._actual_dispatch == 0.0)
+            np.all(np.abs(redisp_act_orig) <= 1e-7)
+            and np.all(np.abs(self._target_dispatch) <= 1e-7)
+            and np.all(np.abs(self._actual_dispatch) <= 1e-7)
         ):
             return valid, except_, info_
         # check that everything is consistent with pmin, pmax:
@@ -1879,7 +1879,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             return valid, except_, info_
 
         # i can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
-        if (redisp_act_orig[new_p == 0.0]).any() and self._forbid_dispatch_off:
+        if (redisp_act_orig[np.abs(new_p) <= 1e-7]).any() and self._forbid_dispatch_off:
             # action is invalid, a generator has been redispatched, but it's turned off
             except_ = InvalidRedispatching(
                 "Impossible to dispatch a turned off generator"
@@ -1889,7 +1889,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self._forbid_dispatch_off is True:
             redisp_act_orig_cut = 1.0 * redisp_act_orig
-            redisp_act_orig_cut[new_p == 0.0] = 0.0
+            redisp_act_orig_cut[np.abs(new_p) <= 1e-7] = 0.0
             if (redisp_act_orig_cut != redisp_act_orig).any():
                 info_.append(
                     {
@@ -1924,7 +1924,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # these are the generators that will be adjusted for redispatching
         gen_participating = (
             (new_p > 0.0)
-            | (self._actual_dispatch != 0.0)
+            | (np.abs(self._actual_dispatch) >= 1e-7)
             | (self._target_dispatch != self._actual_dispatch)
         )
         gen_participating[~self.gen_redispatchable] = False
@@ -2075,8 +2075,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # the idea here is to chose a initial point that would be close to the
         # desired solution (split the (sum of the) dispatch to the available generators)
         x0 = np.zeros(gen_participating.sum())
-        if (self._target_dispatch != 0.).any() or already_modified_gen.any():
-            gen_for_x0 = self._target_dispatch[gen_participating] != 0.
+        if (np.abs(self._target_dispatch) >= 1e-7).any() or already_modified_gen.any():
+            gen_for_x0 = np.abs(self._target_dispatch[gen_participating]) >= 1e-7
             gen_for_x0 |= already_modified_gen[gen_participating]
             x0[gen_for_x0] = (
                 self._target_dispatch[gen_participating][gen_for_x0]
@@ -2088,7 +2088,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             
             # in this "if" block I set the other component of x0 to 
             # their "right" value
-            can_adjust = (x0 == 0.0)
+            can_adjust = (np.abs(x0) <= 1e-7)
             if can_adjust.any():
                 init_sum = x0.sum()
                 denom_adjust = (1.0 / weights[can_adjust]).sum()
@@ -2525,7 +2525,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _compute_storage(self, action_storage_power):
         self._storage_previous_charge[:] = self._storage_current_charge
-        storage_act = np.isfinite(action_storage_power) & (action_storage_power != 0.0)
+        storage_act = np.isfinite(action_storage_power) & (np.abs(action_storage_power) >= 1e-7)
         self._action_storage[:] = 0.0
         self._storage_power[:] = 0.0
         modif = False
@@ -2646,7 +2646,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _aux_compute_new_p_curtailment(self, new_p, curtailment_vect):
         """modifies the new_p argument !!!!"""
         gen_curtailed = (
-            curtailment_vect != 1.0
+            np.abs(curtailment_vect - 1.) >= 1e-7
         )  # curtailed either right now, or in a previous action
         max_action = self.gen_pmax[gen_curtailed] * curtailment_vect[gen_curtailed]
         new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
@@ -2655,7 +2655,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _aux_handle_curtailment_without_limit(self, action, new_p):
         """modifies the new_p argument !!!! (but not the action)"""
         if self.redispatching_unit_commitment_availble and (
-            action._modif_curtailment or (self._limit_curtailment != 1.0).any()
+            action._modif_curtailment or (np.abs(self._limit_curtailment - 1.) >= 1e-7).any()
         ):
             self._aux_update_curtailment_act(action)
 
@@ -2676,7 +2676,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         else:
             self._sum_curtailment_mw = -self._sum_curtailment_mw_prev
             self._sum_curtailment_mw_prev = dt_float(0.0)
-            gen_curtailed = self._limit_curtailment != 1.0
+            gen_curtailed = np.abs(self._limit_curtailment - 1.) >= 1e-7
 
         return gen_curtailed
 

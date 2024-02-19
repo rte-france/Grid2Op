@@ -803,7 +803,7 @@ class BaseTestDispatchRampingIllegalETC(MakeBackend):
                 assert np.all(
                     obs.prod_p[0:2] <= obs.gen_pmax[0:2]
                 ), "above pmax for ts {}".format(i)
-            except:
+            except Exception as exc_:
                 pass
             assert np.all(
                 obs.prod_p[0:2] >= -obs.gen_pmin[0:2]

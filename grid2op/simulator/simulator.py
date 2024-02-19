@@ -316,7 +316,7 @@ class Simulator(object):
 
         # which generators needs to be "optimized" -> the one where
         # the target function matter
-        gen_in_target = target_dispatch[self.current_obs.gen_redispatchable] != 0.0
+        gen_in_target = np.abs(target_dispatch[self.current_obs.gen_redispatchable]) >= 1e-7
 
         # compute the upper / lower bounds for the generators
         dispatchable = new_gen_p[self.current_obs.gen_redispatchable]
@@ -403,7 +403,7 @@ class Simulator(object):
         # the idea here is to chose a initial point that would be close to the
         # desired solution (split the (sum of the) dispatch to the available generators)
         x0 = 1.0 * target_dispatch_redisp
-        can_adjust = x0 == 0.0
+        can_adjust = np.abs(x0) <= 1e-7
         if (can_adjust).any():
             init_sum = x0.sum()
             denom_adjust = (1.0 / weights[can_adjust]).sum()
@@ -480,8 +480,8 @@ class Simulator(object):
         target_dispatch = self.current_obs.target_dispatch + act.redispatch
         # if previous setpoint was say -2 and at this step I redispatch of
         # say + 4 then the real setpoint should be +2 (and not +4)
-        new_vect_redisp = (act.redispatch != 0.0) & (
-            self.current_obs.target_dispatch == 0.0
+        new_vect_redisp = (np.abs(act.redispatch) >= 1e-7) & (
+            np.abs(self.current_obs.target_dispatch) <= 1e-7
         )
         target_dispatch[new_vect_redisp] += self.current_obs.actual_dispatch[
             new_vect_redisp

@@ -157,7 +157,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
             )
 
         # there are _maintenance and hazards only if the value in the file is not 0.
-        obj_with_maintenance.maintenance = obj_with_maintenance.maintenance != 0.0
+        obj_with_maintenance.maintenance = np.abs(obj_with_maintenance.maintenance) >= 1e-7
         obj_with_maintenance.maintenance = obj_with_maintenance.maintenance.astype(dt_bool)
         
     @staticmethod

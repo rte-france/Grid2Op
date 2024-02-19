@@ -466,7 +466,7 @@ def make_from_dataset_path(
                         try:
                             int_ = int(el)
                             available_parameters_int[int_] = el
-                        except:
+                        except Exception as exc_:
                             pass
                     max_ = np.max(list(available_parameters_int.keys()))
                     keys_ = available_parameters_int[max_]
