@@ -1401,6 +1401,19 @@ class TestObservation_3busbars(unittest.TestCase):
         else:
             act = self.env.action_space({"set_bus": {el_keys: [(el_id, new_bus)], "lines_ex_id": [(line_ex_id, new_bus)]}})
         return act
+    
+    @staticmethod        
+    def _aux_aux_build_act(env, res, new_bus, el_keys):
+        """res: output of TestPandapowerBackend_3busbars._aux_find_sub"""
+        if res is None:
+            raise RuntimeError(f"Cannot carry the test as "
+                               "there are no suitable subastation in your grid.")
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        if line_or_id is not None:
+            act = env.action_space({"set_bus": {el_keys: [(el_id, new_bus)], "lines_or_id": [(line_or_id, new_bus)]}})
+        else:
+            act = env.action_space({"set_bus": {el_keys: [(el_id, new_bus)], "lines_ex_id": [(line_ex_id, new_bus)]}})
+        return act
         
     def test_get_forecasted_env(self):
         obs = self.env.reset(**self.get_reset_kwargs())
@@ -1620,9 +1633,120 @@ class TestObservation_1busbar(TestObservation_3busbars):
                 
                 
 class TestEnv(unittest.TestCase):
-    pass
-
-
+    def get_nb_bus(self):
+        return 3
+    
+    def get_env_nm(self):
+        return "educ_case14_storage"
+    
+    def get_reset_kwargs(self) -> dict:
+        return dict(seed=0, options={"time serie id": 0})
+    
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.get_env_nm(),
+                                    backend=PandaPowerBackend(),
+                                    action_class=CompleteAction,
+                                    test=True,
+                                    n_busbar=self.get_nb_bus(),
+                                    _add_to_name=type(self).__name__ + f'_{self.get_nb_bus()}')
+        param = self.env.parameters
+        param.NB_TIMESTEP_COOLDOWN_SUB = 0
+        param.NB_TIMESTEP_COOLDOWN_LINE = 0
+        param.MAX_LINE_STATUS_CHANGED = 99999
+        param.MAX_SUB_CHANGED = 99999
+        self.env.change_parameters(param)
+        self.env.change_forecast_parameters(param)
+        self.env.reset(**self.get_reset_kwargs())
+        self.list_loc_bus = list(range(1, type(self.env).n_busbar_per_sub + 1))
+        self.max_iter = 10
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    def test_go_to_end(self):
+        self.env.set_max_iter(self.max_iter)
+        obs = self.env.reset(**self.get_reset_kwargs())
+        i = 0
+        done = False
+        while not done:
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        assert i == 10, f"{i} instead of 10"
+        
+    def test_can_put_on_3(self):
+        self.env.set_max_iter(self.max_iter)
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        act = TestObservation_3busbars._aux_aux_build_act(self.env, res, self.get_nb_bus(), "loads_id")
+        i = 0
+        done = False
+        while not done:
+            if i == 0:
+                obs, reward, done, info = self.env.step(act)
+            else:
+                obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        assert i == 10, f"{i} instead of 10"
+        
+    def test_can_move_from_3(self):
+        self.env.set_max_iter(self.max_iter)
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        act = TestObservation_3busbars._aux_aux_build_act(self.env, res, self.get_nb_bus(), "loads_id")
+        i = 0
+        done = False
+        while not done:
+            if i == 0:
+                # do the action to set on a busbar 3
+                obs, reward, done, info = self.env.step(act)
+                assert not done
+                assert not info["exception"]
+            elif i == 1:
+                # do the opposite action
+                dict_act = obs.get_back_to_ref_state()
+                assert "substation" in dict_act
+                li_act = dict_act["substation"]
+                assert len(li_act) == 1
+                act = li_act[0]
+                obs, reward, done, info = self.env.step(act)
+                assert not done
+                assert not info["exception"]
+            else:
+                obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        assert i == 10, f"{i} instead of 10"
+        
+    def _aux_alone_done(self, key="loads_id"):
+        if self.get_nb_bus() <= 2:
+            self.skipTest("Need at leat two busbars")
+        obs = self.env.reset(**self.get_reset_kwargs())
+        act = self.env.action_space({"set_bus": {key: [(0, self.get_nb_bus())]}})
+        obs, reward, done, info = self.env.step(act)
+        assert done
+    
+    def test_load_alone_done(self):
+        self._aux_alone_done("loads_id")
+        
+    def test_gen_alone_done(self):
+        self._aux_alone_done("generators_id")
+        
+    def test_simulate(self):
+        """test the obs.simulate(...) works with different number of busbars"""
+        obs = self.env.reset(**self.get_reset_kwargs())
+        res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
+        (sub_id, el_id, line_or_id, line_ex_id) = res
+        act = TestObservation_3busbars._aux_aux_build_act(self.env, res, self.get_nb_bus(), "loads_id")
+        sim_obs, sim_r, sim_d, sim_i = obs.simulate(act)
+        assert not sim_d
+        assert not sim_i["exception"]
+        
+    
 class TestGym(unittest.TestCase):
     pass
 

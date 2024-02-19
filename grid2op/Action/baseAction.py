@@ -9,7 +9,7 @@
 import copy
 import numpy as np
 import warnings
-from typing import Tuple, Dict, Literal, Any
+from typing import Tuple, Dict, Literal, Any, List
 try:
     from typing import Self
 except ImportError:
@@ -6327,7 +6327,14 @@ class BaseAction(GridObjects):
                                    group_line_status=False,
                                    group_redispatch=True,
                                    group_storage=True,
-                                   group_curtail=True) -> dict:
+                                   group_curtail=True) -> Dict[Literal["change_bus",
+                                                                       "set_bus",
+                                                                       "change_line_status",
+                                                                       "set_line_status",
+                                                                       "redispatch",
+                                                                       "set_storage",
+                                                                       "curtail"],
+                                                               List["BaseAction"]]:
         """This function allows to split a possibly "complex" action into its
         "unary" counterpart.
         

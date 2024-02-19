@@ -31,6 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+
 [1.9.9] - 2024-xx-yy
 ----------------------
 - [BREAKING] the order of the actions in `env.action_space.get_all_unitary_line_set` and 
@@ -52,6 +53,8 @@ Change Log
 - [ADDED] a method `gridobj.topo_vect_element()` that does the opposite of `gridobj.xxx_pos_topo_vect`
 - [ADDED] a mthod `gridobj.get_powerline_id(sub_id)` that gives the
   id of all powerlines connected to a given substation
+- [ADDED] a convenience function `obs.get_back_to_ref_state(...)`
+  for the observation and not only the action_space.
 - [IMPROVED] handling of "compatibility" grid2op version
   (by calling the relevant things done in the base class 
   in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`
