@@ -386,7 +386,7 @@ class ConnectivityConverter(Converter):
                 f"encoded action at positions {indexes[:5]}... (only first 5 displayed)"
             )
 
-        act_want_change = encoded_act != 0.0
+        act_want_change = np.abs(encoded_act) >= 1e-7
         encoded_act_filtered = encoded_act[act_want_change]
         if encoded_act_filtered.shape[0] == 0:
             # do nothing action in this case
@@ -489,7 +489,7 @@ class ConnectivityConverter(Converter):
 
         Lower disagreement is always better.
         """
-        set_component = encoded_act != 0.0
+        set_component = np.abs(encoded_act) >= 1e-7
         bus_el1 = topo_vect[self.pos_topo[:, 0]]
         bus_el2 = topo_vect[self.pos_topo[:, 1]]
         # for the element that will connected

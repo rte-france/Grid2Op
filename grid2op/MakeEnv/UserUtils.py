@@ -163,12 +163,12 @@ def change_local_dir(new_path):
 
     try:
         new_path = str(new_path)
-    except:
+    except Exception as exc_:
         raise Grid2OpException(
             'The new path should be convertible to str. It is currently "{}"'.format(
                 new_path
             )
-        )
+        ) from exc_
 
     root_dir = os.path.split(new_path)[0]
     if not os.path.exists(root_dir):
@@ -190,21 +190,21 @@ def change_local_dir(new_path):
         try:
             with open(DEFAULT_PATH_CONFIG, "r", encoding="utf-8") as f:
                 newconfig = json.load(f)
-        except:
+        except Exception as exc_:
             raise Grid2OpException(
                 'Impossible to read the grid2op configuration files "{}". Make sure it is a '
                 'valid json encoded with "utf-8" encoding.'.format(DEFAULT_PATH_CONFIG)
-            )
+            ) from exc_
 
     newconfig[KEY_DATA_PATH] = new_path
 
     try:
         with open(DEFAULT_PATH_CONFIG, "w", encoding="utf-8") as f:
             json.dump(fp=f, obj=newconfig, sort_keys=True, indent=4)
-    except:
+    except Exception as exc_:
         raise Grid2OpException(
             'Impossible to write the grid2op configuration files "{}". Make sure you have '
             "writing access to it.".format(DEFAULT_PATH_CONFIG)
-        )
+        ) from exc_
 
     grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA = new_path

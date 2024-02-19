@@ -59,7 +59,7 @@ class ValueStore:
         self.values[changed_] = (1 - self.values[changed_]) + 2
 
     def _change_val_float(self, newvals):
-        changed_ = newvals != 0.0
+        changed_ = np.abs(newvals) >= 1e-7
         self.changed[changed_] = True
         self.values[changed_] += newvals[changed_]
 

@@ -449,7 +449,7 @@ class __AuxBoxGymActSpace:
             if el in self._multiply:
                 # special case if a 0 were entered
                 arr_ = 1.0 * self._multiply[el]
-                is_nzero = arr_ != 0.0
+                is_nzero = np.abs(arr_) >= 1e-7
                 
                 low_ =  1.0 * low_.astype(dtype)
                 high_ =  1.0 * high_.astype(dtype)

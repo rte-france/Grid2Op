@@ -589,7 +589,7 @@ class BaseAction(GridObjects):
                 res[dict_key] = tmp_
 
     def _aux_serialize_add_key_set(self, attr_nm, dict_key, res):            
-            tmp_ = [(int(id_), int(val)) for id_, val in enumerate(getattr(self, attr_nm)) if val != 0.]
+            tmp_ = [(int(id_), int(val)) for id_, val in enumerate(getattr(self, attr_nm)) if np.abs(val) >= 1e-7]
             if tmp_:
                 res[dict_key] = tmp_
                 
@@ -683,7 +683,7 @@ class BaseAction(GridObjects):
             res["redispatch"] = [
                 (int(id_), float(val))
                 for id_, val in enumerate(self._redispatch)
-                if val != 0.0
+                if np.abs(val) >= 1e-7
             ]
             if not res["redispatch"]:
                 del res["redispatch"]
@@ -692,7 +692,7 @@ class BaseAction(GridObjects):
             res["set_storage"] = [
                 (int(id_), float(val))
                 for id_, val in enumerate(self._storage_power)
-                if val != 0.0
+                if np.abs(val) >= 1e-7
             ]
             if not res["set_storage"]:
                 del res["set_storage"]
@@ -701,7 +701,7 @@ class BaseAction(GridObjects):
             res["curtail"] = [
                 (int(id_), float(val))
                 for id_, val in enumerate(self._curtail)
-                if val != -1
+                if np.abs(val + 1.) >= 1e-7
             ]
             if not res["curtail"]:
                 del res["curtail"]
@@ -896,10 +896,10 @@ class BaseAction(GridObjects):
         self._modif_set_status = (self._set_line_status != 0).any()
         self._modif_change_status = (self._switch_line_status).any()
         self._modif_redispatch = (
-            np.isfinite(self._redispatch) & (self._redispatch != 0.0)
+            np.isfinite(self._redispatch) & (np.abs(self._redispatch) >= 1e-7)
         ).any()
-        self._modif_storage = (self._storage_power != 0.0).any()
-        self._modif_curtailment = (self._curtail != -1.0).any()
+        self._modif_storage = (np.abs(self._storage_power) >= 1e-7).any()
+        self._modif_curtailment = (np.abs(self._curtail + 1.0) >= 1e-7).any()
         self._modif_alarm = self._raise_alarm.any()
         self._modif_alert = self._raise_alert.any()
 
@@ -912,7 +912,7 @@ class BaseAction(GridObjects):
             super()._assign_attr_from_name(attr_nm, vect)
             self._post_process_from_vect()
         else:
-            if np.isfinite(vect).any() and (vect != 0.0).any():
+            if np.isfinite(vect).any() and (np.abs(vect) >= 1e-7).any():
                 self._dict_inj[attr_nm] = vect
 
     def check_space_legit(self):
@@ -1539,7 +1539,7 @@ class BaseAction(GridObjects):
     
     def _aux_iadd_redisp(self, other):
         redispatching = other._redispatch
-        if (redispatching != 0.0).any():
+        if (np.abs(redispatching) >= 1e-7).any():
             if "_redispatch" not in self.attr_list_set:
                 warnings.warn(
                     type(self).ERR_ACTION_CUT.format("_redispatch")
@@ -1550,7 +1550,7 @@ class BaseAction(GridObjects):
     
     def _aux_iadd_curtail(self, other):
         curtailment = other._curtail
-        ok_ind = np.isfinite(curtailment) & (curtailment != -1.0)
+        ok_ind = np.isfinite(curtailment) & (np.abs(curtailment + 1.0) >= 1e-7)
         if ok_ind.any():
             if "_curtail" not in self.attr_list_set:
                 warnings.warn(
@@ -1564,7 +1564,7 @@ class BaseAction(GridObjects):
     
     def _aux_iadd_storage(self, other):
         set_storage = other._storage_power
-        ok_ind = np.isfinite(set_storage) & (set_storage != 0.0).any()
+        ok_ind = np.isfinite(set_storage) & (np.abs(set_storage) >= 1e-7).any()
         if ok_ind.any():
             if "_storage_power" not in self.attr_list_set:
                 warnings.warn(
@@ -2423,7 +2423,7 @@ class BaseAction(GridObjects):
                     "You illegally act on the powerline status (using change)"
                 )
 
-        if (self._redispatch != 0.0).any():
+        if (np.abs(self._redispatch) >= 1e-7).any():
             if not self._modif_redispatch:
                 raise AmbiguousAction(
                     "A action of type redispatch is performed while the appropriate flag "
@@ -2434,7 +2434,7 @@ class BaseAction(GridObjects):
             if "redispatch" not in self.authorized_keys:
                 raise IllegalAction("You illegally act on the redispatching")
 
-        if (self._storage_power != 0.0).any():
+        if (np.abs(self._storage_power) >= 1e-7).any():
             if not self._modif_storage:
                 raise AmbiguousAction(
                     "A action on the storage unit is performed while the appropriate flag "
@@ -2445,7 +2445,7 @@ class BaseAction(GridObjects):
             if "set_storage" not in self.authorized_keys:
                 raise IllegalAction("You illegally act on the storage unit")
 
-        if (self._curtail != -1.0).any():
+        if (np.abs(self._curtail + 1.0) >= 1e-7).any():
             if not self._modif_curtailment:
                 raise AmbiguousAction(
                     "A curtailment is performed while the action is not supposed to have done so. "
@@ -2876,8 +2876,8 @@ class BaseAction(GridObjects):
                     "units affected"
                 )
 
-            if ((self._curtail < 0.0) & (self._curtail != -1.0)).any():
-                where_bug = np.nonzero((self._curtail < 0.0) & (self._curtail != -1.0))[0]
+            if ((self._curtail < 0.0) & (np.abs(self._curtail + 1.0) >= 1e-7)).any():
+                where_bug = np.nonzero((self._curtail < 0.0) & (np.abs(self._curtail + 1.0) >= 1e-7))[0]
                 raise InvalidCurtailment(
                     f"you asked to perform a negative curtailment: "
                     f"self._curtail[{where_bug}] < 0. "
@@ -2890,7 +2890,7 @@ class BaseAction(GridObjects):
                     f"self._curtail[{where_bug}] > 1. "
                     f"Curtailment should be a real number between 0.0 and 1.0"
                 )
-            if (self._curtail[~cls.gen_renewable] != -1.0).any():
+            if (np.abs(self._curtail[~cls.gen_renewable] +1.0) >= 1e-7).any():
                 raise InvalidCurtailment(
                     "Trying to apply a curtailment on a non renewable generator"
                 )
@@ -2989,7 +2989,7 @@ class BaseAction(GridObjects):
                 "\t - Modify the generators with redispatching in the following way:"
             )
             for gen_idx in range(self.n_gen):
-                if self._redispatch[gen_idx] != 0.0:
+                if np.abs(self._redispatch[gen_idx]) >= 1e-7:
                     gen_name = self.name_gen[gen_idx]
                     r_amount = self._redispatch[gen_idx]
                     res.append(
@@ -3005,7 +3005,7 @@ class BaseAction(GridObjects):
             res.append("\t - Modify the storage units in the following way:")
             for stor_idx in range(self.n_storage):
                 amount_ = self._storage_power[stor_idx]
-                if np.isfinite(amount_) and amount_ != 0.0:
+                if np.isfinite(amount_) and np.abs(amount_) >= 1e-7:
                     name_ = self.name_storage[stor_idx]
                     res.append(
                         '\t \t - Ask unit "{}" to {} {:.2f} MW (setpoint: {:.2f} MW)'
@@ -3024,7 +3024,7 @@ class BaseAction(GridObjects):
             res.append("\t - Perform the following curtailment:")
             for gen_idx in range(self.n_gen):
                 amount_ = self._curtail[gen_idx]
-                if np.isfinite(amount_) and amount_ != -1.0:
+                if np.isfinite(amount_) and np.abs(amount_ + 1.0) >= 1e-7:
                     name_ = self.name_gen[gen_idx]
                     res.append(
                         '\t \t - Limit unit "{}" to {:.1f}% of its Pmax (setpoint: {:.3f})'
@@ -3245,9 +3245,9 @@ class BaseAction(GridObjects):
 
         # handle redispatching
         redispatch = {"changed": False, "generators": []}
-        if (self._redispatch != 0.0).any():
+        if (np.abs(self._redispatch) >= 1e-7).any():
             for gen_idx in range(self.n_gen):
-                if self._redispatch[gen_idx] != 0.0:
+                if np.abs(self._redispatch[gen_idx]) >= 1e-7:
                     gen_name = self.name_gen[gen_idx]
                     r_amount = self._redispatch[gen_idx]
                     redispatch["generators"].append(
@@ -3277,7 +3277,7 @@ class BaseAction(GridObjects):
         if self._modif_curtailment:
             for gen_idx in range(self.n_gen):
                 tmp = self._curtail[gen_idx]
-                if np.isfinite(tmp) and tmp != -1:
+                if np.isfinite(tmp) and np.abs(tmp + 1.) >= 1e-7:
                     name_ = self.name_gen[gen_idx]
                     new_max = tmp
                     curtailment["limit"].append(
@@ -3540,7 +3540,7 @@ class BaseAction(GridObjects):
         lines_impacted, subs_impacted = self.get_topological_impact()
         topology = subs_impacted.any()
         line = lines_impacted.any()
-        redispatching = (self._redispatch != 0.0).any()
+        redispatching = (np.abs(self._redispatch) >= 1e-7).any()
         storage = self._modif_storage
         curtailment = self._modif_curtailment
         return injection, voltage, topology, line, redispatching, storage, curtailment
@@ -6135,7 +6135,7 @@ class BaseAction(GridObjects):
         total_storage_consumed = res._storage_power.sum()
         
         # curtailment
-        gen_curtailed = (res._curtail != -1) & cls.gen_renewable
+        gen_curtailed = (np.abs(res._curtail + 1) >= 1e-7) & cls.gen_renewable
         gen_curtailed &= ( (obs.gen_p > res._curtail * cls.gen_pmax) | (obs.gen_p_before_curtail > obs.gen_p ))
         gen_p_after_max = (res._curtail * cls.gen_pmax)[gen_curtailed]
         

@@ -24,17 +24,17 @@ class PreventDiscoStorageModif(BaseRules):
         """
         See :func:`BaseRules.__call__` for a definition of the parameters of this function.
         """
-        if env.n_storage == 0:
+        env_cls = type(env)
+        if env_cls.n_storage == 0:
             # nothing to do if no storage
             return True, None
 
         # at first iteration, env.current_obs is None...
-        storage_disco = env.backend.get_topo_vect()[env.storage_pos_topo_vect] < 0
+        storage_disco = env.backend.get_topo_vect()[env_cls.storage_pos_topo_vect] < 0
         storage_power, storage_set_bus, storage_change_bus = action.get_storage_modif()
 
-        power_modif_disco = (np.isfinite(storage_power[storage_disco])) & (
-            storage_power[storage_disco] != 0.0
-        )
+        power_modif_disco = (np.isfinite(storage_power[storage_disco]) & 
+                             (np.abs(storage_power[storage_disco]) >= 1e-7))
         not_set_status = storage_set_bus[storage_disco] <= 0
         not_change_status = ~storage_change_bus[storage_disco]
         if (power_modif_disco & not_set_status & not_change_status).any():

@@ -31,7 +31,8 @@ try:
     import imageio_ffmpeg
 
     can_save_gif = True
-except:
+except ImportError as exc_:
+    warnings.warn(f"Error while importing imageio and imageio_ffmpeg: \n{exc_}")
     can_save_gif = False
 
 

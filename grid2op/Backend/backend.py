@@ -744,11 +744,11 @@ class Backend(GridObjects, ABC):
                 if el in limits:
                     try:
                         tmp = dt_float(limits[el])
-                    except:
+                    except Exception as exc_:
                         raise BackendError(
                             'Impossible to convert data ({}) for powerline named "{}" into float '
                             "values".format(limits[el], el)
-                        )
+                        ) from exc_
                     if tmp <= 0:
                         raise BackendError(
                             'New thermal limit for powerlines "{}" is not positive ({})'

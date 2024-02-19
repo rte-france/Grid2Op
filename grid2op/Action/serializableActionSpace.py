@@ -1486,7 +1486,7 @@ class SerializableActionSpace(SerializableSpace):
         new_obj._template_act = self.actionClass()
 
     def _aux_get_back_to_ref_state_curtail(self, res, obs):
-        is_curtailed = obs.curtailment_limit != 1.0
+        is_curtailed = np.abs(obs.curtailment_limit - 1.0) >= 1e-7
         if is_curtailed.any():
             res["curtailment"] = []
             if not self.supports_type("curtail"):
@@ -1546,7 +1546,7 @@ class SerializableActionSpace(SerializableSpace):
 
     def _aux_get_back_to_ref_state_redisp(self, res, obs, precision=1e-5):
         # TODO this is ugly, probably slow and could definitely be optimized
-        notredisp_setpoint = obs.target_dispatch != 0.0
+        notredisp_setpoint = np.abs(obs.target_dispatch) >= 1e-7
         if notredisp_setpoint.any():
             need_redisp = np.nonzero(notredisp_setpoint)[0]
             res["redispatching"] = []
@@ -1587,14 +1587,14 @@ class SerializableActionSpace(SerializableSpace):
                         continue
                     if obs.target_dispatch[gen_id] > 0.0:
                         if nb_act < nb_[gen_id] - 1 or (
-                            rem[gen_id] == 0.0 and nb_act == nb_[gen_id] - 1
+                            np.abs(rem[gen_id]) <= 1e-7 and nb_act == nb_[gen_id] - 1
                         ):
                             reds[gen_id] = -obs.gen_max_ramp_down[gen_id]
                         else:
                             reds[gen_id] = -rem[gen_id]
                     else:
                         if nb_act < nb_[gen_id] - 1 or (
-                            rem[gen_id] == 0.0 and nb_act == nb_[gen_id] - 1
+                            np.abs(rem[gen_id]) <= 1e-7 and nb_act == nb_[gen_id] - 1
                         ):
                             reds[gen_id] = obs.gen_max_ramp_up[gen_id]
                         else:
@@ -1658,14 +1658,14 @@ class SerializableActionSpace(SerializableSpace):
                         continue
                     if current_state[stor_id] > 0.0:
                         if nb_act < nb_[stor_id] - 1 or (
-                            rem[stor_id] == 0.0 and nb_act == nb_[stor_id] - 1
+                            np.abs(rem[stor_id]) <= 1e-7 and nb_act == nb_[stor_id] - 1
                         ):
                             reds[stor_id] = -obs.storage_max_p_prod[stor_id]
                         else:
                             reds[stor_id] = -rem[stor_id]
                     else:
                         if nb_act < nb_[stor_id] - 1 or (
-                            rem[stor_id] == 0.0 and nb_act == nb_[stor_id] - 1
+                            np.abs(rem[stor_id]) <= 1e-7 and nb_act == nb_[stor_id] - 1
                         ):
                             reds[stor_id] = obs.storage_max_p_absorb[stor_id]
                         else:
