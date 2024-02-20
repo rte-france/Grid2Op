@@ -18,7 +18,7 @@ from grid2op.Environment import (
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Converter.Converters import Converter
-from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE, ActType
 
 
 class __AuxGymActionSpace:

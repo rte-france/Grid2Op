@@ -7,11 +7,18 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
+from typing import Literal, Dict, Tuple, Any, Optional, Union, Generic
 
 from grid2op.dtypes import dt_int
 from grid2op.Chronics import Multifolder
-from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
-from grid2op.gym_compat.utils import (check_gym_version, sample_seed)
+from grid2op.Environment import Environment
+from grid2op.typing_variables import STEP_INFO_TYPING, RESET_OPTIONS_TYPING
+from grid2op.gym_compat.utils import (GYM_AVAILABLE,
+                                      GYMNASIUM_AVAILABLE,
+                                      check_gym_version,
+                                      sample_seed,
+                                      ObsType,
+                                      ActType)
     
     
 def conditional_decorator(condition):
@@ -22,8 +29,9 @@ def conditional_decorator(condition):
         return NotImplementedError()  # anything that is not a callbe anyway
     return decorator
 
+RESET_INFO_GYM_TYPING = Dict[Literal["time serie id", "seed", "grid2op_env_seed", "underlying_env_seeds"], Any]
 
-class __AuxGymEnv:
+class __AuxGymEnv(Generic[ObsType, ActType]):
     """
     fully implements the openAI gym API by using the :class:`GymActionSpace` and :class:`GymObservationSpace`
     for compliance with openAI gym.
@@ -95,7 +103,10 @@ class __AuxGymEnv:
     an action is represented through an OrderedDict (`from collection import OrderedDict`)
     """
 
-    def __init__(self, env_init, shuffle_chronics=True, render_mode="rgb_array"):
+    def __init__(self,
+                 env_init: Environment,
+                 shuffle_chronics:Optional[bool]=True,
+                 render_mode: Literal["rgb_array"]="rgb_array"):
         check_gym_version(type(self)._gymnasium)
         self.init_env = env_init.copy()
         self.action_space = type(self)._ActionSpaceType(self.init_env)
@@ -110,14 +121,14 @@ class __AuxGymEnv:
             # for older version of gym it does not exist
             self._np_random = np.random.RandomState()
         
-    def _aux_step(self, gym_action):
+    def _aux_step(self, gym_action: ActType) -> Tuple[ObsType, float, bool, STEP_INFO_TYPING]:
         # used for gym < 0.26
         g2op_act = self.action_space.from_gym(gym_action)
         g2op_obs, reward, done, info = self.init_env.step(g2op_act)
         gym_obs = self.observation_space.to_gym(g2op_obs)
         return gym_obs, float(reward), done, info
     
-    def _aux_step_new(self, gym_action):
+    def _aux_step_new(self, gym_action: ActType) -> Tuple[ObsType, float, bool, bool, STEP_INFO_TYPING]:
         # used for gym >= 0.26
         # TODO refacto with _aux_step
         g2op_act = self.action_space.from_gym(gym_action)
@@ -126,7 +137,10 @@ class __AuxGymEnv:
         truncated = False # see https://github.com/openai/gym/pull/2752
         return gym_obs, float(reward), terminated, truncated, info
 
-    def _aux_reset(self, seed=None, return_info=None, options=None):
+    def _aux_reset(self,
+                   seed: Optional[int]=None,
+                   return_info: Optional[bool]=None,
+                   options: Optional[Dict[Any, Any]]=None) -> Union[ObsType, Tuple[ObsType, RESET_INFO_GYM_TYPING]]:
         # used for gym < 0.26
         if self._shuffle_chronics and isinstance(
             self.init_env.chronics_handler.real_data, Multifolder
@@ -150,11 +164,13 @@ class __AuxGymEnv:
         else:
             return gym_obs
 
-    def _aux_reset_new(self, seed=None, options=None):
+    def _aux_reset_new(self,
+                       seed: Optional[int]=None,
+                       options: RESET_OPTIONS_TYPING=None) -> Tuple[ObsType,RESET_INFO_GYM_TYPING]:
         # used for gym > 0.26
-        if self._shuffle_chronics and isinstance(
-            self.init_env.chronics_handler.real_data, Multifolder
-        ) and (options is not None and "time serie id" not in options):
+        if (self._shuffle_chronics and 
+            isinstance(self.init_env.chronics_handler.real_data, Multifolder) and 
+            (options is not None and "time serie id" not in options)):
             self.init_env.chronics_handler.sample_next_chronics()
         
         super().reset(seed=seed)  # seed gymnasium env
@@ -179,7 +195,7 @@ class __AuxGymEnv:
         """for compatibility with open ai gym render function"""
         return self.init_env.render()
 
-    def close(self):
+    def close(self) -> None:
         if hasattr(self, "init_env") and self.init_env is not None:
             self.init_env.close()
             del self.init_env
@@ -207,7 +223,7 @@ class __AuxGymEnv:
             underlying_env_seeds = self.init_env.seed(next_seed)
             return seed, next_seed, underlying_env_seeds
         
-    def _aux_seed(self, seed=None):
+    def _aux_seed(self, seed: Optional[int]=None):
         # deprecated in gym >=0.26
         if seed is not None:
             # seed the gym env
@@ -234,13 +250,13 @@ if GYM_AVAILABLE:
     _AuxGymEnv.__doc__ = __AuxGymEnv.__doc__
     class GymEnv_Legacy(_AuxGymEnv):
         # for old version of gym        
-        def reset(self, *args, **kwargs):
+        def reset(self, *args, **kwargs) -> ObsType:
             return self._aux_reset(*args, **kwargs)
 
-        def step(self, action):
+        def step(self, action: ActType) -> Tuple[ObsType, float, bool, STEP_INFO_TYPING]:
             return self._aux_step(action)
 
-        def seed(self, seed):
+        def seed(self, seed: Optional[int]) -> None:
             # defined only on some cases
             return self._aux_seed(seed)
 
@@ -248,12 +264,15 @@ if GYM_AVAILABLE:
     class GymEnv_Modern(_AuxGymEnv):
         # for new version of gym
         def reset(self,
-                *,
-                seed=None,
-                options=None,):
+                  *,
+                  seed: Optional[int]=None,
+                  options: RESET_OPTIONS_TYPING = None) -> Tuple[
+                     ObsType,
+                     RESET_INFO_GYM_TYPING
+                  ]:
             return self._aux_reset_new(seed, options)
 
-        def step(self, action):
+        def step(self, action : ActType)  -> Tuple[ObsType, float, bool, bool, STEP_INFO_TYPING]:
             return self._aux_step_new(action)
     GymEnv_Legacy.__doc__ = __AuxGymEnv.__doc__
     GymEnv_Modern.__doc__ = __AuxGymEnv.__doc__
@@ -272,13 +291,16 @@ if GYMNASIUM_AVAILABLE:
     _AuxGymnasiumEnv.__doc__ = __AuxGymEnv.__doc__
     
     class GymnasiumEnv(_AuxGymnasiumEnv):
-        # for new version of gym
+        # for gymnasium
         def reset(self,
-                *,
-                seed=None,
-                options=None,):
+                  *,
+                  seed: Optional[int]=None,
+                  options: RESET_OPTIONS_TYPING = None) -> Tuple[
+                     ObsType,
+                     RESET_INFO_GYM_TYPING
+                  ]:
             return self._aux_reset_new(seed, options)
 
-        def step(self, action):
+        def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, STEP_INFO_TYPING]:
             return self._aux_step_new(action)
     GymnasiumEnv.__doc__ = __AuxGymEnv.__doc__

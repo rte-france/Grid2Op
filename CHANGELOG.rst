@@ -50,6 +50,8 @@ Change Log
   in some cases (especially at the time where a line was reconnected)
 - [FIXED] `MultiDiscreteActSpace` and `DiscreteActSpace` could be the same classes
   on some cases (typo in the code).
+- [FIXED] a bug in `MultiDiscreteActSpace` : the "do nothing" action could not be done if `one_sub_set` (or `one_sub_change`)
+  was selected in `attr_to_keep`
 - [ADDED] a method `gridobj.topo_vect_element()` that does the opposite of `gridobj.xxx_pos_topo_vect`
 - [ADDED] a mthod `gridobj.get_powerline_id(sub_id)` that gives the
   id of all powerlines connected to a given substation
@@ -70,6 +72,7 @@ Change Log
 - [IMPROVED] `obs.get_elements_graph()` by giving access to the bus id (local, global and 
   id of the node) where each element is connected.
 - [IMPROVED] description of the different graph of the grid in the documentation.
+- [IMPROVED] type hints for the `gym_compat` module (more work still required in this area)
 
 [1.9.8] - 2024-01-26
 ----------------------

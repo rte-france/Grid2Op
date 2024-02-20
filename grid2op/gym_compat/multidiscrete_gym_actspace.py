@@ -9,6 +9,7 @@
 import copy
 import warnings
 import numpy as np
+from typing import Literal, Dict, Tuple, Any, Optional
 
 from grid2op.Action import ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
@@ -169,7 +170,24 @@ class __AuxMultiDiscreteActSpace:
     ATTR_NEEDBUILD = 2
     ATTR_NEEDBINARIZED = 3
 
-    def __init__(self, grid2op_action_space, attr_to_keep=ALL_ATTR, nb_bins=None):
+    def __init__(self,
+                 grid2op_action_space: ActionSpace,
+                 attr_to_keep: Optional[Tuple[Literal["set_line_status"],
+                                              Literal["set_line_status_simple"],
+                                              Literal["change_line_status"],
+                                              Literal["set_bus"],
+                                              Literal["sub_set_bus"],
+                                              Literal["one_sub_set"],
+                                              Literal["change_bus"],
+                                              Literal["sub_change_bus"],
+                                              Literal["one_sub_change"],
+                                              Literal["redispatch"],
+                                              Literal["set_storage"],
+                                              Literal["curtail"],
+                                              Literal["curtail_mw"],
+                                              ]]=ALL_ATTR,
+                 nb_bins: Dict[Literal["redispatch", "set_storage", "curtail", "curtail_mw"], int]=None
+                ):
         check_gym_version(type(self)._gymnasium)
         if not isinstance(grid2op_action_space, ActionSpace):
             raise RuntimeError(
@@ -300,7 +318,6 @@ class __AuxMultiDiscreteActSpace:
         self._binarizers = None  # contains all the stuff to binarize the data
         self._types = None
         nvec = self._get_info()
-
         # initialize the base container
         type(self)._MultiDiscreteType.__init__(self, nvec=nvec)
 
@@ -415,18 +432,18 @@ class __AuxMultiDiscreteActSpace:
                         funct = self._funct_substations
                     elif el == "one_sub_set":
                         # an action change only one substation, using "set"
-                        self._sub_modifiers[
-                            el
-                        ] = self._act_space.get_all_unitary_topologies_set(
+                        self._sub_modifiers[el] = [self._act_space()]
+                        self._sub_modifiers[el] += self._act_space.get_all_unitary_topologies_set(
                             self._act_space
                         )
                         funct = self._funct_one_substation
                         nvec_ = [len(self._sub_modifiers[el])]
                     elif el == "one_sub_change":
                         # an action change only one substation, using "change"
+                        self._sub_modifiers[el] = [self._act_space()]
                         self._sub_modifiers[
                             el
-                        ] = self._act_space.get_all_unitary_topologies_change(
+                        ] += self._act_space.get_all_unitary_topologies_change(
                             self._act_space
                         )
                         funct = self._funct_one_substation

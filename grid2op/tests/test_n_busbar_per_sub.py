@@ -19,6 +19,7 @@ from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
 from grid2op.Action import ActionSpace, BaseAction, CompleteAction
 from grid2op.Observation import BaseObservation
 from grid2op.Exceptions import Grid2OpException, EnvError, IllegalAction
+from grid2op.gym_compat import GymEnv, DiscreteActSpace, BoxGymActSpace, BoxGymObsSpace, MultiDiscreteActSpace
 import pdb
 
 
@@ -1632,7 +1633,7 @@ class TestObservation_1busbar(TestObservation_3busbars):
         return 1               
                 
                 
-class TestEnv(unittest.TestCase):
+class TestEnv_3busbars(unittest.TestCase):
     def get_nb_bus(self):
         return 3
     
@@ -1694,6 +1695,8 @@ class TestEnv(unittest.TestCase):
         assert i == 10, f"{i} instead of 10"
         
     def test_can_move_from_3(self):
+        if self.get_nb_bus() <= 2:
+            self.skipTest("Need at leat two busbars")
         self.env.set_max_iter(self.max_iter)
         obs = self.env.reset(**self.get_reset_kwargs())
         res = TestPandapowerBackend_3busbars._aux_find_sub(self.env, type(self.env).LOA_COL)
@@ -1745,12 +1748,142 @@ class TestEnv(unittest.TestCase):
         sim_obs, sim_r, sim_d, sim_i = obs.simulate(act)
         assert not sim_d
         assert not sim_i["exception"]
-        
     
-class TestGym(unittest.TestCase):
-    pass
+    
+class TestEnv_1busbar(TestEnv_3busbars):
+    def get_nb_bus(self):
+        return 1               
+ 
+    
+class TestGym_3busbars(unittest.TestCase):
+    """Test the environment can be converted to gym, with proper min / max
+    for all type of action / observation space
+    """
+    def get_nb_bus(self):
+        return 3
+    
+    def get_env_nm(self):
+        return "educ_case14_storage"
+    
+    def get_reset_kwargs(self) -> dict:
+        # seed has been tuned for the tests to pass
+        return dict(seed=self.seed, options={"time serie id": 0})
+    
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.get_env_nm(),
+                                    backend=PandaPowerBackend(),
+                                    action_class=CompleteAction,
+                                    test=True,
+                                    n_busbar=self.get_nb_bus(),
+                                    _add_to_name=type(self).__name__ + f'_{self.get_nb_bus()}')
+        param = self.env.parameters
+        param.NB_TIMESTEP_COOLDOWN_SUB = 0
+        param.NB_TIMESTEP_COOLDOWN_LINE = 0
+        param.MAX_LINE_STATUS_CHANGED = 9999999
+        param.MAX_SUB_CHANGED = 99999999
+        self.env.change_parameters(param)
+        self.env.change_forecast_parameters(param)
+        self.seed = 0
+        self.env.reset(**self.get_reset_kwargs())
+        self.list_loc_bus = list(range(1, type(self.env).n_busbar_per_sub + 1))
+        self.max_iter = 10
+        return super().setUp()
+    
+    def _aux_test_env(self, gym_env):
+        obs, info = gym_env.reset(**self.get_reset_kwargs())
+        assert obs in gym_env.observation_space
+        act = gym_env.action_space.sample()
+        assert act in gym_env.action_space
+        obs, reward, done, truncated, info = gym_env.step(act)
+        if done:
+            print(gym_env.action_space.from_gym(act))
+            print(info["exception"])
+        assert not done
+        assert not truncated
+        assert obs in gym_env.observation_space
+        act = gym_env.action_space.sample()
+        assert act in gym_env.action_space
+        obs, reward, done, truncated, info = gym_env.step(act)
+        assert not done
+        assert not truncated
+        assert obs in gym_env.observation_space
+        
+    def test_gym_env(self):
+        gym_env = GymEnv(self.env)
+        self._aux_test_env(gym_env)
+        
+    def test_discrete_act(self):
+        gym_env = GymEnv(self.env)
+        gym_env.action_space.close()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            gym_env.action_space = DiscreteActSpace(self.env.action_space)
+        self.seed = 5
+        self._aux_test_env(gym_env)
+        gym_env.action_space.close()
+        gym_env.action_space = DiscreteActSpace(self.env.action_space,
+                                                attr_to_keep=('set_bus', ))
+        self.seed = 1
+        self._aux_test_env(gym_env)
+        
+    def test_box_act(self):
+        gym_env = GymEnv(self.env)
+        gym_env.action_space.close()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            gym_env.action_space = BoxGymActSpace(self.env.action_space)
+        self._aux_test_env(gym_env)
+        
+    def test_multidiscrete_act(self):
+        # BoxGymObsSpace, 
+        gym_env = GymEnv(self.env)
+        gym_env.action_space.close()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            gym_env.action_space = MultiDiscreteActSpace(self.env.action_space)
+        self._aux_test_env(gym_env)
+        gym_env.action_space.close()
+        gym_env.action_space = MultiDiscreteActSpace(self.env.action_space,
+                                                     attr_to_keep=('set_bus', ))
+        self._aux_test_env(gym_env)
+        gym_env.action_space.close()
+        gym_env.action_space = MultiDiscreteActSpace(self.env.action_space,
+                                                     attr_to_keep=('sub_set_bus', ))
+        # no seed below 1000 works, so I force illegal actions...
+        param = self.env.parameters
+        param.MAX_LINE_STATUS_CHANGED = 1
+        param.MAX_SUB_CHANGED = 1
+        gym_env.init_env.change_parameters(param)
+        gym_env.init_env.change_forecast_parameters(param)
+        self.seed = 1
+        self._aux_test_env(gym_env)
+        gym_env.action_space.close()
+        # remove illegal actions for this test
+        param.MAX_LINE_STATUS_CHANGED = 99999
+        param.MAX_SUB_CHANGED = 99999
+        gym_env.init_env.change_parameters(param)
+        gym_env.init_env.change_forecast_parameters(param)
+        gym_env.action_space = MultiDiscreteActSpace(self.env.action_space,
+                                                     attr_to_keep=('one_sub_set', ))
+        self.seed = 1
+        self._aux_test_env(gym_env)
+        
+    def test_box_obs(self):
+        gym_env = GymEnv(self.env)
+        gym_env.observation_space.close()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            gym_env.observation_space = BoxGymObsSpace(self.env.observation_space)
+        self._aux_test_env(gym_env)
 
 
+class TestGym_1busbar(TestGym_3busbars):
+    def get_nb_bus(self):
+        return 1               
+ 
+ 
 class TestRules(unittest.TestCase):
     """test the rules for the reco / deco of line works also when >= 3 busbars, 
     also ttests the act.get_impact()...

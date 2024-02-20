@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from typing import Tuple
+from typing import Literal, Dict, Tuple, Any, Optional
 import copy
 import warnings
 import numpy as np
@@ -27,6 +27,18 @@ from grid2op.gym_compat.utils import (ALL_ATTR_CONT,
                                       check_gym_version,
                                       GYM_AVAILABLE,
                                       GYMNASIUM_AVAILABLE)
+
+POSSIBLE_KEYS = Literal["redispatch",
+                        "curtail",
+                        "curtail_mw",
+                        "set_storage",
+                        "set_bus",
+                        "change_bus",
+                        "set_line_status",
+                        "change_line_status",
+                        "raise_alert",
+                        "raise_alarm"
+                        ]
 
 
 class __AuxBoxGymActSpace:
@@ -85,9 +97,9 @@ class __AuxBoxGymActSpace:
     .. code-block:: python
 
         gym_env.action_space = BoxGymActSpace(env.action_space,
-                                                   attr_to_keep=['redispatch', "curtail"],
-                                                   multiply={"redispatch": env.gen_max_ramp_up},
-                                                   add={"redispatch": 0.5 * env.gen_max_ramp_up})
+                                              attr_to_keep=['redispatch', "curtail"],
+                                              multiply={"redispatch": env.gen_max_ramp_up},
+                                              add={"redispatch": 0.5 * env.gen_max_ramp_up})
 
     In the above example, the resulting "redispatch" part of the vector will be given by the following
     formula: `grid2op_act = gym_act * multiply + add`
@@ -190,11 +202,21 @@ class __AuxBoxGymActSpace:
 
     def __init__(
         self,
-        grid2op_action_space,
-        attr_to_keep=ALL_ATTR_CONT,
-        add=None,
-        multiply=None,
-        functs=None,
+        grid2op_action_space: ActionSpace,
+        attr_to_keep: Optional[Tuple[Literal["set_line_status"],
+                                     Literal["change_line_status"],
+                                     Literal["set_bus"],
+                                     Literal["change_bus"],
+                                     Literal["redispatch"],
+                                     Literal["set_storage"],
+                                     Literal["curtail"],
+                                     Literal["curtail_mw"],
+                                     Literal["raise_alarm"],
+                                     Literal["raise_alert"],
+                                     ]]=ALL_ATTR_CONT,
+        add: Optional[Dict[str, Any]]=None,
+        multiply: Optional[Dict[str, Any]]=None,
+        functs: Optional[Dict[str, Any]]=None,
     ):
         if not isinstance(grid2op_action_space, ActionSpace):
             raise RuntimeError(
@@ -520,7 +542,7 @@ class __AuxBoxGymActSpace:
         setattr(res, attr_nm, gym_act_this)
         return res
 
-    def get_indexes(self, key: str) -> Tuple[int, int]:
+    def get_indexes(self, key: POSSIBLE_KEYS) -> Tuple[int, int]:
         """Allows to retrieve the indexes of the gym action that
         are concerned by the attribute name `key` given in input.
 
@@ -563,7 +585,7 @@ class __AuxBoxGymActSpace:
             prev = where_to_put
         raise Grid2OpException(error_msg)
         
-    def from_gym(self, gym_act):
+    def from_gym(self, gym_act: np.ndarray) -> BaseAction:
         """
         This is the function that is called to transform a gym action (in this case a numpy array!)
         sent by the agent
@@ -607,10 +629,10 @@ class __AuxBoxGymActSpace:
             prev = where_to_put
         return res
 
-    def close(self):
+    def close(self) -> None:
         pass
 
-    def normalize_attr(self, attr_nm: str):
+    def normalize_attr(self, attr_nm: POSSIBLE_KEYS)-> None:
         """
         This function normalizes the part of the space
         that corresponds to the attribute `attr_nm`.

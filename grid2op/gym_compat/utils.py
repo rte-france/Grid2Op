@@ -29,7 +29,13 @@ try:
     GYMNASIUM_AVAILABLE = True
 except ImportError:
     GYMNASIUM_AVAILABLE = False
-    
+
+try:
+    from gymnasium.core import ObsType, ActType
+except ImportError:
+    from typing import TypeVar
+    ObsType = TypeVar("ObsType")
+    ActType = TypeVar("ActType")
     
 _MIN_GYM_VERSION = version.parse("0.17.2")
 # this is the last gym version to use the "old" numpy prng
@@ -103,11 +109,11 @@ def _compute_extra_power_for_losses(gridobj):
 def sample_seed(max_, np_random):
     """sample a seed based on gym version (np_random has not always the same behaviour)"""
     if GYM_VERSION <= _MAX_GYM_VERSION_RANDINT:
-        if hasattr(np_random, "randint"):
+        if hasattr(np_random, "integers"):
+            seed_ = int(np_random.integers(0, max_))
+        else:
             # old gym behaviour
             seed_ = np_random.randint(max_)
-        else:
-            seed_ = int(np_random.integers(0, max_))
     else:
         # gym finally use most recent numpy random generator
         seed_ = int(np_random.integers(0, max_))

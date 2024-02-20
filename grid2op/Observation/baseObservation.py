@@ -23,6 +23,7 @@ except ImportError:
     from typing_extensions import Self
 
 import grid2op  # for type hints
+from grid2op.typing_variables import STEP_INFO_TYPING
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
     Grid2OpException,
@@ -1478,7 +1479,7 @@ class BaseObservation(GridObjects):
         declared as different.
 
         **Known issue** if two backend are different, but the description of the _grid are identical (ie all
-        n_gen, n_load, n_line, sub_info, dim_topo, all vectors \*_to_subid, and \*_pos_topo_vect are
+        n_gen, n_load, n_line, sub_info, dim_topo, all vectors \\*_to_subid, and \\*_pos_topo_vect are
         identical) then this method will not detect the backend are different, and the action could be declared
         as identical. For now, this is only a theoretical behaviour: if everything is the same, then probably, up to
         the naming convention, then the powergrid are identical too.
@@ -3061,20 +3062,7 @@ class BaseObservation(GridObjects):
     def simulate(self, action : "grid2op.Action.BaseAction", time_step:int=1) -> Tuple["BaseObservation",
                                                 float,
                                                 bool,
-                                                Dict[Literal["disc_lines",
-                                                             "is_illegal",
-                                                             "is_ambiguous",
-                                                             "is_dispatching_illegal",
-                                                             "is_illegal_reco",
-                                                             "reason_alarm_illegal",
-                                                             "reason_alert_illegal",
-                                                             "opponent_attack_line",
-                                                             "opponent_attack_sub",
-                                                             "exception",
-                                                             "detailed_infos_for_cascading_failures",
-                                                             "rewards",
-                                                             "time_series_id"],
-                                                     Any]]:
+                                                STEP_INFO_TYPING]:
         """
         This method is used to simulate the effect of an action on a forecast powergrid state. This forecast
         state is built upon the current observation.
