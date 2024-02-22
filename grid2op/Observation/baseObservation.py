@@ -23,6 +23,7 @@ except ImportError:
     from typing_extensions import Self
 
 import grid2op  # for type hints
+from grid2op.typing_variables import STEP_INFO_TYPING
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
     Grid2OpException,
@@ -1478,7 +1479,7 @@ class BaseObservation(GridObjects):
         declared as different.
 
         **Known issue** if two backend are different, but the description of the _grid are identical (ie all
-        n_gen, n_load, n_line, sub_info, dim_topo, all vectors \*_to_subid, and \*_pos_topo_vect are
+        n_gen, n_load, n_line, sub_info, dim_topo, all vectors \\*_to_subid, and \\*_pos_topo_vect are
         identical) then this method will not detect the backend are different, and the action could be declared
         as identical. For now, this is only a theoretical behaviour: if everything is the same, then probably, up to
         the naming convention, then the powergrid are identical too.
@@ -3061,20 +3062,7 @@ class BaseObservation(GridObjects):
     def simulate(self, action : "grid2op.Action.BaseAction", time_step:int=1) -> Tuple["BaseObservation",
                                                 float,
                                                 bool,
-                                                Dict[Literal["disc_lines",
-                                                             "is_illegal",
-                                                             "is_ambiguous",
-                                                             "is_dispatching_illegal",
-                                                             "is_illegal_reco",
-                                                             "reason_alarm_illegal",
-                                                             "reason_alert_illegal",
-                                                             "opponent_attack_line",
-                                                             "opponent_attack_sub",
-                                                             "exception",
-                                                             "detailed_infos_for_cascading_failures",
-                                                             "rewards",
-                                                             "time_series_id"],
-                                                     Any]]:
+                                                STEP_INFO_TYPING]:
         """
         This method is used to simulate the effect of an action on a forecast powergrid state. This forecast
         state is built upon the current observation.
@@ -4744,3 +4732,54 @@ class BaseObservation(GridObjects):
         
         # update the was_alert_used_after_attack !
         self.was_alert_used_after_attack[:] = env._was_alert_used_after_attack
+        
+    def get_back_to_ref_state(
+        self,
+        storage_setpoint: float=0.5,
+        precision: int=5,
+    ) -> Dict[Literal["powerline",
+                      "substation",
+                      "redispatching",
+                      "storage",
+                      "curtailment"],
+              List["grid2op.Action.BaseAction"]]:
+        """
+        Allows to retrieve the list of actions that needs to be performed
+        to get back the grid in the "reference" state (all elements connected
+        to busbar 1, no redispatching, no curtailment)
+        
+        
+        .. versionadded:: 1.9.9
+        
+        This function uses the method of the underlying action_space used 
+        for the forecasts.
+        
+        See :func:`grid2op.Action.SerializableActionSpace.get_back_to_ref_state`
+        for more information.
+        
+        Examples
+        --------
+        
+        You can use it like this:
+        
+        .. code-block:: python
+        
+            import grid2op
+
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            obs = env.reset(seed=1)
+
+            # perform a random action
+            obs, reward, done, info = env.step(env.action_space.sample())
+            assert not done # you might end up in a "done" state depending on the random action
+            
+            acts = obs.get_back_to_ref_state()
+            print(acts)
+        """     
+        if self.action_helper is None:
+            raise Grid2OpException("Trying to use this function when no action space is "
+                                   "is available.")   
+        if self._is_done:
+            raise Grid2OpException("Cannot use this function in a 'done' state.")
+        return self.action_helper.get_back_to_ref_state(self, storage_setpoint, precision)

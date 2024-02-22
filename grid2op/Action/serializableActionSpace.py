@@ -1739,7 +1739,22 @@ class SerializableActionSpace(SerializableSpace):
         Examples
         --------
 
-        TODO
+        You can use it like this:
+        
+        .. code-block:: python
+        
+            import grid2op
+
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            obs = env.reset(seed=1)
+
+            # perform a random action
+            obs, reward, done, info = env.step(env.action_space.sample())
+            assert not done # you might end up in a "done" state depending on the random action
+            
+            acts = obs.get_back_to_ref_state()
+            print(acts)
 
         """
         from grid2op.Observation.baseObservation import BaseObservation

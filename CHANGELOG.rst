@@ -31,6 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+
 [1.9.9] - 2024-xx-yy
 ----------------------
 - [BREAKING] the order of the actions in `env.action_space.get_all_unitary_line_set` and 
@@ -49,9 +50,13 @@ Change Log
   in some cases (especially at the time where a line was reconnected)
 - [FIXED] `MultiDiscreteActSpace` and `DiscreteActSpace` could be the same classes
   on some cases (typo in the code).
+- [FIXED] a bug in `MultiDiscreteActSpace` : the "do nothing" action could not be done if `one_sub_set` (or `one_sub_change`)
+  was selected in `attr_to_keep`
 - [ADDED] a method `gridobj.topo_vect_element()` that does the opposite of `gridobj.xxx_pos_topo_vect`
 - [ADDED] a mthod `gridobj.get_powerline_id(sub_id)` that gives the
   id of all powerlines connected to a given substation
+- [ADDED] a convenience function `obs.get_back_to_ref_state(...)`
+  for the observation and not only the action_space.
 - [IMPROVED] handling of "compatibility" grid2op version
   (by calling the relevant things done in the base class 
   in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`
@@ -67,6 +72,9 @@ Change Log
 - [IMPROVED] `obs.get_elements_graph()` by giving access to the bus id (local, global and 
   id of the node) where each element is connected.
 - [IMPROVED] description of the different graph of the grid in the documentation.
+- [IMPROVED] type hints for the `gym_compat` module (more work still required in this area)
+- [IMPROVED] the `MultiDiscreteActSpace` to have one "dimension" controling all powerlines
+  (see "one_line_set" and "one_line_change")
 
 [1.9.8] - 2024-01-26
 ----------------------

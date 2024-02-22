@@ -157,7 +157,7 @@ class GridObjects:
     - :attr:`GridObjects.line_ex_to_sub_pos`
     - :attr:`GridObjects.storage_to_sub_pos`
 
-    A call to the function :func:`GridObjects._compute_pos_big_topo_cls` allow to compute the \*_pos_topo_vect attributes
+    A call to the function :func:`GridObjects._compute_pos_big_topo_cls` allow to compute the \\*_pos_topo_vect attributes
     (for example :attr:`GridObjects.line_ex_pos_topo_vect`) can be computed from the above data:
 
     - :attr:`GridObjects.load_pos_topo_vect`
@@ -263,7 +263,7 @@ class GridObjects:
         :attr:`GridObjects.load_to_sub_pos` [l] is the index
         of the load *l* in the vector :attr:`grid2op.BaseObservation.BaseObservation.topo_vect` .
         This means that, if
-        "`topo_vect` [ :attr:`GridObjects.load_pos_topo_vect` \[l\] ]=2"
+        "`topo_vect` [ :attr:`GridObjects.load_pos_topo_vect` \\[l\\] ]=2"
         then load of id *l* is connected to the second bus of the substation. [*class attribute*]
 
     gen_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
@@ -3270,7 +3270,8 @@ class GridObjects:
         return res
 
     @classmethod
-    def topo_vect_element(cls, topo_vect_id: int) -> Dict[Literal["load_id", "gen_id", "line_id", "storage_id", "line_or_id", "line_ex_id", "sub_id"], Union[int, Dict[Literal["or", "ex"], int]]]:
+    def topo_vect_element(cls, topo_vect_id: int) -> Dict[Literal["load_id", "gen_id", "line_id", "storage_id", "line_or_id", "line_ex_id", "sub_id"],
+                                                          Union[int, Dict[Literal["or", "ex"], int]]]:
         """
         This function aims to be the "opposite" of the
         `cls.xxx_pos_topo_vect` (**eg** `cls.load_pos_topo_vect`)

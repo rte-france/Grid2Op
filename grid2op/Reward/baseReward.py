@@ -8,7 +8,10 @@
 
 import logging
 from abc import ABC, abstractmethod
+
+import grid2op
 from grid2op.dtypes import dt_float
+from grid2op.Action import BaseAction
 
 
 class BaseReward(ABC):
@@ -124,7 +127,7 @@ class BaseReward(ABC):
         from grid2op.Environment._forecast_env import _ForecastEnv
         return isinstance(env, (_ObsEnv, _ForecastEnv))
             
-    def initialize(self, env):
+    def initialize(self, env: "grid2op.Environment.BaseEnv") -> None:
         """
         If :attr:`BaseReward.reward_min`, :attr:`BaseReward.reward_max` or other custom attributes require to have a
         valid :class:`grid2op.Environment.Environment` to be initialized, this should be done in this method.
@@ -141,7 +144,7 @@ class BaseReward(ABC):
         """
         pass
 
-    def reset(self, env):
+    def reset(self, env: "grid2op.Environment.BaseEnv") -> None:
         """
         This method is called each time `env` is reset.
 
@@ -163,7 +166,13 @@ class BaseReward(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+    def __call__(self,
+                 action: BaseAction,
+                 env: "grid2op.Environment.BaseEnv",
+                 has_error: bool,
+                 is_done: bool,
+                 is_illegal: bool,
+                 is_ambiguous: bool) -> float:
         """
         Method called to compute the reward.
 
@@ -228,7 +237,7 @@ class BaseReward(ABC):
         """
         return self.reward_min, self.reward_max
 
-    def set_range(self, reward_min, reward_max):
+    def set_range(self, reward_min: float, reward_max: float):
         """
         Setter function for the :attr:`BaseReward.reward_min` and :attr:`BaseReward.reward_max`.
 
@@ -254,9 +263,9 @@ class BaseReward(ABC):
         yield ("reward_min", float(self.reward_min))
         yield ("reward_max", float(self.reward_max))
 
-    def close(self):
+    def close(self) -> None:
         """overide this for certain reward that might need specific behaviour"""
         pass
 
-    def is_in_blackout(self, has_error, is_done):
+    def is_in_blackout(self, has_error, is_done) -> bool:
         return is_done and has_error
