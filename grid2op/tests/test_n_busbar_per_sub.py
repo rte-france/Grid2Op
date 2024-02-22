@@ -48,7 +48,7 @@ class _AuxFakeBackendNoCalled(PandaPowerBackend):
         pass
 
 
-class TestRightNumber(unittest.TestCase):
+class TestRightNumberNbBus(unittest.TestCase):
     """This test that, when changing n_busbar in make it is 
     back propagated where it needs in the class attribute (this includes 
     testing that the observation_space, action_space, runner, environment etc.
@@ -226,7 +226,7 @@ class TestRightNumber(unittest.TestCase):
         self._aux_fun_test(env_2, DEFAULT_N_BUSBAR_PER_SUB)  # check env_2 is not modified
 
 
-class _TestAgentRightNBus(BaseAgent):
+class _TestAgentRightNbBus(BaseAgent):
     def __init__(self, action_space: ActionSpace, nb_bus : int):
         super().__init__(action_space)
         self.nb_bus = nb_bus
@@ -237,7 +237,7 @@ class _TestAgentRightNBus(BaseAgent):
         return self.action_space()
     
     
-class TestRunner(unittest.TestCase):
+class TestRunnerNbBus(unittest.TestCase):
     """Testthe runner is compatible with the feature"""
     def test_single_process(self):
         with warnings.catch_warnings():
@@ -250,8 +250,8 @@ class TestRunner(unittest.TestCase):
             # 2 busbars only because backend does not support it
             env_2 = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendNoSupport(), test=True, n_busbar=3, _add_to_name=type(self).__name__+"_2")
         
-        agent_3 = _TestAgentRightNBus(env_3.action_space, 3)
-        agent_2 = _TestAgentRightNBus(env_2.action_space, 2)
+        agent_3 = _TestAgentRightNbBus(env_3.action_space, 3)
+        agent_2 = _TestAgentRightNbBus(env_2.action_space, 2)
         
         runner_3 = Runner(**env_3.get_params_for_runner(), agentClass=None, agentInstance=agent_3)
         res = runner_3.run(nb_episode=1, max_iter=5)
@@ -272,14 +272,14 @@ class TestRunner(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env_2 = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, _add_to_name=type(self).__name__+"_same_name")
         
-        agent_2 = _TestAgentRightNBus(env_2.action_space, 2)
+        agent_2 = _TestAgentRightNbBus(env_2.action_space, 2)
         runner_2 = Runner(**env_2.get_params_for_runner(), agentClass=None, agentInstance=agent_2)
         res = runner_2.run(nb_episode=1, max_iter=5)
         
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_3 = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendSupport(), test=True, n_busbar=3, _add_to_name=type(self).__name__+"_same_name") 
-        agent_3 = _TestAgentRightNBus(env_3.action_space, 3)
+        agent_3 = _TestAgentRightNbBus(env_3.action_space, 3)
         runner_3 = Runner(**env_3.get_params_for_runner(), agentClass=None, agentInstance=agent_3)
         res = runner_3.run(nb_episode=1, max_iter=5)
         
@@ -302,8 +302,8 @@ class TestRunner(unittest.TestCase):
             # 2 busbars only because backend does not support it
             env_2 = grid2op.make("l2rpn_case14_sandbox", backend=_AuxFakeBackendNoSupport(), test=True, n_busbar=3, _add_to_name=type(self).__name__+"_2_twocores")
         
-        agent_3 = _TestAgentRightNBus(env_3.action_space, 3)
-        agent_2 = _TestAgentRightNBus(env_2.action_space, 2)
+        agent_3 = _TestAgentRightNbBus(env_3.action_space, 3)
+        agent_2 = _TestAgentRightNbBus(env_2.action_space, 2)
         
         runner_3 = Runner(**env_3.get_params_for_runner(), agentClass=None, agentInstance=agent_3)
         res = runner_3.run(nb_episode=2, nb_process=2, max_iter=5)
@@ -317,7 +317,7 @@ class TestRunner(unittest.TestCase):
             res = runner_3_ko.run(nb_episode=2, nb_process=2, max_iter=5)
 
 
-class TestGridObjt(unittest.TestCase):
+class TestGridObjtNbBus(unittest.TestCase):
     """Test that the GridObj class is fully compatible with this feature"""
     def setUp(self) -> None:
         with warnings.catch_warnings():
@@ -635,7 +635,7 @@ class TestAction_1busbar(TestAction_3busbars):
         return 1
 
 
-class TestActionSpace(unittest.TestCase):
+class TestActionSpaceNbBus(unittest.TestCase):
     """This function test the action space, basically the counting 
     of unique possible topologies per substation
     """
@@ -662,7 +662,7 @@ class TestActionSpace(unittest.TestCase):
     
     def test_legacy_all_unitary_topologies_set_behaviour(self):
         """make sure nothing broke for 2 busbars per substation even if the implementation changes"""
-        class SubMe(TestActionSpace):
+        class SubMe(TestActionSpaceNbBus):
             def get_nb_bus(self):
                 return 2
             
@@ -676,7 +676,7 @@ class TestActionSpace(unittest.TestCase):
         assert res == [3, 29, 5, 31, 15, 113, 4, 0, 15, 3, 3, 3, 7, 3], f"found: {res}"
         assert res_noalone == [0, 25, 3, 26, 11, 109, 0, 0, 11, 0, 0, 0, 4, 0], f"found: {res_noalone}"
         
-        class SubMe2(TestActionSpace):
+        class SubMe2(TestActionSpaceNbBus):
             def get_nb_bus(self):
                 return 2
             def get_env_nm(self):
@@ -779,7 +779,7 @@ class TestActionSpace(unittest.TestCase):
     def test_1_busbar(self):
         """test :func:`grid2op.Action.SerializableActionSpace.get_all_unitary_topologies_set` 
         when there are only 1 busbar per substation"""
-        class SubMe(TestActionSpace):
+        class SubMe(TestActionSpaceNbBus):
             def get_nb_bus(self):
                 return 1
             
@@ -796,7 +796,7 @@ class TestActionSpace(unittest.TestCase):
         assert res == [0] * 14, f"found: {res}"
         assert res_noalone == [0] * 14, f"found: {res_noalone}"
         
-        class SubMe2(TestActionSpace):
+        class SubMe2(TestActionSpaceNbBus):
             def get_nb_bus(self):
                 return 1
             def get_env_nm(self):
@@ -825,7 +825,7 @@ class TestActionSpace(unittest.TestCase):
                                                                             _count_only=True)
         assert res == [3, 83, 5, 106, 33, 599, 5, 0, 33, 3, 3, 3, 10, 3], f"found: {res}"
         assert res_noalone == [0, 37, 3, 41, 11, 409, 0, 0, 11, 0, 0, 0, 4, 0], f"found: {res_noalone}"
-        class SubMe2(TestActionSpace):
+        class SubMe2(TestActionSpaceNbBus):
             def get_nb_bus(self):
                 return 3
             def get_env_nm(self):
@@ -852,7 +852,7 @@ class TestActionSpace(unittest.TestCase):
             
     def test_legacy_all_unitary_line_set_behaviour(self):
         """make sure nothing broke for 2 busbars per substation even if the implementation changes"""
-        class SubMe(TestActionSpace):
+        class SubMe(TestActionSpaceNbBus):
             def get_nb_bus(self):
                 return 2
             
@@ -864,7 +864,7 @@ class TestActionSpace(unittest.TestCase):
         assert res == 5 * 20, f"found: {res}"
         assert res_simple == 2 * 20, f"found: {res_simple}"
         
-        class SubMe2(TestActionSpace):
+        class SubMe2(TestActionSpaceNbBus):
             def get_nb_bus(self):
                 return 2
             def get_env_nm(self):
@@ -884,7 +884,7 @@ class TestActionSpace(unittest.TestCase):
         assert res == (1 + 3*3) * 20, f"found: {res}"
         res = len(self.env.action_space.get_all_unitary_line_set_simple(self.env.action_space))
         assert res == 2 * 20, f"found: {res}"
-        class SubMe2(TestActionSpace):
+        class SubMe2(TestActionSpaceNbBus):
             def get_nb_bus(self):
                 return 3
             def get_env_nm(self):
@@ -899,7 +899,7 @@ class TestActionSpace(unittest.TestCase):
         assert res_simple == 2 * 186, f"found: {res_simple}"
                
                
-class TestBackendAction(unittest.TestCase):
+class TestBackendActionNbBus(unittest.TestCase):
     def get_nb_bus(self):
         return 3
     
@@ -1791,6 +1791,10 @@ class TestGym_3busbars(unittest.TestCase):
         self.max_iter = 10
         return super().setUp()
     
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
     def _aux_test_env(self, gym_env):
         obs, info = gym_env.reset(**self.get_reset_kwargs())
         assert obs in gym_env.observation_space
@@ -1884,12 +1888,47 @@ class TestGym_1busbar(TestGym_3busbars):
         return 1               
  
  
-class TestRules(unittest.TestCase):
+class TestRulesNbBus(unittest.TestCase):
     """test the rules for the reco / deco of line works also when >= 3 busbars, 
     also ttests the act.get_impact()...
     """
-    pass
-
+    def get_nb_bus(self):
+        return 3
+    
+    def get_env_nm(self):
+        return "educ_case14_storage"
+    
+    def get_reset_kwargs(self) -> dict:
+        # seed has been tuned for the tests to pass
+        return dict(seed=self.seed, options={"time serie id": 0})
+    
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.get_env_nm(),
+                                    backend=PandaPowerBackend(),
+                                    action_class=CompleteAction,
+                                    test=True,
+                                    n_busbar=self.get_nb_bus(),
+                                    _add_to_name=type(self).__name__ + f'_{self.get_nb_bus()}')
+        # param = self.env.parameters
+        # param.NB_TIMESTEP_COOLDOWN_SUB = 0
+        # param.NB_TIMESTEP_COOLDOWN_LINE = 0
+        # param.MAX_LINE_STATUS_CHANGED = 9999999
+        # param.MAX_SUB_CHANGED = 99999999
+        # self.env.change_parameters(param)
+        # self.env.change_forecast_parameters(param)
+        self.seed = 0
+        self.env.reset(**self.get_reset_kwargs())
+        self.list_loc_bus = list(range(1, type(self.env).n_busbar_per_sub + 1))
+        self.max_iter = 10
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+    
+    
 
 if __name__ == "__main__":
     unittest.main()

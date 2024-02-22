@@ -73,6 +73,8 @@ Change Log
   id of the node) where each element is connected.
 - [IMPROVED] description of the different graph of the grid in the documentation.
 - [IMPROVED] type hints for the `gym_compat` module (more work still required in this area)
+- [IMPROVED] the `MultiDiscreteActSpace` to have one "dimension" controling all powerlines
+  (see "one_line_set" and "one_line_change")
 
 [1.9.8] - 2024-01-26
 ----------------------

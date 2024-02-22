@@ -13,6 +13,7 @@ from typing import Literal, Dict, Tuple, Any, Optional
 
 from grid2op.Action import ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
+from grid2op.Exceptions import Grid2OpException
 
 from grid2op.gym_compat.utils import (ALL_ATTR,
                                       ATTR_DISCRETE,
@@ -67,6 +68,12 @@ class __AuxMultiDiscreteActSpace:
     - "one_sub_set": 1 single dimension. This type of representation differs from the previous one only by the fact
       that each step you can perform only one single action on a single substation (so unlikely to be illegal).
     - "one_sub_change": 1 single dimension. Same as above.
+    - "one_line_set": 1 single dimension. In this type of representation, you have one dimension with `1 + 2 * n_line`
+      elements: first is "do nothing", then next elements control the force connection or disconnection
+      of the powerlines (new in version 1.9.9)
+    - "one_line_change": 1 single dimension. In this type of representation, you have `1 + n_line` possibility
+      for this element. First one is "do nothing" then it controls the change of status of 
+      any given line (new in version 1.9.9).
 
     .. warning::
 
@@ -173,7 +180,6 @@ class __AuxMultiDiscreteActSpace:
     def __init__(self,
                  grid2op_action_space: ActionSpace,
                  attr_to_keep: Optional[Tuple[Literal["set_line_status"],
-                                              Literal["set_line_status_simple"],
                                               Literal["change_line_status"],
                                               Literal["set_bus"],
                                               Literal["sub_set_bus"],
@@ -185,6 +191,8 @@ class __AuxMultiDiscreteActSpace:
                                               Literal["set_storage"],
                                               Literal["curtail"],
                                               Literal["curtail_mw"],
+                                              Literal["one_line_set"],
+                                              Literal["one_line_change"],
                                               ]]=ALL_ATTR,
                  nb_bins: Dict[Literal["redispatch", "set_storage", "curtail", "curtail_mw"], int]=None
                 ):
@@ -206,7 +214,6 @@ class __AuxMultiDiscreteActSpace:
             attr_to_keep = {
                 el for el in attr_to_keep if grid2op_action_space.supports_type(el)
             }
-
         for el in attr_to_keep:
             if el not in ATTR_DISCRETE:
                 warnings.warn(
@@ -232,52 +239,62 @@ class __AuxMultiDiscreteActSpace:
             "set_line_status": (
                 [3 for _ in range(act_sp.n_line)],
                 act_sp.n_line,
-                self.ATTR_SET,
+                type(self).ATTR_SET,
             ),
             "change_line_status": (
                 [2 for _ in range(act_sp.n_line)],
                 act_sp.n_line,
-                self.ATTR_CHANGE,
+                type(self).ATTR_CHANGE,
             ),
             "set_bus": (
                 [2 + act_sp.n_busbar_per_sub for _ in range(act_sp.dim_topo)],
                 act_sp.dim_topo,
-                self.ATTR_SET,
+                type(self).ATTR_SET,
             ),
             "change_bus": (
                 [2 for _ in range(act_sp.dim_topo)],
                 act_sp.dim_topo,
-                self.ATTR_CHANGE,
+                type(self).ATTR_CHANGE,
             ),
             "raise_alarm": (
                 [2 for _ in range(act_sp.dim_alarms)],
                 act_sp.dim_alarms,
-                self.ATTR_CHANGE,
+                type(self).ATTR_CHANGE,
             ),
             "raise_alert": (
                 [2 for _ in range(act_sp.dim_alerts)],
                 act_sp.dim_alerts,
-                self.ATTR_CHANGE,
+                type(self).ATTR_CHANGE,
             ),
             "sub_set_bus": (
                 None,
                 act_sp.n_sub,
-                self.ATTR_NEEDBUILD,
+                type(self).ATTR_NEEDBUILD,
             ),  # dimension will be computed on the fly, if the stuff is used
             "sub_change_bus": (
                 None,
                 act_sp.n_sub,
-                self.ATTR_NEEDBUILD,
+                type(self).ATTR_NEEDBUILD,
             ),  # dimension will be computed on the fly, if the stuff is used
             "one_sub_set": (
                 None,
                 1,
-                self.ATTR_NEEDBUILD,
+                type(self).ATTR_NEEDBUILD,
             ),  # dimension will be computed on the fly, if the stuff is used
             "one_sub_change": (
                 None,
                 1,
-                self.ATTR_NEEDBUILD,
+                type(self).ATTR_NEEDBUILD,
+            ),  # dimension will be computed on the fly, if the stuff is used
+            "one_line_set": (
+                None,
+                1,
+                type(self).ATTR_NEEDBUILD,
+            ),  # dimension will be computed on the fly, if the stuff is used
+            "one_line_change": (
+                None,
+                1,
+                type(self).ATTR_NEEDBUILD,
             ),  # dimension will be computed on the fly, if the stuff is used
         }
         self._nb_bins = nb_bins
@@ -311,7 +328,7 @@ class __AuxMultiDiscreteActSpace:
                         self.ATTR_NEEDBINARIZED,
                     )
                 else:
-                    raise RuntimeError(f'Unknown attribute "{el}"')
+                    raise Grid2OpException(f'Unknown attribute "{el}"')
 
         self._dims = None
         self._functs = None  # final functions that is applied to the gym action to map it to a grid2Op action
@@ -448,6 +465,25 @@ class __AuxMultiDiscreteActSpace:
                         )
                         funct = self._funct_one_substation
                         nvec_ = [len(self._sub_modifiers[el])]
+                    elif el == "one_line_set":
+                        # an action change only one substation, using "change"
+                        self._sub_modifiers[el] = [self._act_space()]
+                        tmp = []
+                        for l_id in range(type(self._act_space).n_line):
+                            tmp.append(self._act_space({"set_line_status": [(l_id, +1)]}))
+                            tmp.append(self._act_space({"set_line_status": [(l_id, -1)]}))
+                        self._sub_modifiers[el] += tmp
+                        funct = self._funct_one_substation
+                        nvec_ = [len(self._sub_modifiers[el])]
+                    elif el == "one_line_change":
+                        # an action change only one substation, using "change"
+                        self._sub_modifiers[el] = [self._act_space()]
+                        tmp = []
+                        for l_id in range(type(self._act_space).n_line):
+                            tmp.append(self._act_space({"change_line_status": [l_id]}))
+                        self._sub_modifiers[el] += tmp
+                        funct = self._funct_one_substation
+                        nvec_ = [len(self._sub_modifiers[el])]
                     else:
                         raise RuntimeError(
                             f'Unsupported attribute "{el}" when dealing with '
@@ -490,7 +526,7 @@ class __AuxMultiDiscreteActSpace:
         """
         # TODO code that !
         vect = 1 * gym_act_this
-        if type_ == self.ATTR_NEEDBUILD:
+        if type_ == type(self).ATTR_NEEDBUILD:
             funct(res, attr_nm, vect)
         else:
             tmp = funct(vect)

@@ -75,6 +75,8 @@ ATTR_DISCRETE = (
     "sub_change_bus",
     "one_sub_set",
     "one_sub_change",
+    "one_line_set",
+    "one_line_change"
 )
 
 ALL_ATTR_CONT = (
