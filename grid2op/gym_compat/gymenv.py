@@ -29,6 +29,7 @@ def conditional_decorator(condition):
         return NotImplementedError()  # anything that is not a callbe anyway
     return decorator
 
+_TIME_SERIE_ID = "time serie id"
 RESET_INFO_GYM_TYPING = Dict[Literal["time serie id", "seed", "grid2op_env_seed", "underlying_env_seeds"], Any]
 
 class __AuxGymEnv(Generic[ObsType, ActType]):
@@ -155,7 +156,7 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
             
         if return_info:
             chron_id = self.init_env.chronics_handler.get_id()
-            info = {"time serie id": chron_id}
+            info = {_TIME_SERIE_ID: chron_id}
             if seed is not None:
                 info["seed"] = seed
                 info["grid2op_env_seed"] = next_seed
@@ -170,7 +171,7 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
         # used for gym > 0.26
         if (self._shuffle_chronics and 
             isinstance(self.init_env.chronics_handler.real_data, Multifolder) and 
-            (options is not None and "time serie id" not in options)):
+            (options is not None and _TIME_SERIE_ID not in options)):
             self.init_env.chronics_handler.sample_next_chronics()
         
         super().reset(seed=seed)  # seed gymnasium env
@@ -184,7 +185,7 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
         gym_obs = self.observation_space.to_gym(g2op_obs)
             
         chron_id = self.init_env.chronics_handler.get_id()
-        info = {"time serie id": chron_id}
+        info = {_TIME_SERIE_ID: chron_id}
         if seed is not None:
             info["seed"] = seed
             info["grid2op_env_seed"] = next_seed

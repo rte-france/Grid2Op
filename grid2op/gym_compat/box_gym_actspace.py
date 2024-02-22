@@ -630,6 +630,10 @@ class __AuxBoxGymActSpace:
         return res
 
     def close(self) -> None:
+        """If you override this class, this function is called when the GymEnv is deleted.
+        
+        You can use it to free some memory if needed, but there is nothing to do in the general case.
+        """
         pass
 
     def normalize_attr(self, attr_nm: POSSIBLE_KEYS)-> None:

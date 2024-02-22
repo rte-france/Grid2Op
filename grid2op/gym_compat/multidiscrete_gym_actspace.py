@@ -270,74 +270,77 @@ class __AuxMultiDiscreteActSpace:
                 None,
                 act_sp.n_sub,
                 type(self).ATTR_NEEDBUILD,
-            ),  # dimension will be computed on the fly, if the stuff is used
+            ),  # dimension will be computed on the fly, if the kwarg is used
             "sub_change_bus": (
                 None,
                 act_sp.n_sub,
                 type(self).ATTR_NEEDBUILD,
-            ),  # dimension will be computed on the fly, if the stuff is used
+            ),  # dimension will be computed on the fly, if the kwarg is used
             "one_sub_set": (
                 None,
                 1,
                 type(self).ATTR_NEEDBUILD,
-            ),  # dimension will be computed on the fly, if the stuff is used
+            ),  # dimension will be computed on the fly, if the kwarg is used
             "one_sub_change": (
                 None,
                 1,
                 type(self).ATTR_NEEDBUILD,
-            ),  # dimension will be computed on the fly, if the stuff is used
+            ),  # dimension will be computed on the fly, if the kwarg is used
             "one_line_set": (
                 None,
                 1,
                 type(self).ATTR_NEEDBUILD,
-            ),  # dimension will be computed on the fly, if the stuff is used
+            ),  # dimension will be computed on the fly, if the kwarg is used
             "one_line_change": (
                 None,
                 1,
                 type(self).ATTR_NEEDBUILD,
-            ),  # dimension will be computed on the fly, if the stuff is used
+            ),  # dimension will be computed on the fly, if the kwarg is used
         }
         self._nb_bins = nb_bins
         for el in ["redispatch", "set_storage", "curtail", "curtail_mw"]:
-            if el in attr_to_keep:
-                if el not in nb_bins:
-                    raise RuntimeError(
-                        f'The attribute you want to keep "{el}" is not present in the '
-                        f'"nb_bins". This attribute is continuous, you have to specify in how '
-                        f"how to convert it to a discrete space. See the documentation "
-                        f"for more information."
-                    )
-                nb_redispatch = act_sp.gen_redispatchable.sum()
-                nb_renew = act_sp.gen_renewable.sum()
-                if el == "redispatch":
-                    self.dict_properties[el] = (
-                        [nb_bins[el] for _ in range(nb_redispatch)],
-                        nb_redispatch,
-                        self.ATTR_NEEDBINARIZED,
-                    )
-                elif el == "curtail" or el == "curtail_mw":
-                    self.dict_properties[el] = (
-                        [nb_bins[el] for _ in range(nb_renew)],
-                        nb_renew,
-                        self.ATTR_NEEDBINARIZED,
-                    )
-                elif el == "set_storage":
-                    self.dict_properties[el] = (
-                        [nb_bins[el] for _ in range(act_sp.n_storage)],
-                        act_sp.n_storage,
-                        self.ATTR_NEEDBINARIZED,
-                    )
-                else:
-                    raise Grid2OpException(f'Unknown attribute "{el}"')
-
+            self._aux_check_continuous_elements(el, attr_to_keep, nb_bins, act_sp)
+            
         self._dims = None
         self._functs = None  # final functions that is applied to the gym action to map it to a grid2Op action
-        self._binarizers = None  # contains all the stuff to binarize the data
+        self._binarizers = None  # contains all the kwarg to binarize the data
         self._types = None
         nvec = self._get_info()
         # initialize the base container
         type(self)._MultiDiscreteType.__init__(self, nvec=nvec)
 
+    def _aux_check_continuous_elements(self, el, attr_to_keep, nb_bins, act_sp):
+        if el in attr_to_keep:
+            if el not in nb_bins:
+                raise RuntimeError(
+                    f'The attribute you want to keep "{el}" is not present in the '
+                    f'"nb_bins". This attribute is continuous, you have to specify in how '
+                    f"how to convert it to a discrete space. See the documentation "
+                    f"for more information."
+                )
+            nb_redispatch = act_sp.gen_redispatchable.sum()
+            nb_renew = act_sp.gen_renewable.sum()
+            if el == "redispatch":
+                self.dict_properties[el] = (
+                    [nb_bins[el] for _ in range(nb_redispatch)],
+                    nb_redispatch,
+                    self.ATTR_NEEDBINARIZED,
+                )
+            elif el == "curtail" or el == "curtail_mw":
+                self.dict_properties[el] = (
+                    [nb_bins[el] for _ in range(nb_renew)],
+                    nb_renew,
+                    self.ATTR_NEEDBINARIZED,
+                )
+            elif el == "set_storage":
+                self.dict_properties[el] = (
+                    [nb_bins[el] for _ in range(act_sp.n_storage)],
+                    act_sp.n_storage,
+                    self.ATTR_NEEDBINARIZED,
+                )
+            else:
+                raise Grid2OpException(f'Unknown attribute "{el}"')
+        
     @staticmethod
     def _funct_set(vect):
         # gym encodes:

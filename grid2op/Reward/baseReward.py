@@ -12,7 +12,6 @@ from abc import ABC, abstractmethod
 import grid2op
 from grid2op.dtypes import dt_float
 from grid2op.Action import BaseAction
-# from grid2op.Environment import BaseEnv
 
 
 class BaseReward(ABC):
