@@ -1928,8 +1928,95 @@ class TestRulesNbBus(unittest.TestCase):
         self.env.close()
         return super().tearDown()
     
-    
-
+    def _aux_get_disco_line(self, line_id, dn_act):
+        obs = self.env.reset(**self.get_reset_kwargs())
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_line_status": [(line_id, -1)]}))
+        obs, reward, done, info = self.env.step(dn_act)
+        obs, reward, done, info = self.env.step(dn_act)
+        obs, reward, done, info = self.env.step(dn_act)
+        assert obs.time_before_cooldown_line[line_id] == 0
+        
+    def test_cooldowns(self):
+        """check the tables of https://grid2op.readthedocs.io/en/latest/action.html#note-on-powerline-status in order
+        """
+        line_id = 0
+        subor_id = type(self.env).line_or_to_subid[line_id]
+        subex_id = type(self.env).line_ex_to_subid[line_id]
+        dn_act = self.env.action_space()
+        
+        # first row
+        obs = self.env.reset(**self.get_reset_kwargs())
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_line_status": [(line_id, -1)]}))
+        assert obs.time_before_cooldown_line[line_id] == 3
+        assert obs.time_before_cooldown_sub[subor_id] == 0
+        assert obs.time_before_cooldown_sub[subex_id] == 0
+        
+        # 2nd row
+        obs = self.env.reset(**self.get_reset_kwargs())
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_line_status": [(line_id, +1)]}))
+        assert obs.time_before_cooldown_line[line_id] == 3
+        assert obs.time_before_cooldown_sub[subor_id] == 0
+        assert obs.time_before_cooldown_sub[subex_id] == 0
+        
+        # 3rd row
+        self._aux_get_disco_line(line_id, dn_act)
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_line_status": [(line_id, -1)]}))
+        assert obs.time_before_cooldown_line[line_id] == 3
+        assert obs.time_before_cooldown_sub[subor_id] == 0
+        assert obs.time_before_cooldown_sub[subex_id] == 0
+        
+        # 4th row
+        self._aux_get_disco_line(line_id, dn_act)
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_line_status": [(line_id, +1)]}))
+        assert obs.time_before_cooldown_line[line_id] == 3
+        assert obs.time_before_cooldown_sub[subor_id] == 0
+        assert obs.time_before_cooldown_sub[subex_id] == 0
+        
+        # 5th row
+        obs = self.env.reset(**self.get_reset_kwargs())
+        obs, reward, done, info = self.env.step(self.env.action_space({"change_line_status": [line_id]}))
+        assert obs.time_before_cooldown_line[line_id] == 3
+        assert obs.time_before_cooldown_sub[subor_id] == 0
+        assert obs.time_before_cooldown_sub[subex_id] == 0
+        
+        # 6th row
+        self._aux_get_disco_line(line_id, dn_act)
+        obs, reward, done, info = self.env.step(self.env.action_space({"change_line_status": [line_id]}))
+        assert obs.time_before_cooldown_line[line_id] == 3
+        assert obs.time_before_cooldown_sub[subor_id] == 0
+        assert obs.time_before_cooldown_sub[subex_id] == 0
+        
+        # 7th
+        obs = self.env.reset(**self.get_reset_kwargs())
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(line_id, -1)]}}))
+        assert obs.time_before_cooldown_line[line_id] == 3
+        assert obs.time_before_cooldown_sub[subor_id] == 0
+        assert obs.time_before_cooldown_sub[subex_id] == 0
+        
+        # 8th
+        self._aux_get_disco_line(line_id, dn_act)
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(line_id, -1)]}}))
+        assert obs.time_before_cooldown_line[line_id] == 0
+        assert obs.time_before_cooldown_sub[subor_id] == 3
+        assert obs.time_before_cooldown_sub[subex_id] == 0
+        
+        # 9th
+        obs = self.env.reset(**self.get_reset_kwargs())
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(line_id, 3)]}}))
+        assert obs.time_before_cooldown_line[line_id] == 0
+        assert obs.time_before_cooldown_sub[subor_id] == 3
+        assert obs.time_before_cooldown_sub[subex_id] == 0
+        
+        # 10th
+        self._aux_get_disco_line(line_id, dn_act)
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(line_id, 3)]}}))
+        assert obs.time_before_cooldown_line[line_id] == 3
+        assert obs.time_before_cooldown_sub[subor_id] == 0
+        assert obs.time_before_cooldown_sub[subex_id] == 0
+        
+        # 11th and 12th => no "change bus" when nb_bus is not 2
+        
+        
 if __name__ == "__main__":
     unittest.main()
         
