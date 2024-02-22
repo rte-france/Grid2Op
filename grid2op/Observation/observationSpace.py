@@ -386,8 +386,8 @@ class ObservationSpace(SerializableObservationSpace):
                 self.obs_env._reward_helper.change_reward(reward_func)
             else:
                 raise EnvError("Impossible to change the reward of the simulate "
-                            "function when you cannot simulate (because the "
-                            "backend could not be copied)")
+                               "function when you cannot simulate (because the "
+                               "backend could not be copied)")
 
     def set_thermal_limit(self, thermal_limit_a):
         if self.obs_env is not None:
