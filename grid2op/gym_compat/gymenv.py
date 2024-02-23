@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import List, Union
 import numpy as np
 
 from grid2op.dtypes import dt_int
@@ -95,11 +96,16 @@ class __AuxGymEnv:
     an action is represented through an OrderedDict (`from collection import OrderedDict`)
     """
 
-    def __init__(self, env_init, shuffle_chronics=True, render_mode="rgb_array"):
+    def __init__(self, 
+                    env_init, 
+                    shuffle_chronics=True, 
+                    render_mode="rgb_array", 
+                    action_attr_to_keep:Union[List[str],None]=None,
+                    obs_attr_to_keep:Union[List[str],None]=None):
         check_gym_version(type(self)._gymnasium)
         self.init_env = env_init.copy()
-        self.action_space = type(self)._ActionSpaceType(self.init_env)
-        self.observation_space = type(self)._ObservationSpaceType(self.init_env)
+        self.action_space = type(self)._ActionSpaceType(self.init_env, action_attr_to_keep=action_attr_to_keep)
+        self.observation_space = type(self)._ObservationSpaceType(self.init_env, obs_attr_to_keep=obs_attr_to_keep)
         self.reward_range = self.init_env.reward_range
         self.metadata = self.init_env.metadata
         self.init_env.render_mode = render_mode
