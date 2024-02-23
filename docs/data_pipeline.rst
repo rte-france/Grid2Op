@@ -3,6 +3,14 @@
 Optimize the data pipeline
 ============================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
+Objectives
+--------------------------
+
 Optimizing the data pipeline can be crucial if you want to learn fast, especially at the beginning of the training.
 There exists multiple way to perform this task.
 

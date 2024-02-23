@@ -5,6 +5,14 @@
 Input data of an environment
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
+Objectives
+----------------
+
 A grid2op "environment" is nothing more than a local folder on your computer. 
 
 This folder consists of different things:

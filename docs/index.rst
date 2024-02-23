@@ -94,6 +94,7 @@ Modeling
    :maxdepth: 2
    :caption: Models
 
+   mdp
    modeled_elements
    grid_graph
 

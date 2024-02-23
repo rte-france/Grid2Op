@@ -8,6 +8,15 @@
 Possible workflow to create an environment from existing time series
 ======================================================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
+
+Workflow in more details
+-------------------------
+
 In this subsection, we will give an example on how to set up an environment in grid2op if you already
 have some data that represents loads and productions at each steps. This paragraph aims at making more concrete
 the description of the environment shown previously.

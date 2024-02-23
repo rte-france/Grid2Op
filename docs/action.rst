@@ -29,6 +29,11 @@
 Action
 ===================================
 
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+    
 Objectives
 ----------
 The "Action" module lets you define some actions on the underlying power _grid.

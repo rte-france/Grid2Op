@@ -10,6 +10,15 @@
 A grid, a graph: grid2op representation of the powergrid
 ===================================================================
 
+
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
+Objectives
+----------------
+
 In this section of the documentation, we will dive a deeper into the "modeling" on which grid2op is based and
 especially how the underlying graph of the powergrid is represented and how it can be easily retrieved.
 
