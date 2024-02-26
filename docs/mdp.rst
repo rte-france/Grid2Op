@@ -1,3 +1,5 @@
+.. include:: special.rst
+
 .. _mdp-doc-module:
 
 Dive into grid2op sequential decision process
@@ -11,7 +13,24 @@ This page is organized as follow:
 Objectives
 -----------
 
-TODO
+The goal of this page of the documentation is to provide you with a relatively extensive description of the 
+mathematical model behind grid2op.
+
+Grid2op is a software whose aim is to make experiments on powergrid, mainly sequential decision making,
+as easy as possible. 
+
+This problem has been modeled as a "Markov Decision Process" (MDP) and one some cases
+"Partially Observable Markov Decision Process" (POMDP) or 
+"Constrainted Markov Decision Process" (CMDP) and (work in progress) even
+"Decentralized (Partially Observable) Markov Decision Process" (Dec-(PO)MDP).
+
+In this section, we will suppose that:
+
+#. there a "simulator" [informatically, this is the Backend, detailed in :ref:`backend-module`]
+   that is able to compute some informations (*eg* flows on powerlines, active production value of generators etc.)
+   from some other information given by the Environment (see :ref:`environment-module` for details about the
+   way the `Environment` is coded and :class:`grid2op.Action._backendAction._BackendAction` )
+
 
 Modeling sequential decisions
 -------------------------------
@@ -89,5 +108,12 @@ TODO: we can plug in simulator that solves more
 accurate description of the grid and only "subsample"
 (*eg* at a frequency of every 5 mins) provide grid2op
 with some information.
+
+
+Some constraints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+TODO
+
 
 .. include:: final.rst

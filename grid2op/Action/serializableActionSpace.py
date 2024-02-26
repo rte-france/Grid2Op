@@ -247,8 +247,10 @@ class SerializableActionSpace(SerializableSpace):
         return rnd_update
 
     def _sample_raise_alarm(self, rnd_update=None):
-        """.. warning:: 
+        """
+        .. warning:: 
             /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+                
         """
         if rnd_update is None:
             rnd_update = {}
@@ -257,6 +259,11 @@ class SerializableActionSpace(SerializableSpace):
         return rnd_update
 
     def _sample_raise_alert(self, rnd_update=None):
+        """
+        .. warning::
+            Not available in all environments.
+                
+        """
         if rnd_update is None:
             rnd_update = {}
         rnd_alerted_lines = self.space_prng.choice([True, False], self.dim_alerts).astype(dt_bool)

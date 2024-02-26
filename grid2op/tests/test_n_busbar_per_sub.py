@@ -1911,13 +1911,6 @@ class TestRulesNbBus(unittest.TestCase):
                                     test=True,
                                     n_busbar=self.get_nb_bus(),
                                     _add_to_name=type(self).__name__ + f'_{self.get_nb_bus()}')
-        # param = self.env.parameters
-        # param.NB_TIMESTEP_COOLDOWN_SUB = 0
-        # param.NB_TIMESTEP_COOLDOWN_LINE = 0
-        # param.MAX_LINE_STATUS_CHANGED = 9999999
-        # param.MAX_SUB_CHANGED = 99999999
-        # self.env.change_parameters(param)
-        # self.env.change_forecast_parameters(param)
         self.seed = 0
         self.env.reset(**self.get_reset_kwargs())
         self.list_loc_bus = list(range(1, type(self.env).n_busbar_per_sub + 1))

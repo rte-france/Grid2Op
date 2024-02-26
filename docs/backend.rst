@@ -1,4 +1,5 @@
 .. currentmodule:: grid2op.Backend
+
 .. _backend-module:
 
 Backend
@@ -22,9 +23,39 @@ Objectives
     Both can serve as example if you want to code a new backend.
 
 This Module defines the template of a backend class.
-Backend instances are responsible to translate action (performed either by an BaseAgent or by the Environment) into
-comprehensive powergrid modifications.
-They are responsible to perform the powerflow (AC or DC) computation.
+
+Backend instances are responsible to translate action into
+comprehensive powergrid modifications that can be process by your "Simulator".
+The simulator is responsible to perform the powerflow (AC or DC or Time Domain / Dynamic / Transient simulation)
+and to "translate back" the results (of the simulation) to grid2op.
+
+More precisely, a backend should:
+
+#. inform grid2op of the grid: which objects exist, where are they connected etc.
+#. being able to process an object of type :class:`grid2op.Action._backendAction._BackendAction`
+   into some modification to your solver (*NB* these "BackendAction" are created by the :class:`grid2op.Environment.BaseEnv`
+   from the agent's actions, the time series modifications, the maintenances, the opponent, etc. The backend **is not**
+   responsible for their creation)
+#. being able to run a simulation (DC powerflow, AC powerflow or time domain / transient / dynamic)
+#. expose (through some functions like :func:`Backend.generators_info` or :func:`Backend.loads_info`) 
+   the state of some of the elements in the grid.
+
+.. note::
+  A backend can model more elements than what can be controlled or modified in grid2op.
+  For example, at time of writing, grid2op does not allow the modification of 
+  HVDC powerlines. But this does not mean that grid2op will not work if your grid
+  counts such devices. It just means that grid2op will not be responsible
+  for modifying them. 
+
+.. note::
+  A backend can expose only part of the grid to the environment / agent. For example, if you
+  give it as input a pan european grid but only want to study the grid of Netherlands or
+  France your backend can only "inform" grid2op (in the :func:`Backend.load_grid` function)
+  that "only the Dutch (or French) grid" exists and leave out all other informations.
+
+  In this case grid2op will perfectly work, agents and environment will work as expected and be 
+  able to control the Dutch (or French) part of the grid and your backend implementation
+  can control the rest (by directly updating the state of the solver).
 
 It is also through the backend that some quantities about the powergrid (such as the flows) can be inspected.
 
@@ -57,6 +88,9 @@ We developed a dedicated page for the development of new "Backend" compatible wi
 
 Detailed Documentation by class
 -------------------------------
+
+Then the `Backend` module:
+
 .. automodule:: grid2op.Backend
     :members:
     :private-members:

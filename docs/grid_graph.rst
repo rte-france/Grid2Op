@@ -32,10 +32,6 @@ First, we detail some concepts from the power system community in section
 :ref:`graph-encoding-gridgraph`. Finally, we show some code examples on how to retrieve this graph in
 section :ref:`get-the-graph-gridgraph`.
 
-
-.. contents:: Table of Contents
-    :depth: 3
-
 .. _powersystem-desc-gridgraph:
 
 Description of a powergrid adopting the "energy graph" representation

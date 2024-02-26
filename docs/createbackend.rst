@@ -89,7 +89,9 @@ everywhere). This includes, but is not limited to:
 - etc.
 
 .. note:: Grid2Op do not care about the modeling of the grid (static / steady state or dyanmic / transient) and both
-    types of solver could be implemented as backend. At time of writing (december 2020), only steady state powerflow are
+    Any types of solver could be implemented as backend. 
+    
+    At time of writing (december 2020), only steady state powerflow are
     available.
 
 .. note:: The previous note entails that grid2op is also independent on the format used to store a powergrid.
@@ -131,7 +133,28 @@ everywhere). This includes, but is not limited to:
 Main methods to implement
 --------------------------
 Typically, a backend has a internal "modeling" / "representation" of the powergrid
-stored in the attribute `self._grid` that can be anything. An more detailed example, with some
+stored in the attribute `self._grid` that can be anything. 
+
+.. note::
+    `self._grid` is a "private" attribute. Only people that knows what it does and how 
+    it works should be able to use it.
+
+    Grid2op being fully generic, you can assume that all the classes of grid2op will never 
+    access `self._grid`. For example, when building the observation of the grid, 
+    grid2op will only use the information given in the `*_infos()` methods
+    (*eg* :func:`grid2op.Backend.Backend.loads_info`) and never by directly accessing `self._grid`
+
+    In other words, `self._grid` can be anything: a PandaPower `Network`, a GridCal `MultiCircuit`,
+    a lightsim2grid `GridModel`, a pypowsybl `Network` (or `SortedNetwork`),
+    a powerfactory `Project` etc. Grid2op will never attempt to access `self._grid`
+
+    (Though, to be perfectly honest, some agents might rely on some type `_grid`, if that's the case, too
+    bad for these agents they will need to implement special methods to be compatible with your backend.
+    Hopefully this should be extremely rare... The whole idea of grid2op being to make the different
+    "entities" (agent, environment, data, backend) as independant as possible this "corner" cases should
+    be rare.)
+
+An more detailed example, with some
 "working minimal code" is given in the "example/backend_integration" of the grid2op repository.
 
 There are 4 **__main__** types of method you need to implement if you want to use a custom powerflow
@@ -495,7 +518,7 @@ BackendAction: modification
 In this section we detail step by step how to understand the specific format used by grid2op to "inform" the backend
 on how to modify its internal state before computing a powerflow.
 
-A `BackendAction` will tell the backend on what is modified among:
+A :class:`grid2op.Action._backendAction._BackendAction` will tell the backend on what is modified among:
 
 - the active value of each loads (see paragraph :ref:`change-inj`)
 - the reactive value of each loads (see paragraph  :ref:`change-inj`)
@@ -957,10 +980,26 @@ TODO this will be explained "soon".
 
 Detailed Documentation by class
 -------------------------------
-.. autoclass:: grid2op.Backend.EducPandaPowerBackend.EducPandaPowerBackend
+A first example of a working backend that can be easily understood (without nasty gory speed optimization)
+based on pandapower is available at :
+
+.. autoclass:: grid2op.Backend.educPandaPowerBackend.EducPandaPowerBackend
     :members:
     :private-members:
     :special-members:
+    :autosummary:
+
+And to understand better some key concepts, you can have a look at :class:`grid2op.Action._backendAction._BackendAction` 
+or the :class:`grid2op.Action._backendAction.ValueStore` class:
+
+.. autoclass:: grid2op.Action._backendAction._BackendAction
+    :members:
+    :private-members:
+    :special-members:
+    :autosummary:
+
+.. autoclass:: grid2op.Action._backendAction.ValueStore
+    :members:
     :autosummary:
 
 .. include:: final.rst
