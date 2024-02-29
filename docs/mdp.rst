@@ -109,7 +109,7 @@ MDP):
   :nowrap:
 
   \begin{align*}
-      \min_{\pi \in \Pi}  ~& \sum_{t=1}^T r_t \\
+      \min_{\pi \in \Pi}  ~& \sum_{t=1}^T \mathbb{E} r_t \\
       \text{s.t.} ~ \\
                      & \forall t, a_t \sim  \pi (s_{t}) & \text{policy produces the action} \\
                      & \forall t, s_{t+1} \sim \mathcal{L}_S(s_t, a_t) & \text{environment produces next state} \\
@@ -134,14 +134,17 @@ This simulator is able to compute some informations that are part of the state
 space :math:`\mathcal{S}` (*eg* flows on powerlines, active production value of generators etc.)
 and thus are used in the computation of the transition kernel.
 
-TODO how to model it.
+We can model this simulator with a function :math:`\text{Sim}` that takes as input some data from an 
+"input space" :math:`\mathcal{S}_{\text{im}}^{(\text{in})}` and result 
+in data in :math:`\mathcal{S}_{\text{im}}^{(\text{out})}`.
 
-.. This simulator is also used when implementing the transition kernel. Some part of the state space
-
-
-.. other information given by the Environment (see :ref:`environment-module` for details about the
-.. way the `Environment` is coded and refer to :class:`grid2op.Action._backendAction._BackendAction` for list 
-.. of all available informations informatically available for the solver). 
+.. note::
+  In grid2op we don't force the "shape" of :math:`\mathcal{S}_{\text{im}}^{(\text{in})}`, including
+  the format used to read the grid file from the hard drive, the solved equations, the way
+  these equations are used. Everything here is "free" and grid2op only needs that the simulator
+  (wrapped in a `Backend`) understands the "format" sent by grid2op (through a 
+  :class:`grid2op.Action._backendAction._BackendAction`) and is able to expose
+  to grid2op some of its internal variables (accessed with the `***_infos()` methods of the backend)
 
 
 To make a parallel with similar concepts "simulator",
@@ -153,21 +156,63 @@ here excepts that it solves powerflows.
 Some Time Series
 +++++++++++++++++
 
-TODO
+Another type of data that we need to define "the" grid2op MDP is the "time series", implemented in the `chronics`
+grid2op module documented on the page 
+:ref:`time-series-module` with some complements given in the :ref:`doc_timeseries` page as well. 
+
+These time series define what exactly would happen if the grid was a 
+"copper plate" without any constraints. Said differently it provides what would each consumer
+consume and what would each producer produce if they could all be connected together with 
+infinite "bandwith", without any constraints on the powerline etc.
+
+In particular, grid2op supposes that these "time series" are balanced, in the sense that the producers
+produce just the right amount (electrical power cannot really be stocked) for the consumer to consume 
+and that for each steps. It also supposes that all the "constraints" of the producers.
+
+These time series are typically generated outside of grid2op, for example using `chronix2grid <https://github.com/BDonnot/ChroniX2Grid>`_ 
+python package (or anything else).
+
+
+Formally, we will define these time series as input :math:`\mathcal{X}_t` all these time series at time :math:`t`. These
+exogenous data consist of :
+
+- generator active production (in MW), for each generator
+- load active power consumption (in MW), for each loads
+- load reactive consumption (in MVAr), for each loads
+- \* generator voltage setpoint / target (in kV)
+
+.. note::
+  \* for this last part, this can be adapted "on demand" by the environment through the `voltage controler` module.
+  But for the sake of modeling, this can be modeled as being external / exogenous data.
+
+And, to make a parrallel with similar concept in other RL environment, these "time series" can represent the layout of the maze
+in pacman, the positions of the platforms in "mario-like" 2d games, the different turns and the width of the route in a car game etc. 
+This is the "base" of the levels in most games.
+
+Finally, for most released environment, a lof of different :math:`\mathcal{X}` are available. By default, each time the 
+environment is "reset" (the user want to move to the next scenario), a new :math:`\mathcal{X}` is used (this behaviour 
+can be changed, more information on the section :ref:`environment-module-chronics-info` of the documentation).
 
 .. _mdp-def:
 
 Modeling sequential decisions
 -------------------------------
 
-TODO
+As we said in introduction of this page, we will model a given scenario in grid2op. We have at our disposal:
 
+- a simulator, which is represented as a function :math:`\text{Sim} : \mathcal{S}_{\text{im}}^{(\text{in})} \to \mathcal{S}_{\text{im}}^{(\text{out})}`
+- some time series :math:`\mathcal{X} = \left\{ \mathcal{X}_t \right\}_{1 \leq t \leq T}`
 
-Inputs
-~~~~~~~~~~
+And we need to define the MDP through the definition of :
 
-Markov Decision process
-~~~~~~~~~~~~~~~~~~~~~~~~
+- :math:`\mathcal{S}`, the "state space"
+- :math:`\mathcal{A}`, the "action space"
+- :math:`\mathcal{L}_s(s, a)`, sometimes called "transition kernel", is the probability 
+  distribution (over :math:`\mathcal{S}`) that gives the next
+  state after taking action :math:`a` in state :math:`s`
+- :math:`\mathcal{L}_r(s, s', a)`, sometimes called "reward kernel",
+  is the probability distribution (over :math:`[0, 1]`) that gives
+  the reward :math:`r` after taking action :math:`a` in state :math:`s` which lead to state :math:`s'`
 
 Extensions
 -----------
