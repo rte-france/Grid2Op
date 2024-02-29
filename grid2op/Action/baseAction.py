@@ -2235,12 +2235,15 @@ class BaseAction(GridObjects):
         be used to modify a :class:`grid2op.Backend.Backend`.
 
         In all the following examples, we suppose that a valid grid2op environment is created, for example with:
+        
         .. code-block:: python
 
             import grid2op
+            from grid2op.Action import BaseAction
+            env_name = "l2rpn_case14_sandbox"
             # create a simple environment
             # and make sure every type of action can be used.
-            env = grid2op.make(action_class=grid2op.Action.Action)
+            env = grid2op.make(env_name, action_class=BaseAction)
 
         *Example 1*: modify the load active values to set them all to 1. You can replace "load_p" by "load_q",
         "prod_p" or "prod_v" to change the load reactive value, the generator active setpoint or the generator

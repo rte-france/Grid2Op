@@ -10,6 +10,15 @@
 A grid, a graph: grid2op representation of the powergrid
 ===================================================================
 
+
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
+Objectives
+----------------
+
 In this section of the documentation, we will dive a deeper into the "modeling" on which grid2op is based and
 especially how the underlying graph of the powergrid is represented and how it can be easily retrieved.
 
@@ -22,10 +31,6 @@ First, we detail some concepts from the power system community in section
 :ref:`powersystem-desc-gridgraph`. Then we explain how this graph is coded in grid2op in section
 :ref:`graph-encoding-gridgraph`. Finally, we show some code examples on how to retrieve this graph in
 section :ref:`get-the-graph-gridgraph`.
-
-
-.. contents:: Table of Contents
-    :depth: 3
 
 .. _powersystem-desc-gridgraph:
 

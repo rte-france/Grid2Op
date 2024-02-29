@@ -3,6 +3,15 @@
 Model Based / Planning methods
 ====================================
 
+
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
+Objectives
+----------------
+
 .. warning::
     This page is in progress. We welcome any contribution :-)
 
