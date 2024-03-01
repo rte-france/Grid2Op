@@ -459,14 +459,18 @@ package that was formerly "openAI gym").
 
 This includes:
 
-- :class:`grid2op.gym_compat.GymActionSpace` which "represents" actions as a gymnasium `Dict`
-- :class:`grid2op.gym_compat.BoxGymActSpace` which represents actions as gymnasium `Box` 
+- :class:`grid2op.gym_compat.GymActionSpace` which "represents" actions as a gymnasium 
+  `Dict <https://gymnasium.farama.org/api/spaces/composite/#dict>`_
+- :class:`grid2op.gym_compat.BoxGymActSpace` which represents actions as gymnasium 
+  `Box <https://gymnasium.farama.org/api/spaces/fundamental/#box>`_ 
   (actions are numpy arrays). This is especially suited for continuous attributes
   such as redispatching, storage or curtailment.
-- :class:`grid2op.gym_compat.DiscreteActSpace` which represents actions as gymnasium `Discrete`
+- :class:`grid2op.gym_compat.DiscreteActSpace` which represents actions as gymnasium 
+  `Discrete <https://gymnasium.farama.org/api/spaces/fundamental/#discrete>`_
   (actions are integer). This is especially suited for discrete actions such as 
   setting line status or topologies at substation.
-- :class:`grid2op.gym_compat.MultiDiscreteActSpace` which represents actions as gymnasium `Discrete`
+- :class:`grid2op.gym_compat.MultiDiscreteActSpace` which represents actions as gymnasium 
+  `MultiDiscrete <https://gymnasium.farama.org/api/spaces/fundamental/#multidiscrete>`_
   (actions are integer). This is also especially suited for discrete actions such as 
   setting line status or topologies at substation.
 

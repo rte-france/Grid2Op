@@ -144,9 +144,12 @@ stored in the attribute `self._grid` that can be anything.
     grid2op will only use the information given in the `*_infos()` methods
     (*eg* :func:`grid2op.Backend.Backend.loads_info`) and never by directly accessing `self._grid`
 
-    In other words, `self._grid` can be anything: a PandaPower `Network`, a GridCal `MultiCircuit`,
-    a lightsim2grid `GridModel`, a pypowsybl `Network` (or `SortedNetwork`),
-    a powerfactory `Project` etc. Grid2op will never attempt to access `self._grid`
+    In other words, `self._grid` can be anything: a `PandaPower <https://pandapower.readthedocs.io/en/latest/>`_ `Network`, a 
+    `GridCal <https://gridcal.readthedocs.io/en/latest/>`_ `MultiCircuit`,
+    a `lightsim2grid <lightsim2grid.readthedocs.io/>`_ `GridModel`, a 
+    `pypowsybl <pypowsybl.readthedocs.io/>`_ `Network` (or `SortedNetwork`),
+    a `powerfactory <https://www.digsilent.de/en/scripting-and-automation.html>` `Project` etc. 
+    Grid2op will never attempt to access `self._grid`
 
     (Though, to be perfectly honest, some agents might rely on some type `_grid`, if that's the case, too
     bad for these agents they will need to implement special methods to be compatible with your backend.

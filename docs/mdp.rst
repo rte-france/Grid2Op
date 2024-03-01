@@ -147,6 +147,8 @@ in data in :math:`\mathcal{S}_{\text{im}}^{(\text{out})}`.
   to grid2op some of its internal variables (accessed with the `***_infos()` methods of the backend)
 
 
+TODO do I emphasize that the simulator also contains the grid iteself ?
+
 To make a parallel with similar concepts "simulator",
 represents the physics as in all `"mujoco" environments <https://gymnasium.farama.org/environments/mujoco/>`_ 
 *eg* `Ant <https://gymnasium.farama.org/environments/mujoco/ant>`_ or 
@@ -203,7 +205,7 @@ As we said in introduction of this page, we will model a given scenario in grid2
 - a simulator, which is represented as a function :math:`\text{Sim} : \mathcal{S}_{\text{im}}^{(\text{in})} \to \mathcal{S}_{\text{im}}^{(\text{out})}`
 - some time series :math:`\mathcal{X} = \left\{ \mathcal{X}_t \right\}_{1 \leq t \leq T}`
 
-And we need to define the MDP through the definition of :
+In order to define the MDP we need to define:
 
 - :math:`\mathcal{S}`, the "state space"
 - :math:`\mathcal{A}`, the "action space"
@@ -213,6 +215,235 @@ And we need to define the MDP through the definition of :
 - :math:`\mathcal{L}_r(s, s', a)`, sometimes called "reward kernel",
   is the probability distribution (over :math:`[0, 1]`) that gives
   the reward :math:`r` after taking action :math:`a` in state :math:`s` which lead to state :math:`s'`
+
+We will do that for a single episode (all episodes follow the same process)
+
+Precisions
+~~~~~~~~~~~
+
+To make the reading of this MDP easier, for this section of the documentation, 
+we adopted the following convention:
+
+- text in :green:`green` will refer to elements that are read directly from the grid
+  by the simulator :math:`\text{Sim}` at the creation of the environment.
+- text in :orange:`orange` will refer to elements that are related to time series :math:`\mathcal{X}`
+- text in :blue:`blue` will refer to elements that can be
+  be informatically modified by the user at the creation of the environment.
+
+In the pure definition of the MDP all text in :green:`green`, :orange:`orange` or 
+:blue:`blue` are exogenous and constant: once the episode starts they cannot be changed
+by anything (including the agent).
+
+We differenciate between these 3 types of "variables" only to clarify what can be modified
+by "who":
+
+- :green:`green` variables depend only on the controlled powergrid
+- :orange:`orange` variables depend only time series
+- :blue:`blue` variables depend only on the way the environment is loaded
+
+.. note::
+  Not all these variables are independant though. If there are for example 3 loads 
+  on the grid, then you need to use time series that somehow can generate
+  3 values at each step for load active values and 3 values at each step for load 
+  reactive values. So the dimension of the :orange:`orange` variables is somehow
+  related to dimension of :green:`green` variables : you cannot use the 
+  time series you want on the grid you want.
+
+Structural informations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To define mathematically the MPD we need first to define some notations about the grid manipulated in
+this episode.
+
+We suppose that the structure of the grid does not change during the episode, with:
+
+- :green:`n_line` being the number of "powerlines" (and transformers) which are elements that allow the
+  power flows to actually move from one place to another
+- :green:`n_gen` being the number of generators, which are elements that produces the power
+- :green:`n_load` being the number of consumers, which are elements that consume the power (typically a city or a 
+  large industrial plant manufacturing)
+- :green:`n_storage` being the number of storage units on the grid, which are elements that allow to 
+  convert the power into a form of energy that can be stored (*eg* chemical)
+
+All these elements (side of powerlines, generators, loads and storage units) 
+are connected together at so called "substation". The grid counts :green:`n_sub` such substations.
+We will call :green:`dim_topo := 2 \times n_line + n_gen + n_load + n_storage` the total number
+of elements in the grid.
+
+.. note::
+  This "substation" concept only means that if two elements does not belong to the same substations, they cannot
+  be directly connected at the same "node" of the graph. 
+
+  They can be connected in the same "connex component" of the graph (meaning that there are edges that
+  can connect them) but they cannot be part of the same "node"
+
+Each substation can be divided into :blue:`n_busbar_per_sub` (was only `2` in grid2op <= 1.9.8 and can be 
+any integer > 0 in grid2op version >= 1.9.9).
+
+This :blue:`n_busbar_per_sub` parameters tell the maximum number of independant nodes their can be in a given substation.
+So to count the total maximum number of nodes in the grid, you can do 
+:math:`\text{n\_busbar\_per\_sub} \times \text{n\_sub}`
+
+When the grid is loaded, the backend also informs the environment about the :green:`***_to_subid` vectors
+(*eg* :green:`gen_to_subid`)
+which give, for each element to which substation they are connected. This is how the "constraint" of 
+
+.. note::
+  **Definition**
+
+  With these notations, two elements are connected together if (and only if, that's a 
+  definition after all):
+
+  - they belong to the same substation
+  - they are connected to the same busbar
+
+  In this case, we can also say that these two elements are connected to the same "bus".
+
+  These "buses" are the "nodes" in "the" graph you thought about when looking at a powergrid.
+
+.. note:: 
+  **Definition** ("disconnected bus"): A bus is said to be disconnected if there are no elements connected to it.
+
+.. note:: 
+  **Definition** ("disconnected element"): An element (side of powerlines, generators, loads or storage units) 
+  is said to be disconnected if it is not connected to anything.
+
+Extra references:
++++++++++++++++++
+
+You can modify :blue:`n_busbar_per_sub` in the `grid2op.make` function. For example, 
+by default if you call `grid2op.make("l2rpn_case14_sandbox")` you will have :blue:`n_busbar_per_sub = 2`
+but if you call `grid2op.make("l2rpn_case14_sandbox", n_busbar=3)` you will have
+:blue:`n_busbar_per_sub = 3` see :ref:`substation-mod-el` for more information.
+
+:green:`n_line`, :green:`n_gen`, :green:`n_load`, :green:`n_storage` and :green:`n_sub` depends on the environment
+you loaded when calling `grid2op.make`, for example calling `grid2op.make("l2rpn_case14_sandbox")` 
+will lead to environment
+with :green:`n_line = 20`, :green:`n_gen = 6`, :green:`n_load = 11` and :green:`n_storage = 0`. 
+
+Other informations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+When loading the environment, there are also some other static data that are loaded which includes:
+
+- :green:`min_storage_p` and :green:`max_storage_p`: the minimum power that can be injected by 
+  each storage units (typically :green:`min_storage_p` :math:`< 0`). These are vectors 
+  (of real numbers) of size :green:`n_storage`
+- :green:`is_gen_renewable`: a vector of `True` / `False` indicating for each generator whether 
+  it comes from new renewable (and intermittent) renewable energy sources (*eg* solar or wind)
+- :green:`is_gen_controlable`: a vector of `True` / `False` indicating for each generator
+  whether it can be controlled by the agent to produce both more or less power 
+  at any given step. This is usually the case for generator which uses
+  as primary energy coal, gaz, nuclear or water (hyrdo powerplant)
+- :green:`min_ramp` and :green:`max_ramp`: are two vector giving the maximum amount
+  of power each generator can be adjusted to produce more / less. Typically,
+  :green:`min_ramp = max_ramp = 0` for non controlable generators.
+
+.. note::
+  These elements are marked :green:`green` because they are loaded by the backend, but strictly speaking
+  they can be specified in other files than the one representing the powergrid.
+
+Action space
+~~~~~~~~~~~~~
+
+At time of writing, grid2op support different type of actions:
+
+- :blue:`change_line_status`: that will change the line status (if it is disconnected 
+  this action will attempt to connect it). It leaves in :math:`\left\{0,1\right\}^{\text{n\_line}}`
+- :blue:`set_line_status`: that will set the line status to a 
+  particular state regardless of the previous state (+1 to attempt a force
+  reconnection on the powerline and -1 to attempt a force disconnection). 
+  There is also a special case where the agent do not want to modify a given line and
+  it can then output "0"
+  It leaves in :math:`\left\{-1, 0, 1\right\}^{\text{n\_line}}`
+- \* :blue:`change_bus`: that will, for each element of the grid change the busbars
+  to which it is connected (*eg* if it was connected on busbar 1 it will attempt to connect it on 
+  busbar 2). This leaves in :math:`\left\{0,1\right\}^{\text{dim\_topo}}`
+- :blue:`set_bus`: that will, for each element control on which busbars you want to assign it
+  to (1, 2, ..., :blue:`n_busbar_per_sub`). To which has been added 2 special cases -1 means "disconnect" this element
+  and 0 means "I don't want to affect" this element. This part of the action space then leaves
+  in :math:`\left\{-1, 0, 1, 2, ..., \text{n\_busbar\_per\_sub} \right\}^{\text{dim\_topo}}`
+- :blue:`storage_p`: for each storage, the agent can chose the setpoint / target power for 
+  each storage units. It leaves in 
+  :math:`[\text{min\_storage\_p}, \text{max\_storage\_p}] \subset \mathbb{R}^{\text{n\_storage}}`
+- :blue:`curtail`: corresponds to the action where the agent ask a generator (using renewable energy sources)
+  to produce less than what would be possible given the current weather. This type of action can 
+  only be performed on renewable generators. It leaves in :math:`[0, 1]^{\text{n\_gen}}` 
+  (to avoid getting the notations even more complex, we won't define exactly the space of this 
+  action. Indeed, writing :math:`[0, 1]^{\text{n\_gen}}` is not entirely true as a non renewable generator
+  will not be affected by this type of action)
+- :blue:`redisp`:  corresponds to the action where the agent is able to modify (to increase or decrease)
+  the generator output values (asking at the some producers to produce more and at some
+  to produce less). It leaves in :math:`[\text{min\_ramp}, \text{max\_ramp}] \subset \mathbb{R}^{\text{n\_gen}}`
+  (remember that for non controlable generators, by definition we suppose that :green:`min_ramp = max_ramp = 0`)
+
+.. note::
+  The :blue:`change_bus` is only available in environment where :blue:`n_busbar_per_sub = 2`
+  otherwise this would not make sense. The action space does not include this 
+  type of actions if :blue:`n_busbar_per_sub != 2`
+
+You might have noticed that every type of actions is written in :blue:`blue`. This is because
+the action space can be defined at the creation of the environment, by specifying in 
+the call to `grid2op.make` the `action_class` to be used. 
+
+Let's call :math:`1_{\text{change\_line\_status}}` either :math:`\left\{0,1\right\}^{\text{n\_line}}` 
+(corresponding to the definition of the :blue:`change_line_status` briefly described above) if the
+:blue:`change_line_status` has been selected by the user (for the entire scenario) or the
+:math:`\emptyset` otherwise (and we do similarly for all other type of actions of course: for example: 
+:math:`1_{redisp} \in \left\{[\text{min\_ramp}, \text{max\_ramp}], \emptyset\right\}`)
+
+Formally then, the action space can then be defined as:
+
+.. math::
+  :nowrap:
+
+  \begin{align*}
+  \mathcal{A}\text{space\_type} =&\left\{\text{change\_line\_status}, \text{set\_line\_status},  \right. \\
+                                 &~\left.\text{change\_bus}, \text{set\_bus}, \right.\\
+                                 &~\left.\text{storage\_p}, \text{curtail}, \text{redisp} \right\} \\
+  \mathcal{A} =&\Pi_{\text{a\_type} \in  \mathcal{A}\text{space\_type} } 1_{\text{a\_type}}\\
+  \end{align*}
+
+.. note::
+  In the grid2op documentation, the words "topological modification" are often used.
+  When that is the case, unless told otherwise it means 
+  :blue:`set_bus` or :blue:`change_bus` type of actions.
+
+
+Extra references:
++++++++++++++++++
+
+Informatically, the :math:`1_{\text{change\_line\_status}}` can be define at the 
+call to `grid2op.make` when the environment is created (and cannot be changed afterwards).
+
+For example, if the user build the environment like this :
+
+.. code-block:: python
+
+  import grid2op
+  from grid2op.Action import PlayableAction
+  env_name = ... # whatever, eg "l2rpn_case14_sandbox"
+  env = grid2op.make(env_name, action_class=PlayableAction)
+
+Then all type of actions are selected and :
+
+.. math::
+  :nowrap:
+
+  \begin{align*}
+  \mathcal{A} =& \left\{0,1\right\}^{\text{n\_line}} \times & \text{change\_line\_status} \\
+               & \left\{-1, 0, 1\right\}^{\text{n\_line}} \times & \text{set\_line\_status} \\
+               & \left\{0,1\right\}^{\text{dim\_topo}} \times & \text{change\_bus} \\
+               & \left\{-1, 0, 1, 2, ..., \text{n\_busbar\_per\_sub} \right\}^{\text{dim\_topo}} \times & \text{set\_bus} \\
+               & ~[\text{min\_storage\_p}, \text{max\_storage\_p}] \times & \text{storage\_p} \\
+               & ~[0, 1]^{\text{n\_gen}} \times & \text{curtail} \\
+               & ~[\text{min\_ramp}, \text{max\_ramp}] & \text{redisp}
+  \end{align*}
+
+State space
+~~~~~~~~~~~~~
+
+
 
 Extensions
 -----------
@@ -226,9 +457,13 @@ given to the agent in the observation at time `t` :math:`o_t`.
 
 More specifically, in most grid2op environment (by default at least), none of the 
 physical parameters of the solvers are provided. Also, to represent better
-the daily operation in power systems, only the `t`th row :math:`x_t` of the matrix
-X is given in the observation :math:`o_t`. The components :math:`X_{t', i}` 
-(for :math:`t' > t`) are not given.
+the daily operation in power systems, only the `t` th row of the matrix :math:`\mathcal{X}_t` 
+is given in the observation :math:`o_t`. The components :math:`\mathcal{X}_{t', i}` 
+(for :math:`\forall t' > t`) are not given.
+
+or not partial observatibility
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TODO remodel the grid2op MDP without the X
 
 Adversarial attacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
