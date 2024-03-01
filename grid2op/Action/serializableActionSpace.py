@@ -247,8 +247,10 @@ class SerializableActionSpace(SerializableSpace):
         return rnd_update
 
     def _sample_raise_alarm(self, rnd_update=None):
-        """.. warning:: 
+        """
+        .. warning:: 
             /!\\\\ Only valid with "l2rpn_icaps_2021" environment /!\\\\
+                
         """
         if rnd_update is None:
             rnd_update = {}
@@ -257,6 +259,11 @@ class SerializableActionSpace(SerializableSpace):
         return rnd_update
 
     def _sample_raise_alert(self, rnd_update=None):
+        """
+        .. warning::
+            Not available in all environments.
+                
+        """
         if rnd_update is None:
             rnd_update = {}
         rnd_alerted_lines = self.space_prng.choice([True, False], self.dim_alerts).astype(dt_bool)
@@ -1739,7 +1746,22 @@ class SerializableActionSpace(SerializableSpace):
         Examples
         --------
 
-        TODO
+        You can use it like this:
+        
+        .. code-block:: python
+        
+            import grid2op
+
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            obs = env.reset(seed=1)
+
+            # perform a random action
+            obs, reward, done, info = env.step(env.action_space.sample())
+            assert not done # you might end up in a "done" state depending on the random action
+            
+            acts = obs.get_back_to_ref_state()
+            print(acts)
 
         """
         from grid2op.Observation.baseObservation import BaseObservation

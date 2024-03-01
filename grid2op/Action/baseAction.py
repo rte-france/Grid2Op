@@ -9,7 +9,7 @@
 import copy
 import numpy as np
 import warnings
-from typing import Tuple, Dict, Literal, Any
+from typing import Tuple, Dict, Literal, Any, List
 try:
     from typing import Self
 except ImportError:
@@ -2235,12 +2235,15 @@ class BaseAction(GridObjects):
         be used to modify a :class:`grid2op.Backend.Backend`.
 
         In all the following examples, we suppose that a valid grid2op environment is created, for example with:
+        
         .. code-block:: python
 
             import grid2op
+            from grid2op.Action import BaseAction
+            env_name = "l2rpn_case14_sandbox"
             # create a simple environment
             # and make sure every type of action can be used.
-            env = grid2op.make(action_class=grid2op.Action.Action)
+            env = grid2op.make(env_name, action_class=BaseAction)
 
         *Example 1*: modify the load active values to set them all to 1. You can replace "load_p" by "load_q",
         "prod_p" or "prod_v" to change the load reactive value, the generator active setpoint or the generator
@@ -6327,7 +6330,14 @@ class BaseAction(GridObjects):
                                    group_line_status=False,
                                    group_redispatch=True,
                                    group_storage=True,
-                                   group_curtail=True) -> dict:
+                                   group_curtail=True) -> Dict[Literal["change_bus",
+                                                                       "set_bus",
+                                                                       "change_line_status",
+                                                                       "set_line_status",
+                                                                       "redispatch",
+                                                                       "set_storage",
+                                                                       "curtail"],
+                                                               List["BaseAction"]]:
         """This function allows to split a possibly "complex" action into its
         "unary" counterpart.
         

@@ -12,7 +12,6 @@ import warnings
     
 import grid2op
 from grid2op.gym_compat import GymEnv
-import numpy as np
 
 
 class TestGymEnvRenderer(unittest.TestCase):

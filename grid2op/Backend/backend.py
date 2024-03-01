@@ -172,6 +172,7 @@ class Backend(GridObjects, ABC):
             self._my_kwargs[k] = v
         
         #: .. versionadded:: 1.9.9
+        #:
         #: A flag to indicate whether the :func:`Backend.cannot_handle_more_than_2_busbar`
         #: or the :func:`Backend.cannot_handle_more_than_2_busbar`
         #: has been called when :func:`Backend.load_grid` was called.
@@ -180,6 +181,7 @@ class Backend(GridObjects, ABC):
         self._missing_two_busbars_support_info: bool = True
         
         #: .. versionadded:: 1.9.9
+        #: 
         #: There is a difference between this and the class attribute.
         #: You should not worry about the class attribute of the backend in :func:`Backend.apply_action`
         self.n_busbar_per_sub: int = DEFAULT_N_BUSBAR_PER_SUB
@@ -1933,6 +1935,7 @@ class Backend(GridObjects, ABC):
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is done as it should be by the Environment
+            
         """
         # lazy loading
         from grid2op.Action import CompleteAction
