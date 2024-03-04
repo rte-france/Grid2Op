@@ -109,7 +109,7 @@ MDP):
   :nowrap:
 
   \begin{align*}
-      \min_{\pi \in \Pi}  ~& \sum_{t=1}^T \mathbb{E} r_t \\
+      \min_{\pi \in \Pi}  ~& \sum_{t=1}^T \mathbb{E} \left( r_t \right) \\
       \text{s.t.} ~ \\
                      & \forall t, a_t \sim  \pi (s_{t}) & \text{policy produces the action} \\
                      & \forall t, s_{t+1} \sim \mathcal{L}_S(s_t, a_t) & \text{environment produces next state} \\
@@ -431,22 +431,139 @@ Then all type of actions are selected and :
   :nowrap:
 
   \begin{align*}
-  \mathcal{A} =& \left\{0,1\right\}^{\text{n\_line}} \times & \text{change\_line\_status} \\
-               & \left\{-1, 0, 1\right\}^{\text{n\_line}} \times & \text{set\_line\_status} \\
-               & \left\{0,1\right\}^{\text{dim\_topo}} \times & \text{change\_bus} \\
-               & \left\{-1, 0, 1, 2, ..., \text{n\_busbar\_per\_sub} \right\}^{\text{dim\_topo}} \times & \text{set\_bus} \\
-               & ~[\text{min\_storage\_p}, \text{max\_storage\_p}] \times & \text{storage\_p} \\
+  \mathcal{A} =& \left\{0,1\right\}^{\text{n\_line}}~ \times & \text{change\_line\_status} \\
+               & \left\{-1, 0, 1\right\}^{\text{n\_line}}~ \times & \text{set\_line\_status} \\
+               & \left\{0,1\right\}^{\text{dim\_topo}}~ \times & \text{change\_bus} \\
+               & \left\{-1, 0, 1, 2, ..., \text{n\_busbar\_per\_sub} \right\}^{\text{dim\_topo}}~ \times & \text{set\_bus} \\
+               & ~[\text{min\_storage\_p}, \text{max\_storage\_p}]~ \times & \text{storage\_p} \\
                & ~[0, 1]^{\text{n\_gen}} \times & \text{curtail} \\
                & ~[\text{min\_ramp}, \text{max\_ramp}] & \text{redisp}
   \end{align*}
 
+You can also build the same environment like this:
+
+.. code-block:: python
+
+  import grid2op
+  from grid2op.Action import TopologySetAction
+  same_env_name = ... # whatever, eg "l2rpn_case14_sandbox"
+  env = grid2op.make(same_env_name, action_class=TopologySetAction)
+
+Which will lead the following action space, because the user ask to 
+use only "topological actions" (including line status) with only the
+"set" way of modifying them.
+
+.. math::
+  :nowrap:
+
+  \begin{align*}
+  \mathcal{A} =& \left\{-1, 0, 1\right\}^{\text{n\_line}}~ \times & \text{set\_line\_status} \\
+               & \left\{-1, 0, 1, 2, ..., \text{n\_busbar\_per\_sub} \right\}^{\text{dim\_topo}}~ & \text{set\_bus} \\
+  \end{align*}
+
+The page :ref:`action-module` of the documentation provides you with all types of
+actions you you can use in grid2op.
+
+.. note::
+  If you use a compatibility with the popular gymnasium (previously gym)
+  you can also specify the action space with the "`attr_to_keep`"
+  key-word argument.
+
+.. _mdp-state-space-def:
+
 State space
 ~~~~~~~~~~~~~
 
+By default in grid2op, the state space shown to the agent (the so called 
+"observation"). In this part of the documentation, we will described something
+slightly different which is the "state space" of the MDP.
 
+The main difference is that this "state space" will include future data about the 
+environment (*eg* the :math:`\mathcal{X}` matrix). You can refer to 
+section :ref:`pomdp` or :ref:`non-pomdp` of this page of the documentation.
+
+.. note::
+  We found it easier to show the MDP without the introduction of the
+  "observation kernel", so keep in mind that this paragraph is not
+  representative of the observation in grid2op but is "purely
+  theoretical".
+
+The state space is defined by different type of attributes and we will not list
+them all here (you can find a detailed list of everything available to the 
+agent in the :ref:`observation_module` page of the documentation.) The
+"state space" is then made of:
+
+- some part of the outcome of the solver: 
+  :math:`S_{\text{grid}} \subset \mathcal{S}_{\text{im}}^{(\text{out})}`, this 
+  includes but is not limited to the loads active values `load_p`_, 
+  loads reactive values `load_q`_, voltage magnitude 
+  at each loads `load_v`_, the same kind of attributes but for generators
+  `gen_p`_, `gen_q`_, `gen_v`_, `gen_theta`_  and also for powerlines 
+  `p_or`_, `q_or`_, `v_or`_, `a_or`_, `theta_or`_, `p_ex`_, `q_ex`_, `v_ex`_, 
+  `a_ex`_, `theta_ex`_, `rho`_ etc.
+- some attributes related to "redispatching" (which is a type of actions) that is
+  computed by the environment (see :ref:`mdp-transition-kernel-def` for more information)
+  which includes `target_dispatch`_ and `actual_dispatch`_ or the curtailment
+  `gen_p_before_curtail`_, `curtailment_mw`_, `curtailment`_ or `curtailment_limit`_ 
+- some attributes related to "storage units", for example `storage_charge`_ , 
+  `storage_power_target`_, `storage_power`_ or `storage_theta`_  
+- some related to "date" and "time", `year`_, `month`_, `day`_, `hour_of_day`_, 
+  `minute_of_hour`_, `day_of_week`_, `current_step`_, `max_step`_, `delta_time`_  
+- finally some related to the :blue:`rules of the game` like 
+  `timestep_overflow`_, `time_before_cooldown_line`_ or `time_before_cooldown_sub`_
+
+And, to make it "Markovian" we also need to include :
+
+- the (constant) values of :math:`\mathcal{S}_{\text{im}}^{(\text{in})}` that 
+  are not "part of" :math:`\mathcal{X}`. This might include some physical
+  parameters of some elements of the grid (like transformers or powerlines) or
+  some other parameters of the solver controlling either the equations to be 
+  solved or the solver to use etc. \*
+- the complete matrix :math:`\mathcal{X}` which include the exact knowledge of 
+  past, present **and future** loads and generation for the entire scenario (which 
+  is not possible in practice). The matrix itself is constant.
+- the index representing at which "step" of the matrix :math:`\mathcal{X}` the 
+  current data are being used by the environment.
+
+.. note::
+  \* grid2op is build to be "simulator agnostic" so all this part of the "state space"
+  is not easily accessible through the grid2op API. To access (or to modify) them
+  you need to be aware of the implementation of the :class:`grid2op.Backend.Backend`
+  you are using.
+
+.. _mdp-transition-kernel-def:
+
+Transition Kernel
+~~~~~~~~~~~~~~~~~~~
+
+TODO 
+
+Reward Kernel
+~~~~~~~~~~~~~~~~~~~
+
+And to finish this (rather long) description of grid2op's MDP we need to mention the
+"reward kernel".
+
+This "kernel" computes the reward associated to taking the action :math:`a` in step
+:math:`s` that lead to step :math:`s'`. In most cases, the 
+reward in grid2op is a deterministic function and depends only on the grid state.
+
+In grid2op, every environment comes with a pre-defined :blue:`reward function` that
+can be fully customized by the user when the environment is created or
+even afterwards (but is still constant during an entire episode of course).
+
+For more information, you might want to have a look at the :ref:`reward-module` page
+of this documentation.
 
 Extensions
 -----------
+
+TODO: this part of the section is still an ongoing work.
+
+Let us know if you want to contribute !
+
+
+.. _pomdp:
 
 Partial Observatibility
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -461,8 +578,11 @@ the daily operation in power systems, only the `t` th row of the matrix :math:`\
 is given in the observation :math:`o_t`. The components :math:`\mathcal{X}_{t', i}` 
 (for :math:`\forall t' > t`) are not given.
 
-or not partial observatibility
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _non-pomdp:
+
+Or not partial observatibility ?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 TODO remodel the grid2op MDP without the X
 
 Adversarial attacks
@@ -478,6 +598,9 @@ includes a model of the world that can be different from the grid of the environ
 
 Simulator dynamics can be more complex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+TODO, Backend does not need to "exactly map the simulator" there are 
+some examples below:
 
 Hide elements from the grid2op environment
 ++++++++++++++++++++++++++++++++++++++++++
@@ -504,11 +627,20 @@ accurate description of the grid and only "subsample"
 (*eg* at a frequency of every 5 mins) provide grid2op
 with some information.
 
+Handle the topology differently
+++++++++++++++++++++++++++++++++++
+
+Backend can operate switches, only requirement from grid2op is to map the topology
+to switches.
 
 Some constraints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 TODO
 
+Operator attention: alarm and alter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+TODO
 
 .. include:: final.rst

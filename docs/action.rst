@@ -416,7 +416,7 @@ As we explained in the previous paragraph, some action on one end of a powerline
 powerline or disconnect it. This means they modify the bus of **both** the extremity of the powerline.
 
 Here is a table summarizing how the buses are impacted. We denoted by "`PREVIOUS_OR`" the last bus at which
-the origin end of the powerline was connected and "`PREVIOUS_EX`" the last bus at which the extremity end of the
+the origin side of the powerline was connected and "`PREVIOUS_EX`" the last bus at which the extremity side of the
 powerline was connected. Note that for clarity when something is not modified by the action we decided to write on
 the table "not modified" (this entails that after this action, if the powerline is connected then "new origin bus" is
 "`PREVIOUS_OR`" and "new extremity bus" is "`PREVIOUS_EX`"). We remind the reader that "-1" encode for a

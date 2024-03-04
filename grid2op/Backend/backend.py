@@ -493,7 +493,7 @@ class Backend(GridObjects, ABC):
         .. note::
             It is called after the solver has been ran, only in case of success (convergence).
             
-        It returns the information extracted from the _grid at the origin end of each powerline.
+        It returns the information extracted from the _grid at the origin side of each powerline.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
         :func:`Backend.get_line_status` method.
@@ -526,7 +526,7 @@ class Backend(GridObjects, ABC):
         .. note::
             It is called after the solver has been ran, only in case of success (convergence).
             
-        It returns the information extracted from the _grid at the extremity end of each powerline.
+        It returns the information extracted from the _grid at the extremity side of each powerline.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
         :func:`Backend.get_line_status` method.
@@ -683,10 +683,10 @@ class Backend(GridObjects, ABC):
             It is called after the solver has been ran, only in case of success (convergence).
             
         If the AC mod is used, this shall return the current flow on the end of the powerline where there is a protection.
-        For example, if there is a protection on "origin end" of powerline "l2" then this method shall return the current
-        flow of at the "origin end" of powerline l2.
+        For example, if there is a protection on "origin side" of powerline "l2" then this method shall return the current
+        flow of at the "origin side" of powerline l2.
 
-        Note that in general, there is no loss of generality in supposing all protections are set on the "origin end" of
+        Note that in general, there is no loss of generality in supposing all protections are set on the "origin side" of
         the powerline. So this method will return all origin line flows.
         It is also possible, for a specific application, to return the maximum current flow between both ends of a power
         _grid for more complex scenario.

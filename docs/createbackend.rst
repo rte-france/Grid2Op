@@ -259,7 +259,7 @@ Name                       See paragraph   Type         Size       Description
 `line_ex_to_subid`_         :ref:`subid`   vect, int    `n_line`_   For each powerline, it gives the substation id to which its **extremity** end is connected
 `name_load`_                               vect, str    `n_load`_  (optional) name of each load on the grid [if not set, by default it will be "load_$LoadSubID_$LoadID" for example "load_1_10" if the load with id 10 is connected to substation with id 1]
 `name_gen`_                                vect, str    `n_gen`_   (optional) name of each generator on the grid [if not set, by default it will be "gen_$GenSubID_$GenID" for example "gen_2_42" if the generator with id 42 is connected to substation with id 2]
-`name_line`_                               vect, str    `n_line`_  (optional) name of each powerline (and transformers !) on the grid [if not set, by default it will be "$SubOrID_SubExID_LineID" for example "1_4_57" if the powerline with id 57 has its origin end connected to substation with id 1 and its extremity end connected to substation with id 4]
+`name_line`_                               vect, str    `n_line`_  (optional) name of each powerline (and transformers !) on the grid [if not set, by default it will be "$SubOrID_SubExID_LineID" for example "1_4_57" if the powerline with id 57 has its origin side connected to substation with id 1 and its extremity side connected to substation with id 4]
 `name_sub`_                                vect, str    `n_sub`_   (optional) name of each substation on the grid [if not set, by default it will be "sub_$SubID" for example "sub_41" for the substation with id 41]
 `sub_info`_                 :ref:`sub-i`   vect, int    `n_sub`_    (can be automatically set if you don't initialize it) For each substation, it gives the number of elements connected to it ("elements" here denotes: powerline - and transformer- ends, load or generator)
 `dim_topo`_                 :ref:`sub-i`   int          NA          (can be automatically set if you don't initialize it) Total number of elements on the grid ("elements" here denotes: powerline - and transformer- ends, load or generator)
@@ -324,7 +324,7 @@ extremely complex way to say you have to do this:
 Note the number for each element in the substation.
 
 In this example, for substaion with id 0 (bottom left) you decided
-that the powerline with id 0 (connected at this substation at its origin end) will be the "first object of this
+that the powerline with id 0 (connected at this substation at its origin side) will be the "first object of this
 substation". Then the "Load 0" is the second object [remember index a 0 based, so the second object has id 1],
 generator 0 is the third object of this substation (you can know it with the "3" near it) etc.
 
@@ -448,12 +448,12 @@ First, have a look at substation 0:
 
 You know that, at this substation 0 there are `6` elements connected. In this example, these are:
 
-- origin end of Line 0
+- origin side of Line 0
 - Load 0
 - gen 0
-- origin end of line 1
-- origin end of line 2
-- origin end of line 3
+- origin side of line 1
+- origin side of line 2
+- origin side of line 3
 
 Given that, you can fill:
 
@@ -478,12 +478,12 @@ You defined (in a purely arbitrary manner):
 
 So you get:
 
-- first component of `line_or_to_sub_pos` is 0 [because "origin end of line 0" is "element 0" of this substation]
+- first component of `line_or_to_sub_pos` is 0 [because "origin side of line 0" is "element 0" of this substation]
 - first component of `load_to_sub_pos` is 1 [because "load 0" is "element 1" of this substation]
 - first component of `gen_to_sub_pos` is 2 [because "gen 0" is "element 2" of this substation]
-- fourth component of `line_or_to_sub_pos` is 3 [because "origin end of line 3" is "element 3" of this substation]
-- third component of `line_or_to_sub_pos` is 4 [because "origin end of line 2" is "element 4" of this substation]
-- second component of `line_or_to_sub_pos` is 5 [because "origin end of line 1" is "element 5" of this substation]
+- fourth component of `line_or_to_sub_pos` is 3 [because "origin side of line 3" is "element 3" of this substation]
+- third component of `line_or_to_sub_pos` is 4 [because "origin side of line 2" is "element 4" of this substation]
+- second component of `line_or_to_sub_pos` is 5 [because "origin side of line 1" is "element 5" of this substation]
 
 This is showed in the figure below:
 
@@ -583,22 +583,22 @@ At the end, the `apply_action` function of the backend should look something lik
                 ... # the way you do that depends on the `internal representation of the grid`
         lines_or_bus = backendAction.get_lines_or_bus()
         for line_id, new_bus in lines_or_bus:
-            # modify the "busbar" of the origin end of powerline line_id
+            # modify the "busbar" of the origin side of powerline line_id
             if new_bus == -1:
-                # the origin end of powerline is disconnected in the action, disconnect it on your internal representation of the grid
+                # the origin side of powerline is disconnected in the action, disconnect it on your internal representation of the grid
                 ... # the way you do that depends on the `internal representation of the grid`
             else:
-                # the origin end of powerline is moved to either busbar 1 (in this case `new_bus` will be `1`)
+                # the origin side of powerline is moved to either busbar 1 (in this case `new_bus` will be `1`)
                 # or to busbar 2 (in this case `new_bus` will be `2`)
                 ... # the way you do that depends on the `internal representation of the grid`
         lines_ex_bus = backendAction.get_lines_ex_bus()
         for line_id, new_bus in lines_ex_bus:
-            # modify the "busbar" of the extremity end of powerline line_id
+            # modify the "busbar" of the extremity side of powerline line_id
             if new_bus == -1:
-                # the extremity end of powerline is disconnected in the action, disconnect it on your internal representation of the grid
+                # the extremity side of powerline is disconnected in the action, disconnect it on your internal representation of the grid
                 ... # the way you do that depends on the `internal representation of the grid`
             else:
-                # the extremity end of powerline is moved to either busbar 1 (in this case `new_bus` will be `1`)
+                # the extremity side of powerline is moved to either busbar 1 (in this case `new_bus` will be `1`)
                 # or to busbar 2 (in this case `new_bus` will be `2`)
                 ... # the way you do that depends on the `internal representation of the grid`
 
@@ -800,7 +800,7 @@ And you do chat for all substations, giving:
 
 So in this simple example, the first element of the topology vector will represent the origin of powerline 0,
 the second element will represent the load 0, the 7th element (id 6, remember python index are 0 based) represent
-first element of substation 1, so in this case extremity end of powerline 3, the 8th element the generator 1, etc.
+first element of substation 1, so in this case extremity side of powerline 3, the 8th element the generator 1, etc.
 up to element with id 20 whith is the last element of the last substation, in this case extremity of powerline 7.
 
 Once you know the order, the encoding is pretty straightforward:

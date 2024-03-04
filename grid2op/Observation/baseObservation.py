@@ -112,38 +112,38 @@ class BaseObservation(GridObjects):
         voltage angles (see :attr:`BaseObservation.support_theta`).
 
     p_or: :class:`numpy.ndarray`, dtype:float
-        The active power flow at the origin end of each powerline (expressed in MW).
+        The active power flow at the origin side of each powerline (expressed in MW).
 
     q_or: :class:`numpy.ndarray`, dtype:float
-        The reactive power flow at the origin end of each powerline (expressed in MVar).
+        The reactive power flow at the origin side of each powerline (expressed in MVar).
 
     v_or: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude at the bus to which the origin end of each powerline is connected (expressed in kV).
+        The voltage magnitude at the bus to which the origin side of each powerline is connected (expressed in kV).
 
     theta_or: :class:`numpy.ndarray`, dtype:float
-        The voltage angle at the bus to which the origin end of each powerline
+        The voltage angle at the bus to which the origin side of each powerline
         is connected (expressed in degree). Only availble if the backend supports the retrieval of
         voltage angles (see :attr:`BaseObservation.support_theta`).
 
     a_or: :class:`numpy.ndarray`, dtype:float
-        The current flow at the origin end of each powerline (expressed in A).
+        The current flow at the origin side of each powerline (expressed in A).
 
     p_ex: :class:`numpy.ndarray`, dtype:float
-        The active power flow at the extremity end of each powerline (expressed in MW).
+        The active power flow at the extremity side of each powerline (expressed in MW).
 
     q_ex: :class:`numpy.ndarray`, dtype:float
-        The reactive power flow at the extremity end of each powerline (expressed in MVar).
+        The reactive power flow at the extremity side of each powerline (expressed in MVar).
 
     v_ex: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude at the bus to which the extremity end of each powerline is connected (expressed in kV).
+        The voltage magnitude at the bus to which the extremity side of each powerline is connected (expressed in kV).
 
     theta_ex: :class:`numpy.ndarray`, dtype:float
-        The voltage angle at the bus to which the extremity end of each powerline
+        The voltage angle at the bus to which the extremity side of each powerline
         is connected (expressed in degree). Only availble if the backend supports the retrieval of
         voltage angles (see :attr:`BaseObservation.support_theta`).
 
     a_ex: :class:`numpy.ndarray`, dtype:float
-        The current flow at the extremity end of each powerline (expressed in A).
+        The current flow at the extremity side of each powerline (expressed in A).
 
     rho: :class:`numpy.ndarray`, dtype:float
         The capacity of each powerline. It is defined at the observed current flow divided by the thermal limit of each
@@ -1863,9 +1863,9 @@ class BaseObservation(GridObjects):
         optional: 
         
         - `lor_bus` : for each powerline, it gives the id (row / column of the matrix) 
-          of the bus of the matrix to which its origin end is connected         
+          of the bus of the matrix to which its origin side is connected         
         - `lex_bus` : for each powerline, it gives the id (row / column of the matrix) 
-          of the bus of the matrix to which its extremity end is connected         
+          of the bus of the matrix to which its extremity side is connected         
 
         Notes
         ------
@@ -3377,7 +3377,7 @@ class BaseObservation(GridObjects):
     @property
     def line_or_bus(self) -> np.ndarray:
         """
-        Retrieve the busbar at which each origin end of powerline is connected.
+        Retrieve the busbar at which each origin side of powerline is connected.
 
         The result follow grid2op convention:
 
@@ -3399,7 +3399,7 @@ class BaseObservation(GridObjects):
     @property
     def line_ex_bus(self) -> np.ndarray:
         """
-        Retrieve the busbar at which each extremity end of powerline is connected.
+        Retrieve the busbar at which each extremity side of powerline is connected.
 
         The result follow grid2op convention:
 

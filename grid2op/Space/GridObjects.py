@@ -113,7 +113,7 @@ class GridObjects:
               "local topology" of the substation 4 by looking at
               :attr:`grid2op.Observation.BaseObservation.topo_vect` [42:47].
           iii) retrieve which component of this vector of dimension 5 (remember we assumed substation 4 had 5 elements)
-               encodes information about the origin end of the line with id `l_id`. This information is given in
+               encodes information about the origin side of the line with id `l_id`. This information is given in
                :attr:`GridObjects.line_or_to_sub_pos` [l_id]. This is a number between 0 and 4, say it's 3. 3 being
                the index of the object in the substation)
 
@@ -2055,12 +2055,12 @@ class GridObjects:
             zip(cls.line_or_to_subid, cls.line_or_to_sub_pos)
         ):
             if sub_pos >= cls.sub_info[sub_id]:
-                raise IncorrectPositionOfLines("for line {} at origin end".format(i))
+                raise IncorrectPositionOfLines("for line {} at origin side".format(i))
         for i, (sub_id, sub_pos) in enumerate(
             zip(cls.line_ex_to_subid, cls.line_ex_to_sub_pos)
         ):
             if sub_pos >= cls.sub_info[sub_id]:
-                raise IncorrectPositionOfLines("for line {} at extremity end".format(i))
+                raise IncorrectPositionOfLines("for line {} at extremity side".format(i))
         for i, (sub_id, sub_pos) in enumerate(
             zip(cls.storage_to_subid, cls.storage_to_sub_pos)
         ):
@@ -2860,9 +2860,9 @@ class GridObjects:
                    sub_id, env.name_load[dict_["loads_id"]]))
             print("The names of the generators connected to substation {} are: {}".format(
                    sub_id, env.name_gen[dict_["generators_id"]]))
-            print("The powerline whose origin end is connected to substation {} are: {}".format(
+            print("The powerline whose origin side is connected to substation {} are: {}".format(
                    sub_id, env.name_line[dict_["lines_or_id"]]))
-            print("The powerline whose extremity end is connected to substation {} are: {}".format(
+            print("The powerline whose extremity side is connected to substation {} are: {}".format(
                    sub_id, env.name_line[dict_["lines_ex_id"]]))
             print("The storage units connected to substation {} are: {}".format(
                    sub_id, env.name_line[dict_["storages_id"]]))
@@ -2958,10 +2958,10 @@ class GridObjects:
               1. column 0: the id of the substation
               2. column 1: -1 if this object is not a load, or `LOAD_ID` if this object is a load (see example)
               3. column 2: -1 if this object is not a generator, or `GEN_ID` if this object is a generator (see example)
-              4. column 3: -1 if this object is not the origin end of a line, or `LOR_ID` if this object is the
-                 origin end of a powerline(see example)
-              5. column 4: -1 if this object is not a extremity end, or `LEX_ID` if this object is the extremity
-                 end of a powerline
+              4. column 3: -1 if this object is not the origin side of a line, or `LOR_ID` if this object is the
+                 origin side of a powerline(see example)
+              5. column 4: -1 if this object is not a extremity side, or `LEX_ID` if this object is the extremity
+                 side of a powerline
               6. column 5: -1 if this object is not a storage unit, or `STO_ID` if this object is one
 
         Examples
@@ -2984,14 +2984,14 @@ class GridObjects:
             # we can also get that:
             # 1. this is not a load (-1 at position 1 - so 2nd component)
             # 2. this is not a generator (-1 at position 2 - so 3rd component)
-            # 3. this is not the origin end of a powerline (-1 at position 3)
-            # 4. this is the extremity end of powerline 0 (there is a 0 at position 4)
+            # 3. this is not the origin side of a powerline (-1 at position 3)
+            # 4. this is the extremity side of powerline 0 (there is a 0 at position 4)
             # 5. this is not a storage unit (-1 at position 5 - so last component)
 
             # likewise, the second element connected at this substation is:
             mat[1,:]
             # array([ 1, -1, -1,  2, -1, -1], dtype=int32)
-            # it represents the origin end of powerline 2
+            # it represents the origin side of powerline 2
 
             # the 5th element connected at this substation is:
             mat[4,:]
@@ -3055,10 +3055,10 @@ class GridObjects:
             Internal, do not use
 
         from_: ``int``
-            Id the substation to which the origin end of the powerline to look for should be connected to
+            Id the substation to which the origin side of the powerline to look for should be connected to
 
         to_: ``int``
-            Id the substation to which the extremity end of the powerline to look for should be connected to
+            Id the substation to which the extremity side of the powerline to look for should be connected to
 
         Returns
         -------

@@ -2264,8 +2264,8 @@ class BaseAction(GridObjects):
             # there is a shortcut to do that:
             disconnect_powerline2 = env.disconnect_powerline(line_id=1)
 
-        *Example 3*: force the reconnection of the powerline of id 5 by connected it to bus 1 on its origin end and
-        bus 2 on its extremity end.
+        *Example 3*: force the reconnection of the powerline of id 5 by connected it to bus 1 on its origin side and
+        bus 2 on its extremity side.
 
         .. code-block:: python
 
@@ -2688,14 +2688,14 @@ class BaseAction(GridObjects):
             disco_or = self._set_topo_vect[cls.line_or_pos_topo_vect] == -1
             if (self._set_topo_vect[cls.line_ex_pos_topo_vect][disco_or] > 0).any():
                 raise InvalidLineStatus(
-                    "A powerline is connected (set to a bus at extremity end) and "
-                    "disconnected (set to bus -1 at origin end)"
+                    "A powerline is connected (set to a bus at extremity side) and "
+                    "disconnected (set to bus -1 at origin side)"
                 )
             disco_ex = self._set_topo_vect[cls.line_ex_pos_topo_vect] == -1
             if (self._set_topo_vect[cls.line_or_pos_topo_vect][disco_ex] > 0).any():
                 raise InvalidLineStatus(
-                    "A powerline is connected (set to a bus at origin end) and "
-                    "disconnected (set to bus -1 at extremity end)"
+                    "A powerline is connected (set to a bus at origin side) and "
+                    "disconnected (set to bus -1 at extremity side)"
                 )
 
         # if i disconnected of a line, but i modify also the bus where it's connected
@@ -3704,8 +3704,8 @@ class BaseAction(GridObjects):
 
             - if a powerline is inspected then the keys are:
 
-                - "change_bus_or": whether or not the origin end will be moved from one bus to another
-                - "change_bus_ex": whether or not the extremity end will be moved from one bus to another
+                - "change_bus_or": whether or not the origin side will be moved from one bus to another
+                - "change_bus_ex": whether or not the extremity side will be moved from one bus to another
                 - "set_bus_or": the new bus where the origin will be moved
                 - "set_bus_ex": the new bus where the extremity will be moved
                 - "set_line_status": the new status of the power line

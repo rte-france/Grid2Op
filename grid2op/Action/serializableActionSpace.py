@@ -474,10 +474,10 @@ class SerializableActionSpace(SerializableSpace):
             The powerline to be disconnected.
 
         bus_or: ``int``
-            On which bus to reconnect the powerline at its origin end
+            On which bus to reconnect the powerline at its origin side
 
         bus_ex: ``int``
-            On which bus to reconnect the powerline at its extremity end
+            On which bus to reconnect the powerline at its extremity side
         previous_action
 
         Returns
